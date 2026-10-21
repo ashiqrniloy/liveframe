@@ -102,7 +102,7 @@ Sources checked on 2026-10-21:
     - Biome excludes `proof/references/` so snapshot bytes are never linted or reformatted; proof implementation remains included. The existing root typecheck includes only `src/`. No dependencies, exports, runtime code or spec meaning changed.
     - Verification: `timeout 30s bun /tmp/liveframe-task1-verify.ts` passed (complete 20-file inventory and attribution, byte equality against `git show`, line ranges, required anchors, synthetic labels and credential/import scans). `timeout 300s bun run check` passed (typecheck, lint, formatting and 1 test). Verification used a temporary Bun script; the permanent `references_are_all_attributed` test remains Task 2's responsibility.
 
-- [ ] Task 2: Set up the proof workspace and define the candidate primitives
+- [x] Task 2: Set up the proof workspace and define the candidate primitives
   - Acceptance Criteria:
     - Functional:
       - `proof/catalog/definitions.ts` defines the spec §5 candidates as data in the spec §5 shape (`kind`, `props`, `children`, `events`, `variants`, `slots`, `styleProps`, `a11y`):
@@ -154,6 +154,13 @@ Sources checked on 2026-10-21:
     - `catalog_has_no_product_shaped_kind`: fails if a kind outside the allowed primitive list is added.
     - `definitions_admit_no_colour_or_raw_style_props`: fails if any prop is colour-typed or named `className` / `style`.
     - `references_are_all_attributed`: fails if a file in `proof/references/` is missing from `SOURCES.md`.
+  - Notes (executed 2026-10-21):
+    - Added all 23 spec §5 candidates in `proof/catalog/definitions.ts`, with closed JSON Schema objects, child constraints, event payload declarations, variants, slots, declared style-prop names and accessibility metadata. `define.ts` contains the proof's schema/definition types; `as const satisfies` preserves literal catalog data for Task 4 without a builder function or runtime dependency.
+    - `proof/tsconfig.json` extends the strict root config, includes proof TS/TSX and excludes inert references. JSX uses `react-jsx` with React as the default import source; future widgets opt into the proof runtime per file. No JSX runtime or React dependency is needed until those implementations exist. The root `typecheck` script now checks both projects. Biome and Bun already discover proof implementation/tests, so their configuration needed no change.
+    - Wrote the tests first and confirmed failure before the catalog existed. Tests enforce the exact candidate inventory, complete plain-data contracts, closed object schemas, declared accessibility-name props, valid child kinds, layout-only style-prop names, and no function/colour/raw-style schema escape. The permanent attribution test checks all 20 snapshots against the provenance table, including repo prefixes, full SHA syntax and inclusive line counts, without sibling-repo access.
+    - Documentation checked via Context7: TypeScript `/microsoft/typescript/v7.0.2` JSX pragma/compiler examples and Bun `/oven-sh/bun/bun-v1.4.2` recursive test discovery and separate typechecking. The first TypeScript library lookup hit a transient Bun package-cache copy error; retry succeeded.
+    - Task 4 handoff: style-prop value validation and catalog-derived JSX types remain there. Spec §6.3's table requires `space.*`, while its following sentence says `gap={3}` compiles; use the table's token constraint for this proof and resolve the inconsistent example when updating the spec. These candidates do not finalize the primitive set or change spec meaning; no decision log, public export or version change is needed.
+    - Verification: `timeout 300s bun run check` passed (both typechecks, lint, formatting, 5 tests including the existing root test). Snapshot contents were not changed.
 
 - [ ] Task 3: Express Certified and Rack as themes and design systems
   - Acceptance Criteria:

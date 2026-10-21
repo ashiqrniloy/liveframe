@@ -1,0 +1,28 @@
+{
+  "name": "@arnilo/liveframe",
+  "version": "0.0.0",
+  "description": "Runtime-composable UI: primitives, design-system recipes and TSX widgets that change an app's UI without a deployment.",
+  "private": true,
+  "type": "module",
+  "license": "UNLICENSED",
+  "packageManager": "bun@1.4.2",
+  "engines": {
+    "bun": ">=1.4.2"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p proof",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "check": "bun run typecheck && bun run lint && bun run format:check && bun run test"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.2",
+    "@types/bun": "^1.4.3",
+    "typescript": "^7.0.2"
+  }
+}
