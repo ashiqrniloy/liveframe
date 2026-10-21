@@ -682,10 +682,37 @@ Sources checked on 2026-10-21:
       - opened core-queue at all four sizes and the git status page;
       - Rack module: typing caused 0 POSTs; the OM tab committed the draft and reran; Send logged `agent.send` with the draft;
       - switched the design-system page Certified → Rack.
-    - Phase 0 is **not** done. Next is a follow-up plan (next free number 002). It adds the §5–§6 additions to the proof, snapshots the artifact fonts, and re-runs `proof/scripts/parity.ts` to ≤ 1% pixel mismatch or an all-intended inventory. Task 13 must record this plan as a finding. `roadmap.md` §3 records Tasks 1–12 complete and the pending re-proof.
+    - Phase 0 is **not** done. Next is a follow-up plan (next free number 002). It adds the §5–§6 additions to the proof, snapshots the artifact fonts, and re-runs `proof/scripts/parity.ts` to ≤ 1% pixel mismatch or an all-intended inventory. Task 14 must record this plan as a finding. `roadmap.md` §3 records Tasks 1–12 complete and the pending re-proof.
     - Verification: `timeout 300 bun run check` passed (typecheck, lint, format, 63 tests including 10 in Chromium). All four bench scripts passed. Two runs taken while unrelated external jobs held the load average near 52 failed 5–6 Chromium tests: context creation crashed and navigation timed out. Every non-browser suite passed in those runs, and no test reads the edited documents. The check passed 63/63 once the load fell below 14.
 
-- [ ] Task 13: Analyze architectural impact and dispose of every finding
+- [x] Task 13: Refresh the Liveframe execution references after the Phase 0 verdict
+  - Acceptance Criteria:
+    - Functional: `references/proof.md` "Today" states what Plan 001 built, the conditional go and the pending re-proof. `references/styling.md` reflects Task 12's spec §6 changes (assembled theme, `breakpoint` values, responsive values and `fill`, surface typography). The `SKILL.md` route row names the primitive set and the re-proof.
+    - Performance: n/a — docs only.
+    - Code Quality: the guidance matches `docs/spec.md`, which stays authoritative.
+    - Security: n/a — docs only.
+  - Approach:
+    - Skills to Use:
+      - `create-plan` § Final task: impact finding F2, executed above the impact-analysis task.
+    - Library Documentation to Check Before Implementation:
+      - None.
+    - Documentation Reviewed:
+      - `docs/spec.md` §5–§6 after Task 12, and `proof/REPORT.md`.
+    - Options Considered:
+      - Leave the references until Plan 002: rejected. Agents routed to them would read "Nothing built".
+    - Chosen Approach:
+      - Surgical edits to the three files.
+    - API Notes and Examples:
+      - n/a.
+    - Files to Create/Edit:
+      - `.agents/skills/liveframe-execution/{SKILL.md,references/proof.md,references/styling.md}` (also reachable through the `.claude/skills` symlink).
+  - Test Cases to Write:
+    - None. Docs only; `bun run check` stays green.
+  - Notes (executed 2026-10-22):
+    - Updated all three files as specified. No code, spec, dependency or export changed. Like the rest of `.agents/` and `.claude/`, these files are untracked in git, so they are not part of the task commit.
+    - Verification: `timeout 300 bun run check` passed.
+
+- [x] Task 14: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional: every impact area in `.agents/skills/create-plan/references/liveframe.md` §5 is recorded in `plans/evidence/001-impact-analysis.md`, or marked `None — <reason>`. Every finding is executed above this task or backlogged, with the owner's answer recorded.
     - Performance: n/a.
@@ -702,7 +729,7 @@ Sources checked on 2026-10-21:
       - n/a.
     - Chosen Approach:
       - Sweep, present one findings table to the owner, then dispose of each finding.
-      - Include Task 12's required follow-up parity re-proof plan, and the stale `Today` section of `.claude/skills/liveframe-execution/references/proof.md`, as findings (amended 2026-10-22 by Task 12).
+      - Include Task 12's required follow-up parity re-proof plan, and the stale `Today` section of `.claude/skills/liveframe-execution/references/proof.md`, as findings (amended 2026-10-22 by Task 12; the latter was executed as Task 13).
     - API Notes and Examples:
       - n/a.
     - Files to Create/Edit:
@@ -710,6 +737,15 @@ Sources checked on 2026-10-21:
       - `plans/backlog.md`: if any finding is backlogged.
   - Test Cases to Write:
     - None.
+  - Notes (executed 2026-10-22):
+    - Swept all 12 impact areas into `plans/evidence/001-impact-analysis.md`. Areas 2 (public API), 8 (portability), 9 (agent authoring) and 11 (conformance, for now) have no findings, each with its reason. The four-laws area cites test evidence and names the two new paths the spec opens (`fill` and responsive values).
+    - Six findings went to the owner as one table. The owner first selected all of them; after a scope confirmation they chose "Execute F2; backlog rest".
+    - F2 was executed as Task 13. F1 (the parity re-proof, P1), F5 (the §15 decisions, P2), F4 (later-phase gaps, P2), F6 (conformance seeding, P3) and F3 (adopter gaps, P4) are now in the new `plans/backlog.md`, and listed under Further Actions.
+    - Whole-plan verification:
+      - `timeout 300 bun run check` passed: 63 tests, `bun test proof` included.
+      - The runtime, agent-home, core-queue and Clay benches passed (Task 12).
+      - `timeout 300 bun proof/scripts/parity.ts --out evidence/parity` reproduced the exact Task 11 figures (36.85% / 35.75% / 49.64%; 192 DOM paths; 109/109/110 style values).
+      - The harness walk is recorded in Task 12.
 
 ## Verification (whole plan)
 
@@ -721,8 +757,17 @@ Sources checked on 2026-10-21:
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- Proof-grade code only. The proof has one global stylesheet, a trusted in-process host with logging-only actions, memory-only surfaces, a small glyph map and no untrusted install validator. Implications: Phases 1–4 rebuild each part to spec. The parts that need specific attention are under "Later-phase gaps from the Phase 0 report" in `plans/backlog.md`.
+- Parity was not reached (36.85% / 35.75% / 49.64% pixel mismatch). Phase 0 closed as a conditional go, not a go. Implications: Phase 1 waits for the re-proof ("Phase 0 parity re-proof", P1).
+- The artifact's fonts were not snapshotted, so parity typography used fallback fonts. Implications: the re-proof snapshots them.
+- Context7's quota ran out during Tasks 6 and 11, so official Bun and Playwright docs were read directly, and behaviour was verified by running it.
+- Two `bun run check` runs failed 5–6 Chromium tests while unrelated external jobs held the load average near 52. The browser suites are sensitive to host load; a re-run passed once the load fell.
 
 ## Further Actions
 
-- To be filled after task completion with improvements, rationale, and priority.
+All of these are in `plans/backlog.md`:
+- P1 — Phase 0 parity re-proof: implement the Task 12 spec additions in `proof/`, snapshot the fonts, reach the parity threshold and re-measure budgets. This closes Phase 0.
+- P2 — Decide the spec §15 open items (portable primitive contract; binding event values into action arguments) before Phase 1.
+- P2 — Later-phase gaps from the Phase 0 report (G12, G19, G20, G26–G29).
+- P3 — Seed the Phase 5 conformance suites from the proof tests.
+- P4 — Hand the adopter gaps to Synapta (G2) and Clay (G1, G3, G5).

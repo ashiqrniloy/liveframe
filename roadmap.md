@@ -87,4 +87,4 @@ One line per plan. Detail lives in the plan file, never here.
 
 | Plan | Phase | Status |
 | --- | --- | --- |
-| [001](plans/001-Phase-0-Primitive-Set-Proof.md) | 0 | in progress (Tasks 1–12 complete; conditional go, parity re-proof plan pending) |
+| [001](plans/001-Phase-0-Primitive-Set-Proof.md) | 0 | complete (conditional go; Phase 0 stays open until the parity re-proof in `plans/backlog.md` passes) |
