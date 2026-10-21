@@ -14,8 +14,12 @@ to commit it before pressing Escalate. Claims, review, escalation, alert control
 and retry are logged only.
 
 Use `/ui/agent-home?scenario=loading`, `empty`, `failed`, `read-only`, `no-alerts`
-or `no-escalate` to inspect its fixture states. The remaining reference pages show
-the labeled 50-row smoke widget until Tasks 8–10 replace their registrations.
+or `no-escalate` to inspect its fixture states. `/ui/core-queue` supports the same
+scenarios and renders a decision metric at small, decision rows at medium, rows
+plus a selectable focus card at large, and the grouped queue at full. Its host
+placement uses the approved 21rem/36rem/54rem/100% specimen caps. Medium and large
+page decisions only. The remaining reference pages show the labeled 50-row smoke
+widget until Tasks 9–10 replace their registrations.
 Task 11 owns pixel and DOM parity evidence; known composition differences are
 listed in `proof/GAPS.md`.
 
@@ -36,3 +40,6 @@ switching and the local 50 ms HTTP round-trip budget. Chromium must be installed
 with `timeout 120s bunx playwright install chromium`.
 Run `timeout 120s bun proof/tests/agent-home.bench.ts` for the real queue's
 50-row selection rerender budget (2 ms mean).
+
+Run `timeout 120s bun proof/tests/core-queue.bench.ts` for the actual core queue
+at each size (50 rows, 2 ms mean budget).

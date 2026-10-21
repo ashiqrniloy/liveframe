@@ -451,7 +451,7 @@ Sources checked on 2026-10-21:
     - Recorded composition differences in `proof/GAPS.md`: generic wrappers instead of article/aside/facts semantics, popovers instead of details, a separate row metadata/Selected text, fixed two-column layout without sticky/mobile behavior, missing source marker geometry and plate rules, and browser UTF-16 maxlength versus wire code-point bounds. These are explicit Task 11 measurement and Task 12 go/no-go inputs. No pixel/DOM parity claim or images were produced in this task. No primitive, catalog prop, recipe, dependency, public export, version or normative spec meaning changed.
     - Verification: `timeout 300s bun run check` passed (both typechecks, lint, formatting and 51 tests, including six Chromium tests). The actual queue benchmark and `timeout 20s git diff --check` passed. Task 8 can reuse the composed cards/rows and manifest without adding a queue primitive.
 
-- [ ] Task 8: Build `core.queue` at all four sizes
+- [x] Task 8: Build `core.queue` at all four sizes
   - Acceptance Criteria:
     - Functional: one widget renders `small`, `medium`, `large` and `full` from `context.size`, matching the snapshot's intent (`widget.tsx`) and the artifact's size rules (`.sdk-specimen[data-size]`, lines 1036–1047).
     - Performance: every size stays within the Task 4 budget.
@@ -467,17 +467,31 @@ Sources checked on 2026-10-21:
     - Options Considered:
       - Four separate widgets: rejected. Per-size trees from one widget are the model.
     - Chosen Approach:
-      - Branch on `context.size`, reusing Task 7's composed components.
+      - Branch on `context.size`, reuse Task 7’s rows and extracted decision card, and delegate full/unavailable states to the existing queue. Register the widget in the host; host placement supplies the artifact’s specimen width caps. Record source-data and responsive-layout limits in the gap log.
     - API Notes and Examples:
       ```tsx
       if (context.size === "small") return <Metric label="Waiting on you" value={data.queue.total} />;
       ```
     - Files to Create/Edit:
       - `proof/widgets/core-queue/{widget.tsx,metric.tsx,manifest.ts}`: new.
-      - `proof/tests/core-queue.test.ts`: new.
+      - `proof/tests/core-queue.test.ts`, `proof/tests/core-queue-browser.test.ts`, `proof/tests/core-queue.bench.ts`: validation, browser integration and per-size performance.
+      - `proof/widgets/agent-home/{decision-card.tsx,queue.tsx}`: extract and reuse the existing decision card.
+      - `proof/host/{pages.ts,server.ts,README.md}`: registration, specimen placement and usage.
+      - `proof/tests/host.test.ts`: keep smoke-only assertions on the pending git-status registration.
+      - `proof/GAPS.md`: composition and source-data limitations.
+      - `roadmap.md` §3: Task 8 completion status.
   - Test Cases to Write:
     - `renders_each_size_with_a_distinct_valid_tree`.
     - `size_outside_the_manifest_is_rejected`.
+    - Decision-only selection/paging, current offered actions, permissions, all unavailable states and empty decisions.
+    - Chromium hydration, specimen caps, live paging/selection/review and browser-bundle isolation at all four sizes.
+    - Each actual size renders a 50-row fixture under 2 ms mean after 200 warmups over 1,000 renders.
+  - Notes (executed 2026-10-21):
+    - Built one core queue branching on context.size: small loaded-decision metric, medium decision rows, large selectable decision focus with rows, and full grouped Task 7 queue. Extracted the existing decision card without changing Task 7 behavior; reused rows, permissions, manifest schemas and declared actions. No catalog primitive, recipe, dependency, published export, version or normative spec meaning changed.
+    - Registered /ui/core-queue with all existing fixture scenarios and host-owned approved specimen caps (21rem, 36rem, 54rem, 100%). Updated host usage. Smoke-specific host checks now target the pending git-status page; their assertions remain intact. The fixture normalization, state-based paging, per-source-status limit and missing responsive tracks are recorded in proof/GAPS.md for Task 12; no pixel/DOM parity claim is made.
+    - Unit tests were written first and confirmed the missing-module failure. Tests prove four distinct valid primitive-only trees, manifest size rejection, host registration, decision paging/selection, offered-action rejection, read-only controls and loading/empty/failed/zero-decision states. Chromium verifies all four sizes hydrate without errors, use the specimen caps, page/select/review through actual HTTP intents and keep widget code out of the browser bundle.
+    - Performance: timeout 120s bun proof/tests/core-queue.bench.ts passed with 50 rows, 200 warmups and 1,000 measured renders per size: small 0.188 ms, medium 1.263 ms, large 1.473 ms, full 1.816 ms, all below 2 ms mean. The existing actual agent-home selection benchmark also passed at 1.651 ms after the shared-card extraction.
+    - Verification: timeout 300s bun run check passed (both typechecks, lint, formatting and all 56 tests, including seven Chromium tests). Both actual-widget benchmarks, timeout 20s git diff --check and timeout 120s graft build passed. No screenshots were produced; Task 11 retains parity evidence responsibility.
 
 - [ ] Task 9: Build Clay's git status panel and a Rack module panel
   - Acceptance Criteria:

@@ -87,4 +87,4 @@ One line per plan. Detail lives in the plan file, never here.
 
 | Plan | Phase | Status |
 | --- | --- | --- |
-| [001](plans/001-Phase-0-Primitive-Set-Proof.md) | 0 | in progress (Tasks 1–7 complete) |
+| [001](plans/001-Phase-0-Primitive-Set-Proof.md) | 0 | in progress (Tasks 1–8 complete) |
