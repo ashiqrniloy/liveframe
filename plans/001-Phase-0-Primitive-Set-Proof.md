@@ -493,7 +493,7 @@ Sources checked on 2026-10-21:
     - Performance: timeout 120s bun proof/tests/core-queue.bench.ts passed with 50 rows, 200 warmups and 1,000 measured renders per size: small 0.188 ms, medium 1.263 ms, large 1.473 ms, full 1.816 ms, all below 2 ms mean. The existing actual agent-home selection benchmark also passed at 1.651 ms after the shared-card extraction.
     - Verification: timeout 300s bun run check passed (both typechecks, lint, formatting and all 56 tests, including seven Chromium tests). Both actual-widget benchmarks, timeout 20s git diff --check and timeout 120s graft build passed. No screenshots were produced; Task 11 retains parity evidence responsibility.
 
-- [ ] Task 9: Build Clay's git status panel and a Rack module panel
+- [x] Task 9: Build Clay's git status panel and a Rack module panel
   - Acceptance Criteria:
     - Functional:
       - A widget reproduces `buildGitStatusTree`'s output: per workspace root, its label, head, dirty state and refresh state, each with its icon, plus the empty state.
@@ -516,7 +516,7 @@ Sources checked on 2026-10-21:
     - Options Considered:
       - Port Clay's builder calls one-to-one: rejected. The point is TSX on richer primitives.
     - Chosen Approach:
-      - Rewrite each as a TSX widget with fixtures shaped like Clay's data.
+      - Rewrite each as a TSX widget with fixtures shaped like Clay's data. Reuse the pinned git adapter's pure label helpers; compare independently composed rows/icons to the original builder. Register both real widgets under Rack by default and retain smoke host tests on the pending design-system page. Compose indicators with existing surface-role boxes and log geometry/role limits without extending the catalog. Commit local composer drafts on blur before offering static declared Send actions, matching the existing text-field protocol.
     - API Notes and Examples:
       ```tsx
       <Stack gap="space.1">{roots.map((r) => <GitRoot key={r.id} root={r} />)}</Stack>
@@ -525,10 +525,26 @@ Sources checked on 2026-10-21:
       - `proof/widgets/clay/{git-status.tsx,rack-module.tsx,manifest.ts}`: new.
       - `proof/host/fixtures/clay.ts`: new.
       - `proof/tests/clay.test.ts`: new.
+      - `proof/tests/{clay-browser.test.ts,clay.bench.ts}`: real Chromium interactions and actual-widget render budgets.
+      - `proof/host/{pages.ts,server.ts,README.md}`: register both panels, default them to Rack and document usage.
+      - `proof/tests/host.test.ts`, `proof/widgets/harness.tsx`: keep smoke coverage on the pending design-system page.
+      - `proof/renderer/primitives/index.tsx`: host glyph aliases for the source git icons and module information glyph.
+      - `proof/GAPS.md`: indicator roles/geometry, module content and composer protocol limits.
+      - `roadmap.md` §3: Task 9 completion status.
   - Test Cases to Write:
     - `git_status_matches_builder_output_structure`: the same rows, labels and icons as `buildGitStatusTree` for the same fixture.
     - `empty_state_renders`.
     - `agent_info_tabs_and_close_map_to_declared_intents`: fails if a tab switch is not `setState`, or if close/send is not a declared action.
+    - Rack hydration/default stylesheet, local typing without POSTs, commit and draft retention through all tabs, actual close/send logs, empty-send disabling and browser-bundle isolation.
+    - Reject invalid tabs, oversized drafts and forged/undeclared actions; render only candidate primitives with surface-role indicators.
+    - 52 git label rows and 50 module files render below 2 ms mean after 200 warmups over 1,000 renders.
+  - Notes (executed 2026-10-21):
+    - Built the Git panel from Heading/Stack/Inline/Text/Icon and reused the pinned source's pure label/sanitization helpers. Tests compare the actual ordered label/icon rows with `buildGitStatusTree` across six synthetic roots, including branch/detached/unborn/unknown heads, clean/dirty/not-refreshed states, refresh variants, redacted paths/control characters and the empty state. The builder is not used by the widget.
+    - Built the agent-info rail, ordinal, header/glyph/title/target/badge/close, Files/OM/Context tabs, file statuses/names/operations, session footer, multiline composer and context/state/model/effort readouts. Local typing sends no requests; blur commits a schema-checked draft; tabs rerun via declared state; Close and Send log closed-schema actions. Empty drafts disable Send. The host validates currently offered intents and rejects invalid tabs, oversized drafts and forged/undeclared actions. Both real pages default to Rack; existing smoke-only host checks now use the pending Task 10 design-system page.
+    - Composed lamps, jacks and three pips from token-sized boxes and existing surface roles, with no new primitive, prop, variant, recipe, dependency, public export, version or normative spec meaning. Added compiled-host glyph aliases for the source icon ids. Recorded the surface vocabulary's missing patch/diagnostic indicator colour distinction, square versus source geometry, absent OM content, context text instead of meter, static parameter readouts, module semantics/layout limits and commit-before-Send protocol in `proof/GAPS.md`. These remain Task 12 go/no-go inputs; this task makes no pixel/DOM parity claim.
+    - Unit tests were written first and failed on missing modules. Chromium verifies Rack defaults, SSR/hydration without errors, actual typing without POSTs, draft commits/retention across all tabs, Close/Send action logs, empty-send disabling and the Git empty state. The browser bundle contains neither widget nor git label adapter code. Host usage and benchmark commands are documented in `proof/host/README.md`.
+    - Performance: `timeout 120s bun proof/tests/clay.bench.ts` passed at 0.767 ms mean for 52 git label rows and 1.245 ms for 50 Rack file rows over 1,000 renders after 200 warmups, including validation and changing module tab/draft state, below 2 ms. The full host test measured a 3.23 ms maximum local state round trip against 50 ms.
+    - Verification: `timeout 300s bun run check` passed (both typechecks, lint, formatting and 60 tests, including eight Chromium tests). No evidence images were generated. Task 10 retains the live design-system-switch proof on real reference widgets; Tasks 11–12 retain visual evidence and final assessment.
 
 - [ ] Task 10: Prove the design-system switch
   - Acceptance Criteria:

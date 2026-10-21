@@ -42,6 +42,11 @@ const icons: Record<string, string> = {
   "git-branch": "⑂",
   "refresh-cw": "↻",
   "circle-dot": "●",
+  "git.branch": "⑂",
+  "status.success": "✓",
+  "status.warning": "⚠",
+  "status.error": "×",
+  info: "ⓘ",
 };
 
 export const implementations = [

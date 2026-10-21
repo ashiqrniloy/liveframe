@@ -18,8 +18,16 @@ or `no-escalate` to inspect its fixture states. `/ui/core-queue` supports the sa
 scenarios and renders a decision metric at small, decision rows at medium, rows
 plus a selectable focus card at large, and the grouped queue at full. Its host
 placement uses the approved 21rem/36rem/54rem/100% specimen caps. Medium and large
-page decisions only. The remaining reference pages show the labeled 50-row smoke
-widget until Tasks 9–10 replace their registrations.
+page decisions only.
+
+`/ui/git-status` shows synthetic Clay workspace roots with branch, dirty and
+refresh labels and icons. Use `?scenario=empty` for no workspace roots.
+`/ui/rack-module` shows the agent-info module's rail, header, file tabs, footer
+and composer. Both pages start under Rack. Typing stays local; leave the message
+field to commit the draft before Send. Files / OM / Context tabs rerun the widget;
+OM has no source fixture and says so. Close container and Send log declared
+actions without closing a container or contacting an agent. Model and effort
+are readouts. The design-system page retains the smoke widget until Task 10.
 Task 11 owns pixel and DOM parity evidence; known composition differences are
 listed in `proof/GAPS.md`.
 
@@ -43,3 +51,6 @@ Run `timeout 120s bun proof/tests/agent-home.bench.ts` for the real queue's
 
 Run `timeout 120s bun proof/tests/core-queue.bench.ts` for the actual core queue
 at each size (50 rows, 2 ms mean budget).
+
+Run `timeout 120s bun proof/tests/clay.bench.ts` for Clay's git status (52 label
+rows) and Rack module (50 files), both against the 2 ms mean budget.

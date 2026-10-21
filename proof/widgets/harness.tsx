@@ -45,7 +45,7 @@ export const harnessActions = {
   },
 } as const;
 
-// shortcut: a smoke widget until Tasks 7–9 register the reference compositions.
+// shortcut: retained on the design-system page until Task 10 uses the reference widgets.
 export function harnessWidget({
   state: s,
   data,

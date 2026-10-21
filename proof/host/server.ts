@@ -82,13 +82,14 @@ export async function startHost(port = 3000) {
         name === "core-queue"
           ? ({ small: "21rem", medium: "36rem", large: "54rem", full: "100%" }[size] ?? "100%")
           : "100%";
+      const designSystem = name === "git-status" || name === "rack-module" ? "rack" : "certified";
       const session = openPage(size, name, scenario);
       const snapshot = session.snapshot();
       sessions.set(snapshot.tree.surfaceId, session);
       const markup = renderToString(createElement(ProofSurface, { snapshot, onIntent: () => {} }));
       const json = JSON.stringify(snapshot).replaceAll("<", "\\u003c");
       return html(
-        `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Liveframe proof</title><link id="projection" rel="stylesheet" href="/styles/certified.css"></head><body><nav aria-label="Reference UIs"><a href="/">All reference UIs</a></nav><h1>${pages[name as keyof typeof pages]}</h1><label>Design system <select id="design-system"><option value="certified">Certified</option><option value="rack">Rack</option></select></label><p>Widget size: ${size}. Use ?size=small, medium, large or full.</p><div id="app" style="max-width:${specimenWidth}">${markup}</div><p id="status" role="alert"></p><h2>Actions (logged only)</h2><pre id="actions" aria-live="polite">[]</pre><script type="application/json" id="bootstrap">${json}</script><script type="module" src="/client.js"></script></body></html>`,
+        `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Liveframe proof</title><link id="projection" rel="stylesheet" href="/styles/${designSystem}.css"></head><body><nav aria-label="Reference UIs"><a href="/">All reference UIs</a></nav><h1>${pages[name as keyof typeof pages]}</h1><label>Design system <select id="design-system"><option value="certified"${designSystem === "certified" ? " selected" : ""}>Certified</option><option value="rack"${designSystem === "rack" ? " selected" : ""}>Rack</option></select></label><p>Widget size: ${size}. Use ?size=small, medium, large or full.</p><div id="app" style="max-width:${specimenWidth}">${markup}</div><p id="status" role="alert"></p><h2>Actions (logged only)</h2><pre id="actions" aria-live="polite">[]</pre><script type="application/json" id="bootstrap">${json}</script><script type="module" src="/client.js"></script></body></html>`,
       );
     },
   });
