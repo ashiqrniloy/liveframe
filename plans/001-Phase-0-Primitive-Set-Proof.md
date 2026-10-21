@@ -628,7 +628,7 @@ Sources checked on 2026-10-21:
     - Verification: `timeout 300s bun proof/scripts/parity.ts --out evidence/parity` and a second independent run under `evidence/parity-repeat` passed all inline checks; all 23 output files were byte-identical across runs. Confirmed the report's complete textual inventory matches generated `differences.md` and evidence paths are ignored. `timeout 300s bun run check` passed (both typechecks, lint, formatting and all 63 tests, including ten Chromium tests). Context7 quota was exhausted; official Playwright docs were checked and execution under Bun verified.
     - Task 12 handoff: visual/DOM parity is false at all three widths. Assess these unresolved gaps and missing-font evidence limits explicitly; do not treat Task 11 completion as meeting spec §12's parity criterion or as Phase 0 completion. Additional UI states have existing interaction tests but no new pixel claim.
 
-- [ ] Task 12: Write the report, decide go or no-go, and update the spec
+- [x] Task 12: Write the report, decide go or no-go, and update the spec
   - Acceptance Criteria:
     - Functional: `proof/REPORT.md` holds:
       - the final primitive list with each definition
@@ -662,6 +662,28 @@ Sources checked on 2026-10-21:
       - `roadmap.md` §3: plan status.
   - Test Cases to Write:
     - None. The report cites the existing tests.
+  - Notes (executed 2026-10-22):
+    - Wrote `proof/REPORT.md`. It covers the four UIs with their widgets and tests, the 23 unchanged primitives with definitions, the style props used and the ones missing, each interaction tier with its tests, a field-by-field comparison with Synapta's grown `Queue` (T4a–T4d), and all 29 gaps from `GAPS.md`, `PARITY.md` and the harness walk, each with a resolution. It also records the measured budgets and the four-laws evidence. No primitive was added during the proof.
+    - The owner chose **conditional go** and approved every proposed spec change, recorded in `decision-logs/2026-10-22-0033-phase-0-conditional-go.md`. The model held: no product-shaped primitive, no raw CSS, all three tiers, the switch with no widget change. Parity failed (36.85% / 35.75% / 49.64% pixels at 1440/1024/390 px; 192 DOM paths), and every difference traces to a missing generic capability.
+    - Spec changes:
+      - §5 now confirms the primitive set. It adds `disclosure`, `semantics` + `label` on layout primitives, `current`/`pressed` on `button`, app-declared `box` variants, and an app-owned icon glyph set.
+      - §6.1: the theme is the resolved union of colour and typography sources.
+      - §6.2: `breakpoint` values.
+      - §6.3: responsive style values, `position`/`inset`, box `fill`/`radius`, `textAlign` and button `align`. The `gap={3}` example is fixed to `gap="space.3"`.
+      - §6.4: surface-root typography.
+      - §8: commit to state, then act. Dynamic action arguments move to §15 as an open decision.
+      - §12: exact anchors 1137–1245, 1247–1320, 1324–1357 and 1368–1383, plus the outcome.
+      - §15: portability is now decided before Phase 1.
+    - Findings from the harness walk, not in the earlier logs (now G11, G12): queue-row subject buttons centre their label; under Rack, tab and field labels fall back to the host serif font.
+    - Measured on 2026-10-22, all within budget: synthetic queue 1.586 ms; agent-home selection 1.526 ms; core.queue 0.175 / 1.214 / 1.357 / 1.702 ms; git 0.694 ms; Rack module 1.222 ms; host `setState` 2.33 ms max; switch 4.90 / 1.30 ms max.
+    - Manual walk: with `bun run proof` running, a Playwright script (`evidence/walk.ts`, local only, screenshots in `evidence/walk/`) did the following, with no browser errors:
+      - visited every reference page;
+      - agent-home: switched the Tasks tab (setState) and ran Load more (Showing 6 → 11);
+      - opened core-queue at all four sizes and the git status page;
+      - Rack module: typing caused 0 POSTs; the OM tab committed the draft and reran; Send logged `agent.send` with the draft;
+      - switched the design-system page Certified → Rack.
+    - Phase 0 is **not** done. Next is a follow-up plan (next free number 002). It adds the §5–§6 additions to the proof, snapshots the artifact fonts, and re-runs `proof/scripts/parity.ts` to ≤ 1% pixel mismatch or an all-intended inventory. Task 13 must record this plan as a finding. `roadmap.md` §3 records Tasks 1–12 complete and the pending re-proof.
+    - Verification: `timeout 300 bun run check` passed (typecheck, lint, format, 63 tests including 10 in Chromium). All four bench scripts passed. Two runs taken while unrelated external jobs held the load average near 52 failed 5–6 Chromium tests: context creation crashed and navigation timed out. Every non-browser suite passed in those runs, and no test reads the edited documents. The check passed 63/63 once the load fell below 14.
 
 - [ ] Task 13: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
@@ -680,6 +702,7 @@ Sources checked on 2026-10-21:
       - n/a.
     - Chosen Approach:
       - Sweep, present one findings table to the owner, then dispose of each finding.
+      - Include Task 12's required follow-up parity re-proof plan, and the stale `Today` section of `.claude/skills/liveframe-execution/references/proof.md`, as findings (amended 2026-10-22 by Task 12).
     - API Notes and Examples:
       - n/a.
     - Files to Create/Edit:
