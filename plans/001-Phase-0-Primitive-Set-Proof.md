@@ -273,7 +273,7 @@ Sources checked on 2026-10-21:
     - Performance: `timeout 120s bun proof/tests/runtime.bench.ts` passed at 1.791 ms mean over 1,000 renders after 200 warmups, including validation, for a synthetic full queue with 50 rows and 353 nodes. Tasks 6–8 must repeat the budget against their actual host/widget; those do not exist yet. Browser rendering and visual parity remain Tasks 5 and 11.
     - Verification: `timeout 300s bun run check` passed (both typechecks, lint, formatting, 27 tests); `timeout 120s bun proof/tests/runtime.bench.ts` passed; `timeout 120s bunx graft build` refreshed the local graph.
 
-- [ ] Task 5: Build the proof CSS projection and React renderer, with primitive implementations
+- [x] Task 5: Build the proof CSS projection and React renderer, with primitive implementations
   - Acceptance Criteria:
     - Functional:
       - `proof/css` projects a theme and design system into CSS custom properties and one class per `(kind, variant, slot, state)`.
@@ -298,11 +298,14 @@ Sources checked on 2026-10-21:
       - React Aria Components 1.22: `Menu`, `Popover`, `Dialog`, `Tabs`, `Select`, `Tooltip` and their styling hooks (`className` render props, data attributes for states).
     - Documentation Reviewed:
       - Spec §6.4 and §11.
+      - Context7 React (`/reactjs/react.dev`): `hydrateRoot`, SSR and stable component positions/keys. React Aria (`/websites/react-aria_adobe`): menu collections, select composition, modal hierarchy, tooltips and state data attributes. Playwright (`/microsoft/playwright`): Chromium launch, locators and forced-colours emulation. Installed versions are React/DOM 19.3.1, React Aria Components 1.22.1 and Playwright 1.64.1; Context7 supplied current unversioned React/Aria docs and Playwright upstream API docs.
     - Options Considered:
       - Hand-rolled overlays: rejected. Accessibility and focus management are not what this proof tests.
       - A CSS-in-JS engine: rejected. The spec projects to CSS custom properties.
     - Chosen Approach:
       - React plus React Aria Components. State data attributes map to recipe states.
+      - Keep the small primitive bindings together in one proof-only module. Aria collections receive menu items and tabs directly, with panels rendered from validated child nodes; generic React wrappers are not collection items.
+      - Bring Playwright forward from Task 11 to verify real browser focus, scroll, hydration, keyboard controls and overlays. Bundle only the compiled renderer/test host; the synthetic tree is supplied by Bun. Reuse this dependency in Task 11.
     - API Notes and Examples:
       ```tsx
       implement(button, ({ props, slot, emit }) => (
@@ -312,14 +315,30 @@ Sources checked on 2026-10-21:
     - Files to Create/Edit:
       - `proof/css/project.ts`: new.
       - `proof/renderer/{surface.tsx,implement.ts,registry.ts}`: new.
-      - `proof/renderer/primitives/*.tsx`: new, one per primitive.
+      - `proof/renderer/primitives/index.tsx`: all 23 small primitive bindings, sharing the catalog-derived implementation context.
       - `proof/tests/renderer.test.tsx`: new.
-      - `package.json`: dev dependencies `react@^19.3.1`, `react-dom@^19.3.1`, `react-aria-components@^1.22.1`, `@types/react@^19.3.0`. Proof-only; justified in this task.
+      - `proof/tests/{projection.test.ts,renderer-browser.test.tsx,fixtures/renderer-client.tsx}`: projection unit tests and a browser fixture with SSR/hydration.
+      - `proof/tests/runtime.test.ts`: move two SDK fixture functions to module scope; installing React enables Biome's component-factory rule even for these SDK-only fixtures.
+      - `package.json`, `bun.lock`: proof-only dev dependencies `react@^19.3.1`, `react-dom@^19.3.1`, `react-aria-components@^1.22.1`, `@types/react@^19.3.0`, `@types/react-dom@^19.3.0` and `playwright@^1.64.1`. Justified in this task.
+      - `proof/GAPS.md`: renderer/projection limits and later-task handoffs.
+      - `roadmap.md` §3: Task 5 completion status.
   - Test Cases to Write:
     - `local_state_and_focus_survive_a_rerender`: fails if reconciliation remounts nodes with unchanged ids.
     - `design_system_switch_does_not_rerun_widgets`: fails if switching triggers a widget render.
     - `unknown_kind_renders_fallback`: fails if an invalid node renders nothing or throws.
     - `registry_check_fails_on_missing_implementation`.
+    - Projection tests cover all 536 stable recipe classes, typed layout/role mapping, missing recipes/references and CSS injection rejection.
+    - Browser tests cover SSR hydration without errors; stable ids through insertion; local value/focus/scroll preservation; stale revisions; surface replacement; invalid-tree fallback; committed state/action dispatch; keyboard menus, select, tabs, checkbox, switch, tooltip and modal dismissal/focus containment; and forced-colours CSS behavior.
+    - Renderer source-boundary test rejects direct imports of design-system data or widget authoring code.
+
+  - Notes (executed 2026-10-21):
+    - Added `proof/css/project.ts`: theme colour/typography and typed design-value custom properties, all 536 stable recipe classes per design system, native/Aria state selectors and internal-slot state propagation, layout/semantic style projection, native scrollbar styling and forced-colours support. Projection handles shadows, background opacity, blur/saturation, transitions, outlines and press transforms without raw widget CSS. Missing recipes/references and unsafe CSS serialization fail closed. The proof replaces one global projected stylesheet atomically; a reusable untrusted installation validator remains Phase 1.
+    - Added catalog-derived `implement`, a registry that rejects missing/duplicate/mismatched bindings, and `<Surface tree options registry onIntent fallback>`. Surface revalidates transport data using the existing validator, renders fallback for malformed trees/unknown kinds, reconciles by node id, ignores lower revisions for the current surface, and resets local state when the surface id changes. Renderer modules import no design-system data or widget authoring code.
+    - Implemented all 23 candidates in one small binding module, with React Aria handling buttons, inputs, selection, menus, popovers, dialogs, tooltips and tabs. Inputs keep local drafts and commit on blur/Enter; multiline submits with Ctrl/Cmd+Enter. Local selection/toggle/tab state survives unrelated revisions and accepts changed host values. Missing `setState.value` receives the event payload; action names/arguments are forwarded unchanged. No widget code runs in the browser and no primitive accepts a colour.
+    - Installed proof-only React/DOM 19.3.1, React Aria Components 1.22.1, React/DOM types 19.3.0 and Playwright 1.64.1, recording the Bun lockfile. Playwright moved forward from Task 11 to verify behavior in Chromium. React installation enabled Biome's component-factory rule for two existing SDK test fixtures; moving those functions to module scope preserves their tests. No new runtime dependency or published surface was added.
+    - Projection and renderer unit tests were written first and failed on the missing modules. Browser tests hydrate the Bun-generated SSR tree without console/page errors and verify local edits/focus/scroll through insertion, stale revisions, changed host values, surface replacement, invalid-tree fallback, committed state/actions, menu/select/tab keyboard behavior, checkbox/switch selection, tooltip focus, modal focus containment/dismissal, and computed-style switching without widget reruns or DOM changes. Forced colours are emulated in Chromium. Renderer source imports are checked for boundary violations.
+    - Recorded proof limits in `proof/GAPS.md`: one global stylesheet, native scrollbar geometry, a small host glyph map, theme font availability, commit-event naming/dynamic action-argument binding, and remaining reference-widget/pixel parity work. Task 6 owns the live host, dispatch-time validation/authorization and actual reruns; Tasks 7–11 own reference composition and parity. No normative spec meaning, catalog primitive, package export or version changed.
+    - Verification: `timeout 300s bun run check` passed (both typechecks, lint, formatting, 36 tests including three real Chromium tests); `timeout 10s git diff --check` passed. Chromium was installed with `timeout 120s bunx playwright install chromium`. No screenshots were generated or committed; pixel/DOM comparison remains Task 11.
 
 - [ ] Task 6: Build the proof host harness
   - Acceptance Criteria:
@@ -520,7 +539,7 @@ Sources checked on 2026-10-21:
     - Files to Create/Edit:
       - `proof/scripts/parity.ts`: new.
       - `proof/PARITY.md`: new.
-      - `package.json`: dev dependency `playwright@^1.64.1`, proof-only.
+      - `package.json`: Playwright 1.64.1 is already installed by Task 5 for renderer browser tests; reuse it.
   - Test Cases to Write:
     - None in the suite: the script is evidence tooling. Its run and output summary are recorded in this task's Notes.
 

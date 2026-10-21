@@ -34,6 +34,10 @@ function error(element: unknown, kind: WidgetError["kind"], config = options): v
   expect((result as WidgetError).path).toBeTruthy();
 }
 
+const Card = ({ label }: { label: string }) =>
+  jsxs(Stack, { children: [jsx(Text, { text: label }), jsx(Button, { label: "Open" })] });
+const Recursive = (): unknown => jsx(Recursive, {});
+
 test("ids_are_key_paths_and_stable_across_an_insert", () => {
   const rows = (ids: string[]) => jsx(Stack, { children: ids.map((id) => jsx(Button, { label: id }, id)) });
   const before = tree(rows(["a", "b"]));
@@ -80,8 +84,6 @@ test("rejects_host_elements_function_props_async_and_missing_keys", () => {
 });
 
 test("compositions_fragments_and_static_children_keep_key_scopes", () => {
-  const Card = ({ label }: { label: string }) =>
-    jsxs(Stack, { children: [jsx(Text, { text: label }), jsx(Button, { label: "Open" })] });
   const result = tree(jsx(Stack, { children: [jsx(Card, { label: "A" }, "a"), jsx(Card, { label: "B" }, "b")] }));
   expect(result.root.children?.[0]?.children?.[1]?.id).toBe("root/a/button");
   expect(result.root.children?.[1]?.children?.[1]?.id).toBe("root/b/button");
@@ -98,7 +100,6 @@ test("compositions_fragments_and_static_children_keep_key_scopes", () => {
     jsx(async () => jsx(Stack, {}), {}),
     "async-render",
   );
-  const Recursive = (): unknown => jsx(Recursive, {});
   error(jsx(Recursive, {}), "limit-exceeded");
 });
 
