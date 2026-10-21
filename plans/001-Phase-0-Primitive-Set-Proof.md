@@ -585,7 +585,7 @@ Sources checked on 2026-10-21:
     - Updated `proof/host/README.md` and `proof/GAPS.md`. No additional missing recipe/role was found; the Task 3 completeness/reference suites remain green. Certified's patch identity/diagnostic aliases remain an explicit Task 12 limitation: neither switch widget exercises patch identities, and no widget-code workaround was added. Pixel/DOM parity against source artifacts remains Task 11. No primitive, recipe, theme, dependency, public export, version or normative spec meaning changed.
     - Verification: `timeout 60s bun test proof/tests/switch.test.ts` passed (3 tests); `timeout 300s bun run check` passed (both typechecks, lint, formatting and 63 tests including ten Chromium tests). No evidence images were generated or committed.
 
-- [ ] Task 11: Capture parity evidence against the approved artifact
+- [x] Task 11: Capture parity evidence against the approved artifact
   - Acceptance Criteria:
     - Functional: a script renders the approved artifact snapshot and the Task 7 widget at the same viewport widths (1440, 1024 and 390 px), then produces:
       - screenshots of both
@@ -603,11 +603,14 @@ Sources checked on 2026-10-21:
       - Playwright 1.64: `chromium.launch`, `page.screenshot`, `page.evaluate` for computed styles. Check that it runs under Bun. Chromium is installed once with `timeout 600 bunx playwright install chromium`.
     - Documentation Reviewed:
       - Spec §12 acceptance criteria.
+      - Pinned artifact queue at lines 1137–1245, `proof/references/SOURCES.md`, Task 7 composition/fixtures and existing Chromium host tests.
+      - Playwright 1.64.1 installed; official launch, screenshot and evaluation docs (linked in `proof/PARITY.md`). Context7 lookup hit its monthly quota; actual Bun execution verifies compatibility.
     - Options Considered:
       - Visual inspection only: rejected. The spec demands a pixel and DOM comparison.
       - Run the browser on the host: acceptable here. If the owner wants a containerized browser as in Synapta, the executor asks before writing the script.
     - Chosen Approach:
-      - Playwright with headless Chromium driven from a Bun script. Images are diffed per viewport.
+      - Reuse the installed Playwright and host with headless Chromium driven from one Bun script. Capture original full pages and natural-width queue crops at 1440/1024/390 × 1000 CSS px; hide only source host overlays during queue screenshots. Browser Canvas decodes/diffs PNGs without another dependency.
+      - Record exact normalized DOM differences and 19 computed typography/layout/spacing properties at 18 corresponding anchors. Thresholds: pixel channel delta >16, pixel mismatch ratio >1%, numeric CSS delta >0.5px, exact DOM/non-numeric values. Keep every artifact and diff under `/evidence/`; copy the complete textual difference inventory into `proof/PARITY.md` with intended/gap dispositions and measurement limits.
     - API Notes and Examples:
       ```bash
       timeout 300 bun proof/scripts/parity.ts --out evidence/parity
@@ -615,9 +618,15 @@ Sources checked on 2026-10-21:
     - Files to Create/Edit:
       - `proof/scripts/parity.ts`: new.
       - `proof/PARITY.md`: new.
-      - `package.json`: Playwright 1.64.1 is already installed by Task 5 for renderer browser tests; reuse it.
+      - `roadmap.md` §3: Task 11 completion status. `package.json` needs no change: reuse Playwright 1.64.1 installed by Task 5.
   - Test Cases to Write:
-    - None in the suite: the script is evidence tooling. Its run and output summary are recorded in this task's Notes.
+    - No separate suite: inline self-checks verify CSS threshold boundaries, identical/changed pixels and differing image extents. Assert expected regions/style anchors, viewport widths and no unexpected HTTP/browser failures. Record the run and output summary in this task's Notes.
+  - Notes (executed 2026-10-21):
+    - Added `proof/scripts/parity.ts`, reusing the installed Playwright 1.64.1, Chromium and proof host. One Bun command captures the pinned artifact and unchanged Task 7 ready/full queue at 1440, 1024 and 390px. It writes 15 screenshots (full pages, queue crops and pixel diffs), six DOM/style JSON files, a version/hash/threshold summary and an exhaustive Markdown inventory, all under gitignored `/evidence/`. No dependency, widget, recipe, primitive, public export, version or normative spec meaning changed.
+    - Added `proof/PARITY.md` with reproduction, input provenance, environment, explicit thresholds, all 192 differing normalized DOM paths per width and 109/109/110 above-threshold sampled style values. Identical findings share rows across widths. Pixel mismatch is 36.85% / 35.75% / 49.64%; every changed pixel remains a gap, with grouped causes and intended proof behavior described. The task completes evidence capture, not parity acceptance.
+    - Confirmed desktop column proportions, missing sticky focus, mobile two-column layout, generic semantic wrappers/selection, typography/spacing, marker/rule treatments and copy/paging differences. The source's outside review bar and dock remain in full-page captures and are transparent only for queue crops. The pinned HTML's Schibsted Grotesk and Martian Mono assets are absent; their two 404s and fallback-font limitation are explicit. No outside or sibling-repo assets were substituted; data remains synthetic.
+    - Verification: `timeout 300s bun proof/scripts/parity.ts --out evidence/parity` and a second independent run under `evidence/parity-repeat` passed all inline checks; all 23 output files were byte-identical across runs. Confirmed the report's complete textual inventory matches generated `differences.md` and evidence paths are ignored. `timeout 300s bun run check` passed (both typechecks, lint, formatting and all 63 tests, including ten Chromium tests). Context7 quota was exhausted; official Playwright docs were checked and execution under Bun verified.
+    - Task 12 handoff: visual/DOM parity is false at all three widths. Assess these unresolved gaps and missing-font evidence limits explicitly; do not treat Task 11 completion as meeting spec §12's parity criterion or as Phase 0 completion. Additional UI states have existing interaction tests but no new pixel claim.
 
 - [ ] Task 12: Write the report, decide go or no-go, and update the spec
   - Acceptance Criteria:
