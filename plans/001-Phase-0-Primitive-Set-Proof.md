@@ -390,7 +390,7 @@ Sources checked on 2026-10-21:
     - Verification: `timeout 300s bun run check` passed (both typechecks, lint, formatting and 43 tests including four Chromium tests). `timeout 120s bun proof/tests/runtime.bench.ts` and `timeout 20s git diff --check` passed. `timeout 3s bun run proof` printed the localhost URL and was intentionally stopped by the timeout. No images were generated or committed.
     - Limits: trusted in-process widgets, logging-only actions, and memory-only surfaces/logs retained until shutdown. Persistence, sandboxing and a production dispatcher are outside this proof. Context7 quota prevented its documentation lookup; Bun's official server/bundler documentation was checked instead.
 
-- [ ] Task 7: Build Synapta's agent-home queue from primitives
+- [x] Task 7: Build Synapta's agent-home queue from primitives
   - Acceptance Criteria:
     - Functional: a widget reproduces the approved queue (artifact lines 1137–1245, focus cards 1247–1320):
       - category tabs
@@ -418,23 +418,38 @@ Sources checked on 2026-10-21:
       - Add a `queue` primitive: forbidden. It is the hypothesis under test.
     - Chosen Approach:
       - Row selection, the tab filter and the three cursors are widget `state`. Claim, escalate, acknowledge, snooze and convert are actions.
+      - Use opaque fixture cursor tokens, with cumulative pages in each of three unequal chains. Load more advances all permitted non-exhausted chains in one state intent, including while filtered; exhausted chains retain their cursor. Commit the escalation reason with the existing text-field event before offering a static, schema-checked action. Register this reference page in the host, keeping the smoke widget for the unfinished references and its existing tests.
     - API Notes and Examples:
       ```tsx
-      <Grid columns={["1fr", "40ch"]} gap="space.5">
-        <Stack>{rows.map((r) => <QueueRow key={r.id} row={r} selected={r.id === s.selected} onSelect={state.set("selected", r.id)} />)}</Stack>
-        {focus && <TaskCard key={focus.id} task={focus} />}
+      <Grid columns={["1fr", "1fr"]} gap="space.5">
+        {focus && <TaskCard key={focus.id} task={focus} params={params} current={s} />}
+        <Stack>{rows.map((r) => <QueueRow key={r.id} id={r.id} title={r.title} status={r.status} meta={r.meta} foldedAlerts={r.foldedAlerts ?? 0} selected={r.id === focus?.id} />)}</Stack>
       </Grid>
       ```
     - Files to Create/Edit:
       - `proof/widgets/agent-home/{queue.tsx,task-card.tsx,alert-card.tsx,queue-row.tsx,manifest.ts}`: new.
-      - `proof/host/fixtures/queue.ts`: new.
+      - `proof/host/fixtures/queue.ts`: retain the smoke fixture and add the synthetic reference queue with three cursor chains.
+      - `proof/host/{pages.ts,server.ts,README.md}`: register the real agent-home widget, validate fixture scenarios and document its use.
+      - `proof/tests/host.test.ts`: move smoke-specific HTTP/browser assertions to the still-smoke core-queue page.
       - `proof/GAPS.md`: append composition gaps to the Task 3 gap log.
       - `proof/tests/agent-home.test.ts`: new.
+      - `proof/tests/agent-home-browser.test.ts`: real Chromium interactions and fixture-state checks.
+      - `proof/tests/agent-home.bench.ts`: actual 50-row queue selection rerender budget.
+      - `roadmap.md` §3: Task 7 completion status.
   - Test Cases to Write:
     - `selecting_a_row_moves_its_card_to_focus`.
     - `load_more_advances_all_three_cursors`.
     - `escalate_requires_a_reason_of_1_to_500_chars`.
     - `widget_uses_only_catalog_primitives`.
+    - Filter/focus fallback, cumulative paging with exhausted chains, stable row ids and selection, rejection of old/forged cursors and actions, loading/empty/failed/read-only states, hidden Alerts and escalation controls, independent action-schema reason bounds including Unicode, and local input/menu behavior in Chromium.
+    - `agent_home_selection_under_budget`: 50 rows, 200 warmups and 1,000 selection rerenders, under 2 ms mean.
+  - Notes (executed 2026-10-21):
+    - Built the queue and composed `TaskCard`, `AlertCard` and `QueueRow` using existing primitives only. Tabs, row selection/focus, task Claim/Escalate dialog, alert Acknowledge/Snooze/Convert, reference popovers, stale notice, widget options and loading/empty/failed/read-only states render in `/ui/agent-home`. The fixture has the approved subjects and totals, with three unequal opaque cursor chains; one Load more advances each permitted chain and accumulates rows. Showing reports actual loaded visible rows rather than the static artifact's total.
+    - Added closed state/params/context and action schemas. The reason remains local until blur/Enter commits it; only a committed 1–500-code-point reason offers escalation, and the action schema checks the same bounds. Permissions hide mutation/escalation controls and unavailable alerts. The host rechecks currently offered intents and logs actions, including review/retry, without performing operations. Read-only/no-alerts/no-escalate scenarios are inspectable from the documented query parameter.
+    - Wrote unit tests before the modules and confirmed the missing-module failure. Unit and Chromium tests cover focus/filtering, cursor accumulation/exhaustion, stable ids/selection, invalid/old/unoffered intents, Unicode reason limits, permission hiding, all task/alert controls, local draft/menu behavior, SSR hydration and no widget code in the browser bundle. Smoke-specific host tests now use the pending core-queue page; their original assertions remain intact.
+    - Performance: the first actual 50-row benchmark exceeded 2 ms. Passing only display fields into rows and removing redundant row wrappers reduced the tree to 193 nodes and the measured mean to 1.630 ms over 1,000 changing-selection renders after 200 warmups. The reproducible check is `timeout 120s bun proof/tests/agent-home.bench.ts`.
+    - Recorded composition differences in `proof/GAPS.md`: generic wrappers instead of article/aside/facts semantics, popovers instead of details, a separate row metadata/Selected text, fixed two-column layout without sticky/mobile behavior, missing source marker geometry and plate rules, and browser UTF-16 maxlength versus wire code-point bounds. These are explicit Task 11 measurement and Task 12 go/no-go inputs. No pixel/DOM parity claim or images were produced in this task. No primitive, catalog prop, recipe, dependency, public export, version or normative spec meaning changed.
+    - Verification: `timeout 300s bun run check` passed (both typechecks, lint, formatting and 51 tests, including six Chromium tests). The actual queue benchmark and `timeout 20s git diff --check` passed. Task 8 can reuse the composed cards/rows and manifest without adding a queue primitive.
 
 - [ ] Task 8: Build `core.queue` at all four sizes
   - Acceptance Criteria:

@@ -74,7 +74,7 @@ afterAll(async () => {
   await server?.stop(true);
 });
 
-async function openSurface(path = "agent-home") {
+async function openSurface(path = "core-queue") {
   const html = await (await fetch(new URL(`/ui/${path}`, server.url))).text();
   const json = html.match(/<script type="application\/json" id="bootstrap">(.*?)<\/script>/s)?.[1];
   if (!json) throw new Error("Missing bootstrap");
@@ -121,7 +121,7 @@ test("browser_hydrates_posts_intents_logs_actions_and_switches_styles", async ()
     if (message.type() === "error") errors.push(message.text());
   });
   try {
-    await page.goto(new URL("/ui/agent-home", server.url).toString());
+    await page.goto(new URL("/ui/core-queue", server.url).toString());
     await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
     let posts = 0;
     page.on("request", (request) => {

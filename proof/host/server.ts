@@ -7,7 +7,7 @@ import { certifiedDesignSystem } from "../styles/certified/design-system.ts";
 import { certifiedTheme } from "../styles/certified/theme.ts";
 import { rackDesignSystem } from "../styles/rack/design-system.ts";
 import { rackTheme } from "../styles/rack/theme.ts";
-import { openPage, pages } from "./pages.ts";
+import { agentHomeScenarios, openPage, pages } from "./pages.ts";
 import { type HostedSurface, StaleRevision } from "./state.ts";
 import { ProofSurface } from "./view.tsx";
 
@@ -76,7 +76,9 @@ export async function startHost(port = 3000) {
       if (!url.pathname.startsWith("/ui/") || !Object.hasOwn(pages, name)) return error("Not found", 404);
       const size = url.searchParams.get("size") ?? "full";
       if (!["small", "medium", "large", "full"].includes(size)) return error("Invalid widget size", 400);
-      const session = openPage(size);
+      const scenario = url.searchParams.get("scenario") ?? "ready";
+      if (!agentHomeScenarios.includes(scenario)) return error("Invalid queue scenario", 400);
+      const session = openPage(size, name, scenario);
       const snapshot = session.snapshot();
       sessions.set(snapshot.tree.surfaceId, session);
       const markup = renderToString(createElement(ProofSurface, { snapshot, onIntent: () => {} }));
