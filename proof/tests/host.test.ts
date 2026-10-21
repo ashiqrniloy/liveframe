@@ -74,7 +74,7 @@ afterAll(async () => {
   await server?.stop(true);
 });
 
-async function openSurface(path = "design-system") {
+async function openSurface(path = "harness") {
   const html = await (await fetch(new URL(`/ui/${path}`, server.url))).text();
   const json = html.match(/<script type="application\/json" id="bootstrap">(.*?)<\/script>/s)?.[1];
   if (!json) throw new Error("Missing bootstrap");
@@ -88,7 +88,7 @@ const post = (body: unknown, origin?: string) =>
   });
 
 test("host_serves_reference_pages_and_rejects_invalid_requests", async () => {
-  for (const name of ["agent-home", "core-queue", "git-status", "rack-module", "design-system"]) {
+  for (const name of ["agent-home", "core-queue", "git-status", "rack-module", "design-system", "harness"]) {
     expect((await openSurface(name)).tree.revision).toBe(1);
   }
   expect((await fetch(new URL("/ui/missing", server.url))).status).toBe(404);
@@ -121,7 +121,7 @@ test("browser_hydrates_posts_intents_logs_actions_and_switches_styles", async ()
     if (message.type() === "error") errors.push(message.text());
   });
   try {
-    await page.goto(new URL("/ui/design-system", server.url).toString());
+    await page.goto(new URL("/ui/harness", server.url).toString());
     await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
     let posts = 0;
     page.on("request", (request) => {

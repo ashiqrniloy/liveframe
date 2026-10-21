@@ -546,7 +546,7 @@ Sources checked on 2026-10-21:
     - Performance: `timeout 120s bun proof/tests/clay.bench.ts` passed at 0.767 ms mean for 52 git label rows and 1.245 ms for 50 Rack file rows over 1,000 renders after 200 warmups, including validation and changing module tab/draft state, below 2 ms. The full host test measured a 3.23 ms maximum local state round trip against 50 ms.
     - Verification: `timeout 300s bun run check` passed (both typechecks, lint, formatting and 60 tests, including eight Chromium tests). No evidence images were generated. Task 10 retains the live design-system-switch proof on real reference widgets; Tasks 11–12 retain visual evidence and final assessment.
 
-- [ ] Task 10: Prove the design-system switch
+- [x] Task 10: Prove the design-system switch
   - Acceptance Criteria:
     - Functional: the Task 7 queue and the Task 9 git panel each render under both Certified and Rack, switched live in the harness, with no change to widget code.
     - Performance: the switch triggers no widget re-run (Task 5 test) and completes in one frame locally.
@@ -562,16 +562,28 @@ Sources checked on 2026-10-21:
     - Options Considered:
       - None. This is a direct check of the spec.
     - Chosen Approach:
-      - The harness toggles the projected stylesheet. A test asserts that the widget sources are identical across both renders.
+      - Reuse the existing selector, load both projected stylesheets before enabling it, and synchronously toggle their media so switching needs no fetch or widget render. Exercise the real queue and Git pages in both directions; compare computed typography, DOM node identity/markup, focus and requests within one local frame. Hash widget sources before/after the proof.
+      - Replace the pending design-system registration with the real queue. Keep the existing smoke fixture on an explicitly named harness page for the host protocol and 50-row HTTP tests.
     - API Notes and Examples:
       ```ts
       applyDesignSystem(project(rackTheme, rackDesignSystem));
       ```
     - Files to Create/Edit:
-      - `proof/host/client.tsx`: add the switch.
-      - `proof/tests/switch.test.ts`: new.
+      - `proof/host/{client.tsx,server.ts}`: preload both projections and activate the selected one synchronously.
+      - `proof/host/{pages.ts,README.md}`: real queue switch page, explicit smoke-fixture page and proof instructions.
+      - `proof/tests/host.test.ts`: point smoke-only checks at the explicit harness page.
+      - `proof/tests/switch.test.ts`: real-widget browser proof, source identity and one-frame timing.
+      - `proof/GAPS.md`: switch evidence, load/measurement boundaries and retained colour-identity limits.
+      - `roadmap.md` §3: Task 10 completion status.
   - Test Cases to Write:
-    - `switch_changes_computed_styles_not_dom_structure`: fails if the DOM tree differs between the two systems.
+    - `design_system_page_uses_the_unchanged_reference_queue`: the switch page must use the real Task 7 tree.
+    - `switch_changes_computed_styles_not_dom_structure`: each real widget switches ten times with immediate target typography through the next frame, activation/style resolution below 16.67 ms, unchanged node identities/markup/focus/tree and widget-source hashes, no DOM mutations, no requests and no browser errors.
+  - Notes (executed 2026-10-21):
+    - Reused the existing selector and projected Certified/Rack sheets. Both sheets now load before the selector is enabled; changing their media in one synchronous handler activates the chosen system without network access, React updates or widget reruns. The design-system page uses the unchanged real agent-home queue. Retained the synthetic 50-row fixture on `/ui/harness` and moved only smoke-specific host tests there.
+    - Wrote the switch tests first and confirmed all three failed against the original smoke registration/asynchronous stylesheet fetch. Chromium now verifies ten alternating switches on the actual queue and Git panel, immediate heading sizes (Certified 24.192px, Rack 18px) through the next animation frame, unchanged DOM identities/markup/focus/bootstrap tree, zero widget DOM mutations, no requests, unchanged widget-source hashes and no hydration/browser errors. The queue retains a selected task and focused Claim control. The pointer is outside the widget so layout changes do not independently toggle hover attributes.
+    - Performance: the full check measured 3.40 ms maximum for the queue and 1.40 ms for Git over ten switches each, below the 16.67 ms local budget for activation and computed-style resolution. This excludes initial stylesheet loading and does not claim a hardware-independent paint deadline. The existing Task 5 render-count test also passes; the host HTTP test remains below 50 ms (3.10 ms maximum).
+    - Updated `proof/host/README.md` and `proof/GAPS.md`. No additional missing recipe/role was found; the Task 3 completeness/reference suites remain green. Certified's patch identity/diagnostic aliases remain an explicit Task 12 limitation: neither switch widget exercises patch identities, and no widget-code workaround was added. Pixel/DOM parity against source artifacts remains Task 11. No primitive, recipe, theme, dependency, public export, version or normative spec meaning changed.
+    - Verification: `timeout 60s bun test proof/tests/switch.test.ts` passed (3 tests); `timeout 300s bun run check` passed (both typechecks, lint, formatting and 63 tests including ten Chromium tests). No evidence images were generated or committed.
 
 - [ ] Task 11: Capture parity evidence against the approved artifact
   - Acceptance Criteria:

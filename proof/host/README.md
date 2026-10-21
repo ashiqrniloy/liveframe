@@ -4,8 +4,9 @@ Run `bun run proof` and open <http://127.0.0.1:3000>. Stop with Ctrl+C.
 
 Each reference link opens a fresh surface with independent state. Add
 `?size=small`, `medium`, `large` or `full` to choose the widget context size.
-The design-system selector swaps the Certified/Rack stylesheet without a widget
-rerun. Action intents appear in the page's log; they never perform operations.
+The design-system selector activates the already loaded Certified/Rack stylesheet
+without a request or widget rerun. It is enabled after both stylesheets load.
+Action intents appear in the page's log; they never perform operations.
 
 `/ui/agent-home` shows the primitive-composed Synapta queue. Select a subject to
 show its card, filter with the tabs, or Load more to advance all three cursor
@@ -27,7 +28,9 @@ and composer. Both pages start under Rack. Typing stays local; leave the message
 field to commit the draft before Send. Files / OM / Context tabs rerun the widget;
 OM has no source fixture and says so. Close container and Send log declared
 actions without closing a container or contacting an agent. Model and effort
-are readouts. The design-system page retains the smoke widget until Task 10.
+are readouts. `/ui/design-system` uses the unchanged agent-home queue; switch it
+and `/ui/git-status` between both systems. `/ui/harness` keeps the synthetic
+50-row smoke fixture used by the host protocol tests.
 Task 11 owns pixel and DOM parity evidence; known composition differences are
 listed in `proof/GAPS.md`.
 
@@ -54,3 +57,9 @@ at each size (50 rows, 2 ms mean budget).
 
 Run `timeout 120s bun proof/tests/clay.bench.ts` for Clay's git status (52 label
 rows) and Rack module (50 files), both against the 2 ms mean budget.
+
+Run `timeout 60s bun test proof/tests/switch.test.ts` for the real queue/Git
+switch proof. It checks ten alternating switches per widget, immediate computed
+typography through the next animation frame and a 16.67 ms local switch budget,
+unchanged node identities/markup/focus/tree, no requests and unchanged widget
+source hashes. This proves CSS activation, not reference pixel parity.

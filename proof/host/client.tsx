@@ -32,9 +32,21 @@ const onIntent = (intent: Intent) => {
 };
 const root = hydrateRoot(container, <ProofSurface snapshot={snapshot} onIntent={onIntent} />);
 const switcher = document.getElementById("design-system");
-switcher?.addEventListener("change", () => {
-  const sheet = document.getElementById("projection");
-  if (sheet instanceof HTMLLinkElement && switcher instanceof HTMLSelectElement)
-    sheet.href = `/styles/${switcher.value}.css`;
-});
+const sheets = Array.from(document.querySelectorAll<HTMLLinkElement>("link[data-design-system]"));
+await Promise.all(
+  sheets.map((sheet) =>
+    sheet.sheet
+      ? Promise.resolve()
+      : new Promise<void>((resolve, reject) => {
+          sheet.addEventListener("load", () => resolve(), { once: true });
+          sheet.addEventListener("error", () => reject(new Error(`Failed to load ${sheet.href}`)), { once: true });
+        }),
+  ),
+);
+if (switcher instanceof HTMLSelectElement) {
+  switcher.addEventListener("change", () => {
+    for (const sheet of sheets) sheet.media = sheet.dataset.designSystem === switcher.value ? "all" : "not all";
+  });
+  switcher.disabled = false;
+}
 document.documentElement.dataset.ready = "true";

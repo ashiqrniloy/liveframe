@@ -9,13 +9,13 @@ import { gitFixture, rackFixture } from "./fixtures/clay.ts";
 import { agentHomeFixture } from "./fixtures/queue.ts";
 import { createSurface } from "./state.ts";
 
-// Task 10 replaces the remaining smoke registration.
 export const pages = {
   "agent-home": "Synapta's agent-home queue",
   "core-queue": "Core queue at four sizes",
   "git-status": "Clay's git status",
   "rack-module": "Rack agent information module",
-  "design-system": "Design-system switch — reference proof pending Task 10",
+  "design-system": "Design-system switch — Synapta queue (also try Clay’s git status)",
+  harness: "Host protocol smoke fixture",
 } as const;
 
 export const agentHomeScenarios = ["ready", "loading", "empty", "failed", "read-only", "no-alerts", "no-escalate"];
@@ -35,7 +35,7 @@ export function openPage(size: string, name = "core-queue", scenario = "ready") 
       rackOptions,
       rackActions,
     );
-  if (name === "agent-home" || name === "core-queue")
+  if (name === "agent-home" || name === "core-queue" || name === "design-system")
     return createSurface(
       name === "core-queue" ? CoreQueue : AgentHomeQueue,
       {
