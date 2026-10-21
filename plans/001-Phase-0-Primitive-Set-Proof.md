@@ -162,7 +162,7 @@ Sources checked on 2026-10-21:
     - Task 4 handoff: style-prop value validation and catalog-derived JSX types remain there. Spec §6.3's table requires `space.*`, while its following sentence says `gap={3}` compiles; use the table's token constraint for this proof and resolve the inconsistent example when updating the spec. These candidates do not finalize the primitive set or change spec meaning; no decision log, public export or version change is needed.
     - Verification: `timeout 300s bun run check` passed (both typechecks, lint, formatting, 5 tests including the existing root test). Snapshot contents were not changed.
 
-- [ ] Task 3: Express Certified and Rack as themes and design systems
+- [x] Task 3: Express Certified and Rack as themes and design systems
   - Acceptance Criteria:
     - Functional:
       - `proof/styles/certified/` and `proof/styles/rack/` each hold a **theme** (colour and typography roles) and a **design system** (typed values plus recipes keyed `<kind>.<variant>.<slot>.<state>`, spec §6).
@@ -186,7 +186,8 @@ Sources checked on 2026-10-21:
       - Keep Certified as its existing CSS: rejected. Recipes are the model under test.
       - Generate recipes automatically from CSS: rejected. Too clever for a proof; hand-written recipes expose the gaps.
     - Chosen Approach:
-      - Hand-translate both systems into the spec §6 formats as TS data.
+      - Hand-translate Certified into spec §6 TS data. Preserve all 247 pinned Rack recipes and 14 values as typed TS data, replacing transparency with a theme role, then explicitly map source prefixes to catalog slots.
+      - Require a rest recipe for each slot; materialize all eight spec states, merging state overrides over rest. Unpainted wrappers and inherited ink slots are explicit. Supply missing control families and source spacing/easing references; log each gap.
     - API Notes and Examples:
       ```ts
       "button.primary.root.hover": { backgroundColor: "accent.fill.hover", textColor: "text.on-accent",
@@ -194,11 +195,22 @@ Sources checked on 2026-10-21:
       ```
     - Files to Create/Edit:
       - `proof/styles/{types.ts,certified/theme.ts,certified/design-system.ts,rack/theme.ts,rack/design-system.ts}`: new.
+      - `proof/styles/recipes.ts`: shared completeness expansion (no CSS generation or projection).
       - `proof/tests/styles.test.ts`: new.
+      - `proof/GAPS.md`: ownership, vocabulary, catalog mapping and parity findings.
+      - `roadmap.md` §3: Task 3 completion status.
   - Test Cases to Write:
     - `design_systems_are_complete_for_the_catalog`: fails if any `(kind, variant, slot, state)` lacks a recipe.
     - `no_colour_outside_themes`: fails if a recipe or value holds a literal colour.
     - `recipes_reference_only_declared_roles_and_values`: fails on an unknown role or value name.
+
+  - Notes (executed 2026-10-21):
+    - Added Certified light and Rack/Modus Operandi light themes with one vocabulary of 44 colour roles and seven typography roles. All colour literals are theme-owned, including transparency and Certified primary-hover mixing. Modus design tokens are copied exactly; primary text and scrollbar come from its text styles.
+    - Added typed values and closed recipe properties. Each active design system has 536 recipes covering all 23 candidate kinds, every variant/slot and all eight states. The shared helper rejects missing rest slots and merges rest with state overrides. No product-shaped kinds were added.
+    - Retained all 247 Rack source recipes (sole normalization: transparent becomes colour.transparent) and all 14 values, with exact-source equality tests. Explicit prefix mappings adapt textInput/dropdown/modal/seg/label/divider/flex and button.muted; source-only families/variants remain reference data. Added checkbox/switch recipes using existing Rack geometry and roles. Supplied source spacing/easing references and shared space.0–7 tokens.
+    - Created proof/GAPS.md with the full mapping table, Rack typography ownership mismatch, missing Certified identity/soft-fill roles, source documentation count mismatch (273 claimed versus 247 actual), supplied control families and Task 5/10/11/12 handoffs. Updated Task 7 to append to the existing gap log. These are proof findings; no normative spec meaning, dependency, public export or version changed, and no decision log is required.
+    - Tests were written first and failed on missing modules. Nine style tests now cover completeness and its rejection case, state inheritance, shared roles, colour authority, closed properties and typed references (including shadows), malformed data rejection, source preservation and theme provenance. Both systems and all translated Rack source recipes resolve against either theme.
+    - Verification: timeout 300s bun run check passed (both typechecks, lint, formatting and 14 tests). Browser rendering, font availability, forced colours and pixel/DOM parity remain the later renderer/projection/evidence tasks; data completeness alone does not establish visual parity.
 
 - [ ] Task 4: Build the proof SDK: JSX runtime, intents, render and validation
   - Acceptance Criteria:
@@ -362,7 +374,7 @@ Sources checked on 2026-10-21:
     - Files to Create/Edit:
       - `proof/widgets/agent-home/{queue.tsx,task-card.tsx,alert-card.tsx,queue-row.tsx,manifest.ts}`: new.
       - `proof/host/fixtures/queue.ts`: new.
-      - `proof/GAPS.md`: new (gap log).
+      - `proof/GAPS.md`: append composition gaps to the Task 3 gap log.
       - `proof/tests/agent-home.test.ts`: new.
   - Test Cases to Write:
     - `selecting_a_row_moves_its_card_to_focus`.
