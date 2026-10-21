@@ -340,7 +340,7 @@ Sources checked on 2026-10-21:
     - Recorded proof limits in `proof/GAPS.md`: one global stylesheet, native scrollbar geometry, a small host glyph map, theme font availability, commit-event naming/dynamic action-argument binding, and remaining reference-widget/pixel parity work. Task 6 owns the live host, dispatch-time validation/authorization and actual reruns; Tasks 7–11 own reference composition and parity. No normative spec meaning, catalog primitive, package export or version changed.
     - Verification: `timeout 300s bun run check` passed (both typechecks, lint, formatting, 36 tests including three real Chromium tests); `timeout 10s git diff --check` passed. Chromium was installed with `timeout 120s bunx playwright install chromium`. No screenshots were generated or committed; pixel/DOM comparison remains Task 11.
 
-- [ ] Task 6: Build the proof host harness
+- [x] Task 6: Build the proof host harness
   - Acceptance Criteria:
     - Functional:
       - `proof/host` runs widgets in-process with fixture data, keeps per-surface state, re-runs a widget on `setState`, and logs actions.
@@ -355,21 +355,40 @@ Sources checked on 2026-10-21:
       - Bun 1.4: `Bun.serve` routes and `Bun.build` for a browser bundle, via `find-docs`.
     - Documentation Reviewed:
       - Spec §8 (tiers) and §11 (`onIntent`).
+      - Bun 1.4.2 installed; official [HTTP server](https://bun.sh/docs/runtime/http/server) and [bundler](https://bun.sh/docs/bundler) docs: browser-targeted builds, in-memory outputs, request handlers, localhost binding, request-size limits and ephemeral test ports. Context7's library lookup failed with its monthly quota exhausted; official docs were used instead.
     - Options Considered:
       - A full app framework (React Router): rejected. A proof needs one page per UI.
     - Chosen Approach:
       - A minimal Bun server that renders the tree server-side and hydrates `<Surface>`. Intents are POSTed back and the new tree is returned.
+      - Reference compositions arrive in Tasks 7–9. Register their pages now with an explicitly labeled 50-row smoke widget, kept outside the host; later tasks replace those registrations. The design-system page exercises the smoke widget until Task 10.
+      - Each page visit gets an isolated in-memory surface. Dispatch rechecks the current revision, offered intents, manifest state and action schemas. Actions are appended to a surface log, without executing operations or rerendering. Only validated successful rerenders commit state.
     - API Notes and Examples:
       ```ts
       Bun.serve({ routes: { "/ui/:name": page, "/intent": { POST: handleIntent } } });
       ```
     - Files to Create/Edit:
-      - `proof/host/{server.ts,client.tsx,fixtures/*.ts,state.ts}`: new.
+      - `proof/host/{server.ts,client.tsx,view.tsx,pages.ts,state.ts,README.md}`: server, hydration, shared compiled view, page registrations, dispatch and local usage.
+      - `proof/host/fixtures/queue.ts`: synthetic 50-row work-page subset; Task 7 extends it.
+      - `proof/widgets/harness.tsx`: smoke widget and manifest; no widget logic in the host.
       - `proof/tests/host.test.ts`: new.
       - `package.json`: a `proof` script.
+      - `roadmap.md` §3: Task 6 completion status.
   - Test Cases to Write:
     - `set_state_reruns_widget_and_returns_new_tree`.
     - `action_is_logged_and_never_rerenders_by_itself`.
+    - `dispatch_rechecks_state_actions_current_tree_and_revision`: malformed, undeclared, unoffered and stale intents fail closed.
+    - `failed_rerender_rolls_back_state_and_action_schemas_are_checked`: failed renders leave the last valid state intact; offered action arguments still require their schema.
+    - `host_serves_reference_pages_and_rejects_invalid_requests`: pages, isolated surfaces, invalid sizes/envelopes, cross-origin rejection and a browser bundle without the widget/server.
+    - `browser_hydrates_posts_intents_logs_actions_and_switches_styles`: real Chromium, no hydration errors, local drafts, actual round trips, visible action log and CSS-only switching.
+    - `set_state_http_round_trip_under_50_ms`: 25 measured local HTTP round trips after five warmups, with a 50-row fixture.
+  - Notes (executed 2026-10-21):
+    - Added the localhost Bun server, in-memory browser build, server rendering and hydration, reference-page registrations, context-size selection, CSS-only Certified/Rack switching and visible per-surface action logs. `bun run proof` starts at `http://127.0.0.1:3000/`; `proof/host/README.md` documents usage and boundaries. No dependency, package export, spec meaning or version changed.
+    - Each visit creates an isolated surface with a random id. Requests are bounded, same-origin JSON with closed envelopes and current revisions. Dispatch accepts only currently offered intents, rechecks state and action schemas and commits state only after a valid rerender. Actions are logged as data and never executed or used to rerender. The client serializes commits against the latest revision.
+    - The host contains no widget logic. A separate smoke widget uses a synthetic 50-item work-page subset and all three interaction tiers. Reference pages explicitly identify their pending tasks. Tasks 7–9 must replace the registrations in `proof/host/pages.ts` with their widgets/fixtures; Task 8 must replace the smoke size context with its actual size-dependent composition; Task 10 must prove the switch on the real queue/git widgets. This harness is not parity evidence.
+    - Wrote host tests first and confirmed the missing-module failure. Seven tests cover reruns, isolated state, actions without reruns, malformed/unoffered/undeclared/stale intents, action-argument validation, failed-rerender rollback, HTTP boundaries, reference routes, sizes, browser-bundle isolation, Chromium hydration without console errors, local drafts, live intents/logging and switching without DOM changes or POSTs.
+    - Performance: the HTTP test measured 25 local `setState` round trips after five warmups on the 50-row smoke widget, with a 5.14 ms maximum against the 50 ms budget. The unchanged synthetic 353-node render benchmark passed at 1.634 ms mean over 1,000 renders against 2 ms; actual reference-widget budgets remain Tasks 7–8.
+    - Verification: `timeout 300s bun run check` passed (both typechecks, lint, formatting and 43 tests including four Chromium tests). `timeout 120s bun proof/tests/runtime.bench.ts` and `timeout 20s git diff --check` passed. `timeout 3s bun run proof` printed the localhost URL and was intentionally stopped by the timeout. No images were generated or committed.
+    - Limits: trusted in-process widgets, logging-only actions, and memory-only surfaces/logs retained until shutdown. Persistence, sandboxing and a production dispatcher are outside this proof. Context7 quota prevented its documentation lookup; Bun's official server/bundler documentation was checked instead.
 
 - [ ] Task 7: Build Synapta's agent-home queue from primitives
   - Acceptance Criteria:

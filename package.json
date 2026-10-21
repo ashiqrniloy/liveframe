@@ -13,6 +13,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "proof": "bun proof/host/server.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit && tsc --noEmit -p proof",
     "lint": "biome lint .",
