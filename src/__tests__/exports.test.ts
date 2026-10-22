@@ -1,5 +1,4 @@
 import { expect, test } from "bun:test";
-import * as liveframe from "@arnilo/liveframe";
 import type {
   CompiledValidator,
   CompileValidatorOptions,
@@ -10,9 +9,10 @@ import type {
   UiTree,
   ValidateTreeOptions,
 } from "@arnilo/liveframe";
-import catalog from "./fixtures/proof/catalog.json" with { type: "json" };
-import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
+import * as liveframe from "@arnilo/liveframe";
 import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
+import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
+import catalog from "./fixtures/proof/catalog.json" with { type: "json" };
 
 test("root_export_surface", () => {
   expect(Object.keys(liveframe).sort()).toEqual(
@@ -42,6 +42,15 @@ test("root_export_surface", () => {
       "validateVocabulary",
     ].sort(),
   );
+});
+
+test("build_facts_are_internal", () => {
+  const validator = liveframe.compileValidator({ catalog, capabilities, manifest });
+  // `render()` reads these facts from the validator; the root export publishes no name for them.
+  expect(Object.keys(validator).sort()).toEqual(["build", "checkNode", "validateTree"]);
+  expect(Object.keys(liveframe).filter((name) => /build|structure|facts/i.test(name))).toEqual([]);
+  expect(validator.build.structure.children.get("stack")).toBeDefined();
+  expect(validator.build.kinds.get("button")?.events.has("onPress")).toBe(true);
 });
 
 test("public_validator_types_support_error_guided_repairs", () => {

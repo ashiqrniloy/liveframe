@@ -4,6 +4,7 @@ import { type Manifest, validateManifest } from "../formats/manifest.ts";
 import { closed, field, reject } from "./checks.ts";
 import { compileIntents } from "./intent.ts";
 import { compileSchema, type SchemaCheck } from "./schema.ts";
+import { type ChildRules, type CompiledStructure, compileStructure } from "./structure.ts";
 import { compileStyles } from "./style.ts";
 import { compileTree, type TreeValidator } from "./tree.ts";
 
@@ -12,7 +13,24 @@ export type CompileValidatorOptions = {
   readonly capabilities: unknown;
   readonly manifest: unknown;
 };
-export type CompiledValidator = { readonly checkNode: SchemaCheck; readonly validateTree: TreeValidator };
+/** Per-kind facts `render()` needs to split props and check children while it builds. */
+export type KindFacts = {
+  readonly variants: ReadonlySet<string>;
+  readonly styleProps: ReadonlySet<string>;
+  readonly events: ReadonlySet<string>;
+  readonly children: ChildRules | undefined;
+};
+/** @internal Not part of the published surface; `render()` reads it from the validator. */
+export type CompiledBuild = {
+  readonly kinds: ReadonlyMap<string, KindFacts>;
+  readonly structure: CompiledStructure;
+};
+export type CompiledValidator = {
+  readonly checkNode: SchemaCheck;
+  readonly validateTree: TreeValidator;
+  /** @internal The same compiled facts, exposed for `render()`'s one-pass builder. */
+  readonly build: CompiledBuild;
+};
 const fields = new Set(["id", "kind", "variant", "props", "style", "events", "children"]);
 
 /** Validate installed documents once, then compile specialised per-kind checks. */
@@ -31,10 +49,18 @@ export function compileValidator(options: CompileValidatorOptions): CompiledVali
 function compile(catalog: Catalog, capabilities: Capabilities, manifest: Manifest): CompiledValidator {
   const styles = compileStyles(catalog.vocabulary);
   const intent = compileIntents(capabilities, manifest);
+  const structure = compileStructure(catalog);
   const kinds = new Map<string, SchemaCheck>();
+  const facts = new Map<string, KindFacts>();
   for (const definition of catalog.definitions) {
     const props = compileSchema(definition.props);
     const variants = new Set(definition.variants);
+    facts.set(definition.kind, {
+      variants,
+      styleProps: new Set(definition.styleProps),
+      events: new Set(Object.keys(definition.events)),
+      children: structure.children.get(definition.kind),
+    });
     const variantExpected = `one of: ${definition.variants.join(", ")}`;
     const allowedStyles = new Map(definition.styleProps.map((prop) => [prop, styles.get(prop)]));
     const styleExpected = `a declared style prop: ${definition.styleProps.join(", ") || "none"}`;
@@ -105,5 +131,5 @@ function compile(catalog: Catalog, capabilities: Capabilities, manifest: Manifes
       }
     return valid;
   };
-  return { checkNode, validateTree: compileTree(catalog, checkNode) };
+  return { checkNode, validateTree: compileTree(catalog, checkNode, structure), build: { kinds: facts, structure } };
 }

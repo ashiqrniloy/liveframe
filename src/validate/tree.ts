@@ -6,6 +6,15 @@ import { int, str } from "../schema.ts";
 import { stringBytes } from "./bytes.ts";
 import { closed, field } from "./checks.ts";
 import { compileSchema, type SchemaCheck, type SchemaSink } from "./schema.ts";
+import {
+  type CompiledStructure,
+  compileStructure,
+  type JsonWalk,
+  jsonScalarBytes,
+  keyPath,
+  type StructureSink,
+  walkJson,
+} from "./structure.ts";
 
 export type ValidateTreeOptions = {
   readonly limits?: { readonly nodes?: number; readonly depth?: number; readonly bytes?: number };
@@ -14,25 +23,20 @@ export type ValidateTreeOptions = {
 export type TreeValidator = (tree: unknown, options?: ValidateTreeOptions) => Result<UiTree>;
 
 const treeFields = new Set(["format", "catalogId", "surfaceId", "revision", "root"]);
-const keyPath = /^(?:[a-zA-Z0-9_.!~*'():-]|%[0-9A-F]{2})+(?:\/(?:[a-zA-Z0-9_.!~*'():-]|%[0-9A-F]{2})+)*$/;
 type Mode = "tree" | "node" | "children" | "json";
 
 /** One walk checks node relationships and counts the bytes of all accepted JSON values. */
-export function compileTree(catalog: Catalog, checkNode: SchemaCheck): TreeValidator {
+export function compileTree(
+  catalog: Catalog,
+  checkNode: SchemaCheck,
+  structure: CompiledStructure = compileStructure(catalog),
+): TreeValidator {
   const metadata = new Map([
     ["format", compileSchema(str({ maxLength: 11, enum: ["liveframe/1"] }))],
     ["catalogId", compileSchema(str({ maxLength: 128, enum: [catalog.catalogId] }))],
     ["surfaceId", compileSchema(str({ maxLength: 128, pattern: "^.+$" }))],
     ["revision", compileSchema(int({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }))],
   ]);
-  const children = new Map(
-    catalog.definitions.map((definition) => [
-      definition.kind,
-      typeof definition.children === "string"
-        ? definition.children
-        : new Map(definition.children.map((rule) => [rule.kind, rule])),
-    ]),
-  );
   return (tree, options = {}) => {
     const errors: LiveframeError[] = [];
     const budget = { nodes: 5000, depth: 64, bytes: 1024 * 1024, ...options.limits };
@@ -41,6 +45,27 @@ export function compileTree(catalog: Catalog, checkNode: SchemaCheck): TreeValid
     const sink: SchemaSink = { errors, maxErrors };
     const ids = new Set<string>();
     const ancestors = new Set<object>();
+    const jsonSink: JsonWalk = {
+      nodeId: "root",
+      ancestors,
+      path,
+      bytes: 0,
+      maximum: budget.bytes,
+      stopped: false,
+      fail(expected) {
+        fail(expected, jsonSink.nodeId, "invalid-prop");
+        jsonSink.stopped = stopped;
+      },
+      limit() {
+        limit(`a tree of at most ${budget.bytes} UTF-8 JSON bytes`, jsonSink.nodeId);
+      },
+    };
+    const structureSink: StructureSink & { nodeId: string } = {
+      nodeId: "root",
+      reject(expected, pointer = "") {
+        fail(expected, structureSink.nodeId, "invalid-children", pointer);
+      },
+    };
     let bytes = 0;
     let nodes = 0;
     let stopped = false;
@@ -108,6 +133,13 @@ export function compileTree(catalog: Catalog, checkNode: SchemaCheck): TreeValid
 
     function walk(value: unknown, mode: Mode, depth: number, parentId: string, parentKind: string): undefined {
       if (stopped) return;
+      // A JSON value is checked and byte-counted by the shared piece; it contains no nodes.
+      if (mode === "json") {
+        jsonSink.bytes = bytes;
+        walkJson(value, jsonSink);
+        bytes = jsonSink.bytes;
+        return;
+      }
       let nodeId = parentId;
       let nodeKind = parentKind;
       let valid = true;
@@ -138,27 +170,9 @@ export function compileTree(catalog: Catalog, checkNode: SchemaCheck): TreeValid
           if (ids.has(value.id)) fail("a unique key-path id", nodeId, "duplicate-key", "/id");
           ids.add(value.id);
         }
-        if ((nodeKind === "term" || nodeKind === "detail") && parentKind !== "terms")
-          fail("term and detail nodes directly inside terms", nodeId, "invalid-children", "/kind");
-        if (parentKind === "terms" && nodeKind !== "term" && nodeKind !== "detail")
-          fail("only term or detail children inside terms", nodeId, "invalid-children", "/kind");
-        const rule = children.get(parentKind);
-        if (depth > 1 && rule instanceof Map && !rule.has(nodeKind))
-          fail(
-            `a child kind declared by ${parentKind}: ${[...rule.keys()].join(", ") || "none"}`,
-            nodeId,
-            "invalid-children",
-            "/kind",
-          );
-        if (!Object.hasOwn(value, "children")) {
-          const ownRule = children.get(nodeKind);
-          if (ownRule instanceof Map)
-            for (const [kind, bounds] of ownRule) {
-              if (bounds.min > 0)
-                fail(`at least ${bounds.min} ${kind} children`, nodeId, "invalid-children", "/children");
-              if (stopped) return;
-            }
-        }
+        structureSink.nodeId = nodeId;
+        jsonSink.nodeId = nodeId;
+        structure.node(parentKind, nodeKind, depth, Object.hasOwn(value, "children"), structureSink);
       } else if (mode === "tree") {
         if (!isRecord(value)) return fail("a UI tree object", "root");
         const start = errors.length;
@@ -171,11 +185,8 @@ export function compileTree(catalog: Catalog, checkNode: SchemaCheck): TreeValid
         if (!Object.hasOwn(value, "root")) fail("a root UI node", "root", "invalid-prop", "/root");
       }
       if (stopped) return;
-      if (value === null) return add(4, nodeId);
-      if (typeof value === "string") return add(stringBytes(value, budget.bytes - bytes), nodeId);
-      if (typeof value === "boolean") return add(value ? 4 : 5, nodeId);
-      if (typeof value === "number" && Number.isFinite(value)) return add(String(value).length, nodeId);
-      if (typeof value !== "object") return fail("a JSON value", nodeId);
+      // Node and children modes returned early for anything but an object or array.
+      if (typeof value !== "object" || value === null) return;
       if (ancestors.has(value)) return fail("an acyclic JSON tree", nodeId);
       const array = Array.isArray(value);
       const prototype = Object.getPrototypeOf(value);
@@ -183,9 +194,12 @@ export function compileTree(catalog: Catalog, checkNode: SchemaCheck): TreeValid
       ancestors.add(value);
       add(2, nodeId);
       if (array) {
-        const rule = mode === "children" ? children.get(parentKind) : undefined;
-        const counts = rule instanceof Map ? new Map<string, number>() : undefined;
-        if (rule === "none" && value.length) fail("no children for this kind", nodeId, "invalid-children");
+        const counts =
+          mode === "children" && structure.children.get(parentKind) instanceof Map
+            ? new Map<string, number>()
+            : undefined;
+        if (mode === "children" && structure.forbidsChildren(parentKind) && value.length)
+          fail("no children for this kind", nodeId, "invalid-children");
         for (let i = 0; i < value.length && !stopped; i++) {
           path.push(i);
           if (i) add(1, nodeId);
@@ -205,13 +219,10 @@ export function compileTree(catalog: Catalog, checkNode: SchemaCheck): TreeValid
           );
           path.pop();
         }
-        if (rule instanceof Map && counts)
-          for (const [kind, bounds] of rule) {
-            const count = counts.get(kind) ?? 0;
-            if (count < bounds.min || count > bounds.max)
-              fail(`between ${bounds.min} and ${bounds.max} ${kind} children`, nodeId, "invalid-children");
-            if (stopped) break;
-          }
+        if (mode === "children" && counts) {
+          structureSink.nodeId = nodeId;
+          structure.counts(parentKind, counts, structureSink);
+        }
       } else {
         let first = true;
         for (const key in value) {

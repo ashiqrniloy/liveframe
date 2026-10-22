@@ -113,7 +113,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Left for later tasks by design: `.agents/skills/liveframe-execution/references/{sdk,storage,preview}.md` still describe the pre-contract API. Task 9 rebuilds `sdk.md`; plan 006's closing task rebuilds `storage.md` and the runner half of `preview.md`.
     - `bun run check` green (178 tests).
 
-- [ ] Task 2: Share the tree validator's structural checks with a builder
+- [x] Task 2: Share the tree validator's structural checks with a builder
   - Acceptance Criteria:
     - Functional:
       - The checks that today live only inside `compileTree`'s walk (`src/validate/tree.ts:109-246`) move into compiled, reusable pieces in `src/validate/structure.ts`:
@@ -160,7 +160,26 @@ Probe answers that hold for every task, unless a task says otherwise:
   - Test Cases to Write:
     - All existing `validator-*.test.ts`, `compiled-schema.test.ts` and `exports.test.ts` tests pass unchanged. They fail if a rule moved incorrectly.
     - `structure_pieces_match_tree_walk`: for every proof tree fixture and every failing-case fixture, the errors from `validateTree` equal those before the refactor (snapshot taken at the start of the task). Fails on any behavioural drift.
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-22):
+    - `src/validate/structure.ts` (new) owns four pieces: `keyPath` and `encodeSegment` (no encoder existed in `src/`; the proof used `encodeURIComponent` directly), `compileStructure(catalog)`, `jsonScalarBytes`, and `walkJson`. Failure text for placement and required children is compiled once per kind.
+    - `validateTree` is unchanged in behaviour: the same errors, in the same order, with the same pointers and text. `src/__tests__/fixtures/validator-baseline.json` was captured by running `validateTree` over all 40 failing-case rows and the 7 proof trees *before* the edit; `structure_pieces_match_tree_walk` (in `validator-rules.test.ts`, where the rows live) now compares every error array against it.
+    - `CompiledValidator` gained `build: { kinds, structure }`. `KindFacts` holds the kind's variants, declared style-prop names, event names and child rules; `KindFacts`/`CompiledBuild` are exported from `src/validate/compile.ts` but not from the root export. `build_facts_are_internal` pins `Object.keys(validator)` to `["build", "checkNode", "validateTree"]` and asserts no root export names them.
+    - API differs from the sketch above, for two measured reasons:
+      - The three one-rule methods (`placed`, `counts`, `missing`) became one `structure.node(parentKind, childKind, depth, hasChildren, sink)` plus `structure.counts` and `structure.forbidsChildren`, so a valid node costs one call instead of three. Messages reach the caller through `StructureSink.reject(expected, pointer?)`, so nothing is built unless a rule breaks.
+      - `s.jsonBytes(...)` cannot be per-value and stay in budget: a per-value scanner cost ~37% per node. `walkJson(value, ctx)` now takes a shared `JsonWalk` (the validator's own `ancestors`, `path` and byte counter), so there is one cycle set and no per-value setup; the caller reads `ctx.bytes` back. Task 4 uses the same pair.
+    - Performance, paired runs on the same machine under the same load (`bun bench/validator.bench.ts`):
+
+      | Fixture | Before | After |
+      | --- | --- | --- |
+      | agent-home (679) | 1.087 µs/node (0.7380 ms) | 1.134 µs/node (0.7698 ms), +4.3% |
+      | core-queue.medium (414) | 1.061 | 1.112 |
+      | core-queue.large (446) | 1.150 | 1.242 |
+      | core-queue.full (473) | 1.171 | 1.251 |
+      | core-queue.small (5) | 1.096 | 1.294 |
+
+      The generic control moved from 0.719 to 0.672 µs/node in the same pair, so run-to-run variance is larger than the delta. Every size passes the ≤ 1.5 µs/node gate, and agent-home's equal-work props check rose to 13.3×. Small (5 nodes) pays the one-per-validate `JsonWalk` setup across few nodes; still under the gate.
+    - `graft callers compileTree --depth all` before editing: only `src/validate/compile.ts` and two tests import it; `compileTree` keeps its two-argument form with the structure defaulted.
+    - `bun run check` green (180 tests).
 
 - [ ] Task 3: Add the JSX runtime, primitive tags and intent helpers
   - Acceptance Criteria:

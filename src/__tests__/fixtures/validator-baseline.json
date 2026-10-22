@@ -1,0 +1,673 @@
+[
+  {
+    "name": "unknown primitive",
+    "errors": [
+      {
+        "kind": "unknown-component",
+        "pointer": "/root/kind",
+        "expected": "a catalog kind: box, stack, inline, grid, scroll, separator, text, heading, icon, image, link, button, textField, select, checkbox, switch, menu, menuItem, popover, dialog, tooltip, tabs, disclosure, tab",
+        "message": "Expected a catalog kind: box, stack, inline, grid, scroll, separator, text, heading, icon, image, link, button, textField, select, checkbox, switch, menu, menuItem, popover, dialog, tooltip, tabs, disclosure, tab",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "wrong prop type",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/props/label",
+        "message": "Expected string of at most 80 characters",
+        "expected": "string of at most 80 characters",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "missing required prop",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/props/label",
+        "message": "Expected the required property \"label\"",
+        "expected": "the required property \"label\"",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "unknown prop",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/props/extra",
+        "message": "Expected a declared property (one of: label, icon, disabled, current, pressed)",
+        "expected": "a declared property (one of: label, icon, disabled, current, pressed)",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "string code-point bound",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/props/label",
+        "message": "Expected string of at most 80 characters",
+        "expected": "string of at most 80 characters",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "array bound",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/props/options",
+        "message": "Expected an array of at most 100 items",
+        "expected": "an array of at most 100 items",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "nested array item schema",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/props/options/0/value",
+        "message": "Expected string of at most 128 characters; a string matching ^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+        "expected": "string of at most 128 characters; a string matching ^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "array type includes its bound",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/props/options",
+        "message": "Expected an array of at most 100 items",
+        "expected": "an array of at most 100 items",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "object type includes its fields",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/props",
+        "message": "Expected an object with declared properties: label, icon, disabled, current, pressed",
+        "expected": "an object with declared properties: label, icon, disabled, current, pressed",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "integer range",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/props/level",
+        "message": "Expected a number <= 6",
+        "expected": "a number <= 6",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "string pattern",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/props/name",
+        "message": "Expected a string matching ^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+        "expected": "a string matching ^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "children forbidden",
+    "errors": [
+      {
+        "kind": "invalid-children",
+        "nodeId": "root",
+        "pointer": "/root/children",
+        "expected": "no children for this kind",
+        "message": "Expected no children for this kind"
+      }
+    ]
+  },
+  {
+    "name": "child kind restricted",
+    "errors": [
+      {
+        "kind": "invalid-children",
+        "nodeId": "root/child",
+        "pointer": "/root/children/0/kind",
+        "expected": "a child kind declared by menu: menuItem",
+        "message": "Expected a child kind declared by menu: menuItem"
+      },
+      {
+        "kind": "invalid-children",
+        "nodeId": "root",
+        "pointer": "/root/children",
+        "expected": "between 1 and 100 menuItem children",
+        "message": "Expected between 1 and 100 menuItem children"
+      }
+    ]
+  },
+  {
+    "name": "minimum children",
+    "errors": [
+      {
+        "kind": "invalid-children",
+        "nodeId": "root",
+        "pointer": "/root/children",
+        "expected": "at least 1 menuItem children",
+        "message": "Expected at least 1 menuItem children"
+      }
+    ]
+  },
+  {
+    "name": "maximum children",
+    "errors": [
+      {
+        "kind": "invalid-children",
+        "nodeId": "root",
+        "pointer": "/root/children",
+        "expected": "between 1 and 100 menuItem children",
+        "message": "Expected between 1 and 100 menuItem children"
+      }
+    ]
+  },
+  {
+    "name": "undeclared style prop",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/style/gap",
+        "expected": "a declared style prop: width, grow, align",
+        "message": "Expected a declared style prop: width, grow, align",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "numeric style bound",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/style/grow",
+        "expected": "a finite number from 0 to 100",
+        "message": "Expected a finite number from 0 to 100",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "undeclared space",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/style/gap",
+        "expected": "one of: space.0, space.1, space.2, space.3, space.4, space.5, space.6, space.7",
+        "message": "Expected one of: space.0, space.1, space.2, space.3, space.4, space.5, space.6, space.7",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "undeclared size",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/style/width",
+        "expected": "a declared space or size (space.0, space.1, space.2, space.3, space.4, space.5, space.6, space.7, size.rail, size.glyph), or a fraction from 0fr to 12fr, fill, fit, or a ch/% value from 0 to 100",
+        "message": "Expected a declared space or size (space.0, space.1, space.2, space.3, space.4, space.5, space.6, space.7, size.rail, size.glyph), or a fraction from 0fr to 12fr, fill, fit, or a ch/% value from 0 to 100",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "undeclared radius",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/style/radius",
+        "expected": "one of: radius.control, radius.plate, radius.pill, full",
+        "message": "Expected one of: radius.control, radius.plate, radius.pill, full",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "undeclared breakpoint",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/style/gap/bp.missing",
+        "expected": "base first, followed by declared breakpoints: bp.sm, bp.md",
+        "message": "Expected base first, followed by declared breakpoints: bp.sm, bp.md",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "responsive base required",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/style/gap",
+        "expected": "base first, followed by declared breakpoints: bp.sm, bp.md",
+        "message": "Expected base first, followed by declared breakpoints: bp.sm, bp.md",
+        "nodeId": "root"
+      },
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/style/gap",
+        "expected": "base first, followed by declared breakpoints: bp.sm, bp.md",
+        "message": "Expected base first, followed by declared breakpoints: bp.sm, bp.md",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "colour outside role (law 3)",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/style/surface",
+        "expected": "one of: surface.base, surface.raised, surface.case, surface.module, surface.well, surface.hover, surface.active, surface.selected, surface.scrim, surface.kbd, surface.scrollbar",
+        "message": "Expected one of: surface.base, surface.raised, surface.case, surface.module, surface.well, surface.hover, surface.active, surface.selected, surface.scrim, surface.kbd, surface.scrollbar",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "raw CSS (law 3)",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/style/width",
+        "expected": "a declared space or size (space.0, space.1, space.2, space.3, space.4, space.5, space.6, space.7, size.rail, size.glyph), or a fraction from 0fr to 12fr, fill, fit, or a ch/% value from 0 to 100",
+        "message": "Expected a declared space or size (space.0, space.1, space.2, space.3, space.4, space.5, space.6, space.7, size.rail, size.glyph), or a fraction from 0fr to 12fr, fill, fit, or a ch/% value from 0 to 100",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "undeclared variant",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/variant",
+        "expected": "one of: default, primary, danger, ghost",
+        "message": "Expected one of: default, primary, danger, ghost",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "undeclared event",
+    "errors": [
+      {
+        "kind": "undeclared-event",
+        "pointer": "/root/events/onMissing",
+        "expected": "a declared event: onPress",
+        "message": "Expected a declared event: onPress",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "one intent per event",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/events/onPress",
+        "expected": "one setState or action intent",
+        "message": "Expected one setState or action intent",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "intent type",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/events/onPress/type",
+        "expected": "intent type setState or action",
+        "message": "Expected intent type setState or action",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "state key",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/events/onPress/key",
+        "expected": "a declared state key: filter, selected, cursors, escalating, reason",
+        "message": "Expected a declared state key: filter, selected, cursors, escalating, reason",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "state value",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/events/onPress/value",
+        "message": "Expected one of: all, decisions, tasks, alerts",
+        "expected": "one of: all, decisions, tasks, alerts",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "absent state value needs carrying event",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/events/onPress/value",
+        "expected": "an explicit string value, or an event carrying string",
+        "message": "Expected an explicit string value, or an event carrying string",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "state carry type mismatch",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/events/onChange/value",
+        "expected": "an explicit string value, or an event carrying string",
+        "message": "Expected an explicit string value, or an event carrying string",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "undeclared action (law 4)",
+    "errors": [
+      {
+        "kind": "undeclared-action",
+        "pointer": "/root/events/onPress/name",
+        "expected": "an action in the manifest: decisions.review, tasks.claim, tasks.escalate, alerts.acknowledge, alerts.snooze, alerts.convert, queue.retry, queue.about",
+        "message": "Expected an action in the manifest: decisions.review, tasks.claim, tasks.escalate, alerts.acknowledge, alerts.snooze, alerts.convert, queue.retry, queue.about",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "capability alone grants no authority (law 4)",
+    "errors": [
+      {
+        "kind": "undeclared-action",
+        "pointer": "/root/events/onPress/name",
+        "expected": "an action in the manifest: none",
+        "message": "Expected an action in the manifest: none",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "args outside capability schema (law 4)",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/events/onPress/args/id",
+        "message": "Expected string of at most 128 characters; a string matching ^.+$",
+        "expected": "string of at most 128 characters; a string matching ^.+$",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "missing action arg",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/events/onPress/args/id",
+        "message": "Expected the required property \"id\"",
+        "expected": "the required property \"id\"",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "extra action arg",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/events/onPress/args/extra",
+        "message": "Expected a declared property (one of: id)",
+        "expected": "a declared property (one of: id)",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "bind argument exists",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/events/onCommit/bind",
+        "expected": "one of: id, reason (event carries string)",
+        "message": "Expected one of: id, reason (event carries string)",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "bind matches carries",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/events/onChange/bind",
+        "expected": "omit bind: no compatible arguments (event carries boolean)",
+        "message": "Expected omit bind: no compatible arguments (event carries boolean)",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "bind needs carrying event",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/events/onPress/bind",
+        "expected": "omit bind: no compatible arguments (event carries none)",
+        "message": "Expected omit bind: no compatible arguments (event carries none)",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "bound arg omitted from args",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/events/onCommit/args/reason",
+        "expected": "the bound argument omitted from args",
+        "message": "Expected the bound argument omitted from args",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "unbound required args remain required",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/events/onCommit/args/id",
+        "message": "Expected the required property \"id\"",
+        "expected": "the required property \"id\"",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "intent fields closed",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/events/onPress/script",
+        "expected": "one of the fields: type, key, value",
+        "message": "Expected one of the fields: type, key, value",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "duplicate id",
+    "errors": [
+      {
+        "kind": "duplicate-key",
+        "nodeId": "root/child",
+        "pointer": "/root/children/1/id",
+        "expected": "a unique key-path id",
+        "message": "Expected a unique key-path id"
+      }
+    ]
+  },
+  {
+    "name": "root id",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "nodeId": "other",
+        "pointer": "/root/id",
+        "expected": "root as the root id",
+        "message": "Expected root as the root id"
+      }
+    ]
+  },
+  {
+    "name": "child id outside parent",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "nodeId": "other/child",
+        "pointer": "/root/children/0/id",
+        "expected": "an encoded key path under root",
+        "message": "Expected an encoded key path under root"
+      }
+    ]
+  },
+  {
+    "name": "empty key segment",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "nodeId": "root//child",
+        "pointer": "/root/children/0/id",
+        "expected": "an encoded key path under root",
+        "message": "Expected an encoded key path under root"
+      }
+    ]
+  },
+  {
+    "name": "node count",
+    "errors": [
+      {
+        "kind": "limit-exceeded",
+        "nodeId": "root",
+        "pointer": "/root/children/0",
+        "expected": "at most 1 nodes",
+        "message": "Expected at most 1 nodes"
+      }
+    ]
+  },
+  {
+    "name": "depth",
+    "errors": [
+      {
+        "kind": "limit-exceeded",
+        "nodeId": "root",
+        "pointer": "/root/children/0",
+        "expected": "at most 1 node levels (root is level 1)",
+        "message": "Expected at most 1 node levels (root is level 1)"
+      }
+    ]
+  },
+  {
+    "name": "UTF-8 JSON bytes",
+    "errors": [
+      {
+        "kind": "limit-exceeded",
+        "nodeId": "root",
+        "pointer": "",
+        "expected": "a tree of at most 1 UTF-8 JSON bytes",
+        "message": "Expected a tree of at most 1 UTF-8 JSON bytes"
+      }
+    ]
+  },
+  {
+    "name": "proof:agent-home",
+    "errors": []
+  },
+  {
+    "name": "proof:core-queue.small",
+    "errors": []
+  },
+  {
+    "name": "proof:core-queue.medium",
+    "errors": []
+  },
+  {
+    "name": "proof:core-queue.large",
+    "errors": []
+  },
+  {
+    "name": "proof:core-queue.full",
+    "errors": []
+  },
+  {
+    "name": "proof:git-status",
+    "errors": []
+  },
+  {
+    "name": "proof:rack-module",
+    "errors": [
+      {
+        "kind": "undeclared-action",
+        "pointer": "/root/children/0/children/1/children/4/events/onPress/name",
+        "expected": "an action in the manifest: decisions.review, tasks.claim, tasks.escalate, alerts.acknowledge, alerts.snooze, alerts.convert, queue.retry, queue.about",
+        "message": "Expected an action in the manifest: decisions.review, tasks.claim, tasks.escalate, alerts.acknowledge, alerts.snooze, alerts.convert, queue.retry, queue.about",
+        "nodeId": "root/stack/head/button"
+      },
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/children/0/children/3/events/onChange/key",
+        "expected": "a declared state key: filter, selected, cursors, escalating, reason",
+        "message": "Expected a declared state key: filter, selected, cursors, escalating, reason",
+        "nodeId": "root/stack/tabs"
+      },
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/children/0/children/5/events/onChange/key",
+        "expected": "a declared state key: filter, selected, cursors, escalating, reason",
+        "message": "Expected a declared state key: filter, selected, cursors, escalating, reason",
+        "nodeId": "root/stack/textField"
+      },
+      {
+        "kind": "undeclared-action",
+        "pointer": "/root/children/0/children/8/children/9/events/onPress/name",
+        "expected": "an action in the manifest: decisions.review, tasks.claim, tasks.escalate, alerts.acknowledge, alerts.snooze, alerts.convert, queue.retry, queue.about",
+        "message": "Expected an action in the manifest: decisions.review, tasks.claim, tasks.escalate, alerts.acknowledge, alerts.snooze, alerts.convert, queue.retry, queue.about",
+        "nodeId": "root/stack/params/button"
+      }
+    ]
+  }
+]

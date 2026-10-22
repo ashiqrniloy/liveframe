@@ -573,6 +573,35 @@ function errors(row: Row): readonly LiveframeError[] {
   return result.errors;
 }
 
+describe("shared structure pieces", () => {
+  test("structure_pieces_match_tree_walk", async () => {
+    // Captured from `validateTree` before the walk's rules moved into `validate/structure.ts` (2026-10-22),
+    // over every failing-case row and every proof tree. Any drift in a rule, its text or its order fails here.
+    const baseline: { name: string; errors: readonly LiveframeError[] }[] = await Bun.file(
+      new URL("./fixtures/validator-baseline.json", import.meta.url),
+    ).json();
+    const actual: { name: string; errors: readonly LiveframeError[] }[] = [];
+    for (const row of rows) {
+      const result = (row.validator ?? validator).validateTree(row.input, row.options);
+      actual.push({ name: row.name, errors: result.ok ? [] : result.errors });
+    }
+    for (const name of [
+      "agent-home",
+      "core-queue.small",
+      "core-queue.medium",
+      "core-queue.large",
+      "core-queue.full",
+      "git-status",
+      "rack-module",
+    ]) {
+      const input = await Bun.file(new URL(`./fixtures/proof/${name}.tree.json`, import.meta.url)).json();
+      const result = validator.validateTree(input);
+      actual.push({ name: `proof:${name}`, errors: result.ok ? [] : result.errors });
+    }
+    expect(actual).toEqual(baseline);
+  });
+});
+
 describe("spec §10 failing-case matrix", () => {
   test("every_spec_rule_has_a_row", async () => {
     const spec = await Bun.file(new URL("../../docs/spec.md", import.meta.url)).text();
