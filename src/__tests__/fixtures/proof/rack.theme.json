@@ -1,0 +1,730 @@
+{
+  "format": "liveframe-theme/1",
+  "id": "rack",
+  "version": "1.0.0",
+  "colorScheme": "light",
+  "colours": {
+    "surface.case": {
+      "colorSpace": "srgb",
+      "components": [
+        0.9411764705882353,
+        0.9411764705882353,
+        0.9411764705882353
+      ]
+    },
+    "surface.module": {
+      "colorSpace": "srgb",
+      "components": [
+        1,
+        1,
+        1
+      ]
+    },
+    "surface.well": {
+      "colorSpace": "srgb",
+      "components": [
+        0.9490196078431372,
+        0.9490196078431372,
+        0.9490196078431372
+      ]
+    },
+    "surface.hover": {
+      "colorSpace": "srgb",
+      "components": [
+        0.9019607843137255,
+        0.9019607843137255,
+        0.9019607843137255
+      ]
+    },
+    "surface.active": {
+      "colorSpace": "srgb",
+      "components": [
+        0.8470588235294118,
+        0.8470588235294118,
+        0.8470588235294118
+      ]
+    },
+    "surface.selected": {
+      "colorSpace": "srgb",
+      "components": [
+        0.788235294117647,
+        0.8862745098039215,
+        1
+      ]
+    },
+    "surface.scrim": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0,
+        0
+      ]
+    },
+    "border.hairline": {
+      "colorSpace": "srgb",
+      "components": [
+        0.5294117647058824,
+        0.5294117647058824,
+        0.5294117647058824
+      ],
+      "alpha": 0.30196078431372547
+    },
+    "border.subtle": {
+      "colorSpace": "srgb",
+      "components": [
+        0.5294117647058824,
+        0.5294117647058824,
+        0.5294117647058824
+      ]
+    },
+    "border.strong": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0,
+        0
+      ]
+    },
+    "accent.primary": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0.19215686274509805,
+        0.6627450980392157
+      ]
+    },
+    "accent.muted": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0.19215686274509805,
+        0.6627450980392157
+      ],
+      "alpha": 0.7490196078431373
+    },
+    "accent.soft": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0.19215686274509805,
+        0.6627450980392157
+      ],
+      "alpha": 0.12156862745098039
+    },
+    "focus.ring": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0.19215686274509805,
+        0.6627450980392157
+      ]
+    },
+    "border.focus": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0.19215686274509805,
+        0.6627450980392157
+      ]
+    },
+    "text.muted": {
+      "colorSpace": "srgb",
+      "components": [
+        0.30980392156862746,
+        0.30980392156862746,
+        0.30980392156862746
+      ]
+    },
+    "text.meta": {
+      "colorSpace": "srgb",
+      "components": [
+        0.4196078431372549,
+        0.4196078431372549,
+        0.4196078431372549
+      ]
+    },
+    "text.foil": {
+      "colorSpace": "srgb",
+      "components": [
+        0.3843137254901961,
+        0.26666666666666666,
+        0.08627450980392157
+      ]
+    },
+    "text.disabled": {
+      "colorSpace": "srgb",
+      "components": [
+        0.4196078431372549,
+        0.4196078431372549,
+        0.4196078431372549
+      ]
+    },
+    "text.status": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0,
+        0
+      ]
+    },
+    "text.kbd": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0,
+        0
+      ]
+    },
+    "surface.kbd": {
+      "colorSpace": "srgb",
+      "components": [
+        1,
+        1,
+        1
+      ]
+    },
+    "border.kbd": {
+      "colorSpace": "srgb",
+      "components": [
+        0.6235294117647059,
+        0.6235294117647059,
+        0.6235294117647059
+      ]
+    },
+    "diagnostic.error": {
+      "colorSpace": "srgb",
+      "components": [
+        0.6509803921568628,
+        0,
+        0
+      ]
+    },
+    "diagnostic.warning": {
+      "colorSpace": "srgb",
+      "components": [
+        0.5333333333333333,
+        0.28627450980392155,
+        0
+      ]
+    },
+    "diagnostic.success": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0.3686274509803922,
+        0
+      ]
+    },
+    "diagnostic.info": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0.3254901960784314,
+        0.5450980392156862
+      ]
+    },
+    "diagnostic.warning.soft": {
+      "colorSpace": "srgb",
+      "components": [
+        0.5333333333333333,
+        0.28627450980392155,
+        0
+      ],
+      "alpha": 0.12156862745098039
+    },
+    "diagnostic.error.soft": {
+      "colorSpace": "srgb",
+      "components": [
+        0.6509803921568628,
+        0,
+        0
+      ],
+      "alpha": 0.12156862745098039
+    },
+    "shadow.ambient": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0,
+        0
+      ]
+    },
+    "patch.1": {
+      "colorSpace": "srgb",
+      "components": [
+        0.4470588235294118,
+        0.06274509803921569,
+        0.27058823529411763
+      ]
+    },
+    "patch.2": {
+      "colorSpace": "srgb",
+      "components": [
+        0.00392156862745098,
+        0.3686274509803922,
+        0.5450980392156862
+      ]
+    },
+    "patch.3": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0.37254901960784315,
+        0.37254901960784315
+      ]
+    },
+    "patch.4": {
+      "colorSpace": "srgb",
+      "components": [
+        0.3254901960784314,
+        0.10196078431372549,
+        0.7137254901960784
+      ]
+    },
+    "patch.5": {
+      "colorSpace": "srgb",
+      "components": [
+        0.3843137254901961,
+        0.26666666666666666,
+        0.08627450980392157
+      ]
+    },
+    "surface.base": {
+      "colorSpace": "srgb",
+      "components": [
+        0.9411764705882353,
+        0.9411764705882353,
+        0.9411764705882353
+      ]
+    },
+    "surface.raised": {
+      "colorSpace": "srgb",
+      "components": [
+        1,
+        1,
+        1
+      ]
+    },
+    "surface.scrollbar": {
+      "colorSpace": "srgb",
+      "components": [
+        0.6235294117647059,
+        0.6235294117647059,
+        0.6235294117647059
+      ],
+      "alpha": 0.6666666666666666
+    },
+    "text.primary": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0,
+        0
+      ]
+    },
+    "text.on-accent": {
+      "colorSpace": "srgb",
+      "components": [
+        0.9411764705882353,
+        0.9411764705882353,
+        0.9411764705882353
+      ]
+    },
+    "accent.fill": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0.19215686274509805,
+        0.6627450980392157
+      ]
+    },
+    "accent.fill.hover": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0.19215686274509805,
+        0.6627450980392157
+      ]
+    },
+    "status.critical": {
+      "colorSpace": "srgb",
+      "components": [
+        0.6509803921568628,
+        0,
+        0
+      ]
+    },
+    "shadow.highlight": {
+      "colorSpace": "srgb",
+      "components": [
+        1,
+        1,
+        1
+      ]
+    },
+    "colour.transparent": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0,
+        0
+      ],
+      "alpha": 0
+    },
+    "shadow.ambient.alpha-0-14": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0,
+        0
+      ],
+      "alpha": 0.14
+    },
+    "shadow.ambient.alpha-0-45": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0,
+        0
+      ],
+      "alpha": 0.45
+    },
+    "shadow.highlight.alpha-0-9": {
+      "colorSpace": "srgb",
+      "components": [
+        1,
+        1,
+        1
+      ],
+      "alpha": 0.9
+    },
+    "shadow.ambient.alpha-0-1": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0,
+        0
+      ],
+      "alpha": 0.1
+    },
+    "shadow.ambient.alpha-0-22": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0,
+        0
+      ],
+      "alpha": 0.22
+    },
+    "border.hairline.alpha-1": {
+      "colorSpace": "srgb",
+      "components": [
+        0.5294117647058824,
+        0.5294117647058824,
+        0.5294117647058824
+      ],
+      "alpha": 0.30196078431372547
+    },
+    "border.subtle.alpha-1": {
+      "colorSpace": "srgb",
+      "components": [
+        0.5294117647058824,
+        0.5294117647058824,
+        0.5294117647058824
+      ],
+      "alpha": 1
+    },
+    "text.primary.alpha-1": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0,
+        0
+      ],
+      "alpha": 1
+    },
+    "accent.soft.alpha-1": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0.19215686274509805,
+        0.6627450980392157
+      ],
+      "alpha": 0.12156862745098039
+    },
+    "surface.scrim.alpha-0-55": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0,
+        0
+      ],
+      "alpha": 0.55
+    },
+    "surface.scrim.alpha-0-22": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0,
+        0
+      ],
+      "alpha": 0.22
+    },
+    "border.subtle.alpha-0-58": {
+      "colorSpace": "srgb",
+      "components": [
+        0.5294117647058824,
+        0.5294117647058824,
+        0.5294117647058824
+      ],
+      "alpha": 0.58
+    }
+  },
+  "typography": {
+    "body": {
+      "fontFamily": [
+        "Geist",
+        "Satoshi",
+        "system-ui",
+        "Cantarell",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 13,
+        "unit": "px"
+      },
+      "fontWeight": 400,
+      "lineHeight": 1.45
+    },
+    "caption": {
+      "fontFamily": [
+        "Geist",
+        "Satoshi",
+        "system-ui",
+        "Cantarell",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 11,
+        "unit": "px"
+      },
+      "fontWeight": 400,
+      "lineHeight": 1.4
+    },
+    "fine": {
+      "fontFamily": [
+        "Geist",
+        "Satoshi",
+        "system-ui",
+        "Cantarell",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 12,
+        "unit": "px"
+      },
+      "fontWeight": 400,
+      "lineHeight": 1.4
+    },
+    "ui": {
+      "fontFamily": [
+        "Geist",
+        "Satoshi",
+        "system-ui",
+        "Cantarell",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 13,
+        "unit": "px"
+      },
+      "fontWeight": 500,
+      "lineHeight": 1.45
+    },
+    "label": {
+      "fontFamily": [
+        "Geist",
+        "Satoshi",
+        "system-ui",
+        "Cantarell",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 12,
+        "unit": "px"
+      },
+      "fontWeight": 500,
+      "lineHeight": 1
+    },
+    "label.small": {
+      "fontFamily": [
+        "Geist",
+        "Satoshi",
+        "system-ui",
+        "Cantarell",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 11,
+        "unit": "px"
+      },
+      "fontWeight": 500,
+      "lineHeight": 1.1
+    },
+    "label.strong": {
+      "fontFamily": [
+        "Geist",
+        "Satoshi",
+        "system-ui",
+        "Cantarell",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 12,
+        "unit": "px"
+      },
+      "fontWeight": 600,
+      "lineHeight": 1
+    },
+    "overline": {
+      "fontFamily": [
+        "Geist",
+        "Satoshi",
+        "system-ui",
+        "Cantarell",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 11,
+        "unit": "px"
+      },
+      "fontWeight": 600,
+      "lineHeight": 1.4,
+      "textTransform": "uppercase",
+      "letterSpacing": {
+        "value": 0.06,
+        "unit": "em"
+      }
+    },
+    "heading.1": {
+      "fontFamily": [
+        "Geist",
+        "Satoshi",
+        "system-ui",
+        "Cantarell",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 24,
+        "unit": "px"
+      },
+      "fontWeight": 600,
+      "lineHeight": 1.2
+    },
+    "heading.2": {
+      "fontFamily": [
+        "Geist",
+        "Satoshi",
+        "system-ui",
+        "Cantarell",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 18,
+        "unit": "px"
+      },
+      "fontWeight": 600,
+      "lineHeight": 1.25
+    },
+    "heading.2.compact": {
+      "fontFamily": [
+        "Geist",
+        "Satoshi",
+        "system-ui",
+        "Cantarell",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 15,
+        "unit": "px"
+      },
+      "fontWeight": 700,
+      "lineHeight": 1.25
+    },
+    "heading.3": {
+      "fontFamily": [
+        "Geist",
+        "Satoshi",
+        "system-ui",
+        "Cantarell",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 15,
+        "unit": "px"
+      },
+      "fontWeight": 600,
+      "lineHeight": 1.3
+    },
+    "mono": {
+      "fontFamily": [
+        "Geist Mono",
+        "JetBrains Mono",
+        "ui-monospace",
+        "SFMono-Regular",
+        "DejaVu Sans Mono",
+        "monospace"
+      ],
+      "fontSize": {
+        "value": 11,
+        "unit": "px"
+      },
+      "fontWeight": 400,
+      "lineHeight": 1.4
+    },
+    "mono.strong": {
+      "fontFamily": [
+        "Geist Mono",
+        "JetBrains Mono",
+        "ui-monospace",
+        "SFMono-Regular",
+        "DejaVu Sans Mono",
+        "monospace"
+      ],
+      "fontSize": {
+        "value": 11,
+        "unit": "px"
+      },
+      "fontWeight": 500,
+      "lineHeight": 1.4
+    },
+    "meta": {
+      "fontFamily": [
+        "Geist Mono",
+        "JetBrains Mono",
+        "ui-monospace",
+        "SFMono-Regular",
+        "DejaVu Sans Mono",
+        "monospace"
+      ],
+      "fontSize": {
+        "value": 11,
+        "unit": "px"
+      },
+      "fontWeight": 400,
+      "lineHeight": 1.4
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "format": "liveframe/1",
+  "catalogId": "proof.ui@1",
+  "surfaceId": "proof",
+  "revision": 0,
+  "root": {
+    "id": "root",
+    "kind": "box",
+    "props": {},
+    "style": {
+      "surface": "surface.raised",
+      "padding": "space.4"
+    },
+    "children": [
+      {
+        "id": "root/stack",
+        "kind": "stack",
+        "props": {},
+        "style": {
+          "gap": "space.2"
+        },
+        "children": [
+          {
+            "id": "root/stack/label",
+            "kind": "text",
+            "props": {
+              "text": "Decisions waiting on you · today"
+            },
+            "style": {
+              "textStyle": "label"
+            }
+          },
+          {
+            "id": "root/stack/heading",
+            "kind": "heading",
+            "props": {
+              "text": "50",
+              "level": 2
+            }
+          },
+          {
+            "id": "root/stack/scope",
+            "kind": "text",
+            "props": {
+              "text": "Current page · not a queue total"
+            },
+            "style": {
+              "textStyle": "meta",
+              "tone": "muted"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

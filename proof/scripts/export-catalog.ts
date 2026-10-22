@@ -4,7 +4,7 @@ import { definitions } from "../catalog/definitions.ts";
 import type { PropSchema } from "../catalog/define.ts";
 import vocabulary from "../../src/__tests__/fixtures/vocabulary.json" with { type: "json" };
 
-function schema(input: PropSchema): LanguageSchema {
+export function schema(input: PropSchema): LanguageSchema {
   switch (input.type) {
     case "string":
       if (input.maxLength !== undefined) return { ...input, maxLength: input.maxLength };
@@ -22,7 +22,7 @@ function schema(input: PropSchema): LanguageSchema {
   }
 }
 
-const catalog = {
+export const catalog = {
   format: "liveframe-catalog/1",
   catalogId: "proof.ui@1",
   description: "Phase 0 primitive catalog.",
@@ -40,11 +40,13 @@ const catalog = {
     ),
   })),
 };
-const result = validateCatalog(catalog);
-if (!result.ok) throw new Error(JSON.stringify(result.errors));
-if (result.value.definitions.length !== 24) throw new Error("Expected the 24-kind proof catalog");
-const output: Catalog = result.value;
-await Bun.write(
-  new URL("../../src/__tests__/fixtures/catalog.json", import.meta.url),
-  `${JSON.stringify(output, null, 2)}\n`,
-);
+if (import.meta.main) {
+  const result = validateCatalog(catalog);
+  if (!result.ok) throw new Error(JSON.stringify(result.errors));
+  if (result.value.definitions.length !== 24) throw new Error("Expected the 24-kind proof catalog");
+  const output: Catalog = result.value;
+  await Bun.write(
+    new URL("../../src/__tests__/fixtures/catalog.json", import.meta.url),
+    `${JSON.stringify(output, null, 2)}\n`,
+  );
+}

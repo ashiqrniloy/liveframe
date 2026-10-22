@@ -1,0 +1,2282 @@
+{
+  "format": "liveframe/1",
+  "catalogId": "proof.ui@1",
+  "surfaceId": "proof",
+  "revision": 0,
+  "root": {
+    "id": "root",
+    "kind": "box",
+    "props": {},
+    "style": {
+      "surface": "surface.module",
+      "padding": "space.3"
+    },
+    "children": [
+      {
+        "id": "root/stack",
+        "kind": "stack",
+        "props": {},
+        "style": {
+          "gap": "space.3"
+        },
+        "children": [
+          {
+            "id": "root/stack/rail",
+            "kind": "inline",
+            "props": {},
+            "style": {
+              "gap": "space.2",
+              "align": "center"
+            },
+            "children": [
+              {
+                "id": "root/stack/rail/patch",
+                "kind": "box",
+                "props": {},
+                "style": {
+                  "fill": "patch.1",
+                  "radius": "full",
+                  "padding": "space.0",
+                  "width": "space.2",
+                  "height": "space.2"
+                }
+              },
+              {
+                "id": "root/stack/rail/ordinal",
+                "kind": "text",
+                "props": {
+                  "text": "05"
+                },
+                "style": {
+                  "textStyle": "mono"
+                }
+              },
+              {
+                "id": "root/stack/rail/session",
+                "kind": "text",
+                "props": {
+                  "text": "Coding Agent · clay"
+                },
+                "style": {
+                  "textStyle": "meta"
+                }
+              }
+            ]
+          },
+          {
+            "id": "root/stack/head",
+            "kind": "inline",
+            "props": {},
+            "style": {
+              "gap": "space.2",
+              "align": "center",
+              "wrap": "wrap"
+            },
+            "children": [
+              {
+                "id": "root/stack/head/icon",
+                "kind": "icon",
+                "props": {
+                  "name": "info"
+                }
+              },
+              {
+                "id": "root/stack/head/heading",
+                "kind": "heading",
+                "props": {
+                  "text": "agent info",
+                  "level": 2
+                }
+              },
+              {
+                "id": "root/stack/head/target",
+                "kind": "text",
+                "props": {
+                  "text": "Coding Agent"
+                }
+              },
+              {
+                "id": "root/stack/head/badge",
+                "kind": "text",
+                "props": {
+                  "text": "coding-agent"
+                },
+                "style": {
+                  "textStyle": "meta"
+                }
+              },
+              {
+                "id": "root/stack/head/button",
+                "kind": "button",
+                "props": {
+                  "label": "Close container",
+                  "icon": "close"
+                },
+                "variant": "ghost",
+                "events": {
+                  "onPress": {
+                    "type": "action",
+                    "name": "container.close",
+                    "args": {
+                      "containerId": "agent-info"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "root/stack/heading",
+            "kind": "heading",
+            "props": {
+              "text": "Files this session touched",
+              "level": 3
+            }
+          },
+          {
+            "id": "root/stack/tabs",
+            "kind": "tabs",
+            "props": {
+              "label": "Information tabs",
+              "value": "files"
+            },
+            "events": {
+              "onChange": {
+                "type": "setState",
+                "key": "tab"
+              }
+            },
+            "children": [
+              {
+                "id": "root/stack/tabs/files",
+                "kind": "tab",
+                "props": {
+                  "label": "Files",
+                  "value": "files"
+                },
+                "children": [
+                  {
+                    "id": "root/stack/tabs/files/stack",
+                    "kind": "stack",
+                    "props": {},
+                    "style": {
+                      "gap": "space.2"
+                    },
+                    "children": [
+                      {
+                        "id": "root/stack/tabs/files/stack/File-0.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-0.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-0.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-0.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-0.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-1.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-1.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-1.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-1.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-1.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-2.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-2.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-2.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-2.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-2.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-3.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-3.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-3.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-3.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-3.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-4.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-4.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-4.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-4.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-4.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-5.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-5.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-5.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-5.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-5.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-6.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-6.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-6.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-6.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-6.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-7.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-7.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-7.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-7.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-7.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-8.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-8.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-8.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-8.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-8.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-9.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-9.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-9.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-9.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-9.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-10.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-10.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-10.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-10.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-10.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-11.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-11.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-11.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-11.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-11.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-12.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-12.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-12.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-12.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-12.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-13.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-13.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-13.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-13.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-13.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-14.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-14.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-14.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-14.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-14.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-15.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-15.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-15.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-15.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-15.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-16.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-16.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-16.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-16.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-16.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-17.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-17.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-17.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-17.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-17.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-18.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-18.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-18.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-18.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-18.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-19.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-19.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-19.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-19.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-19.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-20.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-20.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-20.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-20.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-20.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-21.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-21.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-21.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-21.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-21.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-22.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-22.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-22.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-22.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-22.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-23.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-23.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-23.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-23.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-23.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-24.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-24.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-24.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-24.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-24.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-25.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-25.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-25.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-25.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-25.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-26.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-26.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-26.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-26.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-26.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-27.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-27.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-27.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-27.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-27.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-28.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-28.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-28.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-28.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-28.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-29.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-29.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-29.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-29.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-29.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-30.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-30.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-30.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-30.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-30.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-31.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-31.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-31.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-31.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-31.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-32.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-32.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-32.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-32.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-32.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-33.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-33.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-33.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-33.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-33.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-34.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-34.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-34.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-34.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-34.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-35.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-35.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-35.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-35.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-35.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-36.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-36.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-36.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-36.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-36.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-37.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-37.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-37.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-37.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-37.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-38.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-38.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-38.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-38.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-38.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-39.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-39.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-39.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-39.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-39.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-40.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-40.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-40.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-40.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-40.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-41.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-41.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-41.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-41.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-41.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-42.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-42.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-42.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-42.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-42.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-43.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-43.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-43.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-43.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-43.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-44.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-44.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-44.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-44.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-44.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-45.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-45.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-45.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-45.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-45.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-46.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-46.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-46.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-46.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-46.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-47.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-47.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-47.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-47.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-47.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-48.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-48.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-48.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-48.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-48.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/File-49.tsx",
+                        "kind": "inline",
+                        "props": {},
+                        "style": {
+                          "gap": "space.2"
+                        },
+                        "children": [
+                          {
+                            "id": "root/stack/tabs/files/stack/File-49.tsx/status",
+                            "kind": "text",
+                            "props": {
+                              "text": "M"
+                            },
+                            "style": {
+                              "textStyle": "mono"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-49.tsx/name",
+                            "kind": "text",
+                            "props": {
+                              "text": "File-49.tsx"
+                            }
+                          },
+                          {
+                            "id": "root/stack/tabs/files/stack/File-49.tsx/operation",
+                            "kind": "text",
+                            "props": {
+                              "text": "written"
+                            },
+                            "style": {
+                              "textStyle": "meta",
+                              "tone": "muted"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "root/stack/tabs/files/stack/text",
+                        "kind": "text",
+                        "props": {
+                          "text": "50 files · session"
+                        },
+                        "style": {
+                          "textStyle": "meta",
+                          "tone": "muted"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "root/stack/tabs/om",
+                "kind": "tab",
+                "props": {
+                  "label": "OM",
+                  "value": "om"
+                },
+                "children": [
+                  {
+                    "id": "root/stack/tabs/om/text",
+                    "kind": "text",
+                    "props": {
+                      "text": "No OM fixture data"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "root/stack/tabs/context",
+                "kind": "tab",
+                "props": {
+                  "label": "Context",
+                  "value": "context"
+                },
+                "children": [
+                  {
+                    "id": "root/stack/tabs/context/text",
+                    "kind": "text",
+                    "props": {
+                      "text": "37k / 96k · 38%"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "root/stack/separator",
+            "kind": "separator",
+            "props": {}
+          },
+          {
+            "id": "root/stack/textField",
+            "kind": "textField",
+            "props": {
+              "label": "Message to Coding Agent",
+              "multiline": true,
+              "placeholder": "Ask the agent…",
+              "value": "Draft 0",
+              "maxLength": 10000
+            },
+            "events": {
+              "onChange": {
+                "type": "setState",
+                "key": "draft"
+              }
+            }
+          },
+          {
+            "id": "root/stack/commit",
+            "kind": "text",
+            "props": {
+              "text": "Leave the field to commit your draft before Send."
+            },
+            "style": {
+              "textStyle": "meta",
+              "tone": "muted"
+            }
+          },
+          {
+            "id": "root/stack/context",
+            "kind": "text",
+            "props": {
+              "text": "Context: 37k / 96k · 38%"
+            },
+            "style": {
+              "textStyle": "meta"
+            }
+          },
+          {
+            "id": "root/stack/params",
+            "kind": "inline",
+            "props": {},
+            "style": {
+              "gap": "space.2",
+              "align": "center",
+              "wrap": "wrap"
+            },
+            "children": [
+              {
+                "id": "root/stack/params/lamp",
+                "kind": "box",
+                "props": {},
+                "style": {
+                  "fill": "accent.primary",
+                  "radius": "full",
+                  "padding": "space.0",
+                  "width": "space.2",
+                  "height": "space.2"
+                }
+              },
+              {
+                "id": "root/stack/params/working",
+                "kind": "text",
+                "props": {
+                  "text": "Working"
+                }
+              },
+              {
+                "id": "root/stack/params/jack",
+                "kind": "box",
+                "props": {},
+                "style": {
+                  "fill": "patch.1",
+                  "radius": "full",
+                  "padding": "space.0",
+                  "width": "space.2",
+                  "height": "space.2"
+                }
+              },
+              {
+                "id": "root/stack/params/agent",
+                "kind": "text",
+                "props": {
+                  "text": "Coding Agent"
+                }
+              },
+              {
+                "id": "root/stack/params/model",
+                "kind": "text",
+                "props": {
+                  "text": "Model: sonnet-4.6"
+                }
+              },
+              {
+                "id": "root/stack/params/effort",
+                "kind": "text",
+                "props": {
+                  "text": "Effort: high"
+                }
+              },
+              {
+                "id": "root/stack/params/1",
+                "kind": "box",
+                "props": {},
+                "style": {
+                  "fill": "accent.primary",
+                  "radius": "radius.plate",
+                  "padding": "space.0",
+                  "width": "space.1",
+                  "height": "space.2"
+                }
+              },
+              {
+                "id": "root/stack/params/2",
+                "kind": "box",
+                "props": {},
+                "style": {
+                  "fill": "accent.primary",
+                  "radius": "radius.plate",
+                  "padding": "space.0",
+                  "width": "space.1",
+                  "height": "space.2"
+                }
+              },
+              {
+                "id": "root/stack/params/3",
+                "kind": "box",
+                "props": {},
+                "style": {
+                  "fill": "accent.primary",
+                  "radius": "radius.plate",
+                  "padding": "space.0",
+                  "width": "space.1",
+                  "height": "space.2"
+                }
+              },
+              {
+                "id": "root/stack/params/button",
+                "kind": "button",
+                "props": {
+                  "label": "Send"
+                },
+                "variant": "primary",
+                "events": {
+                  "onPress": {
+                    "type": "action",
+                    "name": "agent.send",
+                    "args": {
+                      "sessionId": "clay/coding-agent",
+                      "message": "Draft 0"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
