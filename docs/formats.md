@@ -276,8 +276,89 @@ or uppercase percent escapes such as `%2F`. The schema recursively checks
 children and JSON values without imposing fixed node, depth or byte limits.
 Catalog membership, prop schemas, allowed style props, event declarations,
 argument types, id uniqueness and parent relationships, and configurable
-render limits require the compiled validator in Phase 1 Part B. Structural
+render limits require the compiled validator described below. Structural
 schema validation alone does not establish those guarantees.
+
+## Validation
+
+Compile once when the host loads a catalog, its capabilities and a widget's
+manifest. The catalog includes its vocabulary. Recompile when any of these
+documents changes; reuse the compiled validator across renders for that set.
+`compileValidator` checks all three documents with the install validators before
+building closures over their schemas and declared names. Invalid documents
+throw an `Error` whose message is the JSON-encoded install errors; compilation
+does not return a `Result`. No `eval` or `Function` constructor is used.
+
+```ts
+import { compileValidator, type ValidateTreeOptions } from "@arnilo/liveframe";
+
+// Documents loaded by the host; tree is an unknown value at the boundary.
+const validator = compileValidator({ catalog, capabilities, manifest });
+const options: ValidateTreeOptions = {
+  limits: { nodes: 5000, depth: 64, bytes: 1048576 },
+  maxErrors: 20,
+};
+const result = validator.validateTree(tree, options);
+if (result.ok) {
+  // result.value is the original tree, typed as UiTree; it is not frozen.
+} else {
+  // Give result.errors to the author or agent, then validate the repaired tree.
+}
+```
+
+Run `validateTree` on every render before the tree leaves the backend, and
+again on arrival in the renderer. It checks metadata, catalog membership,
+props, variants, styles, event intents, children, unique key-path ids and
+limits. Unknown fields and undeclared names fail closed. Strings are bounded
+in Unicode code points, and action bindings must match the event's carried
+type while omitting the bound argument from `args`.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `limits.nodes` | 5,000 | Maximum total UI nodes |
+| `limits.depth` | 64 | Maximum node levels; the root is level 1 |
+| `limits.bytes` | 1,048,576 (1 MiB) | UTF-8 length of `JSON.stringify(tree)`, counted without serialising |
+| `maxErrors` | 20 | Maximum collected errors before stopping the walk |
+
+Options are per call; omitted limits use their defaults. Each option must be a
+positive safe integer, or validation returns `invalid-prop`. Hitting a tree
+limit returns `limit-exceeded`. Reaching `maxErrors` stops traversal and appends
+one extra `limit-exceeded` error with
+`expected: "fix the errors above and validate again"`; there may therefore be
+`maxErrors + 1` errors.
+
+Failures return `Result<UiTree>` with `LiveframeError` entries. Each entry has
+`kind`, `pointer`, `message`, optional `expected`, and optional `nodeId`.
+`pointer` is an escaped JSON Pointer into the tree; `nodeId` identifies the
+affected UI node. For example, using the button definition above, an agent
+submits a root node with `props: { label: 7 }` and receives:
+
+```json
+{
+  "kind": "invalid-prop",
+  "nodeId": "root",
+  "pointer": "/root/props/label",
+  "message": "Expected string of at most 80 characters",
+  "expected": "string of at most 80 characters"
+}
+```
+
+The agent changes that node's props to `{ label: "Claim" }`, preserving its id,
+then calls `validateTree` again. Only a successful result is sent for display;
+the next run may reveal further errors if collection stopped at the bound.
+
+The root also exports `CompileValidatorOptions`, `CompiledValidator`,
+`ValidateTreeOptions`, `NodeCheck`, `NodeCheckSink`, `Result` and
+`LiveframeError`. `validator.checkNode(node, pointer, sink)` returns a boolean
+and appends bounded errors to `{ errors: LiveframeError[], maxErrors: number,
+nodeId?: string }`. It supplies per-node checks for a builder; it does not
+check tree metadata, parent relationships, unique ids, child-kind counts or
+whole-tree limits. Use `validateTree` at transport boundaries.
+
+Validation is not authorisation. An action matching the capabilities and
+manifest is still only a request. On dispatch, the host fills any bound event
+argument, re-checks the completed arguments against the capability schema,
+and authorises the operation as the current viewer.
 
 ## Capabilities
 

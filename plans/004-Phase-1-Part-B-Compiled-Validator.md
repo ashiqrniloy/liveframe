@@ -300,7 +300,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Tests were written first: the smoke test failed on missing fixture support. `timeout 300s bun run check` passed: typecheck, lint, format and **176 tests**. Existing unrelated lint warnings remain. The benchmark also passed a standalone strict TypeScript check with the root compiler options (`bunx --no-install tsc --ignoreConfig … bench/validator.bench.ts`), without modifying the pre-existing untracked root config. No public API, dependency or spec changes. These are local Bun measurements; Phase 2's full 3 µs/node render budget remains unproved, and Tasks 6–7 remain pending.
     - Updated roadmap §3's execution status in place; its pre-existing unrelated changes are left unstaged, following the earlier task commits. The task commit contains only its benchmark, fixture support, tests, byte-counter fast path, package script, plan and approved decision log.
 
-- [ ] Task 6: Publish the validator surface and its documentation
+- [x] Task 6: Publish the validator surface and its documentation
   - Acceptance Criteria:
     - Functional:
       - `src/index.ts` exports `compileValidator` and its option, result and error types.
@@ -329,13 +329,20 @@ Probe answers that hold for every task, unless a task says otherwise:
     - API Notes and Examples:
       - n/a.
     - Files to Create/Edit:
-      - `src/index.ts`.
+      - `src/index.ts`: verify existing validator and type exports; no implementation change needed.
       - `docs/formats.md`.
       - `README.md`.
       - `.agents/skills/liveframe-execution/references/formats.md`.
       - `src/__tests__/exports.test.ts`: new.
   - Test Cases to Write:
     - `root_export_surface`: fails if a name is added to or removed from the root export without updating the list.
+    - `public_validator_types_support_error_guided_repairs`: imports validator types through the package root, checks an invalid label's kind/id/pointer, then validates the repaired tree.
+  - Notes (executed 2026-10-22):
+    - Verified that `src/index.ts` already exports `compileValidator`, its option/result types, `NodeCheck`, `NodeCheckSink`, `ValidateTreeOptions`, `Result` and `LiveframeError`; no runtime or package-export changes were needed.
+    - Added the outsider-facing Validation guide in `docs/formats.md`: compile/recompile lifecycle, backend and arrival checks, install-time throws versus tree results, default/configurable limits, bounded errors including the extra truncation marker, the public node-check contract, and an agent repairing a tree from its error. It explicitly requires host argument checks and authorisation at dispatch.
+    - Updated README status and the execution skill's formats reference to describe the shipped validator. Added an exact runtime root-export list and a package-root type/repair smoke test before the documentation edits; both passed against the existing API.
+    - `timeout 300s bun run check` passed: typecheck, lint, format and **178 tests** (including browser, portability and the two new export/repair tests). Existing unrelated lint warnings remain. No dependency or spec changes; the performance path is unchanged, so the standalone benchmark was not rerun.
+    - Updated roadmap §3 to Tasks 1–6 complete, leaving its pre-existing unrelated changes unstaged as in earlier task commits. Task 7's architectural impact analysis remains pending.
 
 - [ ] Task 7: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:

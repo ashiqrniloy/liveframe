@@ -1,0 +1,21 @@
+# Liveframe
+
+`@arnilo/liveframe` — runtime-composable UI.
+
+An app ships a small set of trusted **primitive components** and a **design system**. People and AI agents write **TSX widgets** against those primitives, and the widgets change the app's UI at runtime, with no deployment. Widget code runs on the app's backend; the browser only draws a validated tree with the app's own components, so everything looks native and nothing untrusted runs in the page.
+
+Status: pre-release. The root package provides formats, install validators, a compiled tree validator and recipe resolution. See the [format and validation guide](docs/formats.md) and [`roadmap.md`](roadmap.md) for execution state.
+
+- Design: [`docs/spec.md`](docs/spec.md)
+- How a surface gets from code to the browser, and who owns each step: [`docs/model.md`](docs/model.md)
+- Roadmap and execution state: [`roadmap.md`](roadmap.md)
+- Plans: [`plans/`](plans/README.md)
+- Decisions: [`decision-logs/`](decision-logs/)
+- Contributing with agents: [`AGENTS.md`](AGENTS.md)
+
+## Development
+
+```bash
+bun install
+bun run check   # typecheck, lint, format check, tests
+```
