@@ -41,7 +41,7 @@ Liveframe never renders a page. It renders **surfaces**. A surface is one widget
 
 **A2. Host: implement each primitive in React** (spec §11). Liveframe's `implement(definition, Component)` binds it. The implementation receives validated `props`, `slot(name)` (the class names for a slot in its current variant and state), `emit(event)`, and already-rendered children. This is the only app code that runs in the browser, and it ships compiled with the app.
 
-**A3. LF: generate typed SDK components** (spec §7.2). `liveframe gen` emits `<Button>`, `<Stack>`… with typed props, so `gap="13px"` fails to compile.
+**A3. LF: generate typed SDK components** (spec §7.2). `liveframe gen catalog.json --out src/widgets/ui.gen.ts` emits a typed component module — `<Button>`, `<Stack>`… — that widgets import by relative path, so `gap="13px"` fails to compile.
 
 **A4. Host: declare the vocabulary** (spec §6.5). These are the colour roles, typography roles, tones and design-value names (`space.*`, `radius.*`, `size.*`, breakpoints) that every theme and design system must provide. The catalog carries it.
 
@@ -74,11 +74,11 @@ Nothing after this point needs a deployment.
 
 **C3. Host: run the widget in its sandbox.** `loadPlacement()` reads the placement, its package and its state from the store and verifies all three (spec §7.4). The host renders the package through its **runner**: its own sandbox (an isolate or a separate process for untrusted code), or Liveframe's in-process or worker runner for trusted code. Inside it, the widget calls the Liveframe SDK.
 
-**C4. LF: `render(widget, inputs, { catalog, actions })`** (spec §7.2, §10):
+**C4. LF: `render(widget, inputs, { validator, surfaceId, revision })`** (spec §7.2, §10):
 1. calls the widget function. Composed components expand into primitives, so only catalog kinds remain;
 2. builds the UI tree. Each node gets a key-path id (`root/queue/row:t-4812/claim`) and holds `kind`, `variant`, `props`, `style` (declared style props only) and `events`. Each event carries an intent as data, such as `{ type: "action", name: "tasks.claim", args: { id: "t-4812" } }`;
-3. validates the tree: kinds exist, props match their schemas, children are allowed, style props are declared and use tokens, actions are in the manifest, keys are unique and size limits hold;
-4. returns the `UiTree`, or a typed `WidgetError` (`host-element`, `undeclared-action`…).
+3. validates the tree as it builds it: kinds exist, props match their schemas, children are allowed, style props are declared and use tokens, actions are in the manifest, keys are unique and size limits hold;
+4. returns `{ ok: true, value: UiTree }`, or `{ ok: false, errors }` — every typed `WidgetError` (`host-element`, `undeclared-action`…), up to a bound of 20.
 
 **C5. Host: transport** (spec §9). The host sends the JSON tree (`format`, `catalogId`, `surfaceId`, `revision`, `root`) to the browser over HTTP, SSE, IPC or embedded in server-side rendering. Liveframe does not define the transport.
 

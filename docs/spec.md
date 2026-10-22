@@ -252,7 +252,8 @@ Fixed by the library: the kinds above, the states (§6.2), the recipe properties
 
 ```tsx
 /** @jsxImportSource @arnilo/liveframe/sdk */
-import { Stack, Inline, Text, Button, Tabs, Tab, state, action, type WidgetProps } from "@arnilo/liveframe/sdk";
+import { state, action, type WidgetProps } from "@arnilo/liveframe/sdk";
+import { Stack, Inline, Text, Button, Tabs, Tab } from "./ui.gen"; // written by `liveframe gen` (7.2)
 import { TaskCard } from "./task-card";            // a composed component: plain TSX
 
 export default function QueueWidget({ state: s, data, context }: WidgetProps<Params, State, Data, Ctx>) {
@@ -310,9 +311,17 @@ The widget function's rules:
 ### 7.2 The SDK
 
 - `jsx`, `jsxs` and `Fragment` under `jsxImportSource: "@arnilo/liveframe/sdk"`. Elements are frozen records keyed by primitive kind.
-- `liveframe gen <catalog>` generates one typed component per definition. Props are readonly, each declared event becomes a typed event prop, docs come from the definition, and `--check` fails CI on drift.
-- `state.set(key, value?)` and `action(name, args)` return frozen intent data. Without a value, `state.set(key)` sends the value the event produced.
-- `render(widget, inputs, { catalog, actions }) → UI tree | WidgetError`. This runs the function, builds the tree with key-path ids, and validates it. Error kinds: `host-element`, `unknown-component`, `invalid-prop`, `invalid-children`, `missing-key`, `duplicate-key`, `undeclared-event`, `undeclared-action`, `function-prop`, `async-render`, `render-failed`, `limit-exceeded`.
+- **Components come from a generated module.** `liveframe gen <catalog> --out <file>` writes a typed TypeScript module into the app, binding one component per definition with `primitive("<kind>")` from the SDK:
+
+  ```ts
+  export const Button = primitive<ButtonProps>("button");
+  ```
+
+  A widget imports it by relative path (`./ui.gen`, §7.1). It is source, not a `.d.ts`, so an unpacked widget still runs, and `pack()` bundles it like a composed component (§7.3). Props are readonly, each declared event becomes a typed event prop, docs come from the definition, and `liveframe gen --check` fails CI on drift.
+- `state.set(key, value?)` and `action(name, args, { bind }?)` return frozen intent data. Without a value, `state.set(key)` sends the value the event produced.
+- **`render(widget, inputs, { validator, surfaceId, revision, limits?, maxErrors? })`** runs the function, builds the tree with key-path ids, and validates each node as it is emitted, so building and validating are one pass (§10). `validator` is a `CompiledValidator` from `compileValidator`; `limits` bounds nodes, depth and bytes (§10); `maxErrors` is the error bound below.
+  - It returns `Result<UiTree>`: `{ ok: true, value }` or `{ ok: false, errors }`, where `errors` is every error found, up to `maxErrors` (default 20, the bound §10 uses). Each is a `LiveframeError` (§10) whose `kind` is one of `host-element`, `unknown-component`, `invalid-prop`, `invalid-children`, `missing-key`, `duplicate-key`, `undeclared-event`, `undeclared-action`, `function-prop`, `async-render`, `render-failed`, `limit-exceeded`.
+  - An input that fails its manifest schema is `invalid-prop`, with a pointer into the inputs (`/state/filter`) and no `nodeId`.
 - The SDK runtime uses no host APIs (no `node:`, `bun:`, DOM or `require`), so it runs unchanged in any JS runtime and any sandbox the app chooses.
 
 ### 7.3 Packages
@@ -320,7 +329,7 @@ The widget function's rules:
 A widget is installed as a **package**: the unit the app stores, approves, places and loads into its sandbox. An author writes TSX, but a sandbox runs JavaScript, so installing starts with `pack()` (`@arnilo/liveframe/pack`):
 
 ```ts
-pack({ files, entry, manifest, scenarios }, catalog) → WidgetPackage | PackError
+pack({ files, entry, manifest, scenarios }, { catalog, capabilities }) → WidgetPackage | PackError
 
 type WidgetPackage = {
   format: "liveframe-package/1";
@@ -342,7 +351,7 @@ type Scenario = {
 `pack()`:
 
 - checks the manifest: its `catalogId` is the catalog's, its schemas are well formed, and its initial state matches its state schema;
-- checks the scenarios: at least one, unique names, params, state and context valid against the manifest's schemas, and data keyed by declared source names (and valid against the app's source schemas when the app supplies them);
+- checks the scenarios: at least one, unique names, params, state and context valid against the manifest's schemas, and data keyed by declared source names and valid against each named source's `result` schema;
 - transpiles the TSX and bundles the entry's relative imports into one module. A composed component is bundled into every package that imports it, so a package never depends on another;
 - rejects every other import except the SDK (`@arnilo/liveframe/sdk` and its JSX runtime), which the app's sandbox provides;
 - hashes the result.
@@ -351,7 +360,7 @@ Rules:
 
 - **`pack()` never runs widget code.** Rendering a draft is the preview's job (§7.5), through the app's runner and under the app's policy.
 - **A package is immutable.** An `(id, version)` names exactly one hash, and storing different content under an existing pair is an error. A change is a new version, and rolling back means placing an older one.
-- **`verifyPackage(pkg, catalog)`** re-checks the format, the manifest, the scenarios and the hash without executing anything. The app runs it on every package it loads.
+- **`verifyPackage(pkg, { catalog, capabilities })`** re-checks the format, the manifest, the scenarios and the hash without executing anything. The app runs it on every package it loads.
 - The package hash is the widget part of the re-run cache key (§8).
 - `/pack` is host-API-free, so the app can pack wherever it installs widgets.
 
@@ -386,7 +395,7 @@ It also ships:
 
 - **`memoryStore()`**, for tests and ephemeral hosts.
 - **`fileStore(dir)`** (`@arnilo/liveframe/store/fs`), for a desktop or single-node app. It keeps one JSON file per record and writes each atomically: a temporary file, then a rename. It assumes one writing process.
-- **`loadPlacement(store, id, catalog)`**, which reads a placement, its package and its state, verifies all three, and returns `{ package, params, state }` or a typed error.
+- **`loadPlacement(store, id, { catalog, capabilities })`**, which reads a placement, its package and its state, verifies all three, and returns `{ package, params, state }` or a typed error.
 
 Rules:
 
@@ -403,19 +412,25 @@ Nobody publishes a widget blind. A person or an agent writes it, looks at it, ch
 
 ```ts
 interface Runner {
-  render(pkg: WidgetPackage, inputs: WidgetProps, options: RenderOptions): Promise<UiTree | WidgetError>;
+  render(
+    pkg: WidgetPackage,
+    inputs: WidgetProps,
+    options: { catalog: Catalog; capabilities: Capabilities; surfaceId: string; revision: number; limits?: Limits; timeoutMs?: number },
+  ): Promise<Result<UiTree>>;
 }
 ```
 
 - The app's sandbox is a runner. **Preview and production use the same runner**, so a preview shows what will run.
-- A runner enforces a time limit per render (default 100 ms) and returns `limit-exceeded` when it trips.
+- A runner compiles the validator from `{ catalog, capabilities, pkg.manifest }` and calls `render()` (§7.2) with `surfaceId`, `revision`, `limits` and `maxErrors`.
+- A runner enforces a time limit per render (`timeoutMs`, default 100 ms) and returns `limit-exceeded` when it trips.
 - Liveframe ships two reference runners. **Neither is an isolation boundary**:
   - `inProcessRunner()` (`/preview`), for tests and trusted code. It cannot interrupt a loop.
   - `workerRunner()` (`/preview/worker`) runs packages in a worker and terminates it on a timeout or crash. It bounds time and crashes, not what the code can reach.
+- **How a reference runner loads a package.** It imports `code` with `import()` of a `data:` URL, and the bare `@arnilo/liveframe/sdk` import inside it resolves to the host's installed SDK. The loader in `/preview` is the only place in the library that contains an `import(`, and the portability scan names that one exception. A host whose sandbox cannot do this supplies its own `Runner`.
 
 **Scenarios** are required (§7.3). They are an author's test cases and a reviewer's view of the empty, failed and full states. The app may preview with live data resolved as the viewer instead of a scenario's data.
 
-**Preview sessions** (`/preview`, host-API-free). `createPreview({ catalog, runner, styles, sourceSchemas? })` returns a session on the app's backend:
+**Preview sessions** (`/preview`, host-API-free). `createPreview({ catalog, capabilities, runner, styles })` returns a session on the app's backend:
 
 - `update({ files, entry, manifest, scenarios })` packs a draft, which is never stored, and returns its hash or the pack errors;
 - `render({ scenario, context?, state? })` renders the draft through the runner and returns the tree, or a `WidgetError` that names the node id;
@@ -578,9 +593,9 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
   | `@arnilo/liveframe/conformance` | Shared tests for catalogs, design systems, renderers and stores |
 
 - A JSON Schema for every format is published at `@arnilo/liveframe/schemas/<format>.json`, so apps and agents in any language can validate the documents.
-- One CLI, `liveframe`, exposed through the package's `bin` (`liveframe gen`, `liveframe gen --check`, `liveframe preview capture`, `liveframe mcp`). `playwright` is an optional peer dependency, needed only by `preview capture`.
+- One CLI, `liveframe`, exposed through the package's `bin` (`liveframe gen`, `liveframe gen --check`, `liveframe preview capture`, `liveframe mcp`). `liveframe gen` writes a widget's typed component module into the app (§7.2). `playwright` is an optional peer dependency, needed only by `preview capture`.
 - **`liveframe mcp`** is an authoring-time MCP server for coding agents. It lists primitives, roles and design-value names, shows the generated types, packs a draft and renders its scenarios through a preview session, and captures a preview. It never installs, places or approves a widget, and never runs an action. The MCP SDK is an optional peer dependency, needed only by this command.
-- Everything outside `/react`, `/css`, `/store/fs`, `/preview/worker`, `/preview/react` and the CLI is host-API-free, and CI checks it.
+- Everything outside `/react`, `/css`, `/store/fs`, `/preview/worker`, `/preview/react` and the CLI is host-API-free, and CI checks it. The one dynamic `import(` in the library is the package loader in `/preview` (§7.5), and the scan names that file as its only exception.
 - Split into separate packages only if a real consumer needs to version the parts independently.
 
 ## 14. Non-goals for v1
@@ -588,7 +603,7 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
 - Running widget code in the browser, including in preview.
 - Shipping components, a design system, an isolation sandbox (the reference runners in §7.5 are not one), a storage backend (the reference stores in §7.4 are not one), authorisation, approval flows or layout shells.
 - Migrating widget state between versions beyond resetting it to the initial state (§7.4).
-- Agent tooling beyond generated `.d.ts` for the catalog, structured validation errors, preview capture (§7.5) and the authoring MCP server (§13). Runtime agent tools that install, place or approve widgets stay the app's (`decision-logs/2026-10-22-0902-authoring-mcp-server-for-coding-agents.md`).
+- Agent tooling beyond generated typed component modules for the catalog, structured validation errors, preview capture (§7.5) and the authoring MCP server (§13). Runtime agent tools that install, place or approve widgets stay the app's (`decision-logs/2026-10-22-0902-authoring-mcp-server-for-coding-agents.md`).
 - Renderers other than React.
 - Tree patches, and A2UI or other wire interop.
 
