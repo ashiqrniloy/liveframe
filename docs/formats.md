@@ -54,6 +54,52 @@ from the object's properties. `checkValue` performs this check too. Internal
 publishing forms such as constants and pattern-keyed records are outside the
 author language.
 
+## Vocabulary
+
+A catalog's vocabulary declares the names its widgets may use. Apps choose the
+names; the library fixes their categories. `validateVocabulary(doc)` accepts an
+unknown value and returns `Result<Vocabulary>`, preserving the original object
+on success.
+
+```ts
+import { validateVocabulary } from "@arnilo/liveframe";
+
+validateVocabulary({
+  colourRoles: ["surface.base", "text.muted"],
+  surfaceRoles: ["surface.base"],
+  fillableRoles: [],
+  tones: { muted: "text.muted" },
+  typographyRoles: ["body"],
+  space: ["space.0", "space.1"],
+  radius: ["radius.control"],
+  size: ["size.rail"],
+  breakpoints: ["bp.sm"],
+});
+```
+
+All nine fields are required, and unknown fields are rejected. Each list holds
+at most 256 unique names. Names contain at most 64 characters and match
+`^[a-z][a-z0-9-]*(\.[a-z0-9-]+)*$`. The design-value lists require their family
+prefix: `space.`, `radius.`, `size.` and `bp.`. Lists may be empty, and a name may
+appear in different categories.
+
+`surfaceRoles` and `fillableRoles` must be subsets of `colourRoles`. `tones`
+maps at most 256 tone names to declared colour roles; both keys and values obey
+the name rules. For example, `tone: "muted"` refers to the declared
+`text.muted` role, whose colour a theme will supply. No colour literal belongs
+in a vocabulary.
+
+Malformed structure, names, bounds and duplicates produce `invalid-document`;
+undeclared role references produce `unknown-name`. Validation returns at most
+20 errors, each with a JSON Pointer. Structural errors are returned before
+checking references. The vocabulary's structural schema will be embedded in
+the catalog schema; subset and tone reference checks run on install.
+
+The root export also provides the library-fixed `states`, `styleProps`,
+`semantics` and `recipeProperties` arrays. These are format vocabulary, with no
+app roles or design values. Recipe motion uses `translateY`; the proof's
+`transformPreset` shorthand is not part of the format.
+
 ## Validation errors
 
 Every validator uses `Result<T>`:
