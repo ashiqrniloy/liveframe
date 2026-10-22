@@ -1,0 +1,369 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liveframe.dev/schemas/manifest.json",
+  "type": "object",
+  "properties": {
+    "format": {
+      "maxLength": 32,
+      "enum": [
+        "liveframe-manifest/1"
+      ],
+      "type": "string"
+    },
+    "id": {
+      "maxLength": 128,
+      "pattern": "^[a-z][a-zA-Z0-9.-]*$",
+      "type": "string"
+    },
+    "version": {
+      "maxLength": 128,
+      "pattern": "^.+$",
+      "type": "string"
+    },
+    "catalogId": {
+      "maxLength": 128,
+      "pattern": "^[a-z][a-z0-9.-]*@[1-9][0-9]*$",
+      "type": "string"
+    },
+    "params": {
+      "$ref": "#/$defs/objectSchema"
+    },
+    "state": {
+      "$ref": "#/$defs/objectSchema"
+    },
+    "context": {
+      "$ref": "#/$defs/objectSchema"
+    },
+    "initialState": {
+      "$ref": "#/$defs/json"
+    },
+    "sources": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)*$": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)*$",
+              "type": "string"
+            },
+            "params": {
+              "type": "object",
+              "additionalProperties": {
+                "if": {
+                  "type": "object",
+                  "properties": {
+                    "from": {}
+                  },
+                  "required": [
+                    "from"
+                  ]
+                },
+                "then": {
+                  "type": "object",
+                  "properties": {
+                    "from": {
+                      "maxLength": 7,
+                      "enum": [
+                        "params",
+                        "state",
+                        "context"
+                      ],
+                      "type": "string"
+                    },
+                    "path": {
+                      "maxLength": 512,
+                      "pattern": "^[a-zA-Z_$][a-zA-Z0-9_$]*(\\.[a-zA-Z_$][a-zA-Z0-9_$]*){0,7}$",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "from",
+                    "path"
+                  ],
+                  "additionalProperties": false
+                },
+                "else": {
+                  "$ref": "#/$defs/json"
+                }
+              }
+            }
+          },
+          "required": [
+            "source",
+            "params"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "maxProperties": 512,
+      "additionalProperties": false,
+      "propertyNames": {
+        "maxLength": 128,
+        "pattern": "^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)*$",
+        "type": "string"
+      }
+    },
+    "actions": {
+      "maxItems": 512,
+      "type": "array",
+      "items": {
+        "maxLength": 128,
+        "pattern": "^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)*$",
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "format",
+    "id",
+    "version",
+    "catalogId",
+    "params",
+    "state",
+    "context",
+    "initialState",
+    "sources",
+    "actions"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "schema": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "deprecated": {
+              "type": "boolean"
+            },
+            "maxLength": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pattern": {
+              "type": "string",
+              "maxLength": 256,
+              "format": "regex"
+            },
+            "enum": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "type",
+            "maxLength"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "number"
+            },
+            "description": {
+              "type": "string"
+            },
+            "deprecated": {
+              "type": "boolean"
+            },
+            "minimum": {
+              "type": "number"
+            },
+            "maximum": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "integer"
+            },
+            "description": {
+              "type": "string"
+            },
+            "deprecated": {
+              "type": "boolean"
+            },
+            "minimum": {
+              "type": "number"
+            },
+            "maximum": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "boolean"
+            },
+            "description": {
+              "type": "string"
+            },
+            "deprecated": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "array"
+            },
+            "description": {
+              "type": "string"
+            },
+            "deprecated": {
+              "type": "boolean"
+            },
+            "items": {
+              "$ref": "#/$defs/schema"
+            },
+            "maxItems": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "type",
+            "items",
+            "maxItems"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "object"
+            },
+            "description": {
+              "type": "string"
+            },
+            "deprecated": {
+              "type": "boolean"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/schema"
+              }
+            },
+            "required": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "additionalProperties": {
+              "const": false
+            }
+          },
+          "required": [
+            "type",
+            "properties",
+            "required",
+            "additionalProperties"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "objectSchema": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "object"
+        },
+        "description": {
+          "type": "string"
+        },
+        "deprecated": {
+          "type": "boolean"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/schema"
+          }
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "additionalProperties": {
+          "const": false
+        }
+      },
+      "required": [
+        "type",
+        "properties",
+        "required",
+        "additionalProperties"
+      ],
+      "additionalProperties": false
+    },
+    "json": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/json"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/json"
+          }
+        }
+      ]
+    }
+  }
+}

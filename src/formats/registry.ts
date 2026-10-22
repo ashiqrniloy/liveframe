@@ -1,6 +1,9 @@
 import { literal } from "../schema.ts";
 import { catalogSchema } from "./catalog.ts";
 
+import { capabilitiesSchema } from "./capabilities.ts";
+import { manifestSchema } from "./manifest.ts";
+
 const annotations = { description: { type: "string" }, deprecated: { type: "boolean" } } as const;
 const bound = { type: "integer", minimum: 0 } as const;
 const schemaRef = { $ref: "#/$defs/schema" } as const;
@@ -51,6 +54,8 @@ const schemaLanguage = {
 /** Add each format here; publishing and drift checks both read this registry. */
 export const formats = {
   "schema-language": schemaLanguage,
+  capabilities: { ...capabilitiesSchema, $defs: { ...schemaLanguage.$defs, objectSchema } },
+  manifest: { ...manifestSchema, $defs: { ...schemaLanguage.$defs, objectSchema, ...manifestSchema.$defs } },
   catalog: {
     ...catalogSchema,
     $defs: { ...catalogSchema.$defs, ...schemaLanguage.$defs, objectSchema },

@@ -1,0 +1,294 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liveframe.dev/schemas/capabilities.json",
+  "type": "object",
+  "properties": {
+    "format": {
+      "maxLength": 32,
+      "enum": [
+        "liveframe-capabilities/1"
+      ],
+      "type": "string"
+    },
+    "actions": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)*$": {
+          "type": "object",
+          "properties": {
+            "confirm": {
+              "type": "boolean"
+            },
+            "description": {
+              "maxLength": 500,
+              "type": "string"
+            },
+            "args": {
+              "$ref": "#/$defs/objectSchema"
+            }
+          },
+          "required": [
+            "description",
+            "args"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "maxProperties": 512,
+      "additionalProperties": false,
+      "propertyNames": {
+        "maxLength": 128,
+        "pattern": "^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)*$",
+        "type": "string"
+      }
+    },
+    "sources": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)*$": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "maxLength": 500,
+              "type": "string"
+            },
+            "params": {
+              "$ref": "#/$defs/objectSchema"
+            },
+            "result": {
+              "$ref": "#/$defs/schema"
+            }
+          },
+          "required": [
+            "description",
+            "params",
+            "result"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "maxProperties": 512,
+      "additionalProperties": false,
+      "propertyNames": {
+        "maxLength": 128,
+        "pattern": "^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)*$",
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "format",
+    "actions",
+    "sources"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "schema": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "deprecated": {
+              "type": "boolean"
+            },
+            "maxLength": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pattern": {
+              "type": "string",
+              "maxLength": 256,
+              "format": "regex"
+            },
+            "enum": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "type",
+            "maxLength"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "number"
+            },
+            "description": {
+              "type": "string"
+            },
+            "deprecated": {
+              "type": "boolean"
+            },
+            "minimum": {
+              "type": "number"
+            },
+            "maximum": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "integer"
+            },
+            "description": {
+              "type": "string"
+            },
+            "deprecated": {
+              "type": "boolean"
+            },
+            "minimum": {
+              "type": "number"
+            },
+            "maximum": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "boolean"
+            },
+            "description": {
+              "type": "string"
+            },
+            "deprecated": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "array"
+            },
+            "description": {
+              "type": "string"
+            },
+            "deprecated": {
+              "type": "boolean"
+            },
+            "items": {
+              "$ref": "#/$defs/schema"
+            },
+            "maxItems": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "type",
+            "items",
+            "maxItems"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "object"
+            },
+            "description": {
+              "type": "string"
+            },
+            "deprecated": {
+              "type": "boolean"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/schema"
+              }
+            },
+            "required": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "additionalProperties": {
+              "const": false
+            }
+          },
+          "required": [
+            "type",
+            "properties",
+            "required",
+            "additionalProperties"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "objectSchema": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "object"
+        },
+        "description": {
+          "type": "string"
+        },
+        "deprecated": {
+          "type": "boolean"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/schema"
+          }
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "additionalProperties": {
+          "const": false
+        }
+      },
+      "required": [
+        "type",
+        "properties",
+        "required",
+        "additionalProperties"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

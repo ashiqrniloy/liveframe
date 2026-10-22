@@ -73,6 +73,8 @@ test("schema_publisher_detects_drift", async () => {
       "scripts/schemas.ts",
       "src/formats/registry.ts",
       "src/formats/catalog.ts",
+      "src/formats/capabilities.ts",
+      "src/formats/manifest.ts",
       "src/formats/vocabulary.ts",
       "src/formats/fixed.ts",
       "src/schema.ts",

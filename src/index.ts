@@ -23,3 +23,6 @@ export {
   obj,
   str,
 } from "./schema.ts";
+
+export { type Capabilities, validateCapabilities } from "./formats/capabilities.ts";
+export { type Manifest, validateManifest } from "./formats/manifest.ts";

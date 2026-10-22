@@ -221,3 +221,54 @@ bun scripts/schemas.ts --check
 The check command fails on missing, changed or unregistered JSON files. Tests
 compare each file to its source and compile it with Ajv 8 in strict mode. Ajv is
 a development dependency used as an independent test oracle.
+
+## Capabilities
+
+The host publishes the operations a widget may request. `validateCapabilities(doc)` returns a `Result<Capabilities>` and checks the closed document, bounded descriptions and schema language. Action arguments and source parameters are object schemas; source results may use any language schema.
+
+```ts
+const capabilities = {
+  format: "liveframe-capabilities/1",
+  actions: {
+    "tasks.claim": { description: "Claim a task", args: obj({ id: str({ maxLength: 128 }) }), confirm: true },
+  },
+  sources: {
+    "tasks.queue": {
+      description: "Read the next page of tasks",
+      params: obj({ cursor: str({ maxLength: 128 }) }),
+      result: arr(obj({ id: str({ maxLength: 128 }) }), { maxItems: 50 }),
+    },
+  },
+} as const;
+validateCapabilities(capabilities);
+```
+
+Each map holds at most 512 entries. Names start with a lowercase letter and contain letters or digits, optionally separated into dot segments (`tasks.queue`); names are at most 128 characters. Descriptions are at most 500 code points. `confirm` is optional descriptive metadata. Capabilities carry no authority: the host authorises every read and action as the viewer and re-checks action arguments on dispatch.
+
+## Manifest
+
+`validateManifest(doc, { catalog, capabilities })` takes an installed, validated catalog and capabilities. It checks the catalog identity, declared operations, initial state and source parameter bindings. The result preserves the original document on success and reports up to 20 errors with JSON pointers on failure.
+
+```ts
+const manifest = {
+  format: "liveframe-manifest/1",
+  id: "task-list",
+  version: "1.0.0",
+  catalogId: catalog.catalogId,
+  params: obj({}),
+  state: obj({ cursor: str({ maxLength: 128 }) }),
+  context: obj({}),
+  initialState: { cursor: "start" },
+  sources: {
+    queue: { source: "tasks.queue", params: { cursor: { from: "state", path: "cursor" } } },
+  },
+  actions: ["tasks.claim"],
+} as const;
+validateManifest(manifest, { catalog, capabilities });
+```
+
+`params`, `state` and `context` are closed language object schemas. Source parameters accept literals checked against the capability's parameter schema, or `{ from: "params" | "state" | "context", path }`. An object with a `from` field is interpreted as a binding. Paths traverse object properties only, with at most eight identifier segments; array indices and expressions are rejected. A binding's schema type must equal the destination type. Bound values still need checking against the destination's bounds when the host resolves them. Every required source parameter must be supplied; extra parameters are errors.
+
+Manifest ids start with a lowercase letter and contain letters, digits, dots or hyphens (128 characters maximum). Versions are nonempty bounded strings, with no enforced versioning scheme. Source keys follow capability naming rules; there are at most 512 sources and 512 distinct actions. The catalog id must match exactly. A manifest describes requests and never grants permission.
+
+Published structural schemas are available as `@arnilo/liveframe/schemas/capabilities.json` and `@arnilo/liveframe/schemas/manifest.json`. Cross-document names, binding resolution and initial-state validation require the corresponding validator.
