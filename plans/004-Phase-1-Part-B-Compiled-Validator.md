@@ -207,7 +207,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Resolved the fixture prerequisite in the exporter rather than changing the spec or the proof UI. All 50 fit tracks in agent-home and in each affected medium/large/full core-queue fixture become `"0fr"`; node counts are unchanged. Regenerate with `timeout 60s bun proof/scripts/export-formats.ts`. The public validator accepts the regenerated agent-home tree unchanged. Git-status also confirms that keyed fragments may introduce multiple key-path segments between UI nodes.
     - `timeout 300s bun run check` passed: typecheck, lint, format and **171 tests**. Existing unrelated lint warnings remain. No new dependency, format or spec changes. Throughput and budget claims remain Task 5; the worked public guide remains Task 6.
 
-- [ ] Task 4: Give every spec §10 rule a failing-case test, and make the errors agent-actionable
+- [x] Task 4: Give every spec §10 rule a failing-case test, and make the errors agent-actionable
   - Acceptance Criteria:
     - Functional:
       - `src/__tests__/validator-rules.test.ts` is a table with one row per bullet of spec §10 and per §8–§9 intent rule. Each row has a minimal invalid tree built from the proof fixtures, and the expected `kind`, `nodeId` and `pointer`.
@@ -223,6 +223,7 @@ Probe answers that hold for every task, unless a task says otherwise:
       - A2UI v1.0 "Validation Error Format" (a2ui.org), the agent self-correction precedent.
     - Documentation Reviewed:
       - Spec §7.2 (kinds), §8, §9, §10.
+      - [A2UI v1.0 Validation Error Format](https://a2ui.org/specification/v1.0-a2ui), retrieved through Context7 (`/websites/a2ui`): JSON Pointer and concise repair feedback for agent self-correction.
     - Options Considered:
       - One test file per rule: rejected. A table makes a missing rule visible against the spec bullet list.
     - Chosen Approach:
@@ -233,11 +234,18 @@ Probe answers that hold for every task, unless a task says otherwise:
       ```
     - Files to Create/Edit:
       - `src/__tests__/validator-rules.test.ts`: new.
-      - `src/validate/*.ts`: `expected` text where Task 2 or 3 left it generic.
+      - `src/validate/schema.ts`: include string/array bounds, object fields and missing-property names in previously generic errors.
+      - `src/validate/intent.ts`: name compatible bind arguments, or explain when to omit bind.
   - Test Cases to Write:
     - `every_spec_rule_has_a_row`: fails if a spec §10 bullet has no table row.
     - `each_row_fails_as_specified`: fails if the kind, node id or pointer differs.
     - `expected_text_is_actionable`: fails on empty or generic `expected` text.
+  - Notes (executed 2026-10-22):
+    - Added a 50-row data table using the proof catalog, capabilities, manifest and tree metadata. Every row cites its spec lines and asserts the error kind, node id and JSON Pointer through one shared loop. The coverage test compares all seven §10 bullets verbatim with the table's rule definitions and checks that every rule has rows; adding or editing a bullet requires a coverage review.
+    - Covered each compound rule's checks: prop types/required fields/closed objects/patterns/numeric bounds/string code points/arrays; child kinds and counts; declared style props and space/size/radius/breakpoint names; role-only colours and raw CSS rejection; variants; state, actions, args and all bind constraints; rooted unique key paths; configurable node/depth/byte limits. Intent rows also cite §8's one-intent, carrying-value and manifest/capability rules and §9's wire format. Host dispatch, persistence, caching and runner timing remain their owning phases, rather than tree-validator checks.
+    - The actionable-text test checks every error returned by every row against empty/generic messages and valid JSON Pointer syntax, then checks the targeted error for its concrete allowed values, bound or repair instruction. Tests were written first: the matrix's rejection/location checks passed, while the actionable-text test failed on `expected: "a string"`.
+    - Improved compiled schema diagnostics for wrong string/array/object types and missing required properties. String errors retain the declared length, enum and pattern constraints; missing-property errors name the property. Invalid binds now list compatible argument names or say to omit bind when the event has no compatible argument. Message preparation remains at compile time or on failure; acceptance semantics and public exports are unchanged.
+    - `timeout 300s bun run check` passed: typecheck, lint, format and **174 tests** across 31 files, including the three new matrix tests. Existing unrelated lint warnings remain. No dependency or spec changes. Task 5's throughput benchmark and Task 6's public guide remain pending.
 
 - [ ] Task 5: Measure the validator against its budget and against generic checking
   - Acceptance Criteria:

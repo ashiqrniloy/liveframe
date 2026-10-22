@@ -53,8 +53,9 @@ export function compileSchema(schema: LanguageSchema): SchemaCheck {
       const lengthExpected = `string of at most ${maxLength} characters`;
       const enumExpected = `one of: ${schema.enum?.join(", ")}`;
       const patternExpected = `a string matching ${schema.pattern}`;
+      const typeExpected = `${lengthExpected}${choices ? `; ${enumExpected}` : ""}${pattern ? `; ${patternExpected}` : ""}`;
       return (value, at, sink) => {
-        if (typeof value !== "string") return reject(at, sink, "a string");
+        if (typeof value !== "string") return reject(at, sink, typeExpected);
         let valid = true;
         if (!codePointsWithin(value, maxLength)) valid = reject(at, sink, lengthExpected);
         if (choices && !choices.has(value)) valid = reject(at, sink, enumExpected);
@@ -85,7 +86,7 @@ export function compileSchema(schema: LanguageSchema): SchemaCheck {
       const item = compileSchema(schema.items);
       const expected = `an array of at most ${maxItems} items`;
       return (value, at, sink) => {
-        if (!Array.isArray(value)) return reject(at, sink, "an array");
+        if (!Array.isArray(value)) return reject(at, sink, expected);
         let valid = value.length <= maxItems || reject(at, sink, expected);
         for (let i = 0; i < value.length; i++) {
           if (!valid && sink.errors.length >= sink.maxErrors) return false;
@@ -100,16 +101,21 @@ export function compileSchema(schema: LanguageSchema): SchemaCheck {
     }
     case "object": {
       const properties = new Map(Object.entries(schema.properties).map(([key, child]) => [key, compileSchema(child)]));
-      const required = [...schema.required];
+      const required = schema.required.map((key) => ({
+        key,
+        expected: `the required property ${JSON.stringify(key)}`,
+      }));
       const expected = `a declared property (one of: ${[...properties.keys()].join(", ") || "none"})`;
+      const objectExpected = `an object with declared properties: ${[...properties.keys()].join(", ") || "none"}`;
       return (value, at, sink) => {
-        if (value === null || typeof value !== "object" || Array.isArray(value)) return reject(at, sink, "an object");
+        if (value === null || typeof value !== "object" || Array.isArray(value))
+          return reject(at, sink, objectExpected);
         let valid = true;
-        for (const key of required) {
+        for (const { key, expected } of required) {
           if (!valid && sink.errors.length >= sink.maxErrors) return false;
           if (!Object.hasOwn(value, key)) {
             const start = sink.errors.length;
-            valid = reject("", sink, "a required property");
+            valid = reject("", sink, expected);
             prefixErrors(sink, start, at, key);
           }
         }

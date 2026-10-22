@@ -57,8 +57,18 @@ export function compileIntents(capabilities: Capabilities, manifest: Manifest): 
       let check = action.check;
       if (Object.hasOwn(value, "bind")) {
         const binding = typeof value.bind === "string" ? action.bindings.get(value.bind) : undefined;
-        if (!binding || carries === "none" || binding.type !== carries)
-          return reject(sink, "/bind", `an argument whose schema type matches the event's carries (${carries})`);
+        if (!binding || carries === "none" || binding.type !== carries) {
+          const compatible = [...action.bindings]
+            .filter(([, argument]) => carries !== "none" && argument.type === carries)
+            .map(([key]) => key);
+          return reject(
+            sink,
+            "/bind",
+            compatible.length
+              ? `one of: ${compatible.join(", ")} (event carries ${carries})`
+              : `omit bind: no compatible arguments (event carries ${carries})`,
+          );
+        }
         if (Object.hasOwn(value.args, value.bind as string))
           valid = reject(sink, at("/args", value.bind as string), "the bound argument omitted from args");
         check = binding.check;
