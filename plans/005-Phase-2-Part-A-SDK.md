@@ -244,7 +244,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Self-referencing imports work in both Bun and `tsc`: the tests import `@arnilo/liveframe/sdk` and `@arnilo/liveframe/sdk/jsx-dev-runtime` and set the JSX source per file with `/** @jsxImportSource @arnilo/liveframe/sdk */`. `IntrinsicElements` is empty, so `<div />` and a wrong `primitive<Props>` prop each fail to compile (`@ts-expect-error` in `sdk-types.test.tsx` proves it).
     - `bun run check` green (187 tests).
 
-- [ ] Task 4: Build and validate in one pass with `render()`
+- [x] Task 4: Build and validate in one pass with `render()`
   - Acceptance Criteria:
     - Functional:
       - `render(widget, inputs, { validator, surfaceId, revision, limits?, maxErrors? })` follows the Task 1 contract.
@@ -313,7 +313,16 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `errors_are_bounded`: a widget with 30 bad props returns 20 errors plus the bound marker. Fails if collection is unbounded or stops at one.
     - `rendered_trees_pass_validate_tree`: every output from these tests is accepted by `validateTree`. Fails if the builder and the validator disagree.
     - `class_name_and_style_strings_rejected`: law 3.
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-22):
+    - Files: `src/sdk/render.ts` (new), `src/sdk/index.ts` (exports `render`), `src/errors.ts` (`DEFAULT_MAX_ERRORS` and `addBoundMarker`, now shared with the tree walker), `src/validate/tree.ts` (exports `DEFAULT_LIMITS`, uses both), `src/validate/compile.ts` (`build.catalogId`), `src/validate/structure.ts` (`encodeSegment` keeps `:` readable), `src/__tests__/sdk-render.test.tsx` (new).
+    - One builder over the compiled validator: `checkNode` per emitted node, `structure.node`/`counts`/`forbidsChildren` for child rules, `walkJson` for each props/style/events value, `encodeSegment` for ids. No second walk; only tests call `validateTree` on the output.
+    - Byte accounting matches `validateTree` exactly: the tree prefix is counted field by field, each node by walking its skeleton (without `children`), then `,"children":[`, the child separators and `]` are added and `}` closes. `rendered_trees_pass_validate_tree` renders three trees (one with unicode keys and values) and asserts `limits.bytes` equal to `Buffer.byteLength(JSON.stringify(tree))` passes, one less fails, and `validateTree` agrees on both. That test is the drift alarm for both counters.
+    - Error pointers are node-id paths (`/root/stack/row:4812/props/label`), not child indices: a fragment has no index in the tree, and ids are stable across reorders. Unattributed failures (a thrown widget, a non-element root, bad options) point at the document root.
+    - All 12 §7.2 kinds are produced and tested in one table, each asserting its kind plus a `nodeId` and `pointer`; the same test pins that a thrown `boom` reaches `message` unchanged. The widget runs exactly once, and a fragment that yields two roots is `invalid-children`.
+    - Limits enforced while building: nodes, depth (root is level 1), bytes, component expansions, and nested child arrays. A cyclic children array hits the nesting guard instead of the stack.
+    - Deviation: top-level function and promise prop values are classified as `function-prop`/`async-render` for primitives and composed components alike; a function nested *inside* a JSON object reaches the node as `invalid-prop`. The value is still rejected before it leaves `render()`, only the kind differs, because the shared byte walker has a single failure kind. Revisit if a caller needs the nested kind.
+    - `encodeSegment` changed: `encodeURIComponent` escaped `:` to `%3A`, which contradicted the spec's `row:4812` example and the key-path grammar. One `replaceAll("%3A", ":")` keeps the colon readable; `/`, spaces and CJK still encode.
+    - `bun run check` green (194 tests).
 
 - [ ] Task 5: Check inputs once per resolution, and prove `render()` deterministic
   - Acceptance Criteria:

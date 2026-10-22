@@ -7,9 +7,12 @@ import { stringBytes } from "./bytes.ts";
  */
 export const keyPath = /^(?:[a-zA-Z0-9_.!~*'():-]|%[0-9A-F]{2})+(?:\/(?:[a-zA-Z0-9_.!~*'():-]|%[0-9A-F]{2})+)*$/;
 
-/** Encodes one key-path segment. Keys and kinds may contain `/`, spaces or CJK. */
+/**
+ * Encodes one key-path segment. Keys and kinds may contain `/`, spaces or CJK; the
+ * grammar's own characters stay readable, so a key `row:4812` keeps its colon (spec §7.1).
+ */
 export function encodeSegment(segment: string): string {
-  return encodeURIComponent(segment);
+  return encodeURIComponent(segment).replaceAll("%3A", ":");
 }
 
 export type ChildBounds = { readonly min: number; readonly max: number };

@@ -22,6 +22,7 @@ export type KindFacts = {
 };
 /** @internal Not part of the published surface; `render()` reads it from the validator. */
 export type CompiledBuild = {
+  readonly catalogId: string;
   readonly kinds: ReadonlyMap<string, KindFacts>;
   readonly structure: CompiledStructure;
 };
@@ -131,5 +132,9 @@ function compile(catalog: Catalog, capabilities: Capabilities, manifest: Manifes
       }
     return valid;
   };
-  return { checkNode, validateTree: compileTree(catalog, checkNode, structure), build: { kinds: facts, structure } };
+  return {
+    checkNode,
+    validateTree: compileTree(catalog, checkNode, structure),
+    build: { catalogId: catalog.catalogId, kinds: facts, structure },
+  };
 }

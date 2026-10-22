@@ -1,4 +1,4 @@
-import type { LiveframeError, Result } from "../errors.ts";
+import { addBoundMarker, DEFAULT_MAX_ERRORS, type LiveframeError, type Result } from "../errors.ts";
 import { at, isRecord } from "../formats/capabilities.ts";
 import type { Catalog } from "../formats/catalog.ts";
 import type { UiTree } from "../formats/tree.ts";
@@ -21,6 +21,9 @@ export type ValidateTreeOptions = {
 };
 export type TreeValidator = (tree: unknown, options?: ValidateTreeOptions) => Result<UiTree>;
 
+/** The tree budget every surface starts from (spec §10). */
+export const DEFAULT_LIMITS = { nodes: 5000, depth: 64, bytes: 1024 * 1024 } as const;
+
 const treeFields = new Set(["format", "catalogId", "surfaceId", "revision", "root"]);
 type Mode = "tree" | "node" | "children" | "json";
 
@@ -38,8 +41,8 @@ export function compileTree(
   ]);
   return (tree, options = {}) => {
     const errors: LiveframeError[] = [];
-    const budget = { nodes: 5000, depth: 64, bytes: 1024 * 1024, ...options.limits };
-    const maxErrors = options.maxErrors ?? 20;
+    const budget = { ...DEFAULT_LIMITS, ...options.limits };
+    const maxErrors = options.maxErrors ?? DEFAULT_MAX_ERRORS;
     const path: (string | number)[] = [];
     const sink: SchemaSink = { errors, maxErrors };
     const ids = new Set<string>();
@@ -263,14 +266,7 @@ export function compileTree(
         lastNodeId,
       );
     }
-    if (bounded)
-      errors.push({
-        kind: "limit-exceeded",
-        nodeId: lastNodeId,
-        pointer: errors.at(-1)?.pointer ?? "",
-        expected: "fix the errors above and validate again",
-        message: "Error collection limit reached",
-      });
+    if (bounded) addBoundMarker(errors, lastNodeId);
     return errors.length ? { ok: false, errors } : { ok: true, value: tree as UiTree };
   };
 }
