@@ -344,7 +344,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `timeout 300s bun run check` passed: typecheck, lint, format and **178 tests** (including browser, portability and the two new export/repair tests). Existing unrelated lint warnings remain. No dependency or spec changes; the performance path is unchanged, so the standalone benchmark was not rerun.
     - Updated roadmap §3 to Tasks 1–6 complete, leaving its pre-existing unrelated changes unstaged as in earlier task commits. Task 7's architectural impact analysis remains pending.
 
-- [ ] Task 7: Analyze architectural impact and dispose of every finding
+- [x] Task 7: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional:
       - Every impact area in `.agents/skills/create-plan/references/liveframe.md` §5 is recorded in `plans/evidence/004-impact-analysis.md`, or marked `None — <reason>`.
@@ -364,14 +364,23 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Options Considered:
       - n/a.
     - Chosen Approach:
-      - Sweep, present one findings table to the owner, then dispose of each finding.
+      - Sweep all twelve areas, present one findings table to the owner, and record the completion request as authorisation for documentation corrections and handoffs to existing phase owners. No new architecture decision is required.
     - API Notes and Examples:
       - n/a.
     - Files to Create/Edit:
       - `plans/evidence/004-impact-analysis.md`: new.
       - `plans/backlog.md`: update.
+      - `.agents/skills/liveframe-execution/SKILL.md` and `references/architecture.md`: correct stale descriptions of the delivered validator.
+      - This plan: record dispositions, verification, compromises and further actions.
+      - `roadmap.md` §3: record plan 004 completion, preserving unrelated workspace changes.
   - Test Cases to Write:
-    - None.
+    - None — documentation and handoff updates only; run the whole-plan checks and existing validator tests.
+  - Notes (executed 2026-10-22):
+    - Swept all twelve impact areas in `plans/evidence/004-impact-analysis.md`, including each law, `bind`, literal and completed action args, backend validation and the arrival re-check. No runtime defect, spec change, public API change or new architecture decision was required.
+    - Presented five findings with dispositions and recorded the completion request as authorisation, without claiming separate approval of each row. Executed F1–F3: corrected stale execution/architecture guidance (and the router's pre-existing invalid YAML description formatting), recorded the measured validator budget and Phase 2 share, and closed G20's validator half while retaining Phase 4's renderer work. F4 extends the existing Phase 5 conformance handoff; F5 records the proof-only grid-track conversion for Phase 2/3 integration. Both are in Further Actions and `plans/backlog.md`.
+    - Whole-plan verification passed: `timeout 300s bun run check` (178 tests across 33 files, plus typecheck/lint/format), `timeout 120s bun bench/validator.bench.ts` (all eight fixtures ≤1.399 µs/node; agent-home 0.8361 ms / 1.231 µs/node and 15.83× equal-work props speed-up), and `timeout 60s bun scripts/schemas.ts --check`. Existing non-fatal lint warnings remain. Machine/load and the full benchmark table are in the evidence record.
+    - The ≤3 µs/node integrated render budget remains Phase 2 Part A: ≤1.5 µs/node reserved for validation and ≤1.5 µs/node for remaining render work. Local validator measurements and converted benchmark fixtures do not prove SDK throughput or visual parity. No new tests or captures were needed for this documentation-only task.
+    - Updated roadmap §3 to plan 004 complete. Pre-existing unrelated changes in the backlog, roadmap and untracked skill files remain outside this task's commit, following the earlier task commits; the complete disposition record is in this plan and its evidence. Plan 002 Task 9's owner gate remains untouched.
 
 ## Verification (whole plan)
 
@@ -381,8 +390,14 @@ Probe answers that hold for every task, unless a task says otherwise:
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- Full validation's relative speed is not compared as equal work with props-only interpretation. The owner-approved Task 5 decision retains ≤1.5 µs/node full validation on every fixture and ≥2× compiled/interpreted props speed-up on agent-home. All gates pass; no claim is made that full §10 validation beats a narrower props-only walk.
+- Successful validation preserves the original unfrozen tree. Callers must validate the value they actually transport/use; freezing would add a traversal the spec does not require. The public guide and `valid_tree_returned_unchanged` make this contract explicit.
+- Benchmark fixtures convert the historical proof's grid-track `fit` extension to spec-valid `0fr`, preserving node counts. This proves validity and performance, not visual equivalence; the Phase 2/3 integration work is backlogged below.
+- Performance evidence is local to Bun 1.4.2 on the recorded machine. Browser bundling and the host-API scan pass, but other runtime execution and the full SDK render budget remain unproved.
 
 ## Further Actions
 
-- To be filled after task completion with improvements, rationale, and priority.
+- **P1 — Phase 1 performance gate: 3 µs per node** (existing backlog entry updated): Phase 2 Part A must integrate compiled node checks into the builder, retain metadata/identity/children/budget guarantees, avoid duplicate traversal and prove the full render gate on equivalent proof workloads. Measured validator work is complete; total render throughput is not.
+- **P2 — Later-phase gaps from the Phase 0 reports** (existing backlog entry updated): G20's code-point validator half is complete; Phase 4 must enforce code-point-aware input/commit limits rather than relying on native UTF-16 maxlength. Other recorded gaps keep their existing phase owners.
+- **P3 — Seed conformance suites from the proof tests** (F4, existing backlog entry updated): Phase 5 should reuse the new compiled schema/node/tree/rule/export cases; Phase 4/hosts still need arrival and completed-argument dispatch integration coverage. Keep performance gates internal.
+- **P2 — Reconcile proof grid tracks before SDK and CSS integration** (F5, new backlog entry): Phase 2 Part A/Phase 3 must use §6.3-valid composition and verify visual parity before migrating the proof widgets. The current exporter conversion is not parity evidence.
