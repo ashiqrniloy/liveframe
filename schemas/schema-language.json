@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liveframe.dev/schemas/schema-language.json",
+  "$ref": "#/$defs/schema",
+  "$defs": {
+    "schema": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "deprecated": {
+              "type": "boolean"
+            },
+            "maxLength": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pattern": {
+              "type": "string",
+              "maxLength": 256,
+              "format": "regex"
+            },
+            "enum": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "type",
+            "maxLength"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "number"
+            },
+            "description": {
+              "type": "string"
+            },
+            "deprecated": {
+              "type": "boolean"
+            },
+            "minimum": {
+              "type": "number"
+            },
+            "maximum": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "integer"
+            },
+            "description": {
+              "type": "string"
+            },
+            "deprecated": {
+              "type": "boolean"
+            },
+            "minimum": {
+              "type": "number"
+            },
+            "maximum": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "boolean"
+            },
+            "description": {
+              "type": "string"
+            },
+            "deprecated": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "array"
+            },
+            "description": {
+              "type": "string"
+            },
+            "deprecated": {
+              "type": "boolean"
+            },
+            "items": {
+              "$ref": "#/$defs/schema"
+            },
+            "maxItems": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "type",
+            "items",
+            "maxItems"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "object"
+            },
+            "description": {
+              "type": "string"
+            },
+            "deprecated": {
+              "type": "boolean"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/schema"
+              }
+            },
+            "required": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "additionalProperties": {
+              "const": false
+            }
+          },
+          "required": [
+            "type",
+            "properties",
+            "required",
+            "additionalProperties"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}
