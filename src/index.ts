@@ -26,3 +26,4 @@ export {
 
 export { type Capabilities, validateCapabilities } from "./formats/capabilities.ts";
 export { type Manifest, validateManifest } from "./formats/manifest.ts";
+export { type Theme, validateTheme } from "./formats/theme.ts";

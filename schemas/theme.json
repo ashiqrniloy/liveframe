@@ -1,0 +1,1131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liveframe.dev/schemas/theme.json",
+  "type": "object",
+  "properties": {
+    "format": {
+      "maxLength": 32,
+      "enum": [
+        "liveframe-theme/1"
+      ],
+      "type": "string"
+    },
+    "id": {
+      "maxLength": 128,
+      "pattern": "^[a-z][a-zA-Z0-9.-]*$",
+      "type": "string"
+    },
+    "version": {
+      "maxLength": 128,
+      "pattern": "^.+$",
+      "type": "string"
+    },
+    "colorScheme": {
+      "maxLength": 5,
+      "enum": [
+        "light",
+        "dark"
+      ],
+      "type": "string"
+    },
+    "colours": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "alpha": {
+                  "minimum": 0,
+                  "maximum": 1,
+                  "type": "number"
+                },
+                "hex": {
+                  "maxLength": 7,
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "type": "string"
+                },
+                "colorSpace": {
+                  "const": "srgb"
+                },
+                "components": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "prefixItems": [
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    }
+                  ],
+                  "items": false
+                }
+              },
+              "required": [
+                "colorSpace",
+                "components"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "alpha": {
+                  "minimum": 0,
+                  "maximum": 1,
+                  "type": "number"
+                },
+                "hex": {
+                  "maxLength": 7,
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "type": "string"
+                },
+                "colorSpace": {
+                  "const": "srgb-linear"
+                },
+                "components": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "prefixItems": [
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    }
+                  ],
+                  "items": false
+                }
+              },
+              "required": [
+                "colorSpace",
+                "components"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "alpha": {
+                  "minimum": 0,
+                  "maximum": 1,
+                  "type": "number"
+                },
+                "hex": {
+                  "maxLength": 7,
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "type": "string"
+                },
+                "colorSpace": {
+                  "const": "hsl"
+                },
+                "components": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "prefixItems": [
+                    {
+                      "oneOf": [
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "exclusiveMaximum": 360
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 100,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 100,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    }
+                  ],
+                  "items": false
+                }
+              },
+              "required": [
+                "colorSpace",
+                "components"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "alpha": {
+                  "minimum": 0,
+                  "maximum": 1,
+                  "type": "number"
+                },
+                "hex": {
+                  "maxLength": 7,
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "type": "string"
+                },
+                "colorSpace": {
+                  "const": "hwb"
+                },
+                "components": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "prefixItems": [
+                    {
+                      "oneOf": [
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "exclusiveMaximum": 360
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 100,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 100,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    }
+                  ],
+                  "items": false
+                }
+              },
+              "required": [
+                "colorSpace",
+                "components"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "alpha": {
+                  "minimum": 0,
+                  "maximum": 1,
+                  "type": "number"
+                },
+                "hex": {
+                  "maxLength": 7,
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "type": "string"
+                },
+                "colorSpace": {
+                  "const": "lab"
+                },
+                "components": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "prefixItems": [
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 100,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    }
+                  ],
+                  "items": false
+                }
+              },
+              "required": [
+                "colorSpace",
+                "components"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "alpha": {
+                  "minimum": 0,
+                  "maximum": 1,
+                  "type": "number"
+                },
+                "hex": {
+                  "maxLength": 7,
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "type": "string"
+                },
+                "colorSpace": {
+                  "const": "lch"
+                },
+                "components": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "prefixItems": [
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 100,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "exclusiveMaximum": 360
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    }
+                  ],
+                  "items": false
+                }
+              },
+              "required": [
+                "colorSpace",
+                "components"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "alpha": {
+                  "minimum": 0,
+                  "maximum": 1,
+                  "type": "number"
+                },
+                "hex": {
+                  "maxLength": 7,
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "type": "string"
+                },
+                "colorSpace": {
+                  "const": "oklab"
+                },
+                "components": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "prefixItems": [
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    }
+                  ],
+                  "items": false
+                }
+              },
+              "required": [
+                "colorSpace",
+                "components"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "alpha": {
+                  "minimum": 0,
+                  "maximum": 1,
+                  "type": "number"
+                },
+                "hex": {
+                  "maxLength": 7,
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "type": "string"
+                },
+                "colorSpace": {
+                  "const": "oklch"
+                },
+                "components": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "prefixItems": [
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "exclusiveMaximum": 360
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    }
+                  ],
+                  "items": false
+                }
+              },
+              "required": [
+                "colorSpace",
+                "components"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "alpha": {
+                  "minimum": 0,
+                  "maximum": 1,
+                  "type": "number"
+                },
+                "hex": {
+                  "maxLength": 7,
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "type": "string"
+                },
+                "colorSpace": {
+                  "const": "display-p3"
+                },
+                "components": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "prefixItems": [
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    }
+                  ],
+                  "items": false
+                }
+              },
+              "required": [
+                "colorSpace",
+                "components"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "alpha": {
+                  "minimum": 0,
+                  "maximum": 1,
+                  "type": "number"
+                },
+                "hex": {
+                  "maxLength": 7,
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "type": "string"
+                },
+                "colorSpace": {
+                  "const": "a98-rgb"
+                },
+                "components": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "prefixItems": [
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    }
+                  ],
+                  "items": false
+                }
+              },
+              "required": [
+                "colorSpace",
+                "components"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "alpha": {
+                  "minimum": 0,
+                  "maximum": 1,
+                  "type": "number"
+                },
+                "hex": {
+                  "maxLength": 7,
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "type": "string"
+                },
+                "colorSpace": {
+                  "const": "prophoto-rgb"
+                },
+                "components": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "prefixItems": [
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    }
+                  ],
+                  "items": false
+                }
+              },
+              "required": [
+                "colorSpace",
+                "components"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "alpha": {
+                  "minimum": 0,
+                  "maximum": 1,
+                  "type": "number"
+                },
+                "hex": {
+                  "maxLength": 7,
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "type": "string"
+                },
+                "colorSpace": {
+                  "const": "rec2020"
+                },
+                "components": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "prefixItems": [
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    }
+                  ],
+                  "items": false
+                }
+              },
+              "required": [
+                "colorSpace",
+                "components"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "alpha": {
+                  "minimum": 0,
+                  "maximum": 1,
+                  "type": "number"
+                },
+                "hex": {
+                  "maxLength": 7,
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "type": "string"
+                },
+                "colorSpace": {
+                  "const": "xyz-d65"
+                },
+                "components": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "prefixItems": [
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    }
+                  ],
+                  "items": false
+                }
+              },
+              "required": [
+                "colorSpace",
+                "components"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "alpha": {
+                  "minimum": 0,
+                  "maximum": 1,
+                  "type": "number"
+                },
+                "hex": {
+                  "maxLength": 7,
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "type": "string"
+                },
+                "colorSpace": {
+                  "const": "xyz-d50"
+                },
+                "components": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "prefixItems": [
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "minimum": 0,
+                          "maximum": 1,
+                          "type": "number"
+                        },
+                        {
+                          "const": "none"
+                        }
+                      ]
+                    }
+                  ],
+                  "items": false
+                }
+              },
+              "required": [
+                "colorSpace",
+                "components"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "maxProperties": 256,
+      "additionalProperties": false,
+      "propertyNames": {
+        "maxLength": 64,
+        "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+        "type": "string"
+      }
+    },
+    "typography": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$": {
+          "type": "object",
+          "properties": {
+            "letterSpacing": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "minimum": -1024,
+                  "maximum": 1024,
+                  "type": "number"
+                },
+                "unit": {
+                  "maxLength": 3,
+                  "enum": [
+                    "px",
+                    "rem",
+                    "em"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "value",
+                "unit"
+              ],
+              "additionalProperties": false
+            },
+            "textTransform": {
+              "maxLength": 9,
+              "enum": [
+                "none",
+                "uppercase"
+              ],
+              "type": "string"
+            },
+            "fontStretch": {
+              "minimum": 50,
+              "maximum": 200,
+              "type": "number"
+            },
+            "fontSizeAdjust": {
+              "minimum": 0,
+              "maximum": 10,
+              "type": "number"
+            },
+            "fontFamily": {
+              "oneOf": [
+                {
+                  "maxLength": 128,
+                  "pattern": "^(?!.*[uU][rR][lL]\\s*\\()[^;{}\\\\\\u0000-\\u001f\\u007f]+$",
+                  "type": "string"
+                },
+                {
+                  "maxItems": 8,
+                  "type": "array",
+                  "items": {
+                    "maxLength": 128,
+                    "pattern": "^(?!.*[uU][rR][lL]\\s*\\()[^;{}\\\\\\u0000-\\u001f\\u007f]+$",
+                    "type": "string"
+                  },
+                  "minItems": 1
+                }
+              ]
+            },
+            "fontSize": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "minimum": 0,
+                  "maximum": 4096,
+                  "type": "number"
+                },
+                "unit": {
+                  "maxLength": 3,
+                  "enum": [
+                    "px",
+                    "rem"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "value",
+                "unit"
+              ],
+              "additionalProperties": false
+            },
+            "fontWeight": {
+              "oneOf": [
+                {
+                  "minimum": 1,
+                  "maximum": 1000,
+                  "type": "number"
+                },
+                {
+                  "maxLength": 11,
+                  "enum": [
+                    "thin",
+                    "hairline",
+                    "extra-light",
+                    "ultra-light",
+                    "light",
+                    "normal",
+                    "regular",
+                    "book",
+                    "medium",
+                    "semi-bold",
+                    "demi-bold",
+                    "bold",
+                    "extra-bold",
+                    "ultra-bold",
+                    "black",
+                    "heavy",
+                    "extra-black",
+                    "ultra-black"
+                  ],
+                  "type": "string"
+                }
+              ]
+            },
+            "lineHeight": {
+              "minimum": 0,
+              "maximum": 10,
+              "type": "number"
+            }
+          },
+          "required": [
+            "fontFamily",
+            "fontSize",
+            "fontWeight",
+            "lineHeight"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "maxProperties": 256,
+      "additionalProperties": false,
+      "propertyNames": {
+        "maxLength": 64,
+        "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "format",
+    "id",
+    "version",
+    "colorScheme",
+    "colours",
+    "typography"
+  ],
+  "additionalProperties": false
+}

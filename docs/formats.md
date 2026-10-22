@@ -272,3 +272,79 @@ validateManifest(manifest, { catalog, capabilities });
 Manifest ids start with a lowercase letter and contain letters, digits, dots or hyphens (128 characters maximum). Versions are nonempty bounded strings, with no enforced versioning scheme. Source keys follow capability naming rules; there are at most 512 sources and 512 distinct actions. The catalog id must match exactly. A manifest describes requests and never grants permission.
 
 Published structural schemas are available as `@arnilo/liveframe/schemas/capabilities.json` and `@arnilo/liveframe/schemas/manifest.json`. Cross-document names, binding resolution and initial-state validation require the corresponding validator.
+
+## Theme
+
+`validateTheme(doc, vocabulary)` checks a resolved theme against an installed,
+validated vocabulary. The theme supplies every declared colour and typography
+role exactly once. Missing or undeclared roles return `unknown-name`; malformed
+values return `invalid-document`. Success preserves the input object, and
+failure returns at most 20 errors with escaped JSON Pointers.
+
+```ts
+import { type Theme, validateTheme } from "@arnilo/liveframe";
+
+const theme: Theme = {
+  format: "liveframe-theme/1",
+  id: "daylight",
+  version: "1.0.0",
+  colorScheme: "light",
+  colours: {
+    "surface.base": { colorSpace: "oklch", components: [0.966, 0.01, 172] },
+  },
+  typography: {
+    body: {
+      fontFamily: ["Inter", "sans-serif"],
+      fontSize: { value: 14, unit: "px" },
+      fontWeight: 400,
+      lineHeight: 1.5,
+      letterSpacing: { value: -0.01, unit: "em" },
+    },
+  },
+};
+validateTheme(theme, vocabulary); // vocabulary declares these two roles
+```
+
+Themes are closed documents. Ids follow manifest id rules, versions are
+nonempty strings of at most 128 code points, and `colorScheme` is `light` or
+`dark`. Each role map holds at most 256 vocabulary names. Light and dark themes
+are separate documents; apps choose how to assemble and select them.
+
+Colours follow [DTCG 2025.10 §4.2](https://www.designtokens.org/tr/2025.10/color/#supported-color-spaces):
+`srgb`, `srgb-linear`, `hsl`, `hwb`, `lab`, `lch`, `oklab`, `oklch`,
+`display-p3`, `a98-rgb`, `prophoto-rgb`, `rec2020`, `xyz-d65` and `xyz-d50`.
+Exactly three components are required, each a finite number or `"none"`.
+RGB and XYZ channels are in `[0, 1]`; HSL/HWB percentages and Lab/LCH lightness
+are in `[0, 100]`; OKLab/OKLCH lightness is in `[0, 1]`. Hue is in `[0, 360)`.
+Lab/OKLab axes allow any finite signed number, and LCH/OKLCH chroma any finite
+nonnegative number: DTCG's typical magnitudes are not upper bounds. Optional
+`alpha` is in `[0, 1]`; optional `hex` is six hexadecimal digits prefixed by
+`#`. CSS colour strings and unknown fields are rejected.
+
+Typography uses resolved [DTCG composite values](https://www.designtokens.org/tr/2025.10/format/#typography)
+with the optional fields from spec §6.1. Token references are resolved before
+installation. The required fields are `fontFamily`, `fontSize`, `fontWeight`
+and `lineHeight`; `letterSpacing` is optional under Liveframe's spec.
+
+| Field | Accepted value |
+| --- | --- |
+| `fontFamily` | One font name or a nonempty ordered list of at most 8 names; each name is 1–128 code points |
+| `fontSize` | `{ value, unit }`, value in `[0, 4096]`, unit `px` or `rem` |
+| `fontWeight` | Number in `[1, 1000]` or a DTCG weight alias |
+| `lineHeight` | Multiplier in `[0, 10]` |
+| `letterSpacing` | Optional dimension in `[-1024, 1024]`, unit `px`, `rem` or `em` |
+| `textTransform` | Optional `none` or `uppercase` |
+| `fontStretch` | Optional numeric percentage in `[50, 200]`, such as `87.5` |
+| `fontSizeAdjust` | Optional ex-height factor in `[0, 10]` |
+
+Font names are plain data, never CSS fragments: semicolons, braces, backslashes,
+ASCII control characters and `url(` (case insensitive, allowing whitespace)
+are rejected. Give fallbacks as a list of individual names. Weight aliases
+are DTCG's exact lowercase names, from `thin`/`hairline` through
+`extra-black`/`ultra-black`; numeric weights may be fractional.
+
+`@arnilo/liveframe/schemas/theme.json` checks the same structure, bounds and
+colour-space ranges. Vocabulary completeness and undeclared roles require
+`validateTheme`. The theme is the sole colour source; a design system will
+reference its roles. CSS projection and font loading belong to later phases
+and the host respectively.
