@@ -181,7 +181,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `graft callers compileTree --depth all` before editing: only `src/validate/compile.ts` and two tests import it; `compileTree` keeps its two-argument form with the structure defaulted.
     - `bun run check` green (180 tests).
 
-- [ ] Task 3: Add the JSX runtime, primitive tags and intent helpers
+- [x] Task 3: Add the JSX runtime, primitive tags and intent helpers
   - Acceptance Criteria:
     - Functional:
       - `jsx`, `jsxs`, `Fragment` and `jsxDEV` return frozen elements: instances of an SDK-private class with `type`, `props` and `key`, so `render()` can reject look-alike objects.
@@ -234,7 +234,15 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `intent_helpers_reject_non_json`: `state.set("k", () => 1)`, `action("a", { x: new Date() })` and `action("a", { x: Number.NaN })` each throw naming the key. Fails if bad data reaches the tree.
     - `jsx_does_not_call_components`: a spy component is not called by `jsx`. Fails if expansion happens early.
     - `host_elements_fail_to_compile` (type test): `// @ts-expect-error` on `<div />`, and on a wrong prop type for a `primitive<…>` tag. Fails if the JSX namespace allows intrinsics.
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-22):
+    - Files: `src/sdk/{element,types,intents,index,jsx-runtime,jsx-dev-runtime}.ts` (all new), `package.json` (`./sdk`, `./sdk/jsx-runtime`, `./sdk/jsx-dev-runtime`), `tsconfig.json` (`"jsx": "react-jsx"`), `src/__tests__/sdk-{jsx,types}.test.tsx`.
+    - Element shape is the proof's, with the WeakSet replaced: a private `Element` class, so `isElement` is `instanceof` (one allocation per element, no hash insert). `element.type` is one of three things, which is how `render()` tells them apart: a frozen `{ kind }` record for a primitive, the component function for a composed component, the tag string for a host element.
+    - A primitive tag is a frozen function carrying the frozen `{ kind }` record under a module-private `Symbol`, so `jsx` resolves a tag with one property read and no `WeakMap`. The tag calls through to `jsx` if an author calls it directly.
+    - `jsx`/`jsxs`/`jsxDEV` freeze the element, its props and its `children` array, and strip `props.key` into the element's `key` (an explicit third argument wins). Nested props stay unfrozen as in the proof; intents are deep-frozen because they are the whole value.
+    - Intents: `state.set(key, value?)` reports a bad value at the key's path (`k`, `k.x`), `action(name, args, { bind }?)` at `args.x`. Rejections are `TypeError`s: functions, promises, non-finite numbers, class instances, cycles, and nesting past 128. `action`'s `bind` is checked as a bounded name and kept as a plain field.
+    - `src/sdk/index.ts` exports `primitive`, `action`, `state` and the types `Component`, `Element`, `DeepReadonly`, `Intent`, `Json`, `WidgetProps`. `isElement`/`createElement` stay internal for Task 4; Task 9 pins the final export list.
+    - Self-referencing imports work in both Bun and `tsc`: the tests import `@arnilo/liveframe/sdk` and `@arnilo/liveframe/sdk/jsx-dev-runtime` and set the JSX source per file with `/** @jsxImportSource @arnilo/liveframe/sdk */`. `IntrinsicElements` is empty, so `<div />` and a wrong `primitive<Props>` prop each fail to compile (`@ts-expect-error` in `sdk-types.test.tsx` proves it).
+    - `bun run check` green (187 tests).
 
 - [ ] Task 4: Build and validate in one pass with `render()`
   - Acceptance Criteria:

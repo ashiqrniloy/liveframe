@@ -10,7 +10,6 @@ import {
   type CompiledStructure,
   compileStructure,
   type JsonWalk,
-  jsonScalarBytes,
   keyPath,
   type StructureSink,
   walkJson,
