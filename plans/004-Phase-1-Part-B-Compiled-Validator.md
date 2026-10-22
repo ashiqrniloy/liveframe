@@ -147,8 +147,8 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Tests were written first and failed on the absent export. All 12 focused tests pass, including exact install-error preservation, every fixed style prop, boolean events, optional bindings, malformed input, full sinks and prototype-sensitive names. `timeout 300s bun run check` passed: typecheck, lint, format and **161 tests**. Existing unrelated lint warnings remain. Proof compilation measured **0.77 ms** on Bun 1.4.2, below 20 ms. `graft build` refreshed the local graph.
     - Found a pre-existing proof/spec discrepancy: agent-home grid tracks contain `"fit"`, which §6.3 allows for dimensions but not tracks. The checker rejects it; no spec or proof changes were made. Task 3 now records the prerequisite to resolve that discrepancy before valid-tree assertions and Task 5's successful-validation benchmark. Whole-tree validation and throughput measurements were not performed in this task.
 
-- [ ] Task 3: Validate whole trees: structure, identity, limits and bounded error collection
-  - Prerequisite found in Task 2: the committed agent-home fixture uses `"fit"` in grid track lists (for example `root/stack/ready/columns/rows/stack/tasks/task-0/grid`). Spec §6.3 allows only fractions and declared space/size names for tracks. Resolve this proof/fixture mismatch, or obtain a spec decision, before treating that fixture as a valid whole tree. Task 2 follows the spec and rejects these tracks; dimension props still accept `"fit"`.
+- [x] Task 3: Validate whole trees: structure, identity, limits and bounded error collection
+  - Prerequisite found in Task 2 (resolved here): the proof uses `"fit"` in grid track lists, outside spec §6.3. The fixture exporter now substitutes the allowed compact track `"0fr"` in benchmark trees, preserving node counts and leaving the rendered proof UI unchanged. This is a transport/performance fixture conversion, not a visual-equivalence claim; dimension props still accept `"fit"`.
   - Acceptance Criteria:
     - Functional:
       - `validateTree(tree, { limits?, maxErrors? })` checks:
@@ -172,11 +172,13 @@ Probe answers that hold for every task, unless a task says otherwise:
       - Spec §9, §10.
       - `proof/runtime/validate.ts` `checkTree`: a full `assertJson`, then `JSON.stringify` plus a Unicode regex for bytes, then `freeze`.
       - Part A `src/formats/tree.ts`.
+      - [ECMA-262 QuoteJSONString](https://tc39.es/ecma262/multipage/structured-data.html#sec-quotejsonstring): short escapes, control characters, surrogate pairs and lone-surrogate escapes; finite numbers use their ordinary string representation.
     - Options Considered:
       - Keep `JSON.stringify` for the byte count: rejected. It costs about 0.64 µs per node, 43% of this plan's budget.
       - Freeze the validated tree as the proof does: rejected. The spec does not require it, it costs a full walk, and Phase 2's builder produces fresh objects. Recorded under Compromises if a renderer needs immutability.
     - Chosen Approach:
-      - A single walk with incremental byte counting and a bounded error sink.
+      - A single walk with incremental byte counting and a bounded error sink. A reusable path stack builds JSON Pointers only on failure. Rejected node payloads are skipped while their children are still checked for independent errors.
+      - Compile child-kind bounds once; count children during traversal, without a sibling pre-scan. Accept descendant key paths across keyed fragments, which need not emit intermediate UI nodes.
     - API Notes and Examples:
       ```ts
       const result = v.validateTree(tree, { maxErrors: 20 });
@@ -185,7 +187,11 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Files to Create/Edit:
       - `src/validate/tree.ts`: new.
       - `src/validate/bytes.ts`: new.
+      - `src/validate/compile.ts`: attach the whole-tree validator to the compiled result.
+      - `src/index.ts`: export `ValidateTreeOptions`.
       - `src/__tests__/validator-tree.test.ts`: new.
+      - `proof/scripts/export-formats.ts`: convert the proof's fit grid-track extension to spec-valid compact tracks in benchmark fixtures.
+      - `src/__tests__/fixtures/proof/{agent-home,core-queue.full,core-queue.large,core-queue.medium}.tree.json`: regenerate affected fixtures.
   - Test Cases to Write:
     - `byte_count_equals_stringify`: on every proof tree fixture, and on trees with quotes, backslashes, control characters, emoji and CJK text, the count equals `new TextEncoder().encode(JSON.stringify(tree)).length`. Fails on any escaping mistake.
     - `identity_rules`: a duplicate id, an id not under its parent, and a root id other than `root` are each rejected.
@@ -193,6 +199,13 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `limits_fail_closed`: 5,001 nodes, depth 65 and a 1 MiB + 1 byte tree each give `limit-exceeded` without walking further. A spy on `checkNode` asserts the stop.
     - `errors_are_collected_and_bounded`: a tree with 25 independent faults returns 20 errors plus the stop entry, each with `nodeId` and `pointer`.
     - `valid_tree_returned_unchanged`: the result is the input object, not a copy and not frozen.
+    - Additional coverage: closed metadata, invalid option bounds, JSON values and cycles, keyed-fragment paths, exact limit boundaries, all UTF-16 code units, and zero serialization calls.
+  - Notes (executed 2026-10-22):
+    - Added `validateTree(tree, { limits?, maxErrors? })` to the compiled validator, plus public `ValidateTreeOptions`. Metadata is closed, catalog identity must match, revisions are safe non-negative integers, and surface-id bounds count code points. Each visited node uses the existing per-node checker; tree checks add unique rooted key paths, definition child counts/kinds and the terms/term/detail context rule.
+    - The same walk counts exact UTF-8 JSON bytes without serialization, stops at node/depth/byte limits, and collects at most 20 errors by default plus the required stop entry. Node levels count the root as 1. Every tree error has a node id, escaped JSON Pointer and actionable expected text. Invalid limits, non-JSON payloads and cycles fail closed; caller-configured nesting beyond the runtime stack also returns a bounded failure. Successful validation returns the original unfrozen input.
+    - Wrote tests first; the initial run failed on the missing tree validator. The 10 focused tests cover all seven proof-tree fixtures at exact byte limits and one byte below, every UTF-16 code unit, escapes/emoji/CJK/lone surrogates, nested JSON and numeric representations. Spies prove that node/depth/error limits stop further node checks and that validation never calls `JSON.stringify`.
+    - Resolved the fixture prerequisite in the exporter rather than changing the spec or the proof UI. All 50 fit tracks in agent-home and in each affected medium/large/full core-queue fixture become `"0fr"`; node counts are unchanged. Regenerate with `timeout 60s bun proof/scripts/export-formats.ts`. The public validator accepts the regenerated agent-home tree unchanged. Git-status also confirms that keyed fragments may introduce multiple key-path segments between UI nodes.
+    - `timeout 300s bun run check` passed: typecheck, lint, format and **171 tests**. Existing unrelated lint warnings remain. No new dependency, format or spec changes. Throughput and budget claims remain Task 5; the worked public guide remains Task 6.
 
 - [ ] Task 4: Give every spec §10 rule a failing-case test, and make the errors agent-actionable
   - Acceptance Criteria:

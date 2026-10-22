@@ -5,13 +5,14 @@ import { closed, field, reject } from "./checks.ts";
 import { compileIntents } from "./intent.ts";
 import { compileSchema, type SchemaCheck } from "./schema.ts";
 import { compileStyles } from "./style.ts";
+import { compileTree, type TreeValidator } from "./tree.ts";
 
 export type CompileValidatorOptions = {
   readonly catalog: unknown;
   readonly capabilities: unknown;
   readonly manifest: unknown;
 };
-export type CompiledValidator = { readonly checkNode: SchemaCheck };
+export type CompiledValidator = { readonly checkNode: SchemaCheck; readonly validateTree: TreeValidator };
 const fields = new Set(["id", "kind", "variant", "props", "style", "events", "children"]);
 
 /** Validate installed documents once, then compile specialised per-kind checks. */
@@ -104,5 +105,5 @@ function compile(catalog: Catalog, capabilities: Capabilities, manifest: Manifes
       }
     return valid;
   };
-  return { checkNode };
+  return { checkNode, validateTree: compileTree(catalog, checkNode) };
 }

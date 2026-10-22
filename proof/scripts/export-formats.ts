@@ -258,8 +258,14 @@ documents["agent-home.manifest"] = checked(
 function tree(name: string, input: UiTree | WidgetError) {
   if (input instanceof WidgetError) throw input;
   function convert(node: UiNode): UiNode {
+    const columns = node.style?.columns;
+    // Benchmark fixtures use spec-valid compact tracks in place of the proof's fit extension.
+    const compactTracks = Array.isArray(columns) && columns.includes("fit");
     return {
       ...node,
+      ...(compactTracks
+        ? { style: { ...node.style, columns: columns.map((track) => (track === "fit" ? "0fr" : track)) } }
+        : {}),
       ...(node.events
         ? {
             events: Object.fromEntries(
