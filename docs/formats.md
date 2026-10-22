@@ -92,7 +92,7 @@ in a vocabulary.
 Malformed structure, names, bounds and duplicates produce `invalid-document`;
 undeclared role references produce `unknown-name`. Validation returns at most
 20 errors, each with a JSON Pointer. Structural errors are returned before
-checking references. The vocabulary's structural schema will be embedded in
+checking references. The vocabulary's structural schema is embedded in
 the catalog schema; subset and tone reference checks run on install.
 
 The root export also provides the library-fixed `states`, `styleProps`,
