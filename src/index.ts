@@ -38,3 +38,5 @@ export {
 } from "./formats/design-system.ts";
 export { type ResolvedRecipes, resolveRecipes } from "./resolve.ts";
 export type { Intent, Json, UiNode, UiTree } from "./formats/tree.ts";
+export { compileValidator, type CompileValidatorOptions, type CompiledValidator } from "./validate/compile.ts";
+export type { SchemaSink as NodeCheckSink, SchemaCheck as NodeCheck } from "./validate/schema.ts";

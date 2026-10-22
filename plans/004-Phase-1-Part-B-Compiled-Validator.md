@@ -85,7 +85,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `timeout 300s bun run check` passed: typecheck, lint, format and 149 tests. The warmed 1,000-value timing corpus measured **12.8×** faster in the full run (median 1.57 ms compiled versus 20.14 ms interpreted per 10,000 checks), exceeding the 3× gate on Bun 1.4.2. Focused run: 5 tests passed.
     - Reviewed Ajv's indexed standalone and security docs via Context7 (`/ajv-validator/ajv`); confirmed the rationale for avoiding runtime `Function` generation. No dependency, public-export or spec changes. Whole-tree budgets remain Task 5.
 
-- [ ] Task 2: Compile the catalog, vocabulary, capabilities and manifest into per-node checks
+- [x] Task 2: Compile the catalog, vocabulary, capabilities and manifest into per-node checks
   - Acceptance Criteria:
     - Functional:
       - `compileValidator({ catalog, capabilities, manifest })` first runs Part A's install validators and fails with their errors if any document is invalid.
@@ -130,6 +130,7 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `src/validate/compile.ts`: new.
       - `src/validate/style.ts`: new (style-prop checkers).
       - `src/validate/intent.ts`: new.
+      - `src/validate/checks.ts`: shared bounded errors, closed-field checks and failure-only pointer prefixing.
       - `src/index.ts`: export `compileValidator` and its types.
       - `src/__tests__/validator-node.test.ts`: new.
   - Test Cases to Write:
@@ -138,8 +139,16 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `action_args_match_capability`: a missing required arg, a wrong arg type and an extra arg are each rejected with `invalid-prop` at `/…/events/onPress/args/<arg>`.
     - `bind_rules`: rejected when `bind` names a missing arg, when the arg is also present in `args`, or when `carries: "none"` meets a string arg. Accepted for a `string` event bound to a string arg.
     - `set_state_value_matches_schema`: a value outside the key's enum is rejected, and an absent value with a mismatched `carries` is rejected.
+    - Additional coverage: every fixed style prop and its bounds; boolean and optional bound arguments; prototype-sensitive names; exact install-error preservation; malformed nodes and bounded sinks; proof compilation below 20 ms.
+  - Notes (executed 2026-10-22):
+    - Added `compileValidator` and public `CompileValidatorOptions`, `CompiledValidator`, `NodeCheck` and `NodeCheckSink` types. Inputs are unknown at the install boundary. Catalog validation includes the vocabulary; capabilities and the manifest are validated before any compilation. Invalid documents throw with the original install errors, following `resolveRecipes`' existing compilation convention.
+    - Per-kind closures use maps and sets for kinds, variants, style props, events, state keys and manifest actions. Props, state values and action arguments use Task 1's compiled schemas. Bound arguments must be omitted, exist in the capability and match the event's carries; every remaining argument is still validated, including required properties.
+    - `style.ts` covers every fixed style prop through a compile-time exhaustive table. Responsive values require `base` first, declared breakpoints and scalar values; role and design-value names come only from the vocabulary. Shared `checks.ts` bounds errors and prefixes escaped pointers only on failure; `checkNode` attaches the node id. Children receive an array-shape check here; definition/context rules, identity and limits remain Task 3.
+    - Tests were written first and failed on the absent export. All 12 focused tests pass, including exact install-error preservation, every fixed style prop, boolean events, optional bindings, malformed input, full sinks and prototype-sensitive names. `timeout 300s bun run check` passed: typecheck, lint, format and **161 tests**. Existing unrelated lint warnings remain. Proof compilation measured **0.77 ms** on Bun 1.4.2, below 20 ms. `graft build` refreshed the local graph.
+    - Found a pre-existing proof/spec discrepancy: agent-home grid tracks contain `"fit"`, which §6.3 allows for dimensions but not tracks. The checker rejects it; no spec or proof changes were made. Task 3 now records the prerequisite to resolve that discrepancy before valid-tree assertions and Task 5's successful-validation benchmark. Whole-tree validation and throughput measurements were not performed in this task.
 
 - [ ] Task 3: Validate whole trees: structure, identity, limits and bounded error collection
+  - Prerequisite found in Task 2: the committed agent-home fixture uses `"fit"` in grid track lists (for example `root/stack/ready/columns/rows/stack/tasks/task-0/grid`). Spec §6.3 allows only fractions and declared space/size names for tracks. Resolve this proof/fixture mismatch, or obtain a spec decision, before treating that fixture as a valid whole tree. Task 2 follows the spec and rejects these tracks; dimension props still accept `"fit"`.
   - Acceptance Criteria:
     - Functional:
       - `validateTree(tree, { limits?, maxErrors? })` checks:
