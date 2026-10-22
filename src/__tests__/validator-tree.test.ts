@@ -136,6 +136,20 @@ describe("compiled tree validator", () => {
     }
   });
 
+  test("string_bytes_respects_remaining_budget", () => {
+    for (const text of ["plain ascii".repeat(100), 'quote"', "slash\\", "control\n", "é漢😀\ud800"]) {
+      const exact = new TextEncoder().encode(JSON.stringify(text)).length;
+      for (const maximum of [0, 2, 5, text.length + 2, exact, exact + 1]) {
+        const counted = stringBytes(text, maximum);
+        if (exact <= maximum) expect(counted).toBe(exact);
+        else {
+          expect(counted).toBeGreaterThan(maximum);
+          expect(counted).toBeLessThanOrEqual(exact);
+        }
+      }
+    }
+  });
+
   test("limits_fail_closed", () => {
     const check = mock(validator.checkNode);
     const validate = compileTree(options.catalog as unknown as Parameters<typeof compileTree>[0], check);

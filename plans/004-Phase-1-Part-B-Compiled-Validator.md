@@ -247,12 +247,12 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Improved compiled schema diagnostics for wrong string/array/object types and missing required properties. String errors retain the declared length, enum and pattern constraints; missing-property errors name the property. Invalid binds now list compatible argument names or say to omit bind when the event has no compatible argument. Message preparation remains at compile time or on failure; acceptance semantics and public exports are unchanged.
     - `timeout 300s bun run check` passed: typecheck, lint, format and **174 tests** across 31 files, including the three new matrix tests. Existing unrelated lint warnings remain. No dependency or spec changes. Task 5's throughput benchmark and Task 6's public guide remain pending.
 
-- [ ] Task 5: Measure the validator against its budget and against generic checking
+- [x] Task 5: Measure the validator against its budget and against generic checking
   - Acceptance Criteria:
     - Functional:
       - `bench/validator.bench.ts` runs `validateTree` over the Part A tree fixtures: agent-home with 50 rows and 679 nodes; `core.queue` small, medium, large and full; git status with 52 rows; the Rack module; and the synthetic 353-node queue. It does 1,000 runs after 200 warm-ups and prints the mean ms and µs per node for each.
-      - It also runs a generic baseline that walks the same tree with Part A's `checkValue` against the definitions' prop schemas, and prints the speed-up.
-      - It exits non-zero if any fixture exceeds 1.5 µs per node, or if the speed-up on agent-home is below 2×.
+      - It also runs a generic baseline that walks the same tree with Part A's `checkValue` against the definitions' prop schemas, and a matching walk with compiled prop schemas. It prints all three timings, the full-validation/props-only ratio, and the equal-work props speed-up.
+      - It exits non-zero if any fixture exceeds 1.5 µs per node for full validation, or if the equal-work props speed-up on agent-home is below 2×. The owner approved this comparison correction during Task 5; full §10 validation and props-only interpretation do different work.
     - Performance:
       - **≤ 1.5 µs per node** on every fixture (≤ 1.02 ms at 679 nodes).
       - Recorded in this task's Notes with the machine, Bun version and load average, as `proof/REPORT.md` §9 did.
@@ -270,7 +270,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Options Considered:
       - A `bun test` assertion on timing: rejected. Timings are load-sensitive (`proof/GAPS.md` Task 5 measured load average 12), so the bench is a separate script in the verification list, like the proof's.
     - Chosen Approach:
-      - A bench script with a hard exit code, plus a loose `bun test` smoke assertion (≤ 5 µs per node) that catches order-of-magnitude regressions in CI.
+      - A bench script with a hard exit code, plus a loose `bun test` smoke assertion (≤ 5 µs per node) that catches order-of-magnitude regressions in CI. Time identical tree walks for the two props checkers; report full validation separately against its unchanged absolute budget. Both props checkers must accept each fixture and reject an unknown kind and an extra prop before timing.
     - API Notes and Examples:
       ```bash
       timeout 120 bun bench/validator.bench.ts
@@ -278,9 +278,27 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Files to Create/Edit:
       - `bench/validator.bench.ts`: new.
       - `src/__tests__/validator-smoke.test.ts`: new.
+      - `src/__tests__/fixtures/validator.ts`: shared benchmark setup, expected node counts, explicit Rack install documents, and a reconstruction of the proof's 353-node synthetic queue (absent from Part A's JSON fixtures). Add the now-required escalation reason without changing its node count.
+      - `src/validate/bytes.ts` and `src/__tests__/validator-tree.test.ts`: profile-guided ASCII byte-count fast path and exact-count/bounded-count regression coverage if needed to meet the absolute budget.
       - `package.json`: a `bench` script (`bun bench/validator.bench.ts`).
   - Test Cases to Write:
     - `validator_smoke_under_5us_per_node`: fails on a gross regression, for example a reintroduced `JSON.stringify` or a per-node regex build.
+    - `string_bytes_respects_remaining_budget`: checks exact counts when within budget and early overflow when outside it, including ASCII, quotes, backslashes, controls, Unicode and lone surrogates.
+  - Notes (executed 2026-10-22):
+    - Added `bench/validator.bench.ts` and `bun run bench`, with 200 warm-ups and 1,000 timed validations per fixture and implementation. Loading, install validation, compilation and node counting are outside timing. All eight trees must validate successfully and have their expected node counts before measurement; every timed validation is checked for success. The shared fixture setup imports no `proof/` code. Rack's missing install documents are supplied explicitly from its proof contracts; the absent synthetic fixture is reconstructed as 50 rows/353 nodes, with the now-required escalation reason.
+    - The first benchmark failed: agent-home full validation was 0.8832 ms versus 0.5459 ms for props-only interpretation, and core-queue.full was 1.631 µs/node. Bun's CPU profile identified `compileTree`'s JSON/byte walk as the dominant cost (2,971 self samples). Added a precompiled regex fast path for unescaped ASCII strings that fit the remaining byte budget; escaped/Unicode strings and overflow retain the bounded counter. Exact byte-count tests, including all 65,536 UTF-16 units, remain green. Profiling used `timeout 120s bun --cpu-prof --cpu-prof-name=validator.cpuprofile --cpu-prof-dir=/tmp bench/validator.bench.ts`; the local profile is not committed. Bun 1.4.2 profiling documentation was checked through Context7 `/oven-sh/bun/bun-v1.4.2`.
+    - The owner explicitly approved correcting the relative gate to compare identical props-only walks, while retaining full validation's absolute gate and reporting all three timings. See `decision-logs/2026-10-22-2226-validator-equal-work-benchmark.md`. `checkValue` retains its existing schema-language validation; the compiled path uses install-validated schemas. Both paths reject an undeclared prop and unknown kind before timing. This proves the compilation benefit, without claiming full §10 validation is faster than a props-only interpreter.
+    - Final `timeout 120s bun run bench` passed on **AMD Ryzen 9 PRO 7940HS, 16 logical CPUs, Linux 7.2.7-1-cachyos, Bun 1.4.2**. Load average (1/5/15 min) was **2.19/1.71/1.37** at start and **2.39/1.77/1.40** at end. Results (mean full-validation ms / µs per node; interpreted props ms; compiled props ms; equal-work speed-up):
+      - agent-home, 679 nodes: **0.8075 / 1.189**; 0.5288; 0.0449; **11.78×**.
+      - core-queue.small, 5 nodes: **0.0057 / 1.135**; 0.0041; 0.0004; **9.90×**.
+      - core-queue.medium, 414 nodes: **0.5073 / 1.225**; 0.3431; 0.0259; **13.23×**.
+      - core-queue.large, 446 nodes: **0.5854 / 1.313**; 0.3818; 0.0290; **13.14×**.
+      - core-queue.full, 473 nodes: **0.6395 / 1.352**; 0.3726; 0.0300; **12.44×**.
+      - git-status, 145 nodes: **0.1202 / 0.829**; 0.1004; 0.0104; **9.68×**.
+      - rack-module, 236 nodes: **0.1961 / 0.831**; 0.1534; 0.0160; **9.58×**.
+      - synthetic-queue, 353 nodes: **0.3815 / 1.081**; 0.2802; 0.0240; **11.67×**.
+    - Tests were written first: the smoke test failed on missing fixture support. `timeout 300s bun run check` passed: typecheck, lint, format and **176 tests**. Existing unrelated lint warnings remain. The benchmark also passed a standalone strict TypeScript check with the root compiler options (`bunx --no-install tsc --ignoreConfig … bench/validator.bench.ts`), without modifying the pre-existing untracked root config. No public API, dependency or spec changes. These are local Bun measurements; Phase 2's full 3 µs/node render budget remains unproved, and Tasks 6–7 remain pending.
+    - Updated roadmap §3's execution status in place; its pre-existing unrelated changes are left unstaged, following the earlier task commits. The task commit contains only its benchmark, fixture support, tests, byte-counter fast path, package script, plan and approved decision log.
 
 - [ ] Task 6: Publish the validator surface and its documentation
   - Acceptance Criteria:
@@ -351,7 +369,7 @@ Probe answers that hold for every task, unless a task says otherwise:
 ## Verification (whole plan)
 
 - `timeout 300 bun run check`
-- `timeout 120 bun bench/validator.bench.ts` (≤ 1.5 µs per node on every fixture; ≥ 2× over generic checking on agent-home)
+- `timeout 120 bun bench/validator.bench.ts` (full validation ≤ 1.5 µs per node on every fixture; compiled props ≥ 2× over `checkValue` props on agent-home)
 - `timeout 60 bun scripts/schemas.ts --check`
 
 ## Compromises Made

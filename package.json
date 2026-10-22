@@ -15,6 +15,7 @@
   },
   "files": ["src", "schemas"],
   "scripts": {
+    "bench": "bun bench/validator.bench.ts",
     "proof": "bun proof/host/server.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit && tsc --noEmit -p proof",
