@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liveframe.dev/schemas/ui-tree.json",
+  "type": "object",
+  "properties": {
+    "format": {
+      "maxLength": 11,
+      "enum": [
+        "liveframe/1"
+      ],
+      "type": "string"
+    },
+    "catalogId": {
+      "maxLength": 128,
+      "pattern": "^[a-z][a-z0-9.-]*@[1-9][0-9]*$",
+      "type": "string"
+    },
+    "surfaceId": {
+      "maxLength": 128,
+      "pattern": "^.+$",
+      "type": "string"
+    },
+    "revision": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "root": {
+      "$ref": "#/$defs/node"
+    }
+  },
+  "required": [
+    "format",
+    "catalogId",
+    "surfaceId",
+    "revision",
+    "root"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "json": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/json"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/json"
+          }
+        }
+      ]
+    },
+    "intent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "value": {
+              "$ref": "#/$defs/json"
+            },
+            "type": {
+              "maxLength": 8,
+              "enum": [
+                "setState"
+              ],
+              "type": "string"
+            },
+            "key": {
+              "maxLength": 128,
+              "pattern": "^.+$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "key"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "bind": {
+              "maxLength": 128,
+              "pattern": "^.+$",
+              "type": "string"
+            },
+            "type": {
+              "maxLength": 6,
+              "enum": [
+                "action"
+              ],
+              "type": "string"
+            },
+            "name": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)*$",
+              "type": "string"
+            },
+            "args": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/json"
+              }
+            }
+          },
+          "required": [
+            "type",
+            "name",
+            "args"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "node": {
+      "type": "object",
+      "properties": {
+        "variant": {
+          "maxLength": 64,
+          "pattern": "^[a-z][A-Za-z0-9-]*$",
+          "type": "string"
+        },
+        "style": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/json"
+          }
+        },
+        "events": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/intent"
+          }
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^root(?:/(?:[a-zA-Z0-9_.!~*'():-]|%[0-9A-F]{2})+)*$"
+        },
+        "kind": {
+          "maxLength": 64,
+          "pattern": "^[a-z][A-Za-z0-9-]*$",
+          "type": "string"
+        },
+        "props": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/json"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "props"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

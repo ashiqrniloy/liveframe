@@ -5,6 +5,7 @@ import { catalogSchema } from "./catalog.ts";
 import { capabilitiesSchema } from "./capabilities.ts";
 import { manifestSchema } from "./manifest.ts";
 import { themeSchema } from "./theme.ts";
+import { treeSchema } from "./tree.ts";
 
 const annotations = { description: { type: "string" }, deprecated: { type: "boolean" } } as const;
 const bound = { type: "integer", minimum: 0 } as const;
@@ -55,6 +56,7 @@ const schemaLanguage = {
 
 /** Add each format here; publishing and drift checks both read this registry. */
 export const formats = {
+  "ui-tree": treeSchema,
   "design-system": designSystemSchema,
   theme: themeSchema,
   "schema-language": schemaLanguage,

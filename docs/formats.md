@@ -222,6 +222,63 @@ The check command fails on missing, changed or unregistered JSON files. Tests
 compare each file to its source and compile it with Ajv 8 in strict mode. Ajv is
 a development dependency used as an independent test oracle.
 
+## UI trees and intents
+
+`UiTree`, `UiNode`, `Intent` and `Json` are readonly types exported from
+`@arnilo/liveframe`. A tree is JSON data: each render sends the entire tree,
+and the renderer uses stable node ids to preserve local state.
+
+```ts
+import { LIVEFRAME_FORMAT, type UiTree } from "@arnilo/liveframe";
+
+const tree: UiTree = {
+  format: LIVEFRAME_FORMAT, // "liveframe/1"
+  catalogId: "acme.ui@1",
+  surfaceId: "main",
+  revision: 1,
+  root: {
+    id: "root",
+    kind: "textField",
+    props: { label: "Reason" },
+    events: {
+      onCommit: {
+        type: "action",
+        name: "tasks.escalate",
+        args: { id: "t-4812" },
+        bind: "reason",
+      },
+    },
+  },
+};
+```
+
+Every node requires `id`, `kind` and `props`; `variant`, `style`, `events` and
+`children` are optional. Props, style values and action arguments contain only
+JSON values. Each event carries one intent:
+
+- `{ type: "setState", key, value? }`: an absent `value` uses the event's
+  value; an explicit `null` sets null.
+- `{ type: "action", name, args, bind? }`: `args` is required, even when empty.
+  `bind` names the argument filled by the event's value; it carries no value
+  or authority. The host checks and authorises the completed arguments.
+
+The catalog-independent schema is published at
+`@arnilo/liveframe/schemas/ui-tree.json`. It rejects unknown tree, node and
+intent fields, unknown intent types, and `bind` on a state intent. Revision
+is a nonnegative integer. Catalog ids use the catalog format's grammar;
+kind and variant names use its 64-character token grammar. Surface ids,
+state keys and bound argument names are nonempty strings of at most 128
+code points; action names use the capabilities format's grammar.
+
+Ids start at `root` and append nonempty slash-separated key segments, such as
+`root/queue/row:4812/claim`. Segments contain letters, digits, `_ . ! ~ * ' ( ) : -`
+or uppercase percent escapes such as `%2F`. The schema recursively checks
+children and JSON values without imposing fixed node, depth or byte limits.
+Catalog membership, prop schemas, allowed style props, event declarations,
+argument types, id uniqueness and parent relationships, and configurable
+render limits require the compiled validator in Phase 1 Part B. Structural
+schema validation alone does not establish those guarantees.
+
 ## Capabilities
 
 The host publishes the operations a widget may request. `validateCapabilities(doc)` returns a `Result<Capabilities>` and checks the closed document, bounded descriptions and schema language. Action arguments and source parameters are object schemas; source results may use any language schema.

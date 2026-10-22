@@ -72,6 +72,7 @@ test("schema_publisher_detects_drift", async () => {
     for (const path of [
       "scripts/schemas.ts",
       "src/formats/registry.ts",
+      "src/formats/tree.ts",
       "src/formats/catalog.ts",
       "src/formats/capabilities.ts",
       "src/formats/manifest.ts",
