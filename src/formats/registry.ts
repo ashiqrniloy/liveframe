@@ -1,4 +1,5 @@
 import { literal } from "../schema.ts";
+import { catalogSchema } from "./catalog.ts";
 
 const annotations = { description: { type: "string" }, deprecated: { type: "boolean" } } as const;
 const bound = { type: "integer", minimum: 0 } as const;
@@ -12,6 +13,16 @@ function form(type: string, properties: Record<string, unknown>, required: reado
     additionalProperties: false,
   };
 }
+
+const objectSchema = form(
+  "object",
+  {
+    properties: { type: "object", additionalProperties: schemaRef },
+    required: { type: "array", items: { type: "string" }, uniqueItems: true },
+    additionalProperties: literal(false),
+  },
+  ["properties", "required", "additionalProperties"],
+);
 
 const schemaLanguage = {
   $ref: "#/$defs/schema",
@@ -31,22 +42,20 @@ const schemaLanguage = {
         form("integer", { minimum: { type: "number" }, maximum: { type: "number" } }, []),
         form("boolean", {}, []),
         form("array", { items: schemaRef, maxItems: bound }, ["items", "maxItems"]),
-        form(
-          "object",
-          {
-            properties: { type: "object", additionalProperties: schemaRef },
-            required: { type: "array", items: { type: "string" }, uniqueItems: true },
-            additionalProperties: literal(false),
-          },
-          ["properties", "required", "additionalProperties"],
-        ),
+        objectSchema,
       ],
     },
   },
 } as const;
 
 /** Add each format here; publishing and drift checks both read this registry. */
-export const formats = { "schema-language": schemaLanguage } as const;
+export const formats = {
+  "schema-language": schemaLanguage,
+  catalog: {
+    ...catalogSchema,
+    $defs: { ...catalogSchema.$defs, ...schemaLanguage.$defs, objectSchema },
+  },
+} as const;
 
 export function schemaDocument(name: keyof typeof formats) {
   return {

@@ -100,6 +100,88 @@ The root export also provides the library-fixed `states`, `styleProps`,
 app roles or design values. Recipe motion uses `translateY`; the proof's
 `transformPreset` shorthand is not part of the format.
 
+## Definitions and catalogs
+
+A catalog is the app's versioned primitive contract. `defineComponent` preserves
+literal kinds, variants and events for SDK generation; `validateCatalog` checks
+unknown JSON on install. A definition's `props` is a closed language object
+schema, built with `obj(required, optional)`.
+
+```ts
+import { defineComponent, obj, str, validateCatalog } from "@arnilo/liveframe";
+
+const Button = defineComponent({
+  kind: "button",
+  description: "Runs an intent when pressed.",
+  props: obj({ label: str({ maxLength: 80 }) }),
+  children: "none",
+  variants: ["default", "primary"],
+  defaultVariant: "default",
+  slots: ["root", "label"],
+  events: { onPress: { carries: "none", description: "Pressed by pointer or keyboard." } },
+  styleProps: ["width", "grow"],
+  a11y: { role: "button", name: "label" },
+});
+
+validateCatalog({
+  format: "liveframe-catalog/1",
+  catalogId: "acme.ui@1",
+  description: "The app's primitives.",
+  vocabulary, // a vocabulary document as shown above
+  definitions: [Button],
+});
+```
+
+Catalogs contain at most 256 definitions. Their id is at most 128 characters
+and matches `^[a-z][a-z0-9.-]*@[1-9][0-9]*$`. Kinds are unique. Kind, variant,
+slot and child-kind tokens match `^[a-z][A-Za-z0-9-]*$` and have at most 64
+characters. Descriptions and the optional primitive `deprecated` explanation
+have at most 500 code points. Prop schemas may carry the language's boolean
+`deprecated` annotation and a replacement explanation in `description`.
+
+Each definition requires all fields in the example. Variant and slot lists
+contain at most 256 unique tokens; `defaultVariant` must be declared and slots
+must include `root`. `styleProps` is a unique subset of the exported fixed list.
+`a11y.role` is a lowercase token of at most 32 characters; the optional
+`a11y.name` names a string prop. Children are `"none"`, `"any"`, or at most 256
+`{ kind, min, max }` rules with unique declared kinds and nonnegative integer
+counts, where `min <= max`.
+
+An event map has at most 256 entries. Names match `^on[A-Z][A-Za-z]*$` and have
+at most 64 characters. Each event requires `carries` (`none`, `string` or
+`boolean`) and a description. Unknown fields and invalid schemas fail closed.
+Malformed structure returns `invalid-document`; unresolved references return
+`unknown-name`. Errors are bounded to 20 and point into the catalog, including
+its vocabulary. Success preserves the input object.
+
+`classifyCatalogChange(prev, next)` accepts two validated catalogs and returns
+`{ level: "major" | "minor" | "none", reasons: string[] }`. A `major` result
+requires a new major in `catalogId`, even if the inputs currently share an id.
+The classifier reports contract changes; it does not edit ids or enforce a bump.
+
+| Change | Level |
+| --- | --- |
+| Remove a kind, prop, variant, slot, event or vocabulary name | major |
+| Narrow a schema type, enum or bound; make a prop required | major |
+| Change an event's carried value | major |
+| Add a kind, optional prop, variant, slot, event or vocabulary name | minor |
+| Widen a schema or make a required prop optional | minor |
+| Change descriptions or deprecation annotations; reorder lists | none |
+
+Nested object and array schemas use the same rules. Removing style props,
+tightening child rules, changing default variants, accessible-name contracts
+or tone mappings also requires a major. Pattern changes are conservatively
+major when a new pattern remains: arbitrary regex inclusion is not inferred.
+Changing only the catalog id produces `none`.
+
+`@arnilo/liveframe/schemas/catalog.json` embeds the vocabulary and schema
+language in `$defs`. It checks document structure; install validation also
+checks references, unique kinds, required schema-name membership and child
+count relationships. The 24-kind performance fixture is regenerated with
+`timeout 20s bun proof/scripts/export-catalog.ts`; it adds metadata, derives
+bounds for enum-only proof strings and renames textField's `onSubmit` to
+`onCommit`. The full proof-format exporter is a later plan task.
+
 ## Validation errors
 
 Every validator uses `Result<T>`:

@@ -1,0 +1,1792 @@
+{
+  "format": "liveframe-catalog/1",
+  "catalogId": "proof.ui@1",
+  "description": "Phase 0 primitive catalog.",
+  "vocabulary": {
+    "colourRoles": [
+      "surface.base",
+      "surface.raised",
+      "surface.case",
+      "surface.module",
+      "surface.well",
+      "surface.hover",
+      "surface.active",
+      "surface.selected",
+      "surface.scrim",
+      "surface.kbd",
+      "surface.scrollbar",
+      "text.primary",
+      "text.muted",
+      "text.meta",
+      "text.foil",
+      "text.disabled",
+      "text.status",
+      "text.kbd",
+      "text.on-accent",
+      "border.hairline",
+      "border.subtle",
+      "border.strong",
+      "border.focus",
+      "border.kbd",
+      "accent.primary",
+      "accent.muted",
+      "accent.soft",
+      "accent.fill",
+      "accent.fill.hover",
+      "focus.ring",
+      "diagnostic.error",
+      "diagnostic.warning",
+      "diagnostic.success",
+      "diagnostic.info",
+      "diagnostic.error.soft",
+      "diagnostic.warning.soft",
+      "status.critical",
+      "shadow.ambient",
+      "shadow.highlight",
+      "patch.1",
+      "patch.2",
+      "patch.3",
+      "patch.4",
+      "patch.5",
+      "colour.transparent"
+    ],
+    "surfaceRoles": [
+      "surface.base",
+      "surface.raised",
+      "surface.case",
+      "surface.module",
+      "surface.well",
+      "surface.hover",
+      "surface.active",
+      "surface.selected",
+      "surface.scrim",
+      "surface.kbd",
+      "surface.scrollbar"
+    ],
+    "fillableRoles": [
+      "accent.primary",
+      "accent.muted",
+      "accent.soft",
+      "accent.fill",
+      "accent.fill.hover",
+      "diagnostic.error",
+      "diagnostic.warning",
+      "diagnostic.success",
+      "diagnostic.info",
+      "diagnostic.error.soft",
+      "diagnostic.warning.soft",
+      "status.critical",
+      "patch.1",
+      "patch.2",
+      "patch.3",
+      "patch.4",
+      "patch.5"
+    ],
+    "tones": {
+      "default": "text.primary",
+      "muted": "text.muted",
+      "meta": "text.meta",
+      "accent": "accent.primary",
+      "success": "diagnostic.success",
+      "warning": "diagnostic.warning",
+      "danger": "diagnostic.error",
+      "info": "diagnostic.info",
+      "foil": "text.foil"
+    },
+    "typographyRoles": [
+      "body",
+      "caption",
+      "fine",
+      "label",
+      "label.small",
+      "label.strong",
+      "ui",
+      "overline",
+      "heading.1",
+      "heading.2",
+      "heading.2.compact",
+      "heading.3",
+      "mono",
+      "mono.strong",
+      "meta"
+    ],
+    "space": [
+      "space.0",
+      "space.1",
+      "space.2",
+      "space.3",
+      "space.4",
+      "space.5",
+      "space.6",
+      "space.7"
+    ],
+    "radius": [
+      "radius.control",
+      "radius.plate",
+      "radius.pill"
+    ],
+    "size": [
+      "size.rail",
+      "size.glyph"
+    ],
+    "breakpoints": [
+      "bp.sm",
+      "bp.md"
+    ]
+  },
+  "definitions": [
+    {
+      "kind": "box",
+      "props": {
+        "type": "object",
+        "properties": {
+          "semantics": {
+            "type": "string",
+            "enum": [
+              "section",
+              "article",
+              "aside",
+              "header",
+              "footer",
+              "nav",
+              "list",
+              "listItem",
+              "terms",
+              "term",
+              "detail"
+            ],
+            "maxLength": 8
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "children": "any",
+      "events": {},
+      "variants": [
+        "default",
+        "plate",
+        "rule",
+        "callout"
+      ],
+      "slots": [
+        "root",
+        "rail"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom",
+        "surface",
+        "fill",
+        "radius"
+      ],
+      "a11y": {
+        "role": "generic"
+      },
+      "description": "The box primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "stack",
+      "props": {
+        "type": "object",
+        "properties": {
+          "semantics": {
+            "type": "string",
+            "enum": [
+              "section",
+              "article",
+              "aside",
+              "header",
+              "footer",
+              "nav",
+              "list",
+              "listItem",
+              "terms",
+              "term",
+              "detail"
+            ],
+            "maxLength": 8
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "children": "any",
+      "events": {},
+      "variants": [
+        "default"
+      ],
+      "slots": [
+        "root"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom",
+        "gap",
+        "direction",
+        "align",
+        "justify",
+        "wrap"
+      ],
+      "a11y": {
+        "role": "generic"
+      },
+      "description": "The stack primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "inline",
+      "props": {
+        "type": "object",
+        "properties": {
+          "semantics": {
+            "type": "string",
+            "enum": [
+              "section",
+              "article",
+              "aside",
+              "header",
+              "footer",
+              "nav",
+              "list",
+              "listItem",
+              "terms",
+              "term",
+              "detail"
+            ],
+            "maxLength": 8
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "children": "any",
+      "events": {},
+      "variants": [
+        "default"
+      ],
+      "slots": [
+        "root"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom",
+        "gap",
+        "direction",
+        "align",
+        "justify",
+        "wrap"
+      ],
+      "a11y": {
+        "role": "generic"
+      },
+      "description": "The inline primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "grid",
+      "props": {
+        "type": "object",
+        "properties": {
+          "semantics": {
+            "type": "string",
+            "enum": [
+              "section",
+              "article",
+              "aside",
+              "header",
+              "footer",
+              "nav",
+              "list",
+              "listItem",
+              "terms",
+              "term",
+              "detail"
+            ],
+            "maxLength": 8
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "children": "any",
+      "events": {},
+      "variants": [
+        "default"
+      ],
+      "slots": [
+        "root"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom",
+        "gap",
+        "align",
+        "justify",
+        "columns",
+        "rows",
+        "area"
+      ],
+      "a11y": {
+        "role": "generic"
+      },
+      "description": "The grid primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "scroll",
+      "props": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "axis": {
+            "type": "string",
+            "enum": [
+              "vertical",
+              "horizontal",
+              "both"
+            ],
+            "maxLength": 10
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "additionalProperties": false
+      },
+      "children": "any",
+      "events": {},
+      "variants": [
+        "default"
+      ],
+      "slots": [
+        "root",
+        "viewport",
+        "scrollbar"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom"
+      ],
+      "a11y": {
+        "role": "region",
+        "name": "label"
+      },
+      "description": "The scroll primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "separator",
+      "props": {
+        "type": "object",
+        "properties": {
+          "orientation": {
+            "type": "string",
+            "enum": [
+              "horizontal",
+              "vertical"
+            ],
+            "maxLength": 10
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "children": "none",
+      "events": {},
+      "variants": [
+        "default"
+      ],
+      "slots": [
+        "root"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom"
+      ],
+      "a11y": {
+        "role": "separator"
+      },
+      "description": "The separator primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "text",
+      "props": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 10000
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "children": "none",
+      "events": {},
+      "variants": [
+        "default"
+      ],
+      "slots": [
+        "root"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom",
+        "textStyle",
+        "tone",
+        "textAlign"
+      ],
+      "a11y": {
+        "role": "generic"
+      },
+      "description": "The text primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "heading",
+      "props": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "level": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          }
+        },
+        "required": [
+          "text",
+          "level"
+        ],
+        "additionalProperties": false
+      },
+      "children": "none",
+      "events": {},
+      "variants": [
+        "default"
+      ],
+      "slots": [
+        "root"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom",
+        "textStyle",
+        "tone",
+        "textAlign"
+      ],
+      "a11y": {
+        "role": "heading",
+        "name": "text"
+      },
+      "description": "The heading primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "icon",
+      "props": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "children": "none",
+      "events": {},
+      "variants": [
+        "default"
+      ],
+      "slots": [
+        "root"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom"
+      ],
+      "a11y": {
+        "role": "img",
+        "name": "label"
+      },
+      "description": "The icon primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "image",
+      "props": {
+        "type": "object",
+        "properties": {
+          "src": {
+            "type": "string",
+            "maxLength": 2048,
+            "pattern": "^(https://|/[^/])"
+          },
+          "alt": {
+            "type": "string",
+            "maxLength": 10000
+          }
+        },
+        "required": [
+          "src",
+          "alt"
+        ],
+        "additionalProperties": false
+      },
+      "children": "none",
+      "events": {},
+      "variants": [
+        "default"
+      ],
+      "slots": [
+        "root"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom"
+      ],
+      "a11y": {
+        "role": "img",
+        "name": "alt"
+      },
+      "description": "The image primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "link",
+      "props": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "href": {
+            "type": "string",
+            "maxLength": 2048,
+            "pattern": "^(https://|/[^/]|#)"
+          }
+        },
+        "required": [
+          "label",
+          "href"
+        ],
+        "additionalProperties": false
+      },
+      "children": "none",
+      "events": {},
+      "variants": [
+        "default"
+      ],
+      "slots": [
+        "root",
+        "label"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom"
+      ],
+      "a11y": {
+        "role": "link",
+        "name": "label"
+      },
+      "description": "The link primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "button",
+      "props": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "icon": {
+            "type": "string",
+            "maxLength": 128,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$"
+          },
+          "disabled": {
+            "type": "boolean"
+          },
+          "current": {
+            "type": "boolean"
+          },
+          "pressed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "additionalProperties": false
+      },
+      "children": "none",
+      "events": {
+        "onPress": {
+          "carries": "none",
+          "description": "The onPress event."
+        }
+      },
+      "variants": [
+        "default",
+        "primary",
+        "danger",
+        "ghost"
+      ],
+      "slots": [
+        "root",
+        "label",
+        "icon"
+      ],
+      "styleProps": [
+        "width",
+        "grow",
+        "align"
+      ],
+      "a11y": {
+        "role": "button",
+        "name": "label"
+      },
+      "description": "The button primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "textField",
+      "props": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "placeholder": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "multiline": {
+            "type": "boolean"
+          },
+          "disabled": {
+            "type": "boolean"
+          },
+          "readOnly": {
+            "type": "boolean"
+          },
+          "maxLength": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "additionalProperties": false
+      },
+      "children": "none",
+      "events": {
+        "onChange": {
+          "carries": "string",
+          "description": "The onChange event."
+        },
+        "onCommit": {
+          "carries": "string",
+          "description": "The onSubmit event."
+        }
+      },
+      "variants": [
+        "default"
+      ],
+      "slots": [
+        "root",
+        "label",
+        "input"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom"
+      ],
+      "a11y": {
+        "role": "textbox",
+        "name": "label"
+      },
+      "description": "The textField primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "select",
+      "props": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 128,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$"
+          },
+          "disabled": {
+            "type": "boolean"
+          },
+          "options": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "maxLength": 128,
+                  "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$"
+                },
+                "label": {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                "disabled": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "value",
+                "label"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "label",
+          "options"
+        ],
+        "additionalProperties": false
+      },
+      "children": "none",
+      "events": {
+        "onChange": {
+          "carries": "string",
+          "description": "The onChange event."
+        }
+      },
+      "variants": [
+        "default"
+      ],
+      "slots": [
+        "root",
+        "label",
+        "trigger",
+        "list",
+        "option"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom"
+      ],
+      "a11y": {
+        "role": "combobox",
+        "name": "label"
+      },
+      "description": "The select primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "checkbox",
+      "props": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "checked": {
+            "type": "boolean"
+          },
+          "disabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "additionalProperties": false
+      },
+      "children": "none",
+      "events": {
+        "onChange": {
+          "carries": "boolean",
+          "description": "The onChange event."
+        }
+      },
+      "variants": [
+        "default"
+      ],
+      "slots": [
+        "root",
+        "label",
+        "indicator"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom"
+      ],
+      "a11y": {
+        "role": "checkbox",
+        "name": "label"
+      },
+      "description": "The checkbox primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "switch",
+      "props": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "checked": {
+            "type": "boolean"
+          },
+          "disabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "additionalProperties": false
+      },
+      "children": "none",
+      "events": {
+        "onChange": {
+          "carries": "boolean",
+          "description": "The onChange event."
+        }
+      },
+      "variants": [
+        "default"
+      ],
+      "slots": [
+        "root",
+        "label",
+        "track",
+        "thumb"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom"
+      ],
+      "a11y": {
+        "role": "switch",
+        "name": "label"
+      },
+      "description": "The switch primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "menu",
+      "props": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "disabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "additionalProperties": false
+      },
+      "children": [
+        {
+          "kind": "menuItem",
+          "min": 1,
+          "max": 100
+        }
+      ],
+      "events": {},
+      "variants": [
+        "default"
+      ],
+      "slots": [
+        "root",
+        "trigger",
+        "content"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom"
+      ],
+      "a11y": {
+        "role": "menu",
+        "name": "label"
+      },
+      "description": "The menu primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "menuItem",
+      "props": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "icon": {
+            "type": "string",
+            "maxLength": 128,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$"
+          },
+          "disabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "additionalProperties": false
+      },
+      "children": "none",
+      "events": {
+        "onPress": {
+          "carries": "none",
+          "description": "The onPress event."
+        }
+      },
+      "variants": [
+        "default",
+        "danger"
+      ],
+      "slots": [
+        "root",
+        "label",
+        "icon"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom"
+      ],
+      "a11y": {
+        "role": "menuitem",
+        "name": "label"
+      },
+      "description": "The menuItem primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "popover",
+      "props": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "additionalProperties": false
+      },
+      "children": "any",
+      "events": {},
+      "variants": [
+        "default"
+      ],
+      "slots": [
+        "root",
+        "trigger",
+        "content"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom"
+      ],
+      "a11y": {
+        "role": "dialog",
+        "name": "label"
+      },
+      "description": "The popover primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "dialog",
+      "props": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "open": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "additionalProperties": false
+      },
+      "children": "any",
+      "events": {
+        "onClose": {
+          "carries": "none",
+          "description": "The onClose event."
+        }
+      },
+      "variants": [
+        "default"
+      ],
+      "slots": [
+        "root",
+        "backdrop",
+        "content",
+        "title",
+        "close"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom"
+      ],
+      "a11y": {
+        "role": "dialog",
+        "name": "label"
+      },
+      "description": "The dialog primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "tooltip",
+      "props": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 10000
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "children": "any",
+      "events": {},
+      "variants": [
+        "default"
+      ],
+      "slots": [
+        "root",
+        "trigger",
+        "content"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom"
+      ],
+      "a11y": {
+        "role": "tooltip",
+        "name": "text"
+      },
+      "description": "The tooltip primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "tabs",
+      "props": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 128,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "additionalProperties": false
+      },
+      "children": [
+        {
+          "kind": "tab",
+          "min": 1,
+          "max": 100
+        }
+      ],
+      "events": {
+        "onChange": {
+          "carries": "string",
+          "description": "The onChange event."
+        }
+      },
+      "variants": [
+        "default"
+      ],
+      "slots": [
+        "root",
+        "list",
+        "panel"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom"
+      ],
+      "a11y": {
+        "role": "tablist",
+        "name": "label"
+      },
+      "description": "The tabs primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "disclosure",
+      "props": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "open": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "additionalProperties": false
+      },
+      "children": "any",
+      "events": {
+        "onToggle": {
+          "carries": "boolean",
+          "description": "The onToggle event."
+        }
+      },
+      "variants": [
+        "default"
+      ],
+      "slots": [
+        "root",
+        "summary",
+        "panel"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom"
+      ],
+      "a11y": {
+        "role": "group",
+        "name": "label"
+      },
+      "description": "The disclosure primitive.",
+      "defaultVariant": "default"
+    },
+    {
+      "kind": "tab",
+      "props": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 128,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$"
+          },
+          "disabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "label",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      "children": "any",
+      "events": {},
+      "variants": [
+        "default"
+      ],
+      "slots": [
+        "root",
+        "label",
+        "panel"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom"
+      ],
+      "a11y": {
+        "role": "tab",
+        "name": "label"
+      },
+      "description": "The tab primitive.",
+      "defaultVariant": "default"
+    }
+  ]
+}

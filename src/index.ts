@@ -2,6 +2,13 @@
 export const LIVEFRAME_FORMAT = "liveframe/1" as const;
 
 export type { LiveframeError, Result } from "./errors.ts";
+export {
+  type Catalog,
+  type Definition,
+  classifyCatalogChange,
+  defineComponent,
+  validateCatalog,
+} from "./formats/catalog.ts";
 export { recipeProperties, semantics, states, styleProps } from "./formats/fixed.ts";
 export { type Vocabulary, validateVocabulary } from "./formats/vocabulary.ts";
 export {

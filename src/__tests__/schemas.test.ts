@@ -69,7 +69,15 @@ test("schema_publisher_check_passes", async () => {
 test("schema_publisher_detects_drift", async () => {
   const directory = await mkdtemp(join(tmpdir(), "liveframe-schemas-"));
   try {
-    for (const path of ["scripts/schemas.ts", "src/formats/registry.ts", "src/schema.ts", "src/errors.ts"]) {
+    for (const path of [
+      "scripts/schemas.ts",
+      "src/formats/registry.ts",
+      "src/formats/catalog.ts",
+      "src/formats/vocabulary.ts",
+      "src/formats/fixed.ts",
+      "src/schema.ts",
+      "src/errors.ts",
+    ]) {
       await Bun.write(join(directory, path), Bun.file(new URL(`../../${path}`, import.meta.url)));
     }
     const run = async (...args: string[]) => {
