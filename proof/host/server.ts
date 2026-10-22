@@ -1,3 +1,4 @@
+import { resolve, sep } from "node:path";
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 import { project } from "../css/project.ts";
@@ -23,6 +24,20 @@ export async function startHost(port = 3000) {
     ["/styles/certified.css", project(certifiedTheme, certifiedDesignSystem)],
     ["/styles/rack.css", project(rackTheme, rackDesignSystem)],
   ]);
+  const fontRoot = resolve("proof/references/synapta-core/design-artifacts/fonts");
+  const snapshotFont = (pathname: string) => {
+    const file = resolve(fontRoot, `.${pathname.slice("/fonts".length)}`);
+    return file.startsWith(`${fontRoot}${sep}`) ? Bun.file(file) : null;
+  };
+  const fontFaces = `<link rel="preload" href="/fonts/schibsted-grotesk/latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/fonts/martian-mono/latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin><style>
+@font-face { font-family: "Schibsted Grotesk"; font-style: normal; font-weight: 400 900; font-display: swap; src: url("/fonts/schibsted-grotesk/latin-wght-normal.woff2") format("woff2"); }
+@font-face { font-family: "Martian Mono"; font-style: normal; font-weight: 100 800; font-stretch: 75% 112.5%; font-display: swap; src: url("/fonts/martian-mono/latin-wdth-normal.woff2") format("woff2"); }
+</style><style>
+/* The artifact's page gutters: .deck padding-inline (32px, 16px below 900px). */
+body { margin: 0; -webkit-font-smoothing: antialiased; }
+#app { margin-inline: auto; padding-inline: 32px; box-sizing: border-box; }
+@media (max-width: 900px) { #app { padding-inline: 16px; } }
+</style>`;
   // shortcut: sessions live until shutdown; add expiry if this outgrows a local proof.
   const sessions = new Map<string, HostedSurface>();
   const error = (message: string, status: number) => Response.json({ error: message }, { status });
@@ -68,6 +83,10 @@ export async function startHost(port = 3000) {
         return new Response(bundle, { headers: { "Content-Type": "text/javascript" } });
       const css = sheets.get(url.pathname);
       if (css) return new Response(css, { headers: { "Content-Type": "text/css" } });
+      if (url.pathname.startsWith("/fonts/")) {
+        const font = snapshotFont(url.pathname);
+        return font ? new Response(font, { headers: { "Content-Type": "font/woff2" } }) : error("Not found", 404);
+      }
       if (url.pathname === "/")
         return html(
           `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Liveframe proof</title></head><body><h1>Liveframe proof</h1><ul>${links}</ul></body></html>`,
@@ -90,7 +109,7 @@ export async function startHost(port = 3000) {
       const markup = renderToString(createElement(ProofSurface, { snapshot, onIntent: () => {} }));
       const json = JSON.stringify(snapshot).replaceAll("<", "\\u003c");
       return html(
-        `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Liveframe proof</title><link id="projection" data-design-system="${designSystem}" rel="stylesheet" href="/styles/${designSystem}.css"><link data-design-system="${alternateSystem}" rel="stylesheet" href="/styles/${alternateSystem}.css" media="not all"></head><body><nav aria-label="Reference UIs"><a href="/">All reference UIs</a></nav><h1>${pages[name as keyof typeof pages]}</h1><label>Design system <select id="design-system" disabled><option value="certified"${designSystem === "certified" ? " selected" : ""}>Certified</option><option value="rack"${designSystem === "rack" ? " selected" : ""}>Rack</option></select></label><p>Widget size: ${size}. Use ?size=small, medium, large or full.</p><div id="app" style="max-width:${specimenWidth}">${markup}</div><p id="status" role="alert"></p><h2>Actions (logged only)</h2><pre id="actions" aria-live="polite">[]</pre><script type="application/json" id="bootstrap">${json}</script><script type="module" src="/client.js"></script></body></html>`,
+        `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Liveframe proof</title>${fontFaces}<link id="projection" data-design-system="${designSystem}" rel="stylesheet" href="/styles/${designSystem}.css"><link data-design-system="${alternateSystem}" rel="stylesheet" href="/styles/${alternateSystem}.css" media="not all"></head><body><nav aria-label="Reference UIs"><a href="/">All reference UIs</a></nav><h1>${pages[name as keyof typeof pages]}</h1><label>Design system <select id="design-system" disabled><option value="certified"${designSystem === "certified" ? " selected" : ""}>Certified</option><option value="rack"${designSystem === "rack" ? " selected" : ""}>Rack</option></select></label><p>Widget size: ${size}. Use ?size=small, medium, large or full.</p><div id="app" style="max-width:${specimenWidth}">${markup}</div><p id="status" role="alert"></p><h2>Actions (logged only)</h2><pre id="actions" aria-live="polite">[]</pre><script type="application/json" id="bootstrap">${json}</script><script type="module" src="/client.js"></script></body></html>`,
       );
     },
   });

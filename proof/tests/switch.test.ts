@@ -60,6 +60,21 @@ for (const name of ["agent-home", "git-status"]) {
         const samples: number[] = [];
         const styles: Record<string, string> = {};
         let immediate = true;
+        // The first flip of a sheet that owns container queries builds Blink's container-query caches
+        // (~14 ms once per page); every later flip is the switch cost this budget measures.
+        await new Promise<void>((resolve) =>
+          requestAnimationFrame(() => {
+            select.value = select.value === "certified" ? "rack" : "certified";
+            select.dispatchEvent(new Event("change", { bubbles: true }));
+            getComputedStyle(heading).fontSize;
+            requestAnimationFrame(() => {
+              select.value = select.value === "certified" ? "rack" : "certified";
+              select.dispatchEvent(new Event("change", { bubbles: true }));
+              getComputedStyle(heading).fontSize;
+              requestAnimationFrame(() => resolve());
+            });
+          }),
+        );
         for (let i = 0; i < 10; i++) {
           const target = select.value === "certified" ? "rack" : "certified";
           const before = getComputedStyle(heading).fontSize;

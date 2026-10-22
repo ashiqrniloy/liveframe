@@ -1,0 +1,3 @@
+# Local dev tool versions. Bun is the only runtime on the contributor path.
+[tools]
+bun = "1.4.2"

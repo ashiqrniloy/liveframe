@@ -1,4 +1,4 @@
-import type { Definition, StyleProp } from "./define.ts";
+import type { Definition, PropSchema, StyleProp } from "./define.ts";
 
 const layout = [
   "padding",
@@ -22,28 +22,41 @@ const layout = [
   "grow",
   "shrink",
   "basis",
+  "position",
+  "insetTop",
+  "insetBottom",
 ] as const satisfies readonly StyleProp[];
 const flex = [...layout, "gap", "direction", "align", "justify", "wrap"] as const;
 const label = { type: "string", maxLength: 80 } as const;
 const text = { type: "string", maxLength: 10000 } as const;
 const identifier = { type: "string", maxLength: 128, pattern: "^[a-zA-Z0-9][a-zA-Z0-9._-]*$" } as const;
 const disabled = { type: "boolean" } as const;
+const semantics = {
+  type: "string",
+  enum: ["section", "article", "aside", "header", "footer", "nav", "list", "listItem", "terms", "term", "detail"],
+} as const;
+const layoutProps = (properties: Record<string, PropSchema> = {}) => ({
+  type: "object" as const,
+  properties: { ...properties, semantics, label },
+  required: [] as const,
+  additionalProperties: false as const,
+});
 
 // Candidates, not a final catalog: additions require a recorded composition gap.
 export const definitions = [
   {
     kind: "box",
-    props: { type: "object", properties: {}, required: [], additionalProperties: false },
+    props: layoutProps(),
     children: "any",
     events: {},
-    variants: ["default"],
-    slots: ["root"],
-    styleProps: [...layout, "surface"],
+    variants: ["default", "plate", "rule", "callout"],
+    slots: ["root", "rail"],
+    styleProps: [...layout, "surface", "fill", "radius"],
     a11y: { role: "generic" },
   },
   {
     kind: "stack",
-    props: { type: "object", properties: {}, required: [], additionalProperties: false },
+    props: layoutProps(),
     children: "any",
     events: {},
     variants: ["default"],
@@ -53,7 +66,7 @@ export const definitions = [
   },
   {
     kind: "inline",
-    props: { type: "object", properties: {}, required: [], additionalProperties: false },
+    props: layoutProps(),
     children: "any",
     events: {},
     variants: ["default"],
@@ -63,7 +76,7 @@ export const definitions = [
   },
   {
     kind: "grid",
-    props: { type: "object", properties: {}, required: [], additionalProperties: false },
+    props: layoutProps(),
     children: "any",
     events: {},
     variants: ["default"],
@@ -108,7 +121,7 @@ export const definitions = [
     events: {},
     variants: ["default"],
     slots: ["root"],
-    styleProps: [...layout, "textStyle", "tone"],
+    styleProps: [...layout, "textStyle", "tone", "textAlign"],
     a11y: { role: "generic" },
   },
   {
@@ -123,7 +136,7 @@ export const definitions = [
     events: {},
     variants: ["default"],
     slots: ["root"],
-    styleProps: [...layout, "textStyle", "tone"],
+    styleProps: [...layout, "textStyle", "tone", "textAlign"],
     a11y: { role: "heading", name: "text" },
   },
   {
@@ -170,7 +183,7 @@ export const definitions = [
     kind: "button",
     props: {
       type: "object",
-      properties: { label, icon: identifier, disabled },
+      properties: { label, icon: identifier, disabled, current: { type: "boolean" }, pressed: { type: "boolean" } },
       required: ["label"],
       additionalProperties: false,
     },
@@ -178,7 +191,7 @@ export const definitions = [
     events: { onPress: { carries: "none" } },
     variants: ["default", "primary", "danger", "ghost"],
     slots: ["root", "label", "icon"],
-    styleProps: ["width", "grow"],
+    styleProps: ["width", "grow", "align"],
     a11y: { role: "button", name: "label" },
   },
   {
@@ -337,6 +350,21 @@ export const definitions = [
     slots: ["root", "list", "panel"],
     styleProps: layout,
     a11y: { role: "tablist", name: "label" },
+  },
+  {
+    kind: "disclosure",
+    props: {
+      type: "object",
+      properties: { label, open: { type: "boolean" } },
+      required: ["label"],
+      additionalProperties: false,
+    },
+    children: "any",
+    events: { onToggle: { carries: "boolean" } },
+    variants: ["default"],
+    slots: ["root", "summary", "panel"],
+    styleProps: layout,
+    a11y: { role: "group", name: "label" },
   },
   {
     kind: "tab",

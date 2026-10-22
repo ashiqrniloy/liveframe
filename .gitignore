@@ -1,0 +1,12 @@
+node_modules/
+coverage/
+dist/
+
+# Local-only evidence (screenshots, captures); never committed.
+/evidence/
+
+# Operator-supplied local files.
+/.local/
+
+# graft's local graph cache: regenerable, not committed (run `graft build`).
+/graft/

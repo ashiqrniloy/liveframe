@@ -17,6 +17,7 @@ export const colourRoles = [
   "text.primary",
   "text.muted",
   "text.meta",
+  "text.foil",
   "text.disabled",
   "text.status",
   "text.kbd",
@@ -49,13 +50,33 @@ export const colourRoles = [
   "colour.transparent",
 ] as const;
 export type ColourRole = (typeof colourRoles)[number];
-export const typographyRoles = ["body", "label", "heading.1", "heading.2", "heading.3", "mono", "meta"] as const;
+export const typographyRoles = [
+  "body",
+  "caption",
+  "fine",
+  "label",
+  "label.small",
+  "label.strong",
+  "ui",
+  "overline",
+  "heading.1",
+  "heading.2",
+  "heading.2.compact",
+  "heading.3",
+  "mono",
+  "mono.strong",
+  "meta",
+] as const;
 export type TypographyRole = (typeof typographyRoles)[number];
 export interface Typography {
   readonly fontFamily: string;
   readonly fontSize: number;
   readonly fontWeight: number;
   readonly lineHeight: number;
+  readonly fontStretch?: string;
+  readonly letterSpacing?: number;
+  readonly textTransform?: "none" | "uppercase";
+  readonly fontSizeAdjust?: number;
 }
 export interface Theme {
   readonly id: string;
@@ -77,6 +98,8 @@ export type DesignValue =
         | "radius"
         | "border-width"
         | "spacing"
+        | "size"
+        | "breakpoint"
         | "motion-duration"
         | "opacity"
         | "backdrop-blur"
@@ -86,12 +109,48 @@ export type DesignValue =
   | { readonly type: "easing"; readonly value: readonly [number, number, number, number] }
   | { readonly type: "shadow"; readonly value: readonly ShadowLayer[] };
 
+// Design-value names style props may reference. The app declares them once; every design system defines them all.
+export const valueNames = {
+  space: ["space.0", "space.1", "space.2", "space.3", "space.4", "space.5", "space.6", "space.7"],
+  radius: ["radius.control", "radius.plate", "radius.pill"],
+  size: ["size.rail", "size.glyph"],
+  breakpoint: ["bp.sm", "bp.md"],
+} as const;
+export type RadiusName = (typeof valueNames.radius)[number];
+export type SizeName = (typeof valueNames.size)[number];
+export type Breakpoint = (typeof valueNames.breakpoint)[number];
+
+// A box fill states a meaning, never a literal colour. Only these roles may be used.
+export const fillableRoles = [
+  "accent.primary",
+  "accent.muted",
+  "accent.soft",
+  "accent.fill",
+  "accent.fill.hover",
+  "diagnostic.error",
+  "diagnostic.warning",
+  "diagnostic.success",
+  "diagnostic.info",
+  "diagnostic.error.soft",
+  "diagnostic.warning.soft",
+  "status.critical",
+  "patch.1",
+  "patch.2",
+  "patch.3",
+  "patch.4",
+  "patch.5",
+] as const satisfies readonly ColourRole[];
+
 export interface Recipe {
   readonly backgroundColor?: ColourRole;
   readonly textColor?: ColourRole;
   readonly borderColor?: ColourRole;
   readonly outlineColor?: ColourRole;
   readonly borderWidth?: number | `border.${string}`;
+  readonly borderTopWidth?: number | `border.${string}`;
+  readonly borderRightWidth?: number | `border.${string}`;
+  readonly borderBottomWidth?: number | `border.${string}`;
+  readonly borderLeftWidth?: number | `border.${string}`;
   readonly borderRadius?: number | `radius.${string}`;
   readonly padding?: number | `space.${string}` | `spacing.${string}`;
   readonly paddingX?: number | `space.${string}`;
@@ -123,6 +182,10 @@ export const propertyTypes = {
   borderColor: "colour",
   outlineColor: "colour",
   borderWidth: "border-width",
+  borderTopWidth: "border-width",
+  borderRightWidth: "border-width",
+  borderBottomWidth: "border-width",
+  borderLeftWidth: "border-width",
   borderRadius: "radius",
   borderStyle: "line-style",
   padding: "spacing",

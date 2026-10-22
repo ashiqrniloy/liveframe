@@ -53,6 +53,49 @@ test("server_rendering_and_transport_revalidation", () => {
   expect(html(null)).toContain("Unavailable");
 });
 
+test("semantics_and_disclosure_render_their_elements", () => {
+  const registered = registry(proofCatalog, implementations);
+  const html = (root: UiTree["root"]) =>
+    renderToString(
+      <Surface tree={{ ...tree, root }} options={options} registry={registered} fallback={null} onIntent={() => {}} />,
+    );
+  const facts = html({
+    id: "root",
+    kind: "stack",
+    props: { semantics: "terms", label: "Facts" },
+    children: [
+      {
+        id: "root/term",
+        kind: "inline",
+        props: { semantics: "term" },
+        children: [{ id: "root/term/t", kind: "text", props: { text: "Owner" } }],
+      },
+      {
+        id: "root/detail",
+        kind: "box",
+        props: { semantics: "detail" },
+        children: [{ id: "root/detail/t", kind: "text", props: { text: "You" } }],
+      },
+    ],
+  });
+  expect(facts).toMatch(/<dl[^>]*aria-label="Facts"/);
+  expect(facts).toContain("<dt");
+  expect(facts).toContain("<dd");
+  const reference = html({
+    id: "root",
+    kind: "disclosure",
+    props: { label: "Reference" },
+    children: [{ id: "root/body", kind: "text", props: { text: "Hidden detail" } }],
+  });
+  expect(reference).toContain("<details");
+  expect(reference).toContain("<summary");
+  expect(reference).toContain("Hidden detail");
+  const button = html({ id: "root", kind: "button", props: { label: "Selected", current: true, pressed: true } });
+  expect(button).toContain('aria-current="true"');
+  expect(button).toContain('aria-pressed="true"');
+  expect(html({ id: "root", kind: "button", props: { label: "Plain" } })).not.toContain("aria-pressed");
+});
+
 test("renderer_does_not_import_design_systems_or_widget_authoring_code", async () => {
   const root = new URL("../renderer/", import.meta.url);
   for (const path of new Bun.Glob("**/*.{ts,tsx}").scanSync({ cwd: root.pathname })) {

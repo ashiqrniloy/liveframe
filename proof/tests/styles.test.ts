@@ -4,8 +4,19 @@ import { certifiedDesignSystem } from "../styles/certified/design-system.ts";
 import { certifiedTheme } from "../styles/certified/theme.ts";
 import { rackDesignSystem, rackSourceRecipes, rackSourceValues } from "../styles/rack/design-system.ts";
 import { rackTheme } from "../styles/rack/theme.ts";
+import { project } from "../css/project.ts";
 import { completeRecipes } from "../styles/recipes.ts";
-import { colourRoles, type DesignSystem, propertyTypes, states, type Theme, typographyRoles } from "../styles/types.ts";
+import {
+  colourRoles,
+  type DesignSystem,
+  fillableRoles,
+  propertyTypes,
+  states,
+  type DesignValue,
+  type Theme,
+  typographyRoles,
+  valueNames,
+} from "../styles/types.ts";
 
 const systems = [certifiedDesignSystem, rackDesignSystem];
 const themes = [certifiedTheme, rackTheme];
@@ -39,7 +50,8 @@ function checkStyleData(system: DesignSystem, theme: Theme): void {
       if (!Array.isArray(value) || value.length !== 4 || value.some((n) => !Number.isFinite(n) || n < 0 || n > 1))
         throw new Error("Invalid easing");
     } else {
-      const max = domain === "opacity" ? 1 : domain === "motion-duration" ? 10000 : domain === "radius" ? 10000 : 256;
+      const max =
+        domain === "opacity" ? 1 : ["motion-duration", "radius", "size", "breakpoint"].includes(domain) ? 10000 : 256;
       if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > max)
         throw new Error(`Invalid ${domain}`);
     }
@@ -102,6 +114,11 @@ test("themes_share_one_complete_role_vocabulary", () => {
       expect(typography.fontFamily.length).toBeGreaterThan(0);
       expect(typography.fontSize).toBeGreaterThan(0);
       expect(typography.lineHeight).toBeGreaterThanOrEqual(1);
+      if (typography.letterSpacing !== undefined) {
+        expect(typography.letterSpacing).toBeGreaterThanOrEqual(-0.1);
+        expect(typography.letterSpacing).toBeLessThanOrEqual(0.3);
+      }
+      if (typography.textTransform !== undefined) expect(["none", "uppercase"]).toContain(typography.textTransform);
     }
   }
 });
@@ -127,6 +144,24 @@ test("recipes_reference_only_declared_roles_and_values", () => {
   for (const system of systems) for (const theme of themes) checkStyleData(system, theme);
 });
 
+test("style_values_reference_declared_value_names", () => {
+  const declared = [...valueNames.space, ...valueNames.radius, ...valueNames.size, ...valueNames.breakpoint];
+  for (const system of systems) {
+    for (const name of declared) {
+      expect(Object.hasOwn(system.values, name)).toBe(true);
+      const domain = name.split(".")[0] === "bp" ? "breakpoint" : (name.split(".")[0] ?? "");
+      expect(system.values[name]?.type === "spacing" ? "space" : system.values[name]?.type).toBe(domain);
+    }
+  }
+  expect(fillableRoles.length).toBeGreaterThan(0);
+  for (const role of fillableRoles) expect(colourRoles).toContain(role);
+  for (const name of ["size.rail", "bp.md"]) {
+    const values: Record<string, DesignValue> = { ...certifiedDesignSystem.values };
+    delete values[name];
+    expect(() => project(certifiedTheme, { ...certifiedDesignSystem, values })).toThrow("Missing declared value");
+  }
+});
+
 test("style_checks_reject_unknown_roles_literals_and_wrong_value_domains", () => {
   for (const recipe of [
     { textColor: "missing.role" },
@@ -140,6 +175,10 @@ test("style_checks_reject_unknown_roles_literals_and_wrong_value_domains", () =>
     { transitionTiming: "ease" },
     { style: "display:none" },
     { shadow: [{ x: 0, y: 0, blur: 1, spread: 0, colorRole: "missing.role", opacity: 1 }] },
+    { borderTopWidth: "space.2" },
+    { borderBottomWidth: "radius.control" },
+    { borderLeftWidth: "#fff" },
+    { borderRightWidth: "border.hairline", borderStyle: "double" },
   ]) {
     const malformed = {
       ...certifiedDesignSystem,

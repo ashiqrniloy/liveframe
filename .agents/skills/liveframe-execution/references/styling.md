@@ -1,0 +1,29 @@
+# Styling
+
+## Target
+
+Spec §6. Roadmap Phase 1 (formats and resolver) and Phase 3 (CSS projection).
+
+- **Theme:** the only colour source. It defines colour roles and typography roles (family, size, weight, line height, then optional `letterSpacing` in `em`, `textTransform`, `fontStretch` and `fontSizeAdjust`); the app declares which role names are required. Missing roles are app data, not a format change. The theme is the resolved set of roles; an app may assemble it from separate sources, such as a colour package and user typography.
+- **Design system:**
+  - **Values:** typed design values (`radius`, `border-width`, `spacing`, `size`, `motion-duration`, `easing`, `opacity`, `backdrop-blur`, `shadow`, `breakpoint`). `size` is a bounded length the design system owns, such as `size.rail: 352`, used where no spacing step fits. The app declares the value names style props may reference (`space.*`, `radius.*`, `size.*`, breakpoints); a design system missing a declared name fails validation.
+  - **Recipes:** keyed `<kind>.<variant>.<slot>.<state>`, each a typed style object. Colour properties take theme roles only. Borders take a width for all sides or one per side (`borderTopWidth`, `borderRightWidth`, `borderBottomWidth`, `borderLeftWidth`).
+  - **The boundary:** recipes own the look (colour, borders, radius, padding, typography, opacity, shadow, blur, motion); style props own the structure (display, flex/grid layout, tracks, alignment, sizing, position); the projection's base block owns what neither can say (a `margin`/`border` reset, headings' `text-wrap: balance`, the icon's 1 rem box, control `min-height`s). A recipe never gains a structural field.
+  - It can `extends` another design system, and it must be complete for the catalog.
+- **States:** `rest`, `hover`, `active`, `focus`, `disabled`, `selected`, `invalid`, `open`. A state whose recipe resolves to its rest declarations gets no rule of its own; the class stays on the element.
+- **Style props:** layout-only and token-constrained, declared per primitive (spec §6.3). Dimensions and grid tracks may use `space.*` or `size.*`; box `radius` takes a declared `radius.*` name or `full`. Any style prop may take a responsive object keyed by design-system container breakpoints (a value set at one breakpoint holds at every wider one). Box `fill` accepts only the roles the app declares fillable. `tone` values include `foil` for foil-ink text.
+- **Projection:** CSS custom properties plus one class per `(kind, variant, slot, state)`. Restyling costs zero runtime JavaScript, swaps atomically, and honours forced-colours mode. Every surface root and text slot gets theme typography; nothing inherits host-page fonts.
+
+Prior art: Clay's `decision-logs/2026-08-28-2234-package-defined-ui-design-systems.md` and `packages/design-rack/package.json` (`uiDesignSystem.values` and `.recipes`).
+
+Rules:
+- No literal colour anywhere outside a theme. No raw CSS, selectors or scripts in any style input.
+- The completeness and colour-authority checks have failing-case tests.
+
+## Today
+
+`src/formats/theme.ts` validates DTCG colours and typography against the vocabulary, including bounded plain font-family names. `src/formats/design-system.ts` validates typed values, theme-only colour references, closed recipe properties, inheritance and completeness. `src/resolve.ts` shares the completeness cascade and produces flat recipes with design references resolved, retaining colour and typography role names. See `docs/formats.md` for bounds and resolver errors; no CSS projection ships in the root export.
+
+Both proof themes and design systems validate in the new formats, with 616 resolved recipes each for the 24-kind catalog. The exporter proves equality after unit conversion and expansion of shadow-alpha theme roles (`proof/scripts/export-formats.ts`, `src/__tests__/proof-formats.test.ts`).
+
+The projection and renderer still live in the proof (`proof/css`, `proof/renderer`); Phase 3 consumes the new resolver output. Existing proof costs remain in `proof/GAPS.md`: the first container-query design-system flip pays ~17 ms building Blink's cache, and the 50-row render bench exceeds 2 ms. Install-format checks do not close either budget.

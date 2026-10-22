@@ -28,7 +28,8 @@ test("core_queue_sizes_hydrate_with_specimen_caps_and_live_selection", async () 
         continue;
       }
       const response = page.waitForResponse((response) => response.url().endsWith("/intent"));
-      await page.getByRole("button", { name: "Load more", exact: true }).click();
+      // The full size is the agent-home queue, whose pager reads "Next".
+      await page.getByRole("button", { name: size === "full" ? "Next" : "Load more", exact: true }).click();
       expect((await response).ok()).toBe(true);
       const title = "Approve the revised supplier terms";
       await page.getByRole("button", { name: title, exact: true }).waitFor();

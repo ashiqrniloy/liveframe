@@ -25,6 +25,8 @@ export const agentHomeFixture: import("../../widgets/agent-home/manifest.ts").Qu
           rows: [
             {
               id: "decision-8812",
+              rowStatus: "waiting on you",
+              rowMeta: ["Ardent Supplies"],
               category: "decisions",
               title: "Apply the vendor's revised delivery week to PO-1188",
               status: "awaiting your decision",
@@ -39,6 +41,8 @@ export const agentHomeFixture: import("../../widgets/agent-home/manifest.ts").Qu
             },
             {
               id: "decision-8813",
+              rowStatus: "snoozed",
+              rowMeta: ["until 2026-09-29 08:00"],
               category: "decisions",
               title: "Approve the September cost allocation",
               status: "snoozed",
@@ -50,6 +54,8 @@ export const agentHomeFixture: import("../../widgets/agent-home/manifest.ts").Qu
             },
             {
               id: "decision-8814",
+              rowStatus: "running",
+              rowMeta: ["preparing a proposal"],
               category: "decisions",
               title: "File the quarterly policy digest",
               status: "running",
@@ -66,6 +72,8 @@ export const agentHomeFixture: import("../../widgets/agent-home/manifest.ts").Qu
           rows: [
             {
               id: "decision-8815",
+              rowStatus: "open",
+              rowMeta: [],
               category: "decisions",
               title: "Review the October delivery plan",
               status: "waiting on you",
@@ -77,6 +85,8 @@ export const agentHomeFixture: import("../../widgets/agent-home/manifest.ts").Qu
             },
             {
               id: "decision-8816",
+              rowStatus: "open",
+              rowMeta: [],
               category: "decisions",
               title: "Approve the revised supplier terms",
               status: "waiting on you",
@@ -101,6 +111,8 @@ export const agentHomeFixture: import("../../widgets/agent-home/manifest.ts").Qu
           rows: [
             {
               id: "task-5531",
+              rowStatus: "overdue",
+              rowMeta: ["due 2026-09-30", "Milestone watch"],
               category: "tasks",
               title: "Reassign the Hansen delivery milestone",
               status: "overdue · due 2026-09-30",
@@ -123,6 +135,8 @@ export const agentHomeFixture: import("../../widgets/agent-home/manifest.ts").Qu
           rows: [
             {
               id: "task-5532",
+              rowStatus: "open",
+              rowMeta: [],
               category: "tasks",
               title: "Confirm the revised handover date",
               status: "open",
@@ -134,6 +148,8 @@ export const agentHomeFixture: import("../../widgets/agent-home/manifest.ts").Qu
             },
             {
               id: "task-5533",
+              rowStatus: "open",
+              rowMeta: [],
               category: "tasks",
               title: "Check the supplier response",
               status: "open",
@@ -150,6 +166,8 @@ export const agentHomeFixture: import("../../widgets/agent-home/manifest.ts").Qu
           rows: [
             {
               id: "task-5534",
+              rowStatus: "open",
+              rowMeta: [],
               category: "tasks",
               title: "Update the delivery owner",
               status: "open",
@@ -174,6 +192,8 @@ export const agentHomeFixture: import("../../widgets/agent-home/manifest.ts").Qu
           rows: [
             {
               id: "alert-7302",
+              rowStatus: "unread",
+              rowMeta: ["Send approved invoices"],
               category: "alerts",
               title: "Invoice INV-2099-438 was refused by the provider",
               status: "unread · needs attention",
@@ -186,6 +206,8 @@ export const agentHomeFixture: import("../../widgets/agent-home/manifest.ts").Qu
             },
             {
               id: "alert-7303",
+              rowStatus: "read",
+              rowMeta: ["Microsoft 365"],
               category: "alerts",
               title: "Email has not synced since 2026-09-27",
               status: "read",
@@ -202,6 +224,8 @@ export const agentHomeFixture: import("../../widgets/agent-home/manifest.ts").Qu
           rows: [
             {
               id: "alert-7304",
+              rowStatus: "open",
+              rowMeta: [],
               category: "alerts",
               title: "The supplier connection needs attention",
               status: "unread",

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Liveframe execution"
+  short_description: "Execute Liveframe plan tasks and changes"
+  default_prompt: "Use $liveframe-execution to execute the next unchecked plan task."

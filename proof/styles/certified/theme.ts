@@ -1,6 +1,9 @@
 import type { Theme } from "../types.ts";
 
 // Certified light roles from the approved artifact; colours stay in this file.
+const sans = '"Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif';
+const mono = '"Martian Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+
 export const certifiedTheme = {
   id: "certified",
   colours: {
@@ -18,6 +21,7 @@ export const certifiedTheme = {
     "text.primary": "oklch(0.245 0.050 232)",
     "text.muted": "oklch(0.4700 0.0320 222)",
     "text.meta": "oklch(0.4700 0.0320 222)",
+    "text.foil": "oklch(0.5000 0.1000 78)",
     "text.disabled": "oklch(0.4700 0.0320 222)",
     "text.status": "oklch(0.245 0.050 232)",
     "text.kbd": "oklch(0.245 0.050 232)",
@@ -49,48 +53,51 @@ export const certifiedTheme = {
     "patch.5": "oklch(0.6259 0.1200 82)",
     "colour.transparent": "transparent",
   },
+  // Roles mirror the artifact's type helpers: one 13 px text size at two weights, the 12 px mono
+  // word, and the three headings it draws.
   typography: {
-    body: {
-      fontFamily: '"Schibsted Grotesk", system-ui, sans-serif',
-      fontSize: 14,
+    body: { fontFamily: sans, fontSize: 14, fontWeight: 400, lineHeight: 1.55 },
+    caption: { fontFamily: sans, fontSize: 12, fontWeight: 400, lineHeight: 1.55 },
+    fine: { fontFamily: sans, fontSize: 13, fontWeight: 400, lineHeight: 1.5 },
+    label: { fontFamily: sans, fontSize: 13, fontWeight: 500, lineHeight: 1.1 },
+    "label.small": { fontFamily: sans, fontSize: 12, fontWeight: 500, lineHeight: 1.1 },
+    "label.strong": { fontFamily: sans, fontSize: 13, fontWeight: 600, lineHeight: 1.55 },
+    ui: { fontFamily: sans, fontSize: 13, fontWeight: 500, lineHeight: 1.55 },
+    overline: {
+      fontFamily: sans,
+      fontSize: 12,
+      fontWeight: 600,
+      lineHeight: 1.55,
+      letterSpacing: 0.06,
+      textTransform: "uppercase",
+    },
+    "heading.1": { fontFamily: sans, fontSize: 36, fontWeight: 600, lineHeight: 1.08 },
+    "heading.2": { fontFamily: sans, fontSize: 24.192, fontWeight: 700, lineHeight: 1.25, letterSpacing: -0.01 },
+    // The artifact's section head keeps its 2xl line box when the narrow scale drops the size to xl.
+    "heading.2.compact": {
+      fontFamily: sans,
+      fontSize: 20.16,
+      fontWeight: 700,
+      lineHeight: 1.25,
+      letterSpacing: -0.01,
+    },
+    "heading.3": { fontFamily: sans, fontSize: 20.16, fontWeight: 600, lineHeight: 1.3 },
+    mono: {
+      fontFamily: mono,
+      fontSize: 12,
       fontWeight: 400,
       lineHeight: 1.55,
+      fontStretch: "87.5%",
+      fontSizeAdjust: 0.52,
     },
-    label: {
-      fontFamily: '"Schibsted Grotesk", system-ui, sans-serif',
-      fontSize: 13,
+    "mono.strong": {
+      fontFamily: mono,
+      fontSize: 12,
       fontWeight: 500,
-      lineHeight: 1.1,
+      lineHeight: 1.55,
+      fontStretch: "87.5%",
+      fontSizeAdjust: 0.52,
     },
-    "heading.1": {
-      fontFamily: '"Schibsted Grotesk", system-ui, sans-serif',
-      fontSize: 36,
-      fontWeight: 600,
-      lineHeight: 1.08,
-    },
-    "heading.2": {
-      fontFamily: '"Schibsted Grotesk", system-ui, sans-serif',
-      fontSize: 24.192,
-      fontWeight: 600,
-      lineHeight: 1.25,
-    },
-    "heading.3": {
-      fontFamily: '"Schibsted Grotesk", system-ui, sans-serif',
-      fontSize: 20.16,
-      fontWeight: 600,
-      lineHeight: 1.3,
-    },
-    mono: {
-      fontFamily: '"Martian Mono", ui-monospace, monospace',
-      fontSize: 12,
-      fontWeight: 400,
-      lineHeight: 1.4,
-    },
-    meta: {
-      fontFamily: '"Schibsted Grotesk", system-ui, sans-serif',
-      fontSize: 12,
-      fontWeight: 400,
-      lineHeight: 1.4,
-    },
+    meta: { fontFamily: sans, fontSize: 13, fontWeight: 400, lineHeight: 1.55 },
   },
 } as const satisfies Theme;

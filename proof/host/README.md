@@ -31,8 +31,18 @@ actions without closing a container or contacting an agent. Model and effort
 are readouts. `/ui/design-system` uses the unchanged agent-home queue; switch it
 and `/ui/git-status` between both systems. `/ui/harness` keeps the synthetic
 50-row smoke fixture used by the host protocol tests.
-Task 11 owns pixel and DOM parity evidence; known composition differences are
-listed in `proof/GAPS.md`.
+Plan 002 owns the pixel and DOM parity evidence: `timeout 300s bun
+proof/scripts/parity.ts --out evidence/parity` captures and diffs the agent-home
+queue against the approved artifact at 1440, 1024 and 390 px, and `timeout 60s bun
+proof/scripts/inventory.ts --dir evidence/parity` groups that same capture into
+causes. `proof/PARITY.md` records the approved result; known composition
+differences and gaps are in `proof/GAPS.md`.
+
+`#app` carries the artifact's page gutters: 32 px inline, 16 px below 900 px, so a
+queue page's region measures 1376, 960 or 358 px wide as the artifact's does. The
+parity script draws its widget region at the artifact's own page origin, not at
+the host's, so sub-pixel glyph phases match and the number measures look rather
+than antialiasing.
 
 Widgets run in Bun. The browser bundle contains the compiled renderer and host
 client; it receives only validated tree data and render options. POST `/intent`
@@ -40,6 +50,16 @@ sends `{ surfaceId, revision, intent }` and returns `{ tree, options, actions }`
 Requests must match the current revision and an offered intent. State and action
 arguments are schema checked. A failed rerender leaves the prior state intact.
 The client serializes commits to preserve revision order.
+
+Fonts are a host asset, not widget or theme data. The host serves the Certified
+faces from `proof/references/synapta-core/design-artifacts/fonts/` at `/fonts/…`
+and declares their `@font-face` rules; the parity script's reference server
+serves the same snapshot so the approved artifact loads its own faces.
+
+The renderer adds the surface typography and, only when the tree uses a
+responsive style value, the query container that `@container` breakpoint rules
+read. A surface without responsive values stays a plain style target, so a
+design-system switch keeps the Plan 001 activation budget.
 
 This is a localhost-only, trusted in-process proof. Surfaces and logs stay in
 memory until shutdown, and reloads create fresh surfaces. There is no sandbox,
@@ -50,7 +70,8 @@ three interaction tiers, dispatch rejection cases, isolated surfaces, stylesheet
 switching and the local 50 ms HTTP round-trip budget. Chromium must be installed
 with `timeout 120s bunx playwright install chromium`.
 Run `timeout 120s bun proof/tests/agent-home.bench.ts` for the real queue's
-50-row selection rerender budget (2 ms mean).
+50-row selection rerender budget (2 ms mean). It is currently over that budget at
+679 nodes; see `proof/GAPS.md` G32 for the per-node gate this becomes in Phase 1.
 
 Run `timeout 120s bun proof/tests/core-queue.bench.ts` for the actual core queue
 at each size (50 rows, 2 ms mean budget).

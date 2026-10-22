@@ -1,6 +1,7 @@
 import type { Definition, PropSchema } from "../catalog/define.ts";
 import type { definitions } from "../catalog/definitions.ts";
 import type { ColourRole, TypographyRole } from "../styles/types.ts";
+import { type Breakpoint, fillableRoles, type RadiusName, type SizeName, valueNames } from "../styles/types.ts";
 
 export type Json = null | boolean | number | string | readonly Json[] | { readonly [key: string]: Json };
 export type Intent =
@@ -48,8 +49,9 @@ export interface WidgetElement {
   readonly staticChildren: boolean;
 }
 export type Child = WidgetElement | null | undefined | boolean | readonly Child[];
-export type Space = `space.${0 | 1 | 2 | 3 | 4 | 5 | 6 | 7}`;
-export type Dimension = Space | "fill" | "fit" | `${number}fr` | `${number}ch` | `${number}%`;
+export type Space = (typeof valueNames.space)[number];
+export type Dimension = Space | SizeName | "fill" | "fit" | `${number}fr` | `${number}ch` | `${number}%`;
+export type Responsive<V> = V | ({ readonly base: V } & { readonly [B in Breakpoint]?: V });
 export interface StyleValues {
   readonly padding: Space;
   readonly paddingX: Space;
@@ -70,6 +72,9 @@ export interface StyleValues {
   readonly align: "start" | "center" | "end" | "stretch" | "baseline";
   readonly justify: "start" | "center" | "end" | "between" | "around" | "evenly";
   readonly wrap: "nowrap" | "wrap";
+  readonly position: "static" | "sticky";
+  readonly insetTop: Space;
+  readonly insetBottom: Space;
   readonly width: Dimension;
   readonly height: Dimension;
   readonly minWidth: Dimension;
@@ -81,8 +86,11 @@ export interface StyleValues {
   readonly rows: readonly Dimension[];
   readonly area: readonly string[];
   readonly surface: Extract<ColourRole, `surface.${string}`>;
+  readonly fill: (typeof fillableRoles)[number];
+  readonly radius: RadiusName | "full";
+  readonly textAlign: "start" | "center" | "end";
   readonly textStyle: TypographyRole;
-  readonly tone: "default" | "muted" | "meta" | "accent" | "success" | "warning" | "danger" | "info";
+  readonly tone: "default" | "muted" | "meta" | "accent" | "success" | "warning" | "danger" | "info" | "foil";
 }
 
 type SchemaValue<S> = S extends { readonly type: "string"; readonly enum: readonly (infer E)[] }
@@ -102,7 +110,7 @@ type SchemaValue<S> = S extends { readonly type: "string"; readonly enum: readon
             : never;
 export type PrimitiveDefinition = (typeof definitions)[number];
 export type PrimitiveProps<D extends PrimitiveDefinition> = SchemaValue<D["props"]> &
-  Partial<Pick<StyleValues, D["styleProps"][number]>> & {
+  Partial<{ readonly [P in D["styleProps"][number]]: Responsive<StyleValues[P]> }> & {
     readonly [E in keyof D["events"]]?: Intent;
   } & {
     readonly variant?: D["variants"][number];

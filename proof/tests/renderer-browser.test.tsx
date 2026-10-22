@@ -139,6 +139,12 @@ function widget(revision = 1): UiTree {
           { children: [node("tooltip/text", "text", { text: "Help" })] },
         ),
         node(
+          "disclosure",
+          "disclosure",
+          { label: "Reference" },
+          { children: [node("disclosure/text", "text", { text: "Hidden detail" })] },
+        ),
+        node(
           "dialog",
           "dialog",
           { label: "Confirm", open: false },
@@ -324,6 +330,38 @@ test(
 );
 
 test(
+  "disclosure_toggles_locally_and_survives_rerenders",
+  () =>
+    visit(async (page) => {
+      const summary = page.locator("summary");
+      const panel = page.getByText("Hidden detail", { exact: true });
+      expect(await panel.isVisible()).toBe(false);
+      await summary.focus();
+      await page.keyboard.press("Enter");
+      expect(await panel.isVisible()).toBe(true);
+      expect(await page.evaluate(() => window.intents)).toEqual([]);
+      await update(page, widget(2));
+      expect(await panel.isVisible()).toBe(true);
+      expect(await summary.evaluate((el) => el === document.activeElement)).toBe(true);
+      await page.keyboard.press("Space");
+      expect(await panel.isVisible()).toBe(false);
+      const changed = widget(3);
+      await update(page, {
+        ...changed,
+        root: {
+          ...changed.root,
+          children: (changed.root.children ?? []).map((node) =>
+            node.kind === "disclosure" ? { ...node, props: { ...node.props, open: true } } : node,
+          ),
+        },
+      });
+      await panel.waitFor();
+      expect(await page.evaluate(() => window.intents)).toEqual([]);
+    }),
+  15000,
+);
+
+test(
   "design_system_switch_changes_styles_without_widget_or_dom_rerender_and_honours_forced_colours",
   () =>
     visit(async (page) => {
@@ -348,3 +386,141 @@ test(
     }),
   15000,
 );
+
+async function statics(tree: UiTree, css: string, width: number, run: (page: Page) => Promise<void>): Promise<void> {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  page.setDefaultTimeout(5000);
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  try {
+    const html = renderToString(
+      <Surface tree={tree} options={options} registry={registered} fallback={<p>Unavailable</p>} onIntent={() => {}} />,
+    );
+    await page.setContent(
+      `<!doctype html><html lang="en"><head><meta charset="utf-8"><style>html,body{margin:0}${css}</style></head><body><div id="host" style="width:${width}px">${html}</div></body></html>`,
+    );
+    await run(page);
+    expect(errors).toEqual([]);
+  } finally {
+    await page.close();
+  }
+}
+
+const responsiveTree: UiTree = {
+  format: "liveframe/1",
+  catalogId: "proof@1",
+  surfaceId: "responsive",
+  revision: 1,
+  root: {
+    id: "root",
+    kind: "stack",
+    props: {},
+    style: { gap: "space.2" },
+    children: [
+      {
+        id: "root/grid",
+        kind: "grid",
+        props: {},
+        style: { columns: { base: ["1fr"], "bp.md": ["1fr", "size.rail"] } },
+        children: [1, 2].map((n) => ({ id: `root/grid/${n}`, kind: "text", props: { text: `Cell ${n}` } })),
+      },
+    ],
+  },
+};
+
+const columns = (page: Page) =>
+  page.evaluate(
+    () => getComputedStyle(document.querySelector(".lf-grid-default-root-rest") as Element).gridTemplateColumns,
+  );
+
+test("responsive_columns_follow_the_container", async () => {
+  await statics(responsiveTree, certified, 400, async (page) => {
+    expect(await columns(page)).toBe("400px");
+    expect(await page.evaluate(() => document.querySelector(".lf-container") !== null)).toBe(true);
+  });
+  await statics(initial, certified, 400, async (page) => {
+    expect(await page.evaluate(() => document.querySelector(".lf-container"))).toBeNull();
+  });
+  for (const width of [720, 1000]) {
+    await statics(responsiveTree, certified, width, async (page) => {
+      const tracks = (await columns(page)).split(" ");
+      expect(tracks).toHaveLength(2);
+      expect(tracks[1]).toBe("352px");
+    });
+  }
+}, 15000);
+
+test("surface_text_never_inherits_host_fonts", async () => {
+  for (const [theme, css] of [
+    [certifiedTheme, certified],
+    [rackTheme, rack],
+  ] as const) {
+    const families = [...new Set(Object.values(theme.typography).map((role) => role.fontFamily.split(",")[0]))];
+    await statics(initial, css, 1280, async (page) => {
+      const outside = await page.evaluate(() => {
+        const root = document.getElementById("host");
+        if (!root) return ["missing host"];
+        const bad: string[] = [];
+        for (const element of [root, ...root.querySelectorAll("*")]) {
+          // Hidden native controls and Aria helper nodes carry no surface class; they never draw surface text.
+          if (![...element.classList].some((name) => name.startsWith("lf-"))) continue;
+          const family = getComputedStyle(element).fontFamily;
+          if (!(element as HTMLElement).innerText?.trim() && !["INPUT", "TEXTAREA"].includes(element.tagName)) continue;
+          bad.push(`${element.tagName}.${element.className} ${family}`);
+        }
+        return bad;
+      });
+      expect(outside.length).toBeGreaterThan(0);
+      const wrong = outside.filter(
+        (entry) => !families.some((family) => entry.includes(family?.replaceAll('"', "") ?? "")),
+      );
+      expect(wrong).toEqual([]);
+    });
+  }
+}, 20000);
+
+test("sticky_position_sticks_within_its_scroller", async () => {
+  const tree: UiTree = {
+    ...responsiveTree,
+    surfaceId: "sticky",
+    root: {
+      id: "root",
+      kind: "stack",
+      props: {},
+      children: [
+        {
+          id: "root/scroll",
+          kind: "scroll",
+          props: { label: "Results" },
+          style: { height: "space.7" },
+          children: [
+            {
+              id: "root/scroll/sticky",
+              kind: "box",
+              props: {},
+              style: { position: "sticky", insetTop: "space.0", height: "space.5", fill: "accent.soft" },
+            },
+            ...Array.from({ length: 40 }, (_, i) => ({
+              id: `root/scroll/row${i}`,
+              kind: "text" as const,
+              props: { text: `Row ${i}` },
+            })),
+          ],
+        },
+      ],
+    },
+  };
+  await statics(tree, certified, 400, async (page) => {
+    const region = page.getByRole("region", { name: "Results" });
+    const offset = await region.evaluate((element) => {
+      element.scrollTop = 120;
+      return element.scrollTop;
+    });
+    expect(offset).toBeGreaterThan(0);
+    const [regionTop, stickyTop] = await page.evaluate(() => [
+      document.querySelector('[role="region"]')?.getBoundingClientRect().top ?? 0,
+      document.querySelector(".lf-box-default-root-rest")?.getBoundingClientRect().top ?? 0,
+    ]);
+    expect(Math.round(stickyTop - regionTop)).toBe(0);
+  });
+}, 15000);

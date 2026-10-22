@@ -1,10 +1,10 @@
 # Phase 0 report: primitive-set proof
 
-Plan 001 Task 12, 2026-10-22. Answers spec §12: can a small primitive set, plus recipes and style props, express real product UI with no product-shaped components?
+Plan 001 Task 12 wrote this report on 2026-10-22; Plan 002 Tasks 1–8 re-proved it (Task 9 is the impact analysis). Answers spec §12: can a small primitive set, plus recipes and style props, express real product UI with no product-shaped components?
 
-**Verdict: conditional go.** The model held: four reference UIs were built from the 23 candidates and composed TSX alone. No product-shaped primitive, raw CSS or literal colour was needed, all three interaction tiers worked, and one widget switched design systems with no code change. The candidate *list* did not hold. Agent-home parity failed at every width (36–50% of pixels differ, 192 DOM paths). Every failure traces to a missing **generic** capability (sectioning semantics, disclosure, responsive and sticky layout, decorated boxes, button content, indicator fills), not to a missing product component. §12's failure condition ("can't be expressed without product-shaped primitives or raw styling") was not met, but its parity criterion was not met either. The condition: those generic capabilities enter spec §5–§6 now, and parity is re-proven before the Phase 1 formats are frozen (§7).
+**Verdict: go.** The re-proof closed Plan 001's condition: the model and its parity criterion both hold (§8). Four reference UIs are built from 24 generic candidates and composed TSX alone. No product-shaped primitive, raw CSS or literal colour was needed, all three interaction tiers work, one widget switches design systems with no code change, and the agent-home queue now matches the approved artifact to **0.72% / 0.75% / 0.97%** of pixels at 1440 / 1024 / 390 px against a ≤ 1% bar, with region heights equal to the artifact's. Plan 001's failures closed by adding **generic** capabilities — sectioning semantics, `disclosure`, responsive and sticky layout, decorated box variants, button content, declared indicator fills — never a product component. The one unmet budget is the render bench: the artifact-faithful composition costs 3–4× the nodes, so the 50-row selection rerender measures 5.75 ms against 2 ms (§9, `GAPS.md` "Plan 002 Task 6").
 
-Owner decision (2026-10-22): conditional go, with every §7 spec change approved. See §8.
+Owner decision (2026-10-22): **go**, with the render budget carried into Phase 1 as a per-node gate. See §8.
 
 ## 1. What was built
 
@@ -12,7 +12,7 @@ All proof code is in `proof/`, never imported by `src/`. Sources are pinned in `
 
 | UI | Widget | Primitives used | Tests | Evidence |
 | --- | --- | --- | --- | --- |
-| 1. Synapta agent-home queue | `widgets/agent-home/` (`queue`, `TaskCard`, `AlertCard`, `DecisionCard`, `QueueRow`) | box, stack, inline, grid, text, heading, button, tabs/tab, textField, menu/menuItem, popover, dialog, separator | `tests/agent-home.test.ts`, `tests/agent-home-browser.test.ts` | `PARITY.md`, `scripts/parity.ts` |
+| 1. Synapta agent-home queue | `widgets/agent-home/` (`queue`, `TaskCard`, `AlertCard`, `DecisionCard`, `QueueRow`) | box, stack, inline, grid, text, heading, button, tabs/tab, textField, menu/menuItem, disclosure, separator | `tests/agent-home.test.ts`, `tests/agent-home-browser.test.ts` | `PARITY.md`, `scripts/parity.ts`, `scripts/inventory.ts` |
 | 2. `core.queue` at four sizes | `widgets/core-queue/` (`widget`, `Metric`) reusing UI 1's compositions | as above | `tests/core-queue.test.ts`, `tests/core-queue-browser.test.ts` | — |
 | 3a. Clay git status | `widgets/clay/git-status.tsx` | heading, stack, inline, text, icon | `tests/clay.test.ts` (`git_status_matches_builder_output_structure` against the pinned `buildGitStatusTree`) | — |
 | 3b. Rack `agent-info` module | `widgets/clay/rack-module.tsx` | box, stack, inline, grid, text, heading, icon, button, tabs/tab, textField, separator | `tests/clay.test.ts`, `tests/clay-browser.test.ts` | — |
@@ -22,70 +22,65 @@ Supporting proof code: catalog `catalog/definitions.ts`; SDK `runtime/`; styles 
 
 ## 2. Final primitive list
 
-**No primitive was added.** The 23 spec §5 candidates are kept unchanged as the proven floor. The definitions below are summarised from `catalog/definitions.ts`, which is authoritative. Every one is plain data, closed, with no colour-typed, function, `className` or `style` prop (`tests/catalog.test.ts`).
+**Twenty-four kinds, all generic.** Twenty-two were the proven floor; `disclosure` and the semantic props came from Plan 001's gaps. The definitions below are generated from `catalog/definitions.ts`, which is authoritative; `tests/catalog.test.ts` keeps the inventory exact. Every kind is plain data, closed, with no colour-typed, function, `className` or `style` prop.
 
-`layout` below means padding/margin (all sides and axes), width, height, minWidth, maxWidth, grow, shrink and basis.
+`layout` (all kinds, not repeated below) means padding and margin (all sides and axes), width, height, minWidth, maxWidth, grow, shrink, basis, position (`static`/`sticky`), insetTop and insetBottom. `+ label/semantics` means the optional a11y label and the closed `semantics` enum on every kind.
 
-| Kind | Props | Children | Events | Variants | Slots | Style props | a11y |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `box` | — | any | — | default | root | layout, `surface` | generic |
-| `stack` | — | any | — | default | root | layout, gap, direction, align, justify, wrap | generic |
-| `inline` | — | any | — | default | root | as `stack` | generic |
-| `grid` | — | any | — | default | root | layout, gap, align, justify, columns, rows, area | generic |
-| `scroll` | label, axis | any | — | default | root, viewport, scrollbar | layout | region / label |
-| `separator` | orientation | none | — | default | root | layout | separator |
-| `text` | text | none | — | default | root | layout, textStyle, tone | generic |
-| `heading` | text, level 1–6 | none | — | default | root | layout, textStyle, tone | heading / text |
-| `icon` | name, label? | none | — | default | root | layout | img / label |
-| `image` | src (https or app path), alt | none | — | default | root | layout | img / alt |
-| `link` | label, href (https, app path or #) | none | — | default | root, label | layout | link / label |
-| `button` | label, icon?, disabled? | none | onPress | default, primary, danger, ghost | root, label, icon | width, grow | button / label |
-| `textField` | label, value, placeholder, multiline, disabled, readOnly, maxLength | none | onChange (commit), onSubmit: string | default | root, label, input | layout | textbox / label |
-| `select` | label, value, disabled, options ≤ 100 | none | onChange: string | default | root, label, trigger, list, option | layout | combobox / label |
-| `checkbox` | label, checked, disabled | none | onChange: boolean | default | root, label, indicator | layout | checkbox / label |
-| `switch` | label, checked, disabled | none | onChange: boolean | default | root, label, track, thumb | layout | switch / label |
-| `menu` | label, disabled | menuItem 1–100 | — | default | root, trigger, content | layout | menu / label |
-| `menuItem` | label, icon?, disabled | none | onPress | default, danger | root, label, icon | layout | menuitem / label |
-| `popover` | label | any | — | default | root, trigger, content | layout | dialog / label |
-| `dialog` | label, open | any | onClose | default | root, backdrop, content, title, close | layout | dialog / label |
-| `tooltip` | text | any | — | default | root, trigger, content | layout | tooltip / text |
-| `tabs` | label, value | tab 1–100 | onChange: string | default | root, list, panel | layout | tablist / label |
-| `tab` | label, value, disabled | any | — | default | root, label, panel | layout | tab / label |
+| Kind | Props | Children | Events | Variants | Slots | Style props |
+| --- | --- | --- | --- | --- | --- | --- |
+| `box` | label/semantics | any | — | default, plate, rule, callout | root, rail | surface, fill, radius |
+| `stack` | label/semantics | any | — | default | root | gap, direction, align, justify, wrap |
+| `inline` | label/semantics | any | — | default | root | gap, direction, align, justify, wrap |
+| `grid` | label/semantics | any | — | default | root | gap, align, justify, columns, rows, area |
+| `scroll` | label, axis | any | — | default | root, viewport, scrollbar | — |
+| `separator` | orientation | none | — | default | root | — |
+| `text` | text | none | — | default | root | textStyle, tone, textAlign |
+| `heading` | text, level 1–6 | none | — | default | root | textStyle, tone, textAlign |
+| `icon` | name, label? | none | — | default | root | — |
+| `image` | src, alt | none | — | default | root | — |
+| `link` | label, href | none | — | default | root, label | — |
+| `button` | label, icon?, disabled?, current?, pressed? | none | onPress | default, primary, danger, ghost | root, label, icon | align |
+| `textField` | label, value, placeholder, multiline, disabled, readOnly, maxLength | none | onChange (commit), onSubmit | default | root, label, input | — |
+| `select` | label, value, disabled, options ≤ 100 | none | onChange | default | root, label, trigger, list, option | — |
+| `checkbox` | label, checked, disabled | none | onChange | default | root, label, indicator | — |
+| `switch` | label, checked, disabled | none | onChange | default | root, label, track, thumb | — |
+| `menu` | label, disabled | menuItem 1–100 | — | default | root, trigger, content | — |
+| `menuItem` | label, icon?, disabled | none | onPress | default, danger | root, label, icon | — |
+| `popover` | label | any | — | default | root, trigger, content | — |
+| `dialog` | label, open | any | onClose | default | root, backdrop, content, title, close | — |
+| `tooltip` | text | any | — | default | root, trigger, content | — |
+| `tabs` | label, value | tab 1–100 | onChange | default | root, list, panel | — |
+| `disclosure` | label, open | any | onToggle | default | root, summary, panel | — |
+| `tab` | label, value, disabled | any | — | default | root, label, panel | — |
 
-**Proposed additions** (§7), each a generic capability with the gap that requires it. None is product-shaped:
+Additions that Plan 001 proposed and Plan 002 built, each generic:
 
-| Addition | Kind | Why it could not be composed | Gap |
+| Addition | Kind | Why composition could not do it | Gap |
 | --- | --- | --- | --- |
-| `disclosure` (summary label, open, `onToggle`) | new primitive | Tier-1 expand/collapse needs browser behaviour that no candidate provides. Spec §8 already lists "expand a row" as tier 1. `popover` was used instead, which changes both DOM and behaviour. | G7 |
-| `semantics` on layout primitives (closed enum: section, article, aside, header, footer, nav, list, listItem, terms, term, detail) plus an optional `label` | prop | Generic wrappers can't produce landmark, sectioning or description-list elements. That is a semantic and a11y gap, not a styling one. | G6 |
-| `current` / `pressed` on `button` | prop | Row selection must be announced (`aria-current`). The proof shows a visible "Selected" word instead. | G6 |
-| App-declared `box` variants (for example `plate`, `rule`, `inset`) | catalog data | Plate borders, hairline rules and callout rails are recipe styling, but `box` declares only `default`. Variants are already an app-defined recipe axis, so this needs no format change. | G8 |
+| `disclosure` (label, open, `onToggle`, `details`/`summary` in the renderer) | new primitive | Tier-1 expand/collapse needs browser behaviour no candidate provides. `popover` changed both DOM and behaviour | G7 |
+| `semantics` on every kind (closed enum: section, article, aside, header, footer, nav, list, listItem, terms, term, detail) plus `label` | prop | Generic wrappers cannot produce landmarks, sectioning or description lists. A semantic and a11y gap, not a styling one | G6 |
+| `current` / `pressed` on `button` | props | `aria-current` / `aria-pressed` have no other source | G6 |
+| `box` variants `plate`, `rule`, `callout` (with a `rail` slot) | recipe axis | Decorated boxes: an inset plate, a hairline row, a ruled callout | G8 |
 
 ## 3. Style props needed
 
-Used and validated (`runtime/validate.ts`, `tests/runtime.test.ts` `catalog_schemas_children_variants_and_styles_fail_closed`):
+Implemented and validated (`runtime/validate.ts`, `tests/runtime.test.ts`, `tests/styles.test.ts`):
 
 | Style prop | Proof domain | Used by |
 | --- | --- | --- |
-| padding / margin (all sides and axes), gap | `space.0`–`space.7` only | all four UIs |
-| direction, align, justify, wrap | closed enums | all four UIs |
-| width, height, minWidth, maxWidth | `space.*`, `fill`, `fit`, `0–12fr`, `0–100ch`, `0–100%` | queue grid, rack indicators |
+| padding, margin (all sides and axes), gap | declared `space.0`–`space.7` only | all four UIs |
+| direction, align, justify, wrap, textAlign | closed enums | all four UIs |
+| width, height, minWidth, maxWidth | `space.*`, `size.*`, `fill`, `fit`, `0–100ch`, `0–100%` | queue grid, decide note (`56ch`), rack indicators |
 | grow, shrink, basis | numbers 0–100 | rows, composer |
-| columns, rows, area | ≤ 12 tracks of the dimension domain; named areas | queue two-column grid |
-| surface (box) | `surface.*` theme roles | cards, selected row, indicators |
-| textStyle, tone (text, heading) | typography roles; 8 tone enums | all four UIs |
+| columns, rows, area | ≤ 12 tracks of the dimension domain (`fr` becomes `minmax(0, …)`, `fit` becomes `auto`) | queue rows and facts, Rack module |
+| position, insetTop, insetBottom | `static` / `sticky`; `space.*` | sticky focus column |
+| surface (box) | `surface.*` theme roles | cards, panels |
+| fill (box) | a declared subset of non-surface roles (accent, diagnostics, `status.critical`, `patch.1–5`) | rack indicators |
+| radius (box) | `radius.*` design values or `full` | rack indicators, queue plates |
+| textStyle, tone | typography roles; tones default, muted, meta, accent, success, warning, danger, info, foil | all four UIs |
+| Responsive values | any style prop may take `{ base, bp.sm, bp.md }`, keyed by design-system container breakpoints; a value holds at every wider breakpoint | two-column queue, facts, section head, sticky focus |
 
-Needed but missing (proposed in §7):
-
-| Style prop | Accepts | Gap |
-| --- | --- | --- |
-| Responsive values: any style prop may take `{ base, <breakpoint>… }` keyed by design-system container breakpoints | the prop's own domain | G9 |
-| `position` (`static` / `sticky`) with `inset*` | enum; `space.*` | G9 |
-| `fill` (box) | a declared subset of non-surface theme roles (status, identity) | G10 |
-| `radius` (box) | `radius.*` design values, `full` | G10 |
-| `textAlign`, and `align` on `button` content | enums | G11 |
-
-`gap={3}` in spec §6.3 contradicts the token table; the proof enforces `space.3` (G21).
+Design values the app declares and every design system defines: `space.0`–`space.7`, `radius.control`/`plate`/`pill`, `size.rail` (352), `size.glyph` (15), breakpoints `bp.sm` (384) and `bp.md` (720). Typography roles may carry `letterSpacing`, `textTransform`, `fontStretch` and `fontSizeAdjust`; `gap={3}` in spec §6.3 is the `space.3` token (G21).
 
 ## 4. Interaction tiers
 
@@ -124,22 +119,22 @@ Resolutions: **Spec** = proposed spec change (§7). **Phase N** = handled when t
 | G3 | Rack docs claim 273 recipes; the manifest has 247 (GAPS T3) | **Adopter**: a source-documentation error. The manifest is authoritative |
 | G4 | Rack source variants with no catalog counterpart (`ghostDanger`, label/textInput variants, product families `lamp`/`jack`/`pips`) (GAPS T3) | **Accepted**: kept as reference data. Product families are compositions; `ghostDanger` is an app-declared variant if wanted |
 | G5 | Undeclared Rack spacing/easing references; proof supplied values (GAPS T3) | **Adopter**: the source omits values. Phase 1 install validation rejects such references |
-| G6 | No section/article/aside/header/nav/dl semantics; no `aria-current` (GAPS T7, PARITY "Semantic structure") | **Spec**: `semantics` prop on layout primitives; `current`/`pressed` on `button` |
-| G7 | No disclosure: Reference and Widget options use `popover` instead of `details` (GAPS T7, PARITY "Disclosure") | **Spec**: add the `disclosure` primitive |
-| G8 | Plate borders, hairline rules, callout rail, status marker SVGs, brand mark (GAPS T7, PARITY "Marker geometry") | **Spec/Accepted**: app-declared `box` variants carry plate and rule recipes. Marker shapes are app icons (the `icon` glyph set is app-owned). No format change beyond §5's existing variants |
-| G9 | Fixed two columns: no responsive tracks, no mobile stacking, no sticky focus. Desktop 684/684 vs 952/352 px (GAPS T7, T8; PARITY "Desktop proportions", "Mobile stacking") | **Spec**: responsive style values keyed by design-system container breakpoints; `position: sticky` |
-| G10 | Lamp, jack and pips are square `surface.*` boxes. No circle, no identity/status fill (GAPS T9) | **Spec**: `fill` (declared non-surface roles) and `radius` on `box` |
-| G11 | Row subject buttons centre their label; button content can't hold title + meta (GAPS T7; harness walk) | **Spec**: `align` on button content and `textAlign`. Structured button content stays out: title and meta are adjacent nodes |
+| G6 | No section/article/aside/header/nav/dl semantics; no `aria-current` (GAPS T7, PARITY "Semantic structure") | **Done** (Plan 002 T4): `semantics` on every kind, `label`, and `current`/`pressed` on `button`. The queue renders section/header/article/aside/nav/terms/term/detail; `tests/runtime.test.ts` `terms_holds_only_terms_and_details` |
+| G7 | No disclosure: Reference and Widget options use `popover` instead of `details` (GAPS T7, PARITY "Disclosure") | **Done** (Plan 002 T4): `disclosure` renders native `details`/`summary` with local open state. Widget options stay a `menu`, which is React Aria markup (see the inventory) |
+| G8 | Plate borders, hairline rules, callout rail, status marker SVGs, brand mark (GAPS T7, PARITY "Marker geometry") | **Done** (Plan 002 T4/T6): `box` variants `plate`, `rule` (per-side top border) and `callout` with a `rail` slot; the five artifact glyphs are host icons. Marker hues remain G30 |
+| G9 | Fixed two columns: no responsive tracks, no mobile stacking, no sticky focus. Desktop 684/684 vs 952/352 px (GAPS T7, T8; PARITY "Desktop proportions", "Mobile stacking") | **Done** (Plan 002 T3/T5): responsive values per breakpoint, `position: sticky` above `bp.md`. Two columns now render 952/352 and 536/352, stacking at 390. A container-query container costs one ~17 ms cold flip per page (`GAPS.md`) |
+| G10 | Lamp, jack and pips are square `surface.*` boxes. No circle, no identity/status fill (GAPS T9) | **Done** (Plan 002 T7): `fill` and `radius` on `box`. The lamp and both patches draw 8 px circles from `accent.primary` and `patch.1`; pips keep a corner. Under Certified the roles alias (G2) |
+| G11 | Row subject buttons centre their label; button content can't hold title + meta (GAPS T7; harness walk) | **Done** (Plan 002 T3/T6): `align` on `button`, `textAlign` on text. `button.ghost` is a bare left-aligned title; meta is an adjacent node |
 | G12 | Generic wrappers inherit host-page typography (Times New Roman 16px); Rack tab and field labels fall back to serif (PARITY "Typography"; harness walk) | **Phase 3**: the projection sets base typography on the surface root and on every slot that draws text. Recipe completeness covers ink, not font |
-| G13 | Typography and spacing values differ (card title 20.16 vs 24.19 px, kicker weight, row weight) (PARITY) | **Phase 3/Accepted**: recipe and heading-level choices, fixable as data; recipe types need tracking/stretch (GAPS T3) |
-| G14 | Artifact fonts (Schibsted Grotesk, Martian Mono) were not snapshotted; both 404 (PARITY) | **Limit**: the parity re-run must snapshot the font files |
-| G15 | Host gutters differ; queue padding 24 vs 16 px (PARITY "Host placement") | **Limit**: host placement, not widget code |
-| G16 | "Showing 6 / Load more" vs the artifact's static "Showing 12 / Next"; Selected word and row copy (PARITY "Paging/copy") | **Accepted**: loaded-count behaviour is correct. The Selected word goes once G6 lands |
+| G13 | Typography and spacing values differ (card title 20.16 vs 24.19 px, kicker weight, row weight) (PARITY) | **Done** (Plan 002 T5a/T6): typography roles gained `letterSpacing`, `textTransform`, `fontStretch` and `fontSizeAdjust`; the roles are data. Card title, kicker, row and group-label weights now match |
+| G14 | Artifact fonts (Schibsted Grotesk, Martian Mono) were not snapshotted; both 404 (PARITY) | **Done** (Plan 002 T2): both faces and their licences are snapshotted with SHA-256 rows in `references/SOURCES.md`; the host serves them and asserts both load |
+| G15 | Host gutters differ; queue padding 24 vs 16 px (PARITY "Host placement") | **Done** (Plan 002 T6): host placement applies the artifact's 32/16 px gutters, and the widget root carries the 24 px pad. Region widths are 1376/960/358 px, as the artifact |
+| G16 | "Showing 6 / Load more" vs the artifact's static "Showing 12 / Next"; Selected word and row copy (PARITY "Paging/copy") | **Accepted**: loaded-count behaviour is correct, and the artifact's copy now matches. A `current` row reads `aria-current` and draws the well (Plan 002 T4/T6) |
 | G17 | Review is a logged action, not a link (PARITY "Disclosure and navigation") | **Accepted**: the proof host has no proposal page |
 | G18 | Escalate reason and Rack draft must commit (blur/Enter) before the action is offered. No dynamic action argument (GAPS T5, T7, T9) | **Spec**: §8 says a commit may carry its value "as an action argument", but the §9 intent has no way to do so. Proposed: record as an open decision in §15 and keep commit-to-state as the proven path |
 | G19 | `textField` commit event is named `onChange` in the proof; spec §8 says `onCommit` (GAPS T5) | **Phase 1**: use the spec's `onCommit` |
 | G20 | Native `maxlength` counts UTF-16 units; wire schemas count code points (GAPS T7, T9) | **Phase 4**: the renderer enforces code points itself |
-| G21 | `gap={3}` in spec §6.3 contradicts the token table (Task 2) | **Spec**: the example becomes `gap="space.3"` |
+| G21 | `gap={3}` in spec §6.3 contradicts the token table (Task 2) | **Done**: spec §6.3 uses `gap="space.3"`, and every dimension validates against declared names |
 | G22 | Per-source Unauthorized/Unavailable/Stale panels can't be distinguished by the normalised fixture (GAPS T8) | **Limit**: a fixture choice. The widget can branch on any status data supplies |
 | G23 | Large size honours selection; the source always focuses the first decision (GAPS T8) | **Accepted**: an intentional improvement |
 | G24 | Specimen width caps are host placement; no token multiplication (GAPS T8) | **Accepted**: placement belongs to the app (§3) |
@@ -149,11 +144,19 @@ Resolutions: **Spec** = proposed spec change (§7). **Phase N** = handled when t
 | G28 | The reusable untrusted theme/design-system install validator was not built (GAPS T3, T5) | **Phase 1** |
 | G29 | Native scrollbar geometry; forced colours only emulated in Chromium (GAPS T5) | **Phase 3/4**: accessibility audit on real platforms |
 
-Pixel inventory (36.85% / 35.75% / 49.64% at 1440/1024/390 px), all 192 DOM paths and all 109/109/110 style values are listed in `PARITY.md`. Every one falls under G6–G16.
+Plan 002 added three gaps to this table, each recorded in `GAPS.md` rather than designed away:
+
+| # | Gap | Resolution |
+| --- | --- | --- |
+| G30 | Row markers and the card kicker draw in `currentColor`; the artifact tints them attention/danger/info/foil (`GAPS.md` "Plan 002 Task 6") | **Phase 2**: an `icon` would need a `tone` style prop, which is the composition surface's decision, not this proof's |
+| G31 | A tab carries one label string, so its count cannot take its own mono face; tab widths differ by 4–6 px (`GAPS.md`) | **Phase 2**: a tab content/count slot |
+| G32 | The render bench is over budget: the artifact-faithful composition renders 679 nodes in 5.75 ms against 2 ms (`GAPS.md` "Plan 002 Task 6", §9) | **Owner decision** (§8). Either the render/validate path gets cheaper, or the budget becomes per-node (`≤ 3 µs/node`, i.e. 2 ms at 680 nodes). The proof does not raise its own budget |
+
+Pixel inventory: **0.72% / 0.75% / 0.97%** at 1440/1024/390 px, within the ≤ 1% bar. `PARITY.md` lists every remaining difference as nine causes plus 32 style values per width, each with its reason; `scripts/inventory.ts` re-derives that list from the capture, collapsing the wrapper elements that make the raw count 281.
 
 ## 7. Required changes
 
-Spec changes (made in this task, approved in §8):
+Spec changes (made in Plan 001 Task 12, approved in §8; Plan 002 implemented all of them in `proof/`):
 - §5: the candidate list is confirmed as the floor. Add `disclosure`; add `semantics` + `label` on layout primitives and `current`/`pressed` on `button`; state that `box` variants are app-declared recipe axes.
 - §6.1: the theme may be assembled from separate colour and typography sources (G1).
 - §6.3: responsive values, `position`/`inset`, `fill`/`radius` on box, `textAlign` and button content `align`; fix `gap={3}`.
@@ -161,43 +164,50 @@ Spec changes (made in this task, approved in §8):
 - §8 / §15: dynamic action arguments become an open decision (G18).
 - §12: exact artifact anchors; outcome recorded with a pointer to this report.
 
-Before Phase 1 freezes the formats: a follow-up plan adds the §2–§3 additions to the proof, snapshots the artifact fonts, and re-runs `scripts/parity.ts` to the threshold (pixel mismatch ≤ 1%, or every remaining difference listed as intended).
+Plan 002 added those capabilities to the proof, snapshotted the artifact fonts and re-ran `scripts/parity.ts` to the threshold: 0.72% / 0.75% / 0.97% of pixels, with every remaining difference listed in `PARITY.md` and approved. Nothing is carried into Phase 1 from this section.
 
 ## 8. Owner decision
 
-2026-10-22: the owner chose **conditional go** and approved **all** the spec changes in §7. Recorded in `decision-logs/2026-10-22-0033-phase-0-conditional-go.md`; spec §5, §6.1–§6.4, §8, §12 and §15 are updated. Phase 0 stays open until the follow-up parity plan passes.
+2026-10-22: the owner chose **conditional go** on Plan 001's report and approved **all** of the spec changes in §7 (`decision-logs/2026-10-22-0033-phase-0-conditional-go.md`), with Phase 0 staying open until the parity re-proof passed.
+
+2026-10-22, after the re-proof: the owner chose **go** (`decision-logs/2026-10-22-1519-phase-0-go.md`).
+- **The parity criterion is met**: 0.72% / 0.75% / 0.97% of pixels at 1440 / 1024 / 390 px against a ≤ 1% bar, region sizes equal to the artifact's, no diagnostics. The ten DOM causes and the 32 style values are approved as intended (`PARITY.md`).
+- **The model question is answered**: four real UIs from 24 generic primitives and composed TSX, no product-shaped component, no raw CSS or literal colour, all three interaction tiers, and one CSS-only design-system switch.
+- **One budget does not hold, and it now gates Phase 1**: the artifact-faithful tree has 13.6 nodes per row (679 at 50 rows), and the proof's render path spends 8.5 µs per node, so the 50-row selection rerenders in 5.75 ms against 2 ms (`core.queue` 3.02–4.18 ms from medium up). The owner accepted this as a rendering-path cost, not a model finding, and set the gate: **Phase 1's renderer must stay within 3 µs per node (2 ms at 680 nodes)**, measured on the same benches. `GAPS.md` G32 carries it; the roadmap's Phase 1 entry names it as an exit criterion.
+- Phase 0 is done. Phase 1 may freeze the formats.
 
 ## 9. Performance
 
-Measured on 2026-10-22 (Linux, Bun 1.4.2, Chromium 156). Each render is the mean of 1,000 renders after 200 warm-ups, including validation; budget 2 ms.
+Re-measured 2026-10-22 (Linux, Bun 1.4.2, Chromium 156), after Plan 002's composition. Each render is the mean of 1,000 renders after 200 warm-ups, including validation; budget 2 ms.
 
 | Measure | Budget | Result | Source |
 | --- | --- | --- | --- |
-| Synthetic full queue, 50 rows, 353 nodes (T4) | 2 ms mean | 1.586 ms | `tests/runtime.bench.ts` |
-| Agent-home selection rerender, 50 rows, 193 nodes (T7) | 2 ms mean | 1.526 ms | `tests/agent-home.bench.ts` |
-| core.queue small / medium / large / full (T8) | 2 ms mean | 0.175 / 1.214 / 1.357 / 1.702 ms | `tests/core-queue.bench.ts` |
-| Git status 52 rows / Rack module 50 files (T9) | 2 ms mean | 0.694 / 1.222 ms | `tests/clay.bench.ts` |
-| Host `setState` HTTP round trip, 25 runs (T6) | 50 ms max | 2.33 ms | `tests/host.test.ts` |
-| Design-system switch, 10 switches, queue / git (T10) | 16.67 ms max | 4.90 / 1.30 ms | `tests/switch.test.ts` |
-| Switch reruns widgets (T5) | 0 | 0 | `tests/renderer-browser.test.tsx` (`design_system_switch_changes_styles_without_widget_or_dom_rerender_and_honours_forced_colours`) |
+| Synthetic full queue, 50 rows, 353 nodes | 2 ms mean | 1.753 ms | `tests/runtime.bench.ts` |
+| Agent-home selection rerender, 50 rows, **679 nodes** | 2 ms mean | **5.746 ms — over** | `tests/agent-home.bench.ts` |
+| core.queue small / medium / large / full, 50 rows | 2 ms mean | **0.226 / 3.019 / 3.895 / 4.177 ms — over** from medium | `tests/core-queue.bench.ts` |
+| Git status 52 rows / Rack module 50 files | 2 ms mean | 0.794 / 1.301 ms | `tests/clay.bench.ts` |
+| Host `setState` HTTP round trip, 25 runs | 50 ms max | 7.67 ms | `tests/host.test.ts` (`set_state_http_round_trip_under_50_ms`) |
+| Design-system switch, 10 switches, queue / git | 16.67 ms max | 3.80 / 0.80 ms | `tests/switch.test.ts` |
+| Switch reruns widgets | 0 | 0 | `tests/renderer-browser.test.tsx` |
 
-Full queue at 1.70 ms is close to the 2 ms budget. Phase 2 should re-measure it once proposed props add nodes.
+The render benches pay for the composition: the artifact's row is a grid row with a marker, a title button, a mono word and meta spans, so the 50-row selection tree grew from 193 to 679 nodes and the per-node cost is ~8.5 µs. Two costs in that path are mechanical, not inherent: `assertJson` re-walks the whole input data per render (16% of samples), and `validate` re-checks every node with regex, linear `Array.includes` and per-node `Object.entries` (25%). The switch's cold flip costs ~17 ms once per page when a container-query container exists, then 3.8 ms steady; `switch.test.ts` warms up once and says why. `GAPS.md` "Plan 002 Task 6" records both.
 
 ## 10. The four laws
 
 | Law | Held? | Evidence |
 | --- | --- | --- |
 | 1. Widget code never runs in the browser | Held in all four UIs | Browser bundles contain no widget or git adapter code (`host.test.ts` `host_serves_reference_pages_and_rejects_invalid_requests`, `agent-home-browser.test.ts`, `core-queue-browser.test.ts`, `clay-browser.test.ts`). Widgets run in the Bun host; the switch makes no request (`switch.test.ts`) |
-| 2. The UI tree is validated data | Held | `runtime.test.ts` (host elements, function props, async, missing keys, limits, transport), `renderer.test.tsx` (`server_rendering_and_transport_revalidation`: fallback on unknown or invalid nodes) |
-| 3. No colours or raw CSS from widgets | Held | `catalog.test.ts` (`definitions_admit_no_colour_or_raw_style_props`), `styles.test.ts` (`no_colour_outside_themes`), `agent-home.test.ts` (`widget_uses_only_catalog_primitives_and_declared_intents`) and the primitive-only checks in `core-queue.test.ts` and `clay.test.ts`. The price was the visual gaps in §6, never an escape |
+| 2. The UI tree is validated data | Held, including the Plan 002 surfaces | `runtime.test.ts` (host elements, function props, async, missing keys, limits, transport; `semantics_are_a_closed_enum_with_terms_child_rules`, `position_fill_radius_and_text_alignment_validate`, `responsive_style_values_are_closed_data`, `fill_accepts_only_declared_fillable_roles`), `renderer.test.tsx` (`server_rendering_and_transport_revalidation`: fallback on unknown or invalid nodes) |
+| 3. No colours or raw CSS from widgets | Held, including `fill`, `radius` and responsive values | `catalog.test.ts` (`definitions_admit_no_colour_or_raw_style_props`), `styles.test.ts` (`no_colour_outside_themes`, `style_values_reference_declared_value_names`), `projection.test.ts` (`projection_rejects_injection_missing_recipes_and_unresolved_values`), `agent-home.test.ts` (`widget_uses_only_catalog_primitives_and_declared_intents`) and the primitive-only checks in `core-queue.test.ts` and `clay.test.ts`. The price was the visual gaps in §6, never an escape |
 | 4. No widget authority | Held | Every control maps to a manifest-declared action with a closed schema; the host re-checks offered intents, revision and arguments (`host.test.ts` `dispatch_rechecks_state_actions_current_tree_and_revision`, `paging_preserves_selection_and_row_ids_and_rejects_old_or_forged_intents`) |
 
 ## 11. Reproduce
 
 ```bash
-timeout 300 bun run check                                     # typecheck, lint, format, 63 tests (10 in Chromium)
-timeout 120 bun proof/tests/runtime.bench.ts                  # and agent-home / core-queue / clay benches
+timeout 300 bun run check                                     # typecheck, lint, format, 78 tests (11 in Chromium)
+timeout 120 bun proof/tests/runtime.bench.ts                  # and agent-home / core-queue / clay benches (two are over budget)
 timeout 300 bun proof/scripts/parity.ts --out evidence/parity # pixel, DOM and style diffs (local only)
+timeout 60 bun proof/scripts/inventory.ts --dir evidence/parity # the same capture as causes
 bun run proof                                                 # http://127.0.0.1:3000, all reference pages
 ```
 

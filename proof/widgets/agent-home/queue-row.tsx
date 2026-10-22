@@ -1,8 +1,16 @@
 /** @jsxImportSource ../../runtime */
-import { Box, Button, state, Text } from "../../runtime/index.ts";
+import { Box, Button, Grid, Icon, Inline, Stack, state, Text } from "../../runtime/index.ts";
+import type { Category } from "./manifest.ts";
+
+const markers: Record<Category, string> = {
+  decisions: "mk-dashed",
+  tasks: "mk-dashed",
+  alerts: "mk-struck",
+};
 
 export function QueueRow({
   id,
+  category,
   title,
   status,
   meta,
@@ -10,20 +18,40 @@ export function QueueRow({
   selected,
 }: {
   id: string;
+  category: Category;
   title: string;
   status: string;
-  meta: string;
+  meta: readonly string[];
   foldedAlerts: number;
   selected: boolean;
 }) {
   return (
-    <Box surface={selected ? "surface.selected" : "surface.module"} padding="space.2">
-      <Button label={title} variant="ghost" width="fill" onPress={state.set("selected", id)} />
-      <Text
-        text={`${selected ? "Selected · " : ""}${status} · ${meta}${foldedAlerts ? ` · ${foldedAlerts} alert folded here` : ""}`}
-        textStyle="meta"
-        tone="muted"
-      />
+    <Box {...(selected ? { surface: "surface.well" } : {})} variant="rule">
+      <Grid columns={["space.4", "1fr", "fit"]} gap="space.3" align="start">
+        <Icon key="marker" name={markers[category]} />
+        <Stack key="body" gap="space.1" align="start">
+          <Button key="subject" label={title} variant="ghost" current={selected} onPress={state.set("selected", id)} />
+          {/* 4px gap with 8px right padding on every but the last word: 12px between words, 4px between lines. */}
+          <Inline key="meta" gap="space.1" wrap="wrap" align="center">
+            <Text text={status} textStyle="mono" tone="muted" paddingRight="space.2" />
+            {meta.map((entry, index) => (
+              <Text
+                key={entry}
+                text={entry}
+                textStyle="meta"
+                tone="muted"
+                paddingRight={index === meta.length - 1 ? "space.0" : "space.2"}
+              />
+            ))}
+          </Inline>
+        </Stack>
+        {foldedAlerts ? (
+          <Inline key="flag" gap="space.2" align="center">
+            <Icon key="marker" name="mk-solid" />
+            <Text key="word" text={`${foldedAlerts} alert folded here`} textStyle="caption" tone="warning" />
+          </Inline>
+        ) : null}
+      </Grid>
     </Box>
   );
 }

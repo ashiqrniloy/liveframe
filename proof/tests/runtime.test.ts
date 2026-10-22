@@ -162,6 +162,75 @@ test("catalog_schemas_children_variants_and_styles_fail_closed", () => {
   expect(tree(jsx({ kind: "grid" }, { columns: ["1fr", "32ch"] })).root.style?.columns).toEqual(["1fr", "32ch"]);
 });
 
+test("responsive_style_values_are_closed_data", () => {
+  const Grid = { kind: "grid" };
+  const Box = { kind: "box" };
+  const responsive = { base: ["1fr"], "bp.md": ["1fr", "size.rail"] } as const;
+  expect(tree(jsx(Grid, { columns: responsive })).root.style?.columns).toEqual(responsive);
+  expect(tree(jsx(Grid, { columns: { base: ["1fr", "size.rail"] } })).root.style?.columns).toEqual({
+    base: ["1fr", "size.rail"],
+  });
+  expect(tree(jsx(Box, { radius: { base: "radius.plate", "bp.md": "full" } })).root.style?.radius).toEqual({
+    base: "radius.plate",
+    "bp.md": "full",
+  });
+  for (const style of [
+    { columns: { "bp.md": ["1fr"] } },
+    { columns: { base: ["1fr"], "bp.lg": ["1fr"] } },
+    { columns: { base: ["1fr"], "bp.md": ["url(evil)"] } },
+    { columns: { base: { base: ["1fr"] } } },
+    { gap: { base: "space.1", "bp.md": "13px" } },
+    { columns: { base: [] } },
+  ])
+    error(jsx(Grid, style), "invalid-prop");
+});
+
+test("fill_accepts_only_declared_fillable_roles", () => {
+  expect(tree(jsx({ kind: "box" }, { fill: "accent.fill" })).root.style?.fill).toBe("accent.fill");
+  for (const fill of ["surface.raised", "text.primary", "colour.transparent", "#fff", "accent.missing"])
+    error(jsx({ kind: "box" }, { fill }), "invalid-prop");
+  error(jsx(Stack, { fill: "accent.fill" }), "invalid-prop");
+});
+
+test("position_fill_radius_and_text_alignment_validate", () => {
+  const Box = { kind: "box" };
+  expect(
+    tree(jsx(Box, { position: "sticky", insetTop: "space.4", insetBottom: "space.0", radius: "radius.plate" })).root
+      .style,
+  ).toEqual({ position: "sticky", insetTop: "space.4", insetBottom: "space.0", radius: "radius.plate" });
+  expect(tree(jsx(Box, { radius: "full" })).root.style?.radius).toBe("full");
+  expect(tree(jsx(Text, { text: "x", textAlign: "end" })).root.style?.textAlign).toBe("end");
+  error(jsx(Box, { position: "fixed" }), "invalid-prop");
+  error(jsx(Box, { radius: "4px" }), "invalid-prop");
+  error(jsx(Box, { radius: "radius.missing" }), "invalid-prop");
+  error(jsx(Box, { insetTop: "12px" }), "invalid-prop");
+  error(jsx(Text, { text: "x", textAlign: "justify" }), "invalid-prop");
+  error(jsx(Stack, { textAlign: "center" }), "invalid-prop");
+  error(jsx(Stack, { fill: "accent.fill" }), "invalid-prop");
+});
+
+test("semantics_are_a_closed_enum_with_terms_child_rules", () => {
+  const Stack = { kind: "stack" };
+  const Inline = { kind: "inline" };
+  const Box = { kind: "box" };
+  const terms = tree(
+    jsxs(Stack, {
+      semantics: "terms",
+      label: "Facts",
+      children: [
+        jsx(Inline, { semantics: "term", children: jsx(Text, { text: "Owner" }) }),
+        jsx(Box, { semantics: "detail", children: jsx(Text, { text: "You" }) }),
+      ],
+    }),
+  );
+  expect(terms.root.props).toEqual({ semantics: "terms", label: "Facts" });
+  error(jsx(Stack, { semantics: "table" }), "invalid-prop");
+  error(jsx(Stack, { semantics: "section", label: "x".repeat(81) }), "invalid-prop");
+  error(jsx(Inline, { semantics: "term", children: jsx(Text, { text: "Loose" }) }), "invalid-children");
+  error(jsx(Box, { semantics: "detail", children: jsx(Text, { text: "Loose" }) }), "invalid-children");
+  error(jsxs(Stack, { semantics: "terms", children: [jsx(Text, { text: "Not a term" })] }), "invalid-children");
+});
+
 test("inputs_and_output_are_deeply_frozen_and_metadata_is_preserved", () => {
   const element = jsx(Stack, {});
   expect(Object.isFrozen(element)).toBe(true);

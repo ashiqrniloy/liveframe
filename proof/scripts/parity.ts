@@ -15,14 +15,24 @@ await mkdir(out, { recursive: true });
 
 const artifactPath = "proof/references/synapta-core/design-artifacts/approved/agent-home-certified.html";
 const artifact = await Bun.file(artifactPath).text();
+const fontRoot = resolve("proof/references/synapta-core/design-artifacts/fonts");
+const snapshotFont = (pathname: string) => {
+  const file = resolve(fontRoot, `.${pathname.slice("/fonts".length)}`);
+  return file.startsWith(`${fontRoot}${sep}`) ? Bun.file(file) : null;
+};
 const host = await startHost(0);
 const reference = Bun.serve({
   hostname: "127.0.0.1",
   port: 0,
-  fetch: (request) =>
-    new URL(request.url).pathname === "/artifact"
-      ? new Response(artifact, { headers: { "Content-Type": "text/html; charset=utf-8" } })
-      : new Response("Not in the pinned snapshot", { status: 404 }),
+  fetch: (request) => {
+    const pathname = new URL(request.url).pathname;
+    if (pathname === "/artifact")
+      return new Response(artifact, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+    const font = pathname.startsWith("/fonts/") ? snapshotFont(pathname) : null;
+    return font
+      ? new Response(font, { headers: { "Content-Type": "font/woff2" } })
+      : new Response("Not in the pinned snapshot", { status: 404 });
+  },
 });
 const browser = await chromium.launch({ headless: true, timeout: 30000 });
 const properties = [
@@ -56,11 +66,45 @@ const different = (before: string, after: string) => {
 };
 assert(!different("10px", "10.5px") && different("10px", "10.51px") && different("grid", "flex"));
 
-async function capture(page: Page, approved: boolean, width: number) {
-  const selector = approved ? '[data-widget="core.queue"]' : "#app > div";
+async function capture(page: Page, approved: boolean, width: number, align?: { x: number; y: number }) {
+  const selector = approved ? '[data-widget="core.queue"]' : "#app > :first-child";
   const region = page.locator(selector);
   assert.equal(await region.count(), 1, `Expected one queue: ${selector}`);
-  await page.evaluate(() => document.fonts.ready);
+  // Sub-pixel glyph rasterisation depends on the page offset: a region drawn at another fraction of a
+  // pixel differs in antialiasing alone. Draw the widget at the artifact's own offset before capturing.
+  const origin = await region.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return { x: box.x + scrollX, y: box.y + scrollY };
+  });
+  if (align) {
+    await page.evaluate(
+      ({ dx, dy }) => {
+        document.body.style.paddingLeft = `${dx}px`;
+        document.body.style.paddingTop = `${dy}px`;
+      },
+      { dx: align.x - origin.x, dy: align.y - origin.y },
+    );
+  }
+  await page.evaluate(async () => {
+    // Load both faces explicitly: a page that draws no mono text would otherwise leave Martian Mono unloaded.
+    await Promise.all([document.fonts.load('16px "Schibsted Grotesk"'), document.fonts.load('16px "Martian Mono"')]);
+    await document.fonts.ready;
+  });
+  const fonts = await page.evaluate(() => ({
+    loaded: [...document.fonts].filter((face) => face.status === "loaded").map((face) => face.family),
+    schibsted: document.fonts.check('16px "Schibsted Grotesk"'),
+    martian: document.fonts.check('16px "Martian Mono"'),
+  }));
+  assert(
+    fonts.schibsted &&
+      fonts.martian &&
+      ["Schibsted Grotesk", "Martian Mono"].every((face) => fonts.loaded.includes(face)),
+    `Fonts not loaded: ${JSON.stringify(fonts)}`,
+  );
+  const placed = await region.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return { x: box.x + scrollX, y: box.y + scrollY };
+  });
   await page.screenshot({
     path: `${out}/${width}-${approved ? "approved" : "widget"}-page.png`,
     fullPage: true,
@@ -87,25 +131,26 @@ async function capture(page: Page, approved: boolean, width: number) {
       const firstRow = elements.find(
         (element) => element.tagName === "BUTTON" && text(element).startsWith("Apply the vendor"),
       );
+      const card = approved ? root.querySelector("article") : heading?.closest("article");
       const anchors: Record<string, Element | null | undefined> = {
         queue: root,
-        header: approved ? root.querySelector("header") : root.firstElementChild?.firstElementChild,
+        header: root.querySelector("header"),
         title: exact("Queue"),
         checked: exact("Checked 2026-09-28 14:02 UTC"),
         tabs: root.querySelector('[role="tablist"]'),
         tab: root.querySelector('[role="tab"]'),
-        grid: approved ? root.querySelector(".grid-2--queue") : root.querySelector('[class*="lf-grid-"]'),
-        focus: approved ? root.querySelector(".focus") : heading?.parentElement?.parentElement?.parentElement,
-        card: approved ? root.querySelector("article") : heading?.parentElement?.parentElement,
+        grid: approved ? root.querySelector(".grid-2--queue") : card?.parentElement?.parentElement,
+        focus: approved ? root.querySelector(".focus") : card?.parentElement,
+        card,
         cardTitle: heading,
         kicker: exact("Decision · Synapta prepared this for you"),
         review: exact("Review and decide")?.closest("a,button"),
-        rows: approved ? root.querySelector("aside") : firstRow?.parentElement?.parentElement?.parentElement,
+        rows: root.querySelector("aside"),
         row: firstRow,
-        rowTitle: approved ? root.querySelector(".line__title") : firstRow?.querySelector("span"),
+        rowTitle: approved ? firstRow?.querySelector(".line__title") : firstRow?.querySelector("span"),
         category: exact("Decisions"),
-        pager: approved ? root.querySelector(".cursor-nav") : exact("Showing 6")?.parentElement,
-        next: exact(approved ? "Next" : "Load more")?.closest("button"),
+        pager: approved ? root.querySelector(".cursor-nav") : root.querySelector("nav"),
+        next: exact("Next")?.closest("button"),
       };
       const styles = Object.fromEntries(
         Object.entries(anchors).map(([name, element]) => {
@@ -154,10 +199,6 @@ async function capture(page: Page, approved: boolean, width: number) {
         dom,
         styles,
         text: text(root),
-        fonts: {
-          schibsted: document.fonts.check('16px "Schibsted Grotesk"'),
-          martian: document.fonts.check('16px "Martian Mono"'),
-        },
         viewport: { width: innerWidth, height: innerHeight },
         scrollWidth: root.scrollWidth,
         clientWidth: root.clientWidth,
@@ -165,7 +206,7 @@ async function capture(page: Page, approved: boolean, width: number) {
     },
     { approved, properties: [...properties] },
   );
-  return { png: png.toString("base64"), snapshot };
+  return { png: png.toString("base64"), snapshot: { ...snapshot, fonts, origin: placed } };
 }
 
 async function pixelDiff(page: Page, before: string, after: string) {
@@ -277,7 +318,15 @@ try {
         assert.equal(extent.ratio, 0.5);
       }
       const approved = await capture(approvedPage, true, width);
-      const widget = await capture(widgetPage, false, width);
+      const widget = await capture(widgetPage, false, width, {
+        x: approved.snapshot.origin.x,
+        y: approved.snapshot.origin.y,
+      });
+      assert(
+        Math.abs(widget.snapshot.origin.x - approved.snapshot.origin.x) < 0.01 &&
+          Math.abs(widget.snapshot.origin.y - approved.snapshot.origin.y) < 0.01,
+        `Widget region is not aligned: ${JSON.stringify([approved.snapshot.origin, widget.snapshot.origin])}`,
+      );
       assert.equal(approved.snapshot.viewport.width, width);
       assert.equal(widget.snapshot.viewport.width, width);
       const identical = await pixelDiff(widgetPage, widget.png, widget.png);
@@ -305,10 +354,7 @@ try {
             disposition: "gap",
           }));
       });
-      assert(
-        diagnostics.every((entry) => entry.startsWith("404 /fonts/")),
-        diagnostics.join("\n"),
-      );
+      assert.equal(diagnostics.length, 0, diagnostics.join("\n"));
       const { png: _, ...pixelSummary } = pixels;
       const result = {
         width,

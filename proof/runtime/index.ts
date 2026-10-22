@@ -38,6 +38,7 @@ export const {
   Tooltip,
   Tabs,
   Tab,
+  Disclosure,
 } = primitives;
 export const proofCatalog = { catalogId: "proof@1", definitions } as const;
 export { WidgetError } from "./errors.ts";

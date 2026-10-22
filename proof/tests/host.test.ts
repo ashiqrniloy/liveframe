@@ -93,6 +93,19 @@ test("host_serves_reference_pages_and_rejects_invalid_requests", async () => {
   }
   expect((await fetch(new URL("/ui/missing", server.url))).status).toBe(404);
   expect((await fetch(new URL("/ui/core-queue?size=huge", server.url))).status).toBe(400);
+  for (const [path, bytes] of [
+    ["/fonts/schibsted-grotesk/latin-wght-normal.woff2", 46752],
+    ["/fonts/martian-mono/latin-wdth-normal.woff2", 38492],
+  ] as const) {
+    const response = await fetch(new URL(path, server.url));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("font/woff2");
+    expect((await response.arrayBuffer()).byteLength).toBe(bytes);
+  }
+  expect((await fetch(new URL("/fonts/../SOURCES.md", server.url))).status).toBe(404);
+  const page = await (await fetch(new URL("/ui/agent-home", server.url))).text();
+  expect(page).toContain('font-family: "Schibsted Grotesk"');
+  expect(page).toContain("font-stretch: 75% 112.5%");
   const first = await openSurface();
   const second = await openSurface();
   const body = {

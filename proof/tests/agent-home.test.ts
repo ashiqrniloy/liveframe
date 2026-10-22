@@ -28,18 +28,18 @@ const press = (surface: ReturnType<typeof session>, label: string) => {
 };
 const set = (surface: ReturnType<typeof session>, key: string, value: unknown) =>
   surface.dispatch(surface.snapshot().tree.revision, { type: "setState", key, value });
+const focusTitle = (surface: ReturnType<typeof session>) =>
+  all(surface)
+    .filter((node) => node.kind === "heading" && node.props.level === 2)
+    .at(-1)?.props.text;
 const offeredActions = (surface: ReturnType<typeof session>) =>
   all(surface).flatMap((node) => Object.values(node.events ?? {}).filter((intent) => intent.type === "action"));
 
 test("selecting_a_row_moves_its_card_to_focus", () => {
   const surface = session();
-  expect(all(surface).find((node) => node.kind === "heading" && node.props.level === 3)?.props.text).toBe(
-    agentHomeFixture.groups[0]?.pages[0]?.rows[0]?.title,
-  );
+  expect(focusTitle(surface)).toBe(agentHomeFixture.groups[0]?.pages[0]?.rows[0]?.title);
   press(surface, "Reassign the Hansen delivery milestone");
-  expect(all(surface).find((node) => node.kind === "heading" && node.props.level === 3)?.props.text).toBe(
-    "Reassign the Hansen delivery milestone",
-  );
+  expect(focusTitle(surface)).toBe("Reassign the Hansen delivery milestone");
   expect(offeredActions(surface)).toContainEqual({ type: "action", name: "tasks.claim", args: { id: "task-5531" } });
   press(surface, "Invoice INV-2099-438 was refused by the provider");
   expect(offeredActions(surface).map((intent) => intent.type === "action" && intent.name)).toEqual([
@@ -47,23 +47,41 @@ test("selecting_a_row_moves_its_card_to_focus", () => {
     "alerts.snooze",
     "alerts.snooze",
     "alerts.convert",
+    "queue.about",
   ]);
+});
+
+test("queue_structure_matches_the_artifact_landmarks", () => {
+  const tree = session().snapshot().tree;
+  const all = nodes(tree.root);
+  expect(all.some((node) => node.props.semantics === "section")).toBe(true);
+  expect(all.some((node) => node.props.semantics === "header")).toBe(true);
+  expect(all.some((node) => node.kind === "tabs")).toBe(true);
+  const article = all.find((node) => node.props.semantics === "article");
+  expect(article?.variant).toBe("plate");
+  expect(all.some((node) => node.props.semantics === "terms")).toBe(true);
+  expect(all.some((node) => node.props.semantics === "term")).toBe(true);
+  expect(all.some((node) => node.props.semantics === "detail")).toBe(true);
+  expect(all.filter((node) => node.kind === "disclosure")).toHaveLength(1);
+  expect(all.some((node) => node.kind === "menu" && node.props.label === "Widget options")).toBe(true);
+  expect(all.some((node) => node.props.semantics === "aside" && node.props.label === "Queue rows")).toBe(true);
+  expect(all.some((node) => node.props.semantics === "nav" && node.props.label === "Pagination")).toBe(true);
+  expect(all.some((node) => node.kind === "box" && node.variant === "callout")).toBe(true);
+  expect(all.filter((node) => node.kind === "button" && node.props.current === true)).toHaveLength(1);
+  expect(JSON.stringify(tree)).not.toContain("Selected · ");
 });
 
 test("filter_selects_a_visible_focus_and_load_more_advances_all_three_cursors", () => {
   const surface = session();
   set(surface, "filter", "tasks");
-  expect(
-    all(surface)
-      .filter((node) => node.kind === "heading" && node.props.level === 4)
-      .map((node) => node.props.text),
-  ).toEqual(["Tasks"]);
-  const first = press(surface, "Load more");
-  const next = nodes(first.tree.root).find((node) => node.props.label === "Load more")?.events?.onPress;
+  expect(all(surface).find((node) => node.kind === "text" && node.props.text === "Tasks")).toBeDefined();
+  expect(focusTitle(surface)).toBe("Reassign the Hansen delivery milestone");
+  const first = press(surface, "Next");
+  const next = nodes(first.tree.root).find((node) => node.props.label === "Next")?.events?.onPress;
   expect(next).toEqual({ type: "setState", key: "cursors", value: { decisions: "d-2", tasks: "t-3", alerts: "a-2" } });
-  expect(JSON.stringify(first.tree)).toContain("Showing 3");
-  press(surface, "Load more");
-  expect(all(surface).some((node) => node.props.label === "Load more")).toBe(false);
+  expect(JSON.stringify(first.tree)).toContain("Showing 4");
+  press(surface, "Next");
+  expect(all(surface).some((node) => node.props.label === "Next")).toBe(false);
   set(surface, "filter", "all");
   expect(JSON.stringify(surface.snapshot().tree)).toContain("Showing 12");
 });
@@ -109,7 +127,7 @@ test("loading_empty_failed_and_permissions_fail_closed", () => {
   }
   const readonly = session({ ...queueParams, canAct: false });
   press(readonly, "Reassign the Hansen delivery milestone");
-  expect(offeredActions(readonly)).toEqual([]);
+  expect(offeredActions(readonly)).toEqual([{ type: "action", name: "queue.about", args: {} }]);
   expect(all(readonly).some((node) => node.props.label === "Escalate…" || node.props.label === "Reason")).toBe(false);
   expect(() => readonly.dispatch(2, { type: "action", name: "tasks.claim", args: { id: "task-5531" } })).toThrow();
   const restricted = session({ ...queueParams, canViewAlerts: false, canEscalate: false });
@@ -138,12 +156,10 @@ test("paging_preserves_selection_and_row_ids_and_rejects_old_or_forged_intents",
   const surface = session();
   press(surface, "Reassign the Hansen delivery milestone");
   const rowId = all(surface).find((node) => node.props.label === "Reassign the Hansen delivery milestone")?.id;
-  const oldCursor = all(surface).find((node) => node.props.label === "Load more")?.events?.onPress;
-  press(surface, "Load more");
+  const oldCursor = all(surface).find((node) => node.props.label === "Next")?.events?.onPress;
+  press(surface, "Next");
   expect(all(surface).find((node) => node.props.label === "Reassign the Hansen delivery milestone")?.id).toBe(rowId);
-  expect(all(surface).find((node) => node.kind === "heading" && node.props.level === 3)?.props.text).toBe(
-    "Reassign the Hansen delivery milestone",
-  );
+  expect(focusTitle(surface)).toBe("Reassign the Hansen delivery milestone");
   expect(() => surface.dispatch(surface.snapshot().tree.revision, oldCursor)).toThrow();
   expect(() => set(surface, "cursors", { decisions: "unknown", tasks: "t-2", alerts: "a-2" })).toThrow();
   set(surface, "filter", "alerts");

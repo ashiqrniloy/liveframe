@@ -1,6 +1,8 @@
 import { expect, test } from "bun:test";
 import { chromium } from "playwright";
 import { startHost } from "../host/server.ts";
+import { certifiedTheme } from "../styles/certified/theme.ts";
+import { rackTheme } from "../styles/rack/theme.ts";
 
 test("clay_panels_hydrate_under_rack_and_exercise_three_interaction_tiers", async () => {
   const server = await startHost(0);
@@ -62,6 +64,54 @@ test("clay_panels_hydrate_under_rack_and_exercise_three_interaction_tiers", asyn
       ),
     );
     expect(await page.getByRole("button", { name: "Send", exact: true }).isDisabled()).toBe(true);
+    // Indicators draw declared fill roles, so the switch repaints them: identity (patch) for both
+    // presentations of the session, accent for the Working lamp and the effort pips.
+    const indicators = () =>
+      page.evaluate(() => {
+        const pick = (role: string) =>
+          Array.from(document.querySelectorAll<HTMLElement>(`[style*="--lf-colour-${role}"]`)).map((element) => {
+            const style = getComputedStyle(element);
+            return {
+              role: style.getPropertyValue(`--lf-colour-${role}`).trim(),
+              fill: style.backgroundColor,
+              radius: style.borderTopLeftRadius,
+              width: style.width,
+              height: style.height,
+            };
+          });
+        return { patch: pick("patch-1"), accent: pick("accent-primary") };
+      });
+    const rack = await indicators();
+    // The rail patch and the composer patch carry the session's identity colour.
+    expect(rack.patch).toHaveLength(2);
+    for (const marker of rack.patch) {
+      expect(marker.role).toBe(rackTheme.colours["patch.1"]);
+      expect([marker.radius, marker.width, marker.height]).toEqual(["9999px", "8px", "8px"]);
+    }
+    expect(new Set(rack.patch.map((marker) => marker.fill)).size).toBe(1);
+    // One round lamp beside three narrow pips.
+    expect(rack.accent).toHaveLength(4);
+    expect(
+      rack.accent.filter((marker) => marker.radius === "9999px" && marker.width === "8px" && marker.height === "8px"),
+    ).toHaveLength(1);
+    expect(
+      rack.accent.filter((marker) => marker.radius !== "9999px" && marker.width === "4px" && marker.height === "8px"),
+    ).toHaveLength(3);
+    expect(new Set(rack.accent.map((marker) => marker.fill)).size).toBe(1);
+    expect(rack.patch[0]?.fill).not.toBe("rgba(0, 0, 0, 0)");
+    await page.getByLabel("Design system").selectOption("certified");
+    const certified = await indicators();
+    // Under Certified the same roles resolve through its palette aliases; the limitation stays data,
+    // not a widget workaround, and the pip corner follows the theme's radius value.
+    for (const marker of certified.patch) expect(marker.role).toBe(certifiedTheme.colours["patch.1"]);
+    expect(certified.patch[0]?.fill).not.toBe(rack.patch[0]?.fill);
+    expect(certified.accent[0]?.fill).not.toBe(rack.accent[0]?.fill);
+    expect(certified.accent.filter((marker) => marker.radius !== "9999px").map((marker) => marker.radius)).toEqual([
+      "2px",
+      "2px",
+      "2px",
+    ]);
+    await page.getByLabel("Design system").selectOption("rack");
     await page.goto(new URL("/ui/git-status?scenario=empty", server.url).toString());
     await page.getByText("No workspace roots", { exact: true }).waitFor();
     const bundle = await (await fetch(new URL("/client.js", server.url))).text();

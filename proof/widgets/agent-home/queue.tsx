@@ -3,10 +3,11 @@ import {
   action,
   Box,
   Button,
-  Grid,
   Heading,
   Inline,
-  Popover,
+  Menu,
+  MenuItem,
+  Separator,
   Stack,
   state,
   Tab,
@@ -35,16 +36,25 @@ export function AgentHomeQueue({ params, state: s, data }: QueueProps) {
   const rows = visible.flatMap((group) => group.rows);
   const focus = rows.find((row) => row.id === s.selected) ?? rows[0];
   const total = groups.reduce((sum, group) => sum + group.total, 0);
+  const showing = visible.reduce((sum, group) => sum + group.total, 0);
   const cursors = { ...s.cursors };
   for (const group of groups) if (group.next) cursors[group.id] = group.next;
   const more = groups.some((group) => group.next);
   return (
-    <Box surface="surface.raised" padding="space.4">
-      <Stack gap="space.4">
-        <Inline justify="between" wrap="wrap" gap="space.2">
-          <Heading text="Queue" level={2} />
-          <Text text={`Checked ${data.checked}`} textStyle="meta" tone="muted" />
-        </Inline>
+    <Box semantics="section" surface="surface.raised" radius="radius.plate" padding="space.5">
+      <Stack gap="space.3">
+        <Stack key="header" semantics="header" gap="space.0" marginBottom="space.3">
+          <Inline key="head" justify="between" align="end" wrap="wrap" gap="space.4" paddingBottom="space.2">
+            <Heading
+              key="title"
+              text="Queue"
+              level={2}
+              textStyle={{ base: "heading.2.compact", "bp.md": "heading.2" }}
+            />
+            <Text key="checked" text={`Checked ${data.checked}`} textStyle="fine" tone="muted" />
+          </Inline>
+          <Separator key="rule" />
+        </Stack>
         {!params.canAct && <Text key="readonly" text="Read-only desk" tone="info" />}
         {data.status === "loading" ? (
           <Stack key="loading" gap="space.2">
@@ -58,7 +68,9 @@ export function AgentHomeQueue({ params, state: s, data }: QueueProps) {
           <Stack key="failed" gap="space.3">
             <Heading text="The queue did not load" level={3} tone="danger" />
             <Text text="Synapta could not reach your queue just now. Your draft and the dock still work; try the queue again." />
-            <Button label="Retry the queue" onPress={action("queue.retry")} />
+            <Inline key="retry">
+              <Button label="Retry the queue" onPress={action("queue.retry")} />
+            </Inline>
           </Stack>
         ) : data.status === "empty" ? (
           <Stack key="empty" gap="space.2">
@@ -69,15 +81,23 @@ export function AgentHomeQueue({ params, state: s, data }: QueueProps) {
             />
           </Stack>
         ) : (
-          <Stack key="ready" gap="space.4">
+          <Stack key="ready" gap="space.3">
             <Tabs label="Queue category" value={s.filter} onChange={state.set("filter")}>
               <Tab key="all" value="all" label={`All ${total}`} />
               {groups.map((group) => (
                 <Tab key={group.id} value={group.id} label={`${group.label} ${group.total}`} />
               ))}
             </Tabs>
-            <Grid columns={["1fr", "1fr"]} gap="space.5" align="start">
-              <Stack key="focus" gap="space.3">
+            <Inline key="columns" wrap="wrap" gap="space.5" align="start">
+              <Stack
+                key="focus"
+                gap="space.3"
+                position={{ base: "static", "bp.md": "sticky" }}
+                insetTop="space.4"
+                width="size.rail"
+                grow={1}
+                shrink={1}
+              >
                 {focus?.category === "tasks" ? (
                   <TaskCard key={focus.id} task={focus} params={params} current={s} />
                 ) : focus?.category === "alerts" ? (
@@ -88,39 +108,71 @@ export function AgentHomeQueue({ params, state: s, data }: QueueProps) {
                   <Heading text="Nothing else waits on you" level={3} />
                 )}
               </Stack>
-              <Stack key="rows" gap="space.3">
-                {visible.map((group) => (
-                  <Stack key={group.id} gap="space.1">
-                    <Heading text={group.label} level={4} textStyle="label" />
-                    {group.rows.map((row) => (
-                      <QueueRow
-                        key={row.id}
-                        id={row.id}
-                        title={row.title}
-                        status={row.status}
-                        meta={row.meta}
-                        foldedAlerts={row.foldedAlerts ?? 0}
-                        selected={focus?.id === row.id}
-                      />
-                    ))}
-                    {group.rows.length === 0 && <Text text="Nothing else waits on you" tone="muted" />}
-                  </Stack>
-                ))}
-                <Inline gap="space.2" justify="between">
-                  <Text text={`Showing ${rows.length}`} textStyle="meta" />
-                  {more && <Button label="Load more" onPress={state.set("cursors", cursors)} />}
-                </Inline>
-                {data.stale && (
-                  <Text
-                    text="Stale · An item changed while this page was open. Reload to see it before deciding."
-                    tone="warning"
-                  />
-                )}
-              </Stack>
-            </Grid>
-            <Popover label="Widget options">
-              <Text text="About this widget: a synthetic queue composed from primitives." />
-            </Popover>
+              <Box key="rows" semantics="aside" label="Queue rows" width="size.rail" grow={0} shrink={1}>
+                <Stack gap="space.0">
+                  {visible.map((group, index) => (
+                    <Stack key={group.id} gap="space.0" marginTop={index === 0 ? "space.0" : "space.5"}>
+                      <Inline key="label" marginBottom="space.2">
+                        <Text text={group.label} textStyle="overline" tone="foil" />
+                      </Inline>
+                      {group.rows.map((row) => (
+                        <QueueRow
+                          key={row.id}
+                          id={row.id}
+                          category={group.id}
+                          title={row.title}
+                          status={row.rowStatus}
+                          meta={row.rowMeta}
+                          foldedAlerts={row.foldedAlerts ?? 0}
+                          selected={focus?.id === row.id}
+                        />
+                      ))}
+                      <Separator key="rule" />
+                      {group.rows.length === 0 && (
+                        <Inline key="empty">
+                          <Text text="Nothing else waits on you" textStyle="meta" tone="muted" />
+                        </Inline>
+                      )}
+                    </Stack>
+                  ))}
+                  <Inline
+                    key="pager"
+                    semantics="nav"
+                    label="Pagination"
+                    gap="space.3"
+                    justify="between"
+                    align="center"
+                    wrap="wrap"
+                    paddingTop="space.3"
+                  >
+                    <Text text={`Showing ${showing}`} textStyle="mono" tone="muted" />
+                    {more && (
+                      <Inline key="actions">
+                        <Button label="Next" onPress={state.set("cursors", cursors)} />
+                      </Inline>
+                    )}
+                  </Inline>
+                  {data.stale && (
+                    <Box key="stale" variant="callout" marginTop="space.3">
+                      <Stack gap="space.1">
+                        <Text key="word" text="stale" textStyle="mono.strong" tone="warning" />
+                        <Text
+                          key="body"
+                          text="An item changed while this page was open. Reload to see it before deciding."
+                          textStyle="meta"
+                          tone="muted"
+                        />
+                      </Stack>
+                    </Box>
+                  )}
+                </Stack>
+              </Box>
+            </Inline>
+            <Box key="footer" semantics="footer" variant="rule" paddingX="space.0" paddingBottom="space.0">
+              <Menu label="Widget options">
+                <MenuItem key="about" label="About this widget" onPress={action("queue.about")} />
+              </Menu>
+            </Box>
           </Stack>
         )}
       </Stack>

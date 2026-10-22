@@ -1,6 +1,18 @@
 /** @jsxImportSource ../runtime */
 import { expect, test } from "bun:test";
-import { action, Button, Grid, Heading, Menu, MenuItem, render, Stack, Text, WidgetError } from "../runtime/index.ts";
+import {
+  action,
+  Box,
+  Button,
+  Grid,
+  Heading,
+  Menu,
+  MenuItem,
+  render,
+  Stack,
+  Text,
+  WidgetError,
+} from "../runtime/index.ts";
 import type { Child } from "../runtime/types.ts";
 import { inputs, options } from "./runtime.test.ts";
 
@@ -59,5 +71,26 @@ function invalidProps() {
   <Text text="x" tone="red" />;
   // @ts-expect-error nested schemas remain typed
   <MenuItem label={42} />;
+  // @ts-expect-error radius takes a declared radius name or full
+  <Box radius="4px" />;
+  // @ts-expect-error position is a closed enum
+  <Box position="fixed" />;
+  // @ts-expect-error fill takes a declared fillable role
+  <Box fill="surface.raised" />;
+  // @ts-expect-error a responsive value needs its base value
+  <Grid columns={{ "bp.md": ["1fr"] }} />;
+  // @ts-expect-error breakpoints are declared
+  <Grid columns={{ base: ["1fr"], "bp.lg": ["1fr"] }} />;
+  // @ts-expect-error text alignment is a closed enum
+  <Text text="x" textAlign="justify" />;
 }
 void invalidProps;
+
+// Typed style props that must compile.
+function validProps() {
+  <Box position="sticky" insetTop="space.3" radius="radius.plate" fill="accent.soft" />;
+  <Grid columns={{ base: ["1fr"], "bp.md": ["1fr", "size.rail"] }} />;
+  <Text text="x" textAlign="center" />;
+  <Button label="x" align="start" />;
+}
+void validProps;

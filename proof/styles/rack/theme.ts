@@ -21,6 +21,7 @@ export const rackTheme = {
     "border.focus": "#0031a9",
     "text.muted": "#4f4f4f",
     "text.meta": "#6b6b6b",
+    "text.foil": "#624416",
     "text.disabled": "#6b6b6b",
     "text.status": "#000000",
     "text.kbd": "#000000",
@@ -56,11 +57,49 @@ export const rackTheme = {
       fontWeight: 400,
       lineHeight: 1.45,
     },
+    caption: {
+      fontFamily: 'Geist, Satoshi, system-ui, Cantarell, "Segoe UI", sans-serif',
+      fontSize: 11,
+      fontWeight: 400,
+      lineHeight: 1.4,
+    },
+    fine: {
+      fontFamily: 'Geist, Satoshi, system-ui, Cantarell, "Segoe UI", sans-serif',
+      fontSize: 12,
+      fontWeight: 400,
+      lineHeight: 1.4,
+    },
+    ui: {
+      fontFamily: 'Geist, Satoshi, system-ui, Cantarell, "Segoe UI", sans-serif',
+      fontSize: 13,
+      fontWeight: 500,
+      lineHeight: 1.45,
+    },
     label: {
       fontFamily: 'Geist, Satoshi, system-ui, Cantarell, "Segoe UI", sans-serif',
       fontSize: 12,
       fontWeight: 500,
       lineHeight: 1,
+    },
+    "label.small": {
+      fontFamily: 'Geist, Satoshi, system-ui, Cantarell, "Segoe UI", sans-serif',
+      fontSize: 11,
+      fontWeight: 500,
+      lineHeight: 1.1,
+    },
+    "label.strong": {
+      fontFamily: 'Geist, Satoshi, system-ui, Cantarell, "Segoe UI", sans-serif',
+      fontSize: 12,
+      fontWeight: 600,
+      lineHeight: 1,
+    },
+    overline: {
+      fontFamily: 'Geist, Satoshi, system-ui, Cantarell, "Segoe UI", sans-serif',
+      fontSize: 11,
+      fontWeight: 600,
+      lineHeight: 1.4,
+      letterSpacing: 0.06,
+      textTransform: "uppercase",
     },
     "heading.1": {
       fontFamily: 'Geist, Satoshi, system-ui, Cantarell, "Segoe UI", sans-serif',
@@ -74,6 +113,12 @@ export const rackTheme = {
       fontWeight: 600,
       lineHeight: 1.25,
     },
+    "heading.2.compact": {
+      fontFamily: 'Geist, Satoshi, system-ui, Cantarell, "Segoe UI", sans-serif',
+      fontSize: 15,
+      fontWeight: 700,
+      lineHeight: 1.25,
+    },
     "heading.3": {
       fontFamily: 'Geist, Satoshi, system-ui, Cantarell, "Segoe UI", sans-serif',
       fontSize: 15,
@@ -84,6 +129,12 @@ export const rackTheme = {
       fontFamily: '"Geist Mono", "JetBrains Mono", ui-monospace, "SFMono-Regular", "DejaVu Sans Mono", monospace',
       fontSize: 11,
       fontWeight: 400,
+      lineHeight: 1.4,
+    },
+    "mono.strong": {
+      fontFamily: '"Geist Mono", "JetBrains Mono", ui-monospace, "SFMono-Regular", "DejaVu Sans Mono", monospace',
+      fontSize: 11,
+      fontWeight: 500,
       lineHeight: 1.4,
     },
     meta: {

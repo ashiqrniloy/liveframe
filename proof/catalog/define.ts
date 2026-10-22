@@ -47,6 +47,12 @@ export type StyleProp =
   | "rows"
   | "area"
   | "surface"
+  | "fill"
+  | "radius"
+  | "position"
+  | "insetTop"
+  | "insetBottom"
+  | "textAlign"
   | "textStyle"
   | "tone";
 

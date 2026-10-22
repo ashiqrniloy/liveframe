@@ -1,0 +1,599 @@
+# Liveframe — Specification (v0.1 draft)
+
+Published on npm as `@arnilo/liveframe`: one package, with subpath exports for each part (§13).
+
+Drafted 2026-10-21 from two working implementations of the same idea:
+
+- **Synapta**, a multi-tenant web platform: TSX widgets on an SDK, with three interaction tiers.
+- **Clay**, a desktop editor on Tauri: server-driven UI with design-system recipes.
+
+This library takes Synapta's authoring and interaction model and Clay's styling model, and combines them.
+
+---
+
+## 1. Purpose
+
+A library for apps whose UI must change **at runtime** — by users, organisations or AI agents — **without a deployment**, while staying safe and looking exactly like the rest of the app.
+
+The app ships a small set of trusted **primitive components** and a **design system**. Everything above that is ordinary TSX code, written by people or agents and installed at runtime:
+
+- panels, widgets, cards, queues and whole screens
+- the reusable components inside them
+
+A new primitive is the only thing that needs a deployment. That happens only when the browser must *do* something new (a code editor, a chart engine, drag-and-drop).
+
+## 2. The model
+
+```
+ widget code (TSX, written by a human or an agent)
+        │  runs on the app's server / backend, in the app's sandbox
+        ▼
+ element tree  ──validate against the component definitions──►  UI tree (JSON)
+                                                                   │
+ browser / webview                                                 ▼
+   renderer draws the tree with the app's primitive React components,
+   styled by the active design system (recipes → CSS custom properties)
+        │
+        └── interactions: local (no round trip) · setState (re-run widget) · action (app operation)
+```
+
+There are four rules, and none of them is optional:
+
+1. Widget code never runs in the browser. Only the app's compiled primitives run there.
+2. The UI tree is data, and it is validated before the renderer reads it.
+3. Widget code never sets colours or raw CSS. Look comes from the design system; layout comes from token-constrained style props.
+4. A widget never holds authority. Data is resolved and actions are run by the app, as the viewer.
+
+## 3. What the library ships, and what the app provides
+
+| The library ships | The app provides |
+|---|---|
+| The format for component definitions (props, children, events, variants, slots, style props) | Its primitive set: definitions plus React implementations |
+| The format for themes and design systems (values, recipes), with a resolver and a CSS projection | Its themes and design systems |
+| The TSX SDK: JSX runtime, intent helpers, a codegen CLI for typed components | Where widget code runs: its sandbox, plugged in as a runner (§7.5) |
+| The validator for widget output | Its capabilities (§7.1): data sources, resolved as the viewer, and actions, each declared with schemas |
+| The React renderer and the interaction plumbing | Actions, authorised and executed by the app |
+| `pack()`, the record formats, the `Store` interface and two reference stores (§7.3–§7.4) | Its storage backend (database, tenancy, encryption), or a reference store |
+| The preview: runners, preview sessions, `<Preview>` and `liveframe preview capture` (§7.5), plus the authoring MCP server `liveframe mcp` (§13) | A preview page that mounts `<Preview>` |
+| A conformance test kit | Approval and placement of widgets |
+
+The library ships **no components, no visual style, no isolation sandbox, no storage backend, no authorisation and no layout shell**.
+
+## 4. Concepts
+
+| Term | Meaning |
+|---|---|
+| **Primitive** | A component implemented in the app's renderer, compiled in. Small and composable (box, text, button, menu…) |
+| **Definition** | The data contract of a primitive: props, children, events, variants, slots, style props |
+| **Catalog** | The app's versioned set of definitions and its vocabulary (`catalogId`, for example `acme.ui@1`) |
+| **Vocabulary** | The names the app declares for colour roles, typography roles, tones and design values (§6.5) |
+| **Capabilities** | The app's declared actions and data sources, with descriptions and schemas (§7.1) |
+| **Widget** | A TSX module plus a manifest: a pure function `(params, state, data, context) → element tree` |
+| **Composed component** | A plain TSX function built from primitives and imported by widgets. Not a catalog entry |
+| **UI tree** | The validated JSON tree the renderer draws |
+| **Intent** | What an interaction asks for: `setState` or `action` |
+| **Theme** | The only source of colour roles and typography roles |
+| **Design system** | Geometry, material and motion values, plus **recipes** that map each primitive's variant, slot and state to styles |
+| **Package** | An installed widget version: its manifest and compiled code, immutable and identified by a SHA-256 hash (§7.3) |
+| **Placement** | One package version placed in one host slot, with its params. Each placement has its own state |
+| **Store** | Where a host keeps packages, placements, state and installed styles across launches (§7.4) |
+| **Scenario** | A named set of fixture inputs a package carries, such as `default`, `empty` or `failed`. Every package has at least one (§7.3) |
+| **Runner** | Where widget code executes. The app's sandbox is one; preview and production use the same runner (§7.5) |
+
+## 5. Component definitions
+
+A definition is pure data. The SDK types, the validator, the renderer and the agent-facing docs are all generated from it.
+
+```ts
+export const Button = defineComponent({
+  kind: "button",
+  description: "Runs one intent when pressed.",           // read by agents and generated docs
+  props: {
+    label: str({ maxLength: 80 }),
+    icon: optional(iconName()),
+  },
+  variants: ["default", "primary", "danger", "ghost"], // recipe axis
+  defaultVariant: "default",
+  slots: ["root", "label", "icon"],                     // recipe targets
+  events: { onPress: { carries: "none", description: "Pressed by pointer, Enter or Space." } },
+  styleProps: ["width", "grow"],                         // author-settable layout props
+  children: "none",
+  a11y: { role: "button", name: "label" },
+});
+```
+
+A definition declares:
+
+- **`description`**: what the primitive is for, in one or two sentences. Agents and generated docs read it.
+- **`props`**: a closed schema per prop, in the schema language below. Data only: no functions, no React nodes.
+- **`children`**: `none`, `any`, or a list of allowed kinds with min/max counts.
+- **`events`**: the events the primitive can raise, what value each carries (`none`, `string` or `boolean`) and a description. Each event takes exactly one intent.
+- **`variants`** and **`defaultVariant`**: the closed variant axis that recipes key on, and the variant a node without one gets. The app chooses each kind's variants; a `box` may declare look variants such as `plate` or `rule` so that borders and rules stay recipe data.
+- **`slots`**: the named parts of the primitive that recipes style.
+- **`styleProps`**: which token-constrained layout props an author may set (see §6.3).
+- **`a11y`**: the role, and which prop provides the accessible name.
+- **`deprecated`** (optional): why the primitive or a prop is deprecated and what replaces it.
+
+**The schema language.** Props, params, state, context, action arguments and data-source shapes all use one closed subset of JSON Schema 2020-12, in the spirit of JSON Type Definition (RFC 8927). Its forms are `string` (with `maxLength` in code points, and optional `pattern` and string `enum`), `number` and `integer` (with optional `minimum` and `maximum`), `boolean`, `array` (with `maxItems`) and `object` (closed: `additionalProperties: false`, with `required`). Every string and array is bounded: `maxLength` and `maxItems` are required. Any schema may carry `description` and `deprecated`. A schema outside the language is rejected at install.
+
+**The catalog.** A catalog is one document:
+
+```ts
+type Catalog = {
+  format: "liveframe-catalog/1";
+  catalogId: string;            // "acme.ui@1": a name and a major version
+  description: string;
+  vocabulary: Vocabulary;       // §6.5
+  definitions: Definition[];
+};
+```
+
+The **primitive set is per app**: a catalog is the app's contract, and portability comes from the formats, not from one mandated set (`decision-logs/2026-10-22-1905-phase-1-format-scope.md`).
+
+**Versioning.** A change that can break an existing widget or tree takes a new major `catalogId`: removing or renaming a kind, prop, variant, slot or event; narrowing a prop's type or bounds; making a prop required; changing an event's `carries`; or removing a vocabulary name. Adding a kind, an optional prop, a variant, a slot, an event or a vocabulary name keeps the id. The library classifies a change between two catalogs by these rules.
+
+**Primitive set.** The Phase 0 proof (§12, `proof/REPORT.md`) built four real UIs from the first 23 candidates without adding a product-shaped primitive. It also showed which generic capabilities were missing. The set is:
+
+- Layout: `box`, `stack`, `inline`, `grid`, `scroll`, `separator`
+- Content: `text`, `heading`, `icon`, `image`, `link`
+- Controls: `button`, `textField`, `select`, `checkbox`, `switch`
+- Overlays: `menu` / `menuItem`, `popover`, `dialog`, `tooltip`
+- Navigation: `tabs` / `tab`, `disclosure` (a summary label that expands its children locally, with `onToggle`)
+
+Additions the proof found necessary:
+
+- **Semantics on layout primitives.** `box`, `stack`, `inline` and `grid` take an optional closed `semantics` prop (`section`, `article`, `aside`, `header`, `footer`, `nav`, `list`, `listItem`, `terms`, `term`, `detail`) and an optional accessible `label`. Landmarks and description lists are structure, not styling.
+- **Selection state on `button`.** `current` and `pressed` expose a selected row or toggle to assistive technology.
+
+The icon glyph set is the app's: status marks and brand marks are icons, not primitives.
+
+Rule: **no product-shaped components in the catalog.** A queue, a metric card or a widget frame is a composed component written in TSX. If something can be built from primitives, it must be.
+
+## 6. Styling (Clay's model)
+
+Styling has three layers. Each one is inert data, validated, and installable at runtime.
+
+### 6.1 Theme: the only colour source
+
+A theme defines **colour roles** (`surface.base`, `surface.hover`, `text.primary`, `text.muted`, `border.hairline`, `accent.fill`, `status.critical`…) and **typography roles** (`body`, `label`, `heading.2`, `mono`…). A typography role sets family, size, weight and line height, and optionally `letterSpacing` (a bounded `em` value), `textTransform` (`none` or `uppercase`), `fontStretch` (a bounded percentage, for a face with width variants such as a mono at 87.5%) and `fontSizeAdjust` (an `ex-height` factor that normalises a face whose x-height differs from the design's, as `font-size-adjust` does). Matching an approved design is often a matter of these four fields, not of new primitives.
+
+- A colour value is a DTCG 2025.10 colour object: `{ colorSpace, components, alpha?, hex? }`, in any colour space DTCG lists. The projection converts it to CSS. A typography role follows the DTCG `typography` composite (`fontFamily`, `fontSize`, `fontWeight`, `letterSpacing`, `lineHeight` as a multiplier), with dimensions in `px` or `rem` and `letterSpacing` also in `em`; the four fields above extend it.
+- Nothing else in the system may introduce a colour.
+- The app declares the required role names (§6.5); a theme that misses one fails validation.
+- Light, dark and high-contrast are separate themes, or modes of one theme.
+- In forced-colours mode, OS system colours override everything.
+- The theme is the resolved set of roles. An app may assemble it from separate sources, such as a colour package and the user's own typography preferences. Whatever the sources, nothing outside the resolved theme introduces a colour or a typeface.
+
+### 6.2 Design system: values and recipes
+
+A design system contributes:
+
+- **Values**: typed, named design values, written as DTCG 2025.10 values: `dimension` (`px` or `rem`) for radius, border width, spacing, size, breakpoint and backdrop blur; `duration` (`ms` or `s`); `cubicBezier` for easing; `number` for opacity and saturation; and `shadow`, whose colour names a theme role, never a literal. `radius.control: 7`, `border.hairline: 1`, `motion.fast: 140`, `opacity.disabled: 0.5`, `blur.veil: 2`, `size.rail: 352`, plus a spacing scale `space.1…space.n`. Types include `radius`, `border-width`, `spacing`, `size`, `motion-duration`, `easing`, `opacity`, `backdrop-blur`, `shadow`, and `breakpoint` (container widths that responsive style values key on, §6.3). A `size` is a bounded length the design system owns, for a dimension no spacing step fits.
+- **Declared names.** The app declares the design-value names style props may reference: the `space.*` scale, the `radius.*` names, the `size.*` names and the breakpoint names. This mirrors how §6.1 declares required colour and typography roles. A design system that misses a declared name fails validation.
+- **Recipes**: keyed `<kind>.<variant>.<slot>.<state>`, each mapping to a typed style object. `<variant>` may be `*`, meaning every variant of the kind.
+- **Cascade.** The resolved style of `(kind, variant, slot, state)` merges, per property and in this order: `kind.*.slot.rest`, `kind.variant.slot.rest`, `kind.*.slot.state`, `kind.variant.slot.state`. A later entry wins.
+
+```json
+"button.primary.root.hover": {
+  "backgroundColor": "accent.fill.hover",
+  "textColor": "text.on-accent",
+  "borderColor": "border.hairline",
+  "borderWidth": "border.hairline",
+  "borderRadius": "radius.control",
+  "padding": "space.2",
+  "gap": "space.1",
+  "transitionDuration": "motion.fast",
+  "transitionTiming": "expo-out"
+}
+```
+
+- **States**: `rest`, `hover`, `active`, `focus`, `disabled`, `selected`, `invalid`, `open`.
+- **Recipe properties** are a closed, typed list fixed by the library: colours, borders (width per side or all sides, style), outline, radius, padding, gap, typography role, opacity, shadow, backdrop blur and saturation, transition (a duration and an easing value), and a pressed offset (a `translateY` dimension). Every property's value type is fixed. Product-specific names, such as an easing called `expo-out` or a transform preset, are design values, not recipe vocabulary.
+- **Recipes own the look; style props own the structure.** A recipe never sets display mode, flex or grid layout, tracks, content alignment, size or position: those are style props (§6.3) chosen by the widget. Structure must survive a design-system switch; look must change with it (`decision-logs/2026-10-22-0850-recipes-own-look-style-props-own-structure.md`).
+- **Colour-typed properties accept theme roles only.** Other properties accept design values or bounded literals of the right type.
+- **Not allowed:** raw CSS, selectors, scripts, or literal colours.
+- **Derivation:** a design system may `extends` another and override individual recipes or values.
+- **Completeness:** a design system is valid only if, after `extends` and the cascade, every `(kind, variant, slot)` the catalog declares has a `rest` style, and every kind that declares an event has a `focus` overlay. Other states are optional overlays on `rest`.
+
+### 6.3 Style props: what authors may set
+
+Widget authors never touch colour or recipes. They choose a primitive's **variant** and set its declared **style props**. Style props are layout-only and token-constrained:
+
+| Style prop | Accepts |
+|---|---|
+| `padding`, `gap`, `margin` (per side or axis) | `space.*` |
+| `direction`, `align`, `justify`, `wrap`, `textAlign` | Enums (`align` on `button` places its content) |
+| `width`, `height`, `minWidth`, `maxWidth` | `space.*`, `size.*`, `fill`, `fit`, fractions, or bounded `ch` / `%` |
+| `grow`, `shrink`, `basis` | Bounded numbers |
+| `columns`, `rows`, `area` (grid) | Bounded track lists, or area names; each track a fraction, `space.*` or `size.*` |
+| `position`, `inset*` | `static` or `sticky`; `space.*` |
+| `surface` (box) | A theme surface role, such as `surface.raised` |
+| `fill` (box) | A non-surface role the app declares fillable, such as a status or identity role, for small indicators |
+| `radius` (box) | A declared `radius.*` name, or `full` |
+| `textStyle`, `tone` (text) | A declared typography role; a declared tone, which the vocabulary maps to a colour role (§6.5) |
+
+**Responsive values.** Any style prop may take an object keyed by the breakpoint names the app declares, `base` first, such as `columns={{ base: ["1fr"], "bp.md": ["2fr", "1fr"] }}`. Each value must be valid for that prop, and an unknown key is an error. A value set at one breakpoint **holds at every wider one**, so a prop needs only the breakpoints where it changes; the projection chains each value through all narrower breakpoints rather than letting a wider key's absence reset it. Breakpoints are design-system container widths, so the layout follows the container the widget is placed in, not the viewport.
+
+The SDK types enforce these values, so `gap="space.3"` compiles and `gap="13px"` doesn't. The validator enforces them again on the output tree.
+
+### 6.4 How styling reaches the screen
+
+The library resolves the active theme, design system and recipes into **CSS custom properties**, plus one stable class per `(kind, variant, slot, state)`. Primitives read only those classes and variables, so restyling costs zero runtime JavaScript.
+
+Every surface root sets the theme's base typography, and every slot that draws text has a typography role. Nothing inherits the host page's fonts.
+
+A container query needs a containment context, which costs layout work even for a surface that never changes with width. The projection therefore emits the container only for a surface whose tree uses a responsive value; every other surface is a plain style target. Coverage is complete either way: the breakpoint is the nearest container, or the viewport when the app places the surface in none.
+
+Switching theme or design system swaps the variables atomically, with no re-render of widget code. An app on a non-CSS platform can replace the projection by implementing the resolver output itself.
+
+### 6.5 The declared vocabulary
+
+The app declares the **names** its widgets, themes and design systems share. The library fixes the **kinds** of name and their value types. This settles portability without imposing one naming scheme (`decision-logs/2026-10-22-1905-phase-1-format-scope.md`).
+
+```ts
+type Vocabulary = {
+  colourRoles: string[];                  // "surface.base", "text.muted", "accent.fill"…
+  surfaceRoles: string[];                 // a subset: what `surface` accepts
+  fillableRoles: string[];                // a subset: what `fill` accepts
+  tones: Record<string, string>;          // tone name → colour role, for `tone`
+  typographyRoles: string[];              // "body", "label", "heading.2", "mono"…
+  space: string[];                        // "space.0"…"space.7"
+  radius: string[];
+  size: string[];
+  breakpoints: string[];
+};
+```
+
+Fixed by the library: the kinds above, the states (§6.2), the recipe properties (§6.2), the style props and their value rules (§6.3), and the `semantics` values (§5). A theme must define every declared role, a design system every declared value name, and a catalog carries its vocabulary.
+
+## 7. Authoring and installing (Synapta's model)
+
+### 7.1 Widgets
+
+```tsx
+/** @jsxImportSource @arnilo/liveframe/sdk */
+import { Stack, Inline, Text, Button, Tabs, Tab, state, action, type WidgetProps } from "@arnilo/liveframe/sdk";
+import { TaskCard } from "./task-card";            // a composed component: plain TSX
+
+export default function QueueWidget({ state: s, data, context }: WidgetProps<Params, State, Data, Ctx>) {
+  const rows = data.queue.rows.filter((r) => s.filter === "all" || r.owner === "me");
+  return (
+    <Stack gap="space.3">
+      <Tabs value={s.filter} onChange={state.set("filter")}>
+        <Tab key="all" value="all" label="All" />
+        <Tab key="mine" value="mine" label="Mine" />
+      </Tabs>
+      {rows.map((r) => (
+        <TaskCard key={r.id} task={r}
+          onClaim={action("tasks.claim", { id: r.id })}
+          onEscalate={action("tasks.escalate", { id: r.id })} />
+      ))}
+      {data.queue.nextCursor && (
+        <Button variant="ghost" label="Load more"
+          onPress={state.set("cursor", data.queue.nextCursor)} />
+      )}
+    </Stack>
+  );
+}
+```
+
+The app publishes its **capabilities**: what a widget may read and ask for.
+
+```ts
+type Capabilities = {
+  format: "liveframe-capabilities/1";
+  actions: Record<string, { description: string; args: ObjectSchema; confirm?: boolean }>;
+  sources: Record<string, { description: string; params: ObjectSchema; result: Schema }>;
+};
+```
+
+A capability carries no authority. The app still authorises every read and every action as the viewer. Capabilities are how an author, person or agent, learns what exists, and what lets the validator check action arguments before they reach the dispatcher.
+
+A widget **manifest** declares:
+
+- `id` and `version`
+- the `catalogId` it targets
+- schemas for `params` (set where the widget is placed), `state` (changed by `setState`) and `context` (host-provided, for example `size`)
+- the **data sources** it reads: `sources: Record<dataKey, { source, params }>`. Each `source` names a declared capability, and each of its params is bound to a literal or to `{ from: "params" | "state" | "context", path }`, checked against the source's params schema. `data[dataKey]` holds the source's result
+- the **actions** it may invoke, each a declared capability
+- the **initial `state`**, valid against its schema, used for a new placement and when a stored state no longer fits (§7.4)
+
+The widget function's rules:
+
+- It is **pure and synchronous**. All four inputs are frozen. Time and randomness come only through `context`.
+- It returns **one root element**.
+- It uses only catalog primitives and composed components. **Host elements are errors** (`<div>`, `<span>`), and so are function props, promises, async functions, and string `className` or `style`.
+- Every element in a list needs a **`key`**. Node ids are key paths (`root/queue/row:4812/claim`), never positions, so the renderer keeps focus, scroll and local state across re-renders.
+- **Long lists are paged or windowed.** A widget renders what a surface shows, and loads more through `setState`. Render cost grows with node count, and performance budgets are measured on these realistic sizes.
+- **Composed components are ordinary functions** in the same bundle or in shared modules. They are expanded when the widget runs, and the UI tree contains only primitives.
+
+### 7.2 The SDK
+
+- `jsx`, `jsxs` and `Fragment` under `jsxImportSource: "@arnilo/liveframe/sdk"`. Elements are frozen records keyed by primitive kind.
+- `liveframe gen <catalog>` generates one typed component per definition. Props are readonly, each declared event becomes a typed event prop, docs come from the definition, and `--check` fails CI on drift.
+- `state.set(key, value?)` and `action(name, args)` return frozen intent data. Without a value, `state.set(key)` sends the value the event produced.
+- `render(widget, inputs, { catalog, actions }) → UI tree | WidgetError`. This runs the function, builds the tree with key-path ids, and validates it. Error kinds: `host-element`, `unknown-component`, `invalid-prop`, `invalid-children`, `missing-key`, `duplicate-key`, `undeclared-event`, `undeclared-action`, `function-prop`, `async-render`, `render-failed`, `limit-exceeded`.
+- The SDK runtime uses no host APIs (no `node:`, `bun:`, DOM or `require`), so it runs unchanged in any JS runtime and any sandbox the app chooses.
+
+### 7.3 Packages
+
+A widget is installed as a **package**: the unit the app stores, approves, places and loads into its sandbox. An author writes TSX, but a sandbox runs JavaScript, so installing starts with `pack()` (`@arnilo/liveframe/pack`):
+
+```ts
+pack({ files, entry, manifest, scenarios }, catalog) → WidgetPackage | PackError
+
+type WidgetPackage = {
+  format: "liveframe-package/1";
+  manifest: Manifest;           // id, version, catalogId, schemas, initial state (§7.1)
+  code: string;                 // one ES module; its default export is the widget function
+  scenarios: Scenario[];        // at least one
+  hash: string;                 // "sha256-…" over the canonical manifest, code and scenarios
+};
+
+type Scenario = {
+  name: string;                 // "default", "empty", "failed"…
+  params: Json;
+  context: Json;
+  state?: Json;                 // absent ⇒ the manifest's initial state
+  data: Record<string, Json>;   // keyed by the manifest's data source names
+};
+```
+
+`pack()`:
+
+- checks the manifest: its `catalogId` is the catalog's, its schemas are well formed, and its initial state matches its state schema;
+- checks the scenarios: at least one, unique names, params, state and context valid against the manifest's schemas, and data keyed by declared source names (and valid against the app's source schemas when the app supplies them);
+- transpiles the TSX and bundles the entry's relative imports into one module. A composed component is bundled into every package that imports it, so a package never depends on another;
+- rejects every other import except the SDK (`@arnilo/liveframe/sdk` and its JSX runtime), which the app's sandbox provides;
+- hashes the result.
+
+Rules:
+
+- **`pack()` never runs widget code.** Rendering a draft is the preview's job (§7.5), through the app's runner and under the app's policy.
+- **A package is immutable.** An `(id, version)` names exactly one hash, and storing different content under an existing pair is an error. A change is a new version, and rolling back means placing an older one.
+- **`verifyPackage(pkg, catalog)`** re-checks the format, the manifest, the scenarios and the hash without executing anything. The app runs it on every package it loads.
+- The package hash is the widget part of the re-run cache key (§8).
+- `/pack` is host-API-free, so the app can pack wherever it installs widgets.
+
+### 7.4 Storage
+
+A runtime change never edits the app's code. Everything that changes is a record, and keeping changes across launches means storing these records and reading them back:
+
+| Record | Holds | Key |
+|---|---|---|
+| Package | §7.3 | `(id, version)` |
+| Placement | `{ id, slot, widget: { id, version }, params }`; `slot` is the app's own name for where the surface goes | `id` |
+| State | The placement's widget state | placement `id` |
+| Style | An installed theme or design system: `{ kind: "theme" \| "designSystem", id, version, body }` | `(kind, id, version)` |
+
+`@arnilo/liveframe/store` defines the records and the interface every store implements:
+
+```ts
+interface Store {
+  putPackage(pkg: WidgetPackage): Promise<void>;          // rejects a second hash for an existing (id, version)
+  getPackage(id: string, version: string): Promise<WidgetPackage | undefined>;
+  putPlacement(placement: Placement): Promise<void>;
+  deletePlacement(id: string): Promise<void>;             // removes its state too
+  listPlacements(): Promise<Placement[]>;
+  putState(placementId: string, state: Json): Promise<void>;
+  getState(placementId: string): Promise<Json | undefined>;
+  putStyle(style: StyleRecord): Promise<void>;
+  getStyle(kind: StyleRecord["kind"], id: string, version: string): Promise<StyleRecord | undefined>;
+}
+```
+
+It also ships:
+
+- **`memoryStore()`**, for tests and ephemeral hosts.
+- **`fileStore(dir)`** (`@arnilo/liveframe/store/fs`), for a desktop or single-node app. It keeps one JSON file per record and writes each atomically: a temporary file, then a rename. It assumes one writing process.
+- **`loadPlacement(store, id, catalog)`**, which reads a placement, its package and its state, verifies all three, and returns `{ package, params, state }` or a typed error.
+
+Rules:
+
+- **A store is not trusted.** Like a tree arriving at the renderer (§10), every record read back is checked: the package by `verifyPackage`, the params against the package's params schema, and the state against its state schema. A state that no longer fits, typically after a placement moves to a new widget version, is reset to the manifest's initial state, and `loadPlacement` reports the reset. Any other failure is an error, never a silent fallback.
+- **A store holds one scope.** A multi-tenant app opens one store per tenant, or implements the interface over its own database and scopes it itself.
+- **Approval is the app's.** A stored package is inert until the app puts a placement for it. Which theme and design system are active, per user or organisation, is also an app setting.
+- **The conformance kit has a store suite** (§13), so an app's own store, for example over Postgres, proves it keeps these rules.
+
+### 7.5 Runners and preview
+
+Nobody publishes a widget blind. A person or an agent writes it, looks at it, changes it and looks again. Liveframe ships that loop; the app keeps the isolation.
+
+**Runners.** A runner is where widget code executes:
+
+```ts
+interface Runner {
+  render(pkg: WidgetPackage, inputs: WidgetProps, options: RenderOptions): Promise<UiTree | WidgetError>;
+}
+```
+
+- The app's sandbox is a runner. **Preview and production use the same runner**, so a preview shows what will run.
+- A runner enforces a time limit per render (default 100 ms) and returns `limit-exceeded` when it trips.
+- Liveframe ships two reference runners. **Neither is an isolation boundary**:
+  - `inProcessRunner()` (`/preview`), for tests and trusted code. It cannot interrupt a loop.
+  - `workerRunner()` (`/preview/worker`) runs packages in a worker and terminates it on a timeout or crash. It bounds time and crashes, not what the code can reach.
+
+**Scenarios** are required (§7.3). They are an author's test cases and a reviewer's view of the empty, failed and full states. The app may preview with live data resolved as the viewer instead of a scenario's data.
+
+**Preview sessions** (`/preview`, host-API-free). `createPreview({ catalog, runner, styles, sourceSchemas? })` returns a session on the app's backend:
+
+- `update({ files, entry, manifest, scenarios })` packs a draft, which is never stored, and returns its hash or the pack errors;
+- `render({ scenario, context?, state? })` renders the draft through the runner and returns the tree, or a `WidgetError` that names the node id;
+- `intent(intent)`: a `setState` updates the session's state and re-renders. An action is recorded in the session's intent log and **never dispatched**;
+- `check()` renders every scenario and returns each result, so an app can require all of them to render before approval.
+
+Publishing a previewed draft stores exactly that package, with the same hash. A draft is not a record. An app that keeps drafts across launches stores the draft's files itself.
+
+**`<Preview>`** (`/preview/react`) is mounted by the app inside its own page, so the draft draws with the app's primitives, CSS and shell. It shows a matrix of scenarios, container widths, themes and design systems, the intent log, and each error on its node. The selected cell lives in the URL (`scenario`, `width`, `theme`, `designSystem`), so a capture tool can address it. Like `<Surface>`, it receives trees through the app's transport, and draft code never runs in the browser.
+
+**Capture** (`liveframe preview capture <url>`) is for agents. It opens the app's preview page in a headless browser, captures each requested cell as a PNG plus an accessibility snapshot, and writes a JSON index of the results. Playwright is an optional peer dependency, used only by this command. The authoring MCP server (§13) exposes the same capture as a tool.
+
+## 8. Interaction (Synapta's three tiers)
+
+| Tier | Example | Where it runs | Round trip | Author writes |
+|---|---|---|---|---|
+| **1. Local** | Open a menu, hover, type in a field, switch a tab that needs no new data, expand a row | Inside the primitive's React implementation | None | Nothing |
+| **2. Declared state** | Change a filter, load the next page, select a row that changes what is shown | The app re-runs the widget with new `state`; the renderer reconciles the new tree by id | One, to where widgets run | `state.set(key, value?)` |
+| **3. Action** | Claim a task, run a command, save a record | The app's dispatcher: authorises as the viewer, confirms if irreversible, executes | One, to the app | `action(name, args)` |
+
+Rules:
+
+- **One intent per event.** If a primitive needs two behaviours, it gets two events.
+- **Inputs are local until they commit.** A `textField` keeps its value locally (tier 1). Its `onCommit` (Enter, blur, or a debounce the definition declares) carries the value as `setState`. To act on a typed value directly, an action intent names the argument the event's value fills: `action("tasks.escalate", { id }, { bind: "reason" })`. The validator checks that the event's `carries` type matches that argument's schema, and the app re-checks the filled arguments on dispatch.
+- **The app re-checks every intent.** The intent must be declared by the widget's manifest, and its args must match the action's schema in the app's capabilities. The validator checks this on every render; the app checks it again on dispatch. Intents carry no authority.
+- **State is owned by the app.** Widget state is persisted per placement, in the app's store (§7.4). The widget only ever receives it as input.
+- **Re-runs are cacheable.** A widget is pure, so the same widget version and the same inputs always produce the same tree. A host may skip a re-run, and the transfer, when the hash of the package (§7.3), `catalogId`, params, state, data and context is unchanged.
+
+## 9. The UI tree (wire format)
+
+The format is deliberately minimal. Nothing in the model needs more.
+
+```ts
+type UiTree = {
+  format: "liveframe/1";
+  catalogId: string;            // "acme.ui@1"
+  surfaceId: string;
+  revision: number;             // increases per render of this surface
+  root: UiNode;
+};
+type UiNode = {
+  id: string;                   // key path, stable across renders
+  kind: string;                 // a catalog primitive
+  variant?: string;
+  props: Record<string, Json>;
+  style?: Record<string, Json>; // declared style props only
+  events?: Record<string, Intent>;
+  children?: UiNode[];
+};
+type Intent =
+  | { type: "setState"; key: string; value?: Json }   // value absent ⇒ the event's value
+  | { type: "action"; name: string; args: Record<string, Json>; bind?: string }; // bind: the arg the event's value fills
+```
+
+- Each render sends the **whole tree**. The renderer reconciles by `id`, so unchanged nodes keep their DOM and local state.
+- A `revision` lower than the current one is ignored.
+- Compression comes before patches. The tree is repetitive JSON, so the transport's compression (gzip, brotli) shrinks it well. Patches are a later optimisation, added only if a measurement on a realistic tree shows they're needed.
+- Interop with A2UI or other formats is possible through a converter. It is not part of v1.
+
+## 10. Validation
+
+The validator runs on every rendered tree before it leaves the app's backend. The renderer re-checks structure on arrival, so it never trusts its transport.
+
+It checks:
+
+- every `kind` exists in the catalog
+- props match their schemas, and strings and arrays are bounded
+- children match the definition, and style props are declared and in range; a dimension that names a design value (`space.*`, `radius.*`, `size.*`, a breakpoint) fails when the app did not declare that name
+- variants exist
+- event names are declared, `setState` keys exist in the state schema and their values match it, action names are in the manifest, action args match the action's schema in the app's capabilities, and a `bind` names an argument whose type matches the event's `carries`
+- ids are unique and key-derived
+- limits hold: node count (default 5,000), depth (default 64), and tree size in bytes (default 1 MiB), all configurable. Tree size is the UTF-8 length of the tree's `JSON.stringify` output, counted during the walk without serialising. String bounds count code points. The runner adds a time limit (§7.5)
+
+**Errors.** Every validator returns `{ ok: true, value } | { ok: false, errors }`. A failed validation returns every error it found, up to a bound (default 20), so an author or agent fixes them in one round. Each `LiveframeError` is `{ kind, pointer, message, expected?, nodeId? }`: `pointer` is a JSON Pointer into the document (the empty string at its root), `expected` is the rule that failed, in words an agent can act on, and `nodeId`, when present, is the key path of the UI node. Tree and rendering errors use the §7.2 kinds. Install-time errors use `invalid-document` (malformed structure or value), `unknown-name` (an undeclared name), `incomplete-design-system` (a missing required recipe), `colour-outside-theme` (a colour outside the theme's authority), `catalog-mismatch` (a different catalog identity) or `cyclic-extends` (a derivation cycle).
+
+The validator is **compiled per catalog**: when the catalog, vocabulary, capabilities and manifest are loaded, each definition and schema becomes a closure over precomputed sets and checks, instead of schemas interpreted on every render. It never uses `eval` or the `Function` constructor, which content security policies and some sandboxes forbid. Its per-node checks are what `render()` calls while it builds the tree, so building and validating are one pass; the same validator re-checks a whole tree on arrival. In the Phase 0 proof, validation is more than half of a render's cost, and building the tree checks the same props a second time. Build and validate become one pass (`docs/model.md`, "Performance"; `decision-logs/2026-10-22-1540-typescript-runtime-render-budget.md`).
+
+It validates every other format on install: a catalog's definitions and schema language, the vocabulary, the capabilities, a manifest against its catalog and capabilities, a theme against the vocabulary (every role present), and a design system against the catalog and vocabulary (values typed, every declared name defined, recipes complete after the cascade, and no colour outside the theme). The library publishes a JSON Schema for every format (§13).
+
+## 11. Renderer
+
+`@arnilo/liveframe/react`:
+
+- **`<Surface tree={…} onIntent={…} fallback={…} />`** draws one surface.
+- **`implement(definition, Component)`** binds a primitive's React implementation. The implementation receives:
+  - `props`: validated values
+  - `slot(name)`: the class names for that slot in its current variant and state
+  - `emit(event, value?)`: raises the declared intent
+  - children, already rendered
+- At startup, a registry check fails if a catalog kind has no implementation.
+- Nodes render keyed by `id`. Unknown or invalid nodes render the app's `fallback`, never nothing.
+- Server-side rendering is supported.
+- `onIntent` hands `setState` and action intents to the app, which re-runs the widget or dispatches the action, then passes the new tree back in.
+- Recommended, not required: build interactive primitives on a behaviour library such as React Aria, for accessibility.
+
+## 12. First task: prove the primitive set on two real UIs
+
+Before building the library, prove the model's central claim: **that a small primitive set, plus recipes and style props, can express real product UI with no product-shaped components.** Both source apps currently hit a wall here from opposite sides:
+
+- **Synapta's components are too big.** Its approved home design is blocked because `Queue` locks its card layout, controls and paging inside one component.
+- **Clay's primitives are too thin.** A `label` carries text, an icon and a few style variables.
+
+**Task.** Implement the primitive candidates (§5), both design systems as recipes, and the following four UIs as TSX widgets using **only** those primitives. Composed components are allowed; new primitives are not, until the gap is recorded.
+
+1. **Synapta's agent-home queue**, matching the approved design (`synapta-core`: `design-artifacts/approved/agent-home-certified.html`, the `core.queue` widget at lines 1137–1245, the focus cards at 1247–1320, the states at 1324–1357 and the escalate dialog at 1368–1383, as of commit `91de29ed`):
+   - a focus card with `Claim` / `Escalate…` on task cards, and `Acknowledge` / a `Snooze` menu / `Convert to task` on alert cards
+   - selecting a row moves its card into the focus position
+   - one "load more" control that advances three cursor chains
+   - the approved DOM structure and look, in the Certified design system
+   - The blocker this resolves is recorded in `synapta-core`: `plans/200.4-SdkComponentsRendererAndQueue.md`, task T4b.
+2. **Synapta's `core.queue` widget at all four sizes** (`small`, `medium`, `large`, `full`), from `synapta-core`: `product-modules/ui/core/widgets/queue/`.
+3. **Clay's git status panel** (`clay`: `packages/git/src/status.ts`, `buildGitStatusTree`) and **one Rack module panel**, in the Rack design system (`clay`: `packages/design-rack/package.json`, `uiDesignSystem`).
+4. **One design system switch.** The same widget from (1) or (3), rendered under both Certified and Rack with no change to widget code.
+
+**Acceptance criteria.**
+
+- All four UIs render from widget code plus primitives only. Any primitive added during the task is listed with the reason it could not be composed.
+- (1) matches the approved artifact in a side-by-side pixel and DOM comparison. Every intentional deviation is listed.
+- All three interaction tiers are exercised: local (menus, tabs, inputs), `setState` (filter, paging, row selection), and actions (claim, escalate, acknowledge, snooze).
+- Every style value in the widget code is a token or role; there are no literal colours or raw CSS.
+- The output is a short report with four parts:
+  - the final primitive list, with definitions
+  - the style props that were needed
+  - the gaps found, and how each was resolved
+  - a go/no-go on the model
+
+**Shortcuts allowed.** Fixture data instead of real backends. Widget code may run in-process in a test harness; a sandbox is not needed to answer this question. Only the parts of the SDK, validator and renderer that the four UIs need.
+
+**If it fails**, meaning a UI can't be expressed without product-shaped primitives or raw styling, stop and revisit §5 and §6 before building anything else.
+
+**Outcome (2026-10-22): go.** See `proof/REPORT.md` and `decision-logs/2026-10-22-1519-phase-0-go.md`.
+
+The first pass was a conditional go: all four UIs were built from the candidates and composed TSX, with no product-shaped primitive and no raw styling, all three tiers worked, and the switch needed no widget change, but the agent-home queue differed from the approved artifact by 36–50% of pixels because generic capabilities were missing. Plan 002 added them to §5 and §6.3–§6.4 and re-proved the comparison:
+
+- **pixel mismatch 0.72% / 0.75% / 0.97%** at 1440 / 1024 / 390 px, against the ≤ 1% bar, at region sizes equal to the artifact's, with no diagnostics;
+- every remaining difference listed and approved: ten DOM causes (each a markup choice of an existing primitive) and 32 style values (27 anchor correspondence, 3 recorded switch-budget choices, 2 not expressible with no visual effect), in `proof/PARITY.md`;
+- the artifact's two font faces snapshotted with licences and SHA-256, so typography is compared with the real faces.
+
+The one budget that does not hold is render cost: the artifact-faithful tree is 679 nodes at 50 rows (13.6 per row), and the proof's render path costs 8.5 µs per node, so its 50-row selection rerenders in 5.75 ms against a 2 ms bench. The owner accepted this as a rendering-path cost rather than a model finding, and made it Phase 1's exit criterion: **the real renderer and validator must stay at or below 3 µs per node** on the same benches (2 ms at 680 nodes), and the design-system switch at or below 16.67 ms.
+
+Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
+
+## 13. Tech stack and packages
+
+- TypeScript throughout. Bun to build and test. No WebAssembly, no Rust, no bundled isolation sandbox.
+- One npm package, **`@arnilo/liveframe`**, with a subpath export for each part:
+
+  | Import | Holds |
+  |---|---|
+  | `@arnilo/liveframe` | Definition, catalog, theme and design-system formats; the validator; the recipe resolver |
+  | `@arnilo/liveframe/sdk` | The JSX runtime (`/sdk/jsx-runtime`, `/sdk/jsx-dev-runtime`), intent helpers, and `render()` |
+  | `@arnilo/liveframe/react` | The renderer. `react` is an optional peer dependency, needed only by this import |
+  | `@arnilo/liveframe/css` | Projects a theme and design system into CSS custom properties and classes |
+  | `@arnilo/liveframe/pack` | `pack()` and `verifyPackage()` (§7.3) |
+  | `@arnilo/liveframe/store` | Record formats, the `Store` interface, `memoryStore()` and `loadPlacement()` (§7.4) |
+  | `@arnilo/liveframe/store/fs` | `fileStore(dir)`, which reads and writes the file system |
+  | `@arnilo/liveframe/preview` | The `Runner` interface, `inProcessRunner()` and `createPreview()` (§7.5) |
+  | `@arnilo/liveframe/preview/worker` | `workerRunner()`, which needs the `Worker` global |
+  | `@arnilo/liveframe/preview/react` | `<Preview>`. Like `/react`, it needs the optional `react` peer |
+  | `@arnilo/liveframe/conformance` | Shared tests for catalogs, design systems, renderers and stores |
+
+- A JSON Schema for every format is published at `@arnilo/liveframe/schemas/<format>.json`, so apps and agents in any language can validate the documents.
+- One CLI, `liveframe`, exposed through the package's `bin` (`liveframe gen`, `liveframe gen --check`, `liveframe preview capture`, `liveframe mcp`). `playwright` is an optional peer dependency, needed only by `preview capture`.
+- **`liveframe mcp`** is an authoring-time MCP server for coding agents. It lists primitives, roles and design-value names, shows the generated types, packs a draft and renders its scenarios through a preview session, and captures a preview. It never installs, places or approves a widget, and never runs an action. The MCP SDK is an optional peer dependency, needed only by this command.
+- Everything outside `/react`, `/css`, `/store/fs`, `/preview/worker`, `/preview/react` and the CLI is host-API-free, and CI checks it.
+- Split into separate packages only if a real consumer needs to version the parts independently.
+
+## 14. Non-goals for v1
+
+- Running widget code in the browser, including in preview.
+- Shipping components, a design system, an isolation sandbox (the reference runners in §7.5 are not one), a storage backend (the reference stores in §7.4 are not one), authorisation, approval flows or layout shells.
+- Migrating widget state between versions beyond resetting it to the initial state (§7.4).
+- Agent tooling beyond generated `.d.ts` for the catalog, structured validation errors, preview capture (§7.5) and the authoring MCP server (§13). Runtime agent tools that install, place or approve widgets stay the app's (`decision-logs/2026-10-22-0902-authoring-mcp-server-for-coding-agents.md`).
+- Renderers other than React.
+- Tree patches, and A2UI or other wire interop.
+
+## 15. Open decisions
+
+- The license.
+
+Settled before Phase 1 (`decision-logs/2026-10-22-1905-phase-1-format-scope.md`): the vocabulary's names are app-declared and its kinds library-fixed (§6.5); the primitive set stays per app (§5); an action intent may `bind` the event's value into one argument (§8, §9).

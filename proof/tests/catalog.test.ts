@@ -26,6 +26,7 @@ const candidates = [
   "popover",
   "dialog",
   "tooltip",
+  "disclosure",
   "tabs",
   "tab",
 ];
@@ -84,6 +85,12 @@ test("definitions_admit_no_colour_or_raw_style_props", () => {
     "rows",
     "area",
     "surface",
+    "fill",
+    "radius",
+    "position",
+    "insetTop",
+    "insetBottom",
+    "textAlign",
     "textStyle",
     "tone",
   ]);
@@ -102,7 +109,10 @@ test("definitions_admit_no_colour_or_raw_style_props", () => {
   inspect(definitions);
   for (const definition of catalog) {
     for (const prop of definition.styleProps) expect(styleProps.has(prop)).toBe(true);
-    if (definition.styleProps.includes("surface")) expect(definition.kind).toBe("box");
+    for (const prop of ["surface", "fill", "radius"] as const)
+      if (definition.styleProps.includes(prop)) expect(definition.kind).toBe("box");
+    for (const prop of ["textAlign"] as const)
+      if (definition.styleProps.includes(prop)) expect(["text", "heading"]).toContain(definition.kind);
   }
 });
 
@@ -110,14 +120,23 @@ test("references_are_all_attributed", async () => {
   const root = new URL("../references/", import.meta.url);
   const sources = await Bun.file(new URL("SOURCES.md", root)).text();
   const rows = [...sources.matchAll(/\| `([^`]+)` \| `([^`]+)` \| `([a-f0-9]{40})` \| (\d+)–(\d+) \|/g)];
+  const binaries = [
+    ...sources.matchAll(/\| `([^`]+)` \| `([^`]+)` \| `([a-f0-9]{40})` \| (\d+) \| `([a-f0-9]{64})` \|/g),
+  ];
   const files = [...new Bun.Glob("**/*").scanSync({ cwd: root.pathname, onlyFiles: true })]
     .filter((path) => path !== "SOURCES.md")
     .sort();
-  expect(rows.map((row) => row[1]).sort()).toEqual(files);
+  expect([...rows.map((row) => row[1]), ...binaries.map((row) => row[1])].sort()).toEqual(files);
   for (const [, path, repo, , first, last] of rows) {
     expect(path?.startsWith(`${repo}/`)).toBe(true);
     expect(first).toBe("1");
     const source = await Bun.file(new URL(path ?? "", root)).text();
     expect(Number(last)).toBe(source.split("\n").length - Number(source.endsWith("\n")));
+  }
+  for (const [, path, repo, , bytes, sha256] of binaries) {
+    expect(path?.startsWith(`${repo}/`)).toBe(true);
+    const source = new Uint8Array(await Bun.file(new URL(path ?? "", root)).arrayBuffer());
+    expect(source.byteLength).toBe(Number(bytes));
+    expect(Bun.CryptoHasher.hash("sha256", source, "hex")).toBe(String(sha256));
   }
 });

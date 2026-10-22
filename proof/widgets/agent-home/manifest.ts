@@ -8,6 +8,8 @@ export interface QueueItem {
   readonly title: string;
   readonly status: string;
   readonly meta: string;
+  readonly rowStatus: string;
+  readonly rowMeta: readonly string[];
   readonly kicker: string;
   readonly facts: readonly { readonly label: string; readonly value: string }[];
   readonly reference: string;
@@ -62,6 +64,7 @@ export const agentHomeActions = {
   "alerts.snooze": object({ id, duration: { type: "string", enum: ["hour", "day"] } }),
   "alerts.convert": object({ id }),
   "queue.retry": object({}),
+  "queue.about": object({}),
 };
 export const agentHomeOptions: RenderOptions = {
   catalog: proofCatalog,

@@ -2593,6 +2593,16 @@ export const rackSourceRecipes = {
 // Prefix mapping is explicit so absent source families cannot silently look complete.
 export const rackMappings: Readonly<Record<string, string>> = {
   "box.default.root": "panel.flat.root",
+  "box.default.rail": "divider.default.root",
+  "box.plate.root": "panel.default.root",
+  "box.plate.rail": "divider.default.root",
+  "box.rule.root": "divider.default.root",
+  "box.rule.rail": "divider.default.root",
+  "box.callout.root": "panel.tint.root",
+  "box.callout.rail": "divider.default.root",
+  "disclosure.default.root": "collapse.default.root",
+  "disclosure.default.summary": "collapse.default.header",
+  "disclosure.default.panel": "collapse.default.body",
   "stack.default.root": "stack.default.root",
   "inline.default.root": "flex.row.root",
   "grid.default.root": "stack.default.root",
@@ -2702,6 +2712,38 @@ seeds["image.default.root.rest"] = { backgroundColor: "colour.transparent" };
 seeds["link.default.root.focus"] = focus;
 seeds["link.default.root.rest"] = { ...seeds["link.default.root.rest"], typography: "body" };
 seeds["scroll.default.viewport.rest"] = {};
+// Every slot that draws text names a typography role, so no label falls back to the host page's fonts.
+const textRoles = {
+  "link.default.label": "body",
+  "button.default.label": "label",
+  "button.primary.label": "label",
+  "button.danger.label": "label",
+  "button.ghost.label": "label",
+  "textField.default.label": "label",
+  "select.default.label": "label",
+  "checkbox.default.label": "label",
+  "switch.default.label": "label",
+  "menuItem.default.label": "label",
+  "menuItem.danger.label": "label",
+  "menu.default.trigger": "label",
+  "popover.default.trigger": "label",
+  "tab.default.label": "label",
+  "dialog.default.title": "heading.3",
+  "tooltip.default.content": "label",
+  "button.default.root": "label",
+  "button.primary.root": "label",
+  "button.danger.root": "label",
+  "button.ghost.root": "label",
+  "textField.default.input": "body",
+  "select.default.trigger": "body",
+  "tab.default.root": "label",
+  "dialog.default.close": "label",
+  "disclosure.default.root": "body",
+  "disclosure.default.summary": "label",
+  "disclosure.default.panel": "body",
+} satisfies Record<string, NonNullable<Recipe["typography"]>>;
+for (const [prefix, role] of Object.entries(textRoles))
+  seeds[`${prefix}.rest`] = { ...seeds[`${prefix}.rest`], typography: role };
 
 export const rackDesignSystem = {
   id: "rack",
@@ -2715,6 +2757,10 @@ export const rackDesignSystem = {
     "space.5": { type: "spacing", value: 24 },
     "space.6": { type: "spacing", value: 32 },
     "space.7": { type: "spacing", value: 48 },
+    "size.rail": { type: "size", value: 352 },
+    "size.glyph": { type: "size", value: 15 },
+    "bp.sm": { type: "breakpoint", value: 384 },
+    "bp.md": { type: "breakpoint", value: 720 },
     "spacing.none": { type: "spacing", value: 0 },
     "spacing.xxs": { type: "spacing", value: 4 },
     "spacing.xs": { type: "spacing", value: 8 },

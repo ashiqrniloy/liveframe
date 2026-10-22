@@ -1,5 +1,5 @@
 import type { PropSchema } from "../catalog/define.ts";
-import { colourRoles, typographyRoles } from "../styles/types.ts";
+import { colourRoles, fillableRoles, typographyRoles, valueNames } from "../styles/types.ts";
 import { assertJson, freeze, isRecord } from "./data.ts";
 import { failure, WidgetError } from "./errors.ts";
 import type { RenderOptions, UiTree } from "./types.ts";
@@ -57,23 +57,42 @@ const enums: Readonly<Record<string, readonly string[]>> = {
   align: ["start", "center", "end", "stretch", "baseline"],
   justify: ["start", "center", "end", "between", "around", "evenly"],
   wrap: ["nowrap", "wrap"],
-  tone: ["default", "muted", "meta", "accent", "success", "warning", "danger", "info"],
+  position: ["static", "sticky"],
+  semantics: ["section", "article", "aside", "header", "footer", "nav", "list", "listItem", "terms", "term", "detail"],
+  textAlign: ["start", "center", "end"],
+  tone: ["default", "muted", "meta", "accent", "success", "warning", "danger", "info", "foil"],
   textStyle: typographyRoles,
   surface: colourRoles.filter((role) => role.startsWith("surface.")),
 };
+const declared = (names: readonly string[], value: unknown): boolean =>
+  typeof value === "string" && names.includes(value);
 function dimension(value: unknown): boolean {
   if (typeof value !== "string") return false;
-  if (/^space\.[0-7]$/.test(value) || value === "fill" || value === "fit") return true;
+  if (declared(valueNames.space, value) || declared(valueNames.size, value)) return true;
+  if (value === "fill" || value === "fit") return true;
   const match = /^(\d+(?:\.\d+)?)(fr|ch|%)$/.exec(value);
   return !!match && Number(match[1]) <= (match[2] === "fr" ? 12 : 100);
 }
 function checkStyle(key: string, value: unknown, path: string): void {
+  if (isRecord(value)) {
+    // A responsive value is closed data: `base` plus declared breakpoints, each holding one scalar value.
+    if (!Object.hasOwn(value, "base")) reject(`Responsive ${key} needs a base value`, path);
+    for (const [breakpoint, entry] of Object.entries(value)) {
+      if (breakpoint !== "base" && !declared(valueNames.breakpoint, breakpoint))
+        reject(`Unknown breakpoint ${breakpoint}`, `${path}/${breakpoint}`);
+      if (isRecord(entry)) reject("Responsive value must not nest", `${path}/${breakpoint}`);
+      checkStyle(key, entry, `${path}/${breakpoint}`);
+    }
+    return;
+  }
   let valid = false;
-  if (/^(padding|margin|gap)/.test(key)) valid = typeof value === "string" && /^space\.[0-7]$/.test(value);
-  else if (Object.hasOwn(enums, key)) valid = typeof value === "string" && !!enums[key]?.includes(value);
+  if (/^(padding|margin|gap|insetTop|insetBottom)/.test(key)) valid = declared(valueNames.space, value);
+  else if (Object.hasOwn(enums, key)) valid = declared(enums[key] ?? [], value);
   else if (["width", "height", "minWidth", "maxWidth"].includes(key)) valid = dimension(value);
   else if (["grow", "shrink", "basis"].includes(key))
     valid = typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100;
+  else if (key === "fill") valid = declared(fillableRoles, value);
+  else if (key === "radius") valid = value === "full" || declared(valueNames.radius, value);
   else if (key === "columns" || key === "rows")
     valid = Array.isArray(value) && value.length > 0 && value.length <= 12 && value.every(dimension);
   else if (key === "area")
@@ -147,7 +166,7 @@ function checkTree(value: unknown, options: RenderOptions): UiTree {
   const catalog = new Map(options.catalog.definitions.map((definition) => [definition.kind, definition]));
   const ids = new Set<string>();
   let count = 0;
-  function walk(node: unknown, parent: string | null, depth: number): void {
+  function walk(node: unknown, parent: string | null, depth: number, parentSemantics?: string): void {
     if (++count > budget.nodes || depth > budget.depth)
       throw new WidgetError("limit-exceeded", "Tree node or depth limit exceeded", parent ?? "root");
     if (!isRecord(node)) reject("Expected node", parent ?? "root");
@@ -183,6 +202,18 @@ function checkTree(value: unknown, options: RenderOptions): UiTree {
     }
     const children = node.children === undefined ? [] : node.children;
     if (!Array.isArray(children)) throw new WidgetError("invalid-children", "Expected children array", path);
+    const role = isRecord(node.props) && typeof node.props.semantics === "string" ? node.props.semantics : undefined;
+    if ((role === "term" || role === "detail") && parentSemantics !== "terms")
+      throw new WidgetError("invalid-children", "A term or detail belongs inside terms", path);
+    if (role === "terms")
+      for (const child of children) {
+        const childRole =
+          isRecord(child) && isRecord(child.props) && typeof child.props.semantics === "string"
+            ? child.props.semantics
+            : undefined;
+        if (!isRecord(child) || (childRole !== "term" && childRole !== "detail"))
+          throw new WidgetError("invalid-children", "Terms holds only term and detail children", path);
+      }
     if (definition.children === "none" && children.length)
       throw new WidgetError("invalid-children", "This primitive takes no children", path);
     if (typeof definition.children !== "string") {
@@ -195,7 +226,7 @@ function checkTree(value: unknown, options: RenderOptions): UiTree {
           throw new WidgetError("invalid-children", `Expected ${rule.min}–${rule.max} ${rule.kind} children`, path);
       }
     }
-    for (const child of children) walk(child, node.id, depth + 1);
+    for (const child of children) walk(child, node.id, depth + 1, role);
   }
   walk(value.root, null, 1);
   return freeze(value) as unknown as UiTree;

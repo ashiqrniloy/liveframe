@@ -68,11 +68,13 @@ test("agent_home_hydrates_selects_filters_pages_and_dispatches_card_controls", a
     await posted(page, () => page.getByRole("tab", { name: "Tasks 4", exact: true }).click());
     await page.getByRole("button", { name: "Claim", exact: true }).waitFor();
     expect(await page.getByRole("button", { name: "Acknowledge", exact: true }).count()).toBe(0);
-    await posted(page, () => page.getByRole("button", { name: "Load more", exact: true }).click());
-    await page.getByText("Showing 3", { exact: true }).waitFor();
-    await posted(page, () => page.getByRole("button", { name: "Load more", exact: true }).click());
+    await posted(page, () => page.getByRole("button", { name: "Next", exact: true }).click());
     await page.getByText("Showing 4", { exact: true }).waitFor();
-    expect(await page.getByRole("button", { name: "Load more", exact: true }).count()).toBe(0);
+    await posted(page, () => page.getByRole("button", { name: "Next", exact: true }).click());
+    expect(
+      await page.getByRole("button", { name: "Reassign the Hansen delivery milestone", exact: false }).count(),
+    ).toBeGreaterThan(0);
+    expect(await page.getByRole("button", { name: "Next", exact: true }).count()).toBe(0);
     const actions = JSON.parse((await page.locator("#actions").textContent()) ?? "null");
     expect(actions).toEqual([
       { type: "action", name: "tasks.claim", args: { id: "task-5531" } },

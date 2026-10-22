@@ -3,7 +3,9 @@ import { definitions } from "../catalog/definitions.ts";
 import { gitFixture, rackFixture } from "../host/fixtures/clay.ts";
 import { openPage } from "../host/pages.ts";
 import { createSurface } from "../host/state.ts";
+import { styleProps } from "../css/project.ts";
 import { buildGitStatusTree } from "../references/clay/packages/git/src/status.ts";
+import { fillableRoles } from "../styles/types.ts";
 import { render, type UiNode, WidgetError } from "../runtime/index.ts";
 import { GitStatus } from "../widgets/clay/git-status.tsx";
 import { gitOptions, initialRackState, rackActions, rackOptions } from "../widgets/clay/manifest.ts";
@@ -52,6 +54,33 @@ test("git_status_matches_builder_output_structure", () => {
   expect(git().find((node) => node.kind === "heading")?.props.text).toBe("Git");
 });
 
+test("rack_indicators_use_fillable_roles_and_round_radius", () => {
+  const tree = openPage("full", "rack-module").snapshot().tree;
+  const indicators = nodes(tree.root).filter((node) => node.style?.fill !== undefined);
+  // The rail patch, the Working lamp, the composer patch and the three effort pips.
+  expect(indicators.map((node) => node.id.split("/").at(-1))).toEqual(["patch", "lamp", "jack", "1", "2", "3"]);
+  const drawn = new Map(indicators.map((node) => [node.id.split("/").at(-1) ?? "", node]));
+  const round = (name: string | undefined) => {
+    const style = drawn.get(name ?? "")?.style;
+    if (!style) throw new Error(`Missing ${name}`);
+    return { ...styleProps(style) };
+  };
+  for (const node of indicators) {
+    expect(fillableRoles).toContain(node.style?.fill as never);
+    expect(node.style?.surface).toBeUndefined();
+    expect(node.style?.width).toBeDefined();
+    expect(node.style?.height).toBeDefined();
+  }
+  // Identity: both presentations of the session carry the same patch role.
+  expect(drawn.get("patch")?.style?.fill).toBe(drawn.get("jack")?.style?.fill);
+  // The source draws the rail patch, the composer patch and the lamp as circles; pips keep its 1 px corner.
+  for (const name of ["patch", "jack", "lamp"]) {
+    expect(round(name).borderRadius).toBe("9999px");
+    expect(round(name).backgroundColor).toMatch(/^var\(--lf-colour-/);
+  }
+  expect(round("1").borderRadius).toBe("var(--lf-value-radius-plate)");
+});
+
 test("empty_state_renders", () => {
   expect(
     git([])
@@ -93,6 +122,6 @@ test("agent_info_tabs_and_close_map_to_declared_intents", () => {
     for (const intent of Object.values(node.events ?? {}))
       if (intent.type === "action") expect(rackOptions.actions).toContain(intent.name);
   }
-  expect(all().filter((n) => n.kind === "box" && n.style?.surface === "surface.selected").length).toBe(5);
+  expect(all().filter((n) => n.style?.fill !== undefined).length).toBe(6);
   expect(JSON.stringify(openPage("full", "rack-module").snapshot().tree.root)).toContain("ContainerTrack.tsx");
 });

@@ -2,54 +2,88 @@
 
 Follow-ups handed off from plans. One entry per item; update an entry with the same source and title instead of duplicating it.
 
-## Phase 0 parity re-proof
+## Phase 1 performance gate: 3 µs per node
 
-- Section: Phase 0 (spec §5, §6.2–§6.4, §12)
+- Section: Phase 1 (spec §10, §12)
 - Priority: P1
-- Source: plans/001-Phase-0-Primitive-Set-Proof.md
+- Source: plans/002-Phase-0-Parity-Re-Proof.md (G32), plans/004-Phase-1-Part-B-Compiled-Validator.md
+- Status: validator share complete in plan 004; the full render gate remains Phase 2 Part A.
+- Measured (2026-10-22): `timeout 120s bun bench/validator.bench.ts` passed on Bun 1.4.2 / AMD Ryzen 9 PRO 7940HS. Agent-home: 679 nodes, 0.8361 ms, **1.231 µs/node**, compiled props **15.83×** over equal-work `checkValue`; all eight fixtures ≤ **1.399 µs/node**. See `plans/evidence/004-impact-analysis.md` for the full run and machine/load details. Full validation is not claimed faster than props-only interpretation.
 - What:
-  - Add the Task 12 spec additions to `proof/`: `disclosure`, layout `semantics`/`label`, button `current`/`pressed`, app-declared `box` variants, `breakpoint` values with responsive style values, `position`/`inset`, box `fill`/`radius`, `textAlign`/button `align`, and surface-root typography.
-  - Add rejection tests for `fill` (declared roles only) and responsive values (closed keys, per-value domains).
-  - Snapshot the artifact's Schibsted Grotesk and Martian Mono files.
-  - Re-run `proof/scripts/parity.ts` to ≤ 1% pixel mismatch at 1440/1024/390 px, or to an inventory where every remaining difference is intended.
-  - Re-measure the render budgets. The full core queue was at 1.702 ms against 2 ms.
-- Why: Phase 0 is a conditional go (`decision-logs/2026-10-22-0033-phase-0-conditional-go.md`). It closes, and Phase 1 starts, only when this passes. If closing a gap needs a product-shaped primitive or raw styling, §12's no-go path reopens.
+  - Phase 2 Part A holds **≤ 3 µs per node** through `render()`: 2 ms at the 679-node, 50-row agent-home selection tree, and `core.queue` medium…full under 2 ms at the same sizes. Reserve ≤ 1.5 µs/node for validation and ≤ 1.5 µs/node for the remaining render work; the measured agent-home validator leaves 1.769 µs/node below the total, but this is headroom, not a relaxed budget or proof of the SDK path.
+  - Run the equivalent `proof/tests/{agent-home,core-queue,runtime}.bench.ts` workloads against the new SDK and record the numbers in the Phase 2 Part A plan. The historical scripts import the proof runtime; running them unchanged cannot measure `src/`.
+  - Take the measured route, not a language change. Of the proof's 5.6 ms, the widget function is 0.12 ms, validation ≈ 3.2 ms and the build pass ≈ 2.1 ms. Build and validate in one pass, check input data once per resolution, and count bytes without stringifying the tree (`decision-logs/2026-10-22-1540-typescript-runtime-render-budget.md`).
+- Why: the proof's render path costs 8.5 µs per node (5.75 ms at 679 nodes) against a 2 ms bench, and the owner made the per-node conversion Phase 1's exit criterion (`decision-logs/2026-10-22-1519-phase-0-go.md`). The tree shape is fixed by the approved look, so the cost has to come out of validation, freezing and tree construction — the proof re-walks input data per render and re-checks every node with regex and linear `includes`.
 
-## Decide the spec §15 open items before Phase 1
+## Settled spec §15 format decisions
 
 - Section: spec §8, §9, §15
 - Priority: P2
 - Source: plans/001-Phase-0-Primitive-Set-Proof.md
-- What:
-  - Decide whether the primitive set becomes a standard contract every app must implement, or stays per app.
-  - Decide whether and how an event's value binds directly into an action argument in the intent format.
-- Why: Phase 1 freezes the formats. The proof worked around action arguments with commit-to-state, then a static action (`proof/REPORT.md` G18).
+- Status: closed by `decision-logs/2026-10-22-1905-phase-1-format-scope.md`, implemented in plan 003 and reconciled by Task 9.
+- Resolution: the primitive set stays per app (spec §5), and action intents may bind an event value into one argument (spec §8–§9). The intent type and structural schema are delivered; plan 004 Task 2 checks binding compatibility, and the SDK/renderer phases implement authoring and dispatch. The license remains the only open item in spec §15.
 
-## Later-phase gaps from the Phase 0 report
+## Composition surface gaps from the parity re-proof
+
+- Section: Phase 2 (spec §5, §6.3)
+- Priority: P3
+- Source: plans/002-Phase-0-Parity-Re-Proof.md (G30, G31)
+- What:
+  - Give `icon` a way to take a tone (G30): row markers and the kicker draw in `currentColor` where the artifact tints attention/danger/info/foil.
+  - Give `tab` a content slot so a count can carry its own face (G31): `All` and `12` are separate runs, 12 px mono 8 px apart.
+  - Decide the two expressiveness limits the look work found: `position` has no `relative` (no visual effect today), and `basis` accepts only px, so a flex ratio needs nested `width` + `grow` + `shrink`.
+- Why: all four are inside the ≤ 1% pixel bar today and none blocks Phase 1's freeze, but each is a real look or layout tool that composition code will ask for. They are composition-surface decisions (a style prop or a slot), not proof fixes.
+
+## Later-phase gaps from the Phase 0 reports
 
 - Section: Phases 1, 3 and 4 (spec §6.4, §8, §10, §11)
 - Priority: P2
-- Source: plans/001-Phase-0-Primitive-Set-Proof.md
+- Source: plans/001-Phase-0-Primitive-Set-Proof.md, plans/002-Phase-0-Parity-Re-Proof.md, plans/003-Phase-1-Part-A-Formats.md, plans/004-Phase-1-Part-B-Compiled-Validator.md
 - What:
-  - Phase 1: name the `textField` commit event `onCommit` (G19), and build the install validator for untrusted themes and design systems (G28).
-  - Phase 3: give every surface root and text slot theme typography (G12), scope the projection per surface (G27), and audit forced colours on real platforms (G29).
-  - Phase 4: enforce `maxLength` in code points, not UTF-16 units (G20), support app-owned icon sets (G26), and audit with assistive technology (G29).
-- Why: the proof built these parts proof-grade only. `proof/REPORT.md` §6 assigns each one to the phase that builds the real part.
+  - Closed in plan 003: G19's new-format catalog and tree fixtures use `textField.onCommit`; the historical proof keeps its event names. G28's reusable install validators for untrusted themes and design systems ship as `validateTheme` and `validateDesignSystem`, with bounded errors, role checks, literal checks and inheritance/completeness tests. Replacing the proof projector is Phase 3, not an outstanding install validator.
+  - Phase 3: scope the projection per surface (G27), close the cold container-query flip (G33 — the first design-system switch on a page pays ~17 ms building Blink's cache), and audit forced colours on real platforms (G29).
+  - G20's validator half is closed in plan 004: compiled string bounds count Unicode code points, with interpreter parity and surrogate coverage in `src/__tests__/{compiled-schema,validator-tree,validator-rules}.test.ts`. Phase 4 still owns code-point-aware text-field editing/commit enforcement; native HTML maxlength counts UTF-16 units and can reject valid non-BMP text early.
+  - Phase 4: complete G20's renderer half, support app-owned icon sets (G26), and audit with assistive technology (G29).
+- Why: the proof built these parts proof-grade only. Surface typography (G12) is closed: spec §6.4 now requires it and the proof proves it (`surface_text_never_inherits_host_fonts`). `proof/REPORT.md` §6 assigns each remaining one to the phase that builds the real part.
 
 ## Seed conformance suites from the proof tests
 
 - Section: Phase 5 (spec §13 `/conformance`)
 - Priority: P3
-- Source: plans/001-Phase-0-Primitive-Set-Proof.md
-- What: use `proof/tests/{catalog,styles,projection,renderer,renderer-browser}.test.*` as prior art for the catalog, design-system and renderer suites.
-- Why: these tests already enforce completeness, colour authority, the registry check and reconciliation against two real design systems.
+- Source: plans/001-Phase-0-Primitive-Set-Proof.md, plans/002-Phase-0-Parity-Re-Proof.md, plans/003-Phase-1-Part-A-Formats.md, plans/004-Phase-1-Part-B-Compiled-Validator.md
+- What: use the proof's suites as prior art — `proof/tests/`:
+  - `catalog.test.ts`, `styles.test.ts`, `projection.test.ts`, `renderer.test.tsx`, `renderer-browser.test.tsx` for definitions, completeness, colour authority, the registry check and reconciliation against two real design systems;
+  - `runtime.test.ts` for the closed-data checks Plan 002 added: `fill_accepts_only_declared_fillable_roles`, `responsive_style_values_are_closed_data`, `semantics_are_a_closed_enum_with_terms_child_rules`, `position_fill_radius_and_text_alignment_validate`;
+  - `agent-home-browser.test.ts` for disclosure, `aria-current`, semantics landmarks and the terms/term/detail rules;
+  - `proof/scripts/parity.ts` and `proof/scripts/inventory.ts` for the look bar itself: pixel capture, the capture-alignment rule, and the wrapper-collapsing inventory that turns a positional DOM count into causes.
+  - `src/__tests__/{schema,vocabulary,catalog,manifest,theme,design-system,resolve,tree,schemas,proof-formats,portability}.test.ts` for the published formats: closed data, bounded pointed errors, catalog versioning, capability/source bindings, font safety, colour authority, cascade/inheritance, strict schema agreement, reproducible proof recipes and host-API portability. Reuse these cases in the Phase 5 suites; do not import proof implementations into the core.
+  - `src/__tests__/{compiled-schema,validator-node,validator-tree,validator-rules,exports}.test.ts` for compiled/interpreted agreement, every spec §10 rule, bind/state/action compatibility, exact UTF-8 bytes, configurable traversal/error limits, pointed repair feedback and the public validator contract. Keep `validator-smoke.test.ts` and `bench/validator.bench.ts` as internal performance gates; transport arrival checks and dispatch-time authorisation still need Phase 4/host integration tests.
+- Why: these enforce completeness, colour authority and the parity method on two real design systems. The scripts matter as much as the tests: a future change that moves a pixel must re-capture with the artifact page origin aligned, or the number reports antialiasing rather than look.
 
 ## Hand adopter gaps to Synapta and Clay
 
 - Section: Phase 7 (reference hosts)
 - Priority: P4
-- Source: plans/001-Phase-0-Primitive-Set-Proof.md
+- Source: plans/001-Phase-0-Primitive-Set-Proof.md, plans/002-Phase-0-Parity-Re-Proof.md
 - What:
   - Synapta: Certified has no five-patch identity roles or diagnostic fill roles (G2).
+  - Synapta: the Certified look the parity work proved lives in `proof/styles/certified/` and must be ported to `synapta-core` — the typography roles (`fine`, `ui`, `caption`, `label.small`, `label.strong`, `mono.strong`, `overline`, `heading.2.compact`), `fontSizeAdjust` on the mono roles, the `foil` tone, `size.glyph`, `bp.sm`, the `plate`/`rule`/`callout` box recipes and the per-side border widths.
   - Clay: Rack's docs claim 273 recipes, but the manifest has 247 (G3); Rack recipes reference undeclared spacing and easing values (G5); Rack typography is user-owned, which spec §6.1 now allows through an assembled theme (G1).
-- Why: these are the source apps' own gaps. Record them for the adopters; never bend the library to them (problem class first).
+  - Clay: Rack's `box.default.root.rest` pads every box by 12 px, so the lamp, jack and pips clamp to 24 px instead of the declared 8/4 px. A bare box variant (or a padding-free recipe) would let a small indicator keep its size (G10).
+- Why: these are the source apps' own gaps, plus the look data this repo tuned in a copy. Record them for the adopters; never bend the library to them (problem class first).
+
+## Reconcile proof grid tracks before SDK and CSS integration
+
+- Section: Phase 2 Part A and Phase 3 (spec §6.3, §10, §12)
+- Priority: P2
+- Source: plans/004-Phase-1-Part-B-Compiled-Validator.md
+- What: when migrating the proof widgets to the SDK and CSS projector, replace their proof-only `"fit"` grid tracks with spec-valid composition and verify the same scenarios and visual parity. `proof/scripts/export-formats.ts` currently substitutes `"0fr"` in agent-home and medium/large/full core-queue benchmark trees; preserve the benchmark node counts. If valid composition cannot preserve the look, bring the concrete gap to the owner before changing §6.3.
+- Why: the compiled validator correctly rejects `"fit"` as a grid track; the exporter conversion proves transport validity and throughput, not visual equivalence. Phase 2 must not feed the unconverted proof trees to `render()` or claim parity from the converted benchmark fixtures alone. The approved proof UI and the spec remain unchanged in plan 004.
+
+## Exclude test fixtures from the release package
+
+- Section: Phase 6 (spec §13, release packaging)
+- Priority: P2
+- Source: plans/003-Phase-1-Part-A-Formats.md
+- What: before publishing, narrow the package file list or exclude `src/__tests__/`, and inspect a Bun-generated package archive. Assert it contains the public source/subpaths and published schemas while excluding tests, proof-derived catalogs, themes, design systems and benchmark trees.
+- Why: `package.json` currently includes all of `src`, including the committed proof fixtures. The package is private and unpublished, but the release must not ship an app's primitive catalog or visual style as library content. Preserve the local fixtures and their reproducibility tests.

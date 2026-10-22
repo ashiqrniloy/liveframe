@@ -1,5 +1,5 @@
 import { type ReactNode, useState } from "react";
-import { slotClasses, styleProps } from "../css/project.ts";
+import { hasResponsiveStyles, hasResponsiveValues, slotClasses, styleProps } from "../css/project.ts";
 import { WidgetError } from "../runtime/errors.ts";
 import type { Intent, Json, RenderOptions, UiNode, UiTree } from "../runtime/types.ts";
 import { validate } from "../runtime/validate.ts";
@@ -14,6 +14,11 @@ export interface SurfaceProps {
 }
 
 function Node({ node, surface }: { node: UiNode; surface: SurfaceProps }) {
+  // The nearest ancestor is the container; a responsive node queries its parent, not itself.
+  const container =
+    (node.children ?? []).some(hasResponsiveValues) || (node.id === "root" && hasResponsiveValues(node))
+      ? " lf-container"
+      : "";
   const implementation = surface.registry.get(node.kind);
   if (!implementation) return surface.fallback;
   const { Component, definition } = implementation;
@@ -38,7 +43,10 @@ function Node({ node, surface }: { node: UiNode; surface: SurfaceProps }) {
       layout={styleProps(node.style ?? {})}
       slot={(slot) => {
         if (!definition.slots.includes(slot)) throw new Error(`Unknown slot ${node.kind}.${slot}`);
-        return slotClasses(node.kind, node.variant ?? "default", slot);
+        const classes = slotClasses(node.kind, node.variant ?? "default", slot, node.style ?? {});
+        // The surface root carries the theme; the nearest ancestor of a responsive value is the query container.
+        if (slot !== "root") return classes;
+        return `${classes}${node.id === "root" ? " lf-surface" : ""}${container}`;
       }}
       emit={(event, value) => emitNode(node, event, value)}
     >

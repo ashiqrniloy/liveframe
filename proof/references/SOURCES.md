@@ -1,6 +1,6 @@
 # Phase 0 reference snapshots
 
-Captured 2026-10-21 for Plan 001 Task 1. These 20 files are verbatim, whole-file
+Captured 2026-10-21 for Plan 001 Task 1, plus 2026-10-22 for Plan 002 Task 2. These 25 files are verbatim, whole-file
 copies of committed Git blobs, not the sibling repositories' working trees.
 Paths below are relative to this directory; after the repository prefix they
 retain the original source path. Line ranges are inclusive in both copies.
@@ -19,6 +19,9 @@ Origin repositories (read-only):
 | `synapta-core/product-modules/ui/core/widgets/queue/widget.tsx` | `synapta-core` | `fc6df4b3a68e117c10120276193717e7213b07bf` | 1–529 |
 | `synapta-core/web/app/components/ui/queue.tsx` | `synapta-core` | `fc6df4b3a68e117c10120276193717e7213b07bf` | 1–298 |
 | `synapta-core/plans/200.4-SdkComponentsRendererAndQueue.md` | `synapta-core` | `fc6df4b3a68e117c10120276193717e7213b07bf` | 1–392 |
+| `synapta-core/design-artifacts/fonts/OFL-MartianMono.txt` | `synapta-core` | `fc6df4b3a68e117c10120276193717e7213b07bf` | 1–93 |
+| `synapta-core/design-artifacts/fonts/OFL-SchibstedGrotesk.txt` | `synapta-core` | `fc6df4b3a68e117c10120276193717e7213b07bf` | 1–93 |
+| `synapta-core/design-artifacts/fonts/SOURCES.md` | `synapta-core` | `fc6df4b3a68e117c10120276193717e7213b07bf` | 1–29 |
 | `clay/packages/git/src/status.ts` | `clay` | `7770d18cfa27d2c7c52417f95c40cd81f6228981` | 1–160 |
 | `clay/packages/design-rack/package.json` | `clay` | `7770d18cfa27d2c7c52417f95c40cd81f6228981` | 1–2622 |
 | `clay/packages/design-rack/docs/index.md` | `clay` | `7770d18cfa27d2c7c52417f95c40cd81f6228981` | 1–148 |
@@ -33,6 +36,23 @@ Origin repositories (read-only):
 | `clay/design-artifacts/approved/rack-kit-and-pages/kit.css` | `clay` | `7770d18cfa27d2c7c52417f95c40cd81f6228981` | 1–484 |
 | `clay/design-artifacts/approved/rack-kit-and-pages/rack.css` | `clay` | `7770d18cfa27d2c7c52417f95c40cd81f6228981` | 1–679 |
 | `clay/design-artifacts/approved/rack-kit-and-pages/theme.css` | `clay` | `7770d18cfa27d2c7c52417f95c40cd81f6228981` | 1–315 |
+
+## Binary snapshots
+
+The two font files are binary, so they are attributed by byte size and SHA-256
+instead of a line range. Both hashes match the table in the origin's own
+`design-artifacts/fonts/SOURCES.md`.
+
+| Snapshot path | Origin repo | Commit SHA | Bytes | SHA-256 |
+| --- | --- | --- | ---: | --- |
+| `synapta-core/design-artifacts/fonts/schibsted-grotesk/latin-wght-normal.woff2` | `synapta-core` | `fc6df4b3a68e117c10120276193717e7213b07bf` | 46752 | `4c8b93f431d462c696e12b9d6a033feb3394d36e66e781357c496b95d8a75e05` |
+| `synapta-core/design-artifacts/fonts/martian-mono/latin-wdth-normal.woff2` | `synapta-core` | `fc6df4b3a68e117c10120276193717e7213b07bf` | 38492 | `f9c1655c2c9d1ed5bb8b301a57d1169a1123ffef1a588dc50a7a487810f7d732` |
+
+Both faces are variable, latin subset, `normal` style, OFL 1.1 and
+redistributable with the two licence files above: Schibsted Grotesk covers
+`wght` 400–900, Martian Mono `wght` 100–800 at `wdth` 75%–112.5%. Certified's
+mono typography role names Martian Mono, and its width role asks for
+`font-stretch: 87.5%`, the same value the artifact's `--mono-stretch` uses.
 
 ## Relevant anchors
 
@@ -67,7 +87,9 @@ data, styles or design documentation. Credential-pattern and data review
 found no secret values or live tenant records; the Rust `token` field is a
 theme-role identifier, not a credential.
 
-These are inert references, never imported by Liveframe. Existing source
+These are inert references, never imported by Liveframe. The font files are
+served by the proof host and by the parity script's reference server at
+`/fonts/…`; nothing fetches them from the network at test time. Existing source
 imports and documentation links are preserved as evidence, not resolved
 against the sibling repositories. Biome excludes this directory so lint and
 formatting cannot rewrite the snapshots. Runtime fixtures and proof tests
@@ -77,8 +99,9 @@ belong outside this directory.
 
 Task 1 checked the complete file inventory against this table, validated
 each commit and inclusive line range, and compared every snapshot byte for
-byte with `git show <commit>:<origin-path>`. No permanent test is added in
-this task; Task 2 owns `references_are_all_attributed`.
+byte with `git show <commit>:<origin-path>`. Task 2 added the five font
+snapshot rows the same way, and `references_are_all_attributed` now checks the
+text rows and the binary size/hash rows on every run.
 
 For example, from the Liveframe root, this command reproduces the approved
 Synapta artifact on standard output without reading its working-tree copy:
