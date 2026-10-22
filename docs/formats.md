@@ -348,3 +348,85 @@ colour-space ranges. Vocabulary completeness and undeclared roles require
 `validateTheme`. The theme is the sole colour source; a design system will
 reference its roles. CSS projection and font loading belong to later phases
 and the host respectively.
+
+## Design systems and recipes
+
+`DesignSystem` is a `liveframe-design-system/1` document with `id`, `version`,
+optional `extends` (a registry id), `values`, and `recipes`. Install with
+`validateDesignSystem(document, { catalog, registry })`. The catalog and registry
+are host-supplied; registry keys equal their documents' ids. Ancestors may be
+partial, but the merged system must cover the catalog's vocabulary and recipes.
+Validation returns the original document or up to 20 pointed install errors.
+
+```ts
+import { resolveRecipes, validateDesignSystem } from "@arnilo/liveframe";
+
+const result = validateDesignSystem(document, { catalog, registry });
+if (result.ok) {
+  const recipes = resolveRecipes(result.value, { catalog, registry });
+  // recipes["button.primary.root.hover"] is a resolved property object.
+}
+```
+
+A named value is `{ kind, value }`. Its value follows the corresponding
+[DTCG 2025.10 shape](https://www.designtokens.org/tr/2025.10/format/):
+
+| Kind | Value and Liveframe bounds |
+| --- | --- |
+| `radius`, `border-width`, `spacing`, `size`, `breakpoint`, `backdrop-blur` | `{ value, unit: "px" \| "rem" }`, value 0–16384 |
+| `motion-duration` | `{ value, unit: "ms" \| "s" }`, value 0–60000 |
+| `easing` | Four coordinates `[x1, y1, x2, y2]`; x in 0–1, y in −100–100 |
+| `opacity` | Number in 0–1 |
+| `saturation` | Number in 0–10 (1 means unchanged) |
+| `shadow` | One layer or at most 16 layers; each has `color`, `offsetX`, `offsetY`, `blur`, `spread`, optional `inset` |
+
+Shadow `color` names a declared theme role; literal colours are rejected.
+Offsets and spread are dimensions in −16384–16384; blur is nonnegative.
+To vary shadow alpha, define theme roles with the desired alpha and reference
+those roles. Names have at most 64 characters and use lowercase dotted segments.
+Maps hold at most 1024 design values and 16384 recipes. All numbers must be finite.
+The system must supply every declared `space`, `radius`, `size` and breakpoint
+name with its matching kind.
+
+Recipe keys are `kind.variant.slot.state`; `*` in the variant position applies
+to every variant. Keys must name catalog kinds, variants and slots, and a fixed
+Liveframe state. Recipes accept only the exported `recipeProperties` list:
+
+| Properties | Accepted value |
+| --- | --- |
+| `backgroundColor`, `textColor`, `borderColor`, `outlineColor` | Declared theme colour role only |
+| `typography` | Declared typography role only |
+| `borderWidth`, per-side border widths, `outlineWidth` | `border-width` reference or dimension |
+| `borderRadius` | `radius` reference or dimension |
+| `padding`, `paddingX`, `paddingY`, `gap` | `spacing` reference or dimension |
+| `outlineOffset`, `translateY` | `spacing` reference or signed dimension |
+| `borderStyle`, `outlineStyle` | `solid`, `dashed` or `none` |
+| `opacity`, `backgroundOpacity` | `opacity` reference or number |
+| `shadow`, `backdropBlur`, `backdropSaturate`, `transitionDuration`, `transitionTiming` | Respectively `shadow`, `backdrop-blur`, `saturation`, `motion-duration`, `easing` reference or literal |
+
+A reference is a plain design-value name, such as `radius.control`; inline
+literals follow the shapes above. No property accepts raw CSS or selectors.
+
+```json
+{
+  "button.*.root.rest": { "borderRadius": "radius.control", "padding": "space.2" },
+  "button.primary.root.rest": { "backgroundColor": "accent.fill" },
+  "button.*.root.focus": { "outlineColor": "focus.ring", "outlineWidth": { "value": 2, "unit": "px" } }
+}
+```
+
+Inheritance merges parent values first, then child values; matching recipe keys
+merge per property, with child properties winning. Recipe resolution then merges
+wildcard rest, variant rest, wildcard state, variant state, in that order.
+All states resolve to rest plus their optional overlays. Every variant and slot
+needs a rest entry (an empty object counts); each interactive kind needs a focus
+overlay in at least one slot for each variant. A wildcard focus satisfies all
+variants. Validation reports missing entries as `incomplete-design-system` and
+cycles as `cyclic-extends`.
+
+`resolveRecipes` returns the flat table for every catalog variant, slot and state.
+It replaces design-value references with DTCG literals, preserving colour and
+typography role names. It does not mutate its inputs. Call it after validation;
+invalid input throws an error containing the install errors. The published
+`@arnilo/liveframe/schemas/design-system.json` checks structure and bounds;
+installation additionally checks names, references, inheritance and completeness.

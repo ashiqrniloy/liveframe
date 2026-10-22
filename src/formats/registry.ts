@@ -1,3 +1,4 @@
+import { designSystemSchema } from "./design-system.ts";
 import { literal } from "../schema.ts";
 import { catalogSchema } from "./catalog.ts";
 
@@ -54,6 +55,7 @@ const schemaLanguage = {
 
 /** Add each format here; publishing and drift checks both read this registry. */
 export const formats = {
+  "design-system": designSystemSchema,
   theme: themeSchema,
   "schema-language": schemaLanguage,
   capabilities: { ...capabilitiesSchema, $defs: { ...schemaLanguage.$defs, objectSchema } },

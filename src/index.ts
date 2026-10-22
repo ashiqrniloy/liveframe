@@ -27,3 +27,13 @@ export {
 export { type Capabilities, validateCapabilities } from "./formats/capabilities.ts";
 export { type Manifest, validateManifest } from "./formats/manifest.ts";
 export { type Theme, validateTheme } from "./formats/theme.ts";
+export {
+  type DesignSystem,
+  type DesignSystemContext,
+  type DesignValue,
+  type Recipe,
+  type RecipeKey,
+  type ResolvedRecipe,
+  validateDesignSystem,
+} from "./formats/design-system.ts";
+export { type ResolvedRecipes, resolveRecipes } from "./resolve.ts";

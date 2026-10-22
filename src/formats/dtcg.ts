@@ -87,3 +87,36 @@ export const typographySchema = {
     fontWeight: { oneOf: [fontWeightNumber, fontWeightAlias] },
   },
 };
+
+// Geometry/motion bounds are Liveframe limits on the DTCG value shapes.
+export const designDimension = obj({ value: num({ minimum: 0, maximum: 16384 }), unit: dimension.properties.unit });
+export const signedDimension = obj({
+  value: num({ minimum: -16384, maximum: 16384 }),
+  unit: dimension.properties.unit,
+});
+export const duration = obj({
+  value: num({ minimum: 0, maximum: 60000 }),
+  unit: str({ maxLength: 2, enum: ["ms", "s"] }),
+});
+export const bezierCoordinate = num({ minimum: -100, maximum: 100 });
+export const cubicBezier = {
+  type: "array",
+  minItems: 4,
+  maxItems: 4,
+  prefixItems: [num({ minimum: 0, maximum: 1 }), bezierCoordinate, num({ minimum: 0, maximum: 1 }), bezierCoordinate],
+  items: false,
+} as const;
+export const roleName = str({ maxLength: 64, pattern: "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$" });
+export const shadowLayer = obj(
+  {
+    color: roleName,
+    offsetX: signedDimension,
+    offsetY: signedDimension,
+    blur: designDimension,
+    spread: signedDimension,
+  },
+  { inset: bool() },
+);
+export const shadowLayers = arr(shadowLayer, { maxItems: 16 });
+export const shadow = { oneOf: [shadowLayer, shadowLayers] };
+export type CubicBezier = readonly [number, number, number, number];
