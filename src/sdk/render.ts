@@ -11,6 +11,10 @@ import { Fragment } from "./jsx-runtime.ts";
 import type { WidgetProps } from "./types.ts";
 
 const FORMAT = "liveframe/1" as const;
+/** Matches the tree walker: JSON never nests deeper than this (spec §10). */
+const INPUT_DEPTH = 128;
+/** Data objects already checked and frozen; a host re-runs with the same resolved data (spec §8). */
+const checkedData = new WeakSet<object>();
 
 export type RenderLimits = {
   readonly nodes?: number;
@@ -89,6 +93,77 @@ export function render<P, S, D, C>(
       fail("invalid-children", `/${structureSink.nodeId}${suffix}`, expected, structureSink.nodeId);
     },
   };
+
+  /** Rejects a non-JSON input value (function, promise, class instance, NaN, cycle) at its pointer. */
+  function isJson(value: unknown, pointer: string, ancestors: Set<object>, depth = 0): boolean {
+    if (typeof value === "function") {
+      fail("invalid-prop", pointer, "JSON data, not a function");
+      return false;
+    }
+    if (isThenable(value)) {
+      fail("invalid-prop", pointer, "JSON data, not a promise");
+      return false;
+    }
+    if (value === null || typeof value === "string" || typeof value === "boolean") return true;
+    if (typeof value === "number") {
+      if (Number.isFinite(value)) return true;
+      fail("invalid-prop", pointer, "a finite number");
+      return false;
+    }
+    if (!Array.isArray(value) && !isRecord(value)) {
+      fail("invalid-prop", pointer, "plain JSON data");
+      return false;
+    }
+    if (depth >= INPUT_DEPTH) {
+      fail("invalid-prop", pointer, `data nested at most ${INPUT_DEPTH} deep`);
+      return false;
+    }
+    if (ancestors.has(value)) {
+      fail("invalid-prop", pointer, "acyclic data");
+      return false;
+    }
+    ancestors.add(value);
+    let valid = true;
+    if (Array.isArray(value)) {
+      for (let i = 0; i < value.length && valid; i++) valid = isJson(value[i], `${pointer}/${i}`, ancestors, depth + 1);
+    } else {
+      for (const key in value) {
+        if (!Object.hasOwn(value, key)) continue;
+        if (!isJson(value[key], at(pointer, key), ancestors, depth + 1)) {
+          valid = false;
+          break;
+        }
+      }
+    }
+    ancestors.delete(value);
+    return valid;
+  }
+
+  /** Freezes in place: inputs are never copied, and frozen data cannot be mutated behind the widget. */
+  function freezeDeep(value: unknown): void {
+    if (value === null || typeof value !== "object" || Object.isFrozen(value)) return;
+    for (const key in value) if (Object.hasOwn(value, key)) freezeDeep((value as Record<string, unknown>)[key]);
+    Object.freeze(value);
+  }
+
+  function checkInputs(): void {
+    const checks = validator.build.inputs;
+    const parts = [
+      ["params", checks.params],
+      ["state", checks.state],
+      ["context", checks.context],
+      ["data", checks.data],
+    ] as const;
+    for (const [name, check] of parts) {
+      const value = (inputs as Record<string, unknown>)[name];
+      if (name === "data" && value !== null && typeof value === "object" && checkedData.has(value)) continue;
+      const before = errors.length;
+      if (isJson(value, `/${name}`, new Set())) check(value, `/${name}`, sink);
+      if (errors.length > before || stopped) continue;
+      freezeDeep(value);
+      if (name === "data" && value !== null && typeof value === "object") checkedData.add(value);
+    }
+  }
 
   function full(): void {
     if (errors.length >= maxErrors) stopped = bounded = true;
@@ -407,6 +482,8 @@ export function render<P, S, D, C>(
   if (!Number.isSafeInteger(revision) || revision < 0)
     fail("invalid-prop", "", "a revision that is a non-negative safe integer", "root");
   if (errors.length) return { ok: false, errors };
+  checkInputs();
+  if (errors.length) return { ok: false, errors: finish() };
 
   let firstField = true;
   function treeField(name: string, valueBytes: number): void {

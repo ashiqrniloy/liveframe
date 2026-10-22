@@ -324,7 +324,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `encodeSegment` changed: `encodeURIComponent` escaped `:` to `%3A`, which contradicted the spec's `row:4812` example and the key-path grammar. One `replaceAll("%3A", ":")` keeps the colon readable; `/`, spaces and CJK still encode.
     - `bun run check` green (194 tests).
 
-- [ ] Task 5: Check inputs once per resolution, and prove `render()` deterministic
+- [x] Task 5: Check inputs once per resolution, and prove `render()` deterministic
   - Acceptance Criteria:
     - Functional:
       - `compileValidator` also compiles:
@@ -369,7 +369,15 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `data_checked_once_per_object`: the second render with the same data object reads no data properties during checking; a new data object is checked again. Fails if the cache is missing or keyed wrongly.
     - `inputs_reach_widget_frozen`: the widget's attempt to mutate any input throws.
     - `render_is_deterministic`: 100 renders across two fresh validators give one distinct serialised string. Fails if order or ids depend on anything but the inputs.
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-22):
+    - Files: `src/validate/compile.ts` (`build.inputs`), `src/sdk/render.ts` (`isJson`, `freezeDeep`, `checkInputs`, `checkedData`), `src/__tests__/sdk-inputs.test.tsx` (new), `src/__tests__/sdk-render.test.tsx` (now passes valid agent-home inputs).
+    - `build.inputs` compiles `manifest.params`, `state` and `context` with `compileSchema`, plus one synthesized closed object for `data`: each key declared in `manifest.sources`, required, checked by its capability source's `result` schema. The synthesized schema goes through the same compiler as everything else, so an install-validated document is the only trusted input.
+    - `render()` checks inputs after the options gate and before it touches the tree: each input must first pass `isJson` (rejects functions, promises, class instances, `NaN`, cycles, nesting over 128), then its schema; then it is deep-frozen in place. Errors are `invalid-prop` with pointers like `/state/filter` and no `nodeId`, and they return before the widget is called. `Object.isFrozen` short-circuits `freezeDeep`, so a host reusing an already-frozen state pays one check, not another walk.
+    - `data` is the exception: when the top-level object is already in the module-private `WeakSet`, the walk, the schema check and the freeze are all skipped (spec §8 re-runs). It is added only after it passes, so a checked object is always a frozen one; new data is a new object and gets checked. The `WeakSet` is not exposed anywhere.
+    - Freezing is in place, never a copy. The `inputs` wrapper itself is not frozen: it is the host's object and hosts rebuild it per render, while the four values the widget can reach are the frozen ones. `inputs_reach_widget_frozen` asserts `Object.isFrozen` on all four and that a mutation throws under ESM strict mode.
+    - `data_checked_once_per_object` counts reads through a getter: the second render with the same data object does not increase the count, and a new object is checked again. `render_is_deterministic` runs 100 renders alternating two independently compiled validators and gets one distinct `JSON.stringify` string.
+    - Known limit: an accessor property can return a fresh object on every read, which would defeat freezing; resolved data comes from JSON, so it has value properties. The read-counting test deliberately uses a getter that returns one stable array.
+    - `bun run check` green (198 tests).
 
 - [ ] Task 6: Generate typed component modules with `liveframe gen` and check drift
   - Acceptance Criteria:

@@ -1,6 +1,7 @@
 import { at, type Capabilities, isRecord, validateCapabilities } from "../formats/capabilities.ts";
 import { type Catalog, validateCatalog } from "../formats/catalog.ts";
 import { type Manifest, validateManifest } from "../formats/manifest.ts";
+import type { LanguageSchema } from "../schema.ts";
 import { closed, field, reject } from "./checks.ts";
 import { compileIntents } from "./intent.ts";
 import { compileSchema, type SchemaCheck } from "./schema.ts";
@@ -25,6 +26,15 @@ export type CompiledBuild = {
   readonly catalogId: string;
   readonly kinds: ReadonlyMap<string, KindFacts>;
   readonly structure: CompiledStructure;
+  /** The manifest's input schemas, plus a `data` schema built from each source's result. */
+  readonly inputs: CompiledInputs;
+};
+/** @internal `render()` checks the four inputs against these before it runs the widget. */
+export type CompiledInputs = {
+  readonly params: SchemaCheck;
+  readonly state: SchemaCheck;
+  readonly context: SchemaCheck;
+  readonly data: SchemaCheck;
 };
 export type CompiledValidator = {
   readonly checkNode: SchemaCheck;
@@ -132,9 +142,30 @@ function compile(catalog: Catalog, capabilities: Capabilities, manifest: Manifes
       }
     return valid;
   };
+  const dataProperties: Record<string, LanguageSchema> = {};
+  for (const key of Object.keys(manifest.sources)) {
+    const declared = manifest.sources[key];
+    const source = declared ? capabilities.sources[declared.source] : undefined;
+    if (source) dataProperties[key] = source.result;
+  }
   return {
     checkNode,
     validateTree: compileTree(catalog, checkNode, structure),
-    build: { catalogId: catalog.catalogId, kinds: facts, structure },
+    build: {
+      catalogId: catalog.catalogId,
+      kinds: facts,
+      structure,
+      inputs: {
+        params: compileSchema(manifest.params),
+        state: compileSchema(manifest.state),
+        context: compileSchema(manifest.context),
+        data: compileSchema({
+          type: "object",
+          properties: dataProperties,
+          required: Object.keys(dataProperties),
+          additionalProperties: false,
+        }),
+      },
+    },
   };
 }

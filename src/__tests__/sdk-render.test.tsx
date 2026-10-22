@@ -18,7 +18,18 @@ const Button = primitive<{
 }>("button");
 const Nope = primitive("nope");
 
-const inputs: WidgetProps = { params: {}, state: {}, data: {}, context: {} };
+const inputs: WidgetProps = {
+  params: { canAct: true, canEscalate: false, canViewAlerts: true },
+  state: {
+    filter: "all",
+    selected: "decision-8812",
+    cursors: { decisions: "start", tasks: "start", alerts: "start" },
+    escalating: "",
+    reason: "",
+  },
+  data: {},
+  context: { size: "small" },
+};
 const options = { validator, surfaceId: "home", revision: 1 };
 type Options = typeof options & { readonly limits?: { readonly nodes?: number; readonly bytes?: number } };
 
