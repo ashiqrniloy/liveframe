@@ -358,7 +358,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Tests first failed because the public functions were absent. Added reproducibility, schema and catalog rejection, tampering, non-execution, malformed/non-JSON input, code/scenario bounds, error bounds and escaped-pointer coverage. Exact exports and the browser portability scan now cover the public `/pack` entry; the scan distinguishes host specifiers from the JSON Schema's `node:` property. No dependency was added.
     - `timeout 600s bun run check` passed: 272 tests, zero failures, plus generated-code drift, typecheck, lint and format checks. Agent-home verification took 6.74 ms (under 20 ms), and composed-component bundling remained under 100 ms at 69.42 ms. Existing unrelated lint warnings remain. No later task needed amendment.
 
-- [ ] Task 6: Define the Store interface and ship memoryStore() and loadPlacement()
+- [x] Task 6: Define the Store interface and ship memoryStore() and loadPlacement()
   - Acceptance Criteria:
     - Functional:
       - The `Store` interface is spec §7.4's, all async.
@@ -405,11 +405,17 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Files to Create/Edit:
       - `src/store/memory.ts`, `src/store/load.ts`: new; extend Task 2’s `src/store/index.ts`.
       - `src/__tests__/store-memory.test.ts`, `src/__tests__/store-load.test.ts`: new.
+      - `src/__tests__/exports.test.ts`: extend the exact `/store` runtime export list.
   - Test Cases to Write:
     - `memory_store_rules`: the version conflict, the idempotent same-hash put, delete removing state, isolation from caller mutation, and sorted listing.
     - `load_placement_rejections`: not found, a tampered package (`hash-mismatch`), params that don't fit, a corrupt placement, and a package/placement version mismatch.
     - `load_placement_resets_state`: a placement moved to a version whose state schema dropped a field gets the initial state and a `reset` report. A missing state gives the initial state with no report.
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-23):
+    - Added spec §7.4's async `Store` interface and exported `memoryStore()` and `loadPlacement()` through the existing `/store` entry. No dependency, root export or spec change was needed.
+    - The memory store copies every record on put and get with a JSON round trip, preserves same-hash packages unchanged, rejects different hashes with a typed `version-conflict`, sorts placements by id, and deletes their state alongside them. Tuple keys avoid ambiguous compound keys.
+    - The loader validates listed placements, verifies package integrity and manifest semantics, checks package identity and params, and checks stored state as JSON against the compiled state schema. Missing state uses initial state without a reset report; incompatible state returns initial state with bounded, pointed reset errors. Loading never executes package code or writes the reset back to the store.
+    - The tests first failed on the missing exports. Five new tests now cover all record copy boundaries, immutable packages, missing/corrupt records, package identity, verification-error passthrough, escaped params pointers, and a placement moved to a version that dropped a state field. Task 7 can extract the memory-store rules into its shared contract table.
+    - `timeout 600s bun run check` passed: 277 tests, zero failures, plus generated-code drift, typecheck, lint and format checks. The focused storage/export/portability run passed all 14 tests; a browser-target build of `/store` also passed. Existing unrelated lint warnings remain.
 
 - [ ] Task 7: Persist records with fileStore(dir)
   - Acceptance Criteria:
