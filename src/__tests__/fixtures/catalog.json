@@ -132,7 +132,8 @@
     "breakpoints": [
       "bp.sm",
       "bp.md"
-    ]
+    ],
+    "surfaceTypography": "body"
   },
   "definitions": [
     {

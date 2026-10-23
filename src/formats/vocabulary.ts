@@ -21,13 +21,14 @@ const lists = {
 
 export type Vocabulary = { readonly [K in keyof typeof lists]: Infer<(typeof lists)[K]> } & {
   readonly tones: Readonly<Record<string, string>>;
+  readonly surfaceTypography: string;
 };
 
 /** Embedded in the catalog schema; cross-references are checked on install. */
 export const vocabularySchema = {
   type: "object",
-  properties: { ...lists, tones: { ...record(name.pattern, name, 256), propertyNames: name } },
-  required: [...Object.keys(lists), "tones"],
+  properties: { ...lists, tones: { ...record(name.pattern, name, 256), propertyNames: name }, surfaceTypography: name },
+  required: [...Object.keys(lists), "tones", "surfaceTypography"],
   additionalProperties: false,
 } as const;
 
@@ -64,6 +65,10 @@ export function validateVocabulary(doc: unknown): Result<Vocabulary> {
       seen.add(value);
     }
   }
+  const typography = checkValue(name, Object.hasOwn(input, "surfaceTypography") ? input.surfaceTypography : undefined);
+  if (!typography.ok)
+    for (const error of typography.errors)
+      reject("invalid-document", `/surfaceTypography${error.pointer}`, error.message);
   const tones = Object.hasOwn(input, "tones") ? input.tones : undefined;
   if (tones === null || typeof tones !== "object" || Array.isArray(tones)) {
     reject("invalid-document", "/tones", "Expected a tone-to-colour-role object");
@@ -85,5 +90,7 @@ export function validateVocabulary(doc: unknown): Result<Vocabulary> {
       if (!colours.has(role)) reject("unknown-name", `/${key}/${i}`, `Undeclared colour role: ${role}`);
   for (const [tone, role] of Object.entries(value.tones))
     if (!colours.has(role)) reject("unknown-name", `/tones${pointer(tone)}`, `Undeclared colour role: ${role}`);
+  if (!value.typographyRoles.includes(value.surfaceTypography))
+    reject("unknown-name", "/surfaceTypography", `Undeclared typography role: ${value.surfaceTypography}`);
   return errors.length ? { ok: false, errors } : { ok: true, value };
 }

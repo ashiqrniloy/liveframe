@@ -280,6 +280,7 @@ type Vocabulary = {
   fillableRoles: string[];                // a subset: what `fill` accepts
   tones: Record<string, string>;          // tone name → colour role, for `tone`
   typographyRoles: string[];              // "body", "label", "heading.2", "mono"…
+  surfaceTypography: string;              // one declared typography role for every surface root
   space: string[];                        // "space.0"…"space.7"
   radius: string[];
   size: string[];

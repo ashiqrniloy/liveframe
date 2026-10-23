@@ -339,6 +339,11 @@
             "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
             "type": "string"
           }
+        },
+        "surfaceTypography": {
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+          "type": "string"
         }
       },
       "required": [
@@ -350,7 +355,8 @@
         "radius",
         "size",
         "breakpoints",
-        "tones"
+        "tones",
+        "surfaceTypography"
       ],
       "additionalProperties": false
     },

@@ -281,6 +281,8 @@ export function classifyCatalogChange(
       for (const [tone, role] of Object.entries(prev.vocabulary.tones))
         if (Object.hasOwn(next.vocabulary.tones, tone) && role !== next.vocabulary.tones[tone])
           change(true, `vocabulary tone ${tone} mapping changed`);
+    } else if (key === "surfaceTypography") {
+      if (prev.vocabulary[key] !== next.vocabulary[key]) change(true, `vocabulary ${key} mapping changed`);
     } else names(prev.vocabulary[key], next.vocabulary[key], `vocabulary ${key}`);
   }
   return { level, reasons };

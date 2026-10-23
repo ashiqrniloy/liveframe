@@ -148,6 +148,7 @@ const catalog: Catalog = checked(
     ...baseCatalog,
     vocabulary: {
       ...baseCatalog.vocabulary,
+      surfaceTypography: "body",
       colourRoles: [...baseCatalog.vocabulary.colourRoles, ...alphaRoles.keys()],
     },
   }),

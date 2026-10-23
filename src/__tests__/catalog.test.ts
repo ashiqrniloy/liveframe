@@ -117,6 +117,15 @@ test("catalog_change_classification", () => {
   ).toBe("minor");
 });
 
+test("surface_typography_changes_are_classified", () => {
+  expect(
+    classifyCatalogChange(catalog, {
+      ...catalog,
+      vocabulary: { ...vocabulary, surfaceTypography: "label" },
+    }),
+  ).toEqual({ level: "major", reasons: ["vocabulary surfaceTypography mapping changed"] });
+});
+
 test("catalog_literal_types_survive", () => {
   const kind: "button" = button.kind;
   const variant: "default" | "primary" = button.variants[0];

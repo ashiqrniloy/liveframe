@@ -138,7 +138,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - MDN recheck corrected `@scope` to Baseline March 2026; it remains outside the Baseline 2024 floor. Reduced transparency is documented as limited-support progressive enhancement. No projection API or schema shipped here; `surfaceTypography` stays in Task 2, and runtime/browser proofs stay in Tasks 3–10.
     - Validation: `timeout 600s bun run check` passed (322 tests, 0 failures; generation check, typecheck, lint and format check passed). `git diff --check` passed. Browser parity and hardware auditing were not rerun for this documentation-only task.
 
-- [ ] Task 2: Declare the surface's base typography in the vocabulary
+- [x] Task 2: Declare the surface's base typography in the vocabulary
   - Acceptance Criteria:
     - Functional:
       - The vocabulary gains a required `surfaceTypography`: one name from `typographyRoles`. It is the role every surface root sets (spec §6.4), so the projection names no role itself. The proof hard-coded `body`.
@@ -170,7 +170,9 @@ Probe answers that hold for every task, unless a task says otherwise:
       ```
     - Files to Create/Edit:
       - `src/formats/vocabulary.ts`: the field and its cross-reference check.
+      - `src/formats/catalog.ts`, `src/__tests__/catalog.test.ts`: handle the new scalar field in catalog change classification, following the existing mapping-change rule.
       - `src/__tests__/vocabulary.test.ts`: new cases.
+      - `src/__tests__/design-system.test.ts`, `src/__tests__/fixtures/vocabulary.json`, `src/__tests__/fixtures/rack.design-system-vocabulary.json`: update the remaining vocabulary inputs.
       - `proof/scripts/export-formats.ts`: emit the field.
       - `src/__tests__/fixtures/proof/vocabulary.json`, `src/__tests__/fixtures/proof/catalog.json`, `src/__tests__/fixtures/catalog.json`: regenerated or edited.
       - `schemas/catalog.json`: regenerated (the vocabulary schema is embedded in the catalog schema; `src/formats/vocabulary.ts:35` and `src/__tests__/vocabulary.test.ts:78` are its other users).
@@ -178,8 +180,14 @@ Probe answers that hold for every task, unless a task says otherwise:
   - Test Cases to Write:
     - `vocabulary_requires_surface_typography`: a missing field fails at `/surfaceTypography`. Fails if the field is optional.
     - `surface_typography_must_be_a_declared_role`: `"display"`, when it isn't in `typographyRoles`, fails. Fails if the cross-reference is skipped.
+    - Malformed surface typography names fail structural validation and JSON Schema at `/surfaceTypography`; a renamed declared role succeeds.
+    - `surface_typography_changes_are_classified`: changing the selected role is a major mapping change; unchanged catalogs remain `none`.
     - The existing `schemas.test.ts` agreement and `proof-formats.test.ts` reproducibility cases cover the schema and the fixtures.
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-23):
+    - Added required `surfaceTypography` to the vocabulary type, structural schema and install-time cross-reference checks. Missing, malformed and undeclared roles fail with bounded errors at `/surfaceTypography`; selecting a renamed declared role succeeds. Spec §6.5 and the formats guide document the contract.
+    - The proof exporter emits `body`; regenerated the catalog schema and all proof fixtures, and updated the base and Rack vocabulary fixtures and inline test catalogs. Existing valid name-boundary tests now select the role they declare.
+    - Required caller fix: the catalog change classifier assumed all non-tone vocabulary fields were lists. It now handles the scalar selection as a major mapping change, following the existing tone-mapping rule, with a regression test and guide update.
+    - Validation: new tests failed before implementation; `timeout 600s bun run check` passed (325 tests, 0 failures, generation check, typecheck, lint and format check). The existing lint warnings remain. A temporary-directory export reproduced all 17 committed proof fixtures byte-for-byte. CSS projection and new projection browser proofs remain in Tasks 3–10.
 
 - [ ] Task 3: Project the base and the theme
   - Acceptance Criteria:

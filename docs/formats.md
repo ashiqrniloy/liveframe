@@ -70,6 +70,7 @@ validateVocabulary({
   fillableRoles: [],
   tones: { muted: "text.muted" },
   typographyRoles: ["body"],
+  surfaceTypography: "body",
   space: ["space.0", "space.1"],
   radius: ["radius.control"],
   size: ["size.rail"],
@@ -77,7 +78,7 @@ validateVocabulary({
 });
 ```
 
-All nine fields are required, and unknown fields are rejected. Each list holds
+All ten fields are required, and unknown fields are rejected. Each list holds
 at most 256 unique names. Names contain at most 64 characters and match
 `^[a-z][a-z0-9-]*(\.[a-z0-9-]+)*$`. The design-value lists require their family
 prefix: `space.`, `radius.`, `size.` and `bp.`. Lists may be empty, and a name may
@@ -89,11 +90,15 @@ the name rules. For example, `tone: "muted"` refers to the declared
 `text.muted` role, whose colour a theme will supply. No colour literal belongs
 in a vocabulary.
 
+`surfaceTypography` names one role in `typographyRoles` for every surface root's
+base typography. It obeys the same bounded name rules and must be declared,
+so `typographyRoles` must contain at least that role.
+
 Malformed structure, names, bounds and duplicates produce `invalid-document`;
 undeclared role references produce `unknown-name`. Validation returns at most
 20 errors, each with a JSON Pointer. Structural errors are returned before
 checking references. The vocabulary's structural schema is embedded in
-the catalog schema; subset and tone reference checks run on install.
+the catalog schema; subset, tone and surface typography reference checks run on install.
 
 The root export also provides the library-fixed `states`, `styleProps`,
 `semantics` and `recipeProperties` arrays. These are format vocabulary, with no
@@ -170,8 +175,9 @@ The classifier reports contract changes; it does not edit ids or enforce a bump.
 
 Nested object and array schemas use the same rules. Removing style props,
 tightening child rules, changing default variants, accessible-name contracts
-or tone mappings also requires a major. Pattern changes are conservatively
-major when a new pattern remains: arbitrary regex inclusion is not inferred.
+or tone mappings, or changing `surfaceTypography`, also requires a major.
+Pattern changes are conservatively major when a new pattern remains:
+arbitrary regex inclusion is not inferred.
 Changing only the catalog id produces `none`.
 
 `@arnilo/liveframe/schemas/catalog.json` embeds the vocabulary and schema

@@ -11,6 +11,7 @@ export const catalog: Catalog = {
   vocabulary: {
     colourRoles: ["ink", "focus"],
     typographyRoles: ["body"],
+    surfaceTypography: "body",
     surfaceRoles: [],
     fillableRoles: [],
     tones: {},
