@@ -17,6 +17,9 @@
     "./schemas/*": "./schemas/*"
   },
   "files": ["src", "schemas"],
+  "bin": {
+    "liveframe": "./src/cli/liveframe.ts"
+  },
   "scripts": {
     "bench": "bun bench/validator.bench.ts",
     "proof": "bun proof/host/server.ts",
@@ -25,7 +28,8 @@
     "lint": "biome lint .",
     "format": "biome format --write .",
     "format:check": "biome format .",
-    "check": "bun run typecheck && bun run lint && bun run format:check && bun run test"
+    "gen:check": "bun src/cli/liveframe.ts gen src/__tests__/fixtures/proof/catalog.json --out src/__tests__/fixtures/widgets/ui.gen.ts --check",
+    "check": "bun run gen:check && bun run typecheck && bun run lint && bun run format:check && bun run test"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.2",

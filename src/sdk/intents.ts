@@ -49,6 +49,9 @@ function name(value: unknown, what: string): string {
   return value;
 }
 
+function setState(key: string, value: Json): SetStateIntent & { readonly value: Json };
+function setState(key: string, value?: undefined): SetStateIntent & { readonly value?: never };
+function setState(key: string, value?: Json): SetStateIntent;
 function setState(key: string, value?: Json): SetStateIntent {
   const stateKey = name(key, "state key");
   if (value !== undefined) assertJson(value, stateKey);
@@ -60,6 +63,21 @@ function setState(key: string, value?: Json): SetStateIntent {
 }
 
 /** `action(name, args, { bind }?)`; `bind` names the argument the event's value fills (spec §8). */
+export function action(
+  actionName: string,
+  args?: Readonly<Record<string, Json>>,
+  options?: { readonly bind?: never },
+): ActionIntent & { readonly bind?: never };
+export function action(
+  actionName: string,
+  args: Readonly<Record<string, Json>>,
+  options: { readonly bind: string },
+): ActionIntent & { readonly bind: string };
+export function action(
+  actionName: string,
+  args?: Readonly<Record<string, Json>>,
+  options?: { readonly bind?: string },
+): ActionIntent;
 export function action(
   actionName: string,
   args: Readonly<Record<string, Json>> = {},

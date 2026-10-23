@@ -379,7 +379,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Known limit: an accessor property can return a fresh object on every read, which would defeat freezing; resolved data comes from JSON, so it has value properties. The read-counting test deliberately uses a getter that returns one stable array.
     - `bun run check` green (198 tests).
 
-- [ ] Task 6: Generate typed component modules with `liveframe gen` and check drift
+- [x] Task 6: Generate typed component modules with `liveframe gen` and check drift
   - Acceptance Criteria:
     - Functional:
       - `generate(catalog): string` in `src/sdk/gen.ts` is host-API-free and deterministic. It emits one module that:
@@ -421,6 +421,7 @@ Probe answers that hold for every task, unless a task says otherwise:
       - Emit `.d.ts` — superseded by the Task 1 decision.
     - Chosen Approach:
       - A string emitter over the validated catalog with a fixed emission order, plus a thin Bun CLI.
+      - Narrow the intent helpers' return types with overloads so explicit state values and unbound actions remain assignable to events carrying `none`; keep the original broad call signatures as fallbacks for dynamic arguments.
     - API Notes and Examples:
       ```bash
       liveframe gen catalog.json --out src/widgets/ui.gen.ts
@@ -428,6 +429,7 @@ Probe answers that hold for every task, unless a task says otherwise:
       ```
     - Files to Create/Edit:
       - `src/sdk/gen.ts`, `src/cli/liveframe.ts`: new.
+      - `src/sdk/intents.ts`: return-type overloads; runtime behavior is unchanged.
       - `src/__tests__/fixtures/widgets/ui.gen.ts`: generated.
       - `package.json`: `bin`, `gen:check` script, and `check`.
       - `src/__tests__/portability.test.ts`: the `src/cli/` exemption.
@@ -437,7 +439,16 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `gen_check_detects_drift`: the CLI with `--check` against an edited copy exits 1; against the fixture it exits 0. Fails if drift goes unreported.
     - `gen_rejects_malformed_catalog`: exits 2 and prints a pointed error.
     - `generated_types_reject_wrong_props` (type test): `@ts-expect-error` on `gap="13px"`, an unknown variant, a wrong event intent type, and children on a `none` kind. Fails if typing is loose.
-  - Notes (executed <date>):
+    - `gen_escapes_docs_and_property_names_and_rejects_collisions`: comment terminators and quoted names remain safe, enum strings retain embedded quotes/pipes, emitted code parses, and component/prop name collisions fail explicitly.
+  - Notes (executed 2026-10-23):
+    - Added the host-free `src/sdk/gen.ts` emitter and Bun-only `src/cli/liveframe.ts` entry, exposed as the package's `liveframe` binary. No dependency was added. `generate` stays internal to the CLI implementation, without widening the SDK export surface.
+    - Committed `src/__tests__/fixtures/widgets/ui.gen.ts` with all 24 proof primitives. Props include deeply readonly schema objects/arrays, required fields, enum and variant unions, declared style names, responsive maps requiring `base`, optional event intents and children only where allowed. Descriptions escape comment terminators; generated names and reserved prop collisions fail explicitly.
+    - Events carrying `none` require explicit state values and forbid bound action arguments. String/boolean events accept implicit state values and bound actions; their manifest-dependent compatibility remains the compiled validator's responsibility. Intent helper overloads preserve these distinctions without changing runtime data or rejecting previously accepted call signatures.
+    - Numeric ranges, grid-area grammar and collection bounds remain runtime checks; generated length templates restrict units, while spacing and role props use the catalog's exact vocabulary. The emitted proof module passes Biome 2.6.2 formatting without a formatter dependency or postprocessing.
+    - `gen --check` returns 0 for matching output and 1 for missing/different output, reports the first differing line and never writes. Catalog validation/JSON/I/O/usage errors return 2; validation errors retain their pointers. `gen:check` now runs first in `bun run check`. The portability scan exempts exactly `src/cli/`, keeping the emitter covered.
+    - Tests were written before implementation: the initial generator test failed on the missing module, and the type test exposed the helper return-type prerequisite. Five new tests cover generation/formatting, CLI write/check/error paths, escaping/collisions and positive/negative TSX cases.
+    - Documentation: read installed Bun file-I/O docs and Biome configuration/CLI behavior. Context7's Biome lookup was attempted but returned monthly-quota exhaustion; formatting was verified against the installed tool instead. No spec meaning changed; the outsider SDK guide remains Task 9.
+    - `bun run check` green (203 tests), including drift, typecheck, lint, formatting and portability. Existing proof lint warnings remain unchanged. Refreshed the local graft graph.
 
 - [ ] Task 7: Port the proof widgets to the SDK, with manifests and scenarios
   - Acceptance Criteria:
