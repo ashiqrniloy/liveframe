@@ -329,14 +329,14 @@ The widget function's rules:
 A widget is installed as a **package**: the unit the app stores, approves, places and loads into its sandbox. An author writes TSX, but a sandbox runs JavaScript, so installing starts with `pack()` (`@arnilo/liveframe/pack`):
 
 ```ts
-pack({ files, entry, manifest, scenarios }, { catalog, capabilities }) → WidgetPackage | PackError
+pack({ files, entry, manifest, scenarios }, { catalog, capabilities }) → Result<WidgetPackage>
 
 type WidgetPackage = {
   format: "liveframe-package/1";
   manifest: Manifest;           // id, version, catalogId, schemas, initial state (§7.1)
   code: string;                 // one ES module; its default export is the widget function
   scenarios: Scenario[];        // at least one
-  hash: string;                 // "sha256-…" over the canonical manifest, code and scenarios
+  hash: string;                 // "sha256-" + 64 lowercase hex digits; see canonical form below
 };
 
 type Scenario = {
@@ -355,6 +355,10 @@ type Scenario = {
 - transpiles the TSX and bundles the entry's relative imports into one module. A composed component is bundled into every package that imports it, so a package never depends on another;
 - rejects every other import except the SDK (`@arnilo/liveframe/sdk` and its JSX runtime), which the app's sandbox provides;
 - hashes the result.
+
+**Canonical form and hash.** Hash exactly `{ format, manifest, code, scenarios }`, excluding `hash`. Canonical JSON follows [RFC 8785 §3.2](https://www.rfc-editor.org/rfc/rfc8785.html#section-3.2): sort object keys recursively by their unescaped UTF-16 code units, preserve array order, emit no whitespace, and use ECMAScript serialisation for strings, numbers and literals. Preserve Unicode without normalisation; reject non-JSON values, non-finite numbers and lone surrogates. Encode the canonical string as UTF-8, compute SHA-256 ([FIPS 180-4 §6.2](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf)), and prefix its lowercase hexadecimal digest with `sha256-`. An internal pure-JavaScript SHA-256 implementation keeps `pack()` synchronous and host-API-free, without Web Crypto. The hash checks integrity, not origin or approval.
+
+`pack()` and `verifyPackage()` return `Result<WidgetPackage>` with bounded `LiveframeError[]` on failure (§10). A malformed manifest or scenario uses `invalid-document`; no scenarios points at `/scenarios`. Import and syntax failures use the distinct kinds in §10, with a file and line in `pointer` (a JSON Pointer such as `/files/queue.tsx/12`).
 
 Rules:
 
@@ -395,11 +399,12 @@ It also ships:
 
 - **`memoryStore()`**, for tests and ephemeral hosts.
 - **`fileStore(dir)`** (`@arnilo/liveframe/store/fs`), for a desktop or single-node app. It keeps one JSON file per record and writes each atomically: a temporary file, then a rename. It assumes one writing process.
-- **`loadPlacement(store, id, { catalog, capabilities })`**, which reads a placement, its package and its state, verifies all three, and returns `{ package, params, state }` or a typed error.
+- **`loadPlacement(store, id, { catalog, capabilities })`**, which reads a placement, its package and its state, verifies all three, and returns `Result<{ package, params, state, reset? }>`. Failures carry bounded `LiveframeError[]` (§10); `reset`, when present, holds the validation errors that caused a state reset.
 
 Rules:
 
 - **A store is not trusted.** Like a tree arriving at the renderer (§10), every record read back is checked: the package by `verifyPackage`, the params against the package's params schema, and the state against its state schema. A state that no longer fits, typically after a placement moves to a new widget version, is reset to the manifest's initial state, and `loadPlacement` reports the reset. Any other failure is an error, never a silent fallback.
+- Missing placements or packages, conflicting package versions, malformed records and package integrity failures use the distinct typed errors in §10. `putPackage()` keeps its `Promise<void>` contract and rejects with the version-conflict error when an existing `(id, version)` has a different hash.
 - **A store holds one scope.** A multi-tenant app opens one store per tenant, or implements the interface over its own database and scopes it itself.
 - **Approval is the app's.** A stored package is inert until the app puts a placement for it. Which theme and design system are active, per user or organisation, is also an app setting.
 - **The conformance kit has a store suite** (§13), so an app's own store, for example over Postgres, proves it keeps these rules.
@@ -504,7 +509,33 @@ It checks:
 - ids are unique and key-derived
 - limits hold: node count (default 5,000), depth (default 64), and tree size in bytes (default 1 MiB), all configurable. Tree size is the UTF-8 length of the tree's `JSON.stringify` output, counted during the walk without serialising. String bounds count code points. The runner adds a time limit (§7.5)
 
-**Errors.** Every validator returns `{ ok: true, value } | { ok: false, errors }`. A failed validation returns every error it found, up to a bound (default 20), so an author or agent fixes them in one round. Each `LiveframeError` is `{ kind, pointer, message, expected?, nodeId? }`: `pointer` is a JSON Pointer into the document (the empty string at its root), `expected` is the rule that failed, in words an agent can act on, and `nodeId`, when present, is the key path of the UI node. Tree and rendering errors use the §7.2 kinds. Install-time errors use `invalid-document` (malformed structure or value), `unknown-name` (an undeclared name), `incomplete-design-system` (a missing required recipe), `colour-outside-theme` (a colour outside the theme's authority), `catalog-mismatch` (a different catalog identity) or `cyclic-extends` (a derivation cycle).
+**Errors.** Every validator returns `Result<T>`: `{ ok: true, value } | { ok: false, errors }`. A failed validation returns every error it found, up to a bound (default 20), so an author or agent fixes them in one round. `pack()`, `verifyPackage()`, `loadPlacement()` and `Runner.render()` use the same result and error bound; async operations wrap the result in a promise. Each `LiveframeError` is `{ kind, pointer, message, expected?, nodeId? }`: `pointer` is a JSON Pointer into the document (the empty string at its root), `expected` is the rule that failed, in words an agent can act on, and `nodeId`, when present, is the key path of the UI node. The complete kind list is:
+
+| Kind | Meaning |
+|---|---|
+| `invalid-document` | Malformed structure or value, including a manifest, scenario or stored record; missing scenarios point at `/scenarios`. |
+| `unknown-name` | An undeclared name. |
+| `incomplete-design-system` | A missing required recipe. |
+| `colour-outside-theme` | A colour outside the theme's authority. |
+| `catalog-mismatch` | A different catalog identity. |
+| `cyclic-extends` | A derivation cycle. |
+| `forbidden-import` | An import or re-export outside relative widget modules and the SDK, or any `require(…)`, `import.meta` or dynamic `import()` in widget code. |
+| `transpile-failed` | A syntax error, with file and line in `pointer` (§7.3). |
+| `hash-mismatch` | Package content differs from its declared hash. |
+| `version-conflict` | A second hash under an existing package `(id, version)`. |
+| `not-found` | A missing placement or package. |
+| `host-element` | A host element such as a raw HTML tag. |
+| `unknown-component` | A component outside the catalog. |
+| `invalid-prop` | A prop or placement param that fails its schema. |
+| `invalid-children` | Children that violate the definition's rules. |
+| `missing-key` | A repeated sibling without a key. |
+| `duplicate-key` | Duplicate sibling keys. |
+| `undeclared-event` | An event outside the definition. |
+| `undeclared-action` | An action outside the manifest. |
+| `function-prop` | A function used as a prop. |
+| `async-render` | A component returned a promise. |
+| `render-failed` | A component threw or a runner failed to load or execute a widget. |
+| `limit-exceeded` | A node, depth, byte, error-collection or runner time limit was reached. |
 
 The validator is **compiled per catalog**: when the catalog, vocabulary, capabilities and manifest are loaded, each definition and schema becomes a closure over precomputed sets and checks, instead of schemas interpreted on every render. It never uses `eval` or the `Function` constructor, which content security policies and some sandboxes forbid. Its per-node checks are what `render()` calls while it builds the tree, so building and validating are one pass; the same validator re-checks a whole tree on arrival. In the Phase 0 proof, validation is more than half of a render's cost, and building the tree checks the same props a second time. Build and validate become one pass (`docs/model.md`, "Performance"; `decision-logs/2026-10-22-1540-typescript-runtime-render-budget.md`).
 

@@ -135,3 +135,4 @@ One line per plan. Detail lives in the plan file, never here.
 | [002](plans/002-Phase-0-Parity-Re-Proof.md) | 0 | in progress (Task 8 approved: Phase 0 is go; Task 9 remains) |
 | [003](plans/003-Phase-1-Part-A-Formats.md) | 1 | complete (Tasks 1–9; findings disposed in the impact analysis and backlog) |
 | [004](plans/004-Phase-1-Part-B-Compiled-Validator.md) | 1 | complete (Tasks 1–7; findings disposed in the impact analysis and backlog) |
+| [006](plans/006-Phase-2-Part-B-Packages-Storage-Runners.md) | 2 | in progress (Task 1 complete; implementation depends on 005) |
