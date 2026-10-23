@@ -4,7 +4,6 @@ import { certifiedDesignSystem } from "../styles/certified/design-system.ts";
 import { certifiedTheme } from "../styles/certified/theme.ts";
 import { rackDesignSystem, rackSourceRecipes, rackSourceValues } from "../styles/rack/design-system.ts";
 import { rackTheme } from "../styles/rack/theme.ts";
-import { project } from "../css/project.ts";
 import { completeRecipes } from "../styles/recipes.ts";
 import {
   colourRoles,
@@ -12,7 +11,6 @@ import {
   fillableRoles,
   propertyTypes,
   states,
-  type DesignValue,
   type Theme,
   typographyRoles,
   valueNames,
@@ -155,11 +153,7 @@ test("style_values_reference_declared_value_names", () => {
   }
   expect(fillableRoles.length).toBeGreaterThan(0);
   for (const role of fillableRoles) expect(colourRoles).toContain(role);
-  for (const name of ["size.rail", "bp.md"]) {
-    const values: Record<string, DesignValue> = { ...certifiedDesignSystem.values };
-    delete values[name];
-    expect(() => project(certifiedTheme, { ...certifiedDesignSystem, values })).toThrow("Missing declared value");
-  }
+  // Missing-value rejection is covered by src/__tests__/css-design-system.test.ts.
 });
 
 test("style_checks_reject_unknown_roles_literals_and_wrong_value_domains", () => {

@@ -6,9 +6,18 @@ import type { Intent } from "../runtime/types.ts";
 import type { Snapshot } from "./state.ts";
 
 const registered = registry({ definitions }, implementations);
-export function ProofSurface({ snapshot, onIntent }: { snapshot: Snapshot; onIntent: (intent: Intent) => void }) {
+export function ProofSurface({
+  snapshot,
+  onIntent,
+  portalContainer,
+}: {
+  snapshot: Snapshot;
+  onIntent: (intent: Intent) => void;
+  portalContainer?: Element | undefined;
+}) {
   return (
     <Surface
+      portalContainer={portalContainer}
       tree={snapshot.tree}
       options={snapshot.options}
       registry={registered}

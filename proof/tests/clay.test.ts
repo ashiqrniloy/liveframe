@@ -76,9 +76,9 @@ test("rack_indicators_use_fillable_roles_and_round_radius", () => {
   // The source draws the rail patch, the composer patch and the lamp as circles; pips keep its 1 px corner.
   for (const name of ["patch", "jack", "lamp"]) {
     expect(round(name).borderRadius).toBe("9999px");
-    expect(round(name).backgroundColor).toMatch(/^var\(--lf-colour-/);
+    expect(round(name).backgroundColor).toMatch(/^var\(--lf-c-/);
   }
-  expect(round("1").borderRadius).toBe("var(--lf-value-radius-plate)");
+  expect(round("1").borderRadius).toBe("var(--lf-v-radius_plate)");
 });
 
 test("empty_state_renders", () => {

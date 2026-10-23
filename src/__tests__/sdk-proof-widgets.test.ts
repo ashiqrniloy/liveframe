@@ -19,22 +19,6 @@ if (!catalogResult.ok || !capabilitiesResult.ok) throw new Error("Invalid proof 
 const catalog = catalogResult.value;
 const capabilities = capabilitiesResult.value;
 
-function flexRows(node: UiNode): UiNode {
-  if (node.kind !== "grid") return { ...node, ...(node.children ? { children: node.children.map(flexRows) } : {}) };
-  expect(node.style?.columns).toEqual(["space.4", "1fr", "0fr"]);
-  return {
-    ...node,
-    kind: "inline",
-    style: { gap: "space.3", align: "start" },
-    children: (node.children ?? []).map((child) => ({
-      ...child,
-      ...(child.id.endsWith("/marker") ? { style: { width: "space.4", shrink: 0 } } : {}),
-      ...(child.id.endsWith("/body") ? { style: { ...child.style, grow: 1, basis: 0 } } : {}),
-      ...(child.id.endsWith("/flag") ? { style: { ...child.style, shrink: 0 } } : {}),
-    })),
-  };
-}
-
 function nodes(node: UiNode): UiNode[] {
   return [node, ...(node.children ?? []).flatMap(nodes)];
 }
@@ -55,7 +39,7 @@ for (const fixture of proofWidgets) {
   }
 
   for (const [scenarioName, exportName] of Object.entries(fixture.exports)) {
-    test(`proof_trees_match_exports: ${exportName} (queue-row grid, marker, body and flag)`, async () => {
+    test(`proof_trees_match_exports: ${exportName}`, async () => {
       const scenario = fixture.scenarios.find((entry) => entry.name === scenarioName);
       if (!scenario) throw new Error(`Missing scenario ${scenarioName}`);
       const result = render(fixture.widget, scenario, { validator, surfaceId: "proof", revision: 0 });
@@ -63,8 +47,7 @@ for (const fixture of proofWidgets) {
       const expected: UiTree = await Bun.file(
         new URL(`./fixtures/proof/${exportName}.tree.json`, import.meta.url),
       ).json();
-      // QueueRow's compact track becomes flex: retain ids and node counts for the benchmark.
-      expect(result.value).toEqual({ ...expected, root: flexRows(expected.root) });
+      expect(result.value).toEqual(expected);
     });
   }
 }

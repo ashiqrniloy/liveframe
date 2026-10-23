@@ -28,7 +28,8 @@ export function QueueRow({
 }) {
   return (
     <Box {...(selected ? { surface: "surface.well" } : {})} variant="rule">
-      <Inline key="grid" gap="space.3" align="start">
+      {/* Retain the empty trailing grid gap when there is no folded-alert flag. */}
+      <Inline key="grid" gap="space.3" align="start" paddingRight={foldedAlerts ? "space.0" : "space.3"}>
         <Icon key="marker" name={markers[category]} width="space.4" shrink={0} />
         <Stack key="body" gap="space.1" align="start" grow={1} basis={0}>
           <Button key="subject" label={title} variant="ghost" current={selected} onPress={state.set("selected", id)} />

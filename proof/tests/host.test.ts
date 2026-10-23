@@ -157,7 +157,7 @@ test("browser_hydrates_posts_intents_logs_actions_and_switches_styles", async ()
     const postCount = posts;
     await page.getByLabel("Design system").selectOption("rack");
     await page.waitForFunction((colour) => {
-      const el = document.querySelector(".lf-button-primary-root-rest");
+      const el = document.querySelector(".lf_button_primary_root");
       return el && getComputedStyle(el).backgroundColor !== colour;
     }, before);
     expect(await page.locator("#app").innerHTML()).toBe(dom);

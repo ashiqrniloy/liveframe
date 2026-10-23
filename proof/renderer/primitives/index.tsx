@@ -230,7 +230,7 @@ export const implementations = [
       </Aria.TextField>
     );
   }),
-  bind("select", function Select({ props, slot, layout, emit }) {
+  bind("select", function Select({ props, slot, layout, emit, portalContainer }) {
     const [value, setValue] = useValue<string | null>(props.value ?? null);
     return (
       <Aria.Select
@@ -249,7 +249,7 @@ export const implementations = [
         <Aria.Button className={slot("trigger")}>
           <Aria.SelectValue />
         </Aria.Button>
-        <Aria.Popover>
+        <Aria.Popover {...(portalContainer ? { UNSTABLE_portalContainer: portalContainer } : {})}>
           <Aria.ListBox className={slot("list")} items={props.options}>
             {(option) => (
               <Aria.ListBoxItem
@@ -310,13 +310,16 @@ export const implementations = [
       </Aria.Switch>
     );
   }),
-  bind("menu", ({ props, slot, layout, nodes, emitNode }) => (
+  bind("menu", ({ props, slot, layout, nodes, emitNode, portalContainer }) => (
     <div className={slot("root")} style={layout}>
       <Aria.MenuTrigger>
         <Aria.Button className={slot("trigger")} isDisabled={props.disabled ?? false}>
           {props.label}
         </Aria.Button>
-        <Aria.Popover className={slot("content")}>
+        <Aria.Popover
+          {...(portalContainer ? { UNSTABLE_portalContainer: portalContainer } : {})}
+          className={slot("content")}
+        >
           <Aria.Menu aria-label={props.label} items={nodes}>
             {(node) => (
               <Aria.MenuItem
@@ -349,21 +352,25 @@ export const implementations = [
       <span className={slot("label")}>{props.label}</span>
     </Aria.MenuItem>
   )),
-  bind("popover", ({ props, slot, layout, children }) => (
+  bind("popover", ({ props, slot, layout, children, portalContainer }) => (
     <div className={slot("root")} style={layout}>
       <Aria.DialogTrigger>
         <Aria.Button className={slot("trigger")}>{props.label}</Aria.Button>
-        <Aria.Popover className={slot("content")}>
+        <Aria.Popover
+          {...(portalContainer ? { UNSTABLE_portalContainer: portalContainer } : {})}
+          className={slot("content")}
+        >
           <Aria.Dialog aria-label={props.label}>{children}</Aria.Dialog>
         </Aria.Popover>
       </Aria.DialogTrigger>
     </div>
   )),
-  bind("dialog", function Dialog({ props, slot, layout, children, emit }) {
+  bind("dialog", function Dialog({ props, slot, layout, children, emit, portalContainer }) {
     const [open, setOpen] = useValue(props.open ?? false);
     return (
       <div className={slot("root")} style={layout}>
         <Aria.ModalOverlay
+          {...(portalContainer ? { UNSTABLE_portalContainer: portalContainer } : {})}
           isOpen={open}
           isDismissable
           onOpenChange={(next) => {
@@ -387,7 +394,7 @@ export const implementations = [
       </div>
     );
   }),
-  bind("tooltip", ({ props, slot, layout, children }) => (
+  bind("tooltip", ({ props, slot, layout, children, portalContainer }) => (
     <span className={slot("root")} style={layout}>
       <Aria.TooltipTrigger>
         <Aria.Focusable>
@@ -396,7 +403,12 @@ export const implementations = [
             {children}
           </span>
         </Aria.Focusable>
-        <Aria.Tooltip className={slot("content")}>{props.text}</Aria.Tooltip>
+        <Aria.Tooltip
+          {...(portalContainer ? { UNSTABLE_portalContainer: portalContainer } : {})}
+          className={slot("content")}
+        >
+          {props.text}
+        </Aria.Tooltip>
       </Aria.TooltipTrigger>
     </span>
   )),

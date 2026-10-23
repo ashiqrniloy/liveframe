@@ -2,15 +2,14 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import { type Browser, chromium, type Page } from "playwright";
 import { renderToString } from "react-dom/server";
 import { definitions } from "../catalog/definitions.ts";
-import { project } from "../css/project.ts";
+import { certifiedTheme } from "../styles/certified/theme.ts";
+import { rackTheme } from "../styles/rack/theme.ts";
+import { base, proofSheets, themeSheets, systemSheets } from "../css/sheets.ts";
+import { primitiveCss } from "../renderer/primitives/base.ts";
 import { implementations } from "../renderer/primitives/index.tsx";
 import { registry } from "../renderer/registry.ts";
 import { Surface } from "../renderer/surface.tsx";
 import type { RenderOptions, UiNode, UiTree } from "../runtime/types.ts";
-import { certifiedDesignSystem } from "../styles/certified/design-system.ts";
-import { certifiedTheme } from "../styles/certified/theme.ts";
-import { rackDesignSystem } from "../styles/rack/design-system.ts";
-import { rackTheme } from "../styles/rack/theme.ts";
 
 const options: RenderOptions = {
   catalog: { catalogId: "proof@1", definitions },
@@ -158,8 +157,8 @@ function widget(revision = 1): UiTree {
   };
 }
 const initial = widget();
-const certified = project(certifiedTheme, certifiedDesignSystem);
-const rack = project(rackTheme, rackDesignSystem);
+const certified = [base, primitiveCss, themeSheets.certified, systemSheets.certified].join("\n");
+const rack = [base, primitiveCss, themeSheets.rack, systemSheets.rack].join("\n");
 let server: ReturnType<typeof Bun.serve>;
 let browser: Browser;
 beforeAll(async () => {
@@ -187,7 +186,7 @@ beforeAll(async () => {
       new URL(request.url).pathname === "/client.js"
         ? new Response(bundle, { headers: { "Content-Type": "text/javascript" } })
         : new Response(
-            `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Renderer test</title><style id="projection">${certified}</style></head><body><div id="app">${html}</div><script type="application/json" id="tree">${JSON.stringify(initial).replaceAll("<", "\\u003c")}</script><script type="module" src="/client.js"></script></body></html>`,
+            `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Renderer test</title><style>${proofSheets}</style></head><body><div id="app" class="lf_surface" data-lf-theme="certified@1.0.0" data-lf-ds="certified@1.0.0">${html}</div><script type="application/json" id="tree">${JSON.stringify(initial).replaceAll("<", "\\u003c")}</script><script type="module" src="/client.js"></script></body></html>`,
             { headers: { "Content-Type": "text/html; charset=utf-8" } },
           ),
   });
@@ -199,20 +198,30 @@ afterAll(async () => {
 });
 
 async function visit(run: (page: Page, errors: string[]) => Promise<void>) {
-  const page = await browser.newPage();
-  page.setDefaultTimeout(5000);
-  const errors: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  page.on("console", (message) => {
-    if (message.type() === "error") errors.push(message.text());
-  });
-  try {
-    await page.goto(server.url.toString());
-    await page.waitForFunction(() => window.ready);
-    await run(page, errors);
-    expect(errors).toEqual([]);
-  } finally {
-    await page.close();
+  for (const system of ["certified", "rack"]) {
+    const page = await browser.newPage();
+    page.setDefaultTimeout(5000);
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    page.on("console", (message) => {
+      if (message.type() === "error") errors.push(message.text());
+    });
+    try {
+      await page.goto(server.url.toString());
+      await page.waitForFunction(() => window.ready);
+      await page.evaluate((system) => {
+        const scope = document.getElementById("app");
+        scope?.setAttribute("data-lf-switching", "");
+        scope?.setAttribute("data-lf-theme", `${system}@1.0.0`);
+        scope?.setAttribute("data-lf-ds", `${system}@1.0.0`);
+        scope?.offsetWidth;
+        scope?.removeAttribute("data-lf-switching");
+      }, system);
+      await run(page, errors);
+      expect(errors).toEqual([]);
+    } finally {
+      await page.close();
+    }
   }
 }
 
@@ -310,8 +319,12 @@ test(
       await page.getByRole("switch", { name: "Power" }).focus();
       await page.keyboard.press("Space");
       expect(await page.getByRole("switch", { name: "Power" }).isChecked()).toBe(true);
-      await page.locator(".lf-tooltip-default-trigger-rest").focus();
+      await page.locator(".lf_tooltip_default_trigger").focus();
       await page.getByRole("tooltip").waitFor();
+      expect(await page.getByRole("tooltip").evaluate((el) => el.closest("[data-lf-ds]")?.id)).toBe("app");
+      expect(await page.getByRole("tooltip").evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe(
+        "rgba(0, 0, 0, 0)",
+      );
       expect(await page.getByRole("tooltip").textContent()).toBe("Helpful information");
       const next = widget(2);
       const children = (next.root.children ?? []).map((node) =>
@@ -369,13 +382,17 @@ test(
       const button = page.getByRole("button", { name: "Save", exact: true });
       const before = await button.evaluate((el) => getComputedStyle(el).backgroundColor);
       const dom = await page.locator("#app").innerHTML();
-      await page.evaluate((css) => {
-        const style = document.getElementById("projection");
-        if (!style) throw new Error("Missing projection");
-        style.textContent = css;
-      }, rack);
+      await page.evaluate(() => {
+        const scope = document.getElementById("app");
+        const next = scope?.getAttribute("data-lf-ds") === "rack@1.0.0" ? "certified" : "rack";
+        scope?.setAttribute("data-lf-switching", "");
+        scope?.setAttribute("data-lf-theme", `${next}@1.0.0`);
+        scope?.setAttribute("data-lf-ds", `${next}@1.0.0`);
+        scope?.offsetWidth;
+        requestAnimationFrame(() => scope?.removeAttribute("data-lf-switching"));
+      });
       await page.waitForFunction((colour) => {
-        const button = document.querySelector(".lf-button-primary-root-rest");
+        const button = document.querySelector(".lf_button_primary_root");
         return button && getComputedStyle(button).backgroundColor !== colour;
       }, before);
       expect(widgetRenders).toBe(count);
@@ -397,7 +414,7 @@ async function statics(tree: UiTree, css: string, width: number, run: (page: Pag
       <Surface tree={tree} options={options} registry={registered} fallback={<p>Unavailable</p>} onIntent={() => {}} />,
     );
     await page.setContent(
-      `<!doctype html><html lang="en"><head><meta charset="utf-8"><style>html,body{margin:0}${css}</style></head><body><div id="host" style="width:${width}px">${html}</div></body></html>`,
+      `<!doctype html><html lang="en"><head><meta charset="utf-8"><style>html,body{margin:0}${css}</style></head><body><div id="host" class="lf_surface" data-lf-theme="${css === rack ? "rack" : "certified"}@1.0.0" data-lf-ds="${css === rack ? "rack" : "certified"}@1.0.0" style="width:${width}px">${html}</div></body></html>`,
     );
     await run(page);
     expect(errors).toEqual([]);
@@ -429,17 +446,15 @@ const responsiveTree: UiTree = {
 };
 
 const columns = (page: Page) =>
-  page.evaluate(
-    () => getComputedStyle(document.querySelector(".lf-grid-default-root-rest") as Element).gridTemplateColumns,
-  );
+  page.evaluate(() => getComputedStyle(document.querySelector(".lf_grid_default_root") as Element).gridTemplateColumns);
 
 test("responsive_columns_follow_the_container", async () => {
   await statics(responsiveTree, certified, 400, async (page) => {
     expect(await columns(page)).toBe("400px");
-    expect(await page.evaluate(() => document.querySelector(".lf-container") !== null)).toBe(true);
+    expect(await page.evaluate(() => document.querySelector(".lf_container") !== null)).toBe(true);
   });
   await statics(initial, certified, 400, async (page) => {
-    expect(await page.evaluate(() => document.querySelector(".lf-container"))).toBeNull();
+    expect(await page.evaluate(() => document.querySelector(".lf_container"))).toBeNull();
   });
   for (const width of [720, 1000]) {
     await statics(responsiveTree, certified, width, async (page) => {
@@ -463,7 +478,7 @@ test("surface_text_never_inherits_host_fonts", async () => {
         const bad: string[] = [];
         for (const element of [root, ...root.querySelectorAll("*")]) {
           // Hidden native controls and Aria helper nodes carry no surface class; they never draw surface text.
-          if (![...element.classList].some((name) => name.startsWith("lf-"))) continue;
+          if (![...element.classList].some((name) => name.startsWith("lf_"))) continue;
           const family = getComputedStyle(element).fontFamily;
           if (!(element as HTMLElement).innerText?.trim() && !["INPUT", "TEXTAREA"].includes(element.tagName)) continue;
           bad.push(`${element.tagName}.${element.className} ${family}`);
@@ -519,7 +534,7 @@ test("sticky_position_sticks_within_its_scroller", async () => {
     expect(offset).toBeGreaterThan(0);
     const [regionTop, stickyTop] = await page.evaluate(() => [
       document.querySelector('[role="region"]')?.getBoundingClientRect().top ?? 0,
-      document.querySelector(".lf-box-default-root-rest")?.getBoundingClientRect().top ?? 0,
+      document.querySelector(".lf_box_default_root")?.getBoundingClientRect().top ?? 0,
     ]);
     expect(Math.round(stickyTop - regionTop)).toBe(0);
   });

@@ -97,16 +97,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-0/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -114,6 +110,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -122,7 +122,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -191,16 +193,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-1/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -208,6 +206,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -216,7 +218,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -285,16 +289,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-2/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -302,6 +302,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -310,7 +314,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -379,16 +385,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-3/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -396,6 +398,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -404,7 +410,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -473,16 +481,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-4/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -490,6 +494,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -498,7 +506,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -567,16 +577,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-5/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -584,6 +590,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -592,7 +602,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -661,16 +673,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-6/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -678,6 +686,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -686,7 +698,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -755,16 +769,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-7/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -772,6 +782,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -780,7 +794,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -849,16 +865,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-8/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -866,6 +878,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -874,7 +890,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -943,16 +961,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-9/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -960,6 +974,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -968,7 +986,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -1037,16 +1057,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-10/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -1054,6 +1070,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -1062,7 +1082,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -1131,16 +1153,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-11/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -1148,6 +1166,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -1156,7 +1178,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -1225,16 +1249,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-12/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -1242,6 +1262,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -1250,7 +1274,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -1319,16 +1345,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-13/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -1336,6 +1358,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -1344,7 +1370,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -1413,16 +1441,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-14/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -1430,6 +1454,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -1438,7 +1466,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -1507,16 +1537,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-15/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -1524,6 +1550,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -1532,7 +1562,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -1601,16 +1633,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-16/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -1618,6 +1646,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -1626,7 +1658,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -1695,16 +1729,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-17/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -1712,6 +1742,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -1720,7 +1754,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -1789,16 +1825,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-18/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -1806,6 +1838,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -1814,7 +1850,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -1883,16 +1921,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-19/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -1900,6 +1934,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -1908,7 +1946,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -1977,16 +2017,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-20/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -1994,6 +2030,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -2002,7 +2042,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -2071,16 +2113,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-21/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -2088,6 +2126,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -2096,7 +2138,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -2165,16 +2209,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-22/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -2182,6 +2222,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -2190,7 +2234,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -2259,16 +2305,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-23/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -2276,6 +2318,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -2284,7 +2330,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -2353,16 +2401,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-24/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -2370,6 +2414,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -2378,7 +2426,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -2447,16 +2497,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-25/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -2464,6 +2510,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -2472,7 +2522,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -2541,16 +2593,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-26/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -2558,6 +2606,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -2566,7 +2618,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -2635,16 +2689,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-27/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -2652,6 +2702,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -2660,7 +2714,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -2729,16 +2785,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-28/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -2746,6 +2798,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -2754,7 +2810,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -2823,16 +2881,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-29/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -2840,6 +2894,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -2848,7 +2906,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -2917,16 +2977,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-30/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -2934,6 +2990,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -2942,7 +3002,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -3011,16 +3073,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-31/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -3028,6 +3086,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -3036,7 +3098,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -3105,16 +3169,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-32/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -3122,6 +3182,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -3130,7 +3194,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -3199,16 +3265,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-33/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -3216,6 +3278,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -3224,7 +3290,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -3293,16 +3361,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-34/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -3310,6 +3374,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -3318,7 +3386,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -3387,16 +3457,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-35/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -3404,6 +3470,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -3412,7 +3482,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -3481,16 +3553,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-36/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -3498,6 +3566,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -3506,7 +3578,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -3575,16 +3649,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-37/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -3592,6 +3662,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -3600,7 +3674,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -3669,16 +3745,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-38/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -3686,6 +3758,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -3694,7 +3770,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -3763,16 +3841,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-39/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -3780,6 +3854,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -3788,7 +3866,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -3857,16 +3937,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-40/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -3874,6 +3950,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -3882,7 +3962,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -3951,16 +4033,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-41/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -3968,6 +4046,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -3976,7 +4058,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -4045,16 +4129,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-42/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -4062,6 +4142,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -4070,7 +4154,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -4139,16 +4225,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-43/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -4156,6 +4238,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -4164,7 +4250,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -4233,16 +4321,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-44/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -4250,6 +4334,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -4258,7 +4346,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -4327,16 +4417,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-45/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -4344,6 +4430,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -4352,7 +4442,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -4421,16 +4513,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-46/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -4438,6 +4526,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -4446,7 +4538,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -4515,16 +4609,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-47/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -4532,6 +4622,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -4540,7 +4634,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -4609,16 +4705,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-48/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -4626,6 +4718,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -4634,7 +4730,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {
@@ -4703,16 +4801,12 @@
                         "children": [
                           {
                             "id": "root/stack/columns/rows/stack/decision-49/grid",
-                            "kind": "grid",
+                            "kind": "inline",
                             "props": {},
                             "style": {
-                              "columns": [
-                                "space.4",
-                                "1fr",
-                                "0fr"
-                              ],
                               "gap": "space.3",
-                              "align": "start"
+                              "align": "start",
+                              "paddingRight": "space.3"
                             },
                             "children": [
                               {
@@ -4720,6 +4814,10 @@
                                 "kind": "icon",
                                 "props": {
                                   "name": "mk-dashed"
+                                },
+                                "style": {
+                                  "width": "space.4",
+                                  "shrink": 0
                                 }
                               },
                               {
@@ -4728,7 +4826,9 @@
                                 "props": {},
                                 "style": {
                                   "gap": "space.1",
-                                  "align": "start"
+                                  "align": "start",
+                                  "grow": 1,
+                                  "basis": 0
                                 },
                                 "children": [
                                   {

@@ -22,7 +22,7 @@ const onIntent = (intent: Intent) => {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Intent rejected");
       snapshot = result;
-      root.render(<ProofSurface snapshot={snapshot} onIntent={onIntent} />);
+      root.render(<ProofSurface snapshot={snapshot} onIntent={onIntent} portalContainer={container} />);
       if (log) log.textContent = JSON.stringify(snapshot.actions, null, 2);
       if (status) status.textContent = "";
     })
@@ -30,7 +30,10 @@ const onIntent = (intent: Intent) => {
       if (status) status.textContent = error instanceof Error ? error.message : String(error);
     });
 };
-const root = hydrateRoot(container, <ProofSurface snapshot={snapshot} onIntent={onIntent} />);
+const root = hydrateRoot(
+  container,
+  <ProofSurface snapshot={snapshot} onIntent={onIntent} portalContainer={container} />,
+);
 const switcher = document.getElementById("design-system");
 const sheets = Array.from(document.querySelectorAll<HTMLLinkElement>("link[data-design-system]"));
 await Promise.all(
@@ -45,7 +48,11 @@ await Promise.all(
 );
 if (switcher instanceof HTMLSelectElement) {
   switcher.addEventListener("change", () => {
-    for (const sheet of sheets) sheet.media = sheet.dataset.designSystem === switcher.value ? "all" : "not all";
+    container.setAttribute("data-lf-switching", "");
+    container.setAttribute("data-lf-theme", `${switcher.value}@1.0.0`);
+    container.setAttribute("data-lf-ds", `${switcher.value}@1.0.0`);
+    container.offsetWidth;
+    requestAnimationFrame(() => container.removeAttribute("data-lf-switching"));
   });
   switcher.disabled = false;
 }

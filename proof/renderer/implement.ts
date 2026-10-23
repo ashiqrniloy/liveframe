@@ -12,6 +12,7 @@ export interface ImplementationProps<P = UiNode["props"]> {
   readonly emitNode: (node: UiNode, event: string, value?: Json) => void;
   readonly node: UiNode;
   readonly layout: CSSProperties;
+  readonly portalContainer?: Element | undefined;
 }
 export interface Implementation {
   readonly definition: Definition;

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { type Browser, chromium } from "playwright";
-import { openPage } from "../host/pages.ts";
+import { agentHomeScenarios, openPage } from "../host/pages.ts";
 import { startHost } from "../host/server.ts";
 
 let server: Awaited<ReturnType<typeof startHost>>;
@@ -19,6 +19,44 @@ test("design_system_page_uses_the_unchanged_reference_queue", () => {
     openPage("full", "agent-home").snapshot().tree.root,
   );
 });
+
+test("all_proof_scenarios_render_with_both_scoped_design_systems", async () => {
+  const page = await browser.newPage();
+  page.setDefaultTimeout(5000);
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  try {
+    const paths = [
+      ...["agent-home", "core-queue"].flatMap((name) =>
+        (name === "core-queue" ? ["small", "medium", "large", "full"] : ["full"]).flatMap((size) =>
+          agentHomeScenarios.map((scenario) => `/ui/${name}?size=${size}&scenario=${scenario}`),
+        ),
+      ),
+      "/ui/git-status",
+      "/ui/git-status?scenario=empty",
+      "/ui/rack-module",
+      "/ui/harness",
+    ];
+    for (const path of paths) {
+      await page.goto(new URL(path, server.url).toString());
+      await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+      expect(await page.locator("link[data-design-system]").count()).toBe(4);
+      for (const system of ["certified", "rack"]) {
+        await page.getByLabel("Design system").selectOption(system);
+        expect(await page.locator("#app").getAttribute("data-lf-theme")).toBe(`${system}@1.0.0`);
+        expect(await page.locator("#app").getAttribute("data-lf-ds")).toBe(`${system}@1.0.0`);
+        expect(await page.locator("#app").textContent()).not.toBe("");
+        expect(await page.locator("#app").textContent()).not.toContain("Widget unavailable");
+      }
+    }
+    expect(errors).toEqual([]);
+  } finally {
+    await page.close();
+  }
+}, 60000);
 
 for (const name of ["agent-home", "git-status"]) {
   test(`switch_changes_computed_styles_not_dom_structure: ${name}`, async () => {
@@ -58,15 +96,18 @@ for (const name of ["agent-home", "git-status"]) {
         const observer = new MutationObserver((records) => mutations.push(...records));
         observer.observe(app, { subtree: true, childList: true, attributes: true, characterData: true });
         const samples: number[] = [];
+        let cold = 0;
         const styles: Record<string, string> = {};
         let immediate = true;
         // The first flip of a sheet that owns container queries builds Blink's container-query caches
         // (~14 ms once per page); every later flip is the switch cost this budget measures.
         await new Promise<void>((resolve) =>
           requestAnimationFrame(() => {
+            const start = performance.now();
             select.value = select.value === "certified" ? "rack" : "certified";
             select.dispatchEvent(new Event("change", { bubbles: true }));
             getComputedStyle(heading).fontSize;
+            cold = performance.now() - start;
             requestAnimationFrame(() => {
               select.value = select.value === "certified" ? "rack" : "certified";
               select.dispatchEvent(new Event("change", { bubbles: true }));
@@ -97,6 +138,7 @@ for (const name of ["agent-home", "git-status"]) {
         observer.disconnect();
         const after = Array.from(app.querySelectorAll("*"));
         return {
+          cold,
           samples,
           styles,
           immediate,
@@ -104,7 +146,13 @@ for (const name of ["agent-home", "git-status"]) {
           sameNodes: nodes.length === after.length && nodes.every((node, i) => node === after[i]),
           sameFocus: document.activeElement === focus,
           sameTree: document.getElementById("bootstrap")?.textContent === bootstrap,
-          mutations: mutations.length,
+          mutations: mutations.filter(
+            (m) =>
+              m.target !== app ||
+              m.type !== "attributes" ||
+              !["data-lf-theme", "data-lf-ds", "data-lf-switching"].includes(m.attributeName ?? ""),
+          ).length,
+          animations: app.getAnimations({ subtree: true }).length,
         };
       });
       expect(result.styles).toEqual({ certified: "24.192px", rack: "18px" });
@@ -114,10 +162,11 @@ for (const name of ["agent-home", "git-status"]) {
       expect(result.sameFocus).toBe(true);
       expect(result.sameTree).toBe(true);
       expect(result.mutations).toBe(0);
+      expect(result.animations).toBe(0);
       expect(requests).toEqual([]);
       const max = Math.max(...result.samples);
       console.log(
-        `${name} CSS switch: ${max.toFixed(2)} ms max (${result.samples.length} switches, 16.67 ms frame budget)`,
+        `${name} CSS switch: cold ${result.cold.toFixed(2)} ms; ${max.toFixed(2)} ms max (${result.samples.length} switches, 16.67 ms frame budget)`,
       );
       expect(max).toBeLessThan(1000 / 60);
       for (const [path, hash] of hashes) expect(Bun.hash(await Bun.file(path).text()).toString()).toBe(hash);

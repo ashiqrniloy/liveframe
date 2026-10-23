@@ -1,6 +1,6 @@
 # Agent-home queue parity evidence
 
-Plan 002 Task 8, 2026-10-22. Regenerated from a fresh run of `proof/scripts/parity.ts` after Tasks 1–7. It replaces the Plan 001 Task 11 record, which measured a composition that no longer exists.
+Re-proved by Plan 007 Task 10, 2026-10-24, using the published `/css` projection and scoped proof host. The pixel counts, 281 positional DOM differences and 32 sampled style differences exactly match the approved Plan 002 Task 8 capture (2026-10-22). The original approval and inventory below still apply.
 
 **Result: the ≤ 1% pixel bar is met at all three widths.** Ten DOM causes and 32 style values remain, each with its reason and disposition below. The raw positional counts (281 DOM paths, 32 style values) are in the capture; the cause list is what the owner is asked to approve.
 
@@ -15,7 +15,7 @@ The first script starts two ephemeral localhost servers and headless Chromium, t
 
 Inputs: the verbatim `proof/references/synapta-core/design-artifacts/approved/agent-home-certified.html` from Synapta commit `fc6df4b3a68e117c10120276193717e7213b07bf`, queue section lines 1137–1245, and the unmodified `/ui/agent-home` ready/full fixture under Certified. Artifact SHA-256: `2a2a6579867b3ce77030583c3b0b8212a843323b2f1622200609ae168042e266`. Both show the same six initial subjects, default decision focus and totals 12/5/4/3. Data is synthetic; actions only log. The two artifact faces and their licences are snapshotted (`references/SOURCES.md`, Plan 002 Task 2).
 
-Environment: Linux, Bun 1.4.2, Playwright 1.64.1, Chromium 156.0.8078.4. Each width uses a fresh browser context, height 1000 CSS px, device scale 1, light colour scheme, reduced motion, en-US and UTC. External network requests are blocked. Hydration, an explicit load of both artifact faces and `document.fonts.ready` complete before capture. Both faces must report loaded on both pages; any browser exception or HTTP failure fails the run.
+Environment for the Plan 007 re-proof: Linux, Bun 1.4.4, Playwright 1.64.1, Chromium 156.0.8078.4. Each width uses a fresh browser context, height 1000 CSS px, device scale 1, light colour scheme, reduced motion, en-US and UTC. External network requests are blocked. Hydration, an explicit load of both artifact faces and `document.fonts.ready` complete before capture. Both faces must report loaded on both pages; any browser exception or HTTP failure fails the run.
 
 At each width `W` the script writes only below gitignored `/evidence/`:
 
@@ -72,9 +72,15 @@ The capture compares 19 properties at 18 anchors. 32 values differ, identically 
 | `focus` (3: display, row-gap, column-gap) | `block`/`flex`, `normal`/`12px` | Anchor correspondence: the widget's plate is a grid with a 12 px gap; the artifact's `.focus` is a block whose children carry margins |
 | `card` (1: position) | `relative`/`static` | Not expressible, no visual effect: as the `queue` row above. Recorded for Phase 3 if surfaces need positioned children |
 | `kicker` (3: display, row-gap, column-gap) | `flex`/`block`, `8px`/`normal` | Anchor correspondence: the anchor samples the kicker's `text`, whose gaps live on the wrapping `inline` |
-| `row` (7: font-size, font-weight, line-height, display, grid-template-columns, row-gap, column-gap) | `14`/`13`, `400`/`600`, `21.7`/`20.15`, `grid`/`block`, `296px`/`none`, `4px`/`8px` | Anchor correspondence: the artifact's `.line` is the row grid; the widget's `box variant="rule"` holds a `grid` whose title carries `label.strong` (13/600), exactly as `.line__title` does. The row grid itself matches `.line`'s 16/296 columns |
+| `row` (7: font-size, font-weight, line-height, display, grid-template-columns, row-gap, column-gap) | `14`/`13`, `400`/`600`, `21.7`/`20.15`, `grid`/`block`, `296px`/`none`, `4px`/`8px` | Anchor correspondence: the artifact's `.line` is the row grid; the widget's `box variant="rule"` holds a flex `inline` whose title carries `label.strong` (13/600), exactly as `.line__title` does. The flex marker/body composition retains `.line`'s 16/296 columns, including the trailing gap when no flag is present |
 | `rowTitle` (1: display) | `block`/`inline` | Anchor correspondence: the label span inside the ghost title button |
 | `category` (4: display, row-gap, column-gap, margin-bottom) | `flex`/`block`, `8px`/`normal`, `8px`/`0` | Anchor correspondence: the 8 px bottom margin and the gaps sit on the label's wrapper, not on the `text` node the anchor samples |
+
+## Projection integration (Plan 007 Task 10)
+
+The host loads base and app-owned primitive CSS plus both theme sheets and both design-system sheets. Scope attributes select the pair; switching suppresses transitions and preserves tree, classes, nodes and focus. React Aria portals stay inside the same scope. `proof/css/project.ts` only adapts `/css` helpers. QueueRow uses the SDK port's flex composition, with conditional trailing padding preserving the empty third grid track's gap. Exported and SDK trees now compare directly; the 679-node benchmark is unchanged.
+
+The capture's `parity: false` field means exact DOM/style equality; its pixel ratios all pass. Its remaining DOM/style differences are the approved inventory above. No new agent-home deviation was introduced. Rack has no pixel target; its scrollbar now follows the theme's native `color-scheme` instead of the proof projector's hard-coded `surface.scrollbar` styling, as accepted in Plan 007.
 
 ## Approval
 

@@ -206,3 +206,9 @@ Law 3 constrains widget code and installed style data. App primitive CSS is
 trusted host code; it must never interpolate widget strings as CSS. Installed
 themes, recipes and style props pass validation and escaping through the
 projection, so no installed data is accepted as raw CSS text.
+
+The proof host demonstrates this split: `proof/renderer/primitives/base.ts` supplies
+trusted app structure, while `proof/css/project.ts` adapts the public helpers and
+`proof/css/sheets.ts` builds the independent sheets from the installed fixtures.
+Colour-authority tests scan widget and design-system inputs; trusted app primitive
+CSS is outside that boundary and uses `colourVar` for any theme colour reference.

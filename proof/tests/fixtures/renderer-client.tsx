@@ -33,6 +33,7 @@ if (!container) throw new Error("Missing test container");
 window.intents = [];
 const surface = (tree: UiTree) => (
   <Surface
+    portalContainer={container}
     tree={tree}
     options={options}
     registry={registered}

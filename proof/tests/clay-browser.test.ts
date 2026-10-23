@@ -1,8 +1,7 @@
 import { expect, test } from "bun:test";
 import { chromium } from "playwright";
 import { startHost } from "../host/server.ts";
-import { certifiedTheme } from "../styles/certified/theme.ts";
-import { rackTheme } from "../styles/rack/theme.ts";
+import { themeSheets } from "../css/sheets.ts";
 
 test("clay_panels_hydrate_under_rack_and_exercise_three_interaction_tiers", async () => {
   const server = await startHost(0);
@@ -19,7 +18,7 @@ test("clay_panels_hydrate_under_rack_and_exercise_three_interaction_tiers", asyn
       await page.goto(new URL(`/ui/${name}`, server.url).toString());
       await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
       expect(await page.getByLabel("Design system").inputValue()).toBe("rack");
-      expect(await page.locator("#projection").getAttribute("href")).toBe("/styles/rack.css");
+      expect(await page.locator("#app").getAttribute("data-lf-ds")).toBe("rack@1.0.0");
       if (name === "git-status") {
         await page.getByRole("heading", { name: "Git", exact: true }).waitFor();
         expect(await page.locator('[data-icon="git.branch"]').count()).toBe(4);
@@ -69,23 +68,23 @@ test("clay_panels_hydrate_under_rack_and_exercise_three_interaction_tiers", asyn
     const indicators = () =>
       page.evaluate(() => {
         const pick = (role: string) =>
-          Array.from(document.querySelectorAll<HTMLElement>(`[style*="--lf-colour-${role}"]`)).map((element) => {
+          Array.from(document.querySelectorAll<HTMLElement>(`[style*="--lf-c-${role}"]`)).map((element) => {
             const style = getComputedStyle(element);
             return {
-              role: style.getPropertyValue(`--lf-colour-${role}`).trim(),
+              role: style.getPropertyValue(`--lf-c-${role}`).trim(),
               fill: style.backgroundColor,
               radius: style.borderTopLeftRadius,
               width: style.width,
               height: style.height,
             };
           });
-        return { patch: pick("patch-1"), accent: pick("accent-primary") };
+        return { patch: pick("patch_1"), accent: pick("accent_primary") };
       });
     const rack = await indicators();
     // The rail patch and the composer patch carry the session's identity colour.
     expect(rack.patch).toHaveLength(2);
     for (const marker of rack.patch) {
-      expect(marker.role).toBe(rackTheme.colours["patch.1"]);
+      expect(marker.role).toBe(themeSheets.rack.match(/--lf-c-patch_1:([^;}]+)/)?.[1] ?? "missing role");
       expect([marker.radius, marker.width, marker.height]).toEqual(["9999px", "8px", "8px"]);
     }
     expect(new Set(rack.patch.map((marker) => marker.fill)).size).toBe(1);
@@ -103,7 +102,8 @@ test("clay_panels_hydrate_under_rack_and_exercise_three_interaction_tiers", asyn
     const certified = await indicators();
     // Under Certified the same roles resolve through its palette aliases; the limitation stays data,
     // not a widget workaround, and the pip corner follows the theme's radius value.
-    for (const marker of certified.patch) expect(marker.role).toBe(certifiedTheme.colours["patch.1"]);
+    for (const marker of certified.patch)
+      expect(marker.role).toBe(themeSheets.certified.match(/--lf-c-patch_1:([^;}]+)/)?.[1] ?? "missing role");
     expect(certified.patch[0]?.fill).not.toBe(rack.patch[0]?.fill);
     expect(certified.accent[0]?.fill).not.toBe(rack.accent[0]?.fill);
     expect(certified.accent.filter((marker) => marker.radius !== "9999px").map((marker) => marker.radius)).toEqual([

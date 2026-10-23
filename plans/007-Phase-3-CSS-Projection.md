@@ -586,7 +586,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Full-check measurement: 954 DOM elements in the switched surface, with two 50-row surfaces and overlays mounted; first flip 7.7 ms, ten warm flips 8.4, 8.2, 8.0, 7.8, 7.7, 7.5, 7.4, 8.3, 7.9 and 10.0 ms (maximum 10.0 ms ≤ 16.67 ms). The timer covers switch attributes and computed-style resolution across every node, including overlay/backdrop styles; it does not claim GPU paint/compositing time. Recorded beside G33 in `proof/GAPS.md`; proof-host integration/parity remains Task 10.
     - Tests were added before capture implementation and initially failed on the absent fixture. `timeout 600s bun run check` passed: generation check, both typechecks, lint, formatting, 377 tests / 110,087 assertions. All six focused cases pass, the generator's self-check passes, and `git diff --check` passes. Existing lint warnings remain; the new TypeScript files add none. No public API, dependency or normative spec change. Context7 `/microsoft/playwright` confirmed `setContent`, evaluation and screenshot APIs for the installed browser-test tooling.
 
-- [ ] Task 10: Drive the proof host with `/css` and re-prove parity
+- [x] Task 10: Drive the proof host with `/css` and re-prove parity
   - Acceptance Criteria:
     - Functional:
       - `proof/css/project.ts` becomes a thin adapter over `@arnilo/liveframe/css`, using the new-format fixtures in `src/__tests__/fixtures/proof/`. Its exports (`slotClasses`, `styleProps`, `hasResponsiveStyles`, `hasResponsiveValues`) keep their call sites in `proof/renderer/surface.tsx` and `proof/renderer/primitives/index.tsx`.
@@ -608,7 +608,8 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `liveframe-execution` (proof and styling references).
       - `investigate-first` — if parity regresses, find the cause (selector precedence, logical sides, `translate`) before changing data.
     - Library Documentation to Check Before Implementation:
-      - Playwright 1.64 (already used by `proof/scripts/parity.ts`).
+      - Playwright 1.64.1 screenshot preparation and font readiness (Context7 `/microsoft/playwright`; installed API verified).
+      - React Aria Components 1.22.1 portal containers (Context7 `/websites/react-aria_adobe`; installed `UNSTABLE_portalContainer` props verified).
     - Documentation Reviewed:
       - `proof/renderer/surface.tsx:2`, `proof/renderer/primitives/index.tsx:4`: the callers.
       - `proof/scripts/export-formats.ts:262-267`: the `0fr` substitution.
@@ -620,6 +621,8 @@ Probe answers that hold for every task, unless a task says otherwise:
       - Keep `fit` tracks in the proof — rejected: it isn't spec-valid, and the backlog item requires removing it.
     - Chosen Approach:
       - Swap the projector behind the proof's existing imports, recompose `QueueRow`, re-capture.
+      - Keep QueueRow's empty trailing-track gap as conditional padding in both proof and SDK ports; without it the flex migration changes mobile line wrapping.
+      - Keep React Aria overlays inside the host scope through the installed portal-container prop; no new dependency or library renderer API.
     - API Notes and Examples:
       ```bash
       timeout 600s bun proof/scripts/parity.ts --out evidence/parity
@@ -627,19 +630,28 @@ Probe answers that hold for every task, unless a task says otherwise:
       ```
     - Files to Create/Edit:
       - `proof/css/project.ts`: replaced by the adapter.
-      - `proof/renderer/primitives/base.css`: new (tentative name). The proof's structural CSS.
-      - `proof/host/server.ts` (the `<link>` pair at `:112`), `proof/host/client.tsx`: sheets, attributes, switch.
-      - `proof/widgets/agent-home/queue-row.tsx`: the flex composition.
+      - `proof/renderer/primitives/base.ts`: proof-owned structural CSS using the exported value-name helper.
+      - `proof/css/fixtures.ts`, `proof/css/sheets.ts`: validated new-format fixtures and independent library sheets.
+      - `proof/host/server.ts`, `proof/host/client.tsx`: sheets, library scope attributes, switch.
+      - `proof/host/view.tsx`, `proof/renderer/implement.ts`, `proof/renderer/surface.tsx`, `proof/renderer/primitives/index.tsx`, `proof/tests/fixtures/renderer-client.tsx`: retain overlay portals in the selected DOM scope.
+      - `proof/widgets/agent-home/queue-row.tsx`, `src/__tests__/fixtures/widgets/agent-home/queue-row.tsx`: equal flex composition and conditional trailing padding.
       - `proof/scripts/export-formats.ts`, `src/__tests__/fixtures/proof/*.tree.json` (regenerated), `src/__tests__/sdk-proof-widgets.test.ts`.
       - `proof/scripts/capture-css-scope.ts`, `src/__tests__/fixtures/css/agent-home.html`: remove the Task 9 capture's legacy class/style translation and temporary `fit` substitution once the proof projects through `/css`; regenerate from the migrated server render and retain the 50-row scope/switch regression.
       - `proof/tests/*.test.ts`: class names and selectors where they assert them.
-      - `proof/PARITY.md`, `proof/GAPS.md`.
+      - `proof/PARITY.md`, `proof/GAPS.md`, `proof/REPORT.md`, `docs/styling.md`: integration evidence, gap closure and trusted app CSS boundary.
       - `plans/backlog.md`: close the grid-track item.
   - Test Cases to Write:
     - Existing `proof/tests/switch.test.ts`, `proof/tests/renderer-browser.test.tsx` and `proof/tests/projection.test.ts` (updated for the new class names) are the regression tests. `proof/tests/projection.test.ts` cases that test the old projector's internals are deleted, with their coverage pointed at the Task 3–7 tests.
     - `proof_trees_match_exports` passes with no layout exception.
+    - `all_proof_scenarios_render_with_both_scoped_design_systems`: all 39 host route/scenario/size variants render under both systems with all four sheets loaded. Renderer interaction regressions run under both systems; overlay scope and non-transparent styling are asserted.
     - The parity run is evidence (`evidence/parity`, regenerated by `proof/scripts/parity.ts`), not a test.
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-24):
+    - Removed the second projector; the adapter delegates slot/style output to `/css`. The host serves base + trusted app primitive CSS + two independent theme/system pairs, uses `surfaceAttributes`, and switches with the transition-suppression sequence. Portaled overlays stay in that scope. No public API, format, dependency or normative spec change.
+    - The first mobile capture regressed to 1.22% because flex removed the empty grid track's trailing gap. Conditional `paddingRight` in both QueueRows restored exactly the approved pixel counts: **9712 / 1345728 (0.72%)**, **7088 / 938880 (0.75%)**, **5572 / 576380 (0.97%)** at 1440 / 1024 / 390 px. All 281 DOM / 32 style differences remain the approved inventory; diagnostics are empty. Capture `parity: false` still denotes exact DOM/style equality, not failure of the accepted pixel bar. Local evidence: `evidence/parity`, regenerated by `timeout 600s bun proof/scripts/parity.ts --out evidence/parity`.
+    - Removed exporter `0fr` substitution, test `flexRows` normalization and the scope capture's class/style/track translation. Exported and SDK trees now match directly; `proof_node_counts_hold` still proves 679 nodes. Regenerate with `timeout 30s bun proof/scripts/export-formats.ts` and `timeout 30s bun proof/scripts/capture-css-scope.ts`.
+    - `timeout 600s bun run check` passed: typecheck, lint, formatting and **374 tests / 109,961 assertions**. Renderer interactions pass under both systems; all 39 host variants switch under both. Final full-check host measurements: cold **10.9 / 3.4 ms**, warm maxima **3.1 / 1.6 ms** for agent-home / git-status. Warm switches preserve markup, nodes, focus and tree, produce no transitions and make no requests. A concurrent earlier run measured 25 ms cold: G33 remains load-sensitive.
+    - The regenerated 50-row two-surface blur proof measured **8.4 ms cold / 9.0 ms warm max**, 954 DOM elements. Reproduce with `timeout 120s bun test src/__tests__/css-scope-browser.test.ts proof/tests/switch.test.ts`. G27 and the grid-track backlog item are closed; G29 has forced-colour automation but retains the real Windows/assistive-technology audit. Rack's native scrollbar colour is the accepted adopter deviation.
+    - `graft build` refreshed the local graph. Tasks 11–12 remain separate work.
 
 - [ ] Task 11: Hand the design-system cases to the conformance backlog
   - Acceptance Criteria:

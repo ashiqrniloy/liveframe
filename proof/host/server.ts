@@ -1,13 +1,11 @@
 import { resolve, sep } from "node:path";
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";
-import { project } from "../css/project.ts";
+import { surfaceAttributes } from "@arnilo/liveframe/css";
+import { base, themes, systems, themeSheets, systemSheets } from "../css/sheets.ts";
+import { primitiveCss } from "../renderer/primitives/base.ts";
 import { isRecord } from "../runtime/data.ts";
 import { WidgetError } from "../runtime/errors.ts";
-import { certifiedDesignSystem } from "../styles/certified/design-system.ts";
-import { certifiedTheme } from "../styles/certified/theme.ts";
-import { rackDesignSystem } from "../styles/rack/design-system.ts";
-import { rackTheme } from "../styles/rack/theme.ts";
 import { agentHomeScenarios, openPage, pages } from "./pages.ts";
 import { type HostedSurface, StaleRevision } from "./state.ts";
 import { ProofSurface } from "./view.tsx";
@@ -21,8 +19,10 @@ export async function startHost(port = 3000) {
   const bundle = build.outputs[0];
   if (!bundle) throw new Error("Missing proof client bundle");
   const sheets = new Map([
-    ["/styles/certified.css", project(certifiedTheme, certifiedDesignSystem)],
-    ["/styles/rack.css", project(rackTheme, rackDesignSystem)],
+    ["/styles/base.css", base],
+    ["/styles/primitives.css", primitiveCss],
+    ...Object.entries(themeSheets).map(([name, css]) => [`/styles/${name}.theme.css`, css] as const),
+    ...Object.entries(systemSheets).map(([name, css]) => [`/styles/${name}.css`, css] as const),
   ]);
   const fontRoot = resolve("proof/references/synapta-core/design-artifacts/fonts");
   const snapshotFont = (pathname: string) => {
@@ -102,14 +102,19 @@ body { margin: 0; -webkit-font-smoothing: antialiased; }
           ? ({ small: "21rem", medium: "36rem", large: "54rem", full: "100%" }[size] ?? "100%")
           : "100%";
       const designSystem = name === "git-status" || name === "rack-module" ? "rack" : "certified";
-      const alternateSystem = designSystem === "certified" ? "rack" : "certified";
+
       const session = openPage(size, name, scenario);
       const snapshot = session.snapshot();
+      const attributes = surfaceAttributes({
+        theme: themes[designSystem],
+        designSystem: systems[designSystem],
+        tree: snapshot.tree,
+      });
       sessions.set(snapshot.tree.surfaceId, session);
       const markup = renderToString(createElement(ProofSurface, { snapshot, onIntent: () => {} }));
       const json = JSON.stringify(snapshot).replaceAll("<", "\\u003c");
       return html(
-        `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Liveframe proof</title>${fontFaces}<link id="projection" data-design-system="${designSystem}" rel="stylesheet" href="/styles/${designSystem}.css"><link data-design-system="${alternateSystem}" rel="stylesheet" href="/styles/${alternateSystem}.css" media="not all"></head><body><nav aria-label="Reference UIs"><a href="/">All reference UIs</a></nav><h1>${pages[name as keyof typeof pages]}</h1><label>Design system <select id="design-system" disabled><option value="certified"${designSystem === "certified" ? " selected" : ""}>Certified</option><option value="rack"${designSystem === "rack" ? " selected" : ""}>Rack</option></select></label><p>Widget size: ${size}. Use ?size=small, medium, large or full.</p><div id="app" style="max-width:${specimenWidth}">${markup}</div><p id="status" role="alert"></p><h2>Actions (logged only)</h2><pre id="actions" aria-live="polite">[]</pre><script type="application/json" id="bootstrap">${json}</script><script type="module" src="/client.js"></script></body></html>`,
+        `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Liveframe proof</title>${fontFaces}<link rel="stylesheet" href="/styles/base.css"><link rel="stylesheet" href="/styles/primitives.css">${["certified", "rack"].map((name) => `<link data-design-system="${name}" rel="stylesheet" href="/styles/${name}.theme.css"><link data-design-system="${name}" rel="stylesheet" href="/styles/${name}.css">`).join("")}</head><body><nav aria-label="Reference UIs"><a href="/">All reference UIs</a></nav><h1>${pages[name as keyof typeof pages]}</h1><label>Design system <select id="design-system" disabled><option value="certified"${designSystem === "certified" ? " selected" : ""}>Certified</option><option value="rack"${designSystem === "rack" ? " selected" : ""}>Rack</option></select></label><p>Widget size: ${size}. Use ?size=small, medium, large or full.</p><div id="app" class="${attributes.class}" data-lf-theme="${attributes["data-lf-theme"]}" data-lf-ds="${attributes["data-lf-ds"]}" style="max-width:${specimenWidth}">${markup}</div><p id="status" role="alert"></p><h2>Actions (logged only)</h2><pre id="actions" aria-live="polite">[]</pre><script type="application/json" id="bootstrap">${json}</script><script type="module" src="/client.js"></script></body></html>`,
       );
     },
   });

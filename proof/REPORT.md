@@ -72,7 +72,7 @@ Implemented and validated (`runtime/validate.ts`, `tests/runtime.test.ts`, `test
 | direction, align, justify, wrap, textAlign | closed enums | all four UIs |
 | width, height, minWidth, maxWidth | `space.*`, `size.*`, `fill`, `fit`, `0–100ch`, `0–100%` | queue grid, decide note (`56ch`), rack indicators |
 | grow, shrink, basis | numbers 0–100 | rows, composer |
-| columns, rows, area | ≤ 12 tracks of the dimension domain (`fr` becomes `minmax(0, …)`, `fit` becomes `auto`) | queue rows and facts, Rack module |
+| columns, rows, area | ≤ 12 tracks of the dimension domain (`fr` becomes `minmax(0, …)`; QueueRow now uses flex, Plan 007 T10) | queue rows and facts, Rack module |
 | position, insetTop, insetBottom | `static` / `sticky`; `space.*` | sticky focus column |
 | surface (box) | `surface.*` theme roles | cards, panels |
 | fill (box) | a declared subset of non-surface roles (accent, diagnostics, `status.critical`, `patch.1–5`) | rack indicators |
@@ -140,7 +140,7 @@ Resolutions: **Spec** = proposed spec change (§7). **Phase N** = handled when t
 | G24 | Specimen width caps are host placement; no token multiplication (GAPS T8) | **Accepted**: placement belongs to the app (§3) |
 | G25 | OM/Context panels have no source content; meter and model/effort pickers are readouts (GAPS T9) | **Limit**: the source has no content. Pickers are `select` / `menu` compositions, not exercised |
 | G26 | Icon glyphs are a small host map with Unicode approximations (GAPS T5, T9) | **Phase 4/Adopter**: the app owns its icon set |
-| G27 | One global stylesheet; simultaneous independently styled surfaces untested (GAPS T5) | **Phase 3**: scope projection per surface |
+| G27 | Global stylesheet in the original proof (GAPS T5) | **Closed, Plan 007 T10**: scoped `/css` host and two-surface isolation/overlay tests (`GAPS.md`) |
 | G28 | The reusable untrusted theme/design-system install validator was not built (GAPS T3, T5) | **Phase 1** |
 | G29 | Native scrollbar geometry; forced colours only emulated in Chromium (GAPS T5) | **Phase 3/4**: accessibility audit on real platforms |
 

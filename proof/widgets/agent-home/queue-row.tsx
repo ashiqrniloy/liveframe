@@ -1,5 +1,5 @@
 /** @jsxImportSource ../../runtime */
-import { Box, Button, Grid, Icon, Inline, Stack, state, Text } from "../../runtime/index.ts";
+import { Box, Button, Icon, Inline, Stack, state, Text } from "../../runtime/index.ts";
 import type { Category } from "./manifest.ts";
 
 const markers: Record<Category, string> = {
@@ -27,9 +27,10 @@ export function QueueRow({
 }) {
   return (
     <Box {...(selected ? { surface: "surface.well" } : {})} variant="rule">
-      <Grid columns={["space.4", "1fr", "fit"]} gap="space.3" align="start">
-        <Icon key="marker" name={markers[category]} />
-        <Stack key="body" gap="space.1" align="start">
+      {/* Retain the empty trailing grid gap when there is no folded-alert flag. */}
+      <Inline key="grid" gap="space.3" align="start" paddingRight={foldedAlerts ? "space.0" : "space.3"}>
+        <Icon key="marker" name={markers[category]} width="space.4" shrink={0} />
+        <Stack key="body" gap="space.1" align="start" grow={1} basis={0}>
           <Button key="subject" label={title} variant="ghost" current={selected} onPress={state.set("selected", id)} />
           {/* 4px gap with 8px right padding on every but the last word: 12px between words, 4px between lines. */}
           <Inline key="meta" gap="space.1" wrap="wrap" align="center">
@@ -46,12 +47,12 @@ export function QueueRow({
           </Inline>
         </Stack>
         {foldedAlerts ? (
-          <Inline key="flag" gap="space.2" align="center">
+          <Inline key="flag" gap="space.2" align="center" shrink={0}>
             <Icon key="marker" name="mk-solid" />
             <Text key="word" text={`${foldedAlerts} alert folded here`} textStyle="caption" tone="warning" />
           </Inline>
         ) : null}
-      </Grid>
+      </Inline>
     </Box>
   );
 }

@@ -78,12 +78,12 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 ## Reconcile proof grid tracks before SDK and CSS integration
 
-- Status (2026-10-23, plan 005 Task 7): SDK composition complete. QueueRow uses a keyed Inline with a fixed-width marker, growing body and non-shrinking flag; all exported tree comparisons pass with these named layout exceptions, preserving benchmark node counts. Still open: Phase 3 CSS projection must verify visual parity at the proof widths under both design systems.
+- Status: closed 2026-10-24 (plan 007 Task 10). Proof and SDK QueueRows now share spec-valid flex composition, including the trailing empty-track gap. The exporter no longer substitutes `0fr`, tree comparisons have no layout exception, and benchmark node counts remain unchanged. The scoped host renders every scenario under both systems; Certified parity remains 0.72% / 0.75% / 0.97% at 1440 / 1024 / 390 px (`proof/PARITY.md`; regenerate with `timeout 600s bun proof/scripts/parity.ts --out evidence/parity`).
 
 - Section: Phase 2 Part A and Phase 3 (spec §6.3, §10, §12)
 - Priority: P2
 - Source: plans/004-Phase-1-Part-B-Compiled-Validator.md
-- What: when migrating the proof widgets to the SDK and CSS projector, replace their proof-only `"fit"` grid tracks with spec-valid composition and verify the same scenarios and visual parity. `proof/scripts/export-formats.ts` currently substitutes `"0fr"` in agent-home and medium/large/full core-queue benchmark trees; preserve the benchmark node counts. If valid composition cannot preserve the look, bring the concrete gap to the owner before changing §6.3.
+- What: when migrating the proof widgets to the SDK and CSS projector, replace their proof-only `"fit"` grid tracks with spec-valid composition and verify the same scenarios and visual parity. `proof/scripts/export-formats.ts` previously substituted `"0fr"` in agent-home and medium/large/full core-queue benchmark trees; preserve the benchmark node counts. If valid composition cannot preserve the look, bring the concrete gap to the owner before changing §6.3.
 - Why: the compiled validator correctly rejects `"fit"` as a grid track; the exporter conversion proves transport validity and throughput, not visual equivalence. Phase 2 must not feed the unconverted proof trees to `render()` or claim parity from the converted benchmark fixtures alone. The approved proof UI and the spec remain unchanged in plan 004.
 
 ## Exclude test fixtures from the release package

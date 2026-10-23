@@ -1,5 +1,5 @@
 import { type ReactNode, useState } from "react";
-import { hasResponsiveStyles, hasResponsiveValues, slotClasses, styleProps } from "../css/project.ts";
+import { hasResponsiveValues, slotClasses, styleProps } from "../css/project.ts";
 import { WidgetError } from "../runtime/errors.ts";
 import type { Intent, Json, RenderOptions, UiNode, UiTree } from "../runtime/types.ts";
 import { validate } from "../runtime/validate.ts";
@@ -11,13 +11,14 @@ export interface SurfaceProps {
   readonly registry: ReadonlyMap<string, Implementation>;
   readonly onIntent: (intent: Intent) => void;
   readonly fallback: ReactNode;
+  readonly portalContainer?: Element | undefined;
 }
 
 function Node({ node, surface }: { node: UiNode; surface: SurfaceProps }) {
   // The nearest ancestor is the container; a responsive node queries its parent, not itself.
   const container =
     (node.children ?? []).some(hasResponsiveValues) || (node.id === "root" && hasResponsiveValues(node))
-      ? " lf-container"
+      ? " lf_container"
       : "";
   const implementation = surface.registry.get(node.kind);
   if (!implementation) return surface.fallback;
@@ -35,6 +36,7 @@ function Node({ node, surface }: { node: UiNode; surface: SurfaceProps }) {
   };
   return (
     <Component
+      portalContainer={surface.portalContainer}
       props={node.props}
       node={node}
       nodes={node.children ?? []}
@@ -46,7 +48,7 @@ function Node({ node, surface }: { node: UiNode; surface: SurfaceProps }) {
         const classes = slotClasses(node.kind, node.variant ?? "default", slot, node.style ?? {});
         // The surface root carries the theme; the nearest ancestor of a responsive value is the query container.
         if (slot !== "root") return classes;
-        return `${classes}${node.id === "root" ? " lf-surface" : ""}${container}`;
+        return `${classes}${node.id === "root" ? " lf_surface" : ""}${container}`;
       }}
       emit={(event, value) => emitNode(node, event, value)}
     >
