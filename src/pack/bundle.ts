@@ -1,6 +1,7 @@
 import { type AnyNode, type Identifier, type Literal, type Node, type Pattern, parse } from "acorn";
 import { transform } from "sucrase";
 import type { LiveframeError, Result } from "../errors.ts";
+import { documentChecks } from "../formats/capabilities.ts";
 
 const sdkSpecifiers = new Set([
   "@arnilo/liveframe/sdk",
@@ -9,13 +10,13 @@ const sdkSpecifiers = new Set([
 ]);
 
 class BundleFailure extends Error {
-  constructor(readonly detail: LiveframeError) {
-    super(detail.message);
+  constructor(readonly errors: readonly LiveframeError[]) {
+    super(errors[0]?.message);
   }
 }
 
 function fail(kind: LiveframeError["kind"], pointer: string, message: string): never {
-  throw new BundleFailure({ kind, pointer, message });
+  throw new BundleFailure([{ kind, pointer, message }]);
 }
 
 function pointer(file: string, line?: number): string {
@@ -34,6 +35,39 @@ function walk(node: AnyNode, visit: (node: AnyNode, insideFunction: boolean) => 
     if (Array.isArray(value)) {
       for (const child of value) if (isNode(child)) walk(child, visit, nested);
     } else if (isNode(value)) walk(value, visit, nested);
+  }
+}
+
+/** One import rule for source modules and untrusted, already-linked packages. */
+export function checkModule(source: string, at: string, allowRelative = false): Result<ReturnType<typeof parse>> {
+  const c = documentChecks();
+  try {
+    const ast = parse(source, { ecmaVersion: "latest", sourceType: "module", locations: true });
+    walk(ast, (node) => {
+      if (c.errors.length >= 20) return;
+      const location = `${at}/${node.loc?.start.line ?? 1}`;
+      if (
+        node.type === "ImportExpression" ||
+        (node.type === "MetaProperty" && node.meta.name === "import") ||
+        (node.type === "CallExpression" && node.callee.type === "Identifier" && node.callee.name === "require")
+      )
+        c.reject(location, "Dynamic imports, import.meta and require are forbidden", "forbidden-import");
+      if (
+        (node.type === "ImportDeclaration" ||
+          node.type === "ExportNamedDeclaration" ||
+          node.type === "ExportAllDeclaration") &&
+        node.source
+      ) {
+        const specifier = String(node.source.value);
+        if (!sdkSpecifiers.has(specifier) && !(allowRelative && /^\.\.?\//.test(specifier)))
+          c.reject(location, `Import ${specifier} is not allowed`, "forbidden-import");
+      }
+    });
+    return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: ast };
+  } catch (error) {
+    const syntax = error as { loc?: { line?: number }; message?: string };
+    c.reject(`${at}/${syntax.loc?.line ?? 1}`, syntax.message ?? "Invalid widget syntax", "transpile-failed");
+    return { ok: false, errors: c.errors };
   }
 }
 
@@ -118,11 +152,13 @@ export function bundle({
       }).code;
       // A hashbang is legal only at the start of the final module, not inside a wrapper.
       if (source.startsWith("#!")) source = `//${source.slice(2)}`;
-      ast = parse(source, { ecmaVersion: "latest", sourceType: "module", locations: true });
     } catch (error) {
       const syntax = error as { loc?: { line?: number }; message?: string };
       fail("transpile-failed", pointer(file, syntax.loc?.line ?? 1), syntax.message ?? "Invalid widget syntax");
     }
+    const checked = checkModule(source, pointer(file), true);
+    if (!checked.ok) throw new BundleFailure(checked.errors);
+    ast = checked.value;
 
     let asynchronous = false;
     walk(ast, (node, insideFunction) => {
@@ -131,24 +167,6 @@ export function bundle({
       const location = pointer(file, node.loc?.start.line ?? 1);
       if (node.type === "Identifier" && node.name.startsWith("__lf_")) {
         fail("invalid-document", location, "Identifiers starting with __lf_ are reserved for the linker");
-      }
-      if (
-        node.type === "ImportExpression" ||
-        (node.type === "MetaProperty" && node.meta.name === "import") ||
-        (node.type === "CallExpression" && node.callee.type === "Identifier" && node.callee.name === "require")
-      ) {
-        fail("forbidden-import", location, "Dynamic imports, import.meta and require are forbidden");
-      }
-      if (
-        (node.type === "ImportDeclaration" ||
-          node.type === "ExportNamedDeclaration" ||
-          node.type === "ExportAllDeclaration") &&
-        node.source
-      ) {
-        const specifier = String(node.source.value);
-        if (!sdkSpecifiers.has(specifier) && !/^\.\.?\//.test(specifier)) {
-          fail("forbidden-import", location, `Import ${specifier} is not a relative module or the SDK`);
-        }
       }
     });
 
@@ -240,7 +258,7 @@ export function bundle({
       ].join("\n"),
     };
   } catch (error) {
-    if (error instanceof BundleFailure) return { ok: false, errors: [error.detail] };
+    if (error instanceof BundleFailure) return { ok: false, errors: error.errors };
     throw error;
   }
 }

@@ -48,8 +48,7 @@ test("src_is_host_api_free", async () => {
 
 test("pack_bundle_has_no_host_apis", async () => {
   const bundle = await Bun.build({
-    // The public /pack entry adds bundle() in Task 5; check its implementation now.
-    entrypoints: [new URL("../pack/bundle.ts", import.meta.url).pathname],
+    entrypoints: [new URL("../pack/index.ts", import.meta.url).pathname],
     target: "browser",
     metafile: true,
   });
@@ -82,7 +81,8 @@ test("pack_bundle_has_no_host_apis", async () => {
     source = source.replace(snippet, "");
   }
   expect(source).not.toMatch(
-    /\b(?:node|bun):|\b(?:require|eval|Function|Worker|fetch|XMLHttpRequest)\s*\(|\bimport\s*\(/,
+    // Match host specifiers without mistaking the JSON Schema's `node: {` property for an import.
+    /\b(?:node|bun):[a-z]|\b(?:require|eval|Function|Worker|fetch|XMLHttpRequest)\s*\(|\bimport\s*\(/,
   );
   expect(source).not.toMatch(
     /\b(?:document|window|process|Bun|Buffer|navigator|localStorage|sessionStorage|globalThis)\s*[.[]/,

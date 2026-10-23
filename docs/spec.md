@@ -366,7 +366,7 @@ Rules:
 
 - **`pack()` never runs widget code.** Rendering a draft is the preview's job (§7.5), through the app's runner and under the app's policy.
 - **A package is immutable.** An `(id, version)` names exactly one hash, and storing different content under an existing pair is an error. A change is a new version, and rolling back means placing an older one.
-- **`verifyPackage(pkg, { catalog, capabilities })`** re-checks the format, the manifest, the scenarios and the hash without executing anything. The app runs it on every package it loads.
+- **`verifyPackage(pkg, { catalog, capabilities })`** re-checks the format, the manifest, the scenarios and the hash without executing anything. It re-parses the code and re-applies the import rule: only SDK imports may remain in a linked package. The app runs it on every package it loads.
 - The package hash is the widget part of the re-run cache key (§8).
 - `/pack` is host-API-free, so the app can pack wherever it installs widgets.
 

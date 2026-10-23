@@ -292,7 +292,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `timeout 600s bun run check` passed: 264 tests, zero failures, plus generated-code drift, typecheck, lint and format checks. Agent-home bundling took 62.76 ms, under 100 ms. New files lint cleanly; existing unrelated lint warnings remain. The browser dependency scan passes and its metafile excludes all four CLI-only packages.
     - Found a Bun 1.4.2 loader regression relevant to Task 8: importing `"data:text/javascript," + encodeURIComponent("const x = { value: 3 }; export default () => x.value;")` returns a string default export instead of a function, while a body without a dot works. Task 4's execution tests use temporary `.mjs` files, cleaned in finally; the production loader is not implemented or changed here. Added a pre-implementation gate to Task 8 so this invalidates the earlier spike explicitly and must be raised against the approved loader decision if it persists.
 
-- [ ] Task 5: Pack and verify widget packages
+- [x] Task 5: Pack and verify widget packages
   - Acceptance Criteria:
     - Functional:
       - `pack({ files, entry, manifest, scenarios }, { catalog, capabilities })`:
@@ -330,6 +330,7 @@ Probe answers that hold for every task, unless a task says otherwise:
       - Let `verifyPackage` trust `code` because the hash covers it — rejected: the hash proves integrity, not origin.
     - Chosen Approach:
       - Compose Tasks 2–4 with the existing validators, in a fixed order that fails fast on shape before semantics.
+      - Share the parsed-module import checker with the linker; linked packages permit only SDK imports, with no remaining relative dependencies. Reuse compiled schema closures across all scenarios, defaulting omitted state to the manifest's initial state.
     - API Notes and Examples:
       ```ts
       const r = pack({ files, entry: "queue.tsx", manifest, scenarios }, { catalog, capabilities });
@@ -337,6 +338,9 @@ Probe answers that hold for every task, unless a task says otherwise:
       ```
     - Files to Create/Edit:
       - `src/pack/pack.ts`, `src/pack/verify.ts`: new; extend Task 2’s `src/pack/index.ts`.
+      - `src/pack/bundle.ts`: share the AST import checker between bundling and verification.
+      - `src/__tests__/exports.test.ts`: extend the exact `/pack` export list.
+      - `src/__tests__/portability.test.ts`: scan the public `/pack` entry, and distinguish host module specifiers from the JSON Schema's `node:` property.
       - `docs/spec.md` §7.3: one sentence saying `verifyPackage` re-applies the import rule.
       - `src/__tests__/pack.test.ts`: new.
   - Test Cases to Write:
@@ -344,7 +348,15 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `pack_rejections`, one case each with kind and pointer asserted: a forbidden import, an initial state outside its schema, no scenarios, a scenario whose state, params, context or data fails, an undeclared data key, and a catalog mismatch.
     - `verify_detects_tampering`: changed code, a changed scenario or a changed manifest each give `hash-mismatch`. A hand-built package with a valid hash and a `node:fs` import gives `forbidden-import`.
     - `pack_and_verify_never_execute`: the `globalThis` marker stays unset.
-  - Notes (executed <date>):
+    - `scenario_defaults_and_capability_result_schemas`: omitted state uses initialState, and data follows the installed capability result schema.
+    - `package_failures_are_bounded_and_fail_closed`: malformed structure, non-JSON values, lone surrogates, oversized code and more than 20 scenario errors return bounded failures.
+    - `verify_rechecks_manifest_and_scenarios`: installation checks run again on load, with escaped JSON Pointers preserved.
+    - `verify_agent_home_under_20_ms`: the full verification path meets the load-time budget.
+  - Notes (executed 2026-10-23):
+    - Added public `pack()` and `verifyPackage()` in `/pack`. They compose structural and manifest validation, compiled scenario checks, linking and canonical hashing without executing code. Scenario data has exactly the manifest's source keys and uses the capabilities' result schemas; omitted state uses initialState. Failures remain pointed and bounded to 20, including canonicalisation TypeErrors for lone surrogates.
+    - Extracted the linker's import validation into one shared parsed-module checker. Verification rejects remaining relative imports as well as non-SDK imports/re-exports, nested or optional require calls, dynamic imports and import.meta, even with a valid hash. Spec §7.3 now explicitly requires re-parsing and re-applying the import rule.
+    - Tests first failed because the public functions were absent. Added reproducibility, schema and catalog rejection, tampering, non-execution, malformed/non-JSON input, code/scenario bounds, error bounds and escaped-pointer coverage. Exact exports and the browser portability scan now cover the public `/pack` entry; the scan distinguishes host specifiers from the JSON Schema's `node:` property. No dependency was added.
+    - `timeout 600s bun run check` passed: 272 tests, zero failures, plus generated-code drift, typecheck, lint and format checks. Agent-home verification took 6.74 ms (under 20 ms), and composed-component bundling remained under 100 ms at 69.42 ms. Existing unrelated lint warnings remain. No later task needed amendment.
 
 - [ ] Task 6: Define the Store interface and ship memoryStore() and loadPlacement()
   - Acceptance Criteria:

@@ -145,6 +145,6 @@ test("public_validator_types_support_error_guided_repairs", () => {
 });
 
 test("package_and_record_format_export_surfaces", () => {
-  expect(Object.keys(pack).sort()).toEqual(["validateScenario", "validateWidgetPackageShape"]);
+  expect(Object.keys(pack).sort()).toEqual(["pack", "validateScenario", "validateWidgetPackageShape", "verifyPackage"]);
   expect(Object.keys(store).sort()).toEqual(["validatePlacement", "validateState", "validateStyleRecord"]);
 });
