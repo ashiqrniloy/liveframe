@@ -682,6 +682,25 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Separates pure-output checks from browser checks for computed state, responsive/RTL behaviour, overlays, preferences and switching. Keeps the unsupported-nesting limit, progressive reduced-transparency support, internal performance gates and G29's real Windows/assistive-technology audit explicit. No conformance helper, runtime code, dependency or spec change.
     - `timeout 600s bun run check` passed: generation check, both typechecks, lint, formatting and **374 tests / 109,961 assertions**, zero failures. Existing lint warnings remain. `git diff --check` passed. No new tests or parity capture were needed for this documentation-only handoff; Task 12's impact analysis remains separate work.
 
+- [x] Task 11a: Reconcile projection execution references after proof adoption
+  - Acceptance Criteria:
+    - Functional: the execution skill's architecture/styling references describe Task 10's delivered proof adoption, G27 closure, warm-switch gate and remaining G29/G33 limits.
+    - Performance: preserve the measured budgets; claim neither cold-frame nor GPU-paint guarantees.
+    - Code Quality: update existing references; keep `.agents`/`.claude` copies identical.
+    - Security: no runtime or trust-boundary change; retain the manual Windows/assistive-technology gate.
+  - Approach:
+    - Skills to Use: `liveframe-execution`, `create-plan`, `karpathy-guidelines`.
+    - Library Documentation to Check Before Implementation: none — execution metadata only.
+    - Documentation Reviewed: Task 10 notes, `proof/GAPS.md:167–180`, `proof/PARITY.md:79–83` and plan 005 Task 8.
+    - Options Considered: leave historical "Today" claims — rejected because they direct subsequent work to repeat an already completed migration.
+    - Chosen Approach: correct current-state references without changing normative design or historical measurement records.
+    - API Notes and Examples: n/a — documentation only.
+    - Files to Create/Edit: `.agents/skills/liveframe-execution/references/{architecture,styling}.md` and their shared `.claude` copies; this plan.
+  - Test Cases to Write: n/a — documentation; run `bun run check`, copy comparison and `git diff --check`.
+  - Notes (executed 2026-10-24):
+    - Corrected both current-state references to reflect proof adoption, G27 closure, parity, warm switching and the distinct SDK render gate. Shared `.agents`/`.claude` copies compare equal. No normative spec or runtime change.
+    - `timeout 600s bun run check` passed: 374 tests / 109,961 assertions, zero failures, generation drift, typechecks, lint and format checks. Existing non-fatal lint warnings remain; `git diff --check` passed. Task 12 retains backlog reconciliation and final ledger closure.
+
 - [ ] Task 12: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional:
