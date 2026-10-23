@@ -39,10 +39,11 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phases 1, 3 and 4 (spec §6.4, §8, §10, §11)
 - Priority: P2
-- Source: plans/001-Phase-0-Primitive-Set-Proof.md, plans/002-Phase-0-Parity-Re-Proof.md, plans/003-Phase-1-Part-A-Formats.md, plans/004-Phase-1-Part-B-Compiled-Validator.md
+- Source: plans/001-Phase-0-Primitive-Set-Proof.md, plans/002-Phase-0-Parity-Re-Proof.md, plans/003-Phase-1-Part-A-Formats.md, plans/004-Phase-1-Part-B-Compiled-Validator.md, plans/007-Phase-3-CSS-Projection.md (F1, F6)
 - What:
   - Closed in plan 003: G19's new-format catalog and tree fixtures use `textField.onCommit`; the historical proof keeps its event names. G28's reusable install validators for untrusted themes and design systems ship as `validateTheme` and `validateDesignSystem`, with bounded errors, role checks, literal checks and inheritance/completeness tests. Replacing the proof projector is Phase 3, not an outstanding install validator.
-  - Phase 3: scope the projection per surface (G27), close the cold container-query flip (G33 — the first design-system switch on a page pays ~17 ms building Blink's cache), and audit forced colours on real platforms (G29).
+  - Closed in plan 007 Task 10: G27 per-surface projection and proof-host adoption, visual parity and ≤ 16.67 ms warm switching. G33's cold first flip remains load-sensitive (including a 25 ms concurrent run); the accepted gate is warm attribute/style resolution, not GPU paint. See `proof/GAPS.md:167–180` and plan 007 Task 12's evidence. Revisit cold-start work only against a host requirement and measured regression.
+  - G29 remains open: audit native Windows forced colours, native control/scrollbar geometry and assistive technology across both systems, including every state, edges, focus, keyboard interaction and overlays. Chromium automation now covers state distinctness, edges, preferences and scoped portals; it does not establish real platform or assistive-technology behavior. Record machine, OS/browser/AT versions and reproducible audit results before claiming closure.
   - G20's validator half is closed in plan 004: compiled string bounds count Unicode code points, with interpreter parity and surrogate coverage in `src/__tests__/{compiled-schema,validator-tree,validator-rules}.test.ts`. Phase 4 still owns code-point-aware text-field editing/commit enforcement; native HTML maxlength counts UTF-16 units and can reject valid non-BMP text early.
   - Phase 4: complete G20's renderer half, support app-owned icon sets (G26), and audit with assistive technology (G29).
 - Why: the proof built these parts proof-grade only. Surface typography (G12) is closed: spec §6.4 now requires it and the proof proves it (`surface_text_never_inherits_host_fonts`). `proof/REPORT.md` §6 assigns each remaining one to the phase that builds the real part.
@@ -73,12 +74,13 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phase 7 (reference hosts)
 - Priority: P4
-- Source: plans/001-Phase-0-Primitive-Set-Proof.md, plans/002-Phase-0-Parity-Re-Proof.md, plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F5)
+- Source: plans/001-Phase-0-Primitive-Set-Proof.md, plans/002-Phase-0-Parity-Re-Proof.md, plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F5), plans/007-Phase-3-CSS-Projection.md (F9)
 - What:
   - Synapta: Certified has no five-patch identity roles or diagnostic fill roles (G2).
   - Synapta: the Certified look the parity work proved lives in `proof/styles/certified/` and must be ported to `synapta-core` — the typography roles (`fine`, `ui`, `caption`, `label.small`, `label.strong`, `mono.strong`, `overline`, `heading.2.compact`), `fontSizeAdjust` on the mono roles, the `foil` tone, `size.glyph`, `bp.sm`, the `plate`/`rule`/`callout` box recipes and the per-side border widths.
   - Clay: Rack's docs claim 273 recipes, but the manifest has 247 (G3); Rack recipes reference undeclared spacing and easing values (G5); Rack typography is user-owned, which spec §6.1 now allows through an assembled theme (G1).
   - Clay: Rack's `box.default.root.rest` pads every box by 12 px, so the lamp, jack and pips clamp to 24 px instead of the declared 8/4 px. A bare box variant (or a padding-free recipe) would let a small indicator keep its size (G10).
+  - Clay: plan 007's migrated Rack surface uses the theme's native `color-scheme` scrollbar instead of the old hard-coded `surface.scrollbar`/WebKit thumb styling (`proof/GAPS.md:180`, `proof/PARITY.md:83`). Confirm native scrollbar appearance and geometry during adoption. Placeholder/scrollbar recipe properties are not part of the current projection; do not restore a proof-only projector or hard-code app roles in `/css`.
   - Synapta: provide an isolated backend `Runner` for organisation/agent widgets and use it for preview and production. Reference runners do not restrict host access; import validation and SHA-256 do not grant trust. Tenant scoping, data resolution, approval and action authorisation remain the app's.
   - Clay: `fileStore(dir)` fits a desktop host with one writing process and atomic per-record replacement. Persist packages, placements and state, report load errors and state resets, and decide explicitly whether to save reset state. Multiple writing processes, power-loss durability and transactions across records are not provided; choose a host backend if those become requirements. No production adoption is proved by the library's reopen tests.
 - Why: these are the source apps' own gaps, plus the look data this repo tuned in a copy. Record them for the adopters; never bend the library to them (problem class first).
@@ -105,9 +107,50 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phase 4 Part B and Phase 8 (spec §7.5, §13)
 - Priority: P2
-- Source: plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F2)
+- Source: plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F2), plans/007-Phase-3-CSS-Projection.md (F3)
 - What: implement `createPreview({ catalog, capabilities, runner, styles })` using the shipped `pack()` and `Runner.render(pkg, inputs, options)` contracts. Draft updates remain unstored, `check()` renders every validated scenario, `setState` stays in the session and actions are logged without dispatch. Publishing retains the last previewed package hash. Use the same host-supplied runner for preview and production; the browser receives only trees. Carry these conditions into the Phase 4 plan and Phase 8 MCP integration tests.
 - Why: Part B ships runners and required scenarios, not preview sessions or capture. This explicit handoff prevents a second packaging/validation path or a browser draft-execution path.
+- CSS integration: reuse `/css` and the Phase 4 Part A renderer, cache N + M + 1 sheets for a fixed catalog and keep each matrix cell's surface and overlays scoped independently. Cells must be siblings, never nested surfaces; container widths, not viewport widths, select responsive values. Include `src/__tests__/css-scope-browser.test.ts` isolation/switch cases in preview acceptance and keep draft code out of captured browser HTML.
+
+## Carry the CSS overlay contract into the production renderer
+
+- Section: Phase 4 Part A (spec §6.4, §11)
+- Priority: P2
+- Source: plans/007-Phase-3-CSS-Projection.md (F2)
+- What: consume `docs/styling.md`'s stable slot classes, state attributes and responsive container above the tree root. Keep overlays in scope through top-layer ancestry or a scoped portal; switch every portal container together. Keep backdrop/content siblings without opacity/filter ancestors that block blur. Implement renderer-owned exit/delayed unmounting, scroll locking and inert background while preserving focus, scroll and local state. Respect reduced motion and test the three interaction tiers; reuse `src/__tests__/css-browser.test.ts`, `css-scope-browser.test.ts` and both-system proof renderer tests.
+- Why: `/css` provides entry rules and plain data, not a production renderer or overlay lifecycle. `docs/spec.md:590–605` assigns those responsibilities to `/react`; the proof adapter is evidence, not the published implementation.
+
+## Evaluate an atomic-class route for strict style CSP
+
+- Section: Optional projection extension (spec §6.4)
+- Priority: P3
+- Source: plans/007-Phase-3-CSS-Projection.md (F4)
+- What: if an adopter requires a policy forbidding inline style attributes, design a validated class/sheet route for scalar and responsive layouts, including bounded dynamic values. Compare output size, determinism, caching and runtime cost before proposing a public API/spec change; retain colour-authority and injection tests.
+- Why: `docs/styling.md` explicitly requires `style-src-attr 'unsafe-inline'` for current layout output. A nonce authorizes a sheet, not node style attributes. No alternate API is promised or implemented.
+
+## Evaluate placeholder and scrollbar recipe properties on adopter demand
+
+- Section: Optional styling extension (spec §6.2, §6.4)
+- Priority: P4
+- Source: plans/007-Phase-3-CSS-Projection.md (F5)
+- What: collect concrete native-part styling needs before adding closed recipe properties. Any proposal must keep colours as theme roles, update formats/schema/validator/projection/docs together, and prove forced-colour and native-platform behavior. Until then use theme `color-scheme` for native controls and scrollbars.
+- Why: these parts are explicitly excluded by the accepted projection decision; they are not missing mappings among the 27 supported properties. Rack's scrollbar deviation is handed to Clay separately.
+
+## Revisit scoping only if nested surfaces become required
+
+- Section: Conditional projection extension (spec §6.4, §11)
+- Priority: P4
+- Source: plans/007-Phase-3-CSS-Projection.md (F7)
+- What: if host composition needs nested surfaces, evaluate `@scope` boundaries and the platform floor, including resets, custom-property inheritance, state propagation, containers and portals. Replace the documented negative nesting test with positive isolation tests only after approving and specifying a new contract.
+- Why: current attribute selectors support sibling surfaces; nesting leaks unset properties by design. `src/__tests__/css-scope-browser.test.ts` pins this unsupported case. `@scope` is a candidate, not an existing capability.
+
+## Revisit mixed-unit breakpoint ordering for non-16px roots
+
+- Section: Conditional projection extension (spec §6.3, §6.4)
+- Priority: P3
+- Source: plans/007-Phase-3-CSS-Projection.md (F8)
+- What: when an adopter needs mixed px/rem breakpoints at another root font size, compare a single-unit install restriction with an explicit host-context ordering contract. Add a crossed-order browser regression at a non-16px root before changing validation or projection.
+- Why: `src/css/design-system.ts:84–99` sorts rem using a 16px assumption, while preserving authored units in query conditions. The shortcut and `docs/styling.md` disclose this; single-unit breakpoints avoid the ambiguity. Do not add DOM access to `/css` to infer the root size.
 
 ## Verify installed-package loader and worker entry before release
 

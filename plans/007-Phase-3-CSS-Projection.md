@@ -701,7 +701,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Corrected both current-state references to reflect proof adoption, G27 closure, parity, warm switching and the distinct SDK render gate. Shared `.agents`/`.claude` copies compare equal. No normative spec or runtime change.
     - `timeout 600s bun run check` passed: 374 tests / 109,961 assertions, zero failures, generation drift, typechecks, lint and format checks. Existing non-fatal lint warnings remain; `git diff --check` passed. Task 12 retains backlog reconciliation and final ledger closure.
 
-- [ ] Task 12: Analyze architectural impact and dispose of every finding
+- [x] Task 12: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional:
       - `plans/evidence/007-impact-analysis.md` sweeps all twelve impact areas of the create-plan reference against what shipped. It records each one, or `None — <reason>`.
@@ -736,7 +736,13 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `plans/backlog.md`, this plan's Compromises Made and Further Actions, `roadmap.md` §3.
   - Test Cases to Write:
     - n/a — analysis.
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-24):
+    - `plans/evidence/007-impact-analysis.md` sweeps all twelve impact areas and records the nine-row table presented to the owner. Dispositions use the owner's request to complete this task; no separate per-row response or new architecture approval is claimed. F1 is executed through Task 11a and this task's backlog/ledger correction. F2–F9 are handed off to existing or new backlog entries and linked below; Task 11's conformance handoff remains intact.
+    - Confirmed law 3 coverage for every sheet, recipe/state/forced-colour path and scalar/responsive layout output, including escaping, closed values and negative controls. No runtime, public API, dependency or normative spec change was needed.
+    - Re-ran the CSS benchmark: 679-node mapping **0.389 µs/node / 0.264 ms/tree** (≤ 1 µs/node). Full-check switches: two-surface blur **8.1 ms cold / 9.9 ms warm max**, hydrated agent-home **7.0 / 2.8 ms**, git-status **3.4 / 1.4 ms**; every warm gate is ≤ 16.67 ms. Cold remains load-sensitive; style-resolution timers do not measure GPU paint. Sheet generation/bytes are in the impact record.
+    - Regenerated local parity evidence with `timeout 600s bun proof/scripts/parity.ts --out evidence/parity`: **0.72% / 0.75% / 0.97%**, exactly 281 DOM / 32 style differences and no diagnostics. The JSON `parity: false` denotes exact DOM/style equality, not failure of the approved pixel bar. Images remain local; `proof/scripts/parity.ts` regenerates them.
+    - Whole-plan focused commands passed: **49 CSS tests / 8,379 assertions** and **4 host switch tests / 403 assertions**, zero failures. Those independent runs measured 13.9 ms warm max for scoped blur and 3.7 / 1.2 ms for agent-home / git-status. The current Chromium was already installed; no reinstall was needed. Documentation assertions verified all twelve areas, nine rows, backlog links and identical skill copies.
+    - Final `timeout 600s bun run check` passed generation drift, both typechecks, lint, formatting and **374 tests / 109,961 assertions**, zero failures; existing non-fatal lint warnings remain. Final scoped blur measurement: **8.2 ms cold / 8.8 ms warm max**. `git diff --check` passed. Plan 007 and roadmap Phase 3 are complete; plans 002/005 and pre-existing owner edits remain untouched by this task's closure.
 
 ## Verification (whole plan)
 
@@ -749,8 +755,18 @@ Probe answers that hold for every task, unless a task says otherwise:
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- Inline layout requires CSP `style-src-attr 'unsafe-inline'`; nonces authorize sheets only. No atomic-class alternative ships (F4).
+- Surfaces must be siblings, never nested. Host CSS retains normal cascade authority; attribute scoping is not arbitrary style isolation. `@scope` remains a conditional upgrade (F7).
+- Mixed px/rem breakpoint sorting assumes a 16px root; use one unit for other root sizes pending a concrete requirement (F8).
+- Warm attribute/style resolution meets the frame budget. G33's cold cost remains load-sensitive and GPU paint/compositing is not measured. G29's real Windows/assistive-technology audit stays open; reduced transparency remains progressive enhancement (F6).
+- Placeholder/scrollbar recipe properties remain outside the projection. Rack uses theme-native scrollbar appearance (F5/F9). Per-kind structure stays in trusted app primitive CSS, never in the generic library.
+- Entry motion ships; exit lifecycle, scroll locking and inertness remain production renderer work (F2). The public renderer, preview and conformance suites are later phases, not implied by the proof host.
 
 ## Further Actions
 
-- To be filled after task completion with improvements, rationale, and priority.
+- P2, Phase 4 Part A: [carry the CSS overlay contract into the production renderer](backlog.md#carry-the-css-overlay-contract-into-the-production-renderer) (F2), including scoped portals, lifecycle, state semantics and focus/scroll preservation.
+- P2, Phase 4 Part B: [build preview sessions on shipped contracts](backlog.md#build-preview-sessions-on-the-shipped-package-and-runner-contracts), now including independent sheets and sibling per-cell scopes/containers (F3).
+- P2: [complete the remaining platform audits](backlog.md#later-phase-gaps-from-the-phase-0-reports) (F6); retain the recorded cold-cost limit and revisit only against a measured host requirement.
+- P3: [evaluate strict-CSP atomic classes](backlog.md#evaluate-an-atomic-class-route-for-strict-style-csp) (F4) and [mixed-unit breakpoint ordering](backlog.md#revisit-mixed-unit-breakpoint-ordering-for-non-16px-roots) (F8) on adopter demand; neither changes the current contract.
+- P4: [evaluate native-part recipe properties](backlog.md#evaluate-placeholder-and-scrollbar-recipe-properties-on-adopter-demand) (F5), [revisit nesting only if required](backlog.md#revisit-scoping-only-if-nested-surfaces-become-required) (F7), and [hand Rack's scrollbar deviation to Clay](backlog.md#hand-adopter-gaps-to-synapta-and-clay) (F9).
+- P3, Phase 5: [seed conformance suites from the proof tests](backlog.md#seed-conformance-suites-from-the-proof-tests), retaining Task 11's pure/browser distinction and internal budget tests.
