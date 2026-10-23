@@ -309,3 +309,227 @@ test("responsive_values_do_not_inherit_parent_overrides", async () => {
     await page.close();
   }
 });
+
+async function mountOverlay(page: Page) {
+  const rack: DesignSystem = await read("rack.design-system");
+  const rest: Recipe = { opacity: 0, translateY: { value: 4, unit: "px" } };
+  const open: Recipe = {
+    opacity: 1,
+    translateY: { value: 0, unit: "px" },
+    transitionDuration: { value: 140, unit: "ms" },
+    transitionTiming: "expo-out",
+  };
+  const frost: Recipe = { ...rack.recipes["dialog.default.backdrop.rest"], backdropSaturate: 1.2 };
+  const overlay: DesignSystem = {
+    ...rack,
+    recipes: {
+      ...rack.recipes,
+      "dialog.default.backdrop.rest": frost,
+      "dialog.default.backdrop.open": frost,
+      "popover.default.content.rest": frost,
+      "popover.default.content.open": frost,
+      "dialog.default.content.rest": rest,
+      "dialog.default.content.open": open,
+    },
+  };
+  const sheets = [
+    baseCss(proofCatalog),
+    themeCss(theme, proofCatalog),
+    designSystemCss(overlay, { catalog: proofCatalog, registry: {} }),
+  ]
+    .map(css)
+    .join("\n");
+  await page.setContent(`<style>${sheets}
+    body{margin:0;background:repeating-linear-gradient(90deg,#f00 0 4px,#00f 4px 8px)}
+    #backdrop,#frost{position:absolute;top:20px;left:20px;width:160px;height:100px}
+    #frost{left:200px}
+    </style><section class="lf_surface" data-lf-theme="${theme.id}@${theme.version}" data-lf-ds="${rack.id}@${rack.version}">
+    <div class="lf_dialog_default_root" data-open><div id="backdrop" class="lf_dialog_default_backdrop"></div></div>
+    <div class="lf_popover_default_root" data-open><div id="frost" class="lf_popover_default_content"></div></div></section>`);
+}
+
+const backdropStyle = (page: Page, id = "backdrop") =>
+  page.locator(`#${id}`).evaluate((el) => {
+    const style = getComputedStyle(el);
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 1;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Missing canvas context");
+    context.fillStyle = style.backgroundColor;
+    context.fillRect(0, 0, 1, 1);
+    return { filter: style.backdropFilter, alpha: context.getImageData(0, 0, 1, 1).data[3] };
+  });
+
+test("backdrop_blurs_the_page_behind_it", async () => {
+  const page = await browser.newPage();
+  try {
+    await mountOverlay(page);
+    for (const id of ["backdrop", "frost"]) {
+      expect(await backdropStyle(page, id)).toEqual({ filter: "blur(2px) saturate(1.2)", alpha: 189 });
+      const element = page.locator(`#${id}`);
+      const blurred = await element.screenshot();
+      await element.evaluate((el) => (el as HTMLElement).style.setProperty("backdrop-filter", "none"));
+      expect((await element.screenshot()).equals(blurred)).toBe(false);
+    }
+  } finally {
+    await page.close();
+  }
+});
+
+test("opacity_ancestor_breaks_blur_is_documented_contract", async () => {
+  const page = await browser.newPage();
+  try {
+    await mountOverlay(page);
+    await page.locator("section").evaluate((el) => {
+      el.style.opacity = "0.99";
+    });
+    const element = page.locator("#backdrop");
+    const blocked = await element.screenshot();
+    await element.evaluate((el) => (el as HTMLElement).style.setProperty("backdrop-filter", "none"));
+    expect((await element.screenshot()).equals(blocked)).toBe(true);
+  } finally {
+    await page.close();
+  }
+});
+
+test("overlay_enters_from_rest", async () => {
+  const page = await browser.newPage();
+  try {
+    await mountOverlay(page);
+    // Insert already open: the root's state must reach its newly mounted content slot.
+    const entry = await page.locator(".lf_dialog_default_root").evaluate((root) => {
+      const el = document.createElement("div");
+      el.id = "entry";
+      el.className = "lf_dialog_default_content";
+      root.append(el);
+      const style = getComputedStyle(el);
+      const initial = {
+        opacity: style.opacity,
+        translate: style.translate,
+        duration: style.transitionDuration,
+        timing: style.transitionTimingFunction,
+      };
+      const animations = el.getAnimations();
+      return { initial, count: animations.length };
+    });
+    expect(entry.initial).toEqual({
+      opacity: "0",
+      translate: "0px 4px",
+      duration: "0.14s",
+      timing: "cubic-bezier(0.16, 1, 0.3, 1)",
+    });
+    expect(entry.count).toBe(2);
+    await page.locator("#entry").evaluate(async (el) => {
+      await Promise.all(el.getAnimations().map((animation) => animation.finished));
+    });
+    expect(await page.locator("#entry").evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
+  } finally {
+    await page.close();
+  }
+});
+
+test("reduced_motion_removes_transitions", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await mount(page, {
+      "button.default.root.active": {
+        translateY: { value: 3, unit: "px" },
+        transitionDuration: { value: 140, unit: "ms" },
+      },
+    });
+    await page.locator("#root").evaluate((el) => el.setAttribute("data-pressed", ""));
+    expect(
+      await page.locator("#root").evaluate((el) => {
+        const s = getComputedStyle(el);
+        return [s.transitionDuration, s.translate, el.getAnimations().length];
+      }),
+    ).toEqual(["0s", "none", 0]);
+    await mountOverlay(page);
+    expect(
+      await page.locator(".lf_dialog_default_root").evaluate((root) => {
+        const el = document.createElement("div");
+        el.className = "lf_dialog_default_content";
+        root.append(el);
+        const s = getComputedStyle(el);
+        return [s.opacity, s.transitionDuration, s.translate, el.getAnimations().length];
+      }),
+    ).toEqual(["1", "0s", "none", 0]);
+  } finally {
+    await page.close();
+  }
+});
+
+test("reduced_transparency_makes_backdrops_opaque", async () => {
+  const page = await browser.newPage();
+  try {
+    const session = await page.context().newCDPSession(page);
+    await session.send("Emulation.setEmulatedMedia", {
+      features: [{ name: "prefers-reduced-transparency", value: "reduce" }],
+    });
+    expect(await page.evaluate(() => matchMedia("(prefers-reduced-transparency: reduce)").matches)).toBe(true);
+    await mountOverlay(page);
+    for (const id of ["backdrop", "frost"])
+      expect(await backdropStyle(page, id)).toEqual({ filter: "none", alpha: 255 });
+  } finally {
+    await page.close();
+  }
+});
+
+test("switching_suppresses_transitions", async () => {
+  const page = await browser.newPage();
+  try {
+    await mount(page, {
+      "button.default.root.rest": { textColor: "text.primary", transitionDuration: { value: 1000, unit: "ms" } },
+    });
+    const alternateColour = theme.colours["surface.base"];
+    if (!alternateColour) throw new Error("Missing surface colour fixture");
+    const alternate: Theme = {
+      ...theme,
+      id: "alternate",
+      colours: { ...theme.colours, "text.primary": alternateColour },
+    };
+    await page.addStyleTag({ content: css(themeCss(alternate, catalog)) });
+    await page.locator("section").evaluate((el) => {
+      el.style.transition = "color 1s";
+      const other = el.cloneNode(true) as HTMLElement;
+      for (const child of other.querySelectorAll("[id]")) child.removeAttribute("id");
+      other.id = "unchanged";
+      el.after(other);
+    });
+    const before = await colour(page);
+    const result = await page
+      .locator("section")
+      .first()
+      .evaluate(async (el, themeId) => {
+        el.setAttribute("data-lf-switching", "");
+        el.setAttribute("data-lf-theme", themeId);
+        const button = el.querySelector("button");
+        if (!button) throw new Error("Missing button fixture");
+        const result = {
+          colour: getComputedStyle(button).color,
+          transitions: [getComputedStyle(el).transitionDuration, getComputedStyle(button).transitionDuration],
+          animations: el.getAnimations({ subtree: true }).length,
+        };
+        await new Promise<void>((resolve) =>
+          requestAnimationFrame(() => {
+            el.removeAttribute("data-lf-switching");
+            resolve();
+          }),
+        );
+        return result;
+      }, `${alternate.id}@${alternate.version}`);
+    expect(result.colour).not.toBe(before);
+    expect(result.transitions).toEqual(["0s", "0s"]);
+    expect(result.animations).toBe(0);
+    expect(await page.locator("#unchanged button").evaluate((el) => getComputedStyle(el).color)).toBe(before);
+    expect(
+      await page
+        .locator("section")
+        .first()
+        .evaluate((el) => el.getAnimations({ subtree: true }).length),
+    ).toBe(0);
+  } finally {
+    await page.close();
+  }
+});

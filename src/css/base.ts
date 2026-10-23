@@ -27,6 +27,9 @@ export function baseCss(catalog: Catalog): Result<string> {
       ":where([data-lf-ds]) :where(button,input,select,textarea){font:inherit}",
       `:where([data-lf-ds]).lf_surface{${typography}}`,
       ":where([data-lf-ds]).lf_container{container-name:lf;container-type:inline-size}",
+      "@media (prefers-reduced-motion:reduce){:where([data-lf-ds]) *{transition-duration:0s !important;translate:none !important}}",
+      "@media (prefers-reduced-transparency:reduce){:where([data-lf-ds]) *{--lf-alpha:1 !important;backdrop-filter:none !important}}",
+      ":where([data-lf-ds][data-lf-switching]),:where([data-lf-ds][data-lf-switching]) *{transition:none !important}",
     ].join("\n"),
   };
 }

@@ -381,7 +381,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `timeout 600s bun run check` passed: generated-code check, both typechecks, lint, formatting and 356 tests / 109,147 assertions. No spec change or dependency added.
     - `timeout 90s bun bench/css.bench.ts` (200 warm-ups, 1,000 measured runs): 679-node agent-home mapping 0.737 µs/node, 0.500 ms/tree (budget ≤ 1 µs/node). Certified design-system sheet 10.701 ms / 122,803 bytes; Rack 13.545 ms / 127,281 bytes. Generation includes validation/resolution and has no time budget. Full proof-host integration/parity remains Task 10.
 
-- [ ] Task 6: Overlay effects and motion: blur, translucency, entry, reduced motion and transparency, and switching
+- [x] Task 6: Overlay effects and motion: blur, translucency, entry, reduced motion and transparency, and switching
   - Acceptance Criteria:
     - Functional:
       - Blur and translucency: a backdrop slot (`dialog.default.backdrop` in the proof) whose recipe sets `backdropBlur`, `backdropSaturate` and `backgroundOpacity` blurs and tints what lies behind it. The same holds for a popover or menu content slot with a frosted look.
@@ -427,7 +427,14 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Browser `reduced_motion_removes_transitions`: under `reducedMotion: "reduce"`, `transition-duration` computes `0s` and `translate` computes `none`.
     - Browser `reduced_transparency_makes_backdrops_opaque`: under the emulated feature, the backdrop's background alpha is 1 and `backdrop-filter` is `none`.
     - Browser `switching_suppresses_transitions`: with `data-lf-switching` set, flipping `data-lf-theme` gives the final colour in the same frame.
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-24):
+    - Added scoped `@starting-style` blocks only where resolved open declarations differ from rest, reusing the existing selector so both a slot's own open state and its root's state receive entry styles. Existing recipe projection already composes blur/saturation and supplies the alpha variable; no property, format, export or dependency changed.
+    - Added generic base rules for reduced motion (zero duration, no translate), reduced transparency (opaque alpha multiplier, no backdrop filter), and switching (no transition on the marked scope or its descendants). Implements the accepted spec §6.2/§6.4 rules without changing their meaning.
+    - Tests were written first: the entry unit test failed on missing starting blocks; browser cases failed on absent entry/preference/switch rules. Seven added cases cover exact entry-rule omission and rest bodies across both fixtures, first-frame rest opacity/translation and completed entry with recipe duration/easing, reduced-motion entry and pressed offsets, CDP-emulated reduced transparency, and transition-free theme switching isolated from a second surface.
+    - Chromium screenshot-buffer comparisons prove Rack's 2px blur and 0.74 alpha on a backdrop and a frosted popover slot, and prove an opacity-0.99 ancestor prevents sampling the striped page. Images remain in memory; regenerate with `timeout 90s bun test src/__tests__/css-browser.test.ts`. No evidence images are committed.
+    - Documentation checked: [MDN starting-style](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@starting-style), [transition-behavior](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/transition-behavior), [web.dev entry effects](https://web.dev/blog/baseline-entry-animations), [Filter Effects Level 2 backdrop roots](https://drafts.csswg.org/filter-effects-2/#BackdropRoot), and MDN's reduced-motion/reduced-transparency references. Context7 `/microsoft/playwright` confirmed `page.emulateMedia({ reducedMotion })` and `newCDPSession(page)`; the installed Chromium accepted `Emulation.setEmulatedMedia` for reduced transparency, verified by `matchMedia` and computed styles. No discrete display transition is needed for newly mounted overlays.
+    - `timeout 600s bun run check` passed: generated-code check, both typechecks, lint, formatting, 363 tests / 109,194 assertions. Existing lint warnings remain; no new warning introduced. The 38 focused CSS tests and `git diff --check` passed.
+    - Task 8 retains the outsider guide and renderer/switch contract (already normative in spec §11/§6.4); Task 9 retains the blurred-dialog switch budget. Task 10 retains proof-host integration/parity. Exit motion remains Phase 4. Reduced transparency remains progressive enhancement.
 
 - [ ] Task 7: Keep states and edges visible in forced colours
   - Acceptance Criteria:

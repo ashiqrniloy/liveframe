@@ -65,6 +65,8 @@ export function designSystemCss(system: DesignSystem, context: DesignSystemConte
           else if (body !== rest) {
             const guarded = state === "hover" || state === "active";
             rules.push(`${selector(scope, cls, root, condition, guarded)}{${body}}`);
+            if (state === "open")
+              rules.push(`@starting-style{${selector(scope, cls, root, condition, false)}{${rest}}}`);
             if (state === "hover")
               rules.push(`@media (hover:hover){${selector(scope, cls, root, ":hover", true)}{${body}}}`);
           }

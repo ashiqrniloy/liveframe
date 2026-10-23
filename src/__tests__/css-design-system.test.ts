@@ -127,9 +127,10 @@ test("states_equal_to_rest_emit_no_rule", () => {
     });
     // Hover has a separate native-hover media rule and a data-attribute rule.
     const hover = different.filter(([key]) => key.endsWith(".hover")).length;
+    const open = different.filter(([key]) => key.endsWith(".open")).length;
     const css = sheet(system);
     expect([...css.matchAll(/\{[^{}]*\}/g)].filter((rule) => !rule[0].includes("--lf-r-")).length).toBe(
-      1 + different.length + hover,
+      1 + different.length + hover + open,
     );
     for (const [key] of different)
       expect(css).toContain(`.${slotClass(...(key.split(".").slice(0, 3) as [string, string, string]))}`);
@@ -188,5 +189,31 @@ test("design_system_projection_is_deterministic_and_fails_closed", () => {
       expect(result).not.toHaveProperty("value");
     }
     expect(designSystemCss(system, { catalog: { ...catalog, catalogId: "!" }, registry: {} }).ok).toBe(false);
+  }
+});
+
+test("entry_rules_only_where_open_differs", () => {
+  for (const system of systems) {
+    const resolved = resolveRecipes(system, { catalog, registry: {} });
+    const entries = Object.entries(resolved).filter(
+      ([key, recipe]) =>
+        key.endsWith(".open") &&
+        recipeDeclarations(recipe ?? {}) !==
+          recipeDeclarations(resolved[key.replace(/\.open$/, ".rest") as RecipeKey] ?? {}),
+    );
+    const css = sheet(system);
+    expect(css.match(/@starting-style\{/g)?.length ?? 0).toBe(entries.length);
+    for (const [key] of entries) {
+      const cls = slotClass(...(key.split(".").slice(0, 3) as [string, string, string]));
+      const rest = recipeDeclarations(resolved[key.replace(/\.open$/, ".rest") as RecipeKey] ?? {});
+      expect(
+        css
+          .split("\n")
+          .some(
+            (line) =>
+              line.startsWith("@starting-style{") && line.includes(`.${cls}:where(`) && line.endsWith(`{${rest}}}`),
+          ),
+      ).toBe(true);
+    }
   }
 });
