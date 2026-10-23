@@ -10,9 +10,73 @@ import type {
   ValidateTreeOptions,
 } from "@arnilo/liveframe";
 import * as liveframe from "@arnilo/liveframe";
+import type {
+  Component,
+  DeepReadonly,
+  Element,
+  Intent,
+  Json,
+  RenderLimits,
+  RenderOptions,
+  WidgetProps,
+} from "@arnilo/liveframe/sdk";
+import * as sdk from "@arnilo/liveframe/sdk";
+import type { JSX as DevJSX } from "@arnilo/liveframe/sdk/jsx-dev-runtime";
+import * as devRuntime from "@arnilo/liveframe/sdk/jsx-dev-runtime";
+import type { JSX } from "@arnilo/liveframe/sdk/jsx-runtime";
+import * as runtime from "@arnilo/liveframe/sdk/jsx-runtime";
 import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
 import catalog from "./fixtures/proof/catalog.json" with { type: "json" };
+
+test("sdk_export_surface", () => {
+  expect(Object.keys(sdk).sort()).toEqual(["Fragment", "action", "jsx", "jsxs", "primitive", "render", "state"]);
+  expect(Object.keys(runtime).sort()).toEqual(["Fragment", "jsx", "jsxs"]);
+  expect(Object.keys(devRuntime).sort()).toEqual(["Fragment", "jsxDEV"]);
+  expect(sdk.jsx).toBe(runtime.jsx);
+  expect(sdk.jsxs).toBe(runtime.jsxs);
+  expect(sdk.Fragment).toBe(devRuntime.Fragment);
+});
+
+test("sdk_public_types", () => {
+  const limits: RenderLimits = { nodes: 10, depth: 4, bytes: 4096 };
+  const options: RenderOptions = {
+    validator: liveframe.compileValidator({ catalog, capabilities, manifest }),
+    surfaceId: "main",
+    revision: 1,
+    limits,
+  };
+  const props: WidgetProps<
+    Record<string, never>,
+    { selected: string },
+    Record<string, never>,
+    Record<string, never>
+  > = {
+    params: {},
+    state: { selected: "a" },
+    data: {},
+    context: {},
+  };
+  const selected: DeepReadonly<{ selected: string }> = props.state;
+  const json: Json = selected;
+  const intent: Intent = sdk.state.set("selected", json);
+  const Label: Component<{ text: string }> = sdk.primitive("text");
+  const element: Element = runtime.jsx(Label, { text: "Hello" });
+  const jsxElement: JSX.Element = element;
+  const devElement: DevJSX.Element = devRuntime.jsxDEV(Label, { text: "Hello" });
+  const key: JSX.IntrinsicAttributes = { key: "label" };
+  const children: DevJSX.ElementChildrenAttribute = { children: element };
+  const intrinsic: keyof JSX.IntrinsicElements extends never ? true : false = true;
+  expect([
+    options.limits,
+    intent.type,
+    jsxElement.type,
+    devElement.type,
+    key.key,
+    children.children,
+    intrinsic,
+  ]).toHaveLength(7);
+});
 
 test("root_export_surface", () => {
   expect(Object.keys(liveframe).sort()).toEqual(

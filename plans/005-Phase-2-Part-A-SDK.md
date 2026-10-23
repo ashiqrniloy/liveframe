@@ -594,14 +594,14 @@ Probe answers that hold for every task, unless a task says otherwise:
       Load average at end: 1.65, 1.64, 1.12
       ```
 
-- [ ] Task 9: Publish the SDK surface and its documentation
+- [x] Task 9: Publish the SDK surface and its documentation
   - Acceptance Criteria:
     - Functional:
       - `src/__tests__/exports.test.ts` asserts the exact `/sdk`, `/sdk/jsx-runtime` and `/sdk/jsx-dev-runtime` export lists, and their type exports.
-      - The portability test bundles `src/sdk/index.ts` and `src/sdk/jsx-runtime.ts` for `target: "browser"` and scans them.
+      - The portability test bundles `src/sdk/index.ts`, `src/sdk/jsx-runtime.ts` and `src/sdk/jsx-dev-runtime.ts` for `target: "browser"` and scans them.
       - `docs/sdk.md` explains, for outsiders: writing a widget, `gen`, intents, `render()` and its errors (with an example of each kind), ids, determinism and the input-check cache.
       - `README.md` links it.
-      - `.claude/skills/liveframe-execution/references/sdk.md` and `references/architecture.md` "Today" name the shipped API and files.
+      - `.agents/skills/liveframe-execution/references/sdk.md` and `references/architecture.md` "Today" name the shipped API and files (`.claude/skills` links to `.agents/skills`).
     - Performance: n/a.
     - Code Quality: the docs match the code; every example in `docs/sdk.md` is exercised by a test or the fixtures.
     - Security: the docs state laws 1–4 as they apply to authors.
@@ -617,7 +617,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Options Considered:
       - Docs in the spec only — rejected: the spec is normative, not a guide.
     - Chosen Approach:
-      - One guide page, plus the skill "Today" sections.
+      - One guide page, plus the skill "Today" sections. Re-export the existing `jsx`, `jsxs` and `Fragment` from `/sdk` to match this plan's Expected Outcome, without changing runtime behavior. Exercise the full guide example as a typed fixture and assert that its code matches the guide verbatim after local import-path substitution.
     - API Notes and Examples:
       ```ts
       import * as sdk from "@arnilo/liveframe/sdk";
@@ -626,11 +626,21 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `docs/sdk.md`: new.
       - `README.md`.
       - `src/__tests__/exports.test.ts`, `src/__tests__/portability.test.ts`.
-      - `.claude/skills/liveframe-execution/references/{sdk,architecture}.md`.
+      - `src/sdk/index.ts`: expose the three existing JSX functions on `/sdk`.
+      - `src/__tests__/fixtures/sdk-guide.tsx`, `src/__tests__/sdk-guide.test.ts`: executable, typechecked guide example and documentation sync check.
+      - `.agents/skills/liveframe-execution/references/{sdk,architecture}.md` (also visible via `.claude/skills`).
   - Test Cases to Write:
     - `sdk_export_surface`: exact export lists. Fails on an accidental export.
     - `sdk_bundles_for_browser_without_host_apis`: the scan of the bundled SDK.
-  - Notes (executed <date>):
+    - `sdk_public_types`: every documented SDK type and both JSX namespaces import and support consumer code under `bun run typecheck`.
+    - `sdk_guide_example_matches_documentation_and_renders`: the full example matches the guide, independently validates, emits the documented ids/intents and renders deterministically.
+  - Notes (executed 2026-10-23):
+    - Pinned the runtime export lists for `/sdk` and both JSX runtime subpaths, and exercised all eight documented SDK types and both JSX namespaces through consumer imports. The initial export test failed on the missing `jsx`, `jsxs` and `Fragment`; `/sdk` now re-exports those existing functions as the plan's Expected Outcome requires. No dependency or runtime behavior changed.
+    - Added browser builds and host-API scans for all three SDK entrypoints. The existing source scan remains in place, with only its existing CLI exemption.
+    - Added `docs/sdk.md` and linked it from the README. The guide covers generation/check exits, typed authoring, intents, render options/results, every error kind with a failing example, stable ids, determinism, input validation/freezing and the identity cache. It states the four laws and the host's execution responsibilities. Existing limitations are explicit: cached data must keep the same source-schema contract across validators, and nested function values currently report `invalid-prop`.
+    - The complete guide example is a typechecked fixture whose source must match the guide after local import-path substitution. Its test independently validates the result, pins ids/intents and checks deterministic rerendering; the initial test failed because the guide did not yet exist. Existing SDK tests cover the remaining intent, error, input and generator examples.
+    - Updated the execution skill's SDK and architecture references, including the stale render signature. Edited the canonical `.agents/skills` paths; `.claude/skills` is a symlink to them. No spec meaning changed. Task 10's impact analysis remains separate.
+    - `timeout 600s bun run check` passes: 241 tests, generation drift, typecheck, lint and format. Lint reports the existing 20 warnings and one informational diagnostic in proof and existing test code; this task adds none. The focused export, portability and guide tests also pass (8 tests). No performance path changed, so the Task 8 benchmark was not rerun.
 
 - [ ] Task 10: Analyze architectural impact and dispose of every finding
   - Sweep the twelve impact areas of `.agents/skills/create-plan/references/liveframe.md` §5 against what was delivered. Record each, or `None — <reason>`, in `plans/evidence/005-impact-analysis.md`.

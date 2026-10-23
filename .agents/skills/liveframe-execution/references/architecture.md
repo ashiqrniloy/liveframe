@@ -35,5 +35,6 @@ Placement rules:
 ## Today
 
 - `src/index.ts` exports the formats, schema language, install validators, compiled tree validator, catalog change classifier and recipe resolver. Core modules live in `src/formats/`, `src/validate/`, `src/schema.ts`, `src/errors.ts` and `src/resolve.ts`.
-- `package.json` exports `.` and `./schemas/*`. The SDK, storage, preview, styling, renderer and conformance subpaths remain separate planned work; add each subpath when its implementation exists.
+- `package.json` exports `.`, `./schemas/*`, `./sdk`, `./sdk/jsx-runtime` and `./sdk/jsx-dev-runtime`. `src/sdk/` owns elements, intents, the single-pass renderer and typed component generation; `src/cli/liveframe.ts` provides the Bun `liveframe gen` entry. The SDK has no host APIs or runtime dependencies.
+- Storage, preview, styling, renderer and conformance subpaths remain separate planned work; add each subpath when its implementation exists. The outsider SDK guide is `docs/sdk.md`; proof widgets using the SDK live only in `src/__tests__/fixtures/widgets/`.
 - Graft is the source of truth for file locations once code exists.

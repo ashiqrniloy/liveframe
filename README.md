@@ -4,7 +4,7 @@
 
 An app ships a small set of trusted **primitive components** and a **design system**. People and AI agents write **TSX widgets** against those primitives, and the widgets change the app's UI at runtime, with no deployment. Widget code runs on the app's backend; the browser only draws a validated tree with the app's own components, so everything looks native and nothing untrusted runs in the page.
 
-Status: pre-release. The root package provides formats, install validators, a compiled tree validator and recipe resolution. See the [format and validation guide](docs/formats.md) and [`roadmap.md`](roadmap.md) for execution state.
+Status: pre-release. The root package provides formats, install validators, a compiled tree validator and recipe resolution. The SDK provides TSX authoring, intent helpers, validated rendering and typed component generation. See the [format and validation guide](docs/formats.md), [SDK guide](docs/sdk.md) and [`roadmap.md`](roadmap.md) for execution state.
 
 - Design: [`docs/spec.md`](docs/spec.md)
 - How a surface gets from code to the browser, and who owns each step: [`docs/model.md`](docs/model.md)
