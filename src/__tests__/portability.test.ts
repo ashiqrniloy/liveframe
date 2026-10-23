@@ -33,7 +33,8 @@ test("src_is_host_api_free", async () => {
     if (path.startsWith("store/fs/")) continue;
     const source = await Bun.file(`${root}${path}`).text();
     expect(source, path).not.toMatch(forbidden);
-    expect(source, path).not.toMatch(/\bimport\s*\(/);
+    // Spec §7.5 permits dynamic imports only in the backend package loader.
+    if (path !== "preview/load.ts") expect(source, path).not.toMatch(/\bimport\s*\(/);
     // Only the packer's syntax tools may be external; their browser bundle is checked below.
     for (const dependency of transpiler.scanImports(source)) {
       if (path === "pack/bundle.ts" && ["sucrase", "acorn"].includes(dependency.path)) continue;

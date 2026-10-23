@@ -501,7 +501,7 @@ Probe answers that hold for every task, unless a task says otherwise:
         - Updated spec §7.5's loader bullet to match the approved amendment: rewrite only canonical linker SDK headers using `import.meta.resolve` from the loader's own location, then import a percent-encoded `data:` URL with dots escaped as `%2E`. Named all three SDK specifiers and specified resolution from the library's own installation independently of the host's working directory.
         - Stored code retains bare SDK specifiers; §7.3, the package format and hash are unchanged. Production loader implementation remains in 8.3.
         - `timeout 600s bun run check` passed: generated-code drift, typecheck, lint, format and 284 tests (zero failures). `git diff --check` passed.
-    - [ ] 8.3 Implement `src/preview/load.ts`, tests first.
+    - [x] 8.3 Implement `src/preview/load.ts`, tests first.
       - `loadModule(code)` rewrites only the linker's canonical header lines (`import * as __lf_sdkN from "<sdk specifier>";`, from `src/pack/bundle.ts:255`) to `import.meta.resolve(<specifier>)`.
       - It imports `"data:text/javascript," + encodeURIComponent(rewritten).replaceAll(".", "%2E")`, and caches by package hash.
       - Its doc comment names the Bun dot-sniffing behaviour and the limitation that non-canonical SDK imports stay bare.
@@ -510,6 +510,13 @@ Probe answers that hold for every task, unless a task says otherwise:
         - `loader_shares_sdk_instance`: the loaded module's SDK namespace is identical (`===`) to the one `render()` imports.
         - `loader_rewrites_only_canonical_header`: a string literal equal to an SDK specifier inside widget code is left unchanged.
         - `loader_resolves_sdk_from_other_cwd`: the subprocess test below, moved here.
+      - Notes (executed 2026-10-23):
+        - Wrote `src/__tests__/preview-load.test.ts` first and confirmed failure on the missing loader module. Implemented the internal `loadModule(code, hash)` helper in `src/preview/load.ts`; the explicit hash argument keys a cache of module promises, sharing in-flight and completed loads. The caller supplies verified package content; the loader does not verify packages or validate default exports (the runner does the latter in 8.4).
+        - Rewrites only the contiguous canonical linker header at the start of the source, resolving all three SDK specifiers from the loader's installation. Sticky matching stops before widget code, preserving both ordinary SDK strings and a canonical-looking import line inside a multiline template literal. Dot-escaped data URLs load the rewritten source. The doc comment records Bun's extension sniffing, the non-canonical-import limitation and the lack of isolation.
+        - Six tests cover dotted property access, identity with all three host SDK namespaces, header-only rewriting, in-flight/completed hash caching, and subprocess imports from a system temporary directory. The actual linked agent-home module renders all eight scenarios identically to direct SDK rendering there. A separate subprocess confirms non-canonical SDK imports remain bare and fail to resolve outside the installation, as the approved decision documents.
+        - Portability permits dynamic imports only in `preview/load.ts`; every other host-API and static-import check remains enforced. No dependency, public export or spec change was needed. The fallback is not triggered; runner implementation remains in 8.4.
+        - `timeout 40s bun test src/__tests__/preview-load.test.ts src/__tests__/portability.test.ts` passed all nine tests. `timeout 600s bun run check` passed generated-code drift, typecheck, lint, format and all 290 tests with zero failures; `git diff --check` passed. Existing unrelated lint warnings remain.
+        - Context7's Bun lookup again hit the monthly quota; checked installed Bun module-resolution documentation (`node_modules/bun-types/docs/runtime/module-resolution.mdx:365-391`), the approved 8.1 probe and runtime regression results.
     - [ ] 8.4 Ship the runner: the `Runner` interface and `inProcessRunner()`, against the acceptance criteria and test cases below, unchanged.
     - [ ] 8.5 Fallback, used only if 8.1 or 8.3 fails or a revisit condition from the decision log is met: the factory-module package format.
       - Stop and write a new decision log with `create-decision-log`, and get the owner's approval before implementing.
