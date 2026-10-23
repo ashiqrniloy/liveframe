@@ -84,8 +84,8 @@ Two plans: Part A (the renderer), then Part B (the preview), which draws drafts 
 
 **Part A — React renderer**
 
-- **Goal:** `@arnilo/liveframe/react`: `<Surface>`, `implement()`, the startup registry check, id-keyed reconciliation, the fallback, server-side rendering, and `onIntent`.
-- **Done:** the three interaction tiers work end to end against a test host; focus, scroll and local state survive re-renders.
+- **Goal:** `@arnilo/liveframe/react`: `createRenderer()` with the startup registry check, `<Surface>` with arrival validation, id-keyed reconciliation, the fallback, theme/design-system switching and the scoped overlay container, `implement()`, server-side rendering, and `onIntent`. Contracts: `decision-logs/2026-10-24-0306-phase-4-renderer-and-preview-contracts.md`.
+- **Done:** the three interaction tiers work end to end against a test host; focus, scroll and local state survive re-renders. The test host is the proof host on `/react`, with parity re-proved and the proof renderer removed.
 
 **Part B — Preview** (spec §7.5)
 
@@ -94,7 +94,7 @@ Two plans: Part A (the renderer), then Part B (the preview), which draws drafts 
 - **Scope:** no isolation sandbox, and no storage of drafts. Playwright becomes an optional peer dependency, used only by `preview capture`, and the plan justifies it. Actions are never dispatched from a session.
 - **Done:**
   - A test host mounts `<Preview>`. A scripted agent loop updates a draft with a deliberate layout error, captures it, reads the error and the screenshot, fixes the draft, and captures a clean result. The published package's hash equals the last previewed draft's.
-  - Every proof scenario renders through `check()`, at three container widths, under both proof design systems.
+  - Every proof scenario renders once through `check()` on the backend. Separately, a browser test draws each scenario in `<Preview>` at three container widths under both proof design systems, as sibling cells.
   - A `setState` re-renders within the session, and an action intent appears in the intent log while the test dispatcher records no call.
   - Capture writes one PNG and one accessibility snapshot per requested cell, plus a JSON index. The selected cell is addressable through the URL.
   - The browser bundle contains no draft code, and `/preview` passes the host-API-free scan.
@@ -115,7 +115,7 @@ Two plans: Part A (the renderer), then Part B (the preview), which draws drafts 
 ### Phase 6 — First release (0.1.0)
 
 - **Goal:** license chosen, docs for outsiders, a small public demo host, and publish to npm. 0.1.0 ships every subpath of spec §13 (formats, SDK, packages, storage, runners, preview, CSS, renderer and conformance) and the `liveframe mcp` server.
-- **Done:** `@arnilo/liveframe@0.1.0` installs and the demo host runs from the published package. The demo host persists through `fileStore`: a widget installed, placed and given state at runtime is still there after a restart. The demo host has a preview page, and an agent following only the published docs writes a widget with scenarios, iterates on it through `liveframe preview capture` and, separately, through the `liveframe mcp` tools, then publishes it and places it.
+- **Done:** `@arnilo/liveframe@0.1.0` installs and the demo host runs from the published package. The demo host persists through `fileStore`: a widget installed, placed and given state at runtime is still there after a restart. Before publishing, the G29 audit (native Windows forced colours and assistive technology on both proof design systems) is recorded with machine and version details (`plans/backlog.md`). The demo host has a preview page, and an agent following only the published docs writes a widget with scenarios, iterates on it through `liveframe preview capture` and, separately, through the `liveframe mcp` tools, then publishes it and places it.
 
 ### Phase 7 — Reference hosts
 
@@ -124,8 +124,8 @@ Two plans: Part A (the renderer), then Part B (the preview), which draws drafts 
 
 ## 3. Execution state
 
-- **Current phase:** Phase 3 complete — plan 007 Tasks 1–12 and impact follow-up Task 11a complete; findings disposed in the impact analysis and backlog. Phase 4 Part A (React renderer) is next. Phase 2 plans 005 and 006 are complete; plan 005's impact findings include active SDK validation and validator-performance backlog items. Plan 002 Task 9's owner gate remains recorded separately.
-- **Next free plan number:** 008.
+- **Current phase:** Phase 4 Part A (React renderer, plan 008) in progress — Task 1 complete; Task 2 is next. Part B is plan 009. Phase 3 plan 007 Tasks 1–12 and impact follow-up Task 11a are complete; findings disposed in the impact analysis and backlog. Phase 2 plans 005 and 006 are complete; plan 005's impact findings include active SDK validation and validator-performance backlog items. Plan 002 Task 9's owner gate remains recorded separately.
+- **Next free plan number:** 010.
 
 One line per plan. Detail lives in the plan file, never here.
 
@@ -138,3 +138,5 @@ One line per plan. Detail lives in the plan file, never here.
 | [005](plans/005-Phase-2-Part-A-SDK.md) | 2 | complete (Tasks 1–10 and Task 9a; findings disposed in the impact analysis and backlog) |
 | [006](plans/006-Phase-2-Part-B-Packages-Storage-Runners.md) | 2 | complete (Tasks 1–12; findings disposed in the impact analysis and backlog) |
 | [007](plans/007-Phase-3-CSS-Projection.md) | 3 | complete (Tasks 1–12 and Task 11a; findings disposed in the impact analysis and backlog) |
+| [008](plans/008-Phase-4-Part-A-React-Renderer.md) | 4 | in progress (Task 1 complete) |
+| [009](plans/009-Phase-4-Part-B-Preview.md) | 4 | planned (depends on 008) |

@@ -86,13 +86,15 @@ Nothing after this point needs a deployment.
 
 **D1. LF: project three independent sheets** (spec §6.4). The implemented `/css` subpath provides `baseCss(catalog)`, `themeCss(theme, catalog)` and `designSystemCss(system, { catalog, registry })`, each returning `Result<string>`. Generate them when installed inputs change, on the backend or in the browser, and cache them by input. They contain CSS variables (`--lf-c-text_muted`, `--lf-v-space_3`…) and one stable class per `(kind, variant, slot)`, with state selectors. **Host** loads the sheets and applies `surfaceAttributes({ theme, designSystem, tree })` to each surface root. Themes and design systems select independent sheets, so N themes and M systems need N + M + 1 sheets for a fixed catalog. Surfaces never nest. See the [styling guide](styling.md) for loading, CSP and the renderer contract.
 
-**D2. LF: `<Surface tree onIntent fallback />`** (spec §11, planned public renderer). The host mounts it in the placement's region. The renderer:
-- re-checks the tree's structure, because it never trusts its transport;
+**D2. LF: `<Surface tree validator theme designSystem onIntent fallback />`** (spec §11, planned public renderer), from `createRenderer({ catalog, implementations })`. The host mounts it in the placement's region. The renderer:
+- re-checks the tree with the app's compiled validator before reading its fields, then ignores lower revisions for the same surface;
 - looks up the host's React implementation for each node's `kind`;
-- passes it validated props, `slot()` (the stable recipe class for its variant and slot) and `emit()`;
+- passes it validated props, `slot()` (recipe and root style-prop classes), `style`, rendered `children`, `emit()`, and a scoped `portal`; collection `items` expose each child's `id`, `kind`, `variant`, `props`, `slot()`, `style`, rendered `children`, `render()` and `emit()`;
 - uses `styleDeclarations(style, catalog)` for token-constrained layout (`gap: var(--lf-v-space_3)`) and responsive classes;
 - keys nodes by `id`, so focus, scroll and local state survive re-renders;
-- draws the host's `fallback` for an unknown or invalid node, never nothing.
+- renders a wrapper and sibling portal container with matching `surfaceAttributes({ theme, designSystem, tree })`, including `lf_surface` and `lf_container` for responsive trees; node slots carry no scope classes;
+- draws the host's `fallback` for the whole surface if the tree is invalid; an implementation that throws falls back at that node only;
+- checks emitted values against `carries` (a mismatch throws without raising an intent), fills missing `setState` values and action `args[bind]`, removes `bind`, then calls `onIntent` with the complete intent for the host to re-check.
 
 **D3. Browser: the host's primitives produce the DOM.** The `button` implementation renders `<button class="lf_button_ghost_root …">`. The final DOM comes from the host's components; the look comes from the recipe classes and variables. Overlays retain the surface's scope through DOM ancestry or a portal container with matching scope attributes and classes; backdrop and content slots are siblings.
 

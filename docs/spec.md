@@ -481,16 +481,16 @@ interface Runner {
 
 **Scenarios** are required (§7.3). They are an author's test cases and a reviewer's view of the empty, failed and full states. The app may preview with live data resolved as the viewer instead of a scenario's data.
 
-**Preview sessions** (`/preview`, host-API-free). `createPreview({ catalog, capabilities, runner, styles })` returns a session on the app's backend:
+**Preview sessions** (`/preview`, host-API-free). `createPreview({ catalog, capabilities, runner })` returns a session on the app's backend. Trees do not depend on themes or design systems, so the session takes none:
 
-- `update({ files, entry, manifest, scenarios })` packs a draft, which is never stored, and returns its hash or the pack errors;
+- `update({ files, entry, manifest, scenarios })` packs a draft, which is never stored, and returns `Result<WidgetPackage>`: the packed package, which carries its hash, or the pack errors;
 - `render({ scenario, context?, state? })` renders the draft through the runner and returns the tree, or a `WidgetError` that names the node id;
 - `intent(intent)`: a `setState` updates the session's state and re-renders. An action is recorded in the session's intent log and **never dispatched**;
 - `check()` renders every scenario and returns each result, so an app can require all of them to render before approval.
 
-Publishing a previewed draft stores exactly that package, with the same hash. A draft is not a record. An app that keeps drafts across launches stores the draft's files itself.
+Publishing a previewed draft stores exactly the package `update()` returned, with the same hash. A draft is not a record. An app that keeps drafts across launches stores the draft's files itself.
 
-**`<Preview>`** (`/preview/react`) is mounted by the app inside its own page, so the draft draws with the app's primitives, CSS and shell. It shows a matrix of scenarios, container widths, themes and design systems, the intent log, and each error on its node. The selected cell lives in the URL (`scenario`, `width`, `theme`, `designSystem`), so a capture tool can address it. Like `<Surface>`, it receives trees through the app's transport, and draft code never runs in the browser.
+**`<Preview>`** (`/preview/react`) is mounted by the app inside its own page, so the draft draws with the app's primitives, CSS and shell. It shows a matrix of scenarios, container widths, themes and design systems, the intent log, and each error on its node. The selected cell lives in the URL (`scenario`, `width`, `theme`, `designSystem`), so a capture tool can address it. Like `<Surface>`, it receives trees through the app's transport, and draft code never runs in the browser: the host passes the selected cell's result and the session's intent log, and `<Preview>` calls back `onSelect(cell)` when the selection changes and `onIntent(intent)` for the host to hand to `session.intent()`. It draws through a renderer from `createRenderer` (§11), with the app's validator. Cells are sibling surfaces, never nested.
 
 **Capture** (`liveframe preview capture <url>`) is for agents. It opens the app's preview page in a headless browser, captures each requested cell as a PNG plus an accessibility snapshot, and writes a JSON index of the results. Playwright is an optional peer dependency, used only by this command. The authoring MCP server (§13) exposes the same capture as a tool.
 
@@ -543,7 +543,7 @@ type Intent =
 
 ## 10. Validation
 
-The validator runs on every rendered tree before it leaves the app's backend. The renderer re-checks structure on arrival, so it never trusts its transport.
+The validator runs on every rendered tree before it leaves the app's backend. The renderer re-checks every tree on arrival with the app's compiled validator (§11), so it never trusts its transport.
 
 It checks:
 
@@ -591,18 +591,28 @@ It validates every other format on install: a catalog's definitions and schema l
 
 `@arnilo/liveframe/react`:
 
-- **`<Surface tree={…} onIntent={…} fallback={…} />`** draws one surface.
+```tsx
+const { Surface } = createRenderer({ catalog, implementations }); // the registry check
+const validator = compileValidator({ catalog, capabilities, manifest });
+<Surface tree={tree} validator={validator} theme={theme} designSystem={designSystem} onIntent={onIntent} fallback={<Unavailable />} />;
+```
+
+- **`createRenderer({ catalog, implementations })`** runs the registry check once, at startup: it fails if a catalog kind has no implementation, two implementations bind one kind, or an implementation's definition differs from the catalog's. It returns `{ Surface }`.
+- **`<Surface>`** draws one surface. `theme` and `designSystem` are `{ id, version }` identities for §6.4's scope attributes.
 - **`implement(definition, Component)`** binds a primitive's React implementation. The implementation receives:
   - `props`: validated values
-  - `slot(name)`: the single stable class for that slot in its current variant (§6.4); implementations expose state through the normative selector table there
+  - `slot(name)`: the single stable recipe class for that slot in its current variant (§6.4). The root slot also carries the node's style-prop classes; surface and container classes belong to the surface wrapper. Implementations expose state through the normative selector table there
+  - `style`: the root's inline declarations from the node's style props (`styleDeclarations`, §6.4)
   - `emit(event, value?)`: raises the declared intent
-  - children, already rendered
-- At startup, a registry check fails if a catalog kind has no implementation.
-- Nodes render keyed by `id`. Unknown or invalid nodes render the app's `fallback`, never nothing.
+  - `children`: already rendered
+  - `items`: a node context for each child, with `id`, `kind`, `variant`, `props`, `slot(name)`, `style`, `children` (already rendered), `render()` (the child drawn through its own implementation) and `emit(event, value?)`. Slots, styles and intents belong to that child, so collection primitives can draw its parts themselves
+  - `portal`: the surface's scoped overlay container, or undefined when overlays use the top layer
+- **The renderer never trusts its transport.** It re-checks every arriving tree with the `validator`, compiled from the catalog, the capabilities and the widget's manifest (§10), before reading any tree field, including `surfaceId` or `revision`. A tree that fails renders the app's `fallback` for the whole surface, never part of an invalid tree and never nothing. After validation, a tree for the same `surfaceId` whose `revision` is lower than the current one is ignored; a different `surfaceId` replaces the current tree.
+- Nodes render keyed by `id`, so focus, scroll and local state survive re-renders. An implementation that throws renders the `fallback` at that node, through an error boundary.
 - Server-side rendering is supported.
-- The surface root carries §6.4's theme/design-system scope attributes and surface classes. Surfaces never nest. Theme/design-system switching preserves node identities and slot classes.
-- Overlays stay within their surface's scope: use the top layer while retaining DOM ancestry, or a portal container carrying the same scope attributes and surface classes, including the container class when responsive values require it. A backdrop slot and its overlay content are siblings. No backdrop ancestor may set opacity below 1 or a filter that creates a backdrop root; the backdrop must be able to sample the page behind it. Exit motion, scroll locking and making the background inert are renderer responsibilities.
-- `onIntent` hands `setState` and action intents to the app, which re-runs the widget or dispatches the action, then passes the new tree back in.
+- `<Surface>` renders its own wrapper element around the tree and a sibling `portal` container. Both carry `surfaceAttributes({ theme, designSystem, tree })`: §6.4's theme/design-system scope attributes, `lf_surface` and, when the tree uses responsive values, `lf_container`. Node slots do not carry these scope classes, and parents of responsive nodes do not gain containers. Surfaces never nest. Changing `theme` or `designSystem` runs §6.4's switching sequence on the wrapper and portal container together; it preserves node identities and slot classes and runs no widget code.
+- Overlays stay within their surface's scope: use the top layer while retaining DOM ancestry, or the `portal` container. A backdrop slot and its overlay content are siblings. No backdrop ancestor may set opacity below 1 or a filter that creates a backdrop root; the backdrop must be able to sample the page behind it. Exit motion, scroll locking and making the background inert are part of the renderer contract: the renderer supplies the scoped container, and the app's implementations deliver the lifecycle (for example through React Aria). Browser tests, and later the renderer conformance suite (§13), prove it.
+- `emit(event, value?)` checks the event value against the definition's `carries` (`none`: no value; `string`; `boolean`). A mismatch is an implementation bug: it throws and raises no intent. `onIntent` receives complete intents: a `setState` without `value` gets the event's value; an action with `bind` gets `args[bind]` set to that value and `bind` removed. Explicit `setState` values are preserved. The app re-checks the filled intent (§8), re-runs the widget or dispatches the action, then passes the new tree back in.
 - Recommended, not required: build interactive primitives on a behaviour library such as React Aria, for accessibility.
 
 ## 12. First task: prove the primitive set on two real UIs
@@ -661,7 +671,7 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
   |---|---|
   | `@arnilo/liveframe` | Definition, catalog, theme and design-system formats; the validator; the recipe resolver |
   | `@arnilo/liveframe/sdk` | The JSX runtime (`/sdk/jsx-runtime`, `/sdk/jsx-dev-runtime`), intent helpers, and `render()` |
-  | `@arnilo/liveframe/react` | The renderer. `react` is an optional peer dependency, needed only by this import |
+  | `@arnilo/liveframe/react` | The renderer: `createRenderer()`, `<Surface>` and `implement()` (§11). `react` and `react-dom` are optional peer dependencies, needed only by this import |
   | `@arnilo/liveframe/css` | Pure, host-API-free projection into three scoped sheets, plus class, style, scope and variable helpers (§6.4); the host inserts sheets |
   | `@arnilo/liveframe/pack` | Package and scenario formats, structural validators, `pack()` and `verifyPackage()` (§7.3) |
   | `@arnilo/liveframe/store` | Record formats, the `Store` interface, `memoryStore()` and `loadPlacement()` (§7.4) |
