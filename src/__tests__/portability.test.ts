@@ -32,8 +32,9 @@ test("src_is_host_api_free", async () => {
     const source = await Bun.file(`${root}${path}`).text();
     expect(source, path).not.toMatch(forbidden);
     expect(source, path).not.toMatch(/\bimport\s*\(/);
-    // Core imports must remain relative, so a dependency cannot hide a host API.
+    // Only the packer's syntax tools may be external; their browser bundle is checked below.
     for (const dependency of transpiler.scanImports(source)) {
+      if (path === "pack/bundle.ts" && ["sucrase", "acorn"].includes(dependency.path)) continue;
       expect(dependency.path, path).toMatch(/^\.\.?\//);
       expect(dependency.path, path).not.toContain("proof/");
     }
@@ -43,4 +44,47 @@ test("src_is_host_api_free", async () => {
     target: "browser",
   });
   expect(bundle.success).toBe(true);
+});
+
+test("pack_bundle_has_no_host_apis", async () => {
+  const bundle = await Bun.build({
+    // The public /pack entry adds bundle() in Task 5; check its implementation now.
+    entrypoints: [new URL("../pack/bundle.ts", import.meta.url).pathname],
+    target: "browser",
+    metafile: true,
+  });
+  expect(bundle.success).toBe(true);
+  if (!bundle.metafile) throw new Error("Missing pack bundle metafile");
+  for (const input of Object.keys(bundle.metafile.inputs)) {
+    expect(input).not.toMatch(/node_modules\/(?:commander|tinyglobby|mz|pirates)\//);
+  }
+  expect(bundle.outputs).toHaveLength(1);
+  const output = bundle.outputs[0];
+  if (!output) throw new Error("Missing pack bundle output");
+  let source = await output.text();
+  // Exact pinned-dependency snippets: two Buffer paths (one guarded, one in an
+  // unused type checker), plus text emitted by transforms we never enable.
+  const knownSnippets = [
+    "return Buffer.isBuffer(v);",
+    'typeof Buffer !== "undefined" ? {\n  decode(buf) {\n    const out = Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength);',
+    'this.tokens.appendCode("__reactstandin__regenerateByEval(key, code) {this[key] = eval(code);}");',
+    'this.raiseRecoverable(errorPos, "Trailing comma is not allowed in import()");',
+    `prefix += \`var \${resolvedName} = require("\${path}");\`;`,
+    `this.importsToReplace.set(path, \`require('\${path}');\`);`,
+    `let requireCode = \`var \${primaryImportName} = require('\${path}');\`;`,
+    "this.tokens.appendCode(' = require(\"flow-enums-runtime\")');",
+    "var enterModule = require('react-hot-loader').enterModule;",
+    "var reactHotLoader = require('react-hot-loader').default;",
+    "var leaveModule = require('react-hot-loader').leaveModule;",
+  ];
+  for (const snippet of knownSnippets) {
+    expect(source, snippet).toContain(snippet);
+    source = source.replace(snippet, "");
+  }
+  expect(source).not.toMatch(
+    /\b(?:node|bun):|\b(?:require|eval|Function|Worker|fetch|XMLHttpRequest)\s*\(|\bimport\s*\(/,
+  );
+  expect(source).not.toMatch(
+    /\b(?:document|window|process|Bun|Buffer|navigator|localStorage|sessionStorage|globalThis)\s*[.[]/,
+  );
 });

@@ -210,10 +210,11 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Removed per-block iterator allocations to meet the performance gate: hashing a 1 MiB code package took 12.82 ms in the final full check (under 50 ms). `timeout 600s bun run check` passed: 254 tests, zero failures, plus generated-code drift, typecheck, lint and format checks. Existing unrelated lint warnings remain; both new files lint cleanly.
     - Task 5 must translate internal canonicalisation TypeErrors (including lone surrogates that structural validation permits) into bounded invalid-document results, as its fail-closed contract requires.
 
-- [ ] Task 4: Transpile and link a widget's files into one module
+- [x] Task 4: Transpile and link a widget's files into one module
   - Acceptance Criteria:
     - Functional:
       - `bundle({ files, entry })` transforms each module reachable from `entry` with sucrase. The options are `transforms: ["typescript", "jsx"]`, `jsxRuntime: "automatic"`, `jsxImportSource: "@arnilo/liveframe/sdk"`, `production: true` and `filePath`.
+      - `keepUnusedImports: true` retains unused runtime imports for the allowlist. `disableESTransforms: true` leaves optional calls intact for AST checks and keeps modern JavaScript syntax.
       - It parses each transformed module with acorn (`ecmaVersion: "latest"`, `sourceType: "module"`) and checks imports:
         - relative imports resolve within `files`, trying the exact path, then `.tsx`, `.ts`, `/index.tsx` and `/index.ts`;
         - the SDK specifiers (`@arnilo/liveframe/sdk`, `/sdk/jsx-runtime`, `/sdk/jsx-dev-runtime`) are allowed;
@@ -247,6 +248,7 @@ Probe answers that hold for every task, unless a task says otherwise:
       - acorn 8.19.0 `parse(input, options)` (`dist/acorn.d.ts`: `ecmaVersion`, `sourceType`, node `start`/`end`).
     - Documentation Reviewed:
       - Spec §7.3 and §13 (no WebAssembly).
+      - Execution lookup: Context7's monthly quota was exhausted. Verified Sucrase 3.35.1 against its installed README and `dist/types/{Options,index}.d.ts`, and Acorn 8.19.0 against `dist/acorn.d.ts` (`parse`, locations, node offsets and import/export node unions).
       - `decision-logs/2026-10-22-1539-widget-packages-and-reference-stores.md`, whose transpiler assumption this task checks.
       - Spike, 2026-10-22, Bun 1.4.2:
         - sucrase's core ESM entry bundles for `target: "browser"` to about 209 KB minified;
@@ -265,13 +267,13 @@ Probe answers that hold for every task, unless a task says otherwise:
     - API Notes and Examples:
       ```ts
       bundle({ files: { "queue.tsx": src, "task-card.tsx": card, "ui.gen.ts": ui }, entry: "queue.tsx" })
-      // → Result<string>; the code starts with: import { jsx as _jsx } from "@arnilo/liveframe/sdk/jsx-runtime";
+      // → Result<string>; SDK namespaces are hoisted once, with local aliases inside each module.
       ```
     - Files to Create/Edit:
       - `src/pack/bundle.ts`: new.
       - `package.json`: `dependencies`.
       - `bun.lock`.
-      - `src/__tests__/portability.test.ts`: per-subpath rules. Non-relative imports are allowed only for `sucrase` and `acorn` in `src/pack/`. The `/pack` browser bundle is scanned, with its three known dependency hits allowed by exact snippet, so a dependency upgrade that adds one fails the test. The bundle's metafile inputs must exclude sucrase's CLI-only packages (`commander`, `tinyglobby`, `mz`, `pirates`).
+      - `src/__tests__/portability.test.ts`: non-relative dependency imports are allowed only for `sucrase` and `acorn` in `src/pack/bundle.ts`. Its browser bundle is scanned now (the public `/pack` entry wires it in Task 5), allowing exact snippets for the two known Buffer paths and nine transform/parser strings, including the react-hot-loader eval string. Each snippet must occur and is removed once, so additional hits fail. The bundle's metafile inputs must exclude sucrase's CLI-only packages (`commander`, `tinyglobby`, `mz`, `pirates`).
       - `src/__tests__/pack-bundle.test.ts`: new.
   - Test Cases to Write:
     - `bundles_composed_components`: the agent-home fixture's six files link into one module, and its import list is SDK-only.
@@ -280,7 +282,15 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `bundle_is_deterministic`: two runs with the `files` keys in a different order are byte-equal.
     - `bundle_never_executes`: a file with `globalThis.__lfRan = true` at its top level bundles, and the global stays unset.
     - `pack_bundle_has_no_host_apis` (portability): as described under Files.
-  - Notes (executed <date>):
+    - `links_import_export_forms_and_isolates_module_scopes`: default, named, namespace and star forms, destructured exports and independent local identifiers.
+    - `resolves_relative_paths_in_order_and_does_not_escape_files`: exact/extension/index precedence and rejection of paths above the widget root.
+    - `supports_default_declarations_namespace_reexports_and_sdk_reexports`: named default declarations and namespace re-exports from relative modules and the SDK.
+    - `preserves_top_level_await_and_module_hashbangs`: valid module syntax stays valid inside wrappers.
+  - Notes (executed 2026-10-23):
+    - Added internal `src/pack/bundle.ts` with pinned Sucrase 3.35.1 and Acorn 8.19.0. It checks every transformed AST, resolves only reachable relative files, rejects cycles and reserved names, and splices syntax into dependency-ordered module scopes. SDK namespace imports are deduplicated. Import/export bindings are snapshots, not live bindings, as planned. No spec change was needed.
+    - Tests first failed on the missing module. The linked agent-home fixture (six TSX files plus generated primitives) matches direct SDK rendering for all eight scenarios. Forbidden unused imports, re-exports, nested and optional require calls, dynamic imports, import.meta, missing files/default exports, cycles and syntax errors are covered. Bundling top-level throws/global writes causes no execution.
+    - `timeout 600s bun run check` passed: 264 tests, zero failures, plus generated-code drift, typecheck, lint and format checks. Agent-home bundling took 62.76 ms, under 100 ms. New files lint cleanly; existing unrelated lint warnings remain. The browser dependency scan passes and its metafile excludes all four CLI-only packages.
+    - Found a Bun 1.4.2 loader regression relevant to Task 8: importing `"data:text/javascript," + encodeURIComponent("const x = { value: 3 }; export default () => x.value;")` returns a string default export instead of a function, while a body without a dot works. Task 4's execution tests use temporary `.mjs` files, cleaned in finally; the production loader is not implemented or changed here. Added a pre-implementation gate to Task 8 so this invalidates the earlier spike explicitly and must be raised against the approved loader decision if it persists.
 
 - [ ] Task 5: Pack and verify widget packages
   - Acceptance Criteria:
@@ -449,6 +459,7 @@ Probe answers that hold for every task, unless a task says otherwise:
       - A module without a function default export is `render-failed`.
       - The in-process runner can't interrupt a loop. A render that returns after `timeoutMs` is reported as `limit-exceeded`, and the docs say so.
       - The loader resolves the SDK import when the process's working directory is outside the package. A test spawns `bun` with another `cwd` to prove it. If resolution fails there, stop and raise it as a finding against plan 005 Task 1's decision; do not work around it.
+      - Before implementing the loader, reproduce Task 4's percent-encoded `data:` regression with a module containing `x.value`, then with the actual linked agent-home module. The earlier simple-module spike is insufficient. If either loads as a string rather than a function, stop and raise the finding against plan 005 Task 1's approved loader decision; do not silently substitute a different loading scheme.
     - Performance: the runner adds under 0.1 ms per warm render over a direct `render()` call (module and validator cached). The test asserts a loose bound.
     - Code Quality:
       - `src/preview/load.ts` is the only file with `import(`. The scan allows exactly that file.
