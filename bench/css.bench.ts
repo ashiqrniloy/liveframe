@@ -1,10 +1,28 @@
-import { baseCss, designSystemCss, themeCss } from "../src/css/index.ts";
-import type { Catalog, DesignSystem, Result, Theme } from "../src/index.ts";
+import { baseCss, designSystemCss, styleDeclarations, themeCss } from "../src/css/index.ts";
+import type { Catalog, DesignSystem, Result, Theme, UiNode, UiTree } from "../src/index.ts";
 
 const read = (name: string) =>
   Bun.file(new URL(`../src/__tests__/fixtures/proof/${name}.json`, import.meta.url)).json();
 const catalog: Catalog = await read("catalog");
 const runs = 1000;
+
+const tree: UiTree = await read("agent-home.tree");
+const nodes: UiNode[] = [];
+function collect(node: UiNode): void {
+  nodes.push(node);
+  for (const child of node.children ?? []) collect(child);
+}
+collect(tree.root);
+function projectTree(): void {
+  for (const node of nodes) styleDeclarations(node.style ?? {}, catalog);
+}
+for (let i = 0; i < 200; i++) projectTree();
+const styleStart = performance.now();
+for (let i = 0; i < runs; i++) projectTree();
+const treeMs = (performance.now() - styleStart) / runs;
+console.log(
+  `style_declarations_per_node: ${((treeMs * 1000) / nodes.length).toFixed(3)} µs/node; ${treeMs.toFixed(3)} ms/tree; ${nodes.length} nodes`,
+);
 
 function measure(name: string, project: () => Result<string>): void {
   const result = project();

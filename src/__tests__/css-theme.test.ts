@@ -199,9 +199,11 @@ test("colour_authority_holds", async () => {
       if (property?.startsWith("--lf-c-")) continue;
       expect(value).not.toMatch(/(?:#[\da-f]{3,8}\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\()/i);
       if (property === "color" || property?.endsWith("-color")) {
-        expect(value).toMatch(
-          /^(?:var\(--lf-c-[\w-]+\)|transparent|currentColor|color-mix\(in srgb, var\(--lf-c-[\w-]+\) calc\(var\(--lf-alpha\) \* 100%\), transparent\))$/,
-        );
+        const responsive =
+          /^(?:var\(--lf-r-(?:surface|fill|tone)__[\w]+__(?:backgroundColor|color),)*var\(--lf-r-(?:surface|fill|tone)__[\w]+__(?:backgroundColor|color)\)\)*$/;
+        const themeColour =
+          /^(?:var\(--lf-c-[\w-]+\)|transparent|currentColor|color-mix\(in srgb, var\(--lf-c-[\w-]+\) calc\(var\(--lf-alpha\) \* 100%\), transparent\))$/;
+        expect(themeColour.test(value ?? "") || responsive.test(value ?? "")).toBe(true);
       }
     }
   }

@@ -128,7 +128,9 @@ test("states_equal_to_rest_emit_no_rule", () => {
     // Hover has a separate native-hover media rule and a data-attribute rule.
     const hover = different.filter(([key]) => key.endsWith(".hover")).length;
     const css = sheet(system);
-    expect([...css.matchAll(/\{[^{}]*\}/g)].length).toBe(1 + different.length + hover);
+    expect([...css.matchAll(/\{[^{}]*\}/g)].filter((rule) => !rule[0].includes("--lf-r-")).length).toBe(
+      1 + different.length + hover,
+    );
     for (const [key] of different)
       expect(css).toContain(`.${slotClass(...(key.split(".").slice(0, 3) as [string, string, string]))}`);
   }
@@ -141,6 +143,7 @@ test("slot_class_is_design_system_independent", () => {
   for (const system of systems) {
     const classes = [...sheet(system).matchAll(/^:where\(\[data-lf-ds="[^"\n]+"\]\) \.(lf_[\w-]+)\{/gm)]
       .map((match) => match[1])
+      .filter((name) => !name?.startsWith("lf_r_"))
       .sort();
     expect(classes).toEqual(expected);
   }

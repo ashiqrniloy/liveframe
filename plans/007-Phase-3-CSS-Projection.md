@@ -320,7 +320,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Extended `bench/css.bench.ts`. `timeout 90s bun bench/css.bench.ts` (200 warm-ups, 1,000 measured projections, including validation/resolution): Certified design system 9.434 ms / 98,180 bytes; Rack 13.295 ms / 103,228 bytes. Each input resolves 616 recipes. No generation-time budget; hosts cache sheets by input.
     - Responsive/container projection remains Task 5; preference/entry and forced-colour rules remain Tasks 6–7; package export/docs remain Task 8; proof-host integration and parity remain Task 10. No new parity capture was run.
 
-- [ ] Task 5: Map style props and responsive values
+- [x] Task 5: Map style props and responsive values
   - Acceptance Criteria:
     - Functional:
       - `styleDeclarations(style, catalog)` returns `{ style: Record<string, string>, classes: readonly string[] }` for a validated node's style. Every style prop in `styleProps` (`src/formats/fixed.ts`) maps as in spec §6.3:
@@ -372,7 +372,14 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Browser `breakpoints_follow_the_design_system`: the same markup switches columns at Certified's breakpoint under Certified, and at Rack's under Rack.
     - Browser `sides_mirror_in_rtl`: under `dir="rtl"`, `paddingLeft` and `borderLeftWidth` compute on the right edge.
     - Bench `style_declarations_per_node`: records µs per node on agent-home.
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-24):
+    - Added `src/css/style-props.ts`: one type-exhaustive mapping for all 38 fixed style props, logical sides, vocabulary tones, typography, token dimensions, grid tracks, fill classes and responsive custom properties. Reuses `compileStyles`, cached by installed catalog identity; invalid props/values throw before returning a declaration object. Catalogs are installed, immutable inputs.
+    - Added `surfaceAttributes` and the two internal `/css` exports. Responsive detection walks the whole tree, including the root; grid track arrays do not trigger containment. Package subpath publication and outsider documentation remain Task 8.
+    - `designSystemCss` now emits named container rules using inherited design-system breakpoint values, ordered by width (rem normalised at 16px; mixed-unit ordering assumes a 16px root), with one shared fallback chain per property. Each responsive class resets its own custom properties to prevent nested nodes inheriting an ancestor's overrides.
+    - Tests were written first (the mapper test initially failed on the missing export). All 38 props are checked in scalar and responsive forms, with additional value-form, vocabulary/colour-authority, rejection, surface-containment and browser cases. Existing recipe-count/slot-class assertions now distinguish responsive rules; the colour-authority guard admits only the responsive colour chains, with mapped values separately checked against declared roles.
+    - Browser evidence: sparse breakpoint values hold above wider unset keys; switching Certified/Rack scope attributes changes the threshold without changing markup; padding and recipe borders mirror in RTL; responsive descendants keep their own values. Named size queries style descendants, so the renderer must put the surface container above the responsive tree root (Task 8 contract / Phase 4).
+    - `timeout 600s bun run check` passed: generated-code check, both typechecks, lint, formatting and 356 tests / 109,147 assertions. No spec change or dependency added.
+    - `timeout 90s bun bench/css.bench.ts` (200 warm-ups, 1,000 measured runs): 679-node agent-home mapping 0.737 µs/node, 0.500 ms/tree (budget ≤ 1 µs/node). Certified design-system sheet 10.701 ms / 122,803 bytes; Rack 13.545 ms / 127,281 bytes. Generation includes validation/resolution and has no time budget. Full proof-host integration/parity remains Task 10.
 
 - [ ] Task 6: Overlay effects and motion: blur, translucency, entry, reduced motion and transparency, and switching
   - Acceptance Criteria:

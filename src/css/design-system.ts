@@ -9,6 +9,7 @@ import {
 import { resolveRecipes } from "../resolve.ts";
 import { cssString, slotClass, valueVar } from "./names.ts";
 import { recipeDeclarations } from "./recipe.ts";
+import { responsiveRules } from "./style-props.ts";
 
 const stateSelectors = {
   rest: "",
@@ -71,5 +72,18 @@ export function designSystemCss(system: DesignSystem, context: DesignSystemConte
       }
     }
   }
+  const breakpoints = context.catalog.vocabulary.breakpoints
+    .map((name) => {
+      const token = prepared.value.values[name];
+      if (token?.kind !== "breakpoint") throw new Error(`Missing installed breakpoint: ${name}`);
+      return {
+        name,
+        value: `${token.value.value}${token.value.unit}`,
+        // shortcut: mixed px/rem ordering assumes a 16px root; revisit for hosts with other root sizes.
+        width: token.value.value * (token.value.unit === "rem" ? 16 : 1),
+      };
+    })
+    .sort((a, b) => a.width - b.width || a.name.localeCompare(b.name));
+  rules.push(responsiveRules(scope, breakpoints));
   return { ok: true, value: rules.join("\n") };
 }

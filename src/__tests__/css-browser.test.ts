@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { type Browser, chromium, type Page } from "playwright";
-import { baseCss, designSystemCss, themeCss } from "../css/index.ts";
+import { baseCss, designSystemCss, styleDeclarations, themeCss } from "../css/index.ts";
 import type { Catalog, DesignSystem, Recipe, Result, Theme } from "../index.ts";
 
 const read = (name: string) => Bun.file(new URL(`./fixtures/proof/${name}.json`, import.meta.url)).json();
@@ -178,6 +178,133 @@ test("pressed_offset_composes_with_transform", async () => {
         return [style.translate, style.transform];
       }),
     ).toEqual(["0px 3px", "matrix(1, 0, 0, 1, 7, 0)"]);
+  } finally {
+    await page.close();
+  }
+});
+
+async function mountResponsive(page: Page, systems: DesignSystem[], input: Record<string, unknown>) {
+  const { style, classes } = styleDeclarations(input, catalog);
+  const sheets = [
+    baseCss(catalog),
+    themeCss(theme, catalog),
+    ...systems.map((system) => designSystemCss(system, { catalog, registry: {} })),
+  ]
+    .map(css)
+    .join("\n");
+  await page.setContent(
+    `<style>${sheets}</style><section class="lf_surface lf_container" data-lf-theme="${theme.id}@${theme.version}" data-lf-ds="${systems[0]!.id}@${systems[0]!.version}" style="width:300px"><div id="grid" class="${classes.join(" ")}" style="display:grid"><div>A</div><div>B</div></div></section>`,
+  );
+  await page.locator("#grid").evaluate((el, declarations) => {
+    for (const [name, value] of Object.entries(declarations)) {
+      if (name.startsWith("--")) (el as HTMLElement).style.setProperty(name, value);
+      else Object.assign((el as HTMLElement).style, { [name]: value });
+    }
+  }, style);
+}
+const columnCount = (page: Page) =>
+  page.locator("#grid").evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(" ").length);
+
+test("responsive_value_holds_at_wider_breakpoints", async () => {
+  const page = await browser.newPage();
+  try {
+    const system = {
+      ...proofSystem,
+      recipes,
+      values: {
+        ...proofSystem.values,
+        "bp.sm": { kind: "breakpoint", value: { value: 400, unit: "px" } },
+        "bp.md": { kind: "breakpoint", value: { value: 600, unit: "px" } },
+      },
+    } as DesignSystem;
+    await mountResponsive(page, [system], { columns: { base: ["1fr"], "bp.sm": ["1fr", "1fr"] } });
+    expect(await columnCount(page)).toBe(1);
+    for (const width of [500, 800]) {
+      await page.locator("section").evaluate((el, width) => {
+        el.style.width = `${width}px`;
+      }, width);
+      expect(await columnCount(page)).toBe(2);
+    }
+  } finally {
+    await page.close();
+  }
+});
+
+test("breakpoints_follow_the_design_system", async () => {
+  const page = await browser.newPage();
+  try {
+    const rack: DesignSystem = await read("rack.design-system");
+    // Distinct thresholds prove the rule uses each installed system, with the same markup.
+    const systems = [proofSystem, rack].map(
+      (system, index) =>
+        ({
+          ...system,
+          recipes,
+          values: {
+            ...system.values,
+            "bp.sm": { kind: "breakpoint", value: { value: index ? 700 : 400, unit: "px" } },
+          },
+        }) as DesignSystem,
+    );
+    await mountResponsive(page, systems, { columns: { base: ["1fr"], "bp.sm": ["1fr", "1fr"] } });
+    await page.locator("section").evaluate((el) => {
+      el.style.width = "500px";
+    });
+    expect(await columnCount(page)).toBe(2);
+    await page.locator("section").evaluate((el, id) => el.setAttribute("data-lf-ds", id), `${rack.id}@${rack.version}`);
+    expect(await columnCount(page)).toBe(1);
+    await page.locator("section").evaluate((el) => {
+      el.style.width = "800px";
+    });
+    expect(await columnCount(page)).toBe(2);
+  } finally {
+    await page.close();
+  }
+});
+
+test("sides_mirror_in_rtl", async () => {
+  const page = await browser.newPage();
+  try {
+    await mount(page, {
+      "button.default.root.rest": { borderLeftWidth: { value: 3, unit: "px" }, borderStyle: "solid" },
+    });
+    const { style } = styleDeclarations({ paddingLeft: "space.2", paddingRight: "space.0" }, catalog);
+    await page.locator("#root").evaluate((el, style) => Object.assign((el as HTMLElement).style, style), style);
+    const sides = () =>
+      page.locator("#root").evaluate((el) => {
+        const s = getComputedStyle(el);
+        return [s.paddingLeft, s.paddingRight, s.borderLeftWidth, s.borderRightWidth];
+      });
+    expect(await sides()).toEqual(["8px", "0px", "3px", "0px"]);
+    await page.locator("section").evaluate((el) => el.setAttribute("dir", "rtl"));
+    expect(await sides()).toEqual(["0px", "8px", "0px", "3px"]);
+  } finally {
+    await page.close();
+  }
+});
+
+test("responsive_values_do_not_inherit_parent_overrides", async () => {
+  const page = await browser.newPage();
+  try {
+    const parent = styleDeclarations({ gap: { base: "space.1", "bp.sm": "space.4" } }, catalog);
+    const child = styleDeclarations({ gap: { base: "space.2" } }, catalog);
+    await mountResponsive(page, [{ ...system }], { gap: { base: "space.1", "bp.sm": "space.4" } });
+    await page.locator("section").evaluate((el) => {
+      el.style.width = "900px";
+    });
+    await page.locator("#grid").evaluate(
+      (el, { parent, child }) => {
+        for (const [name, value] of Object.entries(parent.style)) (el as HTMLElement).style.setProperty(name, value);
+        const inner = document.createElement("div");
+        inner.id = "inner";
+        inner.className = child.classes.join(" ");
+        for (const [name, value] of Object.entries(child.style)) inner.style.setProperty(name, value);
+        el.append(inner);
+      },
+      { parent, child },
+    );
+    expect(await page.locator("#grid").evaluate((el) => getComputedStyle(el).gap)).toBe("16px");
+    expect(await page.locator("#inner").evaluate((el) => getComputedStyle(el).gap)).toBe("8px");
   } finally {
     await page.close();
   }
