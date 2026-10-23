@@ -21,7 +21,7 @@ This plan implements roadmap Phase 3: spec §6.1–§6.5 as the CSS projection, 
 **Not in this plan:**
 - `<Surface>`, `implement()` and the React renderer: Phase 4 Part A. That plan consumes Task 8's contract. Exit motion for overlays (it needs the renderer to delay unmounting), scroll locking and an inert background belong there too.
 - `<Preview>`: Phase 4 Part B. It is the first consumer of per-surface scoping.
-- The design-system conformance suite: Phase 5. Task 12 hands over the cases.
+- The design-system conformance suite: Phase 5. Task 11 hands over the cases.
 - An auditing pass on real Windows hardware and with assistive technology (G29). It stays a recorded manual gate.
 - Shadow-DOM isolation, cascade layers chosen by the library, print styles, compound variants, pseudo-element decoration (`::before`/`::after`), keyframe animations, and design-system-controlled placeholder or scrollbar colours. Task 1 records why each one is out.
 
@@ -653,7 +653,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - The regenerated 50-row two-surface blur proof measured **8.4 ms cold / 9.0 ms warm max**, 954 DOM elements. Reproduce with `timeout 120s bun test src/__tests__/css-scope-browser.test.ts proof/tests/switch.test.ts`. G27 and the grid-track backlog item are closed; G29 has forced-colour automation but retains the real Windows/assistive-technology audit. Rack's native scrollbar colour is the accepted adopter deviation.
     - `graft build` refreshed the local graph. Tasks 11–12 remain separate work.
 
-- [ ] Task 11: Hand the design-system cases to the conformance backlog
+- [x] Task 11: Hand the design-system cases to the conformance backlog
   - Acceptance Criteria:
     - Functional: the "Seed conformance suites from the proof tests" entry in `plans/backlog.md` names the Task 3–9 cases a Phase 5 design-system suite reuses: colour authority, injective names, every property and prop projected, state precedence, forced-colour distinctness, entry rules and scoping. It also says which of them need a browser.
     - Performance: n/a.
@@ -674,9 +674,13 @@ Probe answers that hold for every task, unless a task says otherwise:
       - n/a.
     - Files to Create/Edit:
       - `plans/backlog.md`.
+      - This plan and `roadmap.md` §3: execution status.
   - Test Cases to Write:
     - n/a — documentation.
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-24):
+    - Updated the existing "Seed conformance suites from the proof tests" entry in `plans/backlog.md`, adding this plan as a source and handing off the Task 3–9 cases to Phase 5. Names the source files and cases for colour authority, injective names, every recipe property/style prop, state precedence, forced-colour distinctness, entry rules and per-surface scoping.
+    - Separates pure-output checks from browser checks for computed state, responsive/RTL behaviour, overlays, preferences and switching. Keeps the unsupported-nesting limit, progressive reduced-transparency support, internal performance gates and G29's real Windows/assistive-technology audit explicit. No conformance helper, runtime code, dependency or spec change.
+    - `timeout 600s bun run check` passed: generation check, both typechecks, lint, formatting and **374 tests / 109,961 assertions**, zero failures. Existing lint warnings remain. `git diff --check` passed. No new tests or parity capture were needed for this documentation-only handoff; Task 12's impact analysis remains separate work.
 
 - [ ] Task 12: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
