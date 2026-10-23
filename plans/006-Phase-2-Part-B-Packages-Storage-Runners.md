@@ -605,7 +605,7 @@ Probe answers that hold for every task, unless a task says otherwise:
       - Run from another working directory, the bare SDK import also fails. Rewriting it with `import.meta.resolve` fixes that, on the main thread and in a `Worker`.
       - The owner approved the amendment in `decision-logs/2026-10-23-2016-data-url-loader-encoding-and-sdk-resolution.md`. Subtasks 8.1–8.5 above carry it out.
 
-- [ ] Task 9: Bound time and crashes with workerRunner()
+- [x] Task 9: Bound time and crashes with workerRunner()
   - Acceptance Criteria:
     - Functional:
       - `workerRunner({ timeoutMs? })` returns a `Runner` plus `close()`. It starts its worker from `new URL("./entry.ts", import.meta.url)`, and the worker uses the same loader and `render()`.
@@ -625,12 +625,14 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `bun-types` `globals.d.ts:863` (`terminate`).
     - Documentation Reviewed:
       - Spec §7.5.
+      - Bun 1.4.2 Worker documentation retrieved through Context7 (`/oven-sh/bun/bun-v1.4.2`): URL entry points, structured clone, termination, error and close events; installed `node_modules/bun-types/docs/runtime/workers.mdx` for worker-global typing.
       - Spike, 2026-10-22: a Bun `Worker` loaded a `data:` module whose bare import resolved.
     - Options Considered:
       - A pool of workers — rejected: spec §7.5 needs only time and crash bounds. A pool goes to Further Actions if measured necessary.
       - `Atomics.wait`-based interruption — rejected: it can't stop a CPU-bound loop.
     - Chosen Approach:
-      - One lazy worker, replaced after any timeout or crash.
+      - One lazy worker, replaced after any timeout or crash. Reuse `inProcessRunner()` inside it for the shared loader, validated render path and validator cache. A configure message preserves cloned catalog/capability identity between requests; send it again when either host object changes.
+      - `render` options override the runner timeout default. `close()` terminates active work and settles active, queued and future requests as `render-failed`.
     - API Notes and Examples:
       ```ts
       import { workerRunner } from "@arnilo/liveframe/preview/worker";
@@ -640,14 +642,26 @@ Probe answers that hold for every task, unless a task says otherwise:
       runner.close();
       ```
     - Files to Create/Edit:
-      - `src/preview/worker/index.ts`, `src/preview/worker/entry.ts`: new.
+      - `src/preview/worker/index.ts`, `src/preview/worker/entry.ts`, `src/preview/worker/protocol.ts`: new runner, worker entry and shared discriminated message union.
       - `src/__tests__/portability.test.ts`: the `src/preview/worker/` exemption.
       - `src/__tests__/runner-worker.test.ts`: new.
   - Test Cases to Write:
     - `worker_times_out_then_recovers`: `while (true) {}` gives `limit-exceeded` within `timeoutMs` + 500 ms, and the next good render succeeds.
     - `worker_crash_is_render_failed`: a module that throws at its top level gives `render-failed`, and the next render succeeds.
     - `worker_matches_render`: for every ported proof scenario, the worker's tree is deep-equal to `render()`'s.
-  - Notes (executed <date>):
+    - `worker_serialises_requests_and_clones_results`: concurrent requests retain order, share a warm module and recover after a queued timeout.
+    - `worker_preserves_validation_and_recovers_from_clone_failure`: SDK limits and validation errors survive transport, catalog changes take effect, and an uncloneable input fails without poisoning the queue.
+    - `worker_reuses_cloned_configuration_until_identity_changes`: unchanged host configuration is cloned only once across revisions and hashes; a changed capabilities identity refreshes it.
+    - `worker_close_settles_active_queued_and_future_requests`: close is idempotent and leaves no render pending.
+    - `worker_warm_overhead_report`: report warm agent-home overhead against direct rendering, without a performance gate.
+  - Notes (executed 2026-10-23):
+    - Wrote the worker tests first and confirmed failure on the missing worker entry. Added one lazy worker, the `.ts` entry resolved from `import.meta.url`, and one shared discriminated message union. The worker reuses `inProcessRunner()` for the approved loader, SDK render path and validator cache; a configure message keeps cloned catalog/capability objects stable until either host identity changes. No dependency or spec change was needed.
+    - Requests are serialized with one active deadline, including worker startup. The runner defaults to 100 ms; per-render options override the runner default. Timeout terminates the worker with `limit-exceeded`; worker errors, exits, bad modules and clone failures return bounded `render-failed` results and discard that worker. Stale worker events cannot settle a later request. `close()` is idempotent, terminates active work, and settles active, queued and future renders without leaving promises pending.
+    - Eight tests cover every scenario of all four ported proof widgets, top-level and render-time infinite loops, timeout overrides, top-level exceptions, non-function exports, actual worker error and close events, fresh module state after recovery, concurrent request ordering, validation and catalog changes, uncloneable inputs, configuration reuse, and shutdown. Portability explicitly permits Worker/self only in the worker subpath while retaining its static-dependency and dynamic-import checks; the host-free scans now also detect self member access.
+    - Warm agent-home overhead in the final full check was 2.5834 ms/render (direct 1.8645 ms, worker 4.4479 ms), measured across 100 renders after 20 warmups and including structured clone both ways. This is reported without a performance gate, as planned.
+    - `timeout 600s bun run check` passed generated-code drift, typecheck, lint, format and all 306 tests with zero failures. Existing unrelated lint warnings remain; the changed TypeScript files pass Biome checks. `git diff --check` passed.
+    - Context7 successfully supplied the versioned Bun 1.4.2 Worker documentation. The doc comment and existing spec §7.5 state that workers bound time and crashes without restricting code access. Public subpath exports remain Task 10 and the outsider guide remains Task 11; published-worker verification remains Phase 6, as planned.
+
 
 - [ ] Task 10: Prove the install, store, reload and render loop end to end
   - Acceptance Criteria:

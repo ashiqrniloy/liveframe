@@ -15,7 +15,7 @@ test("sdk_bundles_for_browser_without_host_apis", async () => {
       /\b(?:node|bun):|\b(?:require|eval|Function|Worker|fetch|XMLHttpRequest)\s*\(|\bimport\s*\(/,
     );
     expect(source, output.path).not.toMatch(
-      /\b(?:document|window|process|Bun|Buffer|navigator|localStorage|sessionStorage|globalThis)\s*[.[]/,
+      /\b(?:document|window|process|Bun|Buffer|navigator|localStorage|sessionStorage|globalThis|self)\s*[.[]/,
     );
   }
 });
@@ -23,7 +23,7 @@ test("sdk_bundles_for_browser_without_host_apis", async () => {
 test("src_is_host_api_free", async () => {
   const root = new URL("../", import.meta.url).pathname;
   const forbidden =
-    /\b(?:require|eval|Function|Worker|fetch|XMLHttpRequest)\s*\(|\b(?:document|window|process|Bun|Buffer|navigator|localStorage|sessionStorage|globalThis)\s*[.[]/;
+    /\b(?:require|eval|Function|Worker|fetch|XMLHttpRequest)\s*\(|\b(?:document|window|process|Bun|Buffer|navigator|localStorage|sessionStorage|globalThis|self)\s*[.[]/;
   const transpiler = new Bun.Transpiler({ loader: "tsx" });
   for await (const path of new Bun.Glob("**/*.{ts,tsx,js,jsx}").scan(root)) {
     if (path.split("/").includes("__tests__")) continue;
@@ -31,10 +31,12 @@ test("src_is_host_api_free", async () => {
     if (path.startsWith("cli/")) continue;
     // The file-store subpath is the explicit filesystem exception in spec §13.
     if (path.startsWith("store/fs/")) continue;
+    // The backend worker subpath is the explicit Worker/self exception in spec §13.
+    const workerSubpath = path.startsWith("preview/worker/");
     const source = await Bun.file(`${root}${path}`).text();
     // Relative specifiers such as "./in-process.ts" are not process member access.
     const executable = source.replace(/\bfrom\s+(["'])\.\.?\/[^"'\n]+\1/g, 'from ""');
-    expect(executable, path).not.toMatch(forbidden);
+    if (!workerSubpath) expect(executable, path).not.toMatch(forbidden);
     // Spec §7.5 permits dynamic imports only in the backend package loader.
     if (path !== "preview/load.ts") expect(source, path).not.toMatch(/\bimport\s*\(/);
     // Only the packer's syntax tools may be external; their browser bundle is checked below.
@@ -90,6 +92,6 @@ test("pack_bundle_has_no_host_apis", async () => {
     /\b(?:node|bun):[a-z]|\b(?:require|eval|Function|Worker|fetch|XMLHttpRequest)\s*\(|\bimport\s*\(/,
   );
   expect(source).not.toMatch(
-    /\b(?:document|window|process|Bun|Buffer|navigator|localStorage|sessionStorage|globalThis)\s*[.[]/,
+    /\b(?:document|window|process|Bun|Buffer|navigator|localStorage|sessionStorage|globalThis|self)\s*[.[]/,
   );
 });
