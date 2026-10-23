@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test";
-import { baseCss, colourVar, themeCss, valueVar } from "../css/index.ts";
+import { baseCss, colourVar, designSystemCss, themeCss, valueVar } from "../css/index.ts";
 import { slotClass } from "../css/names.ts";
 import type { Colour } from "../formats/dtcg.ts";
-import { type Catalog, type Result, type Theme, validateCatalog, validateTheme } from "../index.ts";
+import { type Catalog, type DesignSystem, type Result, type Theme, validateCatalog, validateTheme } from "../index.ts";
 
 const read = (name: string) => Bun.file(new URL(`./fixtures/proof/${name}.json`, import.meta.url)).json();
 const catalog: Catalog = await read("catalog");
@@ -193,13 +193,15 @@ test("surface_typography_comes_from_the_vocabulary", () => {
   expect(sheet).not.toContain(":root");
 });
 
-test("colour_authority_holds", () => {
+test("colour_authority_holds", async () => {
   function check(sheet: string) {
     for (const [, property, value] of sheet.matchAll(/(?:[;{])([\w-]+):([^;{}]+)/g)) {
       if (property?.startsWith("--lf-c-")) continue;
       expect(value).not.toMatch(/(?:#[\da-f]{3,8}\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\()/i);
       if (property === "color" || property?.endsWith("-color")) {
-        expect(value).toMatch(/^(?:var\(--lf-c-[\w-]+\)|transparent|currentColor)$/);
+        expect(value).toMatch(
+          /^(?:var\(--lf-c-[\w-]+\)|transparent|currentColor|color-mix\(in srgb, var\(--lf-c-[\w-]+\) calc\(var\(--lf-alpha\) \* 100%\), transparent\))$/,
+        );
       }
     }
   }
@@ -210,6 +212,13 @@ test("colour_authority_holds", () => {
     for (const [, name] of (base + projected).matchAll(/--lf-c-([\w-]+)/g)) {
       expect(catalog.vocabulary.colourRoles.map((role) => role.replaceAll(".", "_"))).toContain(name ?? "");
     }
+  }
+  for (const name of ["certified", "rack"]) {
+    const system: DesignSystem = await read(`${name}.design-system`);
+    const projected = css(designSystemCss(system, { catalog, registry: {} }));
+    check(projected);
+    for (const [, role] of projected.matchAll(/--lf-c-([\w-]+)/g))
+      expect(catalog.vocabulary.colourRoles.map((role) => role.replaceAll(".", "_"))).toContain(role ?? "");
   }
   expect(() => check(".leak{color:red}")).toThrow();
   expect(() => check(".leak{box-shadow:0 0 1px rgb(0 0 0)}")).toThrow();

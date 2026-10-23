@@ -252,7 +252,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Added `bench/css.bench.ts` to `bun run bench`. `timeout 60s bun bench/css.bench.ts` (200 warm-ups, 1,000 measured projections including validation): base 0.388 ms / 601 bytes; Certified theme 0.789 ms / 7,754 bytes; Rack theme 0.729 ms / 9,176 bytes. Generation has no budget; hosts cache sheets by input.
     - No spec change or dependency. Package export/docs remain Task 8; preference/switching rules and forced-colour overrides remain Tasks 6–7. No new browser proof or parity capture was run for these serializers; the existing browser suite passed through `bun run check`.
 
-- [ ] Task 4: Project design-system values and recipes into ordered state rules
+- [x] Task 4: Project design-system values and recipes into ordered state rules
   - Acceptance Criteria:
     - Functional:
       - `designSystemCss(designSystem, { catalog, registry })` resolves through `resolveRecipes` (`src/resolve.ts:69`) and returns `Result<string>` under `:where([data-lf-ds="<id>@<version>"])`.
@@ -263,7 +263,7 @@ Probe answers that hold for every task, unless a task says otherwise:
         - `backgroundOpacity` becomes `color-mix(in srgb, var(--lf-c-…) calc(var(--lf-alpha) * 100%), transparent)` with `--lf-alpha` set in the same rule;
         - `backdropBlur` and `backdropSaturate` become one unprefixed `backdrop-filter`;
         - `translateY` uses the `translate` property, so it never fights a primitive's own `transform`;
-        - a shadow layer's colour is `color-mix()` of its role variable at the layer's alpha;
+        - a shadow layer's colour is its theme-role variable, preserving that role's alpha (the installed shadow format has no layer alpha field);
         - `transitionDuration` and `transitionTiming` come with `transition-property` covering `background-color, color, border-color, outline-color, opacity, translate, box-shadow, backdrop-filter`.
       - `slotClass(kind, variant, slot)` returns `lf_<kind>_<variant>_<slot>`. A rest rule is emitted for every catalog tuple. A state rule is emitted only where its resolved declarations differ from rest, in the order and with the selectors of decisions 4 and 5. A root state reaches every slot of the same kind and variant.
       - Every selector has specificity (0,1,0).
@@ -280,6 +280,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Documentation Reviewed:
       - `src/resolve.ts:15-67`: `cascadeRecipes` resolves value references to literals but keeps colour and typography role names.
       - `src/formats/design-system.ts:43-72`: `propertyKinds`.
+      - React Aria's current interaction/styling docs, retrieved through Context7 (`/websites/react-aria_adobe`): `data-hovered`, `data-pressed`, `data-focus-visible` and touch-hover behaviour. MDN: `:where()`, `color-mix()`, `translate`, `backdrop-filter` and `transition-property`.
       - `proof/css/project.ts:47-159`: the proof's mapping, kept where it is right (per-side border style) and replaced where it isn't (`transform`, eight classes, `[data-focused]`).
       - The Rack fixture: `dialog.default.backdrop.rest` sets `backgroundOpacity: 0.74`, `backdropBlur: 2px` and a 140 ms transition; `button.primary.root.active` sets `translateY: 1px`.
     - Options Considered:
@@ -310,7 +311,14 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Browser `touch_has_no_sticky_hover`: emulating a device without hover (`hasTouch`, `isMobile`), a tapped element doesn't compute the hover look unless `data-hovered` is set.
     - Browser `root_state_reaches_slots`: hovering a button root changes its label slot's computed colour.
     - Browser `pressed_offset_composes_with_transform`: an element with a primitive's own `transform` and the active `translate` keeps both.
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-23):
+    - Added `designSystemCss()` and an exhaustive typed mapping over all 27 `recipeProperties`; exported the existing stable `slotClass()` helper. Catalog and design-system validation return typed errors before any CSS is emitted. The projector uses `resolveRecipes()` and inherited values, preserves authored units, emits only vocabulary-declared spacing/radius/size variables, and sorts inputs for deterministic output without mutation.
+    - State rules follow `rest < hover < focus < active < open < selected < invalid < disabled`, with all qualifiers inside `:where()`. Native hover is restricted to hover-capable devices; root states reach slots, and disabled roots suppress both a slot's own and inherited hover/press. Equal-to-rest states emit nothing. No per-kind branch or new dependency.
+    - Corrected the shadow criterion to match the installed format: shadow layers have no alpha field. Their theme-role variable already carries alpha, including the proof exporter's expanded shadow roles; no literal colour or redundant colour mixing is needed. No spec or format change.
+    - Tests were written first and failed before the modules existed. Seven new unit tests cover all property mappings, logical side borders, filter composition, empty shadows, inherited values/units, rule omission, stable classes, selector specificity, deterministic output and validation failures. Five new Chromium tests cover the complete precedence order, native and ARIA selectors, focus within a root, popover-open, touch hover, root-to-slot propagation, disabled-root suppression and pressed-offset composition with primitive transforms. The existing colour-authority test now scans both proof design-system sheets.
+    - `timeout 600s bun run check` passed: 347 tests, 0 failures, generation check, typecheck, lint and format check. Existing lint warnings remain; task files introduce none. The 22 focused CSS tests and `git diff --check` passed. Refreshed the local graft graph.
+    - Extended `bench/css.bench.ts`. `timeout 90s bun bench/css.bench.ts` (200 warm-ups, 1,000 measured projections, including validation/resolution): Certified design system 9.434 ms / 98,180 bytes; Rack 13.295 ms / 103,228 bytes. Each input resolves 616 recipes. No generation-time budget; hosts cache sheets by input.
+    - Responsive/container projection remains Task 5; preference/entry and forced-colour rules remain Tasks 6–7; package export/docs remain Task 8; proof-host integration and parity remain Task 10. No new parity capture was run.
 
 - [ ] Task 5: Map style props and responsive values
   - Acceptance Criteria:

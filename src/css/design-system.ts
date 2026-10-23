@@ -1,0 +1,75 @@
+import type { Result } from "../errors.ts";
+import { validateCatalog } from "../formats/catalog.ts";
+import {
+  type DesignSystem,
+  type DesignSystemContext,
+  prepareDesignSystem,
+  type RecipeKey,
+} from "../formats/design-system.ts";
+import { resolveRecipes } from "../resolve.ts";
+import { cssString, slotClass, valueVar } from "./names.ts";
+import { recipeDeclarations } from "./recipe.ts";
+
+const stateSelectors = {
+  rest: "",
+  hover: "[data-hovered]",
+  focus: ":focus-visible,[data-focus-visible],:has(:focus-visible)",
+  active: ":active,[data-pressed]",
+  open: "[open],[data-open],[data-expanded],[aria-expanded=true],:popover-open",
+  selected: "[data-selected],[aria-selected=true],[aria-checked=true]",
+  invalid: ":user-invalid,[data-invalid],[aria-invalid=true]",
+  disabled: ":disabled,[data-disabled],[aria-disabled=true]",
+} as const;
+
+function selector(scope: string, cls: string, root: string, condition: string, guarded: boolean): string {
+  const disabled = stateSelectors.disabled;
+  // A slot's own hover/press must also be suppressed when its root is disabled.
+  const guard = guarded ? `:where(:not(${disabled})):where(:not(${root}:is(${disabled}) *))` : "";
+  const own = `${scope} ${cls}:where(${condition})${guard}`;
+  return cls === root ? own : `${own},${scope} :where(${root}:is(${condition})) ${cls}${guard}`;
+}
+
+/** Projects installed values and resolved recipes without depending on a theme or host API. */
+export function designSystemCss(system: DesignSystem, context: DesignSystemContext): Result<string> {
+  const catalog = validateCatalog(context.catalog);
+  if (!catalog.ok) return catalog;
+  const prepared = prepareDesignSystem(system, context);
+  if (!prepared.ok) return prepared;
+  const resolved = resolveRecipes(system, context);
+  const scope = `:where([data-lf-ds=${cssString(`${system.id}@${system.version}`)}])`;
+  const names = [
+    ...context.catalog.vocabulary.space,
+    ...context.catalog.vocabulary.radius,
+    ...context.catalog.vocabulary.size,
+  ].sort();
+  const variables = names.map((name) => {
+    const token = prepared.value.values[name];
+    if (token && (token.kind === "spacing" || token.kind === "radius" || token.kind === "size"))
+      return `${valueVar(name)}:${token.value.value}${token.value.unit}`;
+    return "";
+  });
+  const rules = [`${scope}{${variables.join(";")}}`];
+  for (const [state, condition] of Object.entries(stateSelectors)) {
+    for (const definition of [...context.catalog.definitions].sort((a, b) =>
+      a.kind < b.kind ? -1 : a.kind > b.kind ? 1 : 0,
+    )) {
+      for (const variant of [...definition.variants].sort()) {
+        const root = `.${slotClass(definition.kind, variant, "root")}`;
+        for (const slot of [...definition.slots].sort()) {
+          const key = `${definition.kind}.${variant}.${slot}` as const;
+          const rest = recipeDeclarations(resolved[`${key}.rest`] ?? {});
+          const body = recipeDeclarations(resolved[`${key}.${state}` as RecipeKey] ?? {});
+          const cls = `.${slotClass(definition.kind, variant, slot)}`;
+          if (state === "rest") rules.push(`${scope} ${cls}{${body}}`);
+          else if (body !== rest) {
+            const guarded = state === "hover" || state === "active";
+            rules.push(`${selector(scope, cls, root, condition, guarded)}{${body}}`);
+            if (state === "hover")
+              rules.push(`@media (hover:hover){${selector(scope, cls, root, ":hover", true)}{${body}}}`);
+          }
+        }
+      }
+    }
+  }
+  return { ok: true, value: rules.join("\n") };
+}

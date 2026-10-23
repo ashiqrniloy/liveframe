@@ -1,5 +1,5 @@
-import { baseCss, themeCss } from "../src/css/index.ts";
-import type { Catalog, Result, Theme } from "../src/index.ts";
+import { baseCss, designSystemCss, themeCss } from "../src/css/index.ts";
+import type { Catalog, DesignSystem, Result, Theme } from "../src/index.ts";
 
 const read = (name: string) =>
   Bun.file(new URL(`../src/__tests__/fixtures/proof/${name}.json`, import.meta.url)).json();
@@ -24,4 +24,6 @@ measure("base", () => baseCss(catalog));
 for (const name of ["certified", "rack"]) {
   const theme: Theme = await read(`${name}.theme`);
   measure(`${name} theme`, () => themeCss(theme, catalog));
+  const system: DesignSystem = await read(`${name}.design-system`);
+  measure(`${name} design system`, () => designSystemCss(system, { catalog, registry: {} }));
 }
