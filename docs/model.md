@@ -29,8 +29,8 @@ Liveframe never renders a page. It renders **surfaces**. A surface is one widget
                               LF:     pack → package (hashed)    LF:   build tree, validate
                               Host:   approve, place, store      Host: send tree to the browser
                               Author/Host: theme + design system
-                              LF:     validate theme and system
-                                                                 LF:   project CSS, draw the tree
+                              LF:     validate, project 3 sheets
+                              Host:   cache and load CSS         LF:   scope, style, draw the tree
                                                                  Browser: host primitives → DOM
                                                                  ⟲ intents back to the host
 ```
@@ -39,7 +39,7 @@ Liveframe never renders a page. It renders **surfaces**. A surface is one widget
 
 **A1. Host: define the catalog** (spec §5). One definition per primitive (`box`, `text`, `button`, `menu`…): props schema, children, events, variants, slots, style props and accessibility. Together they form a versioned catalog such as `acme.ui@1`. Liveframe supplies the definition format; the host decides which primitives exist.
 
-**A2. Host: implement each primitive in React** (spec §11). Liveframe's `implement(definition, Component)` binds it. The implementation receives validated `props`, `slot(name)` (the class names for a slot in its current variant and state), `emit(event)`, and already-rendered children. This is the only app code that runs in the browser, and it ships compiled with the app.
+**A2. Host: implement each primitive in React** (spec §11). Liveframe's planned `implement(definition, Component)` binds it. The implementation receives validated `props`, `slot(name)` (one stable class for the slot in its current variant), `emit(event)`, and already-rendered children. The primitive exposes state through native semantics or state attributes and supplies its own structural CSS. This is the only app code that runs in the browser, and it ships compiled with the app.
 
 **A3. LF: generate typed SDK components** (spec §7.2). `liveframe gen catalog.json --out src/widgets/ui.gen.ts` emits a typed component module — `<Button>`, `<Stack>`… — that widgets import by relative path, so `gap="13px"` fails to compile.
 
@@ -84,17 +84,17 @@ Nothing after this point needs a deployment.
 
 ## Phase D — in the browser
 
-**D1. LF: project the styles to CSS** (spec §6.4). This happens once per choice of theme and design system, not once per render. The resolver turns the theme, design values and recipes into CSS custom properties (`--lf-colour-text-muted`, `--lf-value-space-3`…) and one stable class per `(kind, variant, slot, state)`. **Host** puts the stylesheet on the page.
+**D1. LF: project three independent sheets** (spec §6.4). The implemented `/css` subpath provides `baseCss(catalog)`, `themeCss(theme, catalog)` and `designSystemCss(system, { catalog, registry })`, each returning `Result<string>`. Generate them when installed inputs change, on the backend or in the browser, and cache them by input. They contain CSS variables (`--lf-c-text_muted`, `--lf-v-space_3`…) and one stable class per `(kind, variant, slot)`, with state selectors. **Host** loads the sheets and applies `surfaceAttributes({ theme, designSystem, tree })` to each surface root. Themes and design systems select independent sheets, so N themes and M systems need N + M + 1 sheets for a fixed catalog. Surfaces never nest. See the [styling guide](styling.md) for loading, CSP and the renderer contract.
 
-**D2. LF: `<Surface tree onIntent fallback />`** (spec §11). The host mounts it in the placement's region. The renderer:
+**D2. LF: `<Surface tree onIntent fallback />`** (spec §11, planned public renderer). The host mounts it in the placement's region. The renderer:
 - re-checks the tree's structure, because it never trusts its transport;
 - looks up the host's React implementation for each node's `kind`;
-- passes it validated props, `slot()` (the recipe classes for its variant and state) and `emit()`;
-- turns style props into token-constrained layout (`gap: var(--lf-value-space-3)`);
+- passes it validated props, `slot()` (the stable recipe class for its variant and slot) and `emit()`;
+- uses `styleDeclarations(style, catalog)` for token-constrained layout (`gap: var(--lf-v-space_3)`) and responsive classes;
 - keys nodes by `id`, so focus, scroll and local state survive re-renders;
 - draws the host's `fallback` for an unknown or invalid node, never nothing.
 
-**D3. Browser: the host's primitives produce the DOM.** The `button` implementation renders `<button class="lf-button-ghost-root-rest …">`. The final DOM comes from the host's components; the look comes from the recipe classes and variables.
+**D3. Browser: the host's primitives produce the DOM.** The `button` implementation renders `<button class="lf_button_ghost_root …">`. The final DOM comes from the host's components; the look comes from the recipe classes and variables. Overlays retain the surface's scope through DOM ancestry or a portal container with matching scope attributes and classes; backdrop and content slots are siblings.
 
 ## Phase E — interaction (spec §8)
 
@@ -111,7 +111,7 @@ Nothing after this point needs a deployment.
 
 An intent carries no authority. It is a request the host may refuse.
 
-**Theme or design-system switch.** The host swaps the projected stylesheet. No widget re-runs and no tree changes.
+**Theme or design-system switch.** The host preloads the sheets, sets `data-lf-switching` on the surface's scope containers, changes `data-lf-theme` and/or `data-lf-ds` together, commits the styles, then removes the marker on the next animation frame. Transitions are suppressed; no widget re-runs, tree changes or slot-class changes occur.
 
 ## Phase F — the next launch (spec §7.4)
 
@@ -160,7 +160,7 @@ The author's code is about 2% of a render. The rest is library work done twice o
 | State | Carries it as input and intents | Persists it per placement | Declares its schema and initial value | Local primitive state only |
 | Persistence | Record formats, `Store` interface, reference stores, verification on load | Backend, tenancy, the active theme and design system | — | — |
 | Actions | Carries intents as data | Authorises and executes | Names actions in the manifest | Raises the event |
-| Look | Formats, resolver, CSS projection | Declared vocabulary; may supply themes | May supply themes and design systems | Applies the CSS |
+| Look | Formats, resolver, three-sheet `/css` projection, slot/style/scope helpers | Declared vocabulary, primitive structural CSS, sheet loading and CSP, scope attributes, theme selection and switching | May supply themes and design systems as validated data | Applies scoped CSS, state selectors and environment preferences |
 | Transport | — | All of it | — | Receives the tree |
 
 ## Where styling expressiveness is controlled

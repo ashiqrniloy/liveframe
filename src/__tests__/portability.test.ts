@@ -30,6 +30,24 @@ test("sdk_bundles_for_browser_without_host_apis", async () => {
   }
 });
 
+test("css_bundles_for_browser_without_host_apis", async () => {
+  const bundle = await Bun.build({
+    entrypoints: [new URL("../css/index.ts", import.meta.url).pathname],
+    target: "browser",
+  });
+  expect(bundle.success).toBe(true);
+  expect(bundle.outputs).toHaveLength(1);
+  for (const output of bundle.outputs) {
+    const source = await output.text();
+    expect(source, output.path).not.toMatch(
+      /\b(?:node|bun):|\b(?:require|eval|Function|Worker|fetch|XMLHttpRequest)\s*\(|\bimport\s*\(/,
+    );
+    expect(source, output.path).not.toMatch(
+      /\b(?:document|window|process|Bun|Buffer|navigator|localStorage|sessionStorage|globalThis|self)\s*[.[]/,
+    );
+  }
+});
+
 test("src_is_host_api_free", async () => {
   const root = new URL("../", import.meta.url).pathname;
   const forbidden =

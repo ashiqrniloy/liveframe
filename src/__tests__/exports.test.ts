@@ -15,6 +15,7 @@ import * as fileStore from "@arnilo/liveframe/store/fs";
 import * as preview from "@arnilo/liveframe/preview";
 import * as worker from "@arnilo/liveframe/preview/worker";
 import * as liveframe from "@arnilo/liveframe";
+import * as css from "@arnilo/liveframe/css";
 import type {
   Component,
   DeepReadonly,
@@ -33,6 +34,61 @@ import * as runtime from "@arnilo/liveframe/sdk/jsx-runtime";
 import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
 import catalog from "./fixtures/proof/catalog.json" with { type: "json" };
+import theme from "./fixtures/proof/certified.theme.json" with { type: "json" };
+import designSystem from "./fixtures/proof/certified.design-system.json" with { type: "json" };
+
+test("css_exports_are_pinned", () => {
+  expect(Object.keys(css).sort()).toEqual([
+    "baseCss",
+    "colourVar",
+    "designSystemCss",
+    "slotClass",
+    "styleDeclarations",
+    "surfaceAttributes",
+    "themeCss",
+    "valueVar",
+  ]);
+});
+
+test("css_public_return_types", () => {
+  function value<T>(result: Result<T>): T {
+    if (!result.ok) throw new Error(JSON.stringify(result.errors));
+    return result.value;
+  }
+  const installedCatalog = value(liveframe.validateCatalog(catalog));
+  const installedTheme = value(liveframe.validateTheme(theme, installedCatalog.vocabulary));
+  const context = { catalog: installedCatalog, registry: {} };
+  const installedSystem = value(liveframe.validateDesignSystem(designSystem, context));
+  const tree: UiTree = {
+    format: liveframe.LIVEFRAME_FORMAT,
+    catalogId: installedCatalog.catalogId,
+    surfaceId: "main",
+    revision: 1,
+    root: { id: "root", kind: "button", props: { label: "Claim" } },
+  };
+  const sheets: Result<string>[] = [
+    css.baseCss(installedCatalog),
+    css.themeCss(installedTheme, installedCatalog),
+    css.designSystemCss(installedSystem, context),
+  ];
+  const declarations: { style: Record<string, string>; classes: readonly string[] } = css.styleDeclarations(
+    { gap: "space.2" },
+    installedCatalog,
+  );
+  const attributes: { class: string; "data-lf-theme": string; "data-lf-ds": string } = css.surfaceAttributes({
+    theme: installedTheme,
+    designSystem: installedSystem,
+    tree,
+  });
+  const names: string[] = [
+    css.slotClass("button", "primary", "root"),
+    css.colourVar("text.primary"),
+    css.valueVar("space.2"),
+  ];
+  expect(sheets.every((sheet) => sheet.ok)).toBe(true);
+  expect(declarations.style.gap).toBe(`var(${names[2]})`);
+  expect(attributes["data-lf-theme"]).toBe(`${theme.id}@${theme.version}`);
+});
 
 test("sdk_export_surface", () => {
   expect(Object.keys(sdk).sort()).toEqual(["Fragment", "action", "jsx", "jsxs", "primitive", "render", "state"]);

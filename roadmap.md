@@ -124,7 +124,7 @@ Two plans: Part A (the renderer), then Part B (the preview), which draws drafts 
 
 ## 3. Execution state
 
-- **Current phase:** Phase 3 in progress — plan 007 Tasks 1–6 complete (projection decisions, surface typography vocabulary, base/theme sheets, ordered design-system state rules, responsive style-prop projection, overlay entry and preference/switch overrides); Tasks 7–12 remain. Phase 2 implementation is delivered: plan 005 (Part A) still needs Task 10's impact analysis; plan 006 (Part B) is complete. Plan 002 Task 9's owner gate remains recorded separately.
+- **Current phase:** Phase 3 in progress — plan 007 Tasks 1–8 complete (projection decisions, surface typography vocabulary, base/theme sheets, ordered design-system state rules, responsive style-prop projection, overlay entry and preference/switch overrides, forced-colour cues, `/css` export and outsider documentation); Tasks 9–12 remain. Phase 2 implementation is delivered: plan 005 (Part A) still needs Task 10's impact analysis; plan 006 (Part B) is complete. Plan 002 Task 9's owner gate remains recorded separately.
 - **Next free plan number:** 008.
 
 One line per plan. Detail lives in the plan file, never here.
@@ -136,4 +136,4 @@ One line per plan. Detail lives in the plan file, never here.
 | [003](plans/003-Phase-1-Part-A-Formats.md) | 1 | complete (Tasks 1–9; findings disposed in the impact analysis and backlog) |
 | [004](plans/004-Phase-1-Part-B-Compiled-Validator.md) | 1 | complete (Tasks 1–7; findings disposed in the impact analysis and backlog) |
 | [006](plans/006-Phase-2-Part-B-Packages-Storage-Runners.md) | 2 | complete (Tasks 1–12; findings disposed in the impact analysis and backlog) |
-| [007](plans/007-Phase-3-CSS-Projection.md) | 3 | in progress (Tasks 1–6 complete; Tasks 7–12 remain) |
+| [007](plans/007-Phase-3-CSS-Projection.md) | 3 | in progress (Tasks 1–8 complete; Tasks 9–12 remain) |

@@ -486,7 +486,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Tests were written first: browser checks reproduced collapsed states and missing background/fill outlines before implementation. `timeout 600s bun run check` passed: generated-code check, both typechecks, lint, formatting, 368 tests / 110,049 assertions. Focused CSS coverage totals 43 tests; `git diff --check` passed. Existing lint warnings remain.
     - G29's real Windows/assistive-technology audit remains a manual gate; Chromium emulation does not close it. Task 8 retains publication/docs, and Task 10 retains proof-host adoption and parity.
 
-- [ ] Task 8: Publish `/css` with outsider documentation
+- [x] Task 8: Publish `/css` with outsider documentation
   - Acceptance Criteria:
     - Functional:
       - `package.json` `exports` gains `"./css": "./src/css/index.ts"`. `src/__tests__/exports.test.ts` pins the public names: `baseCss`, `themeCss`, `designSystemCss`, `slotClass`, `styleDeclarations`, `surfaceAttributes`, `colourVar`, `valueVar`, and the types they return.
@@ -523,11 +523,20 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `package.json`, `src/__tests__/exports.test.ts`, `src/__tests__/portability.test.ts`.
       - `docs/styling.md`: new.
       - `docs/model.md`.
+      - `README.md`: link the styling guide and name the available projection.
       - `.claude/skills/liveframe-execution/references/styling.md` and `architecture.md`, plus their `.agents` copies.
+      - This plan and `roadmap.md` §3: execution status.
   - Test Cases to Write:
     - `css_exports_are_pinned`: the public names and nothing else.
+    - `css_public_return_types`: compile and use each public return shape through the package subpath, using installed inputs.
     - `css_bundles_for_browser_without_host_apis`: `Bun.build({ target: "browser" })` of `src/css/index.ts` succeeds and the output matches no host-API pattern.
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-24):
+    - Added the `./css` package export over the existing re-export-only barrel, with no default export, new dependency or runtime implementation change. The package remains pre-release; npm publication remains Phase 6.
+    - Tests were written first: importing `@arnilo/liveframe/css` failed before the export was added. `css_exports_are_pinned` checks exactly the eight public functions; `css_public_return_types` compiles and uses their return shapes through the package subpath with installed inputs. `css_bundles_for_browser_without_host_apis` checks the browser bundle without host-API allowances; the existing source scan passes unchanged.
+    - Added `docs/styling.md` covering independent sheets and cache invalidation, loading/CSP, scope and responsive containment above the tree root, stable slot classes and state attributes, overlay/backdrop placement, switching, preferences, Baseline 2024 and trusted primitive CSS. Documents camel-case style properties, immutable installed inputs, helper validation boundaries and the existing mixed-unit breakpoint ordering assumption.
+    - Updated `docs/model.md`, the README guide link and both execution-reference paths (`.agents` and `.claude` share the same files) to describe the shipped projection and remaining renderer/proof integration. Updated `roadmap.md` §3 to reflect Tasks 1–8 complete; Task 7 was already checked in this plan. No normative spec change or new project decision.
+    - `timeout 600s bun run check` passed: generation check, both typechecks, lint, formatting, 371 tests / 110,057 assertions. The focused public-export/portability run passed 14 tests; `git diff --check` passed. Existing lint warnings remain.
+    - No new parity capture or performance measurement: Task 9 retains the two-surface integration/switch budget, Task 10 retains proof-host adoption and parity, and the real Windows/assistive-technology audit remains a manual gate.
 
 - [ ] Task 9: Prove scoping, overlays and switching with two surfaces on one page
   - Acceptance Criteria:

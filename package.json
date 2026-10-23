@@ -11,6 +11,7 @@
   },
   "exports": {
     ".": "./src/index.ts",
+    "./css": "./src/css/index.ts",
     "./sdk": "./src/sdk/index.ts",
     "./sdk/jsx-runtime": "./src/sdk/jsx-runtime.ts",
     "./sdk/jsx-dev-runtime": "./src/sdk/jsx-dev-runtime.ts",
