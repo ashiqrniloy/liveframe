@@ -185,6 +185,11 @@ shown here as inline examples: generated types reject many cases before runtime.
 | `render-failed` | `() => { throw new Error("boom"); }` | Fix the widget exception. The message retains `boom`, without a stack, capped at 500 characters plus an ellipsis. |
 | `limit-exceeded` | A stack with a text child rendered with `limits: { nodes: 1 }` | Reduce output or have the host choose an appropriate budget. |
 
+Composed components currently check non-JSON props only at the top level before
+expansion. A nested function or promise that the component discards can escape
+rejection. Keep composed props as JSON data (apart from JSX children); the
+remaining rejection gap is tracked in the [SDK backlog](../plans/backlog.md#reject-nested-non-json-composed-props-and-improve-sdk-diagnostics).
+
 ## Public exports and executable examples
 
 `@arnilo/liveframe/sdk` exports `jsx`, `jsxs`, `Fragment`, `primitive`, `state`,

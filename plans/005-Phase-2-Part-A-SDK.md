@@ -663,7 +663,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - The regression failed before the fix: `render()` succeeded while nested cursors/task objects remained mutable. `freezeDeep` now skips only identities it previously traversed, rather than arbitrary shallow-frozen host objects. No new public API, dependency or spec meaning.
     - Focused input/render verification: 14 tests pass. `timeout 600s bun run check` passes all 375 tests, generation drift, both typechecks, lint and formatting. Render benchmark passes every workload (agent-home 1.802 µs/node; small queue 2.722). Independent validator runs miss their gate on different workloads under concurrent machine load; the validator code is unchanged. Task 10 records both runs and reopens the P1 performance handoff; no validator success is claimed.
 
-- [ ] Task 10: Analyze architectural impact and dispose of every finding
+- [x] Task 10: Analyze architectural impact and dispose of every finding
   - Sweep the twelve impact areas of `.agents/skills/create-plan/references/liveframe.md` §5 against what was delivered. Record each, or `None — <reason>`, in `plans/evidence/005-impact-analysis.md`.
   - List every finding, present them to the owner in one table with a recommended disposition (`execute` or `backlog`), and record the answer.
   - `execute`: add a task above this one and do it. `backlog`: add the item to `plans/backlog.md` and list it under Further Actions.
@@ -671,7 +671,12 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Synapta's positional ids and in-SDK generated module are reference-host gaps.
     - Visual parity of the `fit` replacement is Phase 3.
     - Plan 006 consumes the Task 1 contracts unchanged.
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-24):
+    - Swept all twelve impact areas in `plans/evidence/005-impact-analysis.md`. Presented the disposition table during execution and recorded the completion request as authorization for corrective work and later-phase handoffs; no separate per-row owner answer or new architecture approval is claimed.
+    - F1 is fixed in Task 9a. F2's cross-contract cache gap is P1; F3's nested non-JSON composed-prop rejection/diagnostic gap is P2; F4/F5 extend existing Phase 5 conformance and Phase 7 adopter entries. Every active action is linked below and in `plans/backlog.md`.
+    - F6 confirms QueueRow parity was already closed by plan 007 Task 10; no fresh screenshots were needed. F7 confirms plan 006 consumed the SDK contracts, including its subsequently approved loader amendment, and retains the existing release archive/installed-loader gates. Roadmap §3 now records plan 005 as complete.
+    - F8 explicitly reopens the P1 validator performance item: two independent benchmark runs fail on different workloads under concurrent load on Bun 1.4.4. SDK total-render gates pass; no thresholds were changed and no validator success is claimed. Full numbers and limitations are in the evidence.
+    - `timeout 600s bun run check`: 375 tests pass, zero failures, generation drift, both typechecks, lint and format pass. `gen --check` exits 0; render benchmark exits 0; validator benchmark exits 1 twice and is disposed as F8. Existing proof lint diagnostics remain. Final handoff verification is recorded in the evidence.
 
 ## Verification (whole plan)
 
@@ -682,8 +687,18 @@ Probe answers that hold for every task, unless a task says otherwise:
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- Data validation is cached by object identity across validators. Reuse is supported only under the same source-schema contract; fresh resolutions need fresh objects and JSON value properties. F2 records the reproduced cross-contract validation gap as P1. Input freezing itself now handles shallow-frozen ancestors correctly (Task 9a).
+- Nested non-JSON prop diagnostics are less precise than top-level diagnostics, and composed components can discard nested non-JSON values before tree validation. F3 retains this SDK input-checking gap; no invalid tree is emitted by the reproduction.
+- Generated types enforce names, units and intent shapes; numeric ranges, grid-area grammar, collection bounds and manifest-dependent compatibility remain runtime checks. No second completed-tree walk is added to the builder.
+- Total SDK rendering passes its strict budget, but the standalone validator gate failed on two Bun 1.4.4 runs under concurrent load. F8 reopens the P1 performance handoff; prior Bun 1.4.2 successes are historical evidence, not today's verification.
+- Browser bundles prove host-API portability, not execution isolation or permission to run widget code in the browser. Hosts own backend isolation, data resolution and action authorization; release-archive and installed-loader checks remain Phase 6 gates.
 
 ## Further Actions
 
-- P2 — Verify the QueueRow flex composition’s visual parity under both design systems during Phase 3 CSS integration. SDK tree equality and benchmark node counts pass; captures remain required. Tracked in `plans/backlog.md`, “Reconcile proof grid tracks before SDK and CSS integration”.
+- P1 — [Scope SDK data validation caching to the source-schema contract](backlog.md#scope-sdk-data-validation-caching-to-the-source-schema-contract) (F2).
+- P1 — [Phase 1 performance gate: 3 µs per node](backlog.md#phase-1-performance-gate-3-µs-per-node): reproduce/profile the standalone validator miss under controlled load and Bun versions; the SDK total gate still passes (F8).
+- P2 — [Reject nested non-JSON composed props and improve SDK diagnostics](backlog.md#reject-nested-non-json-composed-props-and-improve-sdk-diagnostics) (F3).
+- P3 — [Seed conformance suites from the proof tests](backlog.md#seed-conformance-suites-from-the-proof-tests): include SDK-derived catalog/renderer cases while keeping implementation tests internal (F4).
+- P4 — [Hand adopter gaps to Synapta and Clay](backlog.md#hand-adopter-gaps-to-synapta-and-clay): record stable keys and app-relative generation for Synapta (F5).
+- Existing Phase 6 gates remain: [Exclude test fixtures from the release package](backlog.md#exclude-test-fixtures-from-the-release-package) and [Verify installed-package loader and worker entry before release](backlog.md#verify-installed-package-loader-and-worker-entry-before-release) (F7).
+- Closed follow-up: [Reconcile proof grid tracks before SDK and CSS integration](backlog.md#reconcile-proof-grid-tracks-before-sdk-and-css-integration). Plan 007 Task 10 proved QueueRow parity under both systems and removed the layout comparison exception; F6 records closure here. Images remain local and regenerate with `timeout 600s bun proof/scripts/parity.ts --out evidence/parity`.

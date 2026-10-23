@@ -7,7 +7,8 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Section: Phase 1 (spec §10, §12)
 - Priority: P1
 - Source: plans/002-Phase-0-Parity-Re-Proof.md (G32), plans/004-Phase-1-Part-B-Compiled-Validator.md, plans/005-Phase-2-Part-A-SDK.md Task 8
-- Status: closed — validator share complete in plan 004; full SDK render gate complete in plan 005 Task 8.
+- Status: reopened 2026-10-24 for the standalone validator gate (plan 005 Task 10, F8). The full SDK render gate remains delivered.
+- Current evidence: `plans/evidence/005-impact-analysis.md` records two failing Bun 1.4.4 validator runs under concurrent machine load: large/full queues at 1.602/1.670 µs/node initially, agent-home at 1.513 on the follow-up. Validator code and its benchmark are unchanged; contention and the Bun upgrade are hypotheses, not proved causes. SDK rendering still passes every ≤3 µs/node and required ≤2 ms gate (agent-home 1.802 µs/node). Run a controlled comparison against the prior Bun 1.4.2 baseline, profile any remaining miss, and retain the strict 1.5 gate; do not retry until a passing sample or relax thresholds.
 - Measured (2026-10-23): `timeout 300s bun run bench` passes both gates on Bun 1.4.2 / AMD Ryzen 9 PRO 7940HS. SDK agent-home: 679 nodes, **1.2438 ms / 1.832 µs/node**; core-queue medium/large/full: **0.8085 / 0.9305 / 0.9605 ms**. All eight render workloads pass ≤ 3 µs/node; small is closest at **2.948 µs/node**, with hardware/load sensitivity. Agent-home standalone validation is 1.412 µs/node and estimated remaining work is 0.420; this subtraction is a comparison, not an in-render profile. Full machine/load/output and profiling findings are in plan 005 Task 8. The independent validator gate passes every fixture at ≤ 1.264 µs/node.
 - Measured (2026-10-22): `timeout 120s bun bench/validator.bench.ts` passed on Bun 1.4.2 / AMD Ryzen 9 PRO 7940HS. Agent-home: 679 nodes, 0.8361 ms, **1.231 µs/node**, compiled props **15.83×** over equal-work `checkValue`; all eight fixtures ≤ **1.399 µs/node**. See `plans/evidence/004-impact-analysis.md` for the full run and machine/load details. Full validation is not claimed faster than props-only interpretation.
 - What:
@@ -52,7 +53,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phase 5 (spec §13 `/conformance`)
 - Priority: P3
-- Source: plans/001-Phase-0-Primitive-Set-Proof.md, plans/002-Phase-0-Parity-Re-Proof.md, plans/003-Phase-1-Part-A-Formats.md, plans/004-Phase-1-Part-B-Compiled-Validator.md, plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F3), plans/007-Phase-3-CSS-Projection.md Task 11 (Tasks 3–9)
+- Source: plans/001-Phase-0-Primitive-Set-Proof.md, plans/002-Phase-0-Parity-Re-Proof.md, plans/003-Phase-1-Part-A-Formats.md, plans/004-Phase-1-Part-B-Compiled-Validator.md, plans/005-Phase-2-Part-A-SDK.md (F4), plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F3), plans/007-Phase-3-CSS-Projection.md Task 11 (Tasks 3–9)
 - What: use the proof's suites as prior art — `proof/tests/`:
   - `catalog.test.ts`, `styles.test.ts`, `projection.test.ts`, `renderer.test.tsx`, `renderer-browser.test.tsx` for definitions, completeness, colour authority, the registry check and reconciliation against two real design systems;
   - `runtime.test.ts` for the closed-data checks Plan 002 added: `fill_accepts_only_declared_fillable_roles`, `responsive_style_values_are_closed_data`, `semantics_are_a_closed_enum_with_terms_child_rules`, `position_fill_radius_and_text_alignment_validate`;
@@ -60,6 +61,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
   - `proof/scripts/parity.ts` and `proof/scripts/inventory.ts` for the look bar itself: pixel capture, the capture-alignment rule, and the wrapper-collapsing inventory that turns a positional DOM count into causes.
   - `src/__tests__/{schema,vocabulary,catalog,manifest,theme,design-system,resolve,tree,schemas,proof-formats,portability}.test.ts` for the published formats: closed data, bounded pointed errors, catalog versioning, capability/source bindings, font safety, colour authority, cascade/inheritance, strict schema agreement, reproducible proof recipes and host-API portability. Reuse these cases in the Phase 5 suites; do not import proof implementations into the core.
   - `src/__tests__/{compiled-schema,validator-node,validator-tree,validator-rules,exports}.test.ts` for compiled/interpreted agreement, every spec §10 rule, bind/state/action compatibility, exact UTF-8 bytes, configurable traversal/error limits, pointed repair feedback and the public validator contract. Keep `validator-smoke.test.ts` and `bench/validator.bench.ts` as internal performance gates; transport arrival checks and dispatch-time authorisation still need Phase 4/host integration tests.
+  - `src/__tests__/sdk-{render,inputs,proof-widgets,gen-types}.test.*` supplies SDK-generated tree/intent cases for catalog and renderer conformance: independent tree acceptance, vocabulary rejection, stable keyed/fragment ids, explicit/carried/bound intent compatibility and all named proof scenarios. Renderer integration must preserve focus, scroll and local state across reordered key paths and validate completed event arguments before dispatch. Keep element branding, input identity caching, generated-source formatting and SDK timing tests internal; do not add a public SDK suite beyond spec §13's catalog/design-system/renderer/store suites.
   - Start the published store suite from `src/__tests__/store-contract.ts`, already run by `store-memory.test.ts` and `store-file.test.ts`: immutable `(id, version)` hashes, same-hash no-op, record copy boundaries, sorted placements, missing records versus JSON null, style tuple keys and deletion of placement state. Both reference stores must pass the public suite; keep filesystem path/atomic-write tests and runner timeout tests as implementation-specific regressions. `store-load.test.ts` and `phase-2-loop.test.ts` provide verification, state-reset and inert-load integration cases.
   - Seed the Phase 5 design-system suite from Plan 007 Tasks 3–9, reusing cases against the app's installed catalog, themes and design systems rather than importing proof implementations:
     - No browser: `src/__tests__/css-theme.test.ts` — `colour_authority_holds` (base, theme and design-system sheets; system colours only inside forced-colours blocks), `names_are_injective`, every DTCG colour space, safe font/string escaping, vocabulary-selected surface typography, deterministic output and invalid-input rejection.
@@ -74,9 +76,10 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phase 7 (reference hosts)
 - Priority: P4
-- Source: plans/001-Phase-0-Primitive-Set-Proof.md, plans/002-Phase-0-Parity-Re-Proof.md, plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F5), plans/007-Phase-3-CSS-Projection.md (F9)
+- Source: plans/001-Phase-0-Primitive-Set-Proof.md, plans/002-Phase-0-Parity-Re-Proof.md, plans/005-Phase-2-Part-A-SDK.md (F5), plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F5), plans/007-Phase-3-CSS-Projection.md (F9)
 - What:
   - Synapta: Certified has no five-patch identity roles or diagnostic fill roles (G2).
+  - Synapta: replace positional widget ids with stable keyed paths and generate catalog components into an app-relative typed source module (`liveframe gen … --out …`), rather than inside the SDK package. Bundle that module through ordinary relative imports. Test list reordering, keyed composed fragments and generator drift; no positional-id compatibility mode or package-time component import rewrite is provided.
   - Synapta: the Certified look the parity work proved lives in `proof/styles/certified/` and must be ported to `synapta-core` — the typography roles (`fine`, `ui`, `caption`, `label.small`, `label.strong`, `mono.strong`, `overline`, `heading.2.compact`), `fontSizeAdjust` on the mono roles, the `foil` tone, `size.glyph`, `bp.sm`, the `plate`/`rule`/`callout` box recipes and the per-side border widths.
   - Clay: Rack's docs claim 273 recipes, but the manifest has 247 (G3); Rack recipes reference undeclared spacing and easing values (G5); Rack typography is user-owned, which spec §6.1 now allows through an assembled theme (G1).
   - Clay: Rack's `box.default.root.rest` pads every box by 12 px, so the lamp, jack and pips clamp to 24 px instead of the declared 8/4 px. A bare box variant (or a padding-free recipe) would let a small indicator keep its size (G10).
@@ -91,7 +94,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phase 2 Part A and Phase 3 (spec §6.3, §10, §12)
 - Priority: P2
-- Source: plans/004-Phase-1-Part-B-Compiled-Validator.md
+- Source: plans/004-Phase-1-Part-B-Compiled-Validator.md, plans/005-Phase-2-Part-A-SDK.md (F6; closure confirmed by plan 007)
 - What: when migrating the proof widgets to the SDK and CSS projector, replace their proof-only `"fit"` grid tracks with spec-valid composition and verify the same scenarios and visual parity. `proof/scripts/export-formats.ts` previously substituted `"0fr"` in agent-home and medium/large/full core-queue benchmark trees; preserve the benchmark node counts. If valid composition cannot preserve the look, bring the concrete gap to the owner before changing §6.3.
 - Why: the compiled validator correctly rejects `"fit"` as a grid track; the exporter conversion proves transport validity and throughput, not visual equivalence. Phase 2 must not feed the unconverted proof trees to `render()` or claim parity from the converted benchmark fixtures alone. The approved proof UI and the spec remain unchanged in plan 004.
 
@@ -158,4 +161,21 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Priority: P1
 - Source: plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F4)
 - What: install a Bun-generated release archive in an independent host outside this checkout, run it from another working directory, and pack, store, reload and render with both reference runners. Prove that the published `/preview` loader resolves all three SDK entry points through the installed package's own exports, shares the runner's SDK instance, and imports dot-escaped `data:` modules. Prove that `/preview/worker` includes and resolves its `./entry.ts` and protocol dependencies, times out a looping widget, then recovers. Coordinate archive inspection with “Exclude test fixtures from the release package”; preserve required worker/runtime files when removing tests. Re-run the approved loader gate on supported Bun upgrades.
+
 - Why: checkout tests and browser bundle scans do not prove installed archive resolution. The approved `2026-10-23-2016-data-url-loader-encoding-and-sdk-resolution.md` decision requires this gate. If its revisit conditions occur, reopen plan 006 Task 8.5 and obtain approval for the factory-module fallback before changing the package format or loading scheme.
+
+## Scope SDK data validation caching to the source-schema contract
+
+- Section: SDK validation hardening, before cross-widget or cross-contract data reuse
+- Priority: P1
+- Source: plans/005-Phase-2-Part-A-SDK.md Task 10 (F2), plans/evidence/005-impact-analysis.md
+- What: make check-once validation account for the compiled source-schema contract as well as data identity, while retaining weak retention and no repeat data walk within the same contract. Add a regression that reuses data accepted by one manifest under a manifest with incompatible sources: the second render must return pointed `invalid-prop` errors before widget execution, just as a fresh data clone does. Check both reference runners and rerun the SDK budget.
+- Why: `src/sdk/render.ts` currently uses one module-private `WeakSet` across validators. A successful validation under one contract can suppress validation under another; freezing alone cannot establish schema compatibility. Until corrected, obey `docs/sdk.md`: reuse data only under the same source-schema contract, allocate a new object for each resolution, and supply JSON value properties rather than accessors. No cache redesign is approved by this handoff.
+
+## Reject nested non-JSON composed props and improve SDK diagnostics
+
+- Section: SDK diagnostics
+- Priority: P2
+- Source: plans/005-Phase-2-Part-A-SDK.md Task 10 (F3), plans/evidence/005-impact-analysis.md
+- What: add nested function/promise cases for primitive JSON props and composed-component props, including values discarded during expansion. Reject non-JSON composed props before invoking the component; preserve `function-prop` / `async-render` classifications and exact escaped pointers at the responsible check. Preserve bounded failures and all byte/depth checks, rerun the SDK budget, and update the guide's limitation when corrected.
+- Why: top-level function/promise props have dedicated kinds, while nested primitive values can report `invalid-prop` (or be rejected by schema first). Composed props check only top-level values before expansion: a component that discards `{ payload: { callback: () => 0 } }` currently renders successfully. The emitted tree is valid, but this misses §7.1's non-JSON prop restriction. These are distinct rejection and diagnostic gaps; this handoff changes no implementation or current error contract.
