@@ -417,7 +417,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - The tests first failed on the missing exports. Five new tests now cover all record copy boundaries, immutable packages, missing/corrupt records, package identity, verification-error passthrough, escaped params pointers, and a placement moved to a version that dropped a state field. Task 7 can extract the memory-store rules into its shared contract table.
     - `timeout 600s bun run check` passed: 277 tests, zero failures, plus generated-code drift, typecheck, lint and format checks. The focused storage/export/portability run passed all 14 tests; a browser-target build of `/store` also passed. Existing unrelated lint warnings remain.
 
-- [ ] Task 7: Persist records with fileStore(dir)
+- [x] Task 7: Persist records with fileStore(dir)
   - Acceptance Criteria:
     - Functional:
       - `fileStore(dir)` implements `Store` with one JSON file per record:
@@ -443,6 +443,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Documentation Reviewed:
       - Spec §7.4.
       - The decision-log assumption that one process with atomic rename is enough.
+      - Execution lookup: Context7 monthly quota exhausted; checked installed Bun node-compat documentation and `@types/node/fs/promises.d.ts` for the filesystem signatures.
     - Options Considered:
       - `encodeURIComponent` — rejected: it leaves `.`, `*` and case unchanged.
       - Hashed filenames — rejected: they make the directory unreadable to a person debugging it.
@@ -456,6 +457,8 @@ Probe answers that hold for every task, unless a task says otherwise:
       ```
     - Files to Create/Edit:
       - `src/store/fs/index.ts`: new.
+      - `src/store/load.ts`: turn typed record parse failures into `invalid-document` results; unrelated I/O failures still reject.
+      - `src/__tests__/store-memory.test.ts`: run the extracted shared contract.
       - `src/__tests__/store-contract.ts`: a shared rule table used by both store tests. This is internal; Phase 5 grows it into the conformance suite.
       - `src/__tests__/store-file.test.ts`: new.
       - `src/__tests__/portability.test.ts`: the `src/store/fs/` exemption.
@@ -464,7 +467,14 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `file_store_survives_reopen`: write a package, a placement and its state, open a new `fileStore` on the same `dir`, and read equal records.
     - `file_store_paths_cannot_escape`: ids `../x`, `a/b` and `CON`, and the pair `Queue`/`queue`, all stay under `dir` and stay distinct.
     - `corrupt_file_is_typed_error`: a truncated `placements/<id>.json` makes `loadPlacement` return `invalid-document`.
-  - Notes (executed <date>):
+    - `file_store_readers_only_see_complete_replacements`: readers observe only old or new JSON during replacement; a failed rename cleans its temporary file.
+    - `file_store_ignores_leftover_temps_and_replaces_complete_records`: temp files are ignored, concurrent writes finish with valid JSON, and conflicting package puts across store instances preserve the first hash.
+  - Notes (executed 2026-10-23):
+    - Implemented the four record paths with UTF-8 byte encoding: only lowercase ASCII letters, digits, underscore and hyphen stay literal. Traversal, slashes, backslashes, uppercase and Unicode are encoded; case-only ids remain distinct. Writes use exclusive UUID temporary files in the target directory, rename, and cleanup. The doc comment states the one-writing-process limit. Package checks/writes are serialized across store instances in that process. No dependency or spec change was needed.
+    - Extracted the memory-store rules into the shared internal contract and ran it against both stores, including all copy boundaries, immutable versions, sorted listings, style keys and state deletion. Added reopen persistence, encoded paths, leftover temps, complete replacement reads and failed-rename cleanup tests.
+    - File reads reject malformed JSON with a typed error naming the record. The loader now returns that error for placement, package and state parse failures without treating corrupt JSON as a state reset. Filesystem errors other than missing records continue to reject. Portability names only the filesystem subpath as its new exception.
+    - Tests first failed on the missing file-store module. `timeout 600s bun run check` passed: 284 tests, zero failures, plus generated-code drift, typecheck, lint and format checks. Existing unrelated lint warnings remain. Context7 quota prevented its lookup; used installed Bun documentation/types and runtime tests.
+    - Public `./store/fs` export wiring remains in Task 10 and outsider documentation/export assertions remain in Task 11, as planned; Task 7 imports the implementation directly. No later task needed amendment.
 
 - [ ] Task 8: Define the Runner interface and ship inProcessRunner()
   - Acceptance Criteria:

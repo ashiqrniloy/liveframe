@@ -29,6 +29,8 @@ test("src_is_host_api_free", async () => {
     if (path.split("/").includes("__tests__")) continue;
     // Only the CLI reads catalogs and writes generated modules; the SDK emitter remains host-free.
     if (path.startsWith("cli/")) continue;
+    // The file-store subpath is the explicit filesystem exception in spec §13.
+    if (path.startsWith("store/fs/")) continue;
     const source = await Bun.file(`${root}${path}`).text();
     expect(source, path).not.toMatch(forbidden);
     expect(source, path).not.toMatch(/\bimport\s*\(/);
