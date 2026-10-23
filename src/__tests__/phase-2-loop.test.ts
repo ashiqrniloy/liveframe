@@ -244,3 +244,22 @@ test("done_list_typed_errors: worker timeout then recovery", async () => {
     worker.close();
   }
 });
+
+// Run the guide verbatim with the same draft and configuration as the install-loop proof.
+test("package_guide_example_runs", async () => {
+  const guide = await Bun.file(new URL("../../docs/packages.md", import.meta.url)).text();
+  const example = /```ts\n([\s\S]*?)```/.exec(guide)?.[1];
+  if (!example) throw new Error("Missing package guide example");
+  const contextFile = join(dir, "guide-inputs.json");
+  await writeFile(contextFile, JSON.stringify({ draft, options, dir }));
+  const process = Bun.spawn(
+    [
+      "bun",
+      "--eval",
+      `const { draft, options, dir } = await Bun.file(${JSON.stringify(contextFile)}).json();\n${example}`,
+    ],
+    { cwd: new URL("../../", import.meta.url).pathname, stdout: "pipe", stderr: "pipe" },
+  );
+  const stderr = await new Response(process.stderr).text();
+  expect(await process.exited, stderr).toBe(0);
+}, 10000);

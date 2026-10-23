@@ -11,6 +11,9 @@ import type {
 } from "@arnilo/liveframe";
 import * as pack from "@arnilo/liveframe/pack";
 import * as store from "@arnilo/liveframe/store";
+import * as fileStore from "@arnilo/liveframe/store/fs";
+import * as preview from "@arnilo/liveframe/preview";
+import * as worker from "@arnilo/liveframe/preview/worker";
 import * as liveframe from "@arnilo/liveframe";
 import type {
   Component,
@@ -144,7 +147,10 @@ test("public_validator_types_support_error_guided_repairs", () => {
   expect(accepted).toEqual({ ok: true, value: repaired });
 });
 
-test("package_and_record_format_export_surfaces", () => {
+test("subpath_export_surfaces", () => {
+  expect(Object.keys(fileStore).sort()).toEqual(["fileStore"]);
+  expect(Object.keys(preview).sort()).toEqual(["inProcessRunner"]);
+  expect(Object.keys(worker).sort()).toEqual(["workerRunner"]);
   expect(Object.keys(pack).sort()).toEqual(["pack", "validateScenario", "validateWidgetPackageShape", "verifyPackage"]);
   expect(Object.keys(store).sort()).toEqual([
     "loadPlacement",

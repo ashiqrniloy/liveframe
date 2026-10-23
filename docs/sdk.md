@@ -6,7 +6,7 @@ draws it with the app's primitive implementations. The SDK supplies no visual
 components or design system.
 
 The package is pre-release. This guide covers the implemented SDK and `gen`
-command; packaging, storage and runners are separate roadmap work. See the
+command; see the [package guide](packages.md) for packing, storage and runners. See the
 [format guide](formats.md) for catalogs, capabilities, manifests and validation,
 and [spec §7](spec.md#7-authoring-and-installing-synaptas-model) for the contract.
 

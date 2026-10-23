@@ -708,7 +708,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `timeout 120s bun test src/__tests__/phase-2-loop.test.ts` passed all 13 integration cases. `timeout 600s bun run check` passed generated-code drift, typecheck, lint, format and all 319 tests across 54 files with zero failures. `git diff --check` passed. Existing unrelated lint warnings remain.
     - Tasks 11–12 remain unchanged: exact public export lists, consolidated portability checks, outsider documentation and final impact analysis are still their work. Published-package loader and worker-entry verification remains Phase 6. Existing owner edits to `roadmap.md` and `plans/README.md` were left untouched.
 
-- [ ] Task 11: Publish the package, storage and runner surfaces and their documentation
+- [x] Task 11: Publish the package, storage and runner surfaces and their documentation
   - Acceptance Criteria:
     - Functional:
       - `src/__tests__/exports.test.ts` asserts the exact export lists of `/pack`, `/store`, `/store/fs`, `/preview` and `/preview/worker`.
@@ -731,20 +731,28 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Options Considered:
       - Separate pages per subpath — rejected: one install path reads best as one page.
     - Chosen Approach:
-      - One guide, the export tests, and the skill "Today" sections.
+      - One guide, the export tests, and the skill "Today" sections. Exercise the guide’s single code block verbatim in Task 10’s integration test, and replace the SDK guide’s stale “separate roadmap work” statement with a link.
     - API Notes and Examples:
       ```ts
       import { pack, verifyPackage } from "@arnilo/liveframe/pack";
       ```
     - Files to Create/Edit:
       - `docs/packages.md`: new.
-      - `README.md`.
+      - `README.md`, `docs/sdk.md`: link the shipped package guide.
       - `src/__tests__/exports.test.ts`, `src/__tests__/portability.test.ts`.
-      - `.claude/skills/liveframe-execution/references/{storage,preview,architecture}.md`.
+      - `.claude/skills/liveframe-execution/references/{storage,preview,architecture}.md` (symlinked to `.agents/skills/`): shipped API and “Today” sections.
+      - `src/__tests__/phase-2-loop.test.ts`: run the guide’s code block with the existing install-loop fixture.
   - Test Cases to Write:
     - `subpath_export_surfaces`: exact lists for the five subpaths.
     - `host_api_free_subpaths_bundle_clean`: the three scans.
-  - Notes (executed <date>):
+    - `package_guide_example_runs`: executes the guide verbatim using Task 10’s draft, options and temporary directory, failing on broken imports, packing, verification, persistence, loading or runner parity.
+  - Notes (executed 2026-10-23):
+    - All five subpaths were already exported by Tasks 2–10. Added exact runtime export assertions for `/store/fs`, `/preview` and `/preview/worker` alongside the existing `/pack` and `/store` lists; no runtime, dependency or package-export change was needed.
+    - Consolidated the five subpaths’ portability rules in one table. Browser-target bundles now scan `/pack`, `/store` and `/preview`, with exact pinned-dependency exceptions (the store verifier tree-shakes unused transforms/source maps) and exactly one approved dynamic import in preview. CLI-only dependency exclusions remain enforced. The source scan now limits the worker exception to Worker/self instead of exempting every host API.
+    - Added `docs/packages.md` covering scenarios, immutable versions and rollback, integrity versus signatures, the complete Store interface and custom-store rules, state resets, runner limits and backend-only/non-isolated execution. README and the SDK guide link it. Updated storage, runner and architecture skill references through their canonical `.agents/` paths; `.claude/` resolves to the same files. No spec meaning changed.
+    - Added an integration case that first failed on the missing guide, then passed executing its single code block verbatim with the Task 10 fixture. The example packs, verifies, stores, reloads and renders through both runners with equal trees.
+    - `timeout 60s bun test src/__tests__/phase-2-loop.test.ts src/__tests__/exports.test.ts src/__tests__/portability.test.ts` passed all 25 focused cases. `timeout 600s bun run check` passed generated-code drift, typecheck, lint, format and all 322 tests across 54 files with zero failures. Existing unrelated lint warnings remain. `git diff --check` passed.
+    - Task 12 remains unchecked; published-build loader and worker-entry verification remains the Phase 6 release gate. No registry release was attempted. Existing owner edits to `roadmap.md` and `plans/README.md` were left untouched.
 
 - [ ] Task 12: Analyze architectural impact and dispose of every finding
   - Sweep the twelve impact areas of `.agents/skills/create-plan/references/liveframe.md` §5 against what was delivered. Record each, or `None — <reason>`, in `plans/evidence/006-impact-analysis.md`.
