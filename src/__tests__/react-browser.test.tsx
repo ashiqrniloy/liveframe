@@ -84,6 +84,46 @@ test("validator_runs_once_per_tree", async () => {
   }
 });
 
+test("local_interactions_stay_local_and_intents_use_the_current_handler", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    await page.locator("button").click();
+    expect(await page.evaluate(() => window.surfaceTest.intents())).toEqual([]);
+    await page.evaluate(() => {
+      const next = window.surfaceTest.tree(2);
+      window.surfaceTest.update({
+        ...next,
+        root: {
+          ...next.root,
+          children: [
+            {
+              id: "root/second",
+              kind: "button",
+              props: { label: "Commit" },
+              events: { onPress: { type: "setState", key: "reason", value: "committed" } },
+            },
+          ],
+        },
+      });
+      window.surfaceTest.emit();
+    });
+    const intent = { type: "setState", key: "reason", value: "committed" } as const;
+    expect(await page.evaluate(() => window.surfaceTest.intents())).toEqual([intent]);
+    const checks = await page.evaluate(() => window.surfaceTest.checks());
+    await page.evaluate(() => {
+      window.surfaceTest.replaceIntentHandler();
+      window.surfaceTest.emit();
+    });
+    expect(await page.evaluate(() => window.surfaceTest.intents())).toEqual([intent]);
+    expect(await page.evaluate(() => window.surfaceTest.checks())).toBe(checks);
+    expect(await page.locator("button").textContent()).toContain("Commit 1");
+  } finally {
+    await page.close();
+  }
+});
+
 test("throwing_implementation_falls_back_at_that_node", async () => {
   const page = await browser.newPage();
   try {

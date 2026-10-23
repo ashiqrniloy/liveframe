@@ -63,6 +63,24 @@ function sameDefinition(left: unknown, right: unknown): boolean {
   );
 }
 
+function complete(intent: Intent, value?: string | boolean): Intent {
+  let result = structuredClone(intent);
+  if (result.type === "setState" && !Object.hasOwn(result, "value") && value !== undefined)
+    result = { ...result, value };
+  else if (result.type === "action" && result.bind !== undefined && value !== undefined) {
+    const { bind, ...action } = result;
+    result = { ...action, args: { ...action.args, [bind]: value } };
+  }
+  function freeze(value: unknown) {
+    if (value !== null && typeof value === "object") {
+      for (const entry of Object.values(value)) freeze(entry);
+      Object.freeze(value);
+    }
+  }
+  freeze(result);
+  return result;
+}
+
 export function createRenderer({
   catalog,
   implementations,
@@ -105,7 +123,7 @@ export function createRenderer({
   };
 
   // biome-ignore lint/correctness/noComponentHookFactories: The startup factory creates Surface once; renders reuse it.
-  function Surface({ tree, validator, theme, designSystem, fallback }: SurfaceProps) {
+  function Surface({ tree, validator, theme, designSystem, onIntent, fallback }: SurfaceProps) {
     const arrival = useMemo(() => validator.validateTree(tree), [tree, validator]);
     const [accepted, setAccepted] = useState({ arrival, validator, tree: arrival.ok ? arrival.value : undefined });
     if (arrival !== accepted.arrival || validator !== accepted.validator) {
@@ -140,8 +158,15 @@ export function createRenderer({
             return [recipe, ...(name === "root" ? projected.classes : [])].join(" ");
           },
           style: projected.style,
-          // Intent completion is implemented in plan 008 Task 4.
-          emit: () => {},
+          emit(event, value) {
+            if (!node.events || !Object.hasOwn(node.events, event)) return;
+            const intent = node.events[event];
+            if (!intent) return;
+            const carries = definition.events[event]?.carries;
+            if (carries === "none" ? value !== undefined : typeof value !== carries)
+              throw new Error(`Invalid event value: ${node.kind}.${event}`);
+            onIntent(complete(intent, value));
+          },
           children: items.map((child) => child.render()),
           items,
           portal: portal ?? undefined,
@@ -154,7 +179,7 @@ export function createRenderer({
         return item;
       }
       return context(accepted.tree.root).render();
-    }, [accepted.tree, portal, fallback]);
+    }, [accepted.tree, portal, fallback, onIntent]);
     const { class: className, ...scope } = surfaceAttributes({ theme, designSystem, tree: accepted.tree ?? emptyTree });
     return (
       <>

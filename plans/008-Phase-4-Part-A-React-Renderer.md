@@ -214,7 +214,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Tests were written first and failed against the placeholder. Added server markup/rejection tests and brought forward the small browser harness from Task 5 to prove updates, child reordering, focus/local-state preservation, validation caching, portal availability, node fallback and recovery. Task 5 now extends this harness. `emit` is deliberately inert until Task 4; scope-switch sequencing remains Task 5, and SSR/hydration proof remains Task 6. No spec change.
     - The first full check exposed the missing `react/jsx-dev-runtime` allowance in the portability scan; added it only to the existing `/react` DOM exception. Focused React/portability suites passed, then `bun run check` passed (390 tests, zero failures), along with `git diff --check` and `graft build`. The browser reorder assertion also passed in its focused rerun.
 
-- [ ] Task 4: Raise intents through `emit()` and `onIntent`
+- [x] Task 4: Raise intents through `emit()` and `onIntent`
   - Acceptance Criteria:
     - Functional:
       - `emit(event, value?)` and `items[n].emit` look up `node.events[event]`. An event the node does not carry raises nothing. A value that does not match the definition's `carries` (`none`: no value; `string`; `boolean`) throws and calls nothing.
@@ -238,6 +238,7 @@ Probe answers that hold for every task, unless a task says otherwise:
       - Validate filled args against the action schema in the browser — rejected: the browser has no capabilities authority; the host re-checks on dispatch (spec §8).
     - Chosen Approach:
       - Complete the intent exactly as spec §8–§9 describe, then hand it over.
+      - Clone and deeply freeze each completed intent so nested values cannot alias the tree. Include `onIntent` in the rendered-context memo dependencies so updated callbacks take effect without revalidating the tree.
     - API Notes and Examples:
       ```ts
       // events: { onCommit: { type: "action", name: "tasks.escalate", args: { id: "t-1" }, bind: "reason" } }
@@ -247,6 +248,8 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Files to Create/Edit:
       - `src/react/renderer.tsx`.
       - `src/__tests__/react-intents.test.tsx`: new.
+      - `src/__tests__/react-browser.test.tsx`, `src/__tests__/fixtures/react-client.tsx`: local interaction, current callback, validation caching and local-state regression proof.
+      - `roadmap.md` §3: record task completion after checks pass.
   - Test Cases to Write:
     - `set_state_without_value_takes_the_event_value`.
     - `action_bind_fills_the_named_argument`.
@@ -254,6 +257,13 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `wrong_carries_type_throws_and_raises_nothing`: one case each for `none`, `string` and `boolean`.
     - `item_emit_raises_the_item_intent`.
     - `intent_objects_are_fresh_and_frozen`.
+    - `explicit_state_values_are_preserved`: preserve explicit values, including an empty string.
+    - `host_must_recheck_filled_arguments`: a string event can complete an action with a value outside its capability schema; the host still has to reject it.
+    - `local_interactions_stay_local_and_intents_use_the_current_handler`: local clicks raise nothing; declared events deliver once to the current callback without losing local state or revalidating the tree.
+  - Notes (executed 2026-10-24):
+    - Replaced inert node/item emitters with node-event lookup, strict `carries` checks and shared intent completion. Missing state values take the event value; explicit values survive; bound action arguments are filled and `bind` removed. Each delivery is a fresh, deeply frozen copy, leaving the tree mutable and unchanged. Updated `onIntent` callbacks take effect without arrival revalidation or loss of local state.
+    - Wrote the intent tests first: seven failed against the no-op emitter. All 23 focused React tests then passed, including browser proof for local interactions and callback replacement. Existing spec §8/§11 already requires the host to re-check filled intents; the new rejection test proves why. No spec or public export change. The full outsider guide remains Task 9.
+    - `bun run check` passed (399 tests, zero failures). The first full run hit the existing in-process runner timing gate at 0.109 ms against 0.1 ms; all eight runner tests passed immediately in isolation, followed by a green full rerun without changing the limit. `git diff --check` passed. Overlay switching and hydration remain Tasks 5–6; proof-host adoption remains Task 7.
 
 - [ ] Task 5: Keep overlays in scope and switch styles from `<Surface>` props
   - Acceptance Criteria:
