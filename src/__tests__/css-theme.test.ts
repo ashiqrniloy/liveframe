@@ -195,7 +195,21 @@ test("surface_typography_comes_from_the_vocabulary", () => {
 
 test("colour_authority_holds", async () => {
   function check(sheet: string) {
-    for (const [, property, value] of sheet.matchAll(/(?:[;{])([\w-]+):([^;{}]+)/g)) {
+    const forcedRanges = [...sheet.matchAll(/@media \(forced-colors:active\)\{/g)].map((match) => {
+      let end = match.index + match[0].length;
+      let depth = 1;
+      while (depth && end < sheet.length) {
+        if (sheet[end] === "{") depth++;
+        if (sheet[end] === "}") depth--;
+        end++;
+      }
+      return [match.index, end] as const;
+    });
+    for (const match of sheet.matchAll(/(?:[;{])([\w-]+):([^;{}]+)/g)) {
+      const [, property, value] = match;
+      const systemColour = /\b(?:CanvasText|HighlightText|Highlight|GrayText)\b/.test(value ?? "");
+      if (systemColour)
+        expect(forcedRanges.some(([start, end]) => match.index > start && match.index < end)).toBe(true);
       if (property?.startsWith("--lf-c-")) continue;
       expect(value).not.toMatch(/(?:#[\da-f]{3,8}\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\()/i);
       if (property === "color" || property?.endsWith("-color")) {
@@ -203,7 +217,11 @@ test("colour_authority_holds", async () => {
           /^(?:var\(--lf-r-(?:surface|fill|tone)__[\w]+__(?:backgroundColor|color),)*var\(--lf-r-(?:surface|fill|tone)__[\w]+__(?:backgroundColor|color)\)\)*$/;
         const themeColour =
           /^(?:var\(--lf-c-[\w-]+\)|transparent|currentColor|color-mix\(in srgb, var\(--lf-c-[\w-]+\) calc\(var\(--lf-alpha\) \* 100%\), transparent\))$/;
-        expect(themeColour.test(value ?? "") || responsive.test(value ?? "")).toBe(true);
+        expect(
+          themeColour.test(value ?? "") ||
+            responsive.test(value ?? "") ||
+            /^(?:CanvasText|HighlightText|Highlight|GrayText)$/.test(value ?? ""),
+        ).toBe(true);
       }
     }
   }
@@ -223,6 +241,9 @@ test("colour_authority_holds", async () => {
       expect(catalog.vocabulary.colourRoles.map((role) => role.replaceAll(".", "_"))).toContain(role ?? "");
   }
   expect(() => check(".leak{color:red}")).toThrow();
+  expect(() => check(".leak{color:Highlight}")).toThrow();
+  expect(() => check(".leak{outline:1px solid CanvasText}")).toThrow();
+  expect(() => check("@media (forced-colors:active){.ok{color:GrayText}}.leak{color:Highlight}")).toThrow();
   expect(() => check(".leak{box-shadow:0 0 1px rgb(0 0 0)}")).toThrow();
 });
 

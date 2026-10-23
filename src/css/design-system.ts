@@ -7,6 +7,7 @@ import {
   type RecipeKey,
 } from "../formats/design-system.ts";
 import { resolveRecipes } from "../resolve.ts";
+import { forcedEdgeDeclarations, forcedStateDeclarations } from "./forced-colours.ts";
 import { cssString, slotClass, valueVar } from "./names.ts";
 import { recipeDeclarations } from "./recipe.ts";
 import { responsiveRules } from "./style-props.ts";
@@ -50,6 +51,7 @@ export function designSystemCss(system: DesignSystem, context: DesignSystemConte
     return "";
   });
   const rules = [`${scope}{${variables.join(";")}}`];
+  const forced = [];
   for (const [state, condition] of Object.entries(stateSelectors)) {
     for (const definition of [...context.catalog.definitions].sort((a, b) =>
       a.kind < b.kind ? -1 : a.kind > b.kind ? 1 : 0,
@@ -58,17 +60,26 @@ export function designSystemCss(system: DesignSystem, context: DesignSystemConte
         const root = `.${slotClass(definition.kind, variant, "root")}`;
         for (const slot of [...definition.slots].sort()) {
           const key = `${definition.kind}.${variant}.${slot}` as const;
-          const rest = recipeDeclarations(resolved[`${key}.rest`] ?? {});
+          const restRecipe = resolved[`${key}.rest`] ?? {};
+          const rest = recipeDeclarations(restRecipe);
           const body = recipeDeclarations(resolved[`${key}.${state}` as RecipeKey] ?? {});
           const cls = `.${slotClass(definition.kind, variant, slot)}`;
-          if (state === "rest") rules.push(`${scope} ${cls}{${body}}`);
-          else if (body !== rest) {
+          if (state === "rest") {
+            rules.push(`${scope} ${cls}{${body}}`);
+            const edge = forcedEdgeDeclarations(restRecipe);
+            if (edge) forced.push(`${scope} ${cls}{${edge}}`);
+          } else if (body !== rest) {
             const guarded = state === "hover" || state === "active";
-            rules.push(`${selector(scope, cls, root, condition, guarded)}{${body}}`);
+            const target = selector(scope, cls, root, condition, guarded);
+            rules.push(`${target}{${body}}`);
+            const cue = forcedStateDeclarations[state as keyof typeof forcedStateDeclarations];
+            forced.push(`${target}{${cue}}`);
             if (state === "open")
               rules.push(`@starting-style{${selector(scope, cls, root, condition, false)}{${rest}}}`);
-            if (state === "hover")
+            if (state === "hover") {
               rules.push(`@media (hover:hover){${selector(scope, cls, root, ":hover", true)}{${body}}}`);
+              forced.push(`@media (hover:hover){${selector(scope, cls, root, ":hover", true)}{${cue}}}`);
+            }
           }
         }
       }
@@ -87,5 +98,6 @@ export function designSystemCss(system: DesignSystem, context: DesignSystemConte
     })
     .sort((a, b) => a.width - b.width || a.name.localeCompare(b.name));
   rules.push(responsiveRules(scope, breakpoints));
+  rules.push(`@media (forced-colors:active){${forced.join("")}}`);
   return { ok: true, value: rules.join("\n") };
 }

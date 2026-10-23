@@ -1,12 +1,22 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { type Browser, chromium, type Page } from "playwright";
-import { baseCss, designSystemCss, styleDeclarations, themeCss } from "../css/index.ts";
-import type { Catalog, DesignSystem, Recipe, Result, Theme } from "../index.ts";
+import { baseCss, designSystemCss, slotClass, styleDeclarations, themeCss } from "../css/index.ts";
+import { recipeDeclarations } from "../css/recipe.ts";
+import {
+  type Catalog,
+  type DesignSystem,
+  type Recipe,
+  type RecipeKey,
+  type Result,
+  type Theme,
+  resolveRecipes,
+} from "../index.ts";
 
 const read = (name: string) => Bun.file(new URL(`./fixtures/proof/${name}.json`, import.meta.url)).json();
 const proofCatalog: Catalog = await read("catalog");
 const theme: Theme = await read("certified.theme");
 const proofSystem: DesignSystem = await read("certified.design-system");
+const proofSystems = [proofSystem, (await read("rack.design-system")) as DesignSystem];
 const button = proofCatalog.definitions.find((d) => d.kind === "button");
 if (!button) throw new Error("Missing button fixture");
 const catalog: Catalog = {
@@ -529,6 +539,189 @@ test("switching_suppresses_transitions", async () => {
         .first()
         .evaluate((el) => el.getAnimations({ subtree: true }).length),
     ).toBe(0);
+  } finally {
+    await page.close();
+  }
+});
+
+async function mountForcedColours(page: Page, system: DesignSystem) {
+  await page.emulateMedia({ forcedColors: "active", reducedMotion: "reduce" });
+  const sheets = [
+    baseCss(proofCatalog),
+    themeCss(theme, proofCatalog),
+    designSystemCss(system, { catalog: proofCatalog, registry: {} }),
+  ]
+    .map(css)
+    .join("\n");
+  await page.setContent(
+    `<style>${sheets}</style><section class="lf_surface" data-lf-switching data-lf-theme="${theme.id}@${theme.version}" data-lf-ds="${system.id}@${system.version}"></section>`,
+  );
+  await page.mouse.move(1200, 700);
+}
+
+test("every_state_differs_from_rest_in_forced_colours", async () => {
+  const page = await browser.newPage();
+  try {
+    for (const system of proofSystems) {
+      await mountForcedColours(page, system);
+      const resolved = resolveRecipes(system, { catalog: proofCatalog, registry: {} });
+      const cases = Object.entries(resolved).flatMap(([key, recipe]) => {
+        const [kind, variant, slot, state] = key.split(".") as [string, string, string, string];
+        const rest = resolved[`${kind}.${variant}.${slot}.rest` as RecipeKey];
+        if (state === "rest" || recipeDeclarations(recipe ?? {}) === recipeDeclarations(rest ?? {})) return [];
+        return [{ key, state, cls: slotClass(kind, variant, slot), root: slotClass(kind, variant, "root") }];
+      });
+      expect(cases.length).toBeGreaterThan(0);
+      const collapsed = await page.locator("section").evaluate((surface, cases) => {
+        const attrs: Record<string, string> = {
+          hover: "data-hovered",
+          focus: "data-focus-visible",
+          active: "data-pressed",
+          open: "data-open",
+          selected: "data-selected",
+          invalid: "data-invalid",
+          disabled: "data-disabled",
+        };
+        const properties = [
+          "background-color",
+          "color",
+          "outline-color",
+          "outline-style",
+          "outline-width",
+          "outline-offset",
+          "border-top-color",
+          "border-top-style",
+          "border-top-width",
+          "border-right-color",
+          "border-right-style",
+          "border-right-width",
+          "border-bottom-color",
+          "border-bottom-style",
+          "border-bottom-width",
+          "border-left-color",
+          "border-left-style",
+          "border-left-width",
+        ];
+        const collapsed: string[] = [];
+        for (const item of cases) {
+          const root = document.createElement("div");
+          root.className = item.root;
+          const slot = item.cls === item.root ? root : root.appendChild(document.createElement("div"));
+          slot.className = item.cls;
+          slot.textContent = "State";
+          surface.replaceChildren(root);
+          const snapshot = () => properties.map((property) => getComputedStyle(slot).getPropertyValue(property));
+          const rest = snapshot();
+          // Test both a slot's own state and state propagated from its root.
+          for (const target of new Set([root, slot])) {
+            target.setAttribute(attrs[item.state]!, "");
+            if (JSON.stringify(snapshot()) === JSON.stringify(rest))
+              collapsed.push(`${item.key}:${target === root ? "root" : "slot"}`);
+            target.removeAttribute(attrs[item.state]!);
+          }
+        }
+        return collapsed;
+      }, cases);
+      expect({ system: system.id, collapsed }).toEqual({ system: system.id, collapsed: [] });
+    }
+  } finally {
+    await page.close();
+  }
+});
+
+test("background_edges_survive_forced_colours", async () => {
+  const page = await browser.newPage();
+  try {
+    for (const system of proofSystems) {
+      await mountForcedColours(page, system);
+      expect(
+        await page.locator("section").evaluate((surface) => {
+          return ["lf_box_plate_root", "lf_popover_default_content"].map((cls) => {
+            const el = document.createElement("div");
+            el.className = cls;
+            el.textContent = "Edge";
+            surface.append(el);
+            const style = getComputedStyle(el);
+            const outlined =
+              style.outlineStyle === "solid" && style.outlineWidth === "1px" && style.outlineOffset === "-1px";
+            const bordered = style.borderTopStyle === "solid" && parseFloat(style.borderTopWidth) > 0;
+            return [outlined || bordered, style.forcedColorAdjust];
+          });
+        }),
+      ).toEqual([
+        [true, "auto"],
+        [true, "auto"],
+      ]);
+    }
+  } finally {
+    await page.close();
+  }
+});
+
+test("fill_indicators_keep_their_shape", async () => {
+  const page = await browser.newPage();
+  try {
+    await mountForcedColours(page, proofSystem);
+    const { style, classes } = styleDeclarations(
+      { fill: proofCatalog.vocabulary.fillableRoles[0], radius: "full", width: "space.2", height: "space.2" },
+      proofCatalog,
+    );
+    expect(
+      await page.locator("section").evaluate(
+        (surface, { style, classes }) => {
+          const el = document.createElement("div");
+          el.className = classes.join(" ");
+          Object.assign(el.style, style);
+          surface.append(el);
+          const s = getComputedStyle(el);
+          const reference = document.createElement("div");
+          reference.style.color = "CanvasText";
+          surface.append(reference);
+          return [
+            s.width,
+            s.height,
+            s.borderRadius,
+            s.outlineWidth,
+            s.outlineStyle,
+            s.outlineOffset,
+            s.outlineColor === getComputedStyle(reference).color,
+            s.forcedColorAdjust,
+          ];
+        },
+        { style, classes },
+      ),
+    ).toEqual(["8px", "8px", "9999px", "1px", "solid", "-1px", true, "auto"]);
+  } finally {
+    await page.close();
+  }
+});
+
+test("forced_colour_states_keep_precedence_and_disabled_guards", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.emulateMedia({ forcedColors: "active" });
+    await mount(page, { "button.default.label.disabled": { textColor: colours[0] } });
+    const outline = () =>
+      page.locator("#label").evaluate((el) => {
+        const s = getComputedStyle(el);
+        return [s.outlineWidth, s.outlineStyle];
+      });
+    await page.locator("#root").hover();
+    expect(await outline()).toEqual(["1px", "solid"]);
+    await page.locator("#root").evaluate((el) => el.setAttribute("data-focus-visible", ""));
+    expect(await outline()).toEqual(["2px", "solid"]);
+    await page.locator("#root").evaluate((el) => el.setAttribute("data-pressed", ""));
+    expect(await outline()).toEqual(["1px", "solid"]);
+    await page.locator("#root").evaluate((el) => el.setAttribute("data-invalid", ""));
+    expect(await outline()).toEqual(["2px", "dashed"]);
+    await mount(page, { "button.default.label.disabled": { textColor: colours[0] } });
+    await page.locator("#root").hover();
+    await page.locator("#root").evaluate((el) => el.setAttribute("aria-disabled", "true"));
+    await page.locator("#label").evaluate((el) => {
+      el.setAttribute("data-hovered", "");
+      el.setAttribute("data-pressed", "");
+    });
+    expect((await outline())[1]).toBe("none");
   } finally {
     await page.close();
   }

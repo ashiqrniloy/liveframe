@@ -128,7 +128,7 @@ test("states_equal_to_rest_emit_no_rule", () => {
     // Hover has a separate native-hover media rule and a data-attribute rule.
     const hover = different.filter(([key]) => key.endsWith(".hover")).length;
     const open = different.filter(([key]) => key.endsWith(".open")).length;
-    const css = sheet(system);
+    const css = sheet(system).split("@media (forced-colors:active){")[0]!;
     expect([...css.matchAll(/\{[^{}]*\}/g)].filter((rule) => !rule[0].includes("--lf-r-")).length).toBe(
       1 + different.length + hover + open,
     );
@@ -214,6 +214,39 @@ test("entry_rules_only_where_open_differs", () => {
               line.startsWith("@starting-style{") && line.includes(`.${cls}:where(`) && line.endsWith(`{${rest}}}`),
           ),
       ).toBe(true);
+    }
+  }
+});
+
+test("forced_colours_only_restore_differing_states_and_background_edges", () => {
+  const base = systems[0]!;
+  for (const border of [
+    undefined,
+    "borderWidth",
+    "borderTopWidth",
+    "borderRightWidth",
+    "borderBottomWidth",
+    "borderLeftWidth",
+  ] as const) {
+    for (const width of [0, 1]) {
+      const rest = {
+        backgroundColor: "surface.base",
+        ...(border ? { [border]: { value: width, unit: "px" } } : {}),
+      } as const;
+      const recipes = Object.fromEntries(
+        ["rest", "hover", "active", "focus", "disabled", "selected", "invalid", "open"].map((state) => [
+          `button.primary.root.${state}`,
+          rest,
+        ]),
+      );
+      const projected = sheet({ ...base, recipes: { ...base.recipes, ...recipes } });
+      const forced = projected.split("@media (forced-colors:active){")[1];
+      expect(forced).toBeDefined();
+      const rules = [...forced!.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter((match) =>
+        match[1]?.includes(".lf_button_primary_root"),
+      );
+      expect(rules.length).toBe(!border || width === 0 ? 1 : 0);
+      if (rules.length) expect(rules[0]?.[2]).toBe("outline:1px solid CanvasText;outline-offset:-1px");
     }
   }
 });

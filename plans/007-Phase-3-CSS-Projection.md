@@ -436,7 +436,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `timeout 600s bun run check` passed: generated-code check, both typechecks, lint, formatting, 363 tests / 109,194 assertions. Existing lint warnings remain; no new warning introduced. The 38 focused CSS tests and `git diff --check` passed.
     - Task 8 retains the outsider guide and renderer/switch contract (already normative in spec §11/§6.4); Task 9 retains the blurred-dialog switch budget. Task 10 retains proof-host integration/parity. Exit motion remains Phase 4. Reduced transparency remains progressive enhancement.
 
-- [ ] Task 7: Keep states and edges visible in forced colours
+- [x] Task 7: Keep states and edges visible in forced colours
   - Acceptance Criteria:
     - Functional:
       - `designSystemCss` emits one `@media (forced-colors: active)` block with decision 8's table. Every rule is emitted only where the state's recipe differs from rest, or, for edges, where the rest recipe sets a `backgroundColor` and no border width above zero.
@@ -456,6 +456,7 @@ Probe answers that hold for every task, unless a task says otherwise:
       - React Aria TagGroup example (per-component forced-colours rules).
       - CSSWG resolution on forced colours (background alpha is kept; system colours pass through).
       - `proof/css/project.ts:262`: the proof's blanket rule.
+      - Rechecked 2026-10-24: MDN [forced-colors](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@media/forced-colors), [forced-color-adjust](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/forced-color-adjust) and [system colours](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/system-color); Playwright [emulation](https://github.com/microsoft/playwright/blob/main/docs/src/emulation.md) through Context7 (`/microsoft/playwright`): `page.emulateMedia({ forcedColors: "active" })` (installed 1.64.1).
     - Options Considered:
       - `forced-color-adjust: auto` alone, as the proof does — rejected: a selected tab, a primary button or a focus ring drawn with a shadow becomes the same as rest.
       - Per-kind mappings, as Fluent and React Aria write them — rejected: the library has no kinds of its own, but it does own the eight states.
@@ -470,12 +471,20 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `src/css/forced-colours.ts`: new. One table.
       - `src/css/design-system.ts`, `src/css/base.ts`: emit it.
       - `src/__tests__/css-design-system.test.ts`, `src/__tests__/css-browser.test.ts`: extended.
+      - `src/__tests__/css-theme.test.ts`: extend the existing colour-authority check to allow system colours only within balanced forced-colours media blocks.
   - Test Cases to Write:
     - Browser `every_state_differs_from_rest_in_forced_colours`: for every proof tuple whose state recipe differs from rest, under both design systems, the state's computed `background-color`, `color`, `outline-*` or `border-*` differs from rest under `forcedColors: "active"`. Fails if any state collapses into rest.
-    - Browser `background_edges_survive_forced_colours`: a `box.plate` root and a popover content slot compute a visible outline under forced colours.
+    - Browser `background_edges_survive_forced_colours`: a `box.plate` root and a popover content slot retain a visible edge under forced colours: an inward outline for background-only edges, or their existing positive border (Rack popover).
     - Browser `fill_indicators_keep_their_shape`: an 8px `fill` circle computes a `CanvasText` outline.
-    - `system_colours_only_in_forced_block`: a string check that every system-colour keyword in the output sits inside the forced-colours block.
-  - Notes (executed <date>):
+    - `colour_authority_holds`: the existing string check now proves every emitted system-colour keyword sits inside the forced-colours block, including outline shorthands; rejects leaks after the block closes.
+    - `forced_colours_only_restore_differing_states_and_background_edges`: equal state recipes emit no cue; absent/zero borders get an edge outline and each positive border-width field suppresses it.
+    - Browser `forced_colour_states_keep_precedence_and_disabled_guards`: native hover, focus, active and invalid retain source-order precedence; a disabled root suppresses native hover and its slots' own hover/active cues.
+  - Notes (executed 2026-10-24):
+    - Added the generic state table and resolved-recipe edge check in `src/css/forced-colours.ts`. `designSystemCss` emits one forced-colours block after its ordinary rules, reusing the same selectors, precedence, root-to-slot propagation, disabled guards and hover-capability media query. `baseCss` restores `.lf_fill` shapes with an inward 1px CanvasText outline. No colour-adjust opt-out or blanket shadow override was added. Spec §6.4 is unchanged.
+    - Browser coverage proves all 64 differing Certified state recipes and all 68 Rack recipes remain distinct from rest, for both slot-owned and root-propagated states. Both systems preserve box/popover edges. Rack's popover already has a positive border, so the edge test checks that visible border rather than requiring an additional outline, matching the acceptance rule. An 8px circular fill indicator retains its geometry and CanvasText outline with `forced-color-adjust: auto`.
+    - Sheet size: Certified 148,165 bytes (25,361-byte forced-colours block); Rack 158,141 bytes (30,075-byte block); shared base 1,072 bytes. Measure again with `designSystemCss`/`baseCss` on `src/__tests__/fixtures/proof/{catalog,certified.design-system,rack.design-system}.json`, counting `new TextEncoder().encode(sheet).length`; the forced block is the suffix starting at `@media (forced-colors:active){`.
+    - Tests were written first: browser checks reproduced collapsed states and missing background/fill outlines before implementation. `timeout 600s bun run check` passed: generated-code check, both typechecks, lint, formatting, 368 tests / 110,049 assertions. Focused CSS coverage totals 43 tests; `git diff --check` passed. Existing lint warnings remain.
+    - G29's real Windows/assistive-technology audit remains a manual gate; Chromium emulation does not close it. Task 8 retains publication/docs, and Task 10 retains proof-host adoption and parity.
 
 - [ ] Task 8: Publish `/css` with outsider documentation
   - Acceptance Criteria:
