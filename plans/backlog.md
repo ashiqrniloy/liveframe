@@ -74,6 +74,8 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 ## Reconcile proof grid tracks before SDK and CSS integration
 
+- Status (2026-10-23, plan 005 Task 7): SDK composition complete. QueueRow uses a keyed Inline with a fixed-width marker, growing body and non-shrinking flag; all exported tree comparisons pass with these named layout exceptions, preserving benchmark node counts. Still open: Phase 3 CSS projection must verify visual parity at the proof widths under both design systems.
+
 - Section: Phase 2 Part A and Phase 3 (spec §6.3, §10, §12)
 - Priority: P2
 - Source: plans/004-Phase-1-Part-B-Compiled-Validator.md

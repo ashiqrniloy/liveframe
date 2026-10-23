@@ -1,0 +1,3539 @@
+[
+  {
+    "name": "ready",
+    "params": {
+      "canAct": true,
+      "canEscalate": true,
+      "canViewAlerts": true
+    },
+    "state": {
+      "filter": "all",
+      "selected": "task-0",
+      "cursors": {
+        "decisions": "start",
+        "tasks": "start",
+        "alerts": "start"
+      },
+      "escalating": "",
+      "reason": ""
+    },
+    "data": {
+      "status": "ready",
+      "checked": "2026-09-28 14:02 UTC",
+      "stale": true,
+      "groups": [
+        {
+          "id": "decisions",
+          "label": "Decisions",
+          "total": 0,
+          "pages": [
+            {
+              "cursor": "start",
+              "rows": []
+            }
+          ]
+        },
+        {
+          "id": "tasks",
+          "label": "Tasks",
+          "total": 50,
+          "pages": [
+            {
+              "cursor": "start",
+              "rows": [
+                {
+                  "id": "task-0",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 0",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-1",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 1",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-2",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 2",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-3",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 3",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-4",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 4",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-5",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 5",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-6",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 6",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-7",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 7",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-8",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 8",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-9",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 9",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-10",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 10",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-11",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 11",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-12",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 12",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-13",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 13",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-14",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 14",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-15",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 15",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-16",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 16",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-17",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 17",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-18",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 18",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-19",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 19",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-20",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 20",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-21",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 21",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-22",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 22",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-23",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 23",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-24",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 24",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-25",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 25",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-26",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 26",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-27",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 27",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-28",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 28",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-29",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 29",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-30",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 30",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-31",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 31",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-32",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 32",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-33",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 33",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-34",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 34",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-35",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 35",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-36",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 36",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-37",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 37",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-38",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 38",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-39",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 39",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-40",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 40",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-41",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 41",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-42",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 42",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-43",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 43",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-44",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 44",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-45",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 45",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-46",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 46",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-47",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 47",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-48",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 48",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                },
+                {
+                  "id": "task-49",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Synthetic task 49",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "alerts",
+          "label": "Alerts",
+          "total": 0,
+          "pages": [
+            {
+              "cursor": "start",
+              "rows": []
+            }
+          ]
+        }
+      ]
+    },
+    "context": {
+      "size": "full"
+    }
+  },
+  {
+    "name": "host-ready",
+    "params": {
+      "canAct": true,
+      "canEscalate": true,
+      "canViewAlerts": true
+    },
+    "state": {
+      "filter": "all",
+      "selected": "decision-8812",
+      "cursors": {
+        "decisions": "start",
+        "tasks": "start",
+        "alerts": "start"
+      },
+      "escalating": "",
+      "reason": ""
+    },
+    "data": {
+      "status": "ready",
+      "checked": "2026-09-28 14:02 UTC",
+      "stale": true,
+      "groups": [
+        {
+          "id": "decisions",
+          "label": "Decisions",
+          "total": 5,
+          "pages": [
+            {
+              "cursor": "start",
+              "nextCursor": "d-2",
+              "rows": [
+                {
+                  "id": "decision-8812",
+                  "rowStatus": "waiting on you",
+                  "rowMeta": [
+                    "Ardent Supplies"
+                  ],
+                  "category": "decisions",
+                  "title": "Apply the vendor's revised delivery week to PO-1188",
+                  "status": "awaiting your decision",
+                  "meta": "Prepared 2026-09-28 13:58 UTC · third version",
+                  "kicker": "Decision · Synapta prepared this for you",
+                  "facts": [
+                    {
+                      "label": "Purchase order",
+                      "value": "PO-1188 · Ardent Supplies"
+                    },
+                    {
+                      "label": "Asked for by",
+                      "value": "Dana Reyes"
+                    }
+                  ],
+                  "reference": "Proposal 8812 · version 3 · digest sha256:9f2c…41ab",
+                  "note": "You decide on the proposal page, which lists every change it makes. Synapta checks the records again before anything is saved."
+                },
+                {
+                  "id": "decision-8813",
+                  "rowStatus": "snoozed",
+                  "rowMeta": [
+                    "until 2026-09-29 08:00"
+                  ],
+                  "category": "decisions",
+                  "title": "Approve the September cost allocation",
+                  "status": "snoozed",
+                  "meta": "until 2026-09-29 08:00",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8813",
+                  "note": "Review every change before deciding."
+                },
+                {
+                  "id": "decision-8814",
+                  "rowStatus": "running",
+                  "rowMeta": [
+                    "preparing a proposal"
+                  ],
+                  "category": "decisions",
+                  "title": "File the quarterly policy digest",
+                  "status": "running",
+                  "meta": "preparing a proposal",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8814",
+                  "note": "A proposal is being prepared."
+                }
+              ]
+            },
+            {
+              "cursor": "d-2",
+              "rows": [
+                {
+                  "id": "decision-8815",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "decisions",
+                  "title": "Review the October delivery plan",
+                  "status": "waiting on you",
+                  "meta": "Operations",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8815",
+                  "note": "Review every change before deciding."
+                },
+                {
+                  "id": "decision-8816",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "decisions",
+                  "title": "Approve the revised supplier terms",
+                  "status": "waiting on you",
+                  "meta": "Purchasing",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8816",
+                  "note": "Review every change before deciding."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tasks",
+          "label": "Tasks",
+          "total": 4,
+          "pages": [
+            {
+              "cursor": "start",
+              "nextCursor": "t-2",
+              "rows": [
+                {
+                  "id": "task-5531",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Reassign the Hansen delivery milestone",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                }
+              ]
+            },
+            {
+              "cursor": "t-2",
+              "nextCursor": "t-3",
+              "rows": [
+                {
+                  "id": "task-5532",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "tasks",
+                  "title": "Confirm the revised handover date",
+                  "status": "open",
+                  "meta": "Milestone watch",
+                  "kicker": "Assigned work",
+                  "facts": [],
+                  "reference": "Work item 5532",
+                  "note": "Claim it to make it yours."
+                },
+                {
+                  "id": "task-5533",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "tasks",
+                  "title": "Check the supplier response",
+                  "status": "open",
+                  "meta": "Purchasing",
+                  "kicker": "Assigned work",
+                  "facts": [],
+                  "reference": "Work item 5533",
+                  "note": "Claim it to make it yours."
+                }
+              ]
+            },
+            {
+              "cursor": "t-3",
+              "rows": [
+                {
+                  "id": "task-5534",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "tasks",
+                  "title": "Update the delivery owner",
+                  "status": "open",
+                  "meta": "Milestone watch",
+                  "kicker": "Assigned work",
+                  "facts": [],
+                  "reference": "Work item 5534",
+                  "note": "Claim it to make it yours."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "alerts",
+          "label": "Alerts",
+          "total": 3,
+          "pages": [
+            {
+              "cursor": "start",
+              "nextCursor": "a-2",
+              "rows": [
+                {
+                  "id": "alert-7302",
+                  "rowStatus": "unread",
+                  "rowMeta": [
+                    "Send approved invoices"
+                  ],
+                  "category": "alerts",
+                  "title": "Invoice INV-2099-438 was refused by the provider",
+                  "status": "unread · needs attention",
+                  "meta": "Raised by Send approved invoices",
+                  "kicker": "Alert · from a standing order",
+                  "facts": [],
+                  "lead": "The mail provider refused the message. The invoice was not sent, your mail connection is unchanged, and Synapta did not try again.",
+                  "reference": "Alert 7302 · mandate 731, version 6 · outcome provider_denied",
+                  "note": "Acknowledge marks it read for you. Snooze hides it for an hour or a day. Convert turns it into a task; no alert closes by itself."
+                },
+                {
+                  "id": "alert-7303",
+                  "rowStatus": "read",
+                  "rowMeta": [
+                    "Microsoft 365"
+                  ],
+                  "category": "alerts",
+                  "title": "Email has not synced since 2026-09-27",
+                  "status": "read",
+                  "meta": "Microsoft 365",
+                  "kicker": "Alert · from a standing order",
+                  "facts": [],
+                  "reference": "Alert 7303",
+                  "note": "Check your mail connection."
+                }
+              ]
+            },
+            {
+              "cursor": "a-2",
+              "rows": [
+                {
+                  "id": "alert-7304",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "alerts",
+                  "title": "The supplier connection needs attention",
+                  "status": "unread",
+                  "meta": "Purchasing",
+                  "kicker": "Alert · from a standing order",
+                  "facts": [],
+                  "reference": "Alert 7304",
+                  "note": "Check the supplier connection."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "context": {
+      "size": "full"
+    }
+  },
+  {
+    "name": "loading",
+    "params": {
+      "canAct": true,
+      "canEscalate": true,
+      "canViewAlerts": true
+    },
+    "state": {
+      "filter": "all",
+      "selected": "decision-8812",
+      "cursors": {
+        "decisions": "start",
+        "tasks": "start",
+        "alerts": "start"
+      },
+      "escalating": "",
+      "reason": ""
+    },
+    "data": {
+      "status": "loading",
+      "checked": "2026-09-28 14:02 UTC",
+      "stale": true,
+      "groups": [
+        {
+          "id": "decisions",
+          "label": "Decisions",
+          "total": 5,
+          "pages": [
+            {
+              "cursor": "start",
+              "nextCursor": "d-2",
+              "rows": [
+                {
+                  "id": "decision-8812",
+                  "rowStatus": "waiting on you",
+                  "rowMeta": [
+                    "Ardent Supplies"
+                  ],
+                  "category": "decisions",
+                  "title": "Apply the vendor's revised delivery week to PO-1188",
+                  "status": "awaiting your decision",
+                  "meta": "Prepared 2026-09-28 13:58 UTC · third version",
+                  "kicker": "Decision · Synapta prepared this for you",
+                  "facts": [
+                    {
+                      "label": "Purchase order",
+                      "value": "PO-1188 · Ardent Supplies"
+                    },
+                    {
+                      "label": "Asked for by",
+                      "value": "Dana Reyes"
+                    }
+                  ],
+                  "reference": "Proposal 8812 · version 3 · digest sha256:9f2c…41ab",
+                  "note": "You decide on the proposal page, which lists every change it makes. Synapta checks the records again before anything is saved."
+                },
+                {
+                  "id": "decision-8813",
+                  "rowStatus": "snoozed",
+                  "rowMeta": [
+                    "until 2026-09-29 08:00"
+                  ],
+                  "category": "decisions",
+                  "title": "Approve the September cost allocation",
+                  "status": "snoozed",
+                  "meta": "until 2026-09-29 08:00",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8813",
+                  "note": "Review every change before deciding."
+                },
+                {
+                  "id": "decision-8814",
+                  "rowStatus": "running",
+                  "rowMeta": [
+                    "preparing a proposal"
+                  ],
+                  "category": "decisions",
+                  "title": "File the quarterly policy digest",
+                  "status": "running",
+                  "meta": "preparing a proposal",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8814",
+                  "note": "A proposal is being prepared."
+                }
+              ]
+            },
+            {
+              "cursor": "d-2",
+              "rows": [
+                {
+                  "id": "decision-8815",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "decisions",
+                  "title": "Review the October delivery plan",
+                  "status": "waiting on you",
+                  "meta": "Operations",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8815",
+                  "note": "Review every change before deciding."
+                },
+                {
+                  "id": "decision-8816",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "decisions",
+                  "title": "Approve the revised supplier terms",
+                  "status": "waiting on you",
+                  "meta": "Purchasing",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8816",
+                  "note": "Review every change before deciding."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tasks",
+          "label": "Tasks",
+          "total": 4,
+          "pages": [
+            {
+              "cursor": "start",
+              "nextCursor": "t-2",
+              "rows": [
+                {
+                  "id": "task-5531",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Reassign the Hansen delivery milestone",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                }
+              ]
+            },
+            {
+              "cursor": "t-2",
+              "nextCursor": "t-3",
+              "rows": [
+                {
+                  "id": "task-5532",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "tasks",
+                  "title": "Confirm the revised handover date",
+                  "status": "open",
+                  "meta": "Milestone watch",
+                  "kicker": "Assigned work",
+                  "facts": [],
+                  "reference": "Work item 5532",
+                  "note": "Claim it to make it yours."
+                },
+                {
+                  "id": "task-5533",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "tasks",
+                  "title": "Check the supplier response",
+                  "status": "open",
+                  "meta": "Purchasing",
+                  "kicker": "Assigned work",
+                  "facts": [],
+                  "reference": "Work item 5533",
+                  "note": "Claim it to make it yours."
+                }
+              ]
+            },
+            {
+              "cursor": "t-3",
+              "rows": [
+                {
+                  "id": "task-5534",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "tasks",
+                  "title": "Update the delivery owner",
+                  "status": "open",
+                  "meta": "Milestone watch",
+                  "kicker": "Assigned work",
+                  "facts": [],
+                  "reference": "Work item 5534",
+                  "note": "Claim it to make it yours."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "alerts",
+          "label": "Alerts",
+          "total": 3,
+          "pages": [
+            {
+              "cursor": "start",
+              "nextCursor": "a-2",
+              "rows": [
+                {
+                  "id": "alert-7302",
+                  "rowStatus": "unread",
+                  "rowMeta": [
+                    "Send approved invoices"
+                  ],
+                  "category": "alerts",
+                  "title": "Invoice INV-2099-438 was refused by the provider",
+                  "status": "unread · needs attention",
+                  "meta": "Raised by Send approved invoices",
+                  "kicker": "Alert · from a standing order",
+                  "facts": [],
+                  "lead": "The mail provider refused the message. The invoice was not sent, your mail connection is unchanged, and Synapta did not try again.",
+                  "reference": "Alert 7302 · mandate 731, version 6 · outcome provider_denied",
+                  "note": "Acknowledge marks it read for you. Snooze hides it for an hour or a day. Convert turns it into a task; no alert closes by itself."
+                },
+                {
+                  "id": "alert-7303",
+                  "rowStatus": "read",
+                  "rowMeta": [
+                    "Microsoft 365"
+                  ],
+                  "category": "alerts",
+                  "title": "Email has not synced since 2026-09-27",
+                  "status": "read",
+                  "meta": "Microsoft 365",
+                  "kicker": "Alert · from a standing order",
+                  "facts": [],
+                  "reference": "Alert 7303",
+                  "note": "Check your mail connection."
+                }
+              ]
+            },
+            {
+              "cursor": "a-2",
+              "rows": [
+                {
+                  "id": "alert-7304",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "alerts",
+                  "title": "The supplier connection needs attention",
+                  "status": "unread",
+                  "meta": "Purchasing",
+                  "kicker": "Alert · from a standing order",
+                  "facts": [],
+                  "reference": "Alert 7304",
+                  "note": "Check the supplier connection."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "context": {
+      "size": "full"
+    }
+  },
+  {
+    "name": "empty",
+    "params": {
+      "canAct": true,
+      "canEscalate": true,
+      "canViewAlerts": true
+    },
+    "state": {
+      "filter": "all",
+      "selected": "decision-8812",
+      "cursors": {
+        "decisions": "start",
+        "tasks": "start",
+        "alerts": "start"
+      },
+      "escalating": "",
+      "reason": ""
+    },
+    "data": {
+      "status": "empty",
+      "checked": "2026-09-28 14:02 UTC",
+      "stale": true,
+      "groups": [
+        {
+          "id": "decisions",
+          "label": "Decisions",
+          "total": 5,
+          "pages": [
+            {
+              "cursor": "start",
+              "nextCursor": "d-2",
+              "rows": [
+                {
+                  "id": "decision-8812",
+                  "rowStatus": "waiting on you",
+                  "rowMeta": [
+                    "Ardent Supplies"
+                  ],
+                  "category": "decisions",
+                  "title": "Apply the vendor's revised delivery week to PO-1188",
+                  "status": "awaiting your decision",
+                  "meta": "Prepared 2026-09-28 13:58 UTC · third version",
+                  "kicker": "Decision · Synapta prepared this for you",
+                  "facts": [
+                    {
+                      "label": "Purchase order",
+                      "value": "PO-1188 · Ardent Supplies"
+                    },
+                    {
+                      "label": "Asked for by",
+                      "value": "Dana Reyes"
+                    }
+                  ],
+                  "reference": "Proposal 8812 · version 3 · digest sha256:9f2c…41ab",
+                  "note": "You decide on the proposal page, which lists every change it makes. Synapta checks the records again before anything is saved."
+                },
+                {
+                  "id": "decision-8813",
+                  "rowStatus": "snoozed",
+                  "rowMeta": [
+                    "until 2026-09-29 08:00"
+                  ],
+                  "category": "decisions",
+                  "title": "Approve the September cost allocation",
+                  "status": "snoozed",
+                  "meta": "until 2026-09-29 08:00",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8813",
+                  "note": "Review every change before deciding."
+                },
+                {
+                  "id": "decision-8814",
+                  "rowStatus": "running",
+                  "rowMeta": [
+                    "preparing a proposal"
+                  ],
+                  "category": "decisions",
+                  "title": "File the quarterly policy digest",
+                  "status": "running",
+                  "meta": "preparing a proposal",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8814",
+                  "note": "A proposal is being prepared."
+                }
+              ]
+            },
+            {
+              "cursor": "d-2",
+              "rows": [
+                {
+                  "id": "decision-8815",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "decisions",
+                  "title": "Review the October delivery plan",
+                  "status": "waiting on you",
+                  "meta": "Operations",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8815",
+                  "note": "Review every change before deciding."
+                },
+                {
+                  "id": "decision-8816",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "decisions",
+                  "title": "Approve the revised supplier terms",
+                  "status": "waiting on you",
+                  "meta": "Purchasing",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8816",
+                  "note": "Review every change before deciding."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tasks",
+          "label": "Tasks",
+          "total": 4,
+          "pages": [
+            {
+              "cursor": "start",
+              "nextCursor": "t-2",
+              "rows": [
+                {
+                  "id": "task-5531",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Reassign the Hansen delivery milestone",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                }
+              ]
+            },
+            {
+              "cursor": "t-2",
+              "nextCursor": "t-3",
+              "rows": [
+                {
+                  "id": "task-5532",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "tasks",
+                  "title": "Confirm the revised handover date",
+                  "status": "open",
+                  "meta": "Milestone watch",
+                  "kicker": "Assigned work",
+                  "facts": [],
+                  "reference": "Work item 5532",
+                  "note": "Claim it to make it yours."
+                },
+                {
+                  "id": "task-5533",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "tasks",
+                  "title": "Check the supplier response",
+                  "status": "open",
+                  "meta": "Purchasing",
+                  "kicker": "Assigned work",
+                  "facts": [],
+                  "reference": "Work item 5533",
+                  "note": "Claim it to make it yours."
+                }
+              ]
+            },
+            {
+              "cursor": "t-3",
+              "rows": [
+                {
+                  "id": "task-5534",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "tasks",
+                  "title": "Update the delivery owner",
+                  "status": "open",
+                  "meta": "Milestone watch",
+                  "kicker": "Assigned work",
+                  "facts": [],
+                  "reference": "Work item 5534",
+                  "note": "Claim it to make it yours."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "alerts",
+          "label": "Alerts",
+          "total": 3,
+          "pages": [
+            {
+              "cursor": "start",
+              "nextCursor": "a-2",
+              "rows": [
+                {
+                  "id": "alert-7302",
+                  "rowStatus": "unread",
+                  "rowMeta": [
+                    "Send approved invoices"
+                  ],
+                  "category": "alerts",
+                  "title": "Invoice INV-2099-438 was refused by the provider",
+                  "status": "unread · needs attention",
+                  "meta": "Raised by Send approved invoices",
+                  "kicker": "Alert · from a standing order",
+                  "facts": [],
+                  "lead": "The mail provider refused the message. The invoice was not sent, your mail connection is unchanged, and Synapta did not try again.",
+                  "reference": "Alert 7302 · mandate 731, version 6 · outcome provider_denied",
+                  "note": "Acknowledge marks it read for you. Snooze hides it for an hour or a day. Convert turns it into a task; no alert closes by itself."
+                },
+                {
+                  "id": "alert-7303",
+                  "rowStatus": "read",
+                  "rowMeta": [
+                    "Microsoft 365"
+                  ],
+                  "category": "alerts",
+                  "title": "Email has not synced since 2026-09-27",
+                  "status": "read",
+                  "meta": "Microsoft 365",
+                  "kicker": "Alert · from a standing order",
+                  "facts": [],
+                  "reference": "Alert 7303",
+                  "note": "Check your mail connection."
+                }
+              ]
+            },
+            {
+              "cursor": "a-2",
+              "rows": [
+                {
+                  "id": "alert-7304",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "alerts",
+                  "title": "The supplier connection needs attention",
+                  "status": "unread",
+                  "meta": "Purchasing",
+                  "kicker": "Alert · from a standing order",
+                  "facts": [],
+                  "reference": "Alert 7304",
+                  "note": "Check the supplier connection."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "context": {
+      "size": "full"
+    }
+  },
+  {
+    "name": "failed",
+    "params": {
+      "canAct": true,
+      "canEscalate": true,
+      "canViewAlerts": true
+    },
+    "state": {
+      "filter": "all",
+      "selected": "decision-8812",
+      "cursors": {
+        "decisions": "start",
+        "tasks": "start",
+        "alerts": "start"
+      },
+      "escalating": "",
+      "reason": ""
+    },
+    "data": {
+      "status": "failed",
+      "checked": "2026-09-28 14:02 UTC",
+      "stale": true,
+      "groups": [
+        {
+          "id": "decisions",
+          "label": "Decisions",
+          "total": 5,
+          "pages": [
+            {
+              "cursor": "start",
+              "nextCursor": "d-2",
+              "rows": [
+                {
+                  "id": "decision-8812",
+                  "rowStatus": "waiting on you",
+                  "rowMeta": [
+                    "Ardent Supplies"
+                  ],
+                  "category": "decisions",
+                  "title": "Apply the vendor's revised delivery week to PO-1188",
+                  "status": "awaiting your decision",
+                  "meta": "Prepared 2026-09-28 13:58 UTC · third version",
+                  "kicker": "Decision · Synapta prepared this for you",
+                  "facts": [
+                    {
+                      "label": "Purchase order",
+                      "value": "PO-1188 · Ardent Supplies"
+                    },
+                    {
+                      "label": "Asked for by",
+                      "value": "Dana Reyes"
+                    }
+                  ],
+                  "reference": "Proposal 8812 · version 3 · digest sha256:9f2c…41ab",
+                  "note": "You decide on the proposal page, which lists every change it makes. Synapta checks the records again before anything is saved."
+                },
+                {
+                  "id": "decision-8813",
+                  "rowStatus": "snoozed",
+                  "rowMeta": [
+                    "until 2026-09-29 08:00"
+                  ],
+                  "category": "decisions",
+                  "title": "Approve the September cost allocation",
+                  "status": "snoozed",
+                  "meta": "until 2026-09-29 08:00",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8813",
+                  "note": "Review every change before deciding."
+                },
+                {
+                  "id": "decision-8814",
+                  "rowStatus": "running",
+                  "rowMeta": [
+                    "preparing a proposal"
+                  ],
+                  "category": "decisions",
+                  "title": "File the quarterly policy digest",
+                  "status": "running",
+                  "meta": "preparing a proposal",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8814",
+                  "note": "A proposal is being prepared."
+                }
+              ]
+            },
+            {
+              "cursor": "d-2",
+              "rows": [
+                {
+                  "id": "decision-8815",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "decisions",
+                  "title": "Review the October delivery plan",
+                  "status": "waiting on you",
+                  "meta": "Operations",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8815",
+                  "note": "Review every change before deciding."
+                },
+                {
+                  "id": "decision-8816",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "decisions",
+                  "title": "Approve the revised supplier terms",
+                  "status": "waiting on you",
+                  "meta": "Purchasing",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8816",
+                  "note": "Review every change before deciding."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tasks",
+          "label": "Tasks",
+          "total": 4,
+          "pages": [
+            {
+              "cursor": "start",
+              "nextCursor": "t-2",
+              "rows": [
+                {
+                  "id": "task-5531",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Reassign the Hansen delivery milestone",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                }
+              ]
+            },
+            {
+              "cursor": "t-2",
+              "nextCursor": "t-3",
+              "rows": [
+                {
+                  "id": "task-5532",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "tasks",
+                  "title": "Confirm the revised handover date",
+                  "status": "open",
+                  "meta": "Milestone watch",
+                  "kicker": "Assigned work",
+                  "facts": [],
+                  "reference": "Work item 5532",
+                  "note": "Claim it to make it yours."
+                },
+                {
+                  "id": "task-5533",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "tasks",
+                  "title": "Check the supplier response",
+                  "status": "open",
+                  "meta": "Purchasing",
+                  "kicker": "Assigned work",
+                  "facts": [],
+                  "reference": "Work item 5533",
+                  "note": "Claim it to make it yours."
+                }
+              ]
+            },
+            {
+              "cursor": "t-3",
+              "rows": [
+                {
+                  "id": "task-5534",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "tasks",
+                  "title": "Update the delivery owner",
+                  "status": "open",
+                  "meta": "Milestone watch",
+                  "kicker": "Assigned work",
+                  "facts": [],
+                  "reference": "Work item 5534",
+                  "note": "Claim it to make it yours."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "alerts",
+          "label": "Alerts",
+          "total": 3,
+          "pages": [
+            {
+              "cursor": "start",
+              "nextCursor": "a-2",
+              "rows": [
+                {
+                  "id": "alert-7302",
+                  "rowStatus": "unread",
+                  "rowMeta": [
+                    "Send approved invoices"
+                  ],
+                  "category": "alerts",
+                  "title": "Invoice INV-2099-438 was refused by the provider",
+                  "status": "unread · needs attention",
+                  "meta": "Raised by Send approved invoices",
+                  "kicker": "Alert · from a standing order",
+                  "facts": [],
+                  "lead": "The mail provider refused the message. The invoice was not sent, your mail connection is unchanged, and Synapta did not try again.",
+                  "reference": "Alert 7302 · mandate 731, version 6 · outcome provider_denied",
+                  "note": "Acknowledge marks it read for you. Snooze hides it for an hour or a day. Convert turns it into a task; no alert closes by itself."
+                },
+                {
+                  "id": "alert-7303",
+                  "rowStatus": "read",
+                  "rowMeta": [
+                    "Microsoft 365"
+                  ],
+                  "category": "alerts",
+                  "title": "Email has not synced since 2026-09-27",
+                  "status": "read",
+                  "meta": "Microsoft 365",
+                  "kicker": "Alert · from a standing order",
+                  "facts": [],
+                  "reference": "Alert 7303",
+                  "note": "Check your mail connection."
+                }
+              ]
+            },
+            {
+              "cursor": "a-2",
+              "rows": [
+                {
+                  "id": "alert-7304",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "alerts",
+                  "title": "The supplier connection needs attention",
+                  "status": "unread",
+                  "meta": "Purchasing",
+                  "kicker": "Alert · from a standing order",
+                  "facts": [],
+                  "reference": "Alert 7304",
+                  "note": "Check the supplier connection."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "context": {
+      "size": "full"
+    }
+  },
+  {
+    "name": "read-only",
+    "params": {
+      "canAct": false,
+      "canEscalate": true,
+      "canViewAlerts": true
+    },
+    "state": {
+      "filter": "all",
+      "selected": "decision-8812",
+      "cursors": {
+        "decisions": "start",
+        "tasks": "start",
+        "alerts": "start"
+      },
+      "escalating": "",
+      "reason": ""
+    },
+    "data": {
+      "status": "ready",
+      "checked": "2026-09-28 14:02 UTC",
+      "stale": true,
+      "groups": [
+        {
+          "id": "decisions",
+          "label": "Decisions",
+          "total": 5,
+          "pages": [
+            {
+              "cursor": "start",
+              "nextCursor": "d-2",
+              "rows": [
+                {
+                  "id": "decision-8812",
+                  "rowStatus": "waiting on you",
+                  "rowMeta": [
+                    "Ardent Supplies"
+                  ],
+                  "category": "decisions",
+                  "title": "Apply the vendor's revised delivery week to PO-1188",
+                  "status": "awaiting your decision",
+                  "meta": "Prepared 2026-09-28 13:58 UTC · third version",
+                  "kicker": "Decision · Synapta prepared this for you",
+                  "facts": [
+                    {
+                      "label": "Purchase order",
+                      "value": "PO-1188 · Ardent Supplies"
+                    },
+                    {
+                      "label": "Asked for by",
+                      "value": "Dana Reyes"
+                    }
+                  ],
+                  "reference": "Proposal 8812 · version 3 · digest sha256:9f2c…41ab",
+                  "note": "You decide on the proposal page, which lists every change it makes. Synapta checks the records again before anything is saved."
+                },
+                {
+                  "id": "decision-8813",
+                  "rowStatus": "snoozed",
+                  "rowMeta": [
+                    "until 2026-09-29 08:00"
+                  ],
+                  "category": "decisions",
+                  "title": "Approve the September cost allocation",
+                  "status": "snoozed",
+                  "meta": "until 2026-09-29 08:00",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8813",
+                  "note": "Review every change before deciding."
+                },
+                {
+                  "id": "decision-8814",
+                  "rowStatus": "running",
+                  "rowMeta": [
+                    "preparing a proposal"
+                  ],
+                  "category": "decisions",
+                  "title": "File the quarterly policy digest",
+                  "status": "running",
+                  "meta": "preparing a proposal",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8814",
+                  "note": "A proposal is being prepared."
+                }
+              ]
+            },
+            {
+              "cursor": "d-2",
+              "rows": [
+                {
+                  "id": "decision-8815",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "decisions",
+                  "title": "Review the October delivery plan",
+                  "status": "waiting on you",
+                  "meta": "Operations",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8815",
+                  "note": "Review every change before deciding."
+                },
+                {
+                  "id": "decision-8816",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "decisions",
+                  "title": "Approve the revised supplier terms",
+                  "status": "waiting on you",
+                  "meta": "Purchasing",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8816",
+                  "note": "Review every change before deciding."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tasks",
+          "label": "Tasks",
+          "total": 4,
+          "pages": [
+            {
+              "cursor": "start",
+              "nextCursor": "t-2",
+              "rows": [
+                {
+                  "id": "task-5531",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Reassign the Hansen delivery milestone",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                }
+              ]
+            },
+            {
+              "cursor": "t-2",
+              "nextCursor": "t-3",
+              "rows": [
+                {
+                  "id": "task-5532",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "tasks",
+                  "title": "Confirm the revised handover date",
+                  "status": "open",
+                  "meta": "Milestone watch",
+                  "kicker": "Assigned work",
+                  "facts": [],
+                  "reference": "Work item 5532",
+                  "note": "Claim it to make it yours."
+                },
+                {
+                  "id": "task-5533",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "tasks",
+                  "title": "Check the supplier response",
+                  "status": "open",
+                  "meta": "Purchasing",
+                  "kicker": "Assigned work",
+                  "facts": [],
+                  "reference": "Work item 5533",
+                  "note": "Claim it to make it yours."
+                }
+              ]
+            },
+            {
+              "cursor": "t-3",
+              "rows": [
+                {
+                  "id": "task-5534",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "tasks",
+                  "title": "Update the delivery owner",
+                  "status": "open",
+                  "meta": "Milestone watch",
+                  "kicker": "Assigned work",
+                  "facts": [],
+                  "reference": "Work item 5534",
+                  "note": "Claim it to make it yours."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "alerts",
+          "label": "Alerts",
+          "total": 3,
+          "pages": [
+            {
+              "cursor": "start",
+              "nextCursor": "a-2",
+              "rows": [
+                {
+                  "id": "alert-7302",
+                  "rowStatus": "unread",
+                  "rowMeta": [
+                    "Send approved invoices"
+                  ],
+                  "category": "alerts",
+                  "title": "Invoice INV-2099-438 was refused by the provider",
+                  "status": "unread · needs attention",
+                  "meta": "Raised by Send approved invoices",
+                  "kicker": "Alert · from a standing order",
+                  "facts": [],
+                  "lead": "The mail provider refused the message. The invoice was not sent, your mail connection is unchanged, and Synapta did not try again.",
+                  "reference": "Alert 7302 · mandate 731, version 6 · outcome provider_denied",
+                  "note": "Acknowledge marks it read for you. Snooze hides it for an hour or a day. Convert turns it into a task; no alert closes by itself."
+                },
+                {
+                  "id": "alert-7303",
+                  "rowStatus": "read",
+                  "rowMeta": [
+                    "Microsoft 365"
+                  ],
+                  "category": "alerts",
+                  "title": "Email has not synced since 2026-09-27",
+                  "status": "read",
+                  "meta": "Microsoft 365",
+                  "kicker": "Alert · from a standing order",
+                  "facts": [],
+                  "reference": "Alert 7303",
+                  "note": "Check your mail connection."
+                }
+              ]
+            },
+            {
+              "cursor": "a-2",
+              "rows": [
+                {
+                  "id": "alert-7304",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "alerts",
+                  "title": "The supplier connection needs attention",
+                  "status": "unread",
+                  "meta": "Purchasing",
+                  "kicker": "Alert · from a standing order",
+                  "facts": [],
+                  "reference": "Alert 7304",
+                  "note": "Check the supplier connection."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "context": {
+      "size": "full"
+    }
+  },
+  {
+    "name": "no-alerts",
+    "params": {
+      "canAct": true,
+      "canEscalate": true,
+      "canViewAlerts": false
+    },
+    "state": {
+      "filter": "all",
+      "selected": "decision-8812",
+      "cursors": {
+        "decisions": "start",
+        "tasks": "start",
+        "alerts": "start"
+      },
+      "escalating": "",
+      "reason": ""
+    },
+    "data": {
+      "status": "ready",
+      "checked": "2026-09-28 14:02 UTC",
+      "stale": true,
+      "groups": [
+        {
+          "id": "decisions",
+          "label": "Decisions",
+          "total": 5,
+          "pages": [
+            {
+              "cursor": "start",
+              "nextCursor": "d-2",
+              "rows": [
+                {
+                  "id": "decision-8812",
+                  "rowStatus": "waiting on you",
+                  "rowMeta": [
+                    "Ardent Supplies"
+                  ],
+                  "category": "decisions",
+                  "title": "Apply the vendor's revised delivery week to PO-1188",
+                  "status": "awaiting your decision",
+                  "meta": "Prepared 2026-09-28 13:58 UTC · third version",
+                  "kicker": "Decision · Synapta prepared this for you",
+                  "facts": [
+                    {
+                      "label": "Purchase order",
+                      "value": "PO-1188 · Ardent Supplies"
+                    },
+                    {
+                      "label": "Asked for by",
+                      "value": "Dana Reyes"
+                    }
+                  ],
+                  "reference": "Proposal 8812 · version 3 · digest sha256:9f2c…41ab",
+                  "note": "You decide on the proposal page, which lists every change it makes. Synapta checks the records again before anything is saved."
+                },
+                {
+                  "id": "decision-8813",
+                  "rowStatus": "snoozed",
+                  "rowMeta": [
+                    "until 2026-09-29 08:00"
+                  ],
+                  "category": "decisions",
+                  "title": "Approve the September cost allocation",
+                  "status": "snoozed",
+                  "meta": "until 2026-09-29 08:00",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8813",
+                  "note": "Review every change before deciding."
+                },
+                {
+                  "id": "decision-8814",
+                  "rowStatus": "running",
+                  "rowMeta": [
+                    "preparing a proposal"
+                  ],
+                  "category": "decisions",
+                  "title": "File the quarterly policy digest",
+                  "status": "running",
+                  "meta": "preparing a proposal",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8814",
+                  "note": "A proposal is being prepared."
+                }
+              ]
+            },
+            {
+              "cursor": "d-2",
+              "rows": [
+                {
+                  "id": "decision-8815",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "decisions",
+                  "title": "Review the October delivery plan",
+                  "status": "waiting on you",
+                  "meta": "Operations",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8815",
+                  "note": "Review every change before deciding."
+                },
+                {
+                  "id": "decision-8816",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "decisions",
+                  "title": "Approve the revised supplier terms",
+                  "status": "waiting on you",
+                  "meta": "Purchasing",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8816",
+                  "note": "Review every change before deciding."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tasks",
+          "label": "Tasks",
+          "total": 4,
+          "pages": [
+            {
+              "cursor": "start",
+              "nextCursor": "t-2",
+              "rows": [
+                {
+                  "id": "task-5531",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Reassign the Hansen delivery milestone",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                }
+              ]
+            },
+            {
+              "cursor": "t-2",
+              "nextCursor": "t-3",
+              "rows": [
+                {
+                  "id": "task-5532",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "tasks",
+                  "title": "Confirm the revised handover date",
+                  "status": "open",
+                  "meta": "Milestone watch",
+                  "kicker": "Assigned work",
+                  "facts": [],
+                  "reference": "Work item 5532",
+                  "note": "Claim it to make it yours."
+                },
+                {
+                  "id": "task-5533",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "tasks",
+                  "title": "Check the supplier response",
+                  "status": "open",
+                  "meta": "Purchasing",
+                  "kicker": "Assigned work",
+                  "facts": [],
+                  "reference": "Work item 5533",
+                  "note": "Claim it to make it yours."
+                }
+              ]
+            },
+            {
+              "cursor": "t-3",
+              "rows": [
+                {
+                  "id": "task-5534",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "tasks",
+                  "title": "Update the delivery owner",
+                  "status": "open",
+                  "meta": "Milestone watch",
+                  "kicker": "Assigned work",
+                  "facts": [],
+                  "reference": "Work item 5534",
+                  "note": "Claim it to make it yours."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "alerts",
+          "label": "Alerts",
+          "total": 3,
+          "pages": [
+            {
+              "cursor": "start",
+              "nextCursor": "a-2",
+              "rows": [
+                {
+                  "id": "alert-7302",
+                  "rowStatus": "unread",
+                  "rowMeta": [
+                    "Send approved invoices"
+                  ],
+                  "category": "alerts",
+                  "title": "Invoice INV-2099-438 was refused by the provider",
+                  "status": "unread · needs attention",
+                  "meta": "Raised by Send approved invoices",
+                  "kicker": "Alert · from a standing order",
+                  "facts": [],
+                  "lead": "The mail provider refused the message. The invoice was not sent, your mail connection is unchanged, and Synapta did not try again.",
+                  "reference": "Alert 7302 · mandate 731, version 6 · outcome provider_denied",
+                  "note": "Acknowledge marks it read for you. Snooze hides it for an hour or a day. Convert turns it into a task; no alert closes by itself."
+                },
+                {
+                  "id": "alert-7303",
+                  "rowStatus": "read",
+                  "rowMeta": [
+                    "Microsoft 365"
+                  ],
+                  "category": "alerts",
+                  "title": "Email has not synced since 2026-09-27",
+                  "status": "read",
+                  "meta": "Microsoft 365",
+                  "kicker": "Alert · from a standing order",
+                  "facts": [],
+                  "reference": "Alert 7303",
+                  "note": "Check your mail connection."
+                }
+              ]
+            },
+            {
+              "cursor": "a-2",
+              "rows": [
+                {
+                  "id": "alert-7304",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "alerts",
+                  "title": "The supplier connection needs attention",
+                  "status": "unread",
+                  "meta": "Purchasing",
+                  "kicker": "Alert · from a standing order",
+                  "facts": [],
+                  "reference": "Alert 7304",
+                  "note": "Check the supplier connection."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "context": {
+      "size": "full"
+    }
+  },
+  {
+    "name": "no-escalate",
+    "params": {
+      "canAct": true,
+      "canEscalate": false,
+      "canViewAlerts": true
+    },
+    "state": {
+      "filter": "all",
+      "selected": "decision-8812",
+      "cursors": {
+        "decisions": "start",
+        "tasks": "start",
+        "alerts": "start"
+      },
+      "escalating": "",
+      "reason": ""
+    },
+    "data": {
+      "status": "ready",
+      "checked": "2026-09-28 14:02 UTC",
+      "stale": true,
+      "groups": [
+        {
+          "id": "decisions",
+          "label": "Decisions",
+          "total": 5,
+          "pages": [
+            {
+              "cursor": "start",
+              "nextCursor": "d-2",
+              "rows": [
+                {
+                  "id": "decision-8812",
+                  "rowStatus": "waiting on you",
+                  "rowMeta": [
+                    "Ardent Supplies"
+                  ],
+                  "category": "decisions",
+                  "title": "Apply the vendor's revised delivery week to PO-1188",
+                  "status": "awaiting your decision",
+                  "meta": "Prepared 2026-09-28 13:58 UTC · third version",
+                  "kicker": "Decision · Synapta prepared this for you",
+                  "facts": [
+                    {
+                      "label": "Purchase order",
+                      "value": "PO-1188 · Ardent Supplies"
+                    },
+                    {
+                      "label": "Asked for by",
+                      "value": "Dana Reyes"
+                    }
+                  ],
+                  "reference": "Proposal 8812 · version 3 · digest sha256:9f2c…41ab",
+                  "note": "You decide on the proposal page, which lists every change it makes. Synapta checks the records again before anything is saved."
+                },
+                {
+                  "id": "decision-8813",
+                  "rowStatus": "snoozed",
+                  "rowMeta": [
+                    "until 2026-09-29 08:00"
+                  ],
+                  "category": "decisions",
+                  "title": "Approve the September cost allocation",
+                  "status": "snoozed",
+                  "meta": "until 2026-09-29 08:00",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8813",
+                  "note": "Review every change before deciding."
+                },
+                {
+                  "id": "decision-8814",
+                  "rowStatus": "running",
+                  "rowMeta": [
+                    "preparing a proposal"
+                  ],
+                  "category": "decisions",
+                  "title": "File the quarterly policy digest",
+                  "status": "running",
+                  "meta": "preparing a proposal",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8814",
+                  "note": "A proposal is being prepared."
+                }
+              ]
+            },
+            {
+              "cursor": "d-2",
+              "rows": [
+                {
+                  "id": "decision-8815",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "decisions",
+                  "title": "Review the October delivery plan",
+                  "status": "waiting on you",
+                  "meta": "Operations",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8815",
+                  "note": "Review every change before deciding."
+                },
+                {
+                  "id": "decision-8816",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "decisions",
+                  "title": "Approve the revised supplier terms",
+                  "status": "waiting on you",
+                  "meta": "Purchasing",
+                  "kicker": "Decision",
+                  "facts": [],
+                  "reference": "Proposal 8816",
+                  "note": "Review every change before deciding."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tasks",
+          "label": "Tasks",
+          "total": 4,
+          "pages": [
+            {
+              "cursor": "start",
+              "nextCursor": "t-2",
+              "rows": [
+                {
+                  "id": "task-5531",
+                  "rowStatus": "overdue",
+                  "rowMeta": [
+                    "due 2026-09-30",
+                    "Milestone watch"
+                  ],
+                  "category": "tasks",
+                  "title": "Reassign the Hansen delivery milestone",
+                  "status": "overdue · due 2026-09-30",
+                  "meta": "Raised by the mandate Milestone watch",
+                  "kicker": "Assigned work · waiting for you to claim it",
+                  "facts": [
+                    {
+                      "label": "Assigned to",
+                      "value": "Project owners"
+                    },
+                    {
+                      "label": "Why",
+                      "value": "The milestone owner is unavailable"
+                    },
+                    {
+                      "label": "Related proposal",
+                      "value": "Apply the vendor's revised delivery week to PO-1188"
+                    }
+                  ],
+                  "reference": "Work item 5531 · mandate 441, version 3 · reason owner_unavailable",
+                  "note": "Claim it to make it yours. When you complete it, your note is kept with it.",
+                  "foldedAlerts": 1
+                }
+              ]
+            },
+            {
+              "cursor": "t-2",
+              "nextCursor": "t-3",
+              "rows": [
+                {
+                  "id": "task-5532",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "tasks",
+                  "title": "Confirm the revised handover date",
+                  "status": "open",
+                  "meta": "Milestone watch",
+                  "kicker": "Assigned work",
+                  "facts": [],
+                  "reference": "Work item 5532",
+                  "note": "Claim it to make it yours."
+                },
+                {
+                  "id": "task-5533",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "tasks",
+                  "title": "Check the supplier response",
+                  "status": "open",
+                  "meta": "Purchasing",
+                  "kicker": "Assigned work",
+                  "facts": [],
+                  "reference": "Work item 5533",
+                  "note": "Claim it to make it yours."
+                }
+              ]
+            },
+            {
+              "cursor": "t-3",
+              "rows": [
+                {
+                  "id": "task-5534",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "tasks",
+                  "title": "Update the delivery owner",
+                  "status": "open",
+                  "meta": "Milestone watch",
+                  "kicker": "Assigned work",
+                  "facts": [],
+                  "reference": "Work item 5534",
+                  "note": "Claim it to make it yours."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "alerts",
+          "label": "Alerts",
+          "total": 3,
+          "pages": [
+            {
+              "cursor": "start",
+              "nextCursor": "a-2",
+              "rows": [
+                {
+                  "id": "alert-7302",
+                  "rowStatus": "unread",
+                  "rowMeta": [
+                    "Send approved invoices"
+                  ],
+                  "category": "alerts",
+                  "title": "Invoice INV-2099-438 was refused by the provider",
+                  "status": "unread · needs attention",
+                  "meta": "Raised by Send approved invoices",
+                  "kicker": "Alert · from a standing order",
+                  "facts": [],
+                  "lead": "The mail provider refused the message. The invoice was not sent, your mail connection is unchanged, and Synapta did not try again.",
+                  "reference": "Alert 7302 · mandate 731, version 6 · outcome provider_denied",
+                  "note": "Acknowledge marks it read for you. Snooze hides it for an hour or a day. Convert turns it into a task; no alert closes by itself."
+                },
+                {
+                  "id": "alert-7303",
+                  "rowStatus": "read",
+                  "rowMeta": [
+                    "Microsoft 365"
+                  ],
+                  "category": "alerts",
+                  "title": "Email has not synced since 2026-09-27",
+                  "status": "read",
+                  "meta": "Microsoft 365",
+                  "kicker": "Alert · from a standing order",
+                  "facts": [],
+                  "reference": "Alert 7303",
+                  "note": "Check your mail connection."
+                }
+              ]
+            },
+            {
+              "cursor": "a-2",
+              "rows": [
+                {
+                  "id": "alert-7304",
+                  "rowStatus": "open",
+                  "rowMeta": [],
+                  "category": "alerts",
+                  "title": "The supplier connection needs attention",
+                  "status": "unread",
+                  "meta": "Purchasing",
+                  "kicker": "Alert · from a standing order",
+                  "facts": [],
+                  "reference": "Alert 7304",
+                  "note": "Check the supplier connection."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "context": {
+      "size": "full"
+    }
+  }
+]

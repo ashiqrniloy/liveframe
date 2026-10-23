@@ -1,0 +1,305 @@
+[
+  {
+    "name": "ready",
+    "params": {},
+    "state": {},
+    "data": {
+      "statuses": [
+        {
+          "workspaceRootId": "clay",
+          "workspaceRoot": "/synthetic/clay",
+          "snapshot": {
+            "head": {
+              "kind": "branch",
+              "name": "main"
+            },
+            "dirty": true,
+            "changedFileCount": 2
+          },
+          "refreshState": {
+            "kind": "last-success"
+          }
+        },
+        {
+          "workspaceRootId": "tools",
+          "workspaceRoot": "/synthetic/tools",
+          "snapshot": {
+            "head": {
+              "kind": "detached",
+              "shortSha": "abc1234"
+            },
+            "dirty": false
+          },
+          "refreshState": {
+            "kind": "last-error",
+            "status": {
+              "kind": "unavailable"
+            }
+          }
+        },
+        {
+          "workspaceRootId": "new",
+          "workspaceRoot": "/synthetic/new",
+          "snapshot": {
+            "head": {
+              "kind": "unborn"
+            },
+            "dirty": true
+          },
+          "refreshState": {
+            "kind": "refreshing"
+          }
+        },
+        {
+          "workspaceRootId": "pending",
+          "workspaceRoot": "/synthetic/pending"
+        },
+        {
+          "workspaceRootId": "unknown",
+          "workspaceRoot": "/synthetic/unknown",
+          "snapshot": {
+            "dirty": false
+          },
+          "refreshState": {
+            "kind": "idle"
+          }
+        },
+        {
+          "workspaceRootId": "sanitized",
+          "workspaceRoot": "/synthetic/safe\nroot",
+          "snapshot": {
+            "head": {
+              "kind": "branch",
+              "name": "topic/private\nbranch"
+            },
+            "dirty": false
+          },
+          "refreshState": {
+            "kind": "last-error"
+          }
+        }
+      ]
+    },
+    "context": {
+      "size": "full"
+    }
+  },
+  {
+    "name": "empty",
+    "params": {},
+    "state": {},
+    "data": {
+      "statuses": []
+    },
+    "context": {
+      "size": "full"
+    }
+  },
+  {
+    "name": "benchmark",
+    "params": {},
+    "state": {},
+    "data": {
+      "statuses": [
+        {
+          "workspaceRootId": "root-0",
+          "workspaceRoot": "/synthetic/clay",
+          "snapshot": {
+            "head": {
+              "kind": "branch",
+              "name": "main"
+            },
+            "dirty": true,
+            "changedFileCount": 2
+          },
+          "refreshState": {
+            "kind": "last-success"
+          }
+        },
+        {
+          "workspaceRootId": "root-1",
+          "workspaceRoot": "/synthetic/clay",
+          "snapshot": {
+            "head": {
+              "kind": "branch",
+              "name": "main"
+            },
+            "dirty": true,
+            "changedFileCount": 2
+          },
+          "refreshState": {
+            "kind": "last-success"
+          }
+        },
+        {
+          "workspaceRootId": "root-2",
+          "workspaceRoot": "/synthetic/clay",
+          "snapshot": {
+            "head": {
+              "kind": "branch",
+              "name": "main"
+            },
+            "dirty": true,
+            "changedFileCount": 2
+          },
+          "refreshState": {
+            "kind": "last-success"
+          }
+        },
+        {
+          "workspaceRootId": "root-3",
+          "workspaceRoot": "/synthetic/clay",
+          "snapshot": {
+            "head": {
+              "kind": "branch",
+              "name": "main"
+            },
+            "dirty": true,
+            "changedFileCount": 2
+          },
+          "refreshState": {
+            "kind": "last-success"
+          }
+        },
+        {
+          "workspaceRootId": "root-4",
+          "workspaceRoot": "/synthetic/clay",
+          "snapshot": {
+            "head": {
+              "kind": "branch",
+              "name": "main"
+            },
+            "dirty": true,
+            "changedFileCount": 2
+          },
+          "refreshState": {
+            "kind": "last-success"
+          }
+        },
+        {
+          "workspaceRootId": "root-5",
+          "workspaceRoot": "/synthetic/clay",
+          "snapshot": {
+            "head": {
+              "kind": "branch",
+              "name": "main"
+            },
+            "dirty": true,
+            "changedFileCount": 2
+          },
+          "refreshState": {
+            "kind": "last-success"
+          }
+        },
+        {
+          "workspaceRootId": "root-6",
+          "workspaceRoot": "/synthetic/clay",
+          "snapshot": {
+            "head": {
+              "kind": "branch",
+              "name": "main"
+            },
+            "dirty": true,
+            "changedFileCount": 2
+          },
+          "refreshState": {
+            "kind": "last-success"
+          }
+        },
+        {
+          "workspaceRootId": "root-7",
+          "workspaceRoot": "/synthetic/clay",
+          "snapshot": {
+            "head": {
+              "kind": "branch",
+              "name": "main"
+            },
+            "dirty": true,
+            "changedFileCount": 2
+          },
+          "refreshState": {
+            "kind": "last-success"
+          }
+        },
+        {
+          "workspaceRootId": "root-8",
+          "workspaceRoot": "/synthetic/clay",
+          "snapshot": {
+            "head": {
+              "kind": "branch",
+              "name": "main"
+            },
+            "dirty": true,
+            "changedFileCount": 2
+          },
+          "refreshState": {
+            "kind": "last-success"
+          }
+        },
+        {
+          "workspaceRootId": "root-9",
+          "workspaceRoot": "/synthetic/clay",
+          "snapshot": {
+            "head": {
+              "kind": "branch",
+              "name": "main"
+            },
+            "dirty": true,
+            "changedFileCount": 2
+          },
+          "refreshState": {
+            "kind": "last-success"
+          }
+        },
+        {
+          "workspaceRootId": "root-10",
+          "workspaceRoot": "/synthetic/clay",
+          "snapshot": {
+            "head": {
+              "kind": "branch",
+              "name": "main"
+            },
+            "dirty": true,
+            "changedFileCount": 2
+          },
+          "refreshState": {
+            "kind": "last-success"
+          }
+        },
+        {
+          "workspaceRootId": "root-11",
+          "workspaceRoot": "/synthetic/clay",
+          "snapshot": {
+            "head": {
+              "kind": "branch",
+              "name": "main"
+            },
+            "dirty": true,
+            "changedFileCount": 2
+          },
+          "refreshState": {
+            "kind": "last-success"
+          }
+        },
+        {
+          "workspaceRootId": "root-12",
+          "workspaceRoot": "/synthetic/clay",
+          "snapshot": {
+            "head": {
+              "kind": "branch",
+              "name": "main"
+            },
+            "dirty": true,
+            "changedFileCount": 2
+          },
+          "refreshState": {
+            "kind": "last-success"
+          }
+        }
+      ]
+    },
+    "context": {
+      "size": "full"
+    }
+  }
+]

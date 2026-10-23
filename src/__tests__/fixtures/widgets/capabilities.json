@@ -1,0 +1,549 @@
+{
+  "format": "liveframe-capabilities/1",
+  "sources": {
+    "queue.status": {
+      "description": "Synthetic proof queue.status.",
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "string",
+        "enum": [
+          "ready",
+          "loading",
+          "empty",
+          "failed"
+        ],
+        "maxLength": 7
+      }
+    },
+    "queue.checked": {
+      "description": "Synthetic proof queue.checked.",
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "string",
+        "maxLength": 10000
+      }
+    },
+    "queue.stale": {
+      "description": "Synthetic proof queue.stale.",
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "boolean"
+      }
+    },
+    "queue.groups": {
+      "description": "Synthetic proof queue.groups.",
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "enum": [
+                "decisions",
+                "tasks",
+                "alerts"
+              ],
+              "maxLength": 9
+            },
+            "label": {
+              "type": "string",
+              "maxLength": 10000
+            },
+            "total": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            "pages": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "cursor": {
+                    "type": "string",
+                    "maxLength": 128
+                  },
+                  "nextCursor": {
+                    "type": "string",
+                    "maxLength": 128
+                  },
+                  "rows": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "maxLength": 128
+                        },
+                        "category": {
+                          "type": "string",
+                          "enum": [
+                            "decisions",
+                            "tasks",
+                            "alerts"
+                          ],
+                          "maxLength": 9
+                        },
+                        "title": {
+                          "type": "string",
+                          "maxLength": 10000
+                        },
+                        "status": {
+                          "type": "string",
+                          "maxLength": 10000
+                        },
+                        "meta": {
+                          "type": "string",
+                          "maxLength": 10000
+                        },
+                        "rowStatus": {
+                          "type": "string",
+                          "maxLength": 10000
+                        },
+                        "rowMeta": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "maxLength": 10000
+                          },
+                          "maxItems": 100
+                        },
+                        "kicker": {
+                          "type": "string",
+                          "maxLength": 10000
+                        },
+                        "facts": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "label": {
+                                "type": "string",
+                                "maxLength": 10000
+                              },
+                              "value": {
+                                "type": "string",
+                                "maxLength": 10000
+                              }
+                            },
+                            "required": [
+                              "label",
+                              "value"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "maxItems": 100
+                        },
+                        "reference": {
+                          "type": "string",
+                          "maxLength": 10000
+                        },
+                        "note": {
+                          "type": "string",
+                          "maxLength": 10000
+                        },
+                        "lead": {
+                          "type": "string",
+                          "maxLength": 10000
+                        },
+                        "foldedAlerts": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 100
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "category",
+                        "title",
+                        "status",
+                        "meta",
+                        "rowStatus",
+                        "rowMeta",
+                        "kicker",
+                        "facts",
+                        "reference",
+                        "note"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "maxItems": 100
+                  }
+                },
+                "required": [
+                  "cursor",
+                  "rows"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 100
+            }
+          },
+          "required": [
+            "id",
+            "label",
+            "total",
+            "pages"
+          ],
+          "additionalProperties": false
+        },
+        "maxItems": 3
+      }
+    },
+    "git.statuses": {
+      "description": "Synthetic proof git.statuses.",
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "workspaceRootId": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "workspaceRoot": {
+              "type": "string",
+              "maxLength": 10000
+            },
+            "snapshot": {
+              "type": "object",
+              "properties": {
+                "head": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "maxLength": 128
+                    },
+                    "name": {
+                      "type": "string",
+                      "maxLength": 10000
+                    },
+                    "shortSha": {
+                      "type": "string",
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "additionalProperties": false
+                },
+                "dirty": {
+                  "type": "boolean"
+                },
+                "changedFileCount": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 10000
+                }
+              },
+              "required": [
+                "dirty"
+              ],
+              "additionalProperties": false
+            },
+            "refreshState": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                "status": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "workspaceRootId",
+            "workspaceRoot"
+          ],
+          "additionalProperties": false
+        },
+        "maxItems": 100
+      }
+    },
+    "rack.containerId": {
+      "description": "Synthetic proof rack.containerId.",
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "string",
+        "maxLength": 128
+      }
+    },
+    "rack.sessionId": {
+      "description": "Synthetic proof rack.sessionId.",
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "string",
+        "maxLength": 128
+      }
+    },
+    "rack.files": {
+      "description": "Synthetic proof rack.files.",
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "maxLength": 10000
+            },
+            "status": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "operation": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "name",
+            "status",
+            "operation"
+          ],
+          "additionalProperties": false
+        },
+        "maxItems": 100
+      }
+    }
+  },
+  "actions": {
+    "decisions.review": {
+      "description": "Proof action decisions.review.",
+      "args": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^.+$",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "tasks.claim": {
+      "description": "Proof action tasks.claim.",
+      "args": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^.+$",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "tasks.escalate": {
+      "description": "Proof action tasks.escalate.",
+      "args": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^.+$",
+            "maxLength": 128
+          },
+          "reason": {
+            "type": "string",
+            "pattern": "[\\s\\S]",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "id",
+          "reason"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "alerts.acknowledge": {
+      "description": "Proof action alerts.acknowledge.",
+      "args": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^.+$",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "alerts.snooze": {
+      "description": "Proof action alerts.snooze.",
+      "args": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^.+$",
+            "maxLength": 128
+          },
+          "duration": {
+            "type": "string",
+            "enum": [
+              "hour",
+              "day"
+            ],
+            "maxLength": 4
+          }
+        },
+        "required": [
+          "id",
+          "duration"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "alerts.convert": {
+      "description": "Proof action alerts.convert.",
+      "args": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^.+$",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "queue.retry": {
+      "description": "Proof action queue.retry.",
+      "args": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    "queue.about": {
+      "description": "Proof action queue.about.",
+      "args": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    "container.close": {
+      "description": "Close the container.",
+      "args": {
+        "type": "object",
+        "properties": {
+          "containerId": {
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "containerId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "agent.send": {
+      "description": "Send a committed draft.",
+      "args": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "message": {
+            "type": "string",
+            "pattern": "[\\s\\S]",
+            "maxLength": 10000
+          }
+        },
+        "required": [
+          "sessionId",
+          "message"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

@@ -250,7 +250,7 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `render(widget, inputs, { validator, surfaceId, revision, limits?, maxErrors? })` follows the Task 1 contract.
       - It calls the widget once and expands composed components and fragments. Arrays, `null`, `undefined` and booleans are handled as the proof does (`proof/runtime/render.ts:20-130`).
       - It splits each element's props by the kind's definition: `variant`, declared style props into `style`, declared events into `events`, and the rest into `props`.
-      - It assigns key-path ids. The root is `root`. Each segment is the element's `key`, or else its kind, encoded by Task 2's rule. A fragment adds no segment.
+      - It assigns key-path ids. The root is `root`. Each segment is the element's `key`, or else its kind, encoded by Task 2's rule. An unkeyed fragment adds no segment; a keyed fragment scopes its children’s paths without adding a node.
       - It calls `checkNode` and the Task 2 structural pieces as each node is emitted. Nodes, depth and bytes are counted during the build.
       - Each spec §7.2 kind is produced:
 
@@ -309,7 +309,7 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `src/__tests__/sdk-render.test.tsx`: new, using the proof catalog, capabilities and agent-home manifest fixtures.
   - Test Cases to Write:
     - `render_error_kinds` with 12 cases, one per §7.2 kind. Each asserts `kind`, `nodeId` and `pointer`, and fails if that kind is missing or misattributed.
-    - `ids_are_key_paths`: keyed rows give `root/…/row:4812/claim`; reordering rows keeps every id; a fragment adds no segment. Fails on positional ids.
+    - `ids_are_key_paths`: keyed rows give `root/…/row:4812/claim`; reordering rows keeps every id; an unkeyed fragment adds no segment. Fails on positional ids.
     - `errors_are_bounded`: a widget with 30 bad props returns 20 errors plus the bound marker. Fails if collection is unbounded or stops at one.
     - `rendered_trees_pass_validate_tree`: every output from these tests is accepted by `validateTree`. Fails if the builder and the validator disagree.
     - `class_name_and_style_strings_rejected`: law 3.
@@ -450,7 +450,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Documentation: read installed Bun file-I/O docs and Biome configuration/CLI behavior. Context7's Biome lookup was attempted but returned monthly-quota exhaustion; formatting was verified against the installed tool instead. No spec meaning changed; the outsider SDK guide remains Task 9.
     - `bun run check` green (203 tests), including drift, typecheck, lint, formatting and portability. Existing proof lint warnings remain unchanged. Refreshed the local graft graph.
 
-- [ ] Task 7: Port the proof widgets to the SDK, with manifests and scenarios
+- [x] Task 7: Port the proof widgets to the SDK, with manifests and scenarios
   - Acceptance Criteria:
     - Functional:
       - Agent-home (queue plus its composed `task-card`, `queue-row`, `alert-card`, `decision-card` and `facts`), core-queue (with `metric`), git-status and rack-module are copied to `src/__tests__/fixtures/widgets/<name>/`.
@@ -484,7 +484,8 @@ Probe answers that hold for every task, unless a task says otherwise:
       - Import the proof widgets directly — rejected: `src/` never imports `proof/`, and they target the proof runtime.
       - Keep `0fr` — rejected by the backlog: it proves validity, not look.
     - Chosen Approach:
-      - Port by copying with mechanical import changes, plus one composition change for `fit`.
+      - Port by copying with mechanical import changes, plus one composition change for `fit`. Declare bounded fixture source schemas and bindings: the SDK rejects the historical manifests’ undeclared data. Reuse agent-home’s historical manifest as a base with source bindings added in the fixture registry. Omit Git’s null snapshot/head/refresh fields in favour of optional fields, since the schema language has no null type; labels and exported trees must stay identical.
+      - Prerequisite found during the port: preserve a keyed composed component’s path when it expands to a fragment. The Git fixture otherwise produces duplicate ids; add focused regression tests without adding tree nodes.
       - Visual parity of that change needs the Phase 3 CSS projection. Keep the backlog entry open for that and record it in Further Actions.
     - API Notes and Examples:
       ```ts
@@ -495,13 +496,26 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `src/__tests__/fixtures/widgets/{agent-home,core-queue,git-status,rack-module}/**`: new.
       - `src/__tests__/fixtures/proof/{core-queue,git-status,rack-module}.manifest.json`: new (tentative path, matching the agent-home manifest).
       - `src/__tests__/sdk-proof-widgets.test.ts`: new.
+      - `src/__tests__/fixtures/widgets/{index.ts,capabilities.json}`: fixture registry and bounded source/action capabilities.
+      - `src/sdk/render.ts`, `src/__tests__/sdk-render.test.tsx`: keyed-fragment path prerequisite.
       - `plans/backlog.md`: update the grid-track entry's status.
   - Test Cases to Write:
     - `proof_scenarios_render`: every scenario of every widget renders to a tree that `validateTree` accepts. Fails on any porting error.
     - `proof_node_counts_hold`: agent-home `ready` is 679 nodes, and core-queue sizes match the fixtures. Fails if the port changes the benchmark's shape.
     - `proof_trees_match_exports`: structural equality with `fixtures/proof/*.tree.json`, except for the listed `fit` nodes.
     - `ported_manifests_validate`.
-  - Notes (executed <date>):
+    - `keyed_fragments_preserve_component_paths`: keyed composed fragments preserve unique ids and reject duplicate or missing list keys.
+    - `proof_scenario_inventory`: pins every named case so deleting a scenario cannot silently reduce coverage.
+  - Notes (executed 2026-10-23):
+    - Copied the four widgets and their composed components under `src/__tests__/fixtures/widgets/`. All primitive imports use the generated `../ui.gen.ts`; SDK helpers/types use `@arnilo/liveframe/sdk`. No fixture imports `proof/`. Git’s label helpers are copied locally, preserving sanitization.
+    - Added core-queue, git-status and rack-module manifests under `fixtures/proof/`, and `widgets/capabilities.json` with bounded source schemas and the two Rack actions. The fixture registry reuses the historical agent-home manifest and adds its source bindings; the historical validator fixtures stay unchanged. Undeclared data is rejected by the SDK, so sources are a required porting adaptation.
+    - The schema language has no null type: Git’s absent snapshot/head/refresh values are omitted instead of null, with optional fields in the schema/types. Rendered labels and tree shape are identical. No other proof-only props or events needed replacement.
+    - `QueueRow` now uses an Inline keyed `grid`, preserving every id and node count. The named exceptions are the former `/grid` nodes (grid → inline, no columns), their `/marker` children (fixed `space.4` width and shrink 0), `/body` children (grow 1, basis 0), and optional `/flag` children (shrink 0). The test transforms only those exported nodes and checks the entire resulting tree.
+    - Scenarios: all seven requested agent-home names plus `host-ready`; `ready` is the exported 50-task selection workload (679 nodes). The permission/loading cases and `host-ready` use the host data. Core-queue uses the exporter’s 50-decision workload at all four sizes: 5 / 414 / 446 / 473 nodes. Git and Rack include their host cases and separately named benchmark cases matching the exports.
+    - Small SDK prerequisite: keyed composed fragments lost their path, causing Git roots to collide. The builder now scopes their children by the key and checks duplicate/missing fragment list keys. The focused regression failed before the fix; all seven exported trees now match. Task 4’s fragment wording was clarified to distinguish keyed scopes from unkeyed fragments; no spec change.
+    - Tests were added before the port (initial failure: missing fixture modules), then before the keyed-fragment fix (duplicate ids). Every scenario renders and independently passes `validateTree`, with deterministic rerenders; manifests, inventory, benchmark counts and full exported-tree equality are pinned.
+    - Visual parity is still Phase 3; the grid-track backlog entry remains open for CSS projection and captures. Task 8 retains the performance measurement; no timing claim is made here.
+    - `bun run check` green (234 tests): generation drift, typecheck, lint, format and tests.
 
 - [ ] Task 8: Hold 3 µs per node through `render()`
   - Acceptance Criteria:
@@ -610,4 +624,4 @@ Probe answers that hold for every task, unless a task says otherwise:
 
 ## Further Actions
 
-- To be filled after task completion with improvements, rationale, and priority.
+- P2 — Verify the QueueRow flex composition’s visual parity under both design systems during Phase 3 CSS integration. SDK tree equality and benchmark node counts pass; captures remain required. Tracked in `plans/backlog.md`, “Reconcile proof grid tracks before SDK and CSS integration”.

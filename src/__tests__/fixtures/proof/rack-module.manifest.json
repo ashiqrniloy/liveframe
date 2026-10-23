@@ -1,0 +1,76 @@
+{
+  "format": "liveframe-manifest/1",
+  "id": "rack-module",
+  "version": "1.0.0",
+  "catalogId": "proof.ui@1",
+  "params": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+  },
+  "state": {
+    "type": "object",
+    "properties": {
+      "tab": {
+        "type": "string",
+        "enum": [
+          "files",
+          "om",
+          "context"
+        ],
+        "maxLength": 7
+      },
+      "draft": {
+        "type": "string",
+        "maxLength": 10000
+      }
+    },
+    "required": [
+      "tab",
+      "draft"
+    ],
+    "additionalProperties": false
+  },
+  "context": {
+    "type": "object",
+    "properties": {
+      "size": {
+        "type": "string",
+        "enum": [
+          "small",
+          "medium",
+          "large",
+          "full"
+        ],
+        "maxLength": 6
+      }
+    },
+    "required": [
+      "size"
+    ],
+    "additionalProperties": false
+  },
+  "initialState": {
+    "tab": "files",
+    "draft": "check the context tab"
+  },
+  "sources": {
+    "containerId": {
+      "source": "rack.containerId",
+      "params": {}
+    },
+    "sessionId": {
+      "source": "rack.sessionId",
+      "params": {}
+    },
+    "files": {
+      "source": "rack.files",
+      "params": {}
+    }
+  },
+  "actions": [
+    "container.close",
+    "agent.send"
+  ]
+}

@@ -320,9 +320,24 @@ export function render<P, S, D, C>(
         );
         return;
       }
+      if (requireKey && key === undefined) {
+        fail("missing-key", parentPointer(parentId), "a key on every element in a list", parentId ?? "root");
+        return;
+      }
+      if (key !== undefined) {
+        const segment = String(key);
+        if (siblings.has(segment)) {
+          fail("duplicate-key", parentPointer(parentId), "siblings with distinct keys", parentId ?? "root");
+          return;
+        }
+        siblings.add(segment);
+      }
+      // A keyed fragment scopes ids without adding a primitive to the tree.
+      const fragmentId =
+        key === undefined || parentId === null ? parentId : `${parentId}/${encodeSegment(String(key))}`;
       children(
         element.props.children,
-        parentId,
+        fragmentId,
         parentKind,
         depth,
         false,

@@ -1,0 +1,296 @@
+[
+  {
+    "name": "ready",
+    "params": {},
+    "state": {
+      "tab": "files",
+      "draft": "check the context tab"
+    },
+    "data": {
+      "containerId": "agent-info",
+      "sessionId": "clay/coding-agent",
+      "files": [
+        {
+          "name": "ContainerTrack.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "DESIGN.md",
+          "status": "R",
+          "operation": "read"
+        }
+      ]
+    },
+    "context": {
+      "size": "full"
+    }
+  },
+  {
+    "name": "benchmark",
+    "params": {},
+    "state": {
+      "tab": "files",
+      "draft": "Draft 0"
+    },
+    "data": {
+      "containerId": "agent-info",
+      "sessionId": "clay/coding-agent",
+      "files": [
+        {
+          "name": "File-0.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-1.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-2.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-3.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-4.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-5.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-6.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-7.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-8.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-9.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-10.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-11.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-12.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-13.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-14.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-15.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-16.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-17.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-18.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-19.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-20.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-21.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-22.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-23.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-24.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-25.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-26.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-27.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-28.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-29.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-30.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-31.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-32.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-33.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-34.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-35.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-36.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-37.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-38.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-39.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-40.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-41.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-42.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-43.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-44.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-45.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-46.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-47.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-48.tsx",
+          "status": "M",
+          "operation": "written"
+        },
+        {
+          "name": "File-49.tsx",
+          "status": "M",
+          "operation": "written"
+        }
+      ]
+    },
+    "context": {
+      "size": "full"
+    }
+  }
+]

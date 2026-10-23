@@ -2,9 +2,9 @@
 import { describe, expect, test } from "bun:test";
 import { action, primitive, render, state, type WidgetProps } from "@arnilo/liveframe/sdk";
 import { compileValidator, type LiveframeError, type UiNode } from "../index.ts";
+import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
 import catalogDocument from "./fixtures/proof/catalog.json" with { type: "json" };
-import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 
 const validator = compileValidator({ catalog: catalogDocument, capabilities, manifest });
 
@@ -242,4 +242,43 @@ describe("sdk render", () => {
       expect(validator.validateTree(result.value, { limits: { bytes: bytes - 1 } }).ok).toBe(false);
     }
   });
+});
+
+function Group() {
+  return (
+    <>
+      <Text key="label" text="group" />
+      <Button key="open" label="Open" />
+    </>
+  );
+}
+
+test("keyed_fragments_preserve_component_paths", () => {
+  const root = rendered(
+    <Stack>
+      {["a", "b"].map((key) => (
+        <Group key={key} />
+      ))}
+    </Stack>,
+  );
+  expect(ids(root)).toEqual(["root", "root/a/label", "root/a/open", "root/b/label", "root/b/open"]);
+  expect(
+    failures(() => (
+      <Stack>
+        {["a", "a"].map((key) => (
+          <Group key={key} />
+        ))}
+      </Stack>
+    ))[0]?.kind,
+  ).toBe("duplicate-key");
+  expect(
+    failures(() => (
+      <Stack>
+        {[1, 2].map(() => (
+          // biome-ignore lint/correctness/useJsxKeyInIterable: missing keys are the regression case
+          <Group />
+        ))}
+      </Stack>
+    ))[0]?.kind,
+  ).toBe("missing-key");
 });
