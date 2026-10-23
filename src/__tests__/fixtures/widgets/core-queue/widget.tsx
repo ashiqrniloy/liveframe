@@ -13,8 +13,12 @@ export function CoreQueue(props: QueueProps) {
   const decisions = data.groups.find((group) => group.id === "decisions");
   const index = decisions?.pages.findIndex((page) => page.cursor === s.cursors.decisions) ?? -1;
   if (!decisions || index < 0) throw new Error("Unknown decisions cursor");
+  if (context.size === "small") {
+    let count = 0;
+    for (let i = 0; i <= index; i++) count += decisions.pages[i]?.rows.length ?? 0;
+    return <Metric value={count} />;
+  }
   const rows = decisions.pages.slice(0, index + 1).flatMap((page) => page.rows);
-  if (context.size === "small") return <Metric value={rows.length} />;
   const focus = rows.find((row) => row.id === s.selected) ?? rows[0];
   const next = decisions.pages[index]?.nextCursor;
   return (

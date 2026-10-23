@@ -3,7 +3,7 @@ import { at, isRecord } from "../formats/capabilities.ts";
 import type { UiNode, UiTree } from "../formats/tree.ts";
 import { stringBytes } from "../validate/bytes.ts";
 import type { CompiledValidator, KindFacts } from "../validate/compile.ts";
-import type { SchemaSink } from "../validate/schema.ts";
+import type { SchemaCheck, SchemaSink } from "../validate/schema.ts";
 import { encodeSegment, type JsonWalk, walkJson } from "../validate/structure.ts";
 import { DEFAULT_LIMITS } from "../validate/tree.ts";
 import { type Element, isElement } from "./element.ts";
@@ -53,7 +53,7 @@ export function render<P, S, D, C>(
 ): Result<UiTree> {
   const { validator, surfaceId, revision } = options;
   const { catalogId, kinds, structure } = validator.build;
-  const budget = { ...DEFAULT_LIMITS, ...options.limits };
+  const budget = options.limits ? { ...DEFAULT_LIMITS, ...options.limits } : DEFAULT_LIMITS;
   const maxErrors = options.maxErrors ?? DEFAULT_MAX_ERRORS;
   const errors: LiveframeError[] = [];
   const ids = new Set<string>();
@@ -97,39 +97,46 @@ export function render<P, S, D, C>(
   /** Rejects a non-JSON input value (function, promise, class instance, NaN, cycle) at its pointer. */
   function isJson(value: unknown, pointer: string, ancestors: Set<object>, depth = 0): boolean {
     if (typeof value === "function") {
-      fail("invalid-prop", pointer, "JSON data, not a function");
+      fail("invalid-prop", pointer + jsonPointer(), "JSON data, not a function");
       return false;
     }
     if (isThenable(value)) {
-      fail("invalid-prop", pointer, "JSON data, not a promise");
+      fail("invalid-prop", pointer + jsonPointer(), "JSON data, not a promise");
       return false;
     }
     if (value === null || typeof value === "string" || typeof value === "boolean") return true;
     if (typeof value === "number") {
       if (Number.isFinite(value)) return true;
-      fail("invalid-prop", pointer, "a finite number");
+      fail("invalid-prop", pointer + jsonPointer(), "a finite number");
       return false;
     }
     if (!Array.isArray(value) && !isRecord(value)) {
-      fail("invalid-prop", pointer, "plain JSON data");
+      fail("invalid-prop", pointer + jsonPointer(), "plain JSON data");
       return false;
     }
     if (depth >= INPUT_DEPTH) {
-      fail("invalid-prop", pointer, `data nested at most ${INPUT_DEPTH} deep`);
+      fail("invalid-prop", pointer + jsonPointer(), `data nested at most ${INPUT_DEPTH} deep`);
       return false;
     }
     if (ancestors.has(value)) {
-      fail("invalid-prop", pointer, "acyclic data");
+      fail("invalid-prop", pointer + jsonPointer(), "acyclic data");
       return false;
     }
     ancestors.add(value);
     let valid = true;
     if (Array.isArray(value)) {
-      for (let i = 0; i < value.length && valid; i++) valid = isJson(value[i], `${pointer}/${i}`, ancestors, depth + 1);
+      for (let i = 0; i < value.length && valid; i++) {
+        path.push(i);
+        valid = isJson(value[i], pointer, ancestors, depth + 1);
+        path.pop();
+      }
     } else {
       for (const key in value) {
         if (!Object.hasOwn(value, key)) continue;
-        if (!isJson(value[key], at(pointer, key), ancestors, depth + 1)) {
+        path.push(key);
+        const entryValid = isJson(value[key], pointer, ancestors, depth + 1);
+        path.pop();
+        if (!entryValid) {
           valid = false;
           break;
         }
@@ -148,21 +155,20 @@ export function render<P, S, D, C>(
 
   function checkInputs(): void {
     const checks = validator.build.inputs;
-    const parts = [
-      ["params", checks.params],
-      ["state", checks.state],
-      ["context", checks.context],
-      ["data", checks.data],
-    ] as const;
-    for (const [name, check] of parts) {
-      const value = (inputs as Record<string, unknown>)[name];
-      if (name === "data" && value !== null && typeof value === "object" && checkedData.has(value)) continue;
-      const before = errors.length;
-      if (isJson(value, `/${name}`, new Set())) check(value, `/${name}`, sink);
-      if (errors.length > before || stopped) continue;
-      freezeDeep(value);
-      if (name === "data" && value !== null && typeof value === "object") checkedData.add(value);
-    }
+    checkInput("params", checks.params);
+    checkInput("state", checks.state);
+    checkInput("context", checks.context);
+    checkInput("data", checks.data);
+  }
+
+  function checkInput(name: keyof WidgetProps, check: SchemaCheck): void {
+    const value = inputs[name];
+    if (name === "data" && value !== null && typeof value === "object" && checkedData.has(value)) return;
+    const before = errors.length;
+    if (isJson(value, `/${name}`, ancestors)) check(value, `/${name}`, sink);
+    if (errors.length > before || stopped) return;
+    freezeDeep(value);
+    if (name === "data" && value !== null && typeof value === "object") checkedData.add(value);
   }
 
   function full(): void {
@@ -401,6 +407,8 @@ export function render<P, S, D, C>(
     const events: Record<string, unknown> = {};
     let variant: unknown;
     let hasVariant = false;
+    let hasStyle = false;
+    let hasEvents = false;
     for (const name in element.props) {
       if (name === "children" || !Object.hasOwn(element.props, name)) continue;
       const entry = element.props[name];
@@ -422,9 +430,13 @@ export function render<P, S, D, C>(
       if (target === "variant") {
         variant = entry;
         hasVariant = true;
-      } else if (target === "events") events[name] = entry;
-      else if (target === "style") style[name] = entry;
-      else props[name] = entry;
+      } else if (target === "events") {
+        events[name] = entry;
+        hasEvents = true;
+      } else if (target === "style") {
+        style[name] = entry;
+        hasStyle = true;
+      } else props[name] = entry;
     }
 
     const childrenOut: UiNode[] = [];
@@ -451,15 +463,13 @@ export function render<P, S, D, C>(
     }
     if (stopped) return;
 
-    const node = {
-      id,
-      kind,
-      ...(hasVariant ? { variant } : {}),
-      props,
-      ...(Object.keys(style).length ? { style } : {}),
-      ...(Object.keys(events).length ? { events } : {}),
-      ...(childrenOut.length ? { children: childrenOut } : {}),
-    } as unknown as UiNode;
+    const record: Record<string, unknown> = { id, kind };
+    if (hasVariant) record.variant = variant;
+    record.props = props;
+    if (hasStyle) record.style = style;
+    if (hasEvents) record.events = events;
+    if (childrenOut.length) record.children = childrenOut;
+    const node = record as unknown as UiNode;
 
     const before = errors.length;
     validator.checkNode(node, "", sink);
@@ -472,12 +482,23 @@ export function render<P, S, D, C>(
       full();
     }
 
-    const skeleton: Record<string, unknown> = { id, kind };
-    if (hasVariant) skeleton.variant = variant;
-    skeleton.props = props;
-    if (Object.keys(style).length) skeleton.style = style;
-    if (Object.keys(events).length) skeleton.events = events;
-    count(skeleton, pointer, id);
+    // The shell is generated here; only its values need the shared JSON walk.
+    addBytes(6 + stringBytes(id) + 8 + stringBytes(kind), pointer, id); // {"id":…,"kind":…
+    if (hasVariant) {
+      addBytes(11, `${pointer}/variant`, id);
+      count(variant, `${pointer}/variant`, id);
+    }
+    addBytes(9, `${pointer}/props`, id);
+    count(props, `${pointer}/props`, id);
+    if (hasStyle) {
+      addBytes(9, `${pointer}/style`, id);
+      count(style, `${pointer}/style`, id);
+    }
+    if (hasEvents) {
+      addBytes(10, `${pointer}/events`, id);
+      count(events, `${pointer}/events`, id);
+    }
+    addBytes(1, pointer, id);
     if (childrenOut.length) {
       addBytes(1 + stringBytes("children") + 1 + 1, `${pointer}/children`, id);
       for (let i = 1; i < childrenOut.length; i++) addBytes(1, `${pointer}/children`, id);

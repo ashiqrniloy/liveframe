@@ -2,9 +2,9 @@
 import { describe, expect, test } from "bun:test";
 import { action, primitive, render, type WidgetProps } from "@arnilo/liveframe/sdk";
 import { compileValidator, type LiveframeError } from "../index.ts";
+import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
 import catalogDocument from "./fixtures/proof/catalog.json" with { type: "json" };
-import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 
 const task = {
   type: "object",
@@ -50,6 +50,14 @@ function failures(overrides: Partial<WidgetProps>, renderOptions = options): rea
 }
 
 describe("sdk inputs", () => {
+  test("json_input_errors_preserve_nested_pointers", () => {
+    for (const bad of [() => 0, Promise.resolve(0), Number.NaN]) {
+      const errors = failures({ data: { tasks: [{ id: "t1", title: { "x/y~z": bad } }] } });
+      expect(errors[0]?.kind).toBe("invalid-prop");
+      expect(errors[0]?.pointer).toBe("/data/tasks/0/title/x~1y~0z");
+    }
+  });
+
   test("inputs_fail_their_schemas", () => {
     const rows: readonly {
       readonly label: string;

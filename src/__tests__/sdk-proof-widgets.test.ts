@@ -9,6 +9,7 @@ import {
   validateManifest,
 } from "../index.ts";
 import catalogDocument from "./fixtures/proof/catalog.json" with { type: "json" };
+import type { QueueProps } from "./fixtures/widgets/agent-home/manifest.ts";
 import capabilitiesDocument from "./fixtures/widgets/capabilities.json" with { type: "json" };
 import { proofWidgets } from "./fixtures/widgets/index.ts";
 
@@ -94,4 +95,34 @@ test("proof_scenario_inventory", () => {
     "git-status": ["ready", "empty", "benchmark"],
     "rack-module": ["ready", "benchmark"],
   });
+});
+
+test("small_queue_counts_pages_through_cursor", () => {
+  const fixture = proofWidgets.find((entry) => entry.name === "core-queue");
+  const scenario = fixture?.scenarios.find((entry) => entry.name === "small");
+  if (!fixture || !scenario) throw new Error("Missing small queue");
+  const inputs = scenario as QueueProps;
+  const validator = compileValidator({ catalog, capabilities, manifest: fixture.manifest });
+  const groups = inputs.data.groups.map((group) => {
+    if (group.id !== "decisions") return group;
+    const row = group.pages[0]?.rows[0];
+    if (!row) throw new Error("Missing decision");
+    return { ...group, pages: [...group.pages, { cursor: "next", rows: [{ ...row, id: "extra" }] }] };
+  });
+  for (const [cursor, count] of [
+    ["start", "50"],
+    ["next", "51"],
+  ] as const) {
+    const result = render(
+      fixture.widget,
+      {
+        ...inputs,
+        state: { ...inputs.state, cursors: { ...inputs.state.cursors, decisions: cursor } },
+        data: { ...inputs.data, groups },
+      },
+      { validator, surfaceId: "proof", revision: 0 },
+    );
+    if (!result.ok) throw new Error(JSON.stringify(result.errors));
+    expect(nodes(result.value.root).find((node) => node.kind === "heading")?.props.text).toBe(count);
+  }
 });

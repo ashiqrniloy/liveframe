@@ -217,6 +217,7 @@ describe("sdk render", () => {
   test("rendered_trees_pass_validate_tree", () => {
     const widgets = [
       () => <Text text="plain" />,
+      () => <Button label={'escaped "quotes" · 世界'} variant="ghost" onPress={action("tasks.claim", { id: "t1" })} />,
       () => (
         <Stack gap="space.2">
           <Text key="a" text="a" />
