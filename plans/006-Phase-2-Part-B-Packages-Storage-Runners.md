@@ -774,7 +774,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Preserved the owner's pre-existing plan-index rows and next free plan number. The owner's added plan 005 row stays in the working tree with its corrected status; only this task's changes to already-tracked roadmap lines are staged.
     - `timeout 600s bun run check` passed generation drift, typecheck, lint, format and all 322 tests across 54 files, zero failures. Existing unrelated lint warnings remain. No API, dependency or spec change.
 
-- [ ] Task 12: Analyze architectural impact and dispose of every finding
+- [x] Task 12: Analyze architectural impact and dispose of every finding
   - Sweep the twelve impact areas of `.agents/skills/create-plan/references/liveframe.md` §5 against what was delivered. Record each, or `None — <reason>`, in `plans/evidence/006-impact-analysis.md`.
   - List every finding, present them to the owner in one table with a recommended disposition (`execute` or `backlog`), and record the answer.
   - `execute`: add a task above this one and do it. `backlog`: add the item to `plans/backlog.md` and list it under Further Actions.
@@ -783,7 +783,12 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Phase 5's store suite starts from `src/__tests__/store-contract.ts`.
     - Phase 6 must check that the `.ts` worker entry and the `data:` loader work from the published package.
     - Synapta's sandbox runner and Clay's `fileStore` fit are recorded as reference-host notes.
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-23):
+    - Swept all twelve impact areas against the delivered packages, formats, stores, runners, guides and tests. Recorded evidence, limits, all five findings and their dispositions in `plans/evidence/006-impact-analysis.md`. The findings table was presented during execution; documentation and existing-phase handoffs use the owner's completion request, without claiming separate per-row approval or a new architecture decision.
+    - F1 was executed as Task 11a, correcting execution status without closing plan 005 Task 10. F2–F5 are disposed in `plans/backlog.md`: Phase 4/8 preview contracts, Phase 5 store conformance, Phase 6 installed-loader/worker and archive gates, and Phase 7 adopter responsibilities. Existing conformance, fixture-exclusion and adopter entries were extended rather than duplicated.
+    - Filled Compromises Made and Further Actions. No runtime, public API, dependency or normative spec change was required. Preserved existing owner changes to `plans/README.md` and roadmap numbering/index additions; only this task's tracked ledger corrections are committed.
+    - Whole-plan verification passed on Bun 1.4.2: `timeout 600s bun run check` (322 tests across 54 files, zero failures, plus generation drift, typecheck, lint and format), `timeout 120s bun test src/__tests__/phase-2-loop.test.ts` (14 pass), `timeout 300s bun bench/render.bench.ts` (all eight total gates), and `timeout 60s bun pm ls --all` (Sucrase 3.35.1 and Acorn 8.19.0). Existing unrelated lint warnings remain.
+    - Re-ran the approved loader gate (all four probes return functions). The render script's separate validation split reached 1.688 µs/node, so also ran `timeout 120s bun bench/validator.bench.ts`: all eight independent validator gates passed at ≤1.302 µs/node, with equal-work props speedups ≥10.70×. Agent-home total render was 1.3108 ms / 1.930 µs/node; all render workloads met ≤3 µs/node. Full machine/load details and tables are in the evidence file. No published-build or production-adoption claim is made.
 
 ## Verification (whole plan)
 
@@ -794,8 +799,15 @@ Probe answers that hold for every task, unless a task says otherwise:
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- The linker snapshots import/export bindings and rejects cycles; it is not a general ESM bundler. Widgets remain pure. This approved limit is documented and tested; no live-binding feature is added without a concrete need.
+- Reference runners provide no isolation. The in-process timeout is reported only after code returns; the worker bounds time/crashes but retains host access. Host sandbox responsibility is handed off in the existing adopter backlog entry (F5).
+- `fileStore` assumes one writing process and replaces each record atomically; it offers no multi-record transaction or fsync durability. Hosts needing those guarantees supply another backend. Operational limits are included in the adopter handoff (F5).
+- Canonical SDK-header rewriting and dot-escaped `data:` loading are verified on Bun 1.4.2 from the source checkout. Non-canonical handwritten SDK imports may fail from another working directory. Installed-package loader and worker-entry proof is an explicit P1 Phase 6 gate (F4), with the approved Task 8.5 fallback only if its revisit conditions occur.
+- Store conformance is currently an internal shared contract run by both reference stores; the published suite remains Phase 5 (F3). Preview sessions and capture remain Phase 4 Part B (F2). These are assigned phase boundaries, not claims of completed public APIs.
 
 ## Further Actions
 
-- To be filled after task completion with improvements, rationale, and priority.
+- **P1, F4 — Phase 6 installed loading:** [Verify installed-package loader and worker entry before release](backlog.md#verify-installed-package-loader-and-worker-entry-before-release). Test an installed archive outside the checkout, SDK-instance identity, all SDK entry points, worker entry inclusion, timeout and recovery. Coordinate with the existing **P2** [fixture-exclusion gate](backlog.md#exclude-test-fixtures-from-the-release-package).
+- **P2, F2 — Phase 4 Part B/Phase 8:** [Build preview sessions on the shipped package and runner contracts](backlog.md#build-preview-sessions-on-the-shipped-package-and-runner-contracts). Keep drafts unstored, use `{ catalog, capabilities, runner, styles }`, preserve the previewed hash, render every scenario and never dispatch preview actions.
+- **P3, F3 — Phase 5:** [Seed conformance suites from the proof tests](backlog.md#seed-conformance-suites-from-the-proof-tests), extended with `src/__tests__/store-contract.ts` and load/reset integration cases. Both reference stores must pass the public suite.
+- **P4, F5 — Phase 7:** [Hand adopter gaps to Synapta and Clay](backlog.md#hand-adopter-gaps-to-synapta-and-clay), extended with Synapta's isolated runner/tenant policy and Clay's single-process persistence/reset responsibilities. No migration or production adoption is claimed.

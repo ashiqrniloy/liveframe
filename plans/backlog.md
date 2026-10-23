@@ -51,7 +51,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phase 5 (spec §13 `/conformance`)
 - Priority: P3
-- Source: plans/001-Phase-0-Primitive-Set-Proof.md, plans/002-Phase-0-Parity-Re-Proof.md, plans/003-Phase-1-Part-A-Formats.md, plans/004-Phase-1-Part-B-Compiled-Validator.md
+- Source: plans/001-Phase-0-Primitive-Set-Proof.md, plans/002-Phase-0-Parity-Re-Proof.md, plans/003-Phase-1-Part-A-Formats.md, plans/004-Phase-1-Part-B-Compiled-Validator.md, plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F3)
 - What: use the proof's suites as prior art — `proof/tests/`:
   - `catalog.test.ts`, `styles.test.ts`, `projection.test.ts`, `renderer.test.tsx`, `renderer-browser.test.tsx` for definitions, completeness, colour authority, the registry check and reconciliation against two real design systems;
   - `runtime.test.ts` for the closed-data checks Plan 002 added: `fill_accepts_only_declared_fillable_roles`, `responsive_style_values_are_closed_data`, `semantics_are_a_closed_enum_with_terms_child_rules`, `position_fill_radius_and_text_alignment_validate`;
@@ -59,18 +59,21 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
   - `proof/scripts/parity.ts` and `proof/scripts/inventory.ts` for the look bar itself: pixel capture, the capture-alignment rule, and the wrapper-collapsing inventory that turns a positional DOM count into causes.
   - `src/__tests__/{schema,vocabulary,catalog,manifest,theme,design-system,resolve,tree,schemas,proof-formats,portability}.test.ts` for the published formats: closed data, bounded pointed errors, catalog versioning, capability/source bindings, font safety, colour authority, cascade/inheritance, strict schema agreement, reproducible proof recipes and host-API portability. Reuse these cases in the Phase 5 suites; do not import proof implementations into the core.
   - `src/__tests__/{compiled-schema,validator-node,validator-tree,validator-rules,exports}.test.ts` for compiled/interpreted agreement, every spec §10 rule, bind/state/action compatibility, exact UTF-8 bytes, configurable traversal/error limits, pointed repair feedback and the public validator contract. Keep `validator-smoke.test.ts` and `bench/validator.bench.ts` as internal performance gates; transport arrival checks and dispatch-time authorisation still need Phase 4/host integration tests.
+  - Start the published store suite from `src/__tests__/store-contract.ts`, already run by `store-memory.test.ts` and `store-file.test.ts`: immutable `(id, version)` hashes, same-hash no-op, record copy boundaries, sorted placements, missing records versus JSON null, style tuple keys and deletion of placement state. Both reference stores must pass the public suite; keep filesystem path/atomic-write tests and runner timeout tests as implementation-specific regressions. `store-load.test.ts` and `phase-2-loop.test.ts` provide verification, state-reset and inert-load integration cases.
 - Why: these enforce completeness, colour authority and the parity method on two real design systems. The scripts matter as much as the tests: a future change that moves a pixel must re-capture with the artifact page origin aligned, or the number reports antialiasing rather than look.
 
 ## Hand adopter gaps to Synapta and Clay
 
 - Section: Phase 7 (reference hosts)
 - Priority: P4
-- Source: plans/001-Phase-0-Primitive-Set-Proof.md, plans/002-Phase-0-Parity-Re-Proof.md
+- Source: plans/001-Phase-0-Primitive-Set-Proof.md, plans/002-Phase-0-Parity-Re-Proof.md, plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F5)
 - What:
   - Synapta: Certified has no five-patch identity roles or diagnostic fill roles (G2).
   - Synapta: the Certified look the parity work proved lives in `proof/styles/certified/` and must be ported to `synapta-core` — the typography roles (`fine`, `ui`, `caption`, `label.small`, `label.strong`, `mono.strong`, `overline`, `heading.2.compact`), `fontSizeAdjust` on the mono roles, the `foil` tone, `size.glyph`, `bp.sm`, the `plate`/`rule`/`callout` box recipes and the per-side border widths.
   - Clay: Rack's docs claim 273 recipes, but the manifest has 247 (G3); Rack recipes reference undeclared spacing and easing values (G5); Rack typography is user-owned, which spec §6.1 now allows through an assembled theme (G1).
   - Clay: Rack's `box.default.root.rest` pads every box by 12 px, so the lamp, jack and pips clamp to 24 px instead of the declared 8/4 px. A bare box variant (or a padding-free recipe) would let a small indicator keep its size (G10).
+  - Synapta: provide an isolated backend `Runner` for organisation/agent widgets and use it for preview and production. Reference runners do not restrict host access; import validation and SHA-256 do not grant trust. Tenant scoping, data resolution, approval and action authorisation remain the app's.
+  - Clay: `fileStore(dir)` fits a desktop host with one writing process and atomic per-record replacement. Persist packages, placements and state, report load errors and state resets, and decide explicitly whether to save reset state. Multiple writing processes, power-loss durability and transactions across records are not provided; choose a host backend if those become requirements. No production adoption is proved by the library's reopen tests.
 - Why: these are the source apps' own gaps, plus the look data this repo tuned in a copy. Record them for the adopters; never bend the library to them (problem class first).
 
 ## Reconcile proof grid tracks before SDK and CSS integration
@@ -87,6 +90,22 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phase 6 (spec §13, release packaging)
 - Priority: P2
-- Source: plans/003-Phase-1-Part-A-Formats.md
+- Source: plans/003-Phase-1-Part-A-Formats.md, plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F4)
 - What: before publishing, narrow the package file list or exclude `src/__tests__/`, and inspect a Bun-generated package archive. Assert it contains the public source/subpaths and published schemas while excluding tests, proof-derived catalogs, themes, design systems and benchmark trees.
 - Why: `package.json` currently includes all of `src`, including the committed proof fixtures. The package is private and unpublished, but the release must not ship an app's primitive catalog or visual style as library content. Preserve the local fixtures and their reproducibility tests.
+
+## Build preview sessions on the shipped package and runner contracts
+
+- Section: Phase 4 Part B and Phase 8 (spec §7.5, §13)
+- Priority: P2
+- Source: plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F2)
+- What: implement `createPreview({ catalog, capabilities, runner, styles })` using the shipped `pack()` and `Runner.render(pkg, inputs, options)` contracts. Draft updates remain unstored, `check()` renders every validated scenario, `setState` stays in the session and actions are logged without dispatch. Publishing retains the last previewed package hash. Use the same host-supplied runner for preview and production; the browser receives only trees. Carry these conditions into the Phase 4 plan and Phase 8 MCP integration tests.
+- Why: Part B ships runners and required scenarios, not preview sessions or capture. This explicit handoff prevents a second packaging/validation path or a browser draft-execution path.
+
+## Verify installed-package loader and worker entry before release
+
+- Section: Phase 6 (spec §7.5, §13)
+- Priority: P1
+- Source: plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F4)
+- What: install a Bun-generated release archive in an independent host outside this checkout, run it from another working directory, and pack, store, reload and render with both reference runners. Prove that the published `/preview` loader resolves all three SDK entry points through the installed package's own exports, shares the runner's SDK instance, and imports dot-escaped `data:` modules. Prove that `/preview/worker` includes and resolves its `./entry.ts` and protocol dependencies, times out a looping widget, then recovers. Coordinate archive inspection with “Exclude test fixtures from the release package”; preserve required worker/runtime files when removing tests. Re-run the approved loader gate on supported Bun upgrades.
+- Why: checkout tests and browser bundle scans do not prove installed archive resolution. The approved `2026-10-23-2016-data-url-loader-encoding-and-sdk-resolution.md` decision requires this gate. If its revisit conditions occur, reopen plan 006 Task 8.5 and obtain approval for the factory-module fallback before changing the package format or loading scheme.
