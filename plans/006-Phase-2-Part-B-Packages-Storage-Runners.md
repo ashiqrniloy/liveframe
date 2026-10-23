@@ -492,11 +492,15 @@ Probe answers that hold for every task, unless a task says otherwise:
         - `timeout 30s bun plans/evidence/006-task-8-loader-gate.ts` passed on Bun 1.4.2: the dotted module and actual linked agent-home module both export functions; the same agent-home source with SDK headers resolved from inside the package also exports a function from a temporary working directory on the main thread and inside a Worker. All four probes print `function`; no import throws.
         - The gate is clear for 8.2–8.4; 8.5 is not triggered. Task 8 remains unchecked until its remaining subtasks pass.
         - `timeout 600s bun run check` passed: generated-code drift, typecheck, lint, format and all 284 tests (zero failures). The probe passed again after formatting, and `git diff --check` passed.
-    - [ ] 8.2 Bring spec §7.5 in line with the amendment.
+    - [x] 8.2 Bring spec §7.5 in line with the amendment.
       - Rewrite the "How a reference runner loads a package" bullet (`docs/spec.md:436`):
         - the dots are escaped in the `data:` URL;
         - the SDK specifiers in the linker header resolve from the library's own installation, not from the host's working directory.
       - Leave §7.3 and the hash unchanged.
+      - Notes (executed 2026-10-23):
+        - Updated spec §7.5's loader bullet to match the approved amendment: rewrite only canonical linker SDK headers using `import.meta.resolve` from the loader's own location, then import a percent-encoded `data:` URL with dots escaped as `%2E`. Named all three SDK specifiers and specified resolution from the library's own installation independently of the host's working directory.
+        - Stored code retains bare SDK specifiers; §7.3, the package format and hash are unchanged. Production loader implementation remains in 8.3.
+        - `timeout 600s bun run check` passed: generated-code drift, typecheck, lint, format and 284 tests (zero failures). `git diff --check` passed.
     - [ ] 8.3 Implement `src/preview/load.ts`, tests first.
       - `loadModule(code)` rewrites only the linker's canonical header lines (`import * as __lf_sdkN from "<sdk specifier>";`, from `src/pack/bundle.ts:255`) to `import.meta.resolve(<specifier>)`.
       - It imports `"data:text/javascript," + encodeURIComponent(rewritten).replaceAll(".", "%2E")`, and caches by package hash.
