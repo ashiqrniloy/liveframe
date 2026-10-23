@@ -189,7 +189,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Required caller fix: the catalog change classifier assumed all non-tone vocabulary fields were lists. It now handles the scalar selection as a major mapping change, following the existing tone-mapping rule, with a regression test and guide update.
     - Validation: new tests failed before implementation; `timeout 600s bun run check` passed (325 tests, 0 failures, generation check, typecheck, lint and format check). The existing lint warnings remain. A temporary-directory export reproduced all 17 committed proof fixtures byte-for-byte. CSS projection and new projection browser proofs remain in Tasks 3–10.
 
-- [ ] Task 3: Project the base and the theme
+- [x] Task 3: Project the base and the theme
   - Acceptance Criteria:
     - Functional:
       - `src/css/names.ts` implements decision 10. `colourVar(role)` and `valueVar(name)` are exported for app primitives that need to refer to a role or a value.
@@ -219,12 +219,13 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `src/formats/theme.ts:17-60`: the colour spaces and ranges, and the `id`/`version` patterns.
       - `src/formats/dtcg.ts:1-60`: `Colour` with `"none"` components; `fontName` forbids `;{}\`, control characters and `url(`, but allows quotes, so quoting must escape them.
       - `proof/css/project.ts:161-200`: the proof's typography variables and defaults.
+      - Rechecked 2026-10-23: [DTCG 2025.10 colour spaces](https://www.designtokens.org/tr/2025.10/color/#supported-color-spaces), [font-weight aliases](https://www.designtokens.org/tr/2025.10/format/#font-weight), and MDN's `color()`, `font-family`, `hsl()`, `hwb()` and `font-size-adjust` references (Context7 `/mdn/content`). HSL/HWB percentage components keep `%`; weight aliases map to their DTCG numeric values.
     - Options Considered:
       - Convert every colour to sRGB hex — rejected: it loses wide-gamut colours and the DTCG source space for no gain under Baseline 2024.
       - Emit the `hex` fallback alongside the colour — rejected: every target browser parses the colour functions.
       - Keep `:root` and offer a `selector` option, as Style Dictionary does — rejected: decision 1 makes the scope attribute the contract, and an option would be a second way to scope.
     - Chosen Approach:
-      - Two pure functions over validated documents, with shared escaping in `names.ts`.
+      - Two pure functions over validated documents, with shared escaping in `names.ts`. Both validate the catalog before building CSS; `themeCss` also calls `validateTheme`. Optional typography fields emit neutral defaults so switching to a theme without them resets the previous theme's values. Scope versions and font-family strings are escaped, including `<` for embedding sheets in a style element.
     - API Notes and Examples:
       ```ts
       import { baseCss, themeCss } from "@arnilo/liveframe/css";
@@ -244,7 +245,12 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `surface_typography_comes_from_the_vocabulary`: renaming the role in a test vocabulary renames the variables `.lf_surface` reads. Fails if `body` is hard-coded.
     - `projection_is_deterministic`: two runs give identical bytes, and shuffling the input's key order doesn't change them.
     - `invalid_theme_fails_closed`: a theme missing a declared role returns the validator's error and no CSS.
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-23):
+    - Added `src/css/` with the generic scoped reset, vocabulary-selected surface typography, named optional container, theme colour/typography variables, and injective variable/class names. Both sheet functions return validator errors without a partial sheet. Theme roles and fields are sorted; all fourteen DTCG colour spaces preserve components, authored units and alpha. Font-family quoting, DTCG weight aliases and neutral typography defaults are covered.
+    - Ten tests cover naming, every colour space (including `none` and zero alpha), family quoting/generics, typography defaults and units, colour scheme, vocabulary selection, colour authority with negative controls, shuffled-key determinism, unchanged inputs, invalid documents and string escaping. Tests were written first and failed before the projection modules existed.
+    - `timeout 600s bun run check` passed: 335 tests, 0 failures, generation check, typecheck, lint and format check. Existing lint warnings remain; the six new files pass lint without warnings. `git diff --check` passed.
+    - Added `bench/css.bench.ts` to `bun run bench`. `timeout 60s bun bench/css.bench.ts` (200 warm-ups, 1,000 measured projections including validation): base 0.388 ms / 601 bytes; Certified theme 0.789 ms / 7,754 bytes; Rack theme 0.729 ms / 9,176 bytes. Generation has no budget; hosts cache sheets by input.
+    - No spec change or dependency. Package export/docs remain Task 8; preference/switching rules and forced-colour overrides remain Tasks 6–7. No new browser proof or parity capture was run for these serializers; the existing browser suite passed through `bun run check`.
 
 - [ ] Task 4: Project design-system values and recipes into ordered state rules
   - Acceptance Criteria:

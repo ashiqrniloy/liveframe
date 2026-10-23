@@ -124,7 +124,7 @@ Two plans: Part A (the renderer), then Part B (the preview), which draws drafts 
 
 ## 3. Execution state
 
-- **Current phase:** Phase 3 in progress — plan 007 Tasks 1–2 complete (projection decisions and surface typography vocabulary); Tasks 3–12 remain. Phase 2 implementation is delivered: plan 005 (Part A) still needs Task 10's impact analysis; plan 006 (Part B) is complete. Plan 002 Task 9's owner gate remains recorded separately.
+- **Current phase:** Phase 3 in progress — plan 007 Tasks 1–3 complete (projection decisions, surface typography vocabulary, base and theme sheets); Tasks 4–12 remain. Phase 2 implementation is delivered: plan 005 (Part A) still needs Task 10's impact analysis; plan 006 (Part B) is complete. Plan 002 Task 9's owner gate remains recorded separately.
 - **Next free plan number:** 008.
 
 One line per plan. Detail lives in the plan file, never here.
@@ -136,4 +136,4 @@ One line per plan. Detail lives in the plan file, never here.
 | [003](plans/003-Phase-1-Part-A-Formats.md) | 1 | complete (Tasks 1–9; findings disposed in the impact analysis and backlog) |
 | [004](plans/004-Phase-1-Part-B-Compiled-Validator.md) | 1 | complete (Tasks 1–7; findings disposed in the impact analysis and backlog) |
 | [006](plans/006-Phase-2-Part-B-Packages-Storage-Runners.md) | 2 | complete (Tasks 1–12; findings disposed in the impact analysis and backlog) |
-| [007](plans/007-Phase-3-CSS-Projection.md) | 3 | in progress (Tasks 1–2 complete; Tasks 3–12 remain) |
+| [007](plans/007-Phase-3-CSS-Projection.md) | 3 | in progress (Tasks 1–3 complete; Tasks 4–12 remain) |
