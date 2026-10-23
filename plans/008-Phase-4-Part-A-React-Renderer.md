@@ -89,7 +89,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Spec §11 now puts scope on the wrapper and sibling portal, gives each collection item its own node context, completes intents before `onIntent`, and requires validation before any revision comparison. `docs/model.md` D2 and the renderer skill reference match.
     - `bun run check` and `git diff --check` passed. No runtime code changed. Task 7 still must prove parity with surface-only containment and escalate any regression to the owner.
 
-- [ ] Task 2: Add the `/react` subpath with `implement()` and the startup registry check
+- [x] Task 2: Add the `/react` subpath with `implement()` and the startup registry check
   - Acceptance Criteria:
     - Functional:
       - `package.json` exports `./react` (`./src/react/index.ts`) and declares `react` and `react-dom` (`^19.3.1`) as peer dependencies, optional through `peerDependenciesMeta`.
@@ -114,11 +114,13 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `src/formats/catalog.ts:47–58` (`Definition`, `defineComponent`), `src/schema.ts:25` (`Infer`).
       - `src/pack/hash.ts:11` (`canonicalJson`): a candidate for the comparison. It must not pull `/pack` into `/react`; if the import would, copy the comparison or move the helper to the root.
       - `src/__tests__/portability.test.ts:5–11, 52–76`.
+      - Context7, 2026-10-24: Bun 1.4.2 [optional peers](https://github.com/oven-sh/bun/blob/bun-v1.4.2/docs/guides/install/add-peer.mdx); React [TypeScript props](https://react.dev/learn/typescript) and [class components](https://react.dev/reference/react/Component). Installed `@types/react` defines `ComponentType<P>` as `ComponentClass<P> | FunctionComponent<P>`.
     - Options Considered:
       - Generate implementation prop types with `liveframe gen` — rejected for this phase: implementations are written by app developers in TypeScript, and `defineComponent` already gives literal types. Task 11 sweeps it as a candidate.
       - Throw plain `Error` like the proof — rejected: agents and hosts act on typed `LiveframeError`s.
     - Chosen Approach:
       - A factory that validates once and returns a closure-bound `Surface`; types follow `defineComponent`.
+      - For this task, `Surface` is a null-rendering placeholder; Task 3 binds rendering to the factory's registry. Compare definitions structurally (object key order ignored, array order preserved), avoiding an import from `/pack` or a new root export. A symbol makes bindings opaque; export `RendererError` as a type to retain the two-name runtime surface. `implement<Definition, Props>` explicitly narrows JSON-loaded props; `NoInfer` prevents component annotations from overriding schema-derived types implicitly.
     - API Notes and Examples:
       ```ts
       import { createRenderer, implement } from "@arnilo/liveframe/react";
@@ -132,6 +134,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Files to Create/Edit:
       - `src/react/index.ts`, `src/react/implement.ts`, `src/react/renderer.tsx`: new.
       - `package.json`: `exports`, `peerDependencies`, `peerDependenciesMeta`.
+      - `bun.lock`: synchronize the optional peer declarations.
       - `src/__tests__/portability.test.ts`: a `react` entry (host `DOM`). `src_is_host_api_free` (`:50–76`) currently requires every import to be relative and forbids `document`/`window`; under `react/` only, allow the external specifiers `react`, `react/jsx-runtime` and `react-dom` and DOM globals, and keep the no-`proof/` and no-`import(` rules.
       - `src/__tests__/exports.test.ts`: `/react` surface.
       - `src/__tests__/react-registry.test.tsx`, `src/__tests__/react-types.test.tsx`: new.
@@ -140,7 +143,14 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `registry_ignores_definition_key_order`: the same definition with reordered keys binds; fails with a `JSON.stringify` comparison.
     - `registry_check_runs_once`: a spy on `validateCatalog` sees one call across several surfaces.
     - `implement_types_follow_const_definitions` (type-level, `// @ts-expect-error`): a wrong prop, an unknown slot, an undeclared event, and a boolean value for a `string` event fail to compile.
+    - `registry_validates_catalog_before_binding`: malformed catalogs throw `RendererError` with the catalog validator's errors.
+    - `json_definitions_use_json_props_and_allow_explicit_narrowing`: loaded definitions use JSON props and string names; explicit prop narrowing and class components compile.
     - `react_export_surface`: `createRenderer` and `implement` only.
+  - Notes (executed 2026-10-24):
+    - Added `/react`, opaque implementation bindings, schema-derived props/slot/event types, JSON-loaded prop narrowing, and the startup registry check. Invalid catalogs retain their validator errors; missing, duplicate, mismatched and extra kinds are collected in one `RendererError`. Structural comparison ignores object key order and preserves array order without importing `/pack`.
+    - Added optional React and React DOM peers and synchronized `bun.lock`. Pinned the two runtime exports and scoped the DOM/import portability exception to `src/react/`. No spec change.
+    - Tests were written first and failed on the missing subpath. The focused suites and typecheck passed, followed by `bun run check` (382 tests, zero failures) and `git diff --check`. The first full run hit six existing timing gates during heavy concurrent test activity in other projects; all 41 tests in the affected suites passed on rerun, and the subsequent full check passed without changing any limits.
+    - `Surface` deliberately renders `null` until Task 3 implements arrival validation and tree rendering; the startup check already runs only at factory creation. The proof host is unchanged until Task 7.
 
 - [ ] Task 3: Draw a validated tree with `<Surface>`
   - Acceptance Criteria:

@@ -16,6 +16,7 @@ import * as preview from "@arnilo/liveframe/preview";
 import * as worker from "@arnilo/liveframe/preview/worker";
 import * as liveframe from "@arnilo/liveframe";
 import * as css from "@arnilo/liveframe/css";
+import * as react from "@arnilo/liveframe/react";
 import type {
   Component,
   DeepReadonly,
@@ -48,6 +49,10 @@ test("css_exports_are_pinned", () => {
     "themeCss",
     "valueVar",
   ]);
+});
+
+test("react_export_surface", () => {
+  expect(Object.keys(react).sort()).toEqual(["createRenderer", "implement"]);
 });
 
 test("css_public_return_types", () => {

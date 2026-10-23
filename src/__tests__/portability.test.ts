@@ -8,6 +8,7 @@ const subpaths = [
   { path: "store/fs", dependencies: false, loader: false, host: "filesystem" },
   { path: "preview", dependencies: false, loader: true, host: "none" },
   { path: "preview/worker", dependencies: false, loader: true, host: "Worker/self" },
+  { path: "react", dependencies: false, loader: false, host: "DOM" },
 ] as const;
 
 test("sdk_bundles_for_browser_without_host_apis", async () => {
@@ -65,12 +66,17 @@ test("src_is_host_api_free", async () => {
     const source = await Bun.file(`${root}${path}`).text();
     // Relative specifiers such as "./in-process.ts" are not process member access.
     const executable = source.replace(/\bfrom\s+(["'])\.\.?\/[^"'\n]+\1/g, 'from ""');
-    const checked = workerSubpath ? executable.replace(/\b(?:Worker|self)\b/g, "workerScope") : executable;
+    const checked = workerSubpath
+      ? executable.replace(/\b(?:Worker|self)\b/g, "workerScope")
+      : subpath?.host === "DOM"
+        ? executable.replace(/\b(?:document|window|navigator|localStorage|sessionStorage)\b/g, "domScope")
+        : executable;
     expect(checked, path).not.toMatch(forbidden);
     // Spec §7.5 permits dynamic imports only in the backend package loader.
     if (path !== "preview/load.ts") expect(source, path).not.toMatch(/\bimport\s*\(/);
     // Only the packer's syntax tools may be external; their browser bundle is checked below.
     for (const dependency of transpiler.scanImports(source)) {
+      if (subpath?.host === "DOM" && ["react", "react/jsx-runtime", "react-dom"].includes(dependency.path)) continue;
       if (path === "pack/bundle.ts" && ["sucrase", "acorn"].includes(dependency.path)) continue;
       expect(dependency.path, path).toMatch(/^\.\.?\//);
       expect(dependency.path, path).not.toContain("proof/");
