@@ -526,7 +526,12 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `in_process_reports_slow_render`: a widget that busy-waits 150 ms gives `limit-exceeded`.
     - `bad_module_is_render_failed`: a package whose default export isn't a function.
     - `loader_resolves_sdk_from_other_cwd`: a subprocess with `cwd` set to a temp directory loads a package and renders.
-  - Notes (executed <date>):
+  - Notes (attempted 2026-10-23; blocked at required loader gate):
+    - Reproduced the pre-implementation gate on Bun 1.4.2: both `const x = { value: 3 }; export default () => x.value;` and the actual 26,864-character linked agent-home module import with a string default export instead of a function using the exact approved percent-encoded `data:` URL expression.
+    - Reproduction command and observed output: `plans/evidence/006-task-8-loader-gate.md`. This confirms Task 4's finding against plan 005 Task 1 and `decision-logs/2026-10-22-2330-phase-2-sdk-and-package-contracts.md`; the earlier simple-module spike does not establish that real packages load.
+    - Stopped as this task explicitly requires. No production loader or runner was implemented, no alternative scheme was substituted, and the checkbox remains unchecked. The loader decision needs revisiting before Task 8 and its dependent runner/integration work can complete. Other-cwd resolution, parity, caching, timeout and overhead checks remain pending.
+    - Context7 lookup for Bun failed with its monthly quota exhausted; the finding is established by local runtime execution.
+    - `timeout 600s bun run check` passed: 284 tests, zero failures, plus generated-code drift, typecheck, lint and format checks. This verifies the existing implementation remains green; it does not satisfy Task 8's unimplemented acceptance criteria.
 
 - [ ] Task 9: Bound time and crashes with workerRunner()
   - Acceptance Criteria:
