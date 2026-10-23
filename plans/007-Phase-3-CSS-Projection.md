@@ -538,7 +538,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `timeout 600s bun run check` passed: generation check, both typechecks, lint, formatting, 371 tests / 110,057 assertions. The focused public-export/portability run passed 14 tests; `git diff --check` passed. Existing lint warnings remain.
     - No new parity capture or performance measurement: Task 9 retains the two-surface integration/switch budget, Task 10 retains proof-host adoption and parity, and the real Windows/assistive-technology audit remains a manual gate.
 
-- [ ] Task 9: Prove scoping, overlays and switching with two surfaces on one page
+- [x] Task 9: Prove scoping, overlays and switching with two surfaces on one page
   - Acceptance Criteria:
     - Functional:
       - A browser fixture page loads the base sheet, both proof themes and both proof design systems. It shows two surfaces: one Certified × Certified, and one Rack × Rack holding an open dialog with its blurred backdrop and an open popover that stays in scope.
@@ -560,14 +560,17 @@ Probe answers that hold for every task, unless a task says otherwise:
       - Prove scoping only through the proof host — rejected: the host has one surface per page, and a library behaviour needs a library test.
       - Build a test renderer — rejected: static markup proves CSS behaviour, and Phase 4 owns rendering.
     - Chosen Approach:
-      - A `setContent` page with two scoped roots and captured agent-home markup.
+      - A `setContent` page with two scoped roots and captured agent-home markup for the proof bench's 50-row workload. The capture script translates legacy classes and inline layouts through `/css`; tests add static sibling backdrop/dialog slots and native top-layer popovers. No renderer or widget code runs in the browser.
     - API Notes and Examples:
       ```ts
       await page.setContent(`<style>${base}${themes}${systems}</style><section ${attrs(a)}>…</section><section ${attrs(b)}>…</section>`);
       ```
     - Files to Create/Edit:
       - `src/__tests__/css-scope-browser.test.ts`: new.
-      - `src/__tests__/fixtures/css/agent-home.html`: new, captured from the proof host's server render (tentative path; the script that regenerates it is named in the test header, following the evidence rule in AGENTS.md).
+      - `src/__tests__/fixtures/css/agent-home.html`: new, captured through the proof host's `ProofSurface` server render; contains no client code or sheets.
+      - `proof/scripts/capture-css-scope.ts`: new, regenerates the capture and checks for projected markup without legacy CSS names. The test header names the command. Until Task 10, the capture maps legacy `fit` grid tracks to `1fr` without changing proof widgets; this is a scope/switch fixture, not parity evidence.
+      - `proof/GAPS.md`: record this projection's cold/warm two-surface measurement beside G33.
+      - This plan and `roadmap.md` §3: execution status.
   - Test Cases to Write:
     - Browser `two_surfaces_keep_their_own_styles`.
     - Browser `host_css_does_not_restyle_surfaces`.
@@ -575,7 +578,13 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Browser `overlays_keep_scope`: the open popover and dialog compute their design system's look.
     - Browser `nested_surfaces_are_a_recorded_limitation`.
     - Browser `switch_under_budget_with_blur`: warm ≤ 16.67 ms; cold recorded.
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-24):
+    - Added six Chromium tests in `src/__tests__/css-scope-browser.test.ts` using the published `/css` helpers, five independently projected sheets, static markup and Playwright only. Both scopes retain their own theme typography, button colours and 720px container threshold; removing the other surface leaves computed styles unchanged. Unscoped host elements receive no Liveframe variables, and a later `button { background: red }` rule affects only the host button.
+    - Switching Certified × Certified to Rack × Rack changes only the first scope. A MutationObserver permits only its scope/switch attributes; all node identities, classes and descendant markup remain identical. Computed transition durations are zero during the switch, no animation or `transitionrun` starts, and the second surface remains byte/style-identical. Native top-layer popovers retain ancestry and pair-specific styles. Rack's sibling dialog backdrop computes `blur(2px) saturate(1)` with no backdrop-root ancestor. The negative nesting test demonstrates Rack's unset-property leakage into a nested Certified backdrop, pinning the documented unsupported case.
+    - `proof/scripts/capture-css-scope.ts` uses the proof host's existing `ProofSurface` server render with the same 50-row workload as `proof/tests/agent-home.bench.ts`, then converts legacy classes/layouts for the static fixture. It asserts projected markup without legacy CSS names, and regeneration is byte-identical. Captured HTML contains no renderer or widget scripts. Generated-file Biome directives preserve server markup and leave its existing ARIA attributes intact. No screenshot artifact is needed for these computed-style/identity tests.
+    - Temporary capture-only limit: legacy `fit` tracks become `1fr`, so the fixture is not parity evidence. Task 10 now explicitly removes this translation and regenerates the capture after the proof host adopts `/css` and flex rows. The browser fixture supplies open sibling dialog/backdrop slots and native popovers because React Aria does not include those open overlays in the server render. Production proof widgets and renderer are unchanged.
+    - Full-check measurement: 954 DOM elements in the switched surface, with two 50-row surfaces and overlays mounted; first flip 7.7 ms, ten warm flips 8.4, 8.2, 8.0, 7.8, 7.7, 7.5, 7.4, 8.3, 7.9 and 10.0 ms (maximum 10.0 ms ≤ 16.67 ms). The timer covers switch attributes and computed-style resolution across every node, including overlay/backdrop styles; it does not claim GPU paint/compositing time. Recorded beside G33 in `proof/GAPS.md`; proof-host integration/parity remains Task 10.
+    - Tests were added before capture implementation and initially failed on the absent fixture. `timeout 600s bun run check` passed: generation check, both typechecks, lint, formatting, 377 tests / 110,087 assertions. All six focused cases pass, the generator's self-check passes, and `git diff --check` passes. Existing lint warnings remain; the new TypeScript files add none. No public API, dependency or normative spec change. Context7 `/microsoft/playwright` confirmed `setContent`, evaluation and screenshot APIs for the installed browser-test tooling.
 
 - [ ] Task 10: Drive the proof host with `/css` and re-prove parity
   - Acceptance Criteria:
@@ -622,6 +631,7 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `proof/host/server.ts` (the `<link>` pair at `:112`), `proof/host/client.tsx`: sheets, attributes, switch.
       - `proof/widgets/agent-home/queue-row.tsx`: the flex composition.
       - `proof/scripts/export-formats.ts`, `src/__tests__/fixtures/proof/*.tree.json` (regenerated), `src/__tests__/sdk-proof-widgets.test.ts`.
+      - `proof/scripts/capture-css-scope.ts`, `src/__tests__/fixtures/css/agent-home.html`: remove the Task 9 capture's legacy class/style translation and temporary `fit` substitution once the proof projects through `/css`; regenerate from the migrated server render and retain the 50-row scope/switch regression.
       - `proof/tests/*.test.ts`: class names and selectors where they assert them.
       - `proof/PARITY.md`, `proof/GAPS.md`.
       - `plans/backlog.md`: close the grid-track item.
