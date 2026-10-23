@@ -9,6 +9,8 @@ import type {
   UiTree,
   ValidateTreeOptions,
 } from "@arnilo/liveframe";
+import * as pack from "@arnilo/liveframe/pack";
+import * as store from "@arnilo/liveframe/store";
 import * as liveframe from "@arnilo/liveframe";
 import type {
   Component,
@@ -140,4 +142,9 @@ test("public_validator_types_support_error_guided_repairs", () => {
   const repaired = { ...tree, root: { ...root, props: { label: "Claim" } } };
   const accepted: Result<UiTree> = validator.validateTree(repaired, options);
   expect(accepted).toEqual({ ok: true, value: repaired });
+});
+
+test("package_and_record_format_export_surfaces", () => {
+  expect(Object.keys(pack).sort()).toEqual(["validateScenario", "validateWidgetPackageShape"]);
+  expect(Object.keys(store).sort()).toEqual(["validatePlacement", "validateState", "validateStyleRecord"]);
 });

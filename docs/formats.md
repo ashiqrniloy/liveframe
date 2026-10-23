@@ -568,3 +568,36 @@ typography role names. It does not mutate its inputs. Call it after validation;
 invalid input throws an error containing the install errors. The published
 `@arnilo/liveframe/schemas/design-system.json` checks structure and bounds;
 installation additionally checks names, references, inheritance and completeness.
+
+## Package and storage transport formats
+
+Package and scenario types and validators are exported from `@arnilo/liveframe/pack`:
+`WidgetPackage`, `Scenario`, `validateWidgetPackageShape(doc)` and `validateScenario(doc)`.
+Placement and style record types and validators are exported from `@arnilo/liveframe/store`:
+`Placement`, `StyleRecord`, `validatePlacement(doc)`, `validateStyleRecord(doc)` and `validateState(doc)`.
+Each validator returns `Result<T>` with at most 20 pointed `invalid-document` errors.
+
+A package has `format: "liveframe-package/1"`, a manifest, code, 1–64 scenarios and a
+`sha256-` hash followed by 64 lowercase hexadecimal digits. Code is limited to
+1 MiB of UTF-8 bytes. Scenario names are non-empty, unique within the package and
+at most 128 code points. A scenario contains `name`, `params`, `context`,
+`data` (a map of source names to JSON values), and optional `state`.
+
+A placement contains `id`, `slot`, `widget: { id, version }` and JSON `params`.
+A style record contains `kind: "theme" | "designSystem"`, `id`, `version` and
+JSON `body`. State is any JSON value, stored separately under the placement id.
+Record names and versions are non-empty strings of at most 128 code points;
+widget and style ids use the manifest id grammar. Unknown envelope fields,
+non-JSON values, cycles and non-finite numbers are rejected.
+
+The published schemas are `@arnilo/liveframe/schemas/widget-package.json`,
+`placement.json` and `style-record.json` under the same schemas subpath.
+The package schema references `manifest.json` by its published `$id`; register
+that schema with your JSON Schema validator too. Scenario and JSON value schemas
+are embedded. Standard JSON Schema cannot enforce unique scenario names or a
+UTF-8 byte bound, so use the structural validator for those checks.
+
+These checks establish transport structure. They do not execute code, verify the
+hash, compare scenario inputs with manifest schemas, or install style bodies.
+Package verification and theme/design-system installation must apply those checks
+before the host uses the records.

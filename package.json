@@ -14,7 +14,9 @@
     "./sdk": "./src/sdk/index.ts",
     "./sdk/jsx-runtime": "./src/sdk/jsx-runtime.ts",
     "./sdk/jsx-dev-runtime": "./src/sdk/jsx-dev-runtime.ts",
-    "./schemas/*": "./schemas/*"
+    "./schemas/*": "./schemas/*",
+    "./pack": "./src/pack/index.ts",
+    "./store": "./src/store/index.ts"
   },
   "files": ["src", "schemas"],
   "bin": {

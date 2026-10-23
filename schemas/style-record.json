@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liveframe.dev/schemas/style-record.json",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "maxLength": 12,
+      "enum": [
+        "theme",
+        "designSystem"
+      ],
+      "type": "string"
+    },
+    "id": {
+      "maxLength": 128,
+      "pattern": "^[a-z][a-zA-Z0-9.-]*$",
+      "type": "string"
+    },
+    "version": {
+      "maxLength": 128,
+      "pattern": "^.+$",
+      "type": "string"
+    },
+    "body": {
+      "$ref": "#/$defs/json"
+    }
+  },
+  "required": [
+    "kind",
+    "id",
+    "version",
+    "body"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "json": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/json"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/json"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liveframe.dev/schemas/widget-package.json",
+  "type": "object",
+  "properties": {
+    "format": {
+      "maxLength": 32,
+      "enum": [
+        "liveframe-package/1"
+      ],
+      "type": "string"
+    },
+    "manifest": {
+      "$ref": "https://liveframe.dev/schemas/manifest.json"
+    },
+    "code": {
+      "maxLength": 1048576,
+      "type": "string"
+    },
+    "scenarios": {
+      "maxItems": 64,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/scenario"
+      },
+      "minItems": 1
+    },
+    "hash": {
+      "maxLength": 71,
+      "pattern": "^sha256-[0-9a-f]{64}$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "format",
+    "manifest",
+    "code",
+    "scenarios",
+    "hash"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "json": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/json"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/json"
+          }
+        }
+      ]
+    },
+    "scenario": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/json"
+        },
+        "name": {
+          "maxLength": 128,
+          "pattern": "^.+$",
+          "type": "string"
+        },
+        "params": {
+          "$ref": "#/$defs/json"
+        },
+        "context": {
+          "$ref": "#/$defs/json"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/json"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "params",
+        "context",
+        "data"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

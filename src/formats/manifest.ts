@@ -10,6 +10,7 @@ import {
   type ObjectSchema,
   shell,
 } from "./capabilities.ts";
+import { validateJson } from "./json.ts";
 import type { Catalog } from "./catalog.ts";
 
 type Json = null | boolean | number | string | readonly Json[] | { readonly [key: string]: Json };
@@ -146,6 +147,40 @@ export function validateManifest(
           else if (resolved.type !== target.type) c.reject(path, "Binding type does not match source parameter");
         } else c.collect(checkValue(target, input), path);
       }
+    });
+  }
+  return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: doc as Manifest };
+}
+
+/** Package transport checks only; installation still requires validateManifest with host documents. */
+export function validateManifestShape(doc: unknown): Result<Manifest> {
+  const c = documentChecks();
+  c.collect(validateJson(doc), "");
+  if (!isRecord(doc)) c.reject("", "Expected a manifest object");
+  else {
+    c.collect(checkValue(fields, shell(doc, ["params", "state", "context", "initialState", "sources"])), "");
+    for (const key of ["params", "state", "context"] as const) c.schema(doc[key], `/${key}`);
+    if (Array.isArray(doc.actions)) {
+      const seen = new Set<unknown>();
+      for (const [i, name] of doc.actions.entries()) {
+        if (c.errors.length >= 20) break;
+        if (seen.has(name)) c.reject(`/actions/${i}`, "Duplicate action");
+        seen.add(name);
+      }
+    }
+    c.map(doc.sources, "/sources", (source, pointer) => {
+      if (!isRecord(source)) {
+        c.reject(pointer, "Expected a source object");
+        return;
+      }
+      c.collect(checkValue(sourceFields, shell(source, ["params"])), pointer);
+      if (!isRecord(source.params)) c.reject(`${pointer}/params`, "Expected a source parameter map");
+      else
+        for (const [key, value] of Object.entries(source.params)) {
+          if (c.errors.length >= 20) break;
+          if (isRecord(value) && Object.hasOwn(value, "from"))
+            c.collect(checkValue(binding, value), at(`${pointer}/params`, key));
+        }
     });
   }
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: doc as Manifest };

@@ -7,6 +7,9 @@ import { manifestSchema } from "./manifest.ts";
 import { themeSchema } from "./theme.ts";
 import { treeSchema } from "./tree.ts";
 
+import { widgetPackageSchema } from "./package.ts";
+import { placementSchema, styleRecordSchema } from "./records.ts";
+
 const annotations = { description: { type: "string" }, deprecated: { type: "boolean" } } as const;
 const bound = { type: "integer", minimum: 0 } as const;
 const schemaRef = { $ref: "#/$defs/schema" } as const;
@@ -62,6 +65,9 @@ export const formats = {
   "schema-language": schemaLanguage,
   capabilities: { ...capabilitiesSchema, $defs: { ...schemaLanguage.$defs, objectSchema } },
   manifest: { ...manifestSchema, $defs: { ...schemaLanguage.$defs, objectSchema, ...manifestSchema.$defs } },
+  "widget-package": widgetPackageSchema,
+  placement: placementSchema,
+  "style-record": styleRecordSchema,
   catalog: {
     ...catalogSchema,
     $defs: { ...catalogSchema.$defs, ...schemaLanguage.$defs, objectSchema },

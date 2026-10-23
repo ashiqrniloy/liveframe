@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liveframe.dev/schemas/placement.json",
+  "type": "object",
+  "properties": {
+    "id": {
+      "maxLength": 128,
+      "pattern": "^.+$",
+      "type": "string"
+    },
+    "slot": {
+      "maxLength": 128,
+      "pattern": "^.+$",
+      "type": "string"
+    },
+    "widget": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "maxLength": 128,
+          "pattern": "^[a-z][a-zA-Z0-9.-]*$",
+          "type": "string"
+        },
+        "version": {
+          "maxLength": 128,
+          "pattern": "^.+$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "version"
+      ],
+      "additionalProperties": false
+    },
+    "params": {
+      "$ref": "#/$defs/json"
+    }
+  },
+  "required": [
+    "id",
+    "slot",
+    "widget",
+    "params"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "json": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/json"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/json"
+          }
+        }
+      ]
+    }
+  }
+}

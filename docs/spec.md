@@ -335,7 +335,7 @@ type WidgetPackage = {
   format: "liveframe-package/1";
   manifest: Manifest;           // id, version, catalogId, schemas, initial state (§7.1)
   code: string;                 // one ES module; its default export is the widget function
-  scenarios: Scenario[];        // at least one
+  scenarios: Scenario[];        // 1…64, with unique names
   hash: string;                 // "sha256-" + 64 lowercase hex digits; see canonical form below
 };
 
@@ -347,6 +347,8 @@ type Scenario = {
   data: Record<string, Json>;   // keyed by the manifest's data source names
 };
 ```
+
+Packages carry 1…64 scenarios with unique, non-empty names of at most 128 Unicode code points. Code is bounded to 1 MiB (1,048,576 UTF-8 bytes). The published JSON Schema also caps code at 1,048,576 code points; the structural validator enforces the byte bound and unique scenario names, which standard JSON Schema cannot express.
 
 `pack()`:
 
@@ -615,7 +617,7 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
   | `@arnilo/liveframe/sdk` | The JSX runtime (`/sdk/jsx-runtime`, `/sdk/jsx-dev-runtime`), intent helpers, and `render()` |
   | `@arnilo/liveframe/react` | The renderer. `react` is an optional peer dependency, needed only by this import |
   | `@arnilo/liveframe/css` | Projects a theme and design system into CSS custom properties and classes |
-  | `@arnilo/liveframe/pack` | `pack()` and `verifyPackage()` (§7.3) |
+  | `@arnilo/liveframe/pack` | Package and scenario formats, structural validators, `pack()` and `verifyPackage()` (§7.3) |
   | `@arnilo/liveframe/store` | Record formats, the `Store` interface, `memoryStore()` and `loadPlacement()` (§7.4) |
   | `@arnilo/liveframe/store/fs` | `fileStore(dir)`, which reads and writes the file system |
   | `@arnilo/liveframe/preview` | The `Runner` interface, `inProcessRunner()` and `createPreview()` (§7.5) |
