@@ -663,7 +663,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Context7 successfully supplied the versioned Bun 1.4.2 Worker documentation. The doc comment and existing spec §7.5 state that workers bound time and crashes without restricting code access. Public subpath exports remain Task 10 and the outsider guide remains Task 11; published-worker verification remains Phase 6, as planned.
 
 
-- [ ] Task 10: Prove the install, store, reload and render loop end to end
+- [x] Task 10: Prove the install, store, reload and render loop end to end
   - Acceptance Criteria:
     - Functional:
       - One test:
@@ -699,7 +699,14 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `packs_stores_reloads_and_renders`: the five steps above.
     - `every_proof_scenario_through_both_runners`.
     - `done_list_typed_errors`: a forbidden import, a bad initial state, no scenario, a bad scenario, a version conflict, a tampered package, params that don't fit, a corrupt record and a state reset.
-  - Notes (executed <date>):
+    - `pack_store_and_reload_never_execute_widget_code`: a package whose top level throws can be packed, stored and loaded; both runners report its execution marker as `render-failed` only when asked to render.
+    - `done_list_typed_errors: worker timeout then recovery`: a packed infinite loop gives `limit-exceeded` within the default 100 ms plus 500 ms, then the same runner renders agent-home on a fresh worker, equal to direct rendering.
+  - Notes (executed 2026-10-23):
+    - Added `src/__tests__/phase-2-loop.test.ts` using only public library imports and on-disk proof fixtures. The test first failed on the missing `/preview` export. Added the three planned package subpaths: `/store/fs`, `/preview` and `/preview/worker`; no runtime implementation, dependency or spec change was needed.
+    - Agent-home packs twice with the same hash, persists a package, placement and non-initial state, then loads through a fresh file store. The loaded values are checked exactly, and both runners produce trees deep-equal to direct SDK rendering. All scenarios of all four proof widgets also pack and render through both runners with equal trees.
+    - Named integration cases cover every requested rejection and reset, including a valid second package hash rejected without overwriting the original, tampered code, invalid params, truncated on-disk JSON and state reset after moving the placement to a new version. The reset is reported without writing over stored state. A throwing module proves packing, storage and reload remain inert; a packed infinite loop proves worker termination and subsequent recovery.
+    - `timeout 120s bun test src/__tests__/phase-2-loop.test.ts` passed all 13 integration cases. `timeout 600s bun run check` passed generated-code drift, typecheck, lint, format and all 319 tests across 54 files with zero failures. `git diff --check` passed. Existing unrelated lint warnings remain.
+    - Tasks 11–12 remain unchanged: exact public export lists, consolidated portability checks, outsider documentation and final impact analysis are still their work. Published-package loader and worker-entry verification remains Phase 6. Existing owner edits to `roadmap.md` and `plans/README.md` were left untouched.
 
 - [ ] Task 11: Publish the package, storage and runner surfaces and their documentation
   - Acceptance Criteria:
