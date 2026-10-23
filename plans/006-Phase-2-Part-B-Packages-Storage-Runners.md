@@ -754,6 +754,26 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `timeout 60s bun test src/__tests__/phase-2-loop.test.ts src/__tests__/exports.test.ts src/__tests__/portability.test.ts` passed all 25 focused cases. `timeout 600s bun run check` passed generated-code drift, typecheck, lint, format and all 322 tests across 54 files with zero failures. Existing unrelated lint warnings remain. `git diff --check` passed.
     - Task 12 remains unchecked; published-build loader and worker-entry verification remains the Phase 6 release gate. No registry release was attempted. Existing owner edits to `roadmap.md` and `plans/README.md` were left untouched.
 
+- [x] Task 11a: Reconcile the execution ledger with delivered work (Task 12 finding F1)
+  - Acceptance Criteria:
+    - Functional: roadmap §3 records plan 005 Tasks 1–9 as delivered with Task 10 still open, and closes plan 006 only after Task 12 passes.
+    - Performance: n/a — execution metadata only.
+    - Code Quality: preserve existing owner edits to the plan index and next free number; do not close another plan's unchecked task.
+    - Security: no runtime, authority or package-format change.
+  - Approach:
+    - Skills to Use: `create-plan` for execution-state maintenance; `karpathy-guidelines` for the narrow correction.
+    - Library Documentation to Check Before Implementation: none — local ledger and task checkboxes only.
+    - Documentation Reviewed: roadmap §3, plan 005 Tasks 1–10 and plan 006 Tasks 1–12.
+    - Options Considered: close both Phase 2 plans — rejected because plan 005 Task 10 remains unchecked.
+    - Chosen Approach: correct the current phase and both status rows without changing phase scope or numbering.
+    - API Notes and Examples: n/a — no API change.
+    - Files to Create/Edit: `roadmap.md` §3 and this task's execution notes.
+  - Test Cases to Write: none — verify statuses against the existing task checkboxes and run `bun run check`.
+  - Notes (executed 2026-10-23):
+    - Corrected roadmap §3's current phase and plan 005/006 rows against their task checkboxes. Plan 005 Task 10 remains open; plan 006 is recorded as Tasks 1–11 delivered pending Task 12. Final closure belongs to Task 12.
+    - Preserved the owner's pre-existing plan-index rows and next free plan number. The owner's added plan 005 row stays in the working tree with its corrected status; only this task's changes to already-tracked roadmap lines are staged.
+    - `timeout 600s bun run check` passed generation drift, typecheck, lint, format and all 322 tests across 54 files, zero failures. Existing unrelated lint warnings remain. No API, dependency or spec change.
+
 - [ ] Task 12: Analyze architectural impact and dispose of every finding
   - Sweep the twelve impact areas of `.agents/skills/create-plan/references/liveframe.md` §5 against what was delivered. Record each, or `None — <reason>`, in `plans/evidence/006-impact-analysis.md`.
   - List every finding, present them to the owner in one table with a recommended disposition (`execute` or `backlog`), and record the answer.
