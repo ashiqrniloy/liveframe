@@ -526,8 +526,13 @@ Probe answers that hold for every task, unless a task says otherwise:
         - The warm-overhead test alternates direct and runner measurements on agent-home and takes the median of three batches after warming both paths. The final full check measured 0.0382 ms/render overhead, under 0.1 ms. Initial separate timing blocks were noisy; alternating order improved the measurement without relaxing the bound.
         - Fixed the portability scan's false positive on the relative specifier `./in-process.ts`: it now removes relative `from` specifier strings before checking for host member accesses, while retaining every dependency check and the sole dynamic-import exception in `preview/load.ts`.
         - `timeout 40s bun test src/__tests__/runner-in-process.test.ts src/__tests__/preview-load.test.ts src/__tests__/portability.test.ts` passed all 17 tests. `timeout 600s bun run check` passed generated-code drift, typecheck, lint, format and all 298 tests with zero failures; `git diff --check` passed. Existing unrelated lint warnings remain.
-    - [ ] 8.5 Fallback, used only if 8.1 or 8.3 fails or a revisit condition from the decision log is met: the factory-module package format.
-      - Not triggered: 8.1 and 8.3 passed, and 8.4 uses the approved loader successfully. This conditional fallback is not required to complete Task 8.
+    - [x] 8.5 Fallback, used only if 8.1 or 8.3 fails or a revisit condition from the decision log is met: the factory-module package format. **Closed as not applicable: trigger not met.**
+      - Notes (verified 2026-10-23):
+        - Rechecked the approved decision's conditions against the passing 8.1, 8.3 and 8.4 evidence. On the pinned Bun 1.4.2 source checkout, dot escaping works, `import.meta.resolve` produces importable SDK URLs, and canonical header rewriting suffices. No fallback trigger was observed; the factory-module format was not implemented and no replacement decision was adopted.
+        - `timeout 30s bun plans/evidence/006-task-8-loader-gate.ts` passed again: all four probes print `function`, including the actual linked agent-home module outside the repository on the main thread and inside a Worker.
+        - `timeout 600s bun run check` passed generated-code drift, typecheck, lint, format and all 298 tests with zero failures, including loader and runner regressions. `git diff --check` passed. Existing unrelated lint warnings remain.
+        - Published-build resolution remains the Phase 6 verification recorded in the approved decision and Task 12; these source-checkout results do not claim to verify the future published build. Reopen this fallback if a revisit condition is encountered there or in another supported runtime.
+      - The following implementation steps remain conditional instructions for a future trigger, not work required to close this subtask:
       - Stop and write a new decision log with `create-decision-log`, and get the owner's approval before implementing.
       - Proposed shape:
         - `pack()` emits `code` with no `import` at all, and its default export is `(sdk) => Widget`;
