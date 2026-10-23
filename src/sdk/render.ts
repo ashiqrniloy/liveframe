@@ -15,6 +15,8 @@ const FORMAT = "liveframe/1" as const;
 const INPUT_DEPTH = 128;
 /** Data objects already checked and frozen; a host re-runs with the same resolved data (spec §8). */
 const checkedData = new WeakSet<object>();
+/** Only SDK-traversed inputs are known to be deeply frozen. */
+const frozenInputs = new WeakSet<object>();
 
 export type RenderLimits = {
   readonly nodes?: number;
@@ -148,9 +150,10 @@ export function render<P, S, D, C>(
 
   /** Freezes in place: inputs are never copied, and frozen data cannot be mutated behind the widget. */
   function freezeDeep(value: unknown): void {
-    if (value === null || typeof value !== "object" || Object.isFrozen(value)) return;
+    if (value === null || typeof value !== "object" || frozenInputs.has(value)) return;
     for (const key in value) if (Object.hasOwn(value, key)) freezeDeep((value as Record<string, unknown>)[key]);
     Object.freeze(value);
+    frozenInputs.add(value);
   }
 
   function checkInputs(): void {

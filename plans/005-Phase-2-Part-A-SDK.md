@@ -642,6 +642,27 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Updated the execution skill's SDK and architecture references, including the stale render signature. Edited the canonical `.agents/skills` paths; `.claude/skills` is a symlink to them. No spec meaning changed. Task 10's impact analysis remains separate.
     - `timeout 600s bun run check` passes: 241 tests, generation drift, typecheck, lint and format. Lint reports the existing 20 warnings and one informational diagnostic in proof and existing test code; this task adds none. The focused export, portability and guide tests also pass (8 tests). No performance path changed, so the Task 8 benchmark was not rerun.
 
+- [x] Task 9a: Freeze descendants of shallow-frozen SDK inputs
+  - Acceptance Criteria:
+    - Functional: already frozen input objects and arrays still have every JSON descendant frozen before widget execution; repeated renders retain the check-once data behavior.
+    - Performance: the SDK render budget still passes; run the independent validator benchmark and disposition any miss explicitly in Task 10 rather than changing unrelated validator code.
+    - Code Quality: correct the shared SDK freeze traversal without changing exports or copying inputs.
+    - Security: uphold §7.1's immutable-input contract, including mutable descendants behind frozen ancestors.
+  - Approach:
+    - Skills to Use: `liveframe-execution`, `karpathy-guidelines`, `surgical-patch`, `ponytail`.
+    - Library Documentation to Check Before Implementation: none; this corrects local JSON traversal without a third-party API change.
+    - Documentation Reviewed: spec §7.1–§7.2; `src/sdk/render.ts:150–172`; `src/__tests__/sdk-inputs.test.tsx`; SDK consumers in `src/preview/in-process.ts` and both reference runners.
+    - Options Considered: removing the freeze shortcut entirely would rewalk unchanged state; trusting `Object.isFrozen` only proves shallow immutability.
+    - Chosen Approach: a private weak identity set records input objects only after their descendants have been traversed and frozen. Keep the existing data-schema cache contract unchanged; its separate limitation is handed off by Task 10.
+    - API Notes and Examples: `Object.freeze({ tasks: [{ id: "t1", title: "Fix" }] })` must not leave its task mutable inside a widget.
+    - Files to Create/Edit: `src/sdk/render.ts`, `src/__tests__/sdk-inputs.test.tsx`, this plan.
+  - Test Cases to Write:
+    - `shallow_frozen_inputs_are_deep_frozen`: frozen state/data ancestors, a frozen array and mutable descendants reach the widget deeply frozen; mutation throws and a repeat render succeeds.
+    - Existing `data_checked_once_per_object`, input-schema, determinism and SDK render tests remain green.
+  - Notes (executed 2026-10-24):
+    - The regression failed before the fix: `render()` succeeded while nested cursors/task objects remained mutable. `freezeDeep` now skips only identities it previously traversed, rather than arbitrary shallow-frozen host objects. No new public API, dependency or spec meaning.
+    - Focused input/render verification: 14 tests pass. `timeout 600s bun run check` passes all 375 tests, generation drift, both typechecks, lint and formatting. Render benchmark passes every workload (agent-home 1.802 µs/node; small queue 2.722). Independent validator runs miss their gate on different workloads under concurrent machine load; the validator code is unchanged. Task 10 records both runs and reopens the P1 performance handoff; no validator success is claimed.
+
 - [ ] Task 10: Analyze architectural impact and dispose of every finding
   - Sweep the twelve impact areas of `.agents/skills/create-plan/references/liveframe.md` §5 against what was delivered. Record each, or `None — <reason>`, in `plans/evidence/005-impact-analysis.md`.
   - List every finding, present them to the owner in one table with a recommended disposition (`execute` or `backlog`), and record the answer.

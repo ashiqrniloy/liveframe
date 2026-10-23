@@ -138,6 +138,32 @@ describe("sdk inputs", () => {
     expect(mutated).toBe(true);
   });
 
+  test("shallow_frozen_inputs_are_deep_frozen", () => {
+    const cursors = { decisions: "start", tasks: "start", alerts: "start" };
+    const row = { id: "t1", title: "Fix" };
+    const data = Object.freeze({ tasks: Object.freeze([row]) });
+    const state = Object.freeze({ ...(inputs.state as object), cursors });
+    let frozen = false;
+    const result = render(
+      () => {
+        frozen = Object.isFrozen(cursors) && Object.isFrozen(row);
+        return <Text text="x" />;
+      },
+      { ...inputs, state, data } as WidgetProps,
+      options,
+    );
+
+    expect(result.ok).toBe(true);
+    expect(frozen).toBe(true);
+    expect(() => {
+      cursors.tasks = "next";
+    }).toThrow(TypeError);
+    expect(() => {
+      row.title = "Changed";
+    }).toThrow(TypeError);
+    expect(render(() => <Text text="x" />, { ...inputs, state, data } as WidgetProps, options).ok).toBe(true);
+  });
+
   test("render_is_deterministic", () => {
     const widget = ({ data }: WidgetProps) => {
       const rows = (data as { tasks: readonly { readonly id: string; readonly title: string }[] }).tasks;
