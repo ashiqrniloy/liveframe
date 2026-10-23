@@ -76,7 +76,11 @@ test("src_is_host_api_free", async () => {
     if (path !== "preview/load.ts") expect(source, path).not.toMatch(/\bimport\s*\(/);
     // Only the packer's syntax tools may be external; their browser bundle is checked below.
     for (const dependency of transpiler.scanImports(source)) {
-      if (subpath?.host === "DOM" && ["react", "react/jsx-runtime", "react-dom"].includes(dependency.path)) continue;
+      if (
+        subpath?.host === "DOM" &&
+        ["react", "react/jsx-runtime", "react/jsx-dev-runtime", "react-dom"].includes(dependency.path)
+      )
+        continue;
       if (path === "pack/bundle.ts" && ["sucrase", "acorn"].includes(dependency.path)) continue;
       expect(dependency.path, path).toMatch(/^\.\.?\//);
       expect(dependency.path, path).not.toContain("proof/");

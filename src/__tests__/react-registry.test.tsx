@@ -2,8 +2,9 @@ import { expect, spyOn, test } from "bun:test";
 import { renderToString } from "react-dom/server";
 import * as formats from "../formats/catalog.ts";
 import { type Catalog, defineComponent, obj, str } from "../index.ts";
-import { createRenderer, implement, type Implementation } from "../react/index.ts";
+import { createRenderer, type Implementation, implement } from "../react/index.ts";
 import { RendererError } from "../react/renderer.tsx";
+import { surfaceProps } from "./fixtures/react-surface.tsx";
 import vocabulary from "./fixtures/vocabulary.json" with { type: "json" };
 
 const button = defineComponent({
@@ -98,7 +99,7 @@ test("registry_check_runs_once", () => {
   try {
     const { Surface } = createRenderer({ catalog, implementations: [binding, textBinding] });
     expect(validate).toHaveBeenCalledTimes(1);
-    for (let i = 0; i < 3; i++) renderToString(<Surface />);
+    for (let i = 0; i < 3; i++) renderToString(<Surface {...surfaceProps} tree={null} />);
     expect(validate).toHaveBeenCalledTimes(1);
   } finally {
     validate.mockRestore();

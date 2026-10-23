@@ -152,7 +152,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Tests were written first and failed on the missing subpath. The focused suites and typecheck passed, followed by `bun run check` (382 tests, zero failures) and `git diff --check`. The first full run hit six existing timing gates during heavy concurrent test activity in other projects; all 41 tests in the affected suites passed on rerun, and the subsequent full check passed without changing any limits.
     - `Surface` deliberately renders `null` until Task 3 implements arrival validation and tree rendering; the startup check already runs only at factory creation. The proof host is unchanged until Task 7.
 
-- [ ] Task 3: Draw a validated tree with `<Surface>`
+- [x] Task 3: Draw a validated tree with `<Surface>`
   - Acceptance Criteria:
     - Functional:
       - `<Surface tree validator theme designSystem onIntent fallback />` validates `tree` with `validator.validateTree` (memoized on the `tree` and `validator` identities). A failure renders `fallback` alone, inside the wrapper, and never draws part of the tree. A tree from another `surfaceId` replaces the current one. For the same `surfaceId`, a valid tree with a lower `revision` than the accepted one is ignored.
@@ -179,12 +179,14 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `proof/renderer/surface.tsx:17–67`: recursion, `slot`, the revision rule (`accepted.revision > checked.revision`) and the whole-tree fallback.
       - `src/validate/tree.ts:22` (`TreeValidator`), `src/css/{names.ts,style-props.ts:89,surface.ts:7}`.
       - Spec §6.4 "Classes and names", §9, §10, §11.
+      - Context7, 2026-10-24: React [error boundaries](https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary) and [adjusting state during render](https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes). Error boundaries catch client render failures, not SSR or event-handler errors.
     - Options Considered:
       - Keep the last valid tree on a failure — rejected by the decision.
       - Validate in an effect after the first paint — rejected: an unvalidated tree would paint.
       - A context carrying the registry — rejected: the factory closure already holds it.
     - Chosen Approach:
       - Port the proof's recursion onto library helpers, with the decision's fallback and order rules.
+      - Add the browser harness originally listed under Task 5 now: stale revisions, memoized validation across renders, and node error boundaries require client updates. Task 5 extends this same harness. Keep intent completion in Task 4 and switching in Task 5.
     - API Notes and Examples:
       ```tsx
       <Surface tree={tree} validator={validator} theme={{ id: "certified", version: "1.0.0" }}
@@ -193,6 +195,11 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Files to Create/Edit:
       - `src/react/renderer.tsx`: `Surface`, `Node`, the boundary.
       - `src/__tests__/react-surface.test.tsx`: new. Server-rendered markup through `react-dom/server` in Bun, using small inline implementations bound to `src/__tests__/fixtures/proof/catalog.json`. These are test-local stand-ins; the real test host arrives in Task 7.
+      - `src/__tests__/fixtures/react-surface.tsx`: shared test-local bindings, catalog, compiled validator and tree builders.
+      - `src/__tests__/react-browser.test.tsx`, `src/__tests__/fixtures/react-client.tsx`: browser update and boundary checks; Task 5 extends them.
+      - `src/__tests__/react-registry.test.tsx`: supply the now-required Surface props in the startup-check test.
+      - `src/__tests__/portability.test.ts`: permit Bun's generated `react/jsx-dev-runtime` import only under `/react`, alongside the existing React JSX runtime allowance.
+      - `roadmap.md` §3: record completion after checks pass.
   - Test Cases to Write:
     - `surface_renders_slot_classes_styles_and_scope`: classes and inline styles equal the `/css` helpers' output, and the wrapper and portal carry the same attributes.
     - `responsive_tree_gains_container_on_wrapper_only`.
@@ -202,6 +209,10 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `validator_runs_once_per_tree`.
     - `undeclared_slot_throws`.
     - `items_expose_child_node_contexts`: `items[n].slot/style/children/render/emit` equal what that child's own implementation receives.
+  - Notes (executed 2026-10-24):
+    - Replaced the placeholder with arrival validation memoized on tree/validator identity, accepted-revision tracking, id-keyed rendering, `/css` slot/style projection, child node contexts, a scoped wrapper and sibling portal, and per-node error boundaries. Invalid arrivals show only the fallback; they cannot lower the accepted revision. Changing validator identity discards the old validator's accepted tree. Failed nodes retry on a new node object without remounting healthy siblings.
+    - Tests were written first and failed against the placeholder. Added server markup/rejection tests and brought forward the small browser harness from Task 5 to prove updates, child reordering, focus/local-state preservation, validation caching, portal availability, node fallback and recovery. Task 5 now extends this harness. `emit` is deliberately inert until Task 4; scope-switch sequencing remains Task 5, and SSR/hydration proof remains Task 6. No spec change.
+    - The first full check exposed the missing `react/jsx-dev-runtime` allowance in the portability scan; added it only to the existing `/react` DOM exception. Focused React/portability suites passed, then `bun run check` passed (390 tests, zero failures), along with `git diff --check` and `graft build`. The browser reorder assertion also passed in its focused rerun.
 
 - [ ] Task 4: Raise intents through `emit()` and `onIntent`
   - Acceptance Criteria:
@@ -276,8 +287,8 @@ Probe answers that hold for every task, unless a task says otherwise:
       ```
     - Files to Create/Edit:
       - `src/react/renderer.tsx`.
-      - `src/__tests__/react-browser.test.tsx`: new browser suite (Bun-built client and Playwright Chromium, following `src/__tests__/css-scope-browser.test.ts`), with test-local implementations.
-      - `src/__tests__/fixtures/react-client.tsx`: new browser entry.
+      - `src/__tests__/react-browser.test.tsx`: extend Task 3's browser suite (Bun-built client and Playwright Chromium, following `src/__tests__/css-scope-browser.test.ts`), with test-local implementations.
+      - `src/__tests__/fixtures/react-client.tsx`: extend Task 3's browser entry.
   - Test Cases to Write:
     - `portal_overlay_keeps_surface_scope`.
     - `switch_runs_the_switching_sequence_on_root_and_portal`.
