@@ -477,17 +477,57 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Public `./store/fs` export wiring remains in Task 10 and outsider documentation/export assertions remain in Task 11, as planned; Task 7 imports the implementation directly. No later task needed amendment.
 
 - [ ] Task 8: Define the Runner interface and ship inProcessRunner()
+  - Subtasks (from `decision-logs/2026-10-23-2016-data-url-loader-encoding-and-sdk-resolution.md`, in order; 8.5 only if triggered):
+    - [x] 8.1 Re-run the loader gate with the amended loader.
+      - Add to `plans/evidence/006-task-8-loader-gate.md`:
+        - the root cause: Bun sniffs a loader from the last `.` in the URL, and a bare specifier in a `data:` module resolves from the working directory;
+        - the amended probe script and its output.
+      - Probes:
+        - the `x.value` module and the linked agent-home module, each through `encodeURIComponent(code).replaceAll(".", "%2E")`, give `typeof default === "function"`;
+        - the same agent-home module, with its SDK header rewritten through `import.meta.resolve`, loads from a working directory outside the repo, on the main thread and inside a `Worker`.
+      - Keep the original failing output as history.
+      - Done when every probe prints `function` and the outside-repo import doesn't throw. If any probe fails, go to 8.5.
+      - Notes (executed 2026-10-23):
+        - Added the reproducible, assertion-based probe `plans/evidence/006-task-8-loader-gate.ts` and appended its command, output and root-cause explanation to `plans/evidence/006-task-8-loader-gate.md`, preserving the original failure as history.
+        - `timeout 30s bun plans/evidence/006-task-8-loader-gate.ts` passed on Bun 1.4.2: the dotted module and actual linked agent-home module both export functions; the same agent-home source with SDK headers resolved from inside the package also exports a function from a temporary working directory on the main thread and inside a Worker. All four probes print `function`; no import throws.
+        - The gate is clear for 8.2–8.4; 8.5 is not triggered. Task 8 remains unchecked until its remaining subtasks pass.
+        - `timeout 600s bun run check` passed: generated-code drift, typecheck, lint, format and all 284 tests (zero failures). The probe passed again after formatting, and `git diff --check` passed.
+    - [ ] 8.2 Bring spec §7.5 in line with the amendment.
+      - Rewrite the "How a reference runner loads a package" bullet (`docs/spec.md:436`):
+        - the dots are escaped in the `data:` URL;
+        - the SDK specifiers in the linker header resolve from the library's own installation, not from the host's working directory.
+      - Leave §7.3 and the hash unchanged.
+    - [ ] 8.3 Implement `src/preview/load.ts`, tests first.
+      - `loadModule(code)` rewrites only the linker's canonical header lines (`import * as __lf_sdkN from "<sdk specifier>";`, from `src/pack/bundle.ts:255`) to `import.meta.resolve(<specifier>)`.
+      - It imports `"data:text/javascript," + encodeURIComponent(rewritten).replaceAll(".", "%2E")`, and caches by package hash.
+      - Its doc comment names the Bun dot-sniffing behaviour and the limitation that non-canonical SDK imports stay bare.
+      - Tests:
+        - `loader_escapes_dots`: a dotted module loads as a function. This pins the Bun behaviour.
+        - `loader_shares_sdk_instance`: the loaded module's SDK namespace is identical (`===`) to the one `render()` imports.
+        - `loader_rewrites_only_canonical_header`: a string literal equal to an SDK specifier inside widget code is left unchanged.
+        - `loader_resolves_sdk_from_other_cwd`: the subprocess test below, moved here.
+    - [ ] 8.4 Ship the runner: the `Runner` interface and `inProcessRunner()`, against the acceptance criteria and test cases below, unchanged.
+    - [ ] 8.5 Fallback, used only if 8.1 or 8.3 fails or a revisit condition from the decision log is met: the factory-module package format.
+      - Stop and write a new decision log with `create-decision-log`, and get the owner's approval before implementing.
+      - Proposed shape:
+        - `pack()` emits `code` with no `import` at all, and its default export is `(sdk) => Widget`;
+        - the linker binds `__lf_sdkN` from the factory's argument, not from hoisted imports;
+        - `format` becomes `"liveframe-package/2"`;
+        - `verifyPackage` rejects any `import`/`export … from` in `code` (`forbidden-import`);
+        - `load.ts` imports the dot-escaped `data:` URL and calls the default export with the SDK namespaces it imports itself.
+      - Amend spec §7.3 (format, hash inputs, the import rule) and §7.5. Update Tasks 2, 4 and 5 (schema `format` enum, linker output, verify rule) and their tests.
+      - Re-run 8.1's probes against the new format before 8.4.
   - Acceptance Criteria:
     - Functional:
       - `interface Runner { render(pkg, inputs, options): Promise<Result<UiTree>> }`. `options` is `{ catalog, capabilities, surfaceId, revision, limits?, timeoutMs? }`, with `timeoutMs` defaulting to 100.
       - `inProcessRunner()`:
-        - loads `pkg.code` once per hash, through `src/preview/load.ts`'s `import("data:text/javascript," + encodeURIComponent(code))`;
+        - loads `pkg.code` once per hash, through `src/preview/load.ts`'s `import("data:text/javascript," + encodeURIComponent(code).replaceAll(".", "%2E"))`, after rewriting the linker's SDK header specifiers with `import.meta.resolve` (amended by `decision-logs/2026-10-23-2016-data-url-loader-encoding-and-sdk-resolution.md`);
         - compiles the validator once per (catalog, capabilities, hash);
         - calls the SDK's `render()`.
       - A module without a function default export is `render-failed`.
       - The in-process runner can't interrupt a loop. A render that returns after `timeoutMs` is reported as `limit-exceeded`, and the docs say so.
-      - The loader resolves the SDK import when the process's working directory is outside the package. A test spawns `bun` with another `cwd` to prove it. If resolution fails there, stop and raise it as a finding against plan 005 Task 1's decision; do not work around it.
-      - Before implementing the loader, reproduce Task 4's percent-encoded `data:` regression with a module containing `x.value`, then with the actual linked agent-home module. The earlier simple-module spike is insufficient. If either loads as a string rather than a function, stop and raise the finding against plan 005 Task 1's approved loader decision; do not silently substitute a different loading scheme.
+      - The loader resolves the SDK import when the process's working directory is outside the package. A test spawns `bun` with another `cwd` to prove it. If resolution fails with the amended loader, take subtask 8.5; do not work around it any other way.
+      - Before implementing the loader, reproduce Task 4's percent-encoded `data:` regression with a module containing `x.value`, then with the actual linked agent-home module. The earlier simple-module spike is insufficient. The original gate failed (see Notes); the amended loader's gate is subtask 8.1. If it also fails, take subtask 8.5; do not silently substitute a different loading scheme.
     - Performance: the runner adds under 0.1 ms per warm render over a direct `render()` call (module and validator cached). The test asserts a loose bound.
     - Code Quality:
       - `src/preview/load.ts` is the only file with `import(`. The scan allows exactly that file.
@@ -521,6 +561,9 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `src/preview/index.ts`, `src/preview/runner.ts`, `src/preview/load.ts`, `src/preview/in-process.ts`: new.
       - `src/__tests__/portability.test.ts`: the `load.ts` exception.
       - `src/__tests__/runner-in-process.test.ts`: new.
+      - `src/__tests__/preview-load.test.ts`: new, the loader tests from subtask 8.3.
+      - `plans/evidence/006-task-8-loader-gate.md`: the amended gate (subtask 8.1).
+      - `docs/spec.md` §7.5: the loading bullet (subtask 8.2).
   - Test Cases to Write:
     - `in_process_matches_render`: for every ported proof scenario, the runner's tree is deep-equal to a direct `render()` of the same widget.
     - `in_process_reports_slow_render`: a widget that busy-waits 150 ms gives `limit-exceeded`.
@@ -532,6 +575,10 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Stopped as this task explicitly requires. No production loader or runner was implemented, no alternative scheme was substituted, and the checkbox remains unchecked. The loader decision needs revisiting before Task 8 and its dependent runner/integration work can complete. Other-cwd resolution, parity, caching, timeout and overhead checks remain pending.
     - Context7 lookup for Bun failed with its monthly quota exhausted; the finding is established by local runtime execution.
     - `timeout 600s bun run check` passed: 284 tests, zero failures, plus generated-code drift, typecheck, lint and format checks. This verifies the existing implementation remains green; it does not satisfy Task 8's unimplemented acceptance criteria.
+    - Diagnosed 2026-10-23:
+      - Bun picks a loader from the text after the last `.` in the URL, so `…x.value%3B` loads as an unknown file type and the default export is the URL string. Escaping `.` as `%2E` fixes this.
+      - Run from another working directory, the bare SDK import also fails. Rewriting it with `import.meta.resolve` fixes that, on the main thread and in a `Worker`.
+      - The owner approved the amendment in `decision-logs/2026-10-23-2016-data-url-loader-encoding-and-sdk-resolution.md`. Subtasks 8.1–8.5 above carry it out.
 
 - [ ] Task 9: Bound time and crashes with workerRunner()
   - Acceptance Criteria:
