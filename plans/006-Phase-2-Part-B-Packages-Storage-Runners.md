@@ -476,7 +476,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Tests first failed on the missing file-store module. `timeout 600s bun run check` passed: 284 tests, zero failures, plus generated-code drift, typecheck, lint and format checks. Existing unrelated lint warnings remain. Context7 quota prevented its lookup; used installed Bun documentation/types and runtime tests.
     - Public `./store/fs` export wiring remains in Task 10 and outsider documentation/export assertions remain in Task 11, as planned; Task 7 imports the implementation directly. No later task needed amendment.
 
-- [ ] Task 8: Define the Runner interface and ship inProcessRunner()
+- [x] Task 8: Define the Runner interface and ship inProcessRunner()
   - Subtasks (from `decision-logs/2026-10-23-2016-data-url-loader-encoding-and-sdk-resolution.md`, in order; 8.5 only if triggered):
     - [x] 8.1 Re-run the loader gate with the amended loader.
       - Add to `plans/evidence/006-task-8-loader-gate.md`:
@@ -517,8 +517,17 @@ Probe answers that hold for every task, unless a task says otherwise:
         - Portability permits dynamic imports only in `preview/load.ts`; every other host-API and static-import check remains enforced. No dependency, public export or spec change was needed. The fallback is not triggered; runner implementation remains in 8.4.
         - `timeout 40s bun test src/__tests__/preview-load.test.ts src/__tests__/portability.test.ts` passed all nine tests. `timeout 600s bun run check` passed generated-code drift, typecheck, lint, format and all 290 tests with zero failures; `git diff --check` passed. Existing unrelated lint warnings remain.
         - Context7's Bun lookup again hit the monthly quota; checked installed Bun module-resolution documentation (`node_modules/bun-types/docs/runtime/module-resolution.mdx:365-391`), the approved 8.1 probe and runtime regression results.
-    - [ ] 8.4 Ship the runner: the `Runner` interface and `inProcessRunner()`, against the acceptance criteria and test cases below, unchanged.
+    - [x] 8.4 Ship the runner: the `Runner` interface and `inProcessRunner()`, against the acceptance criteria and test cases below, unchanged.
+      - Notes (executed 2026-10-23):
+        - Wrote `src/__tests__/runner-in-process.test.ts` first and confirmed failure on the missing preview entry. Added `Runner` and `RunnerOptions` in `src/preview/runner.ts`, `inProcessRunner()` in `src/preview/in-process.ts`, and their exports in `src/preview/index.ts`. Package-level `./preview` export wiring remains in Task 10, as planned.
+        - Reuses 8.3's module cache and compiles validators once per catalog object, capabilities object and package hash. Calls the SDK's validated render path, preserving its errors and limits; loader failures and missing/non-function default exports become bounded `render-failed` results. Package verification remains the host's responsibility.
+        - Applies the default 100 ms or supplied timeout to elapsed time, reporting `limit-exceeded` after slow code returns. The doc comment and spec §7.5 explicitly state that it cannot interrupt a loop and is for trusted backend code, without isolation. No dependency or host API was added.
+        - Eight tests cover every scenario of all four ported proof widgets, a 150 ms busy-wait with default and overridden timeouts, subsequent successful rendering, module failures, SDK errors and limits, host-owned package verification, all validator-cache keys, and loading/rendering from a system temporary working directory.
+        - The warm-overhead test alternates direct and runner measurements on agent-home and takes the median of three batches after warming both paths. The final full check measured 0.0382 ms/render overhead, under 0.1 ms. Initial separate timing blocks were noisy; alternating order improved the measurement without relaxing the bound.
+        - Fixed the portability scan's false positive on the relative specifier `./in-process.ts`: it now removes relative `from` specifier strings before checking for host member accesses, while retaining every dependency check and the sole dynamic-import exception in `preview/load.ts`.
+        - `timeout 40s bun test src/__tests__/runner-in-process.test.ts src/__tests__/preview-load.test.ts src/__tests__/portability.test.ts` passed all 17 tests. `timeout 600s bun run check` passed generated-code drift, typecheck, lint, format and all 298 tests with zero failures; `git diff --check` passed. Existing unrelated lint warnings remain.
     - [ ] 8.5 Fallback, used only if 8.1 or 8.3 fails or a revisit condition from the decision log is met: the factory-module package format.
+      - Not triggered: 8.1 and 8.3 passed, and 8.4 uses the approved loader successfully. This conditional fallback is not required to complete Task 8.
       - Stop and write a new decision log with `create-decision-log`, and get the owner's approval before implementing.
       - Proposed shape:
         - `pack()` emits `code` with no `import` at all, and its default export is `(sdk) => Widget`;

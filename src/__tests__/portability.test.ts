@@ -32,7 +32,9 @@ test("src_is_host_api_free", async () => {
     // The file-store subpath is the explicit filesystem exception in spec §13.
     if (path.startsWith("store/fs/")) continue;
     const source = await Bun.file(`${root}${path}`).text();
-    expect(source, path).not.toMatch(forbidden);
+    // Relative specifiers such as "./in-process.ts" are not process member access.
+    const executable = source.replace(/\bfrom\s+(["'])\.\.?\/[^"'\n]+\1/g, 'from ""');
+    expect(executable, path).not.toMatch(forbidden);
     // Spec §7.5 permits dynamic imports only in the backend package loader.
     if (path !== "preview/load.ts") expect(source, path).not.toMatch(/\bimport\s*\(/);
     // Only the packer's syntax tools may be external; their browser bundle is checked below.

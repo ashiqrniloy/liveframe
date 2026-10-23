@@ -431,7 +431,7 @@ interface Runner {
 - A runner compiles the validator from `{ catalog, capabilities, pkg.manifest }` and calls `render()` (§7.2) with `surfaceId`, `revision`, `limits` and `maxErrors`.
 - A runner enforces a time limit per render (`timeoutMs`, default 100 ms) and returns `limit-exceeded` when it trips.
 - Liveframe ships two reference runners. **Neither is an isolation boundary**:
-  - `inProcessRunner()` (`/preview`), for tests and trusted code. It cannot interrupt a loop.
+  - `inProcessRunner()` (`/preview`), for tests and trusted code. It cannot interrupt a loop; a render that returns after `timeoutMs` is reported as `limit-exceeded`.
   - `workerRunner()` (`/preview/worker`) runs packages in a worker and terminates it on a timeout or crash. It bounds time and crashes, not what the code can reach.
 - **How a reference runner loads a package.** Before importing, the loader rewrites only the canonical linker header lines (`import * as __lf_sdkN from "<sdk specifier>";`), resolving `@arnilo/liveframe/sdk`, `@arnilo/liveframe/sdk/jsx-runtime` and `@arnilo/liveframe/sdk/jsx-dev-runtime` with `import.meta.resolve` from the loader's own location. These imports resolve from the library's own installation, independently of the host's working directory. It imports the rewritten code with `import("data:text/javascript," + encodeURIComponent(code).replaceAll(".", "%2E"))`, escaping dots so Bun treats the URL as JavaScript. Stored package code retains its bare SDK specifiers. The loader in `/preview` is the only place in the library that contains an `import(`, and the portability scan names that one exception. A host whose sandbox cannot do this supplies its own `Runner`.
 
