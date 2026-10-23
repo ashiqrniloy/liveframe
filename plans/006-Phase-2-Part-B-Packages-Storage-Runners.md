@@ -166,7 +166,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - The new test first failed on missing format modules. After implementation, timeout 600s bun run check passed: 248 tests, zero failures, plus codegen drift, typecheck, lint and format checks. Added Ajv agreement, schema publishing/drift, malformed-input pointers, error bounds, Unicode byte boundaries and structural-versus-installation tests. Existing unrelated lint warnings remain.
     - Context7 lookup for Ajv hit its monthly quota; verified against the installed Ajv 8.20.0 package and existing Ajv2020 agreement-test pattern. No dependency was added.
 
-- [ ] Task 3: Hash packages over a canonical form
+- [x] Task 3: Hash packages over a canonical form
   - Acceptance Criteria:
     - Functional:
       - `canonicalJson(value)` follows Task 1: sorted keys and no whitespace. It rejects non-JSON values.
@@ -184,6 +184,7 @@ Probe answers that hold for every task, unless a task says otherwise:
       - RFC 8785 §3.2.3 (key sorting).
     - Documentation Reviewed:
       - The Task 1 decision log.
+      - RFC 8785 §3.2 and FIPS 180-4 §4.2.2, §5.3.3 and §6.2; NIST example vectors.
     - Options Considered:
       - A hashing dependency — rejected: about 100 lines of well-tested code doesn't justify a runtime dependency.
       - `Bun.CryptoHasher` — rejected: a host API in a host-API-free subpath. It is used only in tests, as an oracle.
@@ -199,8 +200,15 @@ Probe answers that hold for every task, unless a task says otherwise:
   - Test Cases to Write:
     - `sha256_nist_vectors`: `""`, `"abc"`, the 448-bit message and one million `a`s. Fails on any arithmetic error.
     - `sha256_matches_bun`: 500 seeded random strings, including non-BMP text, agree with `Bun.CryptoHasher`.
-    - `canonical_json_is_order_independent`: permuted keys give an equal hash, and a changed value gives a different hash.
-  - Notes (executed <date>):
+    - `canonical_json_is_order_independent`: permuted keys give an equal hash, changed package fields give a different hash, and the existing hash field is excluded.
+    - `canonical_json_preserves_rfc8785_order_and_primitives`: UTF-16 and numeric-looking keys, arrays, ECMAScript primitives and unnormalised Unicode.
+    - `canonical_json_rejects_non_json_and_lone_surrogates`: invalid JavaScript values, cycles, sparse arrays and lone surrogates in keys and values throw TypeError.
+    - `package_hash_1_mib_under_50_ms`: the complete canonicalisation, UTF-8 and hashing path meets the budget.
+  - Notes (executed 2026-10-23):
+    - Added the internal 139-line `src/pack/hash.ts`: iterative RFC 8785 canonicalisation reuses the JSON validator, rejects lone surrogates, preserves array order and Unicode, and sorts raw UTF-16 keys (including numeric-looking keys). Manual UTF-8 and synchronous pure-JavaScript SHA-256 use no host APIs, dependency or public export. The hash includes exactly format, manifest, code and scenarios. No spec change was needed.
+    - Tests first failed on the missing module. All four known SHA-256 vectors and 500 seeded Unicode strings plus 500 byte arrays now agree with the independent Bun oracle. Canonicalisation, malformed inputs, field coverage and the excluded hash field are covered.
+    - Removed per-block iterator allocations to meet the performance gate: hashing a 1 MiB code package took 12.82 ms in the final full check (under 50 ms). `timeout 600s bun run check` passed: 254 tests, zero failures, plus generated-code drift, typecheck, lint and format checks. Existing unrelated lint warnings remain; both new files lint cleanly.
+    - Task 5 must translate internal canonicalisation TypeErrors (including lone surrogates that structural validation permits) into bounded invalid-document results, as its fail-closed contract requires.
 
 - [ ] Task 4: Transpile and link a widget's files into one module
   - Acceptance Criteria:
