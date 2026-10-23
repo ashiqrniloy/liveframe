@@ -190,6 +190,9 @@ A design system contributes:
 - **States**: `rest`, `hover`, `active`, `focus`, `disabled`, `selected`, `invalid`, `open`.
 - **Recipe properties** are a closed, typed list fixed by the library: colours, borders (width per side or all sides, style), outline, radius, padding, gap, typography role, opacity, shadow, backdrop blur and saturation, transition (a duration and an easing value), and a pressed offset (a `translateY` dimension). Every property's value type is fixed. Product-specific names, such as an easing called `expo-out` or a transform preset, are design values, not recipe vocabulary.
 - **Recipes own the look; style props own the structure.** A recipe never sets display mode, flex or grid layout, tracks, content alignment, size or position: those are style props (§6.3) chosen by the widget. Structure must survive a design-system switch; look must change with it (`decision-logs/2026-10-22-0850-recipes-own-look-style-props-own-structure.md`).
+- **Structural defaults belong to app primitives.** Headings' wrapping, an icon's box, controls' minimum heights and overlay positioning are trusted app implementation CSS. The library's base sheet supplies only a generic reset, surface typography, containment and environment overrides; it knows no app kinds. Law 3 constrains widget code and installed style data, not trusted app primitive CSS.
+- **Projection semantics.** `borderLeftWidth` and `borderRightWidth` mean inline start and inline end in left-to-right text and project to logical sides, mirroring under `dir="rtl"`; top and bottom remain physical. Vertical writing modes are out of scope. `translateY` uses CSS `translate`, preserving a primitive's own `transform`. `backdropBlur` and `backdropSaturate` compose into one `backdrop-filter`. `backgroundOpacity` multiplies the background colour's alpha through `--lf-alpha`, which environment overrides may force to 1.
+- **Entry motion.** A slot whose resolved `open` declarations differ from `rest` enters from its rest declarations through `@starting-style`, using its recipe transition. Equal states emit no entry rule. Exit motion requires renderer-managed delayed unmounting (§11).
 - **Colour-typed properties accept theme roles only.** Other properties accept design values or bounded literals of the right type.
 - **Not allowed:** raw CSS, selectors, scripts, or literal colours.
 - **Derivation:** a design system may `extends` another and override individual recipes or values.
@@ -214,17 +217,57 @@ Widget authors never touch colour or recipes. They choose a primitive's **varian
 
 **Responsive values.** Any style prop may take an object keyed by the breakpoint names the app declares, `base` first, such as `columns={{ base: ["1fr"], "bp.md": ["2fr", "1fr"] }}`. Each value must be valid for that prop, and an unknown key is an error. A value set at one breakpoint **holds at every wider one**, so a prop needs only the breakpoints where it changes; the projection chains each value through all narrower breakpoints rather than letting a wider key's absence reset it. Breakpoints are design-system container widths, so the layout follows the container the widget is placed in, not the viewport.
 
+`paddingLeft`/`paddingRight` and `marginLeft`/`marginRight` mean inline start/end in left-to-right text and project to logical properties, mirroring under `dir="rtl"`. Top and bottom remain physical. Field names stay unchanged.
+
 The SDK types enforce these values, so `gap="space.3"` compiles and `gap="13px"` doesn't. The validator enforces them again on the output tree.
 
 ### 6.4 How styling reaches the screen
 
-The library resolves the active theme, design system and recipes into **CSS custom properties**, plus one stable class per `(kind, variant, slot, state)`. Primitives read only those classes and variables, so restyling costs zero runtime JavaScript.
+`@arnilo/liveframe/css` provides pure, deterministic functions returning `Result<string>`: `baseCss(catalog)`, `themeCss(theme, catalog)` and `designSystemCss(designSystem, { catalog, registry })`. Inputs are validated before output; invalid input produces typed errors and no partial sheet. The same input, independent of object key order, produces identical bytes. The output has three independent sheets:
 
-Every surface root sets the theme's base typography, and every slot that draws text has a typography role. Nothing inherits the host page's fonts.
+| Sheet | Contents and scope |
+|---|---|
+| Base | Generic box-sizing, zero margin/border reset and inherited control fonts under `:where([data-lf-ds]) *`; surface typography, optional containment, preference and switching overrides |
+| Theme | Colour and typography role variables and `color-scheme` under `:where([data-lf-theme="<id>@<version>"])` |
+| Design system | Design-value variables, recipe rules and container rules under `:where([data-lf-ds="<id>@<version>"])` |
 
-A container query needs a containment context, which costs layout work even for a surface that never changes with width. The projection therefore emits the container only for a surface whose tree uses a responsive value; every other surface is a plain style target. Coverage is complete either way: the breakpoint is the nearest container, or the viewport when the app places the surface in none.
+Design-system colours refer to theme roles through `var()`, so a fixed catalog needs N + M + 1 sheets for N themes and M design systems. Surface roots carry both scope attributes and `lf_surface`. **Surfaces do not nest**, including surfaces composed by the host. Overlays follow §11's scope contract.
 
-Switching theme or design system swaps the variables atomically, with no re-render of widget code. An app on a non-CSS platform can replace the projection by implementing the resolver output itself.
+Every surface root sets the theme's base typography from the app's vocabulary, and every slot that draws text has a typography role. Nothing inherits the host page's fonts. Only a surface whose tree uses responsive values gains `lf_container`, a named inline-size container `lf`. Responsive rules use `@container lf` with literal design-system breakpoint widths; values chain through narrower breakpoints (§6.3). A responsive surface supplies its own container rather than relying on a host container or viewport fallback.
+
+**Classes and names.** Each slot carries one stable class, `lf_<kind>_<variant>_<slot>`, independent of theme, design system and state. Dots in role/value names encode as `_`; `__` separates fixed suffixes. Vocabulary, catalog and id names contain no `_`, making the encoding injective. Variables are `--lf-c-<role>`, `--lf-t-<role>__<field>`, `--lf-v-<name>` and `--lf-r-<prop>__<breakpoint>__<cssProperty>`. `slotClass`, `styleDeclarations`, `surfaceAttributes`, `colourVar` and `valueVar` provide classes, plain style objects, scope attributes and variable names without a DOM dependency. Installed strings are escaped and validated, never inserted as raw CSS.
+
+**States and cascade.** Each recipe selector has specificity (0,1,0): the slot class contributes specificity, while scope, state and root qualifiers are inside `:where()`. Source order is `rest < hover < focus < active < open < selected < invalid < disabled`. A state whose resolved declarations equal rest emits no extra rule. A root's state also reaches its slots. Hover and active never apply to a disabled element, including a slot of a disabled root.
+
+| State | Matches |
+|---|---|
+| hover | `:hover` only in `@media (hover: hover)`; `[data-hovered]` on every device |
+| active | `:active`, `[data-pressed]` |
+| focus | `:focus-visible`, `[data-focus-visible]`, `:has(:focus-visible)` |
+| open | `[open]`, `[data-open]`, `[data-expanded]`, `[aria-expanded=true]`, `:popover-open` |
+| selected | `[data-selected]`, `[aria-selected=true]`, `[aria-checked=true]` |
+| invalid | `:user-invalid`, `[data-invalid]`, `[aria-invalid=true]` |
+| disabled | `:disabled`, `[data-disabled]`, `[aria-disabled=true]` |
+
+**Preferences and switching.** Reduced motion sets transition durations to zero and removes the pressed offset. Reduced transparency forces `--lf-alpha: 1` and disables `backdrop-filter`; this media query is a progressive enhancement on supporting browsers. Light, dark and high-contrast theme selection belongs to the host (§6.1); the theme sheet sets `color-scheme` from `theme.colorScheme`. To switch, the host preloads sheets, sets `data-lf-switching` on the scope element, changes the theme/design-system attributes atomically, then removes `data-lf-switching` on the next animation frame. While set, transitions are disabled on that element and its descendants. Switching changes no node, slot class or widget output and runs no widget code.
+
+**Forced colours.** `forced-color-adjust` remains `auto`; the OS owns colours. Inside `@media (forced-colors: active)`, a generic state table restores cues only where a state's resolved recipe differs from rest, using the same precedence:
+
+| State or cue | Override |
+|---|---|
+| selected | `Highlight` background, `HighlightText` text |
+| disabled | `GrayText` text |
+| focus | 2px solid `Highlight` outline |
+| invalid | 2px dashed `CanvasText` outline |
+| hover, active, open | 1px `Highlight` outline |
+| Rest background with no positive border width | 1px `CanvasText` outline, offset inward |
+| `fill` indicator (`lf_fill`) | 1px `CanvasText` outline, offset inward |
+
+System colours occur only in that media block. The projection never emits `forced-color-adjust: none`.
+
+**Host coexistence and platform.** Sheets are emitted outside cascade layers; a host may import them into its own layer. The reset targets surface descendants, never a class substring such as `[class*=lf-]`. The platform floor is Baseline 2024: custom properties, `:is`/`:where`/`:has`, `color-mix()`, `oklch()` and `color()`, container queries, `:user-invalid`, `:popover-open`, `@starting-style`, unprefixed `backdrop-filter`, `font-size-adjust` and `text-wrap: balance`. A non-CSS platform may implement the resolver output itself.
+
+**Outside this projection:** shadow-DOM isolation, print styles, compound variants, `::before`/`::after` decoration, keyframes, `:nth-child`, design-system-controlled placeholder/scrollbar colours, `prefers-contrast` selection and an atomic-class CSP route. Native controls use the theme's `color-scheme`. Inline style attributes require a CSP allowing `style-src-attr 'unsafe-inline'`; hosts insert and authorize sheets themselves (§13).
 
 ### 6.5 The declared vocabulary
 
@@ -550,12 +593,14 @@ It validates every other format on install: a catalog's definitions and schema l
 - **`<Surface tree={…} onIntent={…} fallback={…} />`** draws one surface.
 - **`implement(definition, Component)`** binds a primitive's React implementation. The implementation receives:
   - `props`: validated values
-  - `slot(name)`: the class names for that slot in its current variant and state
+  - `slot(name)`: the single stable class for that slot in its current variant (§6.4); implementations expose state through the normative selector table there
   - `emit(event, value?)`: raises the declared intent
   - children, already rendered
 - At startup, a registry check fails if a catalog kind has no implementation.
 - Nodes render keyed by `id`. Unknown or invalid nodes render the app's `fallback`, never nothing.
 - Server-side rendering is supported.
+- The surface root carries §6.4's theme/design-system scope attributes and surface classes. Surfaces never nest. Theme/design-system switching preserves node identities and slot classes.
+- Overlays stay within their surface's scope: use the top layer while retaining DOM ancestry, or a portal container carrying the same scope attributes and surface classes, including the container class when responsive values require it. A backdrop slot and its overlay content are siblings. No backdrop ancestor may set opacity below 1 or a filter that creates a backdrop root; the backdrop must be able to sample the page behind it. Exit motion, scroll locking and making the background inert are renderer responsibilities.
 - `onIntent` hands `setState` and action intents to the app, which re-runs the widget or dispatches the action, then passes the new tree back in.
 - Recommended, not required: build interactive primitives on a behaviour library such as React Aria, for accessibility.
 
@@ -616,7 +661,7 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
   | `@arnilo/liveframe` | Definition, catalog, theme and design-system formats; the validator; the recipe resolver |
   | `@arnilo/liveframe/sdk` | The JSX runtime (`/sdk/jsx-runtime`, `/sdk/jsx-dev-runtime`), intent helpers, and `render()` |
   | `@arnilo/liveframe/react` | The renderer. `react` is an optional peer dependency, needed only by this import |
-  | `@arnilo/liveframe/css` | Projects a theme and design system into CSS custom properties and classes |
+  | `@arnilo/liveframe/css` | Pure, host-API-free projection into three scoped sheets, plus class, style, scope and variable helpers (§6.4); the host inserts sheets |
   | `@arnilo/liveframe/pack` | Package and scenario formats, structural validators, `pack()` and `verifyPackage()` (§7.3) |
   | `@arnilo/liveframe/store` | Record formats, the `Store` interface, `memoryStore()` and `loadPlacement()` (§7.4) |
   | `@arnilo/liveframe/store/fs` | `fileStore(dir)`, which reads and writes the file system |
@@ -628,7 +673,7 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
 - A JSON Schema for every format is published at `@arnilo/liveframe/schemas/<format>.json`, so apps and agents in any language can validate the documents.
 - One CLI, `liveframe`, exposed through the package's `bin` (`liveframe gen`, `liveframe gen --check`, `liveframe preview capture`, `liveframe mcp`). `liveframe gen` writes a widget's typed component module into the app (§7.2). `playwright` is an optional peer dependency, needed only by `preview capture`.
 - **`liveframe mcp`** is an authoring-time MCP server for coding agents. It lists primitives, roles and design-value names, shows the generated types, packs a draft and renders its scenarios through a preview session, and captures a preview. It never installs, places or approves a widget, and never runs an action. The MCP SDK is an optional peer dependency, needed only by this command.
-- Everything outside `/react`, `/css`, `/store/fs`, `/preview/worker`, `/preview/react` and the CLI is host-API-free, and CI checks it. The one dynamic `import(` in the library is the package loader in `/preview` (§7.5), and the scan names that file as its only exception.
+- Everything outside `/react`, `/store/fs`, `/preview/worker`, `/preview/react` and the CLI is host-API-free, and CI checks it. `/css` returns strings and plain objects; inserting a sheet through `<style>`, `<link>` or a CSP nonce is the host's job. The one dynamic `import(` in the library is the package loader in `/preview` (§7.5), and the scan names that file as its only exception.
 - Split into separate packages only if a real consumer needs to version the parts independently.
 
 ## 14. Non-goals for v1

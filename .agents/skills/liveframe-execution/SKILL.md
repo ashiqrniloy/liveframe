@@ -24,7 +24,7 @@ A router. Apply **Always apply**, read the architecture reference, then read **o
   4. A widget never holds authority.
   Never weaken a test that enforces one of them.
 - **Primitives only.** The library ships no components and no visual style. Catalogs hold primitives; anything composable from primitives is widget code.
-- **Host-API-free core.** Nothing outside `/react`, `/css`, `/store/fs`, `/preview/worker`, `/preview/react` and the CLI imports `node:`, `bun:`, DOM globals or `require`.
+- **Host-API-free core.** Nothing outside `/react`, `/store/fs`, `/preview/worker`, `/preview/react` and the CLI imports `node:`, `bun:`, DOM globals or `require`.
 - **The problem class first.** Never bend the design to ease Synapta's or Clay's migration; record their gaps instead.
 - **Simplest thing that holds.** No feature the spec doesn't require. No new runtime dependency without a plan task that justifies it.
 - **Green after every task.** `bun run check` passes before a checkbox is ticked.

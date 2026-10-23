@@ -25,7 +25,7 @@ The normative design is [`docs/spec.md`](docs/spec.md). This roadmap orders the 
 
 **Library rules.**
 - **Primitives, not product components.** The library ships no components. Catalogs hold only primitives; anything composable from primitives is widget code.
-- **Host-API-free core.** Everything outside `/react`, `/css`, `/store/fs`, `/preview/worker`, `/preview/react` and the CLI imports no `node:`, `bun:`, DOM or `require`, and CI enforces it.
+- **Host-API-free core.** Everything outside `/react`, `/store/fs`, `/preview/worker`, `/preview/react` and the CLI imports no `node:`, `bun:`, DOM or `require`, and CI enforces it.
 - **The problem class first.** Liveframe is designed for any app with this problem. Never bend it to ease one adopter's migration; record the adopter's gap instead.
 - **No new runtime dependency** without an explicit plan task that justifies it.
 - **Green after every task.** `bun run check` passes when each plan task ends.
@@ -75,7 +75,7 @@ Two plans: Part A (the SDK), then Part B (packages, storage and runners), which 
 
 ### Phase 3 — CSS projection
 
-- **Goal:** `@arnilo/liveframe/css`: a theme and design system projected into CSS custom properties, plus one class per `(kind, variant, slot, state)`.
+- **Goal:** `@arnilo/liveframe/css`: three independent scoped sheets (base, theme, design system), CSS custom properties and one stable class per `(kind, variant, slot)`, with ordered state selectors.
 - **Done:** switching theme or design system swaps variables atomically with no widget re-render, within 16.67 ms per switch once the container-query cache is warm — the first flip on a page pays ~17 ms building it (`proof/GAPS.md`, Plan 002 Task 5); forced-colours mode is honoured.
 
 ### Phase 4 — React renderer and preview
@@ -124,8 +124,8 @@ Two plans: Part A (the renderer), then Part B (the preview), which draws drafts 
 
 ## 3. Execution state
 
-- **Current phase:** Phase 2 implementation delivered — plan 005 (Part A) still needs Task 10's impact analysis; plan 006 (Part B) is complete. Phase 3 is next for implementation. Plan 002 Task 9's owner gate remains recorded separately.
-- **Next free plan number:** 005.
+- **Current phase:** Phase 3 in progress — plan 007 Task 1 records the projection decisions; implementation Tasks 2–12 remain. Phase 2 implementation is delivered: plan 005 (Part A) still needs Task 10's impact analysis; plan 006 (Part B) is complete. Plan 002 Task 9's owner gate remains recorded separately.
+- **Next free plan number:** 008.
 
 One line per plan. Detail lives in the plan file, never here.
 
@@ -136,3 +136,4 @@ One line per plan. Detail lives in the plan file, never here.
 | [003](plans/003-Phase-1-Part-A-Formats.md) | 1 | complete (Tasks 1–9; findings disposed in the impact analysis and backlog) |
 | [004](plans/004-Phase-1-Part-B-Compiled-Validator.md) | 1 | complete (Tasks 1–7; findings disposed in the impact analysis and backlog) |
 | [006](plans/006-Phase-2-Part-B-Packages-Storage-Runners.md) | 2 | complete (Tasks 1–12; findings disposed in the impact analysis and backlog) |
+| [007](plans/007-Phase-3-CSS-Projection.md) | 3 | in progress (Task 1 complete; Tasks 2–12 remain) |

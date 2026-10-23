@@ -23,7 +23,7 @@ One npm package with subpath exports:
 | `/preview` | `Runner` interface, `inProcessRunner()`, `createPreview()` | No |
 | `/preview/worker` | `workerRunner()` | `Worker` global |
 | `/preview/react` | `<Preview>` | Yes (React, DOM) |
-| `/css` | Theme and design system → CSS custom properties and classes | DOM optional |
+| `/css` | Theme and design system → CSS custom properties and classes | No |
 | `/react` | `<Surface>`, `implement()`, reconciliation, `onIntent` | Yes (React, DOM) |
 | `/conformance` | Shared suites for catalogs, design systems, renderers, stores | Test runner only |
 
