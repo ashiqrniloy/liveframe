@@ -98,7 +98,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Verified runner signatures through Context7 as noted above; no conformance implementation or package exports were added. Later tasks remain unchanged.
     - Validation: `timeout 600s bun run check` passed (464 tests, 0 failures; test run 111.93s; lint reported 37 warnings). `git diff --check` passed. A Bun assertion check confirmed synchronized exception lists and unchanged spec §3/§7.4.
 
-- [ ] Task 2: Ship `/conformance` with the store suite, and run both reference stores on it
+- [x] Task 2: Ship `/conformance` with the store suite, and run both reference stores on it
   - Acceptance Criteria:
     - Functional:
       - `package.json` exports `./conformance`. `src/conformance/case.ts` holds `ConformanceCase`, `ConformanceFailure` and a small internal `check(condition, rule, spec, details)` helper.
@@ -146,11 +146,18 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `src/__tests__/portability.test.ts`: a `conformance` row (`dependencies: true`, through `/pack`; host `none`).
       - `src/__tests__/exports.test.ts`: the new subpath surface.
       - `.agents/skills/liveframe-execution/references/storage.md` "Today".
+      - This plan: Task 2 completion and execution notes; `roadmap.md` §3: task progress.
   - Test Cases to Write:
     - `memory_store_passes_the_store_suite` and `file_store_passes_the_store_suite`: every case resolves.
     - `store_suite_catches_broken_stores`: each mutant fails its named case — a store that returns stored objects by reference, overwrites a conflicting hash, keeps state after `deletePlacement`, returns placements unsorted, or loses records on `reopen`.
     - `conformance_is_host_api_free`: the portability scan covers `src/conformance/` outside `react/`.
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-24):
+    - Shipped the host-API-free public `/conformance` subpath: `storeSuite`, `ConformanceCase` and `ConformanceFailure`. The suite supplies nine independent cases, plus persistence when `reopen` is supplied; failures name the rule and spec section and bound their details. JSON comparisons ignore object-key order so database serialization order does not affect conformance.
+    - Both reference-store tests now register the public cases. Removed `store-contract.ts`, moved the filesystem-only fixtures into `store-file.test.ts`, and folded its reopen test into the public persistence case. Path encoding, corruption, atomic writes, concurrent package conflicts and reader tests remain internal. Updated the package guide, export checks, portability scan and storage reference.
+    - The self-contained fixture uses `pack()` with a minimal validated catalog/capabilities/manifest and inert code that throws if executed. The load case proves package verification, valid state loading, and a reported invalid-state reset without writing it back. No proof imports, new dependencies or store implementation changes.
+    - Mutants fail their named cases for shared references, conflicting-hash overwrites, same-hash overwrites, retained deleted state, unsorted placements, missing-value coercion, style-key collisions, corrupted packages and lost reopen records. Additional checks cover independent/concurrent cases, async factories/reopen, adapter-error wrapping and bounded diagnostics.
+    - Performance: one standalone sequential run, including fixture packing and excluding cleanup, took 48.31 ms for memory (9 cases) and 38.69 ms for filesystem (10 cases); memory ran first in the process. No render, validator or style path changed.
+    - Validation: final `timeout 600s bun run check` passed (483 tests across 74 files, 0 failures; tests 102.86s). Lint retained 37 existing warnings and 3 existing informational findings; none in the new suite/tests. `git diff --check` and `timeout 120s graft build` passed. No spec change or later-task amendment was needed; other runtimes/test runners remain untested.
 
 - [ ] Task 3: Add the catalog suite
   - Acceptance Criteria:

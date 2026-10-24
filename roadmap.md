@@ -140,4 +140,4 @@ One line per plan. Detail lives in the plan file, never here.
 | [007](plans/007-Phase-3-CSS-Projection.md) | 3 | complete (Tasks 1–12 and Task 11a; findings disposed in the impact analysis and backlog) |
 | [008](plans/008-Phase-4-Part-A-React-Renderer.md) | 4 | complete (Tasks 1–11 and Task 11a; findings disposed in the impact analysis and backlog) |
 | [009](plans/009-Phase-4-Part-B-Preview.md) | 4 | complete (Tasks 1–8 and Task 7a; Task 3 owner-approved timing exception; findings disposed in the impact analysis and backlog) |
-| [010](plans/010-Phase-5-Conformance-Kit.md) | 5 | in progress (Task 1 complete) |
+| [010](plans/010-Phase-5-Conformance-Kit.md) | 5 | in progress (Tasks 1–2 complete) |

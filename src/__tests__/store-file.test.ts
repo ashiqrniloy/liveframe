@@ -8,7 +8,26 @@ import { fileStore } from "../store/fs/index.ts";
 import { obj, validateCatalog, validateCapabilities } from "../index.ts";
 import catalogDoc from "./fixtures/proof/catalog.json" with { type: "json" };
 import capabilitiesDoc from "./fixtures/proof/capabilities.json" with { type: "json" };
-import { pkg, placement, storeContract } from "./store-contract.ts";
+import { storeSuite } from "@arnilo/liveframe/conformance";
+import type { WidgetPackage } from "@arnilo/liveframe/pack";
+import type { Store } from "@arnilo/liveframe/store";
+import manifestDoc from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
+
+const manifest = manifestDoc as WidgetPackage["manifest"];
+
+const pkg: WidgetPackage = {
+  format: "liveframe-package/1",
+  manifest,
+  code: "export default () => null;",
+  scenarios: [{ name: "default", params: {}, context: {}, data: {} }],
+  hash: `sha256-${"0".repeat(64)}`,
+};
+const placement = {
+  id: "home",
+  slot: "main",
+  widget: { id: manifest.id, version: manifest.version },
+  params: { nested: [1] },
+};
 
 const dirs: string[] = [];
 async function directory() {
@@ -19,22 +38,21 @@ async function directory() {
 afterEach(async () => {
   await Promise.all(dirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
 });
-storeContract("file", async () => fileStore(await directory()));
-
-test("file_store_survives_reopen", async () => {
-  const dir = join(await directory(), "new", "store");
-  const store = fileStore(dir);
-  const style = { kind: "designSystem" as const, id: "Rack", version: "1.0", body: {} };
-  await store.putPackage(pkg);
-  await store.putPlacement(placement);
-  await store.putState(placement.id, { count: 3 });
-  await store.putStyle(style);
-  const reopened = fileStore(dir);
-  expect(await reopened.getPackage(pkg.manifest.id, pkg.manifest.version)).toEqual(pkg);
-  expect(await reopened.listPlacements()).toEqual([placement]);
-  expect(await reopened.getState(placement.id)).toEqual({ count: 3 });
-  expect(await reopened.getStyle(style.kind, style.id, style.version)).toEqual(style);
-});
+const scopes = new WeakMap<Store, string>();
+for (const c of storeSuite({
+  async create() {
+    const dir = join(await directory(), "new", "store");
+    const store = fileStore(dir);
+    scopes.set(store, dir);
+    return store;
+  },
+  reopen(store) {
+    const dir = scopes.get(store);
+    if (!dir) throw new Error("Unknown store scope");
+    return fileStore(dir);
+  },
+}))
+  test(c.name, c.run, c.timeout);
 
 test("file_store_paths_cannot_escape", async () => {
   const dir = await directory();

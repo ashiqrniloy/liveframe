@@ -164,9 +164,18 @@ backend. Keep tenant scoping, authorization and active style selection in the
 app. Stores persist records without validating their semantics; treat every
 read as untrusted. `validatePlacement`, `validateState` and `validateStyleRecord`
 are structural checks; validate installed themes/design systems separately.
-The shared reference-store tests are in
-[`store-contract.ts`](../src/__tests__/store-contract.ts); the published store
-conformance suite is future work.
+Run the public store suite against a fresh, empty scope for each case:
+
+```ts
+import { storeSuite } from "@arnilo/liveframe/conformance";
+
+for (const c of storeSuite({ create: () => myStoreInNewScope() }))
+  test(c.name, c.run, c.timeout);
+```
+
+For persistent stores, supply `reopen(store)` to open the same scope again and
+check persistence. The suite returns runner-independent cases; failures are
+`ConformanceFailure` errors with `rule`, `spec` and bounded `details`.
 
 ## Loading and state resets
 

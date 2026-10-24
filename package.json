@@ -22,7 +22,8 @@
     "./store/fs": "./src/store/fs/index.ts",
     "./preview": "./src/preview/index.ts",
     "./preview/worker": "./src/preview/worker/index.ts",
-    "./preview/react": "./src/preview/react/index.ts"
+    "./preview/react": "./src/preview/react/index.ts",
+    "./conformance": "./src/conformance/index.ts"
   },
   "files": ["src", "schemas"],
   "bin": {

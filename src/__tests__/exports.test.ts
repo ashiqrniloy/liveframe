@@ -9,6 +9,8 @@ import type {
   UiTree,
   ValidateTreeOptions,
 } from "@arnilo/liveframe";
+import * as conformance from "@arnilo/liveframe/conformance";
+import type { ConformanceCase } from "@arnilo/liveframe/conformance";
 import * as pack from "@arnilo/liveframe/pack";
 import * as store from "@arnilo/liveframe/store";
 import * as fileStore from "@arnilo/liveframe/store/fs";
@@ -210,6 +212,9 @@ test("public_validator_types_support_error_guided_repairs", () => {
 });
 
 test("subpath_export_surfaces", () => {
+  expect(Object.keys(conformance).sort()).toEqual(["ConformanceFailure", "storeSuite"]);
+  const cases: ConformanceCase[] = conformance.storeSuite({ create: store.memoryStore });
+  expect(cases).toHaveLength(9);
   expect(Object.keys(previewReact).sort()).toEqual(["Preview"]);
   expect(Object.keys(fileStore).sort()).toEqual(["fileStore"]);
   expect(Object.keys(preview).sort()).toEqual(["createPreview", "inProcessRunner"]);
