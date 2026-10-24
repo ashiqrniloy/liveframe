@@ -4,7 +4,7 @@
   "description": "Runtime-composable UI: primitives, design-system recipes and TSX widgets that change an app's UI without a deployment.",
   "private": true,
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "packageManager": "bun@1.4.2",
   "engines": {
     "bun": ">=1.4.2"

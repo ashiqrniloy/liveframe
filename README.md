@@ -19,3 +19,7 @@ Status: pre-release. The root package provides formats, install validators, a co
 bun install
 bun run check   # typecheck, lint, format check, tests
 ```
+
+## License
+
+MIT — see [`LICENSE`](LICENSE).

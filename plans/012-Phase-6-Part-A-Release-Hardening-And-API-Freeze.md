@@ -82,7 +82,7 @@ This plan implements roadmap Phase 6's hardening and freeze half, under the deci
     - Filled both plans' Compromises Made/Further Actions, updated backlog dispositions and roadmap §3, and recorded readiness P1–P3 evidence. No production code, dependency, public API, normative spec meaning or performance budget changed. Historical parity/bench evidence was retained; images, native audits, other runners/browsers and installed-demo verification were not rerun or claimed.
     - Before and after checks: `timeout 900s bun run check` passed twice (590 tests across 87 files, zero failures each; 251.08s before and 238.56s after; 38 existing lint warnings and 3 informational findings in each). `timeout 10s git diff --check` passed. Task 1 is complete; Task 2 remains next. No new tests were needed for this process-only task.
 
-- [ ] Task 2: Adopt the MIT license
+- [x] Task 2: Adopt the MIT license
   - Acceptance Criteria:
     - Functional:
       - `LICENSE` contains the MIT text with `Copyright (c) 2026 Niloy Rahman`.
@@ -112,7 +112,14 @@ This plan implements roadmap Phase 6's hardening and freeze half, under the deci
   - Test Cases to Write:
     - `package_license_is_mit` in `src/__tests__/exports.test.ts`: reads `package.json` and `LICENSE` and fails if either drifts.
 
-- [ ] Task 3: Re-validate and correlate worker runner results on the host
+  - Notes (executed 2026-10-25):
+    - `LICENSE` is the standard MIT text, verbatim, with `Copyright (c) 2026 Niloy Rahman`; `package.json`'s `license` changed from `UNLICENSED` to `MIT` and nothing else in it moved (`private: true`, `version 0.0.0`, no `repository`/`homepage`/`bugs`, no `publishConfig`), so the packaging metadata stays plan 013's.
+    - Spec §15's single open decision is closed in place: "None. 0.1.0 ships under the MIT license (`decision-logs/2026-10-25-0231-release-0-1-0-hardening-and-api-freeze.md`, R1)." The settled-decisions paragraph below it is untouched.
+    - `README.md` gained a `## License` section pointing at `LICENSE` (readiness B3's license half and B4's field).
+    - `package_license_is_mit` reads both files: it fails if the field is anything but `MIT`, if the holder line or MIT heading drifts, or if the warranty clause is missing. `License` is not in `files` yet — plan 013 Task 1 adds it with the rest of the publish metadata and asserts it in the archive.
+    - Evidence B4's row still lists `UNLICENSED`; plan 013's review fills the pre-release status, so it was not edited here.
+    - Validation: `bun test src/__tests__/exports.test.ts` 10 pass; `bun run check` 591 tests, 0 failures; `git diff --check` clean.
+
   - Acceptance Criteria:
     - Functional:
       - `workerRunner()` sends each render with a request id, and resolves only a result carrying the pending id.

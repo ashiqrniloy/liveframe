@@ -739,6 +739,6 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
 
 ## 15. Open decisions
 
-- The license.
+- None. 0.1.0 ships under the MIT license (`decision-logs/2026-10-25-0231-release-0-1-0-hardening-and-api-freeze.md`, R1).
 
 Settled before Phase 1 (`decision-logs/2026-10-22-1905-phase-1-format-scope.md`): the vocabulary's names are app-declared and its kinds library-fixed (§6.5); the primitive set stays per app (§5); an action intent may `bind` the event's value into one argument (§8, §9).

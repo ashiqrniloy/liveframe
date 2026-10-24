@@ -235,3 +235,12 @@ test("subpath_export_surfaces", () => {
     "validateStyleRecord",
   ]);
 });
+
+test("package_license_is_mit", async () => {
+  const manifest = (await Bun.file(new URL("../../package.json", import.meta.url)).json()) as { license?: string };
+  expect(manifest.license).toBe("MIT");
+  const text = await Bun.file(new URL("../../LICENSE", import.meta.url)).text();
+  expect(text.startsWith("MIT License\n\nCopyright (c) 2026 Niloy Rahman\n")).toBe(true);
+  expect(text).toContain('THE SOFTWARE IS PROVIDED "AS IS"');
+  expect(text).toContain("copies or substantial portions of the Software.");
+});
