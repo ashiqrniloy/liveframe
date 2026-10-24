@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { type Catalog, compileValidator, type UiNode, type UiTree } from "../../index.ts";
 import { createRenderer, type ImplementationProps, implement } from "../../react/index.ts";
 import manifest from "./proof/agent-home.manifest.json" with { type: "json" };
@@ -48,12 +49,31 @@ export function renderer(observe: (kind: string, props: ImplementationProps) => 
         const className = input.slot(input.props.text === "bad-slot" ? "undeclared" : "root");
         if (definition.kind === "button")
           return (
-            <button type="button" className={className} style={input.style} onClick={() => setCount(count + 1)}>
+            <button
+              type="button"
+              className={className}
+              style={input.style}
+              onClick={() => {
+                setCount(count + 1);
+                input.emit("onPress");
+              }}
+            >
               <span className={input.slot("label")}>
                 {String(input.props.label)} {count}
               </span>
             </button>
           );
+        if (definition.kind === "dialog")
+          return input.portal
+            ? createPortal(
+                <div className={className} data-open="">
+                  <div role="dialog" aria-label={String(input.props.label)} className={input.slot("content")}>
+                    {input.children}
+                  </div>
+                </div>,
+                input.portal,
+              )
+            : null;
         return (
           <div className={className} style={input.style} data-portal={input.portal ? "mounted" : "absent"}>
             {input.props.text as string | undefined}
@@ -63,4 +83,33 @@ export function renderer(observe: (kind: string, props: ImplementationProps) => 
       }),
     ),
   });
+}
+
+export function hydrationTree(mode: string): UiTree {
+  const input = tree();
+  return {
+    ...input,
+    ...(mode === "invalid" ? { catalogId: "bad.ui@1" } : {}),
+    root: {
+      ...input.root,
+      style: { gap: { base: "space.1", "bp.md": "space.2" } },
+      children: [
+        { id: "root/first", kind: "text", props: { text: mode === "throw" ? "throw" : "Hydrated" } },
+        {
+          id: "root/second",
+          kind: "button",
+          props: { label: "Commit" },
+          events: {
+            onPress: { type: "setState", key: "reason", value: "committed" },
+          },
+        },
+        {
+          id: "root/dialog",
+          kind: "dialog",
+          props: { label: "Hydration overlay", open: true },
+          children: [{ id: "root/dialog/text", kind: "text", props: { text: "Overlay content" } }],
+        },
+      ],
+    },
+  };
 }

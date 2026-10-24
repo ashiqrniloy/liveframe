@@ -1,10 +1,10 @@
 import { createPortal, flushSync } from "react-dom";
-import { createRoot } from "react-dom/client";
+import { createRoot, hydrateRoot } from "react-dom/client";
 import type { Intent, UiTree } from "../../index.ts";
 import type { ImplementationProps } from "../../react/index.ts";
 import { createRenderer, implement } from "../../react/index.ts";
 import agentHome from "./proof/agent-home.tree.json" with { type: "json" };
-import { catalog, renderer, surfaceProps, tree, validator } from "./react-surface.tsx";
+import { catalog, hydrationTree, renderer, surfaceProps, tree, validator } from "./react-surface.tsx";
 
 let renders = 0;
 const switchingRenderer = createRenderer({
@@ -62,15 +62,19 @@ const styles = [
 ];
 let switching = false;
 
+const firstPortals: Record<string, boolean> = {};
 let button: ImplementationProps | undefined;
 const { Surface } = renderer((kind, props) => {
+  firstPortals[kind] ??= props.portal !== undefined;
   if (kind === "button") button = props;
 });
 let intents: Intent[] = [];
 let onIntent = intents.push.bind(intents);
 const container = document.getElementById("app");
 if (!container) throw new Error("Missing app");
-const root = createRoot(container, { onCaughtError: () => {} });
+const mode = new URL(location.href).searchParams.get("ssr");
+const hydrationErrors: string[] = [];
+const serverNodes = [...container.querySelectorAll("*")];
 let checks = 0;
 const checkedValidator = {
   ...validator,
@@ -79,8 +83,15 @@ const checkedValidator = {
     return validator.validateTree(...args);
   },
 };
-let input: unknown = tree();
+let input: unknown = mode ? hydrationTree(mode) : tree();
 let currentValidator = checkedValidator;
+const root = mode
+  ? hydrateRoot(
+      container,
+      <Surface {...surfaceProps} validator={currentValidator} tree={input} onIntent={onIntent} />,
+      { onCaughtError: () => {}, onRecoverableError: (error) => hydrationErrors.push(String(error)) },
+    )
+  : createRoot(container, { onCaughtError: () => {} });
 function draw() {
   if (switching) {
     const SwitchSurface = switchingRenderer.Surface;
@@ -106,6 +117,7 @@ declare global {
       redraw(): void;
       replaceValidator(): void;
       checks(): number;
+      hydration(): { errors: string[]; firstPortals: Record<string, boolean>; retained: boolean };
       intents(): readonly Intent[];
       emit(): void;
       replaceIntentHandler(): void;
@@ -128,6 +140,11 @@ window.surfaceTest = {
     draw();
   },
   checks: () => checks,
+  hydration: () => ({
+    errors: hydrationErrors,
+    firstPortals,
+    retained: serverNodes.every((node) => container.contains(node)),
+  }),
   intents: () => intents,
   emit: () => button?.emit("onPress"),
   replaceIntentHandler() {
@@ -149,4 +166,4 @@ window.surfaceTest = {
     flushSync(() => root.unmount());
   },
 };
-draw();
+if (!mode) draw();

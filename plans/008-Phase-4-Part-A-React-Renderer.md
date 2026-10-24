@@ -313,7 +313,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Wrote the five browser cases first. The original renderer failed the sequence test and started 84 transitions. A further test without forced style reads exposed that removing suppression before resolving pending styles could still start transitions; the animation-frame layout read fixes that path. Test-local implementations portal an open dialog into the supplied container on a 50-row agent-home fixture, beside an independently scoped surface.
     - All 34 focused React/CSS-scope tests passed. The focused renderer performance run measured 8.8 ms cold and 7.9 ms maximum over ten warm switches of 685 elements, including the blurred dialog (16.67 ms budget). `bun run check` passed (404 tests, zero failures); `git diff --check` and `graft build` passed. SSR/hydration remains Task 6; React Aria lifecycle and real proof-host adoption remain Tasks 7–8.
 
-- [ ] Task 6: Render on the server and hydrate without mismatch
+- [x] Task 6: Render on the server and hydrate without mismatch
   - Acceptance Criteria:
     - Functional:
       - `renderToString(<Surface …/>)` in Bun produces markup that `hydrateRoot` adopts in Chromium. `onRecoverableError` is called zero times for every proof scenario (Task 7 adds the full set; this task uses the test-local implementations).
@@ -331,6 +331,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Documentation Reviewed:
       - `proof/host/server.ts:100–115` and `proof/tests/fixtures/renderer-client.tsx`: the proof's SSR and hydration.
       - `proof/tests/renderer.test.tsx:33` (`server_rendering_and_transport_revalidation`).
+      - Context7 `/reactjs/react.dev`, checked 2026-10-24: `hydrateRoot` requires matching initial output; React error boundaries do not catch SSR errors. Verified against installed React/React DOM 19.3.1.
     - Options Considered:
       - Streaming SSR (`renderToReadableStream`) — rejected for now: the spec only requires support, the proof host and tests use `renderToString`, and streaming adds Suspense semantics no widget has. Task 11 sweeps it if a host asks.
     - Chosen Approach:
@@ -342,6 +343,9 @@ Probe answers that hold for every task, unless a task says otherwise:
       ```
     - Files to Create/Edit:
       - `src/react/renderer.tsx` (only if a mismatch is found).
+      - `src/__tests__/fixtures/react-surface.tsx`: shared SSR/hydration tree and test-local portal binding.
+      - `docs/renderer.md`, `docs/spec.md` §11: specify the SSR throw path and hydration contract.
+      - `roadmap.md` §3: execution status.
       - `src/__tests__/react-ssr.test.tsx`: new (server half).
       - `src/__tests__/react-browser.test.tsx`, `src/__tests__/fixtures/react-client.tsx` (hydration half).
   - Test Cases to Write:
@@ -349,6 +353,11 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `server_renders_fallback_for_invalid_tree`.
     - `ssr_throw_path_is_specified`: asserts the documented behaviour; fails if it silently renders nothing.
     - `overlay_mounts_after_hydration_without_mismatch`.
+  - Notes (executed 2026-10-24):
+    - No production renderer change was needed. Added server tests and extended the existing Chromium harness with shared test-local bindings and trees. Successful SSR and invalid-tree fallback hydrate with zero recoverable errors; existing server DOM nodes are retained, responsive scope classes match, and hydrated button events reach `onIntent`.
+    - Proved `portal` is undefined on the server and first client render. An open overlay is absent before JavaScript loads and mounts into its scoped sibling container after hydration without a mismatch.
+    - Proved `renderToString` propagates a throwing implementation to the host. The host sends fallback markup; client rendering recovers with fallback at the failed node and an interactive healthy sibling. Spec §11 and the initial `docs/renderer.md` document this exception. Task 9 extends that guide with the remaining renderer API topics.
+    - Agent-home SSR with test-local implementations measured 16.91 ms in the full check (informational, no budget). The focused React suites passed (36 tests), followed by `bun run check` (412 tests, zero failures) and `git diff --check`. Full proof-host scenario adoption remains Task 7; no new dependency or public export.
 
 - [ ] Task 7: Drive the proof host with packages, the in-process runner and `/react`
   - Acceptance Criteria:

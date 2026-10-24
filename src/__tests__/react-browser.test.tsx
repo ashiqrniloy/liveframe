@@ -1,4 +1,6 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
+import { renderToString } from "react-dom/server";
+import { hydrationTree, renderer, surfaceProps } from "./fixtures/react-surface.tsx";
 import { type Browser, chromium } from "playwright";
 import { baseCss, designSystemCss, themeCss } from "../css/index.ts";
 import type { Catalog, DesignSystem, Result, Theme } from "../index.ts";
@@ -16,6 +18,7 @@ for (const name of ["certified", "rack"]) {
   sheets.push(css(themeCss(theme, catalog)), css(designSystemCss(system, { catalog, registry: {} })));
 }
 
+const { Surface } = renderer();
 let server: ReturnType<typeof Bun.serve>;
 let browser: Browser;
 beforeAll(async () => {
@@ -30,17 +33,28 @@ beforeAll(async () => {
   server = Bun.serve({
     port: 0,
     hostname: "127.0.0.1",
-    fetch: (request) =>
-      new URL(request.url).pathname === "/client.js"
+    fetch: (request) => {
+      const mode = new URL(request.url).searchParams.get("ssr");
+      let markup = "";
+      if (mode) {
+        try {
+          markup = renderToString(<Surface {...surfaceProps} tree={hydrationTree(mode)} />);
+        } catch (error) {
+          if (mode !== "throw") throw error;
+          markup = renderToString(surfaceProps.fallback);
+        }
+      }
+      return new URL(request.url).pathname === "/client.js"
         ? new Response(bundle, { headers: { "Content-Type": "text/javascript" } })
         : new Response(
             `<!doctype html><html lang="en"><head><title>Surface tests</title><style>${sheets.join("\n")}</style><style>
               #app:has(section){display:flex;gap:16px}section{position:relative;width:760px;flex-shrink:0}
               [role=dialog]{position:absolute;top:40px;left:40px;z-index:2}
               .lf_dialog_default_backdrop{position:absolute;inset:0;z-index:1}
-            </style></head><body><div id="app"></div><script type="module" src="/client.js"></script></body></html>`,
+            </style></head><body><div id="app">${markup}</div><script type="module" src="/client.js"></script></body></html>`,
             { headers: { "Content-Type": "text/html" } },
-          ),
+          );
+    },
   });
   browser = await chromium.launch({ headless: true });
 }, 30000);
@@ -348,3 +362,78 @@ test("switch_under_budget_with_blur_through_surface", async () => {
     await page.close();
   }
 }, 20000);
+
+test("server_markup_hydrates_with_no_recoverable_error", async () => {
+  const page = await browser.newPage();
+  try {
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto(`${server.url}?ssr=valid`);
+    await page.waitForSelector("[role=dialog]");
+    await page.getByRole("button", { name: "Commit 0" }).press("Enter");
+    expect(await page.getByRole("button").textContent()).toContain("Commit 1");
+    expect(await page.evaluate(() => window.surfaceTest.intents())).toEqual([
+      { type: "setState", key: "reason", value: "committed" },
+    ]);
+    const hydration = await page.evaluate(() => window.surfaceTest.hydration());
+    expect(hydration.errors).toEqual([]);
+    expect(hydration.retained).toBe(true);
+    expect(await page.locator("#app > .lf_container").count()).toBe(2);
+    expect(errors).toEqual([]);
+  } finally {
+    await page.close();
+  }
+});
+
+test("overlay_mounts_after_hydration_without_mismatch", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.route("**/client.js", (route) => route.abort());
+    await page.goto(`${server.url}?ssr=valid`);
+    expect(await page.getByRole("dialog").count()).toBe(0);
+    expect(await page.locator("[data-lf-portal]").textContent()).toBe("");
+    await page.unroute("**/client.js");
+    await page.reload();
+    await page.waitForSelector("[data-lf-portal] [role=dialog]");
+    const hydration = await page.evaluate(() => window.surfaceTest.hydration());
+    expect(hydration.firstPortals).toEqual({ stack: false, text: false, button: false, dialog: false });
+    expect(hydration.errors).toEqual([]);
+    expect(hydration.retained).toBe(true);
+  } finally {
+    await page.close();
+  }
+});
+
+test("invalid_server_fallback_hydrates_without_mismatch", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(`${server.url}?ssr=invalid`);
+    await page.waitForFunction(() => window.surfaceTest?.checks() === 1);
+    expect(await page.locator("#app").textContent()).toBe("Unavailable");
+    expect(await page.evaluate(() => window.surfaceTest.hydration())).toEqual({
+      errors: [],
+      firstPortals: {},
+      retained: true,
+    });
+  } finally {
+    await page.close();
+  }
+});
+
+test("host_fallback_recovers_on_client_after_ssr_throw", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.route("**/client.js", (route) => route.abort());
+    await page.goto(`${server.url}?ssr=throw`);
+    expect(await page.locator("#app").innerHTML()).toBe("<p>Unavailable</p>");
+    await page.unroute("**/client.js");
+    await page.reload();
+    await page.waitForSelector("[role=dialog]");
+    expect(await page.locator("#app p").textContent()).toBe("Unavailable");
+    await page.getByRole("button").press("Enter");
+    expect(await page.getByRole("button").textContent()).toContain("Commit 1");
+    expect((await page.evaluate(() => window.surfaceTest.hydration())).retained).toBe(false);
+  } finally {
+    await page.close();
+  }
+});
