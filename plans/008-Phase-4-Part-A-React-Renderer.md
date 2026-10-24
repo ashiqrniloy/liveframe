@@ -583,6 +583,26 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Kept React-specific caching/copy/type checks and performance/profiling observations internal. App implementations own overlay lifecycle, and hosts still authorize completed intents. No runtime, dependency, public API or spec change; the shared conformance suite remains Phase 5 work.
     - `bun run check` passed (**432 tests, zero failures**), including typecheck, lint, formatting and browser suites; `git diff --check` passed. Task 11 remains pending.
 
+- [x] Task 11a: Reconcile delivered renderer handoffs
+  - Acceptance Criteria:
+    - Functional: the backlog closes G20 and the CSS overlay handoff, assigns overlay lifecycle to app implementations, and uses the accepted preview signature without `styles`.
+    - Performance: n/a — documentation only.
+    - Code Quality: amend existing entries; preserve Phase 5 conformance and G29's Phase 6 release gate.
+    - Security: preserve manifest-backed arrival validation and host authorization; no runtime changes.
+  - Approach:
+    - Skills to Use: `create-plan`, `liveframe-execution`, `karpathy-guidelines`.
+    - Library Documentation to Check Before Implementation: none — reconcile accepted local contracts.
+    - Documentation Reviewed: spec §7.5/§11, the approved Phase 4 decision, Tasks 3/5/7/8, and the existing backlog handoffs.
+    - Options Considered: leave obsolete instructions for later executors — rejected because they contradict delivered behavior and the accepted preview contract.
+    - Chosen Approach: update the three existing backlog entries in place, under the owner's request to complete Task 11. Finding F1 is recorded in the impact analysis.
+    - API Notes and Examples: `createPreview({ catalog, capabilities, runner })` (already accepted; no API change).
+    - Files to Create/Edit: `plans/backlog.md`; this plan's Task 11a and execution notes.
+  - Test Cases to Write:
+    - n/a — no runtime change; run `timeout 600s bun run check` and `git diff --check`.
+  - Notes (executed 2026-10-24):
+    - Corrected the three existing backlog handoffs: G20 is closed, the CSS overlay contract is delivered with lifecycle owned by app implementations, and preview uses the accepted signature without `styles`. No runtime, public API, dependency or spec change.
+    - `timeout 600s bun run check` passed: **432 tests, zero failures, 110,355 assertions**, plus generation drift, both typechecks, lint and formatting. `git diff --check` passed. Task 11 records the twelve-area sweep and remaining handoffs.
+
 - [ ] Task 11: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional:
