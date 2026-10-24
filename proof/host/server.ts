@@ -46,7 +46,7 @@ body { margin: 0; -webkit-font-smoothing: antialiased; }
   const links = Object.entries(pages)
     .map(([name, title]) => `<li><a href="/ui/${name}">${title}</a></li>`)
     .join("");
-  return Bun.serve({
+  const server = Bun.serve({
     hostname: "127.0.0.1",
     port,
     maxRequestBodySize: 1048576,
@@ -125,6 +125,7 @@ body { margin: 0; -webkit-font-smoothing: antialiased; }
       );
     },
   });
+  return Object.assign(server, { attach: preview.attach });
 }
 
 if (import.meta.main) {
