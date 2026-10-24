@@ -22,6 +22,8 @@ Rules:
 
 ## Today
 
+`/conformance` ships `designSystemSuite` for installed themes, design systems, CSS projection and colour checks on supplied app sheet contents. `/conformance/react` requires reachable fixtures for every styled state differing from rest in any installed system, including affected slots. See `docs/conformance.md`; library selector/forced-colour correctness and pixel parity remain internal checks, and G29 remains a separate native audit.
+
 `src/formats/theme.ts` validates DTCG colours and typography against the vocabulary, including bounded plain font-family names. `src/formats/design-system.ts` validates typed values, theme-only colour references, closed recipe properties, inheritance and completeness. `src/resolve.ts` shares the completeness cascade and produces flat recipes with design references resolved, retaining colour and typography role names. See `docs/formats.md` for bounds and resolver errors. Projection ships separately in `@arnilo/liveframe/css`, never in the root export.
 
 Both proof themes and design systems validate in the new formats, with 616 resolved recipes each for the 24-kind catalog. The exporter proves equality after unit conversion and expansion of shadow-alpha theme roles (`proof/scripts/export-formats.ts`, `src/__tests__/proof-formats.test.ts`).

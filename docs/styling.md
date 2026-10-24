@@ -10,6 +10,9 @@ renderer remains planned work. See the [format guide](formats.md#theme) for them
 design-system and vocabulary formats, and [spec §6.4](spec.md#64-how-styling-reaches-the-screen)
 for the normative projection contract.
 
+Run the [conformance kit](conformance.md) against your installed styles and app
+CSS, then prove styled-state reachability with your primitive implementations.
+
 ## Generate three independent sheets
 
 Use the same installed catalog for every theme and design system on a page.

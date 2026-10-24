@@ -457,7 +457,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Performance: the full check recorded 10730.70 ms for all four proof cases across the four Certified/Rack combinations, excluding server/browser startup. The focused proof run took 10933.89 ms; the focused nine lifecycle positive/mutant/coverage controls passed in 16.37s before the additional live-change control passed in the full run. No runtime render, validation or style path changed.
     - Validation: `timeout 600s bun run check` passed (537 tests across 81 files, zero failures; tests 226.39s; 37 existing lint warnings and 3 informational findings). Changed-file Biome checks, typechecking, `git diff --check` and `timeout 120s graft build` passed. Initial mutant assertions using Bun's promise/Error matcher stalled; explicit failure capture removed that test-harness issue without relaxing timeouts or production checks. Browser evidence remains Chromium only; pixel parity, other browsers and other runners/runtimes were not rerun.
 
-- [ ] Task 9: Document the kit for outsiders and close the conformance backlog seed
+- [x] Task 9: Document the kit for outsiders and close the conformance backlog seed
   - Acceptance Criteria:
     - Functional:
       - `docs/conformance.md` explains, for an outsider: what each suite proves and doesn't, how to register cases with Bun, Vitest or Jest, what fixtures an app supplies (including SSR-visible examples for server root-presence checks, browser fixtures for deferred content, and development/profiling React for browser render counts), the page entry and test for the browser cases, and that overlay and text-input kinds are the app's declaration (`overlayKinds` / `textInputKinds`, explicit fixture `kind`, background-control locator and a closed tree opened after mounting). Its examples compile and run as `src/__tests__/conformance-guide.test.ts`.
@@ -483,12 +483,20 @@ Probe answers that hold for every task, unless a task says otherwise:
       - n/a.
     - Files to Create/Edit:
       - `docs/conformance.md`, `src/__tests__/conformance-guide.test.ts`: new.
+      - `src/__tests__/fixtures/conformance-guide-client.ts`: compiled page entry for the guide hydration check.
+      - This plan and `roadmap.md` §3: execution notes and task progress.
       - `docs/{packages,renderer,styling}.md`: links.
       - `plans/backlog.md`: the two entries above.
       - `.agents/skills/liveframe-execution/references/{architecture,renderer,storage,styling}.md`: "Today".
   - Test Cases to Write:
-    - `conformance_guide_example_runs`: the guide's store and catalog examples run their suites on `memoryStore()` and the proof fixtures.
-  - Notes (executed <date>):
+    - `conformance_guide_example_runs`: the guide's store, catalog and styling examples register and run their suites on `memoryStore()` and existing fixtures; missing catalog coverage fails.
+    - `conformance_guide_renderer_examples_run`: compiled helper runs server cases and Chromium hydration against the documented page entry; snippet/source agreement prevents drift. Full browser fixtures and mutants remain in the dedicated conformance tests.
+  - Notes (executed 2026-10-24):
+    - Added `docs/conformance.md` as the outsider guide for all five suites, runner registration, fresh/reopened store scopes, catalog version/coverage checks, app CSS contents, SSR-visible and deferred examples, and the app-owned browser page/test setup. It documents development/profiling React, all browser fixture fields, explicit overlay/text-input declarations, closed-then-open lifecycle setup and the limits of conformance, including isolation and authorization.
+    - The tested guide registers store/catalog/styling cases against `memoryStore()` and existing fixtures, rejects missing catalog coverage, compiles the renderer helper, runs its server cases and hydrates the documented page entry in Chromium. Source/snippet comparisons keep the examples synchronized. Reused the existing browser host and fixtures; added only the small guide client entry. The first guide test failed because the guide was absent, then passed after documentation was written.
+    - Linked the package, renderer and styling guides; closed the conformance seed with plan/suite evidence and reasons for the intentionally internal cases. The adopter handoff now requires Synapta to test its own store and both hosts to supply examples, browser fixtures and an app-owned page. Updated the four execution references; preserved the pre-existing architecture-table edit and `plans/README.md` changes outside this task commit.
+    - Performance: no render, validation or style runtime path changed. The focused 20-test guide run took 1.158s, including Chromium startup and hydration; its renderer test took 653.53 ms. No public export, dependency, normative spec or implementation change. Task 10 remains open, including its initially-open proof-dialog finding.
+    - Validation: `timeout 600s bun run check` passed (557 tests across 82 files, zero failures; tests 220.46s; 37 existing lint warnings and 3 informational findings). Changed-file Biome checks, local documentation-link resolution, `git diff --check` and `timeout 120s graft build` passed. Guide browser execution is Chromium only; Vitest/Jest execution, other browsers, pixel parity and the native accessibility audit were not added or rerun.
 
 - [ ] Task 10: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:

@@ -15,6 +15,9 @@ The package is pre-release. To preview drafts before publishing, see the
 [SDK guide](sdk.md) for authoring and the [format guide](formats.md) for the
 catalog, capabilities and manifest contracts.
 
+See the [conformance guide](conformance.md) for store factories, persistence
+checks and registration with Bun, Vitest or Jest.
+
 ## Pack a draft and render a stored placement
 
 This backend example expects three host-provided values:

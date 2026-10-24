@@ -9,6 +9,9 @@ Your host supplies a catalog, implementations for every kind, the widget's manif
 and app capabilities, and theme/design-system CSS. Read [the model](model.md) for
 ownership and [styling](styling.md) for generating and loading the three sheets.
 
+Use the [conformance guide](conformance.md) to test your implementations with
+server and browser cases, including the app-owned page and required fixtures.
+
 ## Build a renderer and mount a surface
 
 This example uses your app's `vocabulary.json`, the token vocabulary shared by its
