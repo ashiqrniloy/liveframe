@@ -120,6 +120,39 @@ describe("sdk inputs", () => {
     expect(reads).toBe(afterFirst);
   });
 
+  test("checked_data_is_checked_again_under_another_source_schema", () => {
+    const incompatible = compileValidator({
+      catalog: catalogDocument,
+      capabilities: {
+        ...withSource,
+        sources: {
+          "tasks.list": {
+            ...withSource.sources["tasks.list"],
+            result: { type: "array", items: { type: "string", maxLength: 8 }, maxItems: 8 },
+          },
+        },
+      },
+      manifest: withData,
+    });
+    const data = { tasks: [{ id: "t1", title: "Fix" }] };
+    let ran = 0;
+    const widget = () => {
+      ran += 1;
+      return <Text text="x" />;
+    };
+    const renderWith = (checked: typeof validator) =>
+      render(widget, { ...inputs, data } as WidgetProps, { ...options, validator: checked });
+
+    expect(renderWith(validator).ok).toBe(true);
+    const bad = renderWith(incompatible);
+    expect(bad.ok).toBe(false);
+    expect(!bad.ok && bad.errors.map((error) => [error.kind, error.pointer])).toEqual([
+      ["invalid-prop", "/data/tasks/0"],
+    ]);
+    expect(ran).toBe(1);
+    expect(renderWith(validator).ok).toBe(true);
+  });
+
   test("inputs_reach_widget_frozen", () => {
     let frozen: readonly boolean[] = [];
     let mutated = false;

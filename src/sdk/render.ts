@@ -13,8 +13,8 @@ import type { WidgetProps } from "./types.ts";
 const FORMAT = "liveframe/1" as const;
 /** Matches the tree walker: JSON never nests deeper than this (spec §10). */
 const INPUT_DEPTH = 128;
-/** Data objects already checked and frozen; a host re-runs with the same resolved data (spec §8). */
-const checkedData = new WeakSet<object>();
+/** Data objects already checked and frozen, per compiled data check: a host re-runs with the same resolved data (spec §8), and a different source-schema contract must check it again. */
+const checkedData = new WeakMap<object, WeakSet<SchemaCheck>>();
 /** Only SDK-traversed inputs are known to be deeply frozen. */
 const frozenInputs = new WeakSet<object>();
 
@@ -166,12 +166,16 @@ export function render<P, S, D, C>(
 
   function checkInput(name: keyof WidgetProps, check: SchemaCheck): void {
     const value = inputs[name];
-    if (name === "data" && value !== null && typeof value === "object" && checkedData.has(value)) return;
+    const cache = name === "data" && value !== null && typeof value === "object" ? value : undefined;
+    if (cache && checkedData.get(cache)?.has(check)) return;
     const before = errors.length;
     if (isJson(value, `/${name}`, ancestors)) check(value, `/${name}`, sink);
     if (errors.length > before || stopped) return;
     freezeDeep(value);
-    if (name === "data" && value !== null && typeof value === "object") checkedData.add(value);
+    if (cache) {
+      const accepted = checkedData.get(cache) ?? new WeakSet<SchemaCheck>();
+      checkedData.set(cache, accepted.add(check));
+    }
   }
 
   function full(): void {

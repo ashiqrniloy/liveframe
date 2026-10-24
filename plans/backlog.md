@@ -183,10 +183,11 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: SDK validation hardening, before cross-widget or cross-contract data reuse
 - Priority: P1
+- Status: closed 2026-10-24. The data cache now records which compiled data check accepted each object, so another validator checks it again (`src/sdk/render.ts`; regression `checked_data_is_checked_again_under_another_source_schema`; `docs/sdk.md` updated; SDK bench unchanged at 1.8–2.9 µs/node). Retention stays weak and there is no repeat walk within one validator.
 - Source: plans/005-Phase-2-Part-A-SDK.md Task 10 (F2), plans/evidence/005-impact-analysis.md
 - What: make check-once validation account for the compiled source-schema contract as well as data identity, while retaining weak retention and no repeat data walk within the same contract. Add a regression that reuses data accepted by one manifest under a manifest with incompatible sources: the second render must return pointed `invalid-prop` errors before widget execution, just as a fresh data clone does. Check both reference runners and rerun the SDK budget.
 - Why: `src/sdk/render.ts` currently uses one module-private `WeakSet` across validators. A successful validation under one contract can suppress validation under another; freezing alone cannot establish schema compatibility. Until corrected, obey `docs/sdk.md`: reuse data only under the same source-schema contract, allocate a new object for each resolution, and supply JSON value properties rather than accessors. No cache redesign is approved by this handoff.
-- Preview follow-up: when this lands, drop the fresh-copy-of-scenario-data step in `src/preview/session.ts` and its `scenario_data_is_fresh_per_render` workaround, then rerun the preview session tests (plans/009-Phase-4-Part-B-Preview.md Task 8, F7).
+- Preview follow-up: the session still copies scenario data per render, now only because the SDK freezes inputs in place and the package's own scenarios must stay unfrozen (`src/preview/session.ts`). The cache workaround is gone from its comment; the copy stays (plans/009-Phase-4-Part-B-Preview.md Task 8, F7).
 
 ## Reject nested non-JSON composed props and improve SDK diagnostics
 

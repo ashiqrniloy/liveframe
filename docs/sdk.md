@@ -155,11 +155,12 @@ including across fresh validators. Changing `revision` changes the tree envelope
 `params`, `state` and `context` are checked every render. `data` is checked
 against the manifest's bound sources and their capability `result` schemas,
 then frozen in place. A module-private identity cache skips the data check and
-freeze when that exact object is reused. Reuse it for state-only rerenders;
-allocate a new data object for a new resolution. Supply plain JSON value
-properties, not accessors. Reuse checked data only with the same source-schema
-contract: the cache is shared across validators and is not keyed by schema.
-This cache does not cache the tree or skip widget execution.
+freeze when that exact object is reused with the same compiled validator. Reuse
+it for state-only rerenders; allocate a new data object for a new resolution. Supply plain JSON value
+properties, not accessors. The cache remembers which compiled validator
+accepted the object, so another validator with a different source-schema
+contract checks the same object again. It does not cache the tree or skip widget
+execution.
 
 Input failures have pointers such as `/state/filter`, use `invalid-prop`, have
 no `nodeId`, and prevent widget execution. Node errors use paths such as

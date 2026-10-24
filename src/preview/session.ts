@@ -34,7 +34,7 @@ export function createPreview({
   }
 
   async function run(active: WidgetPackage, selected: Selection): Promise<Result<UiTree>> {
-    // shortcut: copy data per render until SDK validation caching is scoped to its source schema.
+    // The SDK freezes inputs in place: copy them so the package's own scenarios stay unfrozen.
     const inputs = JSON.parse(
       JSON.stringify({
         params: selected.scenario.params,
