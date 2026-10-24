@@ -106,7 +106,7 @@ Two plans: Part A (the renderer), then Part B (the preview), which draws drafts 
 
 ### Phase 8 — Authoring MCP server for coding agents (runs before Phase 6)
 
-- **Goal:** `liveframe mcp`, an MCP server that helps coding agents write widgets against an app's catalog and design system. Tools: list primitives with their definitions and docs; list the declared roles and design-value names; pack a draft and render its scenarios through a preview session (spec §7.5), returning the structured pack errors and `WidgetError`s; capture a preview, wrapping `liveframe preview capture`; show the generated types. Rendering uses `workerRunner()` unless the host's configuration names its own runner.
+- **Goal:** `liveframe mcp`, an MCP server that helps coding agents write widgets against an app's catalog and design system. Tools: list primitives with their definitions and docs; list the declared roles and design-value names; pack a draft and render its scenarios through a preview session (spec §7.5), returning the structured pack errors and `LiveframeError`s; capture a preview, wrapping `liveframe preview capture`; show the generated types. Rendering uses `workerRunner()` unless the host's configuration names its own runner.
 - **Why:** agents are first-class widget authors (spec §1). Typed components and structured errors (spec §7.2) are most useful when an agent can query and run them directly.
 - **Scope:** authoring time only. No tool installs, places or approves a widget, resolves real data, or runs an action: those are the app's policy (`decision-logs/2026-10-21-2017-liveframe-founding-model.md`, alternative 4). The MCP SDK is an optional peer dependency used only by `liveframe mcp`, justified in the plan; it stays out of the core.
 - **Done:** a coding agent, using only the MCP tools, writes a widget with scenarios for a test host's catalog that validates and renders, fixes a deliberately invalid widget from the returned errors, and fixes a layout mistake from a captured preview.
@@ -124,7 +124,7 @@ Two plans: Part A (the renderer), then Part B (the preview), which draws drafts 
 
 ## 3. Execution state
 
-- **Current phase:** Phase 4 Part A (React renderer, plan 008) complete — Tasks 1–11 and impact follow-up Task 11a complete; findings disposed in the impact analysis and backlog. Part B (plan 009) is next and remains planned. Phase 3 plan 007 Tasks 1–12 and impact follow-up Task 11a are complete; findings disposed in the impact analysis and backlog. Phase 2 plans 005 and 006 are complete; plan 005's impact findings include active SDK validation and validator-performance backlog items. Plan 002 Task 9's owner gate remains recorded separately.
+- **Current phase:** Phase 4 Part B (Preview, plan 009) in progress — Task 1 complete; Tasks 2–8 remain. Phase 4 Part A (React renderer, plan 008) complete — Tasks 1–11 and impact follow-up Task 11a complete; findings disposed in the impact analysis and backlog. Phase 3 plan 007 Tasks 1–12 and impact follow-up Task 11a are complete; findings disposed in the impact analysis and backlog. Phase 2 plans 005 and 006 are complete; plan 005's impact findings include active SDK validation and validator-performance backlog items. Plan 002 Task 9's owner gate remains recorded separately.
 - **Next free plan number:** 010.
 
 One line per plan. Detail lives in the plan file, never here.
@@ -139,4 +139,4 @@ One line per plan. Detail lives in the plan file, never here.
 | [006](plans/006-Phase-2-Part-B-Packages-Storage-Runners.md) | 2 | complete (Tasks 1–12; findings disposed in the impact analysis and backlog) |
 | [007](plans/007-Phase-3-CSS-Projection.md) | 3 | complete (Tasks 1–12 and Task 11a; findings disposed in the impact analysis and backlog) |
 | [008](plans/008-Phase-4-Part-A-React-Renderer.md) | 4 | complete (Tasks 1–11 and Task 11a; findings disposed in the impact analysis and backlog) |
-| [009](plans/009-Phase-4-Part-B-Preview.md) | 4 | planned (depends on 008) |
+| [009](plans/009-Phase-4-Part-B-Preview.md) | 4 | in progress — Task 1 complete; Tasks 2–8 remain |

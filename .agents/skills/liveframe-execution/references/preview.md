@@ -6,19 +6,22 @@ Spec §7.5 (runners and preview), §7.3 (scenarios). Roadmap Phase 2 Part B (run
 
 - `Runner.render(pkg, inputs, options)` returns a validated tree or a bounded `LiveframeError[]` in `Result<UiTree>`, and enforces a per-render time limit (default 100 ms → `limit-exceeded`).
 - `inProcessRunner()` (`/preview`) is for tests and trusted code. `workerRunner()` (`/preview/worker`) terminates a worker on a timeout or crash and continues on a fresh one.
-- `createPreview({ catalog, capabilities, runner, styles })` returns a session:
-  - `update(draft)` packs the draft without storing it.
-  - `render({ scenario, context?, state? })` renders it.
-  - `intent()` updates session state on `setState`. An action goes to the intent log and is never dispatched.
-  - `check()` renders every scenario.
-- `<Preview>` (`/preview/react`) is mounted by the app in its own page. It shows a matrix of scenario × width × theme × design system, the intent log and errors on their nodes, with the selected cell in the URL (`scenario`, `width`, `theme`, `designSystem`).
-- `liveframe preview capture <url>` drives a headless browser (Playwright, an optional peer dependency) over the requested cells and writes a PNG and an accessibility snapshot per cell, plus a JSON index.
+- `createPreview({ catalog, capabilities, runner })` returns a session (no styles: trees don't depend on them):
+  - `update(draft)` packs the draft without storing it and returns `Result<WidgetPackage>`; publishing stores exactly that package. Success resets the current scenario, state and log; failure keeps the previous package and session state.
+  - `render({ scenario, context?, state? })` selects the current scenario and returns `Promise<Result<UiTree>>`, with `LiveframeError`s carrying `nodeId` when attributable to a node. State comes from the argument, scenario or manifest `initialState`, in that order; context comes from the argument or scenario. The session has a fixed `surfaceId` and increases revision on every render.
+  - `intent()` re-checks state keys and values against the manifest before updating and re-rendering. It checks actions against the manifest and capability schema (`checkValue`), then logs them and returns the current tree unchanged. It returns `Promise<Result<UiTree>>`; invalid intents change nothing, and actions are never dispatched.
+  - `intents()` returns `readonly Intent[]`.
+  - `check()` renders every scenario from its own initial state without changing the current scenario or state and returns each `{ scenario, result }`.
+- `<Preview>` (`/preview/react`) is mounted by the app in its own page. The host passes the selected scenario's result and intent log and handles `onSelect(cell)` / `onIntent(intent)`. The component draws every width × theme × design-system combination as sibling surfaces through `createRenderer`; width and style changes reuse the tree. Selection is highlighted and mirrored in the URL (`scenario`, CSS-pixel `width`, `theme` and `designSystem` as `id@version`). Errors list `nodeId` when present and `pointer`; an earlier successful tree for that scenario is dimmed and labelled "last good render", with `data-lf-error` on matching nodes, or the host fallback is shown. The retained tree still passes through `<Surface>`'s arrival check. Contracts: spec §7.5 and `decision-logs/2026-10-24-0306-phase-4-renderer-and-preview-contracts.md`, plan 009 Task 1 refinements.
+- Capture contract: `data-lf-preview` publishes JSON axes, each sized `data-lf-cell` container publishes JSON coordinates, and `data-lf-ready` marks every cell mounted with the current result and errors. See spec §7.5 for the exact shapes.
+- `liveframe preview capture <url> [--scenario <a,b>] [--width <n,m>] [--theme <id@v,…>] [--design-system <id@v,…>] --out <dir>` uses headless Chromium (Playwright, an optional peer). It captures all declared cells unless flags narrow them, navigating once per scenario. It writes each cell's PNG and YAML accessibility snapshot (`.aria.yml`) and `index.json` with URL, coordinates, relative paths and errors, as specified in §7.5.
 
 Rules:
 - No isolation sandbox in the library. Never describe a reference runner as a security boundary.
 - Preview and production use the same runner. A published package's hash equals the last previewed draft's.
 - Draft code never reaches the browser (law 1). Test it with a bundle scan.
 - `liveframe mcp` (roadmap Phase 8, ships in 0.1.0) wraps sessions and capture as authoring tools. It never installs, places, approves or dispatches.
+- Spec §13 limits dynamic import to the package loader across library subpaths; the CLI may lazily load command-specific optional peers so `liveframe gen` works without Playwright or the MCP SDK.
 - Prior art: `proof/host/` (scenarios, sizes, design-system switch, logged actions) and `proof/scripts/parity.ts` (Playwright capture).
 
 ## Today

@@ -477,22 +477,41 @@ interface Runner {
 - Liveframe ships two reference runners. **Neither is an isolation boundary**:
   - `inProcessRunner()` (`/preview`), for tests and trusted code. It cannot interrupt a loop; a render that returns after `timeoutMs` is reported as `limit-exceeded`.
   - `workerRunner()` (`/preview/worker`) runs packages in a worker and terminates it on a timeout or crash. It bounds time and crashes, not what the code can reach.
-- **How a reference runner loads a package.** Before importing, the loader rewrites only the canonical linker header lines (`import * as __lf_sdkN from "<sdk specifier>";`), resolving `@arnilo/liveframe/sdk`, `@arnilo/liveframe/sdk/jsx-runtime` and `@arnilo/liveframe/sdk/jsx-dev-runtime` with `import.meta.resolve` from the loader's own location. These imports resolve from the library's own installation, independently of the host's working directory. It imports the rewritten code with `import("data:text/javascript," + encodeURIComponent(code).replaceAll(".", "%2E"))`, escaping dots so Bun treats the URL as JavaScript. Stored package code retains its bare SDK specifiers. The loader in `/preview` is the only place in the library that contains an `import(`, and the portability scan names that one exception. A host whose sandbox cannot do this supplies its own `Runner`.
+- **How a reference runner loads a package.** Before importing, the loader rewrites only the canonical linker header lines (`import * as __lf_sdkN from "<sdk specifier>";`), resolving `@arnilo/liveframe/sdk`, `@arnilo/liveframe/sdk/jsx-runtime` and `@arnilo/liveframe/sdk/jsx-dev-runtime` with `import.meta.resolve` from the loader's own location. These imports resolve from the library's own installation, independently of the host's working directory. It imports the rewritten code with `import("data:text/javascript," + encodeURIComponent(code).replaceAll(".", "%2E"))`, escaping dots so Bun treats the URL as JavaScript. Stored package code retains its bare SDK specifiers. The dynamic-import restriction and CLI exception are defined in §13. A host whose sandbox cannot do this supplies its own `Runner`.
 
 **Scenarios** are required (§7.3). They are an author's test cases and a reviewer's view of the empty, failed and full states. The app may preview with live data resolved as the viewer instead of a scenario's data.
 
 **Preview sessions** (`/preview`, host-API-free). `createPreview({ catalog, capabilities, runner })` returns a session on the app's backend. Trees do not depend on themes or design systems, so the session takes none:
 
-- `update({ files, entry, manifest, scenarios })` packs a draft, which is never stored, and returns `Result<WidgetPackage>`: the packed package, which carries its hash, or the pack errors;
-- `render({ scenario, context?, state? })` renders the draft through the runner and returns the tree, or a `WidgetError` that names the node id;
-- `intent(intent)`: a `setState` updates the session's state and re-renders. An action is recorded in the session's intent log and **never dispatched**;
-- `check()` renders every scenario and returns each result, so an app can require all of them to render before approval.
+- `update({ files, entry, manifest, scenarios })` packs a draft, which is never stored, and returns `Result<WidgetPackage>`: the packed package, which carries its hash, or the pack errors. Success resets the current scenario, state and intent log. Failure keeps the previous package and session state;
+- `render({ scenario, context?, state? })` selects a scenario by name as the current scenario and renders it through the runner, returning `Promise<Result<UiTree>>`. State comes from the explicit argument, else the scenario, else the manifest's `initialState`; context comes from the argument or scenario. The session keeps a fixed `surfaceId` and increases its revision on every render. Failures use `LiveframeError`s (§10), with `nodeId` when an error identifies a node;
+- `intent(intent)` returns `Promise<Result<UiTree>>`. It re-checks a `setState` key and value against the manifest state schema, then updates the session state and re-renders with the current scenario and context. It re-checks an action against the manifest and the capability argument schema with `checkValue`, then appends it to the log and returns the current tree unchanged. Invalid intents change nothing. Actions are **never dispatched**;
+- `intents()` returns the session's log as `readonly Intent[]`;
+- `check()` renders every scenario from its own initial state and returns each `{ scenario, result }`, without changing the current scenario or state, so an app can require all of them to render before approval.
 
 Publishing a previewed draft stores exactly the package `update()` returned, with the same hash. A draft is not a record. An app that keeps drafts across launches stores the draft's files itself.
 
-**`<Preview>`** (`/preview/react`) is mounted by the app inside its own page, so the draft draws with the app's primitives, CSS and shell. It shows a matrix of scenarios, container widths, themes and design systems, the intent log, and each error on its node. The selected cell lives in the URL (`scenario`, `width`, `theme`, `designSystem`), so a capture tool can address it. Like `<Surface>`, it receives trees through the app's transport, and draft code never runs in the browser: the host passes the selected cell's result and the session's intent log, and `<Preview>` calls back `onSelect(cell)` when the selection changes and `onIntent(intent)` for the host to hand to `session.intent()`. It draws through a renderer from `createRenderer` (§11), with the app's validator. Cells are sibling surfaces, never nested.
+**`<Preview>`** (`/preview/react`) is mounted by the app inside its own page, so the draft draws with the app's primitives, CSS and shell. The host passes the selected scenario's result and the session's intent log through its own transport. Draft code never reaches the browser (law 1). `<Preview>` draws that tree in every cell of `widths × themes × designSystems`, through a renderer from `createRenderer` (§11) with the app's validator. Cells are sibling surfaces, never nested, each in a container sized to its width. Width and style changes reuse the tree; selecting another scenario needs a host render.
 
-**Capture** (`liveframe preview capture <url>`) is for agents. It opens the app's preview page in a headless browser, captures each requested cell as a PNG plus an accessibility snapshot, and writes a JSON index of the results. Playwright is an optional peer dependency, used only by this command. The authoring MCP server (§13) exposes the same capture as a tool.
+The selected cell is highlighted, reported through `onSelect(cell)` and mirrored in the URL: `scenario` is the scenario name, `width` is in CSS px, and `theme` and `designSystem` are `id@version`. Invalid or absent selections default to the first entry of each axis. `<Preview>` reads the selection on mount and writes changes with `history.replaceState`. It reports cell intents through `onIntent(intent)` for the host to hand to the session.
+
+It lists the intent log and each render error's `nodeId` (when present) and `pointer`. After a failed render, an earlier successful tree for the same scenario is drawn dimmed and labelled "last good render"; matching node elements receive `data-lf-error`. Without such a tree it shows the host's fallback. The retained tree still passes through `<Surface>`'s arrival check; this does not change §11's invalid-tree fallback rule.
+
+For capture, `data-lf-preview` holds JSON axes `{ scenarios, widths, themes, designSystems }`, with scenario names, numeric widths and style `id@version` strings. Each cell's `data-lf-cell` holds its JSON coordinates `{ scenario, width, theme, designSystem }`. `data-lf-ready` is set once every cell for the current scenario has mounted with its result and errors.
+
+**Capture** is for agents:
+
+```sh
+liveframe preview capture <url> [--scenario <a,b>] [--width <n,m>] [--theme <id@v,…>] [--design-system <id@v,…>] --out <dir>
+```
+
+It opens the app's preview page in headless Chromium and captures all declared cells unless flags narrow the axes. It navigates once per scenario, waits for `data-lf-ready`, and captures each requested cell element as `<dir>/<cell>.png` and `<dir>/<cell>.aria.yml` (the YAML accessibility snapshot from `locator.ariaSnapshot()`). Cell filenames are derived from their coordinates and sanitised to stay under `--out`. `<dir>/index.json` contains paths relative to that directory and the cell's `LiveframeError`s:
+
+```json
+{ "url": "…", "cells": [{ "scenario": "…", "width": 360, "theme": "…", "designSystem": "…", "png": "…", "snapshot": "…", "errors": [] }] }
+```
+
+Playwright is an optional peer dependency, used only by this command. The authoring MCP server (§13) exposes the same capture as a tool.
 
 ## 8. Interaction (Synapta's three tiers)
 
@@ -684,7 +703,7 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
 - A JSON Schema for every format is published at `@arnilo/liveframe/schemas/<format>.json`, so apps and agents in any language can validate the documents.
 - One CLI, `liveframe`, exposed through the package's `bin` (`liveframe gen`, `liveframe gen --check`, `liveframe preview capture`, `liveframe mcp`). `liveframe gen` writes a widget's typed component module into the app (§7.2). `playwright` is an optional peer dependency, needed only by `preview capture`.
 - **`liveframe mcp`** is an authoring-time MCP server for coding agents. It lists primitives, roles and design-value names, shows the generated types, packs a draft and renders its scenarios through a preview session, and captures a preview. It never installs, places or approves a widget, and never runs an action. The MCP SDK is an optional peer dependency, needed only by this command.
-- Everything outside `/react`, `/store/fs`, `/preview/worker`, `/preview/react` and the CLI is host-API-free, and CI checks it. `/css` returns strings and plain objects; inserting a sheet through `<style>`, `<link>` or a CSP nonce is the host's job. The one dynamic `import(` in the library is the package loader in `/preview` (§7.5), and the scan names that file as its only exception.
+- Everything outside `/react`, `/store/fs`, `/preview/worker`, `/preview/react` and the CLI is host-API-free, and CI checks it. `/css` returns strings and plain objects; inserting a sheet through `<style>`, `<link>` or a CSP nonce is the host's job. Across the library subpaths, the only dynamic `import(` is the package loader in `/preview` (§7.5), and the scan names that file as its only exception. The CLI may lazily import command-specific optional peers: `playwright` for capture and the MCP SDK for `liveframe mcp`. `liveframe gen` must run without either installed.
 - Split into separate packages only if a real consumer needs to version the parts independently.
 
 ## 14. Non-goals for v1
