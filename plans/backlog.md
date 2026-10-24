@@ -7,7 +7,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Section: Phase 1 (spec §10, §12)
 - Priority: P1
 - Source: plans/002-Phase-0-Parity-Re-Proof.md (G32), plans/004-Phase-1-Part-B-Compiled-Validator.md, plans/005-Phase-2-Part-A-SDK.md Task 8
-- Status: reopened 2026-10-24 for the standalone validator gate (plan 005 Task 10, F8). The full SDK render gate remains delivered.
+- Status: reopened 2026-10-24 for the standalone validator gate (plan 005 Task 10, F8). The full SDK render gate remains delivered. Plan 012 Task 13 re-measures with stabilised sampling (median of ≥ 5 batches) after the 2026-10-25 readiness run measured `core-queue.small` at 3.006 µs/node; thresholds are unchanged.
 - Current evidence: `plans/evidence/005-impact-analysis.md` records two failing Bun 1.4.4 validator runs under concurrent machine load: large/full queues at 1.602/1.670 µs/node initially, agent-home at 1.513 on the follow-up. Validator code and its benchmark are unchanged; contention and the Bun upgrade are hypotheses, not proved causes. SDK rendering still passes every ≤3 µs/node and required ≤2 ms gate (agent-home 1.802 µs/node). Run a controlled comparison against the prior Bun 1.4.2 baseline, profile any remaining miss, and retain the strict 1.5 gate; do not retry until a passing sample or relax thresholds.
 - Measured (2026-10-23): `timeout 300s bun run bench` passes both gates on Bun 1.4.2 / AMD Ryzen 9 PRO 7940HS. SDK agent-home: 679 nodes, **1.2438 ms / 1.832 µs/node**; core-queue medium/large/full: **0.8085 / 0.9305 / 0.9605 ms**. All eight render workloads pass ≤ 3 µs/node; small is closest at **2.948 µs/node**, with hardware/load sensitivity. Agent-home standalone validation is 1.412 µs/node and estimated remaining work is 0.420; this subtraction is a comparison, not an in-render profile. Full machine/load/output and profiling findings are in plan 005 Task 8. The independent validator gate passes every fixture at ≤ 1.264 µs/node.
 - Measured (2026-10-22): `timeout 120s bun bench/validator.bench.ts` passed on Bun 1.4.2 / AMD Ryzen 9 PRO 7940HS. Agent-home: 679 nodes, 0.8361 ms, **1.231 µs/node**, compiled props **15.83×** over equal-work `checkValue`; all eight fixtures ≤ **1.399 µs/node**. See `plans/evidence/004-impact-analysis.md` for the full run and machine/load details. Full validation is not claimed faster than props-only interpretation.
@@ -44,7 +44,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - What:
   - Closed in plan 003: G19's new-format catalog and tree fixtures use `textField.onCommit`; the historical proof keeps its event names. G28's reusable install validators for untrusted themes and design systems ship as `validateTheme` and `validateDesignSystem`, with bounded errors, role checks, literal checks and inheritance/completeness tests. Replacing the proof projector is Phase 3, not an outstanding install validator.
   - Closed in plan 007 Task 10: G27 per-surface projection and proof-host adoption, visual parity and ≤ 16.67 ms warm switching. G33's cold first flip remains load-sensitive (including a 25 ms concurrent run); the accepted gate is warm attribute/style resolution, not GPU paint. See `proof/GAPS.md:167–180` and plan 007 Task 12's evidence. Revisit cold-start work only against a host requirement and measured regression.
-  - G29 remains open: audit native Windows forced colours, native control/scrollbar geometry and assistive technology across both systems, including every state, edges, focus, keyboard interaction and overlays. Chromium automation now covers state distinctness, edges, preferences and scoped portals; it does not establish real platform or assistive-technology behavior. Record machine, OS/browser/AT versions and reproducible audit results before claiming closure.
+  - G29 remains open: audit native Windows forced colours, native control/scrollbar geometry and assistive technology across both systems, including every state, edges, focus, keyboard interaction and overlays. Chromium automation now covers state distinctness, edges, preferences and scoped portals; it does not establish real platform or assistive-technology behavior. Record machine, OS/browser/AT versions and reproducible audit results before claiming closure. Deferred past 0.1.0 by the owner (`decision-logs/2026-10-25-0231-release-0-1-0-hardening-and-api-freeze.md`, R20); the 0.1.0 release notes list it as a known limitation.
   - G20 is closed: plan 004 supplies code-point-aware validation, and plan 008 Task 7 supplies code-point-aware editing/commit enforcement in the app-owned proof text field. `proof/tests/renderer-browser.test.tsx` proves emoji at the limit commit and excess input is refused; `docs/renderer.md` explains why native HTML maxlength is unsuitable. The library ships no primitives.
   - Disposition (`decision-logs/2026-10-24-0306-phase-4-renderer-and-preview-contracts.md`): Phase 4 Part A completes G20's renderer half in the test host's `textField` (code-point limits) with an implementer note in the docs; the library ships no primitives. G26 (app-owned icon sets) moves to Phase 7. G29's audit is a Phase 6 release gate.
 - Why: the proof built these parts proof-grade only. Surface typography (G12) is closed: spec §6.4 now requires it and the proof proves it (`surface_text_never_inherits_host_fonts`). `proof/REPORT.md` §6 assigns each remaining one to the phase that builds the real part.
@@ -97,6 +97,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phase 6 (spec §13, release packaging)
 - Priority: P2
+- Status: scheduled 2026-10-25 in plan 013 Tasks 1–2 (archive allowlist and installed-archive gate).
 - Source: plans/003-Phase-1-Part-A-Formats.md, plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F4)
 - What: before publishing, narrow the package file list or exclude `src/__tests__/`, and inspect a Bun-generated package archive. Assert it contains the public source/subpaths and published schemas while excluding tests, proof-derived catalogs, themes, design systems and benchmark trees.
 - Why: `package.json` currently includes all of `src`, including the committed proof fixtures. The package is private and unpublished, but the release must not ship an app's primitive catalog or visual style as library content. Preserve the local fixtures and their reproducibility tests.
@@ -157,6 +158,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phase 6 (spec §7.5, §13)
 - Priority: P1
+- Status: scheduled 2026-10-25 in plan 013 Task 2 (`scripts/release/archive-gate.ts`), re-run against the registry in Tasks 10 and 13.
 - Source: plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F4)
 - What: install a Bun-generated release archive in an independent host outside this checkout, run it from another working directory, and pack, store, reload and render with both reference runners. Prove that the published `/preview` loader resolves all three SDK entry points through the installed package's own exports, shares the runner's SDK instance, and imports dot-escaped `data:` modules. Prove that `/preview/worker` includes and resolves its `./entry.ts` and protocol dependencies, times out a looping widget, then recovers. Prove `liveframe mcp` starts from the installed package with its default `workerRunner()`, listing the seven tools and packing and rendering one draft over stdio, so the published `bin` reaches both the MCP SDK and the worker entry. Coordinate archive inspection with “Exclude test fixtures from the release package”; preserve required worker/runtime files when removing tests. Re-run the approved loader gate on supported Bun upgrades.
 
@@ -176,6 +178,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: SDK diagnostics
 - Priority: P2
+- Status: scheduled 2026-10-25 in plan 012 Task 12.
 - Source: plans/005-Phase-2-Part-A-SDK.md Task 10 (F3), plans/evidence/005-impact-analysis.md
 - What: add nested function/promise cases for primitive JSON props and composed-component props, including values discarded during expansion. Reject non-JSON composed props before invoking the component; preserve `function-prop` / `async-render` classifications and exact escaped pointers at the responsible check. Preserve bounded failures and all byte/depth checks, rerun the SDK budget, and update the guide's limitation when corrected.
 - Why: top-level function/promise props have dedicated kinds, while nested primitive values can report `invalid-prop` (or be rejected by schema first). Composed props check only top-level values before expansion: a component that discards `{ payload: { callback: () => 0 } }` currently renders successfully. The emitted tree is valid, but this misses §7.1's non-JSON prop restriction. These are distinct rejection and diagnostic gaps; this handoff changes no implementation or current error contract.
@@ -235,6 +238,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phase 8 follow-up (spec §13, `liveframe mcp`)
 - Priority: P4
+- Status: scheduled 2026-10-25 in plan 012 Task 10 (`decision-logs/2026-10-25-0231-release-0-1-0-hardening-and-api-freeze.md`, R13).
 - Source: plans/011-Phase-8-Authoring-MCP-Server.md Task 7 (findings), Task 8 handoff
 - What: no MCP tool returns `catalogId`, so a widget manifest's `/catalogId` can only be known out of band; a wrong guess fails as `catalog-mismatch` with no `expected` and no way to look it up. Separately, `render_scenarios` renders every scenario and so repeats an identical tree error once per scenario. Decide whether `list_vocabulary` or `list_primitives` should carry the catalog id, whether `pack_draft` should name the expected id, and whether the all-scenarios result should deduplicate errors by `pointer`, `kind` and `message`.
 - Why: both are tool-result shape decisions that change spec §13, so plan 011's scripted agent records them instead of making them; it writes `"proof.ui@1"` as a literal in `proof/tests/mcp-agent-loop.test.ts`. A real agent has no file system and only these tools.
@@ -259,6 +263,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Test hygiene (`src/__tests__/fixtures/no-playwright.ts`)
 - Priority: P4
+- Status: scheduled 2026-10-25 in plan 012 Task 13.
 - Source: plans/011-Phase-8-Authoring-MCP-Server.md Task 2 (finding)
 - What: a Bun preload `plugin()` with `onResolve` does not intercept dynamic imports of bare specifiers on Bun 1.4.4, so `no-playwright.ts` never blocks `playwright` and `gen_runs_without_playwright` passes trivially. Rewrite it with `mock.module` from `bun:test` like `src/__tests__/fixtures/no-mcp-sdk.ts`, then confirm `gen_runs_without_playwright` and a `preview capture` case both fail when the peer is blocked.
 - Why: the equivalent MCP SDK case is proved today; the Playwright one is not, and plan 009's "runs without Playwright" claim rests on it.
@@ -267,6 +272,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phase 8 follow-up (spec §13, `liveframe mcp`)
 - Priority: P4
+- Status: scheduled 2026-10-25 in plan 012 Task 10 (`decision-logs/2026-10-25-0231-release-0-1-0-hardening-and-api-freeze.md`, R13).
 - Source: plans/011-Phase-8-Authoring-MCP-Server.md Task 9 (F2), `plans/evidence/011-impact-analysis.md`
 - What: argument-schema rejection happens in the MCP layer (`fromJsonSchema`) before the tool's handler, so it returns a bare string — `Input validation error: Invalid arguments for tool pack_draft: data/manifest/id must match pattern "…"` — with `data/…` pointers and no `kind`, `expected` or `nodeId`, while every failure past the schema is a `LiveframeError[]` with JSON pointers from the document root. Decide either to have `pack_draft` and `render_scenarios` accept a looser argument schema and validate inside the handler with `validateManifest`/`validateWidgetPackageShape`, returning the same typed errors, or to state the two shapes as the contract. `docs/mcp.md` already documents both; the cost of the first option is losing per-argument schema hints in `tools/list`.
 - Why: an agent that reads structured errors everywhere has to special-case one path, and the `data/` pointer prefix does not address the manifest the agent wrote.
@@ -291,6 +297,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phase 8 follow-up (spec §13)
 - Priority: P4
+- Status: scheduled 2026-10-25 in plan 012 Task 10 (`decision-logs/2026-10-25-0231-release-0-1-0-hardening-and-api-freeze.md`, R13).
 - Source: plans/011-Phase-8-Authoring-MCP-Server.md Task 4, Task 9 (F8)
 - What: `render_scenarios({ scenario })` returns the whole tree as one text block — 115,851 bytes for the proof's 679-node agent-home tree in 25.6 ms. Nothing bounds a larger widget, so a tree could exceed a client's per-result limit and truncate mid-JSON, which is worse than a typed error. Measure the practical client limit, then either return a summary plus a per-node handle, or refuse past a byte budget with a typed error naming the scenario and the size.
 - Why: every other agent-facing result is bounded (12 cells, sixteen kinds, one vocabulary), and a truncated tree gives an agent no actionable error.

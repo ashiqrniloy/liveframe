@@ -114,8 +114,16 @@ Two plans: Part A (the renderer), then Part B (the preview), which draws drafts 
 
 ### Phase 6 — First release (0.1.0)
 
+Two plans: Part A (release hardening and API freeze), then Part B (packaging, demo host and release). Scope: `decision-logs/2026-10-25-0231-release-0-1-0-hardening-and-api-freeze.md` (R1–R20). Findings checklist: `plans/evidence/012-release-readiness-review.md`.
+
 - **Goal:** license chosen, docs for outsiders, a small public demo host, and publish to npm. 0.1.0 ships every subpath of spec §13 (formats, SDK, packages, storage, runners, preview, CSS, renderer and conformance) and the `liveframe mcp` server.
-- **Done:** `@arnilo/liveframe@0.1.0` installs and the demo host runs from the published package. The demo host persists through `fileStore`: a widget installed, placed and given state at runtime is still there after a restart. Before publishing, the G29 audit (native Windows forced colours and assistive technology on both proof design systems) is recorded with machine and version details (`plans/backlog.md`). The demo host has a preview page, and an agent following only the published docs writes a widget with scenarios, iterates on it through `liveframe preview capture` and, separately, through the `liveframe mcp` tools, then publishes it and places it.
+- **Why:** the readiness review found packaging that outsiders cannot consume, runner results trusted without host validation, widget-authored regex patterns that stall the host, and public surfaces that would need breaking changes after release. 0.1.x promises no breaking change (R15), so these are fixed before the first publish.
+- **Scope:** MIT (R1); compiled ES2022 JavaScript with declarations, Bun ≥ 1.4.2 for backend subpaths and any ESM bundler for browser subpaths (R2); the hardening and freeze decisions R3–R13; peer floors (R14); a public GitHub repository with Bun-only CI, and npm used only in the trusted-publishing job (R16–R17); an in-repo demo host, not deployed (R20). G29 (the native Windows forced-colours and assistive-technology audit) is deferred past 0.1.0 and listed as a known limitation (R20).
+- **Done:**
+  - `@arnilo/liveframe@0.1.0` installs and the demo host runs from the published package. The demo host persists through `fileStore`: a widget installed, placed and given state at runtime is still there after a restart.
+  - The demo host has a preview page. An agent following only the published docs writes a widget with scenarios, iterates on it through `liveframe preview capture` and, separately, through the `liveframe mcp` tools, then publishes it and places it.
+  - A release candidate was published under `next` and verified from the registry before 0.1.0.
+  - Just before 0.1.0 was published, a pre-release review filled every row of `plans/evidence/012-release-readiness-review.md` as fixed with evidence, or deferred with the owner's approval, and the owner answered go.
 
 ### Phase 7 — Reference hosts
 
@@ -125,7 +133,7 @@ Two plans: Part A (the renderer), then Part B (the preview), which draws drafts 
 ## 3. Execution state
 
 - **Current phase:** Phase 5 in progress (plan 010). Phase 8 complete (plan 011, Tasks 1–9; findings disposed in the impact analysis and backlog). Phase 4 complete. Part B (Preview, plan 009) is complete — Tasks 1–8 and impact follow-up Task 7a; Task 3 closed with an owner-approved timing exception reproduced on the pre-task baseline; findings disposed in the impact analysis and backlog. Phase 4 Part A (React renderer, plan 008) complete — Tasks 1–11 and impact follow-up Task 11a complete; findings disposed in the impact analysis and backlog. Phase 3 plan 007 Tasks 1–12 and impact follow-up Task 11a are complete; findings disposed in the impact analysis and backlog. Phase 2 plans 005 and 006 are complete; plan 005's impact findings include active SDK validation and validator-performance backlog items. Plan 002 Task 9's owner gate remains recorded separately.
-- **Next free plan number:** 012.
+- **Next free plan number:** 014.
 
 One line per plan. Detail lives in the plan file, never here.
 
@@ -142,3 +150,5 @@ One line per plan. Detail lives in the plan file, never here.
 | [009](plans/009-Phase-4-Part-B-Preview.md) | 4 | complete (Tasks 1–8 and Task 7a; Task 3 owner-approved timing exception; findings disposed in the impact analysis and backlog) |
 | [010](plans/010-Phase-5-Conformance-Kit.md) | 5 | in progress (Tasks 1–9 complete; Task 10 impact analysis remains) |
 | [011](plans/011-Phase-8-Authoring-MCP-Server.md) | 8 | complete (Tasks 1–9; findings disposed in the impact analysis and backlog) |
+| [012](plans/012-Phase-6-Part-A-Release-Hardening-And-API-Freeze.md) | 6 | planned (starts after plans 010 and 002 close, as its Task 1) |
+| [013](plans/013-Phase-6-Part-B-Packaging-Demo-And-Release.md) | 6 | planned (starts after plan 012) |
