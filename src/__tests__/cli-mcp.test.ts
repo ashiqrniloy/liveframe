@@ -88,6 +88,25 @@ test("tools_list_has_the_six_tools", async () => {
   expect(JSON.stringify(tools.find((tool) => tool.name === "list_primitives")?.inputSchema)).toContain('"kinds"');
 }, 30000);
 
+test("tools_list_is_exactly_the_authoring_set", async () => {
+  const tools = await withClient(async (client) => (await client.listTools()).tools);
+  expect(tools.map((tool) => tool.name).sort()).toEqual([
+    "capture_preview",
+    "generated_types",
+    "list_capabilities",
+    "list_primitives",
+    "list_vocabulary",
+    "pack_draft",
+    "render_scenarios",
+  ]);
+}, 30000);
+
+test("mcp_server_imports_no_store", async () => {
+  const source = await Bun.file("src/cli/mcp.ts").text();
+  expect(source).not.toMatch(/from ".*\/store/);
+  expect(source).not.toMatch(/import\(".*\/store/);
+}, 30000);
+
 test("list_primitives_returns_every_definition_or_the_named_ones", async () => {
   const [all, named] = await withClient(async (client) => [
     await call(client, "list_primitives"),
