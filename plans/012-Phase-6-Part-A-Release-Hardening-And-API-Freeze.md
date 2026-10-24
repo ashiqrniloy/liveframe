@@ -42,7 +42,7 @@ This plan implements roadmap Phase 6's hardening and freeze half, under the deci
 
 ## Tasks
 
-- [ ] Task 1: Close the Phase 5 and Phase 0 carry-over gates
+- [x] Task 1: Close the Phase 5 and Phase 0 carry-over gates
   - Acceptance Criteria:
     - Functional:
       - Plan 011's closing edits are already committed (`8aa813a Plan 011 T9`, 2026-10-25), so readiness P3 is closed. The remaining uncommitted work (`plans/010-Phase-5-Conformance-Kit.md`, `plans/evidence/010-impact-analysis.md`, `.agents/skills/liveframe-execution/references/architecture.md`) is committed with plan 010 Task 10 if its diff belongs there, otherwise on its own with a subject naming its plan.
@@ -71,9 +71,16 @@ This plan implements roadmap Phase 6's hardening and freeze half, under the deci
       git add plans/010-Phase-5-Conformance-Kit.md plans/evidence/010-impact-analysis.md
       ```
     - Files to Create/Edit:
-      - `plans/010-Phase-5-Conformance-Kit.md`; `plans/evidence/010-impact-analysis.md`; `plans/002-Phase-0-Parity-Re-Proof.md`; `plans/evidence/002-impact-analysis.md` (new); `plans/backlog.md`; `roadmap.md` §3.
+      - `plans/010-Phase-5-Conformance-Kit.md`; `plans/evidence/010-impact-analysis.md`; `plans/002-Phase-0-Parity-Re-Proof.md`; `plans/evidence/002-impact-analysis.md` (existing; add closure review); `plans/backlog.md`; `roadmap.md` §3.
+      - `decision-logs/2026-10-25-0247-phase-0-and-phase-5-carry-over-dispositions.md`: approved dispositions; `plans/evidence/012-release-readiness-review.md`: P1–P3 closure and deferred-finding pointers.
   - Test Cases to Write:
     - None. `timeout 900s bun run check` passes before and after.
+  - Notes (executed 2026-10-25):
+    - Confirmed plan 011's closing commit `8aa813a`; readiness P3 is closed. Committed the already-approved release planning files as prerequisite `cee1f91` without implementing later tasks.
+    - Closed plan 010 Task 10 in `7f08a49`, including its existing impact report and architecture-table correction. Owner approved all F1–F4 as backlog: P1 initially-open dialog required in plan 013 Task 5 (demo primitives must fix it; proof repair optional), P3 runner/browser verification, P2 installed-demo conformance in plan 013 Task 6, and the existing conditional P4 runner suite. Phase 5's Done registrations and law rejection/mutant controls pass.
+    - Closed plan 002 Task 9 in `e9a760f`. Its impact report already existed: preserved the twelve-area historical review and ten findings, added a current closure review and mapped four remaining handoffs to existing backlog entries. The owner approved these together with plan 010's findings (“Approve all eight dispositions”); the decision log records the exact priorities and handoffs. Phase 0's go is unchanged.
+    - Filled both plans' Compromises Made/Further Actions, updated backlog dispositions and roadmap §3, and recorded readiness P1–P3 evidence. No production code, dependency, public API, normative spec meaning or performance budget changed. Historical parity/bench evidence was retained; images, native audits, other runners/browsers and installed-demo verification were not rerun or claimed.
+    - Before and after checks: `timeout 900s bun run check` passed twice (590 tests across 87 files, zero failures each; 251.08s before and 238.56s after; 38 existing lint warnings and 3 informational findings in each). `timeout 10s git diff --check` passed. Task 1 is complete; Task 2 remains next. No new tests were needed for this process-only task.
 
 - [ ] Task 2: Adopt the MIT license
   - Acceptance Criteria:
