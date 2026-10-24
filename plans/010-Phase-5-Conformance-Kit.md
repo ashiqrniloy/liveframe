@@ -498,7 +498,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Performance: no render, validation or style runtime path changed. The focused 20-test guide run took 1.158s, including Chromium startup and hydration; its renderer test took 653.53 ms. No public export, dependency, normative spec or implementation change. Task 10 remains open, including its initially-open proof-dialog finding.
     - Validation: `timeout 600s bun run check` passed (557 tests across 82 files, zero failures; tests 220.46s; 37 existing lint warnings and 3 informational findings). Changed-file Biome checks, local documentation-link resolution, `git diff --check` and `timeout 120s graft build` passed. Guide browser execution is Chromium only; Vitest/Jest execution, other browsers, pixel parity and the native accessibility audit were not added or rerun.
 
-- [ ] Task 10: Analyze architectural impact and dispose of every finding
+- [x] Task 10: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional:
       - `plans/evidence/010-impact-analysis.md` sweeps all twelve impact areas of the create-plan reference against what shipped, and records each one, or `None — <reason>`.
@@ -532,20 +532,41 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `plans/backlog.md`, this plan's Compromises Made and Further Actions, `roadmap.md` §3.
   - Test Cases to Write:
     - n/a — analysis.
-  - Notes (executed <date>):
+  - Notes (analysis performed 2026-10-24; disposition approval pending):
+    - Created `plans/evidence/010-impact-analysis.md`, covering all twelve impact areas, security rejection/mutant evidence, the recorded suite wall times and roadmap Phase 5 Done tests. Public contracts, formats and runtime implementation are unchanged.
+    - Reproduced the initially-open proof-dialog finding in Chromium: an inert ancestor remains, Escape leaves one dialog mounted and no close intent is recorded. The evidence report includes a runnable read-only probe. The existing closed-then-open lifecycle coverage does not prove this initial-mount path.
+    - Presented four recommended backlog dispositions to the owner: P1 dialog regression/fix before release, P3 additional runner/browser verification, P2 installed-demo conformance and the existing conditional P4 runner-suite evaluation. The response is pending; no disposition is recorded as approved and no backlog handoff or phase closure is claimed yet.
+    - Validation: `timeout 600s bun run check` passed (557 tests across 82 files, zero failures; tests 228.39s; 37 existing lint warnings and 3 informational findings). Focused whole-plan conformance/store verification passed (104 tests across 12 files, zero failures; 112.31s), including all three proof browser registrations. `timeout 120s graft build` and `git diff --check` passed. No runtime code or dependencies changed; other runners/browsers and installed-package proof remain proposed follow-ups.
+  - Notes (executed 2026-10-25 under plan 012 Task 1):
+    - Owner approved F1–F4 as backlog (“Approve all eight dispositions”, including plan 002 F1–F4). Recorded the answer in the impact review and `decision-logs/2026-10-25-0247-phase-0-and-phase-5-carry-over-dispositions.md`.
+    - Handed off F1 as P1 to plan 013 Task 5 (demo primitives must fix the initially-open dialog; proof repair optional), F2 as P3 runner/browser verification, F3 as P2 installed-demo conformance in plan 013 Task 6, and F4 to the existing conditional P4 runner-suite entry. No production code, contract, dependency or spec meaning changed.
+    - The pre-existing architecture-table correction belongs here: it names `createRenderer()` alongside the renderer's existing exports. It adds no API.
+    - Validation: `timeout 900s bun run check` passed (590 tests across 87 files, zero failures; 251.08s; 38 existing lint warnings and 3 informational findings). This reran both store registrations, proof catalog/styles/server/browser cases, compiled guide examples and the law rejection/mutant controls. The earlier focused whole-plan verification above remains valid; no runtime code changed. Phase 5's Done contract has passing evidence and is now complete.
 
 ## Verification (whole plan)
 
-- `timeout 600s bunx playwright install chromium` (once per machine)
-- `timeout 600s bun run check`
-- `timeout 300s bun test src/__tests__/conformance- src/__tests__/store- proof/tests/conformance`
-- `timeout 300s bun test proof/tests/conformance-browser.test.ts`
-- `timeout 120s graft build`
+- [x] `timeout 600s bunx playwright install chromium` (once per machine)
+- [x] `timeout 600s bun run check`
+- [x] `timeout 300s bun test src/__tests__/conformance- src/__tests__/store- proof/tests/conformance`
+- [x] `timeout 300s bun test proof/tests/conformance-browser.test.ts`
+- [x] `timeout 120s graft build`
+
+Notes (verified 2026-10-24):
+- All five commands passed in the listed order with Bun 1.4.4. Chromium installation used Playwright's Ubuntu 24.04 fallback build because this OS is not officially supported.
+- `bun run check`: generation, typechecking, lint, formatting and all 557 tests across 82 files passed (zero failures; tests 210.56s). Lint reported 37 existing warnings and 3 informational findings.
+- Focused conformance/store run: 104 tests across 12 files passed (zero failures; 112.08s), including the proof browser registrations.
+- Standalone proof browser run: all 3 tests passed (zero failures; 50.89s). Certified/Rack cross-product timings were 8899.85 ms for core browser cases, 30649.31 ms for styled states and 10863.17 ms for overlay/text cases.
+- `graft build` passed (263 indexed files). Verification changed no product code; browser evidence remains Chromium only, with other runners/browsers and installed-package proof unverified. Task 10's pending impact dispositions and phase closure remain open.
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- Browser evidence is Bun/Chromium only; other runners and browsers remain F2. The closed-then-open lifecycle fixtures do not prove the first-arrival dialog path (F1).
+- Checkout conformance is proved; installed-demo conformance remains F3. A custom isolated runner has no shared suite (conditional F4). No runtime budget or law mutant was relaxed.
 
 ## Further Actions
 
-- To be filled after task completion with improvements, rationale, and priority.
+- F1 — P1: fix initially-open dialogs in the demo host before release (plan 013 Task 5); add the regression first. Proof repair is optional.
+- F2 — P3: verify suite registrations in Vitest/Jest and adopter-relevant Firefox/WebKit.
+- F3 — P2: run every conformance suite on installed-demo subjects/page (plan 013 Task 6).
+- F4 — P4: evaluate the existing runner-suite handoff when an adopter supplies an isolated runner.
+- All four dispositions were approved on 2026-10-25 and handed off to `plans/backlog.md`; evidence is in `plans/evidence/010-impact-analysis.md`.

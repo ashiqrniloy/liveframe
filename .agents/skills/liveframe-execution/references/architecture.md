@@ -24,7 +24,7 @@ One npm package with subpath exports:
 | `/preview/worker` | `workerRunner()` | `Worker` global |
 | `/preview/react` | `<Preview>` | Yes (React, DOM) |
 | `/css` | Theme and design system → CSS custom properties and classes | No |
-| `/react` | `<Surface>`, `implement()`, reconciliation, `onIntent` | Yes (React, DOM) |
+| `/react` | `createRenderer()`, `<Surface>`, `implement()`, reconciliation, `onIntent` | Yes (React, DOM) |
 | `/conformance` | `catalogSuite()`, `designSystemSuite()`, `storeSuite()`, `ConformanceCase`, `ConformanceFailure` | No |
 | `/conformance/react` | `rendererSuite()`, `rendererBrowserSuite()`, `conformancePage()` | Yes (React, DOM) |
 

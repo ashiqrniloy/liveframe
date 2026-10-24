@@ -54,7 +54,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Section: Phase 5 (spec §13)
 - Priority: P3
 - Source: plans/001-Phase-0-Primitive-Set-Proof.md, plans/002-Phase-0-Parity-Re-Proof.md, plans/003-Phase-1-Part-A-Formats.md, plans/004-Phase-1-Part-B-Compiled-Validator.md, plans/005-Phase-2-Part-A-SDK.md (F4), plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F3), plans/007-Phase-3-CSS-Projection.md Task 11, plans/008-Phase-4-Part-A-React-Renderer.md Task 10, plans/010-Phase-5-Conformance-Kit.md Task 9
-- Status: closed 2026-10-24 by [plan 010](010-Phase-5-Conformance-Kit.md), Tasks 2–9. Task 10's impact analysis remains open.
+- Status: closed 2026-10-24 by [plan 010](010-Phase-5-Conformance-Kit.md), Tasks 2–9. Task 10's impact dispositions were approved and handed off on 2026-10-25; plan 010 is complete.
 - Resolution: `/conformance` supplies catalog, design-system and store suites; `/conformance/react` supplies renderer server/browser suites and the app-owned page host. Both reference stores, the proof catalog, Certified/Rack styles and proof implementations pass; deliberately broken subjects fail named rules. The kit has no proof imports, bundler, server or test-runner dependency. [The outsider guide](../docs/conformance.md) documents required coverage, page setup, fixture declarations and executable examples.
 - Deliberately internal:
   - Schema/validator algorithms, compiled/interpreted and JSON Schema agreement, closed-data rejection, traversal/error/UTF-8 bounds, portability/export scans and SDK branding/key generation/input caching/codegen formatting stay in `src/__tests__/`: library-owned behavior cannot become an app conformance obligation. There is no public SDK suite.
@@ -226,7 +226,36 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - What: if an agent needs to review a menu, dialog or popover, design a way to open an overlay in a cell before capture, for example a URL parameter or a scripted step, without drafts gaining authority. Do nothing until an adopter asks.
 - Why: capture screenshots each cell element after `data-lf-ready`, so overlays render closed. Portals sit outside the cell element.
 
+## Fix initially-open dialogs in the demo host
+
+- Section: Phase 6 demo primitives (spec §11)
+- Priority: P1
+- Source: plans/010-Phase-5-Conformance-Kit.md Task 10 (F1), plans/evidence/010-impact-analysis.md
+- Status: owner-approved backlog 2026-10-25; required in plan 013 Task 5 before release. The demo host must fix it; the proof primitives may.
+- What: first add the initially-open regression, then ensure the dialog mounts in its scoped portal, has no inert ancestor, keeps the background inert and emits its close intent on Escape. Preserve SSR/hydration and the closed-then-open lifecycle checks. Diagnose the initial portal relocation before choosing the fix.
+- Why: the read-only impact probe reproduces an inert dialog after first-arrival `open: true`; passing the existing lifecycle suite does not cover this path.
+
+## Verify conformance registrations in other runners and browsers
+
+- Section: Conformance portability (spec §13)
+- Priority: P3
+- Source: plans/010-Phase-5-Conformance-Kit.md Task 10 (F2), plans/evidence/010-impact-analysis.md
+- Status: owner-approved backlog 2026-10-25.
+- What: smoke-test registrations in Vitest/Jest using Bun as tool runner and run adopter-relevant Firefox/WebKit coverage. Keep Bun/Chromium as the current evidence limit until executed.
+- Why: runner-independent signatures and Chromium execution do not establish compatibility with other runners or browsers.
+
+## Prove the demo conforms through the installed package
+
+- Section: Phase 6 demo conformance (spec §13)
+- Priority: P2
+- Source: plans/010-Phase-5-Conformance-Kit.md Task 10 (F3), plans/evidence/010-impact-analysis.md
+- Status: owner-approved backlog 2026-10-25; scheduled in plan 013 Task 6, with archive/registry gates in Tasks 2, 10 and 13.
+- What: register store, catalog, design-system, server and browser suites from the installed package against the demo's own subjects and page. Check archive contents and optional-peer separation with the existing release gates.
+- Why: checkout guide tests prove the API examples, not that outsiders can install and run the complete kit.
+
 ## Evaluate a conformance suite for runners
+
+- Disposition: retained as backlog P4 by the owner on 2026-10-25 (plan 010 Task 10 F4; plans/evidence/010-impact-analysis.md); evaluate only when an adopter supplies a runner.
 
 - Section: Conditional conformance work (spec §7.4, §7.5)
 - Priority: P4

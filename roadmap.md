@@ -132,7 +132,7 @@ Two plans: Part A (release hardening and API freeze), then Part B (packaging, de
 
 ## 3. Execution state
 
-- **Current phase:** Phase 5 in progress (plan 010). Phase 8 complete (plan 011, Tasks 1–9; findings disposed in the impact analysis and backlog). Phase 4 complete. Part B (Preview, plan 009) is complete — Tasks 1–8 and impact follow-up Task 7a; Task 3 closed with an owner-approved timing exception reproduced on the pre-task baseline; findings disposed in the impact analysis and backlog. Phase 4 Part A (React renderer, plan 008) complete — Tasks 1–11 and impact follow-up Task 11a complete; findings disposed in the impact analysis and backlog. Phase 3 plan 007 Tasks 1–12 and impact follow-up Task 11a are complete; findings disposed in the impact analysis and backlog. Phase 2 plans 005 and 006 are complete; plan 005's impact findings include active SDK validation and validator-performance backlog items. Plan 002 Task 9's owner gate remains recorded separately.
+- **Current phase:** Phase 6 in progress (plan 012 Task 1, closing the carry-over gates). Phase 5 complete (plan 010, Tasks 1–10; owner dispositions recorded in the impact analysis and backlog). Phase 8 complete (plan 011, Tasks 1–9; findings disposed in the impact analysis and backlog). Phase 4 complete. Part B (Preview, plan 009) is complete — Tasks 1–8 and impact follow-up Task 7a; Task 3 closed with an owner-approved timing exception reproduced on the pre-task baseline; findings disposed in the impact analysis and backlog. Phase 4 Part A (React renderer, plan 008) complete — Tasks 1–11 and impact follow-up Task 11a complete; findings disposed in the impact analysis and backlog. Phase 3 plan 007 Tasks 1–12 and impact follow-up Task 11a are complete; findings disposed in the impact analysis and backlog. Phase 2 plans 005 and 006 are complete; plan 005's impact findings include active SDK validation and validator-performance backlog items. Plan 002 Task 9's closure remains recorded separately.
 - **Next free plan number:** 014.
 
 One line per plan. Detail lives in the plan file, never here.
@@ -148,7 +148,7 @@ One line per plan. Detail lives in the plan file, never here.
 | [007](plans/007-Phase-3-CSS-Projection.md) | 3 | complete (Tasks 1–12 and Task 11a; findings disposed in the impact analysis and backlog) |
 | [008](plans/008-Phase-4-Part-A-React-Renderer.md) | 4 | complete (Tasks 1–11 and Task 11a; findings disposed in the impact analysis and backlog) |
 | [009](plans/009-Phase-4-Part-B-Preview.md) | 4 | complete (Tasks 1–8 and Task 7a; Task 3 owner-approved timing exception; findings disposed in the impact analysis and backlog) |
-| [010](plans/010-Phase-5-Conformance-Kit.md) | 5 | in progress (Tasks 1–9 complete; Task 10 impact analysis remains) |
+| [010](plans/010-Phase-5-Conformance-Kit.md) | 5 | complete (Tasks 1–10; owner dispositions recorded in the impact analysis and backlog) |
 | [011](plans/011-Phase-8-Authoring-MCP-Server.md) | 8 | complete (Tasks 1–9; findings disposed in the impact analysis and backlog) |
 | [012](plans/012-Phase-6-Part-A-Release-Hardening-And-API-Freeze.md) | 6 | planned (starts after plans 010 and 002 close, as its Task 1) |
 | [013](plans/013-Phase-6-Part-B-Packaging-Demo-And-Release.md) | 6 | planned (starts after plan 012) |
