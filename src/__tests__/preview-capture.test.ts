@@ -93,6 +93,36 @@ test("cell_errors_reach_the_index", async () => {
   }
 }, 120000);
 
+test("cells_whose_names_sanitise_alike_keep_distinct_files", async () => {
+  const dir = await temp();
+  try {
+    const html = await (await fetch(page())).text();
+    const session = /"session":"([^"]+)"/.exec(html)?.[1];
+    const draft = drafts[0];
+    const ready = draft?.scenarios.find((scenario) => scenario.name === "ready");
+    if (!draft || !ready) throw new Error("no ready scenario");
+    const posted = await fetch(`${server.url}preview/draft?session=${session}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...draft,
+        scenarios: [
+          { ...ready, name: "a b" },
+          { ...ready, name: "a-b" },
+        ],
+      }),
+    });
+    expect((await posted.json()).ok).toBe(true);
+    const index = await capture(page(`?session=${session}`), { out: dir, widths: [360] });
+    expect(index.cells).toHaveLength(2 * 4);
+    expect(new Set(index.cells.map((cell) => cell.png)).size).toBe(index.cells.length);
+    expect(new Set(index.cells.map((cell) => cell.snapshot)).size).toBe(index.cells.length);
+    for (const cell of index.cells) expect(await Bun.file(join(dir, cell.png)).exists()).toBe(true);
+  } finally {
+    await rm(dir, { recursive: true });
+  }
+}, 120000);
+
 test("missing_playwright_reports_how_to_install", async () => {
   const error = await capture("http://127.0.0.1:1/", { out: "unused" }, () => Promise.reject(new Error("no"))).catch(
     (e) => e,

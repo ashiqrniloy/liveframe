@@ -505,7 +505,7 @@ For capture, `data-lf-preview` holds JSON axes `{ scenarios, widths, themes, des
 liveframe preview capture <url> [--scenario <a,b>] [--width <n,m>] [--theme <id@v,…>] [--design-system <id@v,…>] --out <dir>
 ```
 
-It opens the app's preview page in headless Chromium and captures all declared cells unless flags narrow the axes. It navigates once per scenario, waits for `data-lf-ready`, and captures each requested cell element as `<dir>/<cell>.png` and `<dir>/<cell>.aria.yml` (the YAML accessibility snapshot from `locator.ariaSnapshot()`). Cell filenames are derived from their coordinates and sanitised to stay under `--out`. `<dir>/index.json` contains paths relative to that directory and the cell's `LiveframeError`s:
+It opens the app's preview page in headless Chromium and captures all declared cells unless flags narrow the axes. It navigates once per scenario, waits for `data-lf-ready`, and captures each requested cell element as `<dir>/<cell>.png` and `<dir>/<cell>.aria.yml` (the YAML accessibility snapshot from `locator.ariaSnapshot()`). Cell filenames are derived from their coordinates, sanitised to stay under `--out` and made unique with a numeric suffix if two cells sanitise alike. `<dir>/index.json` contains paths relative to that directory and the cell's `LiveframeError`s:
 
 ```json
 { "url": "…", "cells": [{ "scenario": "…", "width": 360, "theme": "…", "designSystem": "…", "png": "…", "snapshot": "…", "errors": [] }] }

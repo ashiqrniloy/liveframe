@@ -35,9 +35,8 @@ export class PlaywrightMissing extends Error {
 }
 
 const loadPlaywright = (): Promise<Playwright> => import("playwright");
-const fileName = (cell: Omit<CapturedCell, "png" | "snapshot" | "errors">) =>
+const sanitise = (cell: Omit<CapturedCell, "png" | "snapshot" | "errors">) =>
   [cell.scenario, cell.width, cell.theme, cell.designSystem].join("_").replace(/[^\w.@-]/g, "-");
-
 function narrow<T>(axis: string, declared: readonly T[], wanted: readonly T[] | undefined): readonly T[] {
   if (!wanted) return declared;
   const missing = wanted.filter((value) => !declared.includes(value));
@@ -79,6 +78,7 @@ export async function capture(
     await mkdir(options.out, { recursive: true });
 
     const cells: CapturedCell[] = [];
+    const taken = new Set<string>();
     for (const scenario of scenarios) {
       await open(scenario);
       const elements = page.locator("[data-lf-cell]");
@@ -95,7 +95,10 @@ export async function capture(
           !designSystems.includes(coordinates.designSystem)
         )
           continue;
-        const name = fileName(coordinates);
+        // Coordinates that differ only in unsafe characters sanitise alike: keep every cell's files distinct.
+        let name = sanitise(coordinates);
+        for (let n = 2; taken.has(name); n++) name = `${sanitise(coordinates)}-${n}`;
+        taken.add(name);
         const cell = elements.nth(index);
         await cell.screenshot({ path: join(options.out, `${name}.png`) });
         await Bun.write(join(options.out, `${name}.aria.yml`), `${await cell.ariaSnapshot()}\n`);

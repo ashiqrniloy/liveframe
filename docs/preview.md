@@ -150,8 +150,10 @@ Paths are relative to `<dir>`. `errors` holds the cell's render errors (`kind`,
 fixes a mistake. The command exits 0 when every captured cell is clean, 1 when a
 cell has errors or Playwright is missing, and 2 on a usage error.
 
-To capture from your own code, call `capture(url, options)` from the CLI module
-instead of spawning a process; it returns the same index.
+Cell filenames come from the coordinates with unsafe characters replaced; if two
+cells sanitise to the same name, later ones get a `-2`, `-3` suffix. Read the
+paths from `index.json`, not from the coordinates. Capture is a command today;
+the library does not export it as a function.
 
 The capture URL must reach a session that holds the draft. In the proof host,
 `GET /preview` creates a session and returns its id in the page, and

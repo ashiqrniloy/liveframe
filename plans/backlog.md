@@ -95,6 +95,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
   - Clay: Rack's docs claim 273 recipes, but the manifest has 247 (G3); Rack recipes reference undeclared spacing and easing values (G5); Rack typography is user-owned, which spec §6.1 now allows through an assembled theme (G1).
   - Clay: Rack's `box.default.root.rest` pads every box by 12 px, so the lamp, jack and pips clamp to 24 px instead of the declared 8/4 px. A bare box variant (or a padding-free recipe) would let a small indicator keep its size (G10).
   - Clay: plan 007's migrated Rack surface uses the theme's native `color-scheme` scrollbar instead of the old hard-coded `surface.scrollbar`/WebKit thumb styling (`proof/GAPS.md:180`, `proof/PARITY.md:83`). Confirm native scrollbar appearance and geometry during adoption. Placeholder/scrollbar recipe properties are not part of the current projection; do not restore a proof-only projector or hard-code app roles in `/css`.
+  - Both hosts, preview: Synapta plugs its isolated runner into `createPreview` and uses the same runner in production; Clay mounts `<Preview>` in its desktop shell with its own primitives and CSS. Draft persistence, approval and live-data preview stay the host's (spec §7.5; plans/009-Phase-4-Part-B-Preview.md Task 8, F8).
   - Synapta: provide an isolated backend `Runner` for organisation/agent widgets and use it for preview and production. Reference runners do not restrict host access; import validation and SHA-256 do not grant trust. Tenant scoping, data resolution, approval and action authorisation remain the app's.
   - Clay: `fileStore(dir)` fits a desktop host with one writing process and atomic per-record replacement. Persist packages, placements and state, report load errors and state resets, and decide explicitly whether to save reset state. Multiple writing processes, power-loss durability and transactions across records are not provided; choose a host backend if those become requirements. No production adoption is proved by the library's reopen tests.
 - Why: these are the source apps' own gaps, plus the look data this repo tuned in a copy. Record them for the adopters; never bend the library to them (problem class first).
@@ -185,6 +186,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Source: plans/005-Phase-2-Part-A-SDK.md Task 10 (F2), plans/evidence/005-impact-analysis.md
 - What: make check-once validation account for the compiled source-schema contract as well as data identity, while retaining weak retention and no repeat data walk within the same contract. Add a regression that reuses data accepted by one manifest under a manifest with incompatible sources: the second render must return pointed `invalid-prop` errors before widget execution, just as a fresh data clone does. Check both reference runners and rerun the SDK budget.
 - Why: `src/sdk/render.ts` currently uses one module-private `WeakSet` across validators. A successful validation under one contract can suppress validation under another; freezing alone cannot establish schema compatibility. Until corrected, obey `docs/sdk.md`: reuse data only under the same source-schema contract, allocate a new object for each resolution, and supply JSON value properties rather than accessors. No cache redesign is approved by this handoff.
+- Preview follow-up: when this lands, drop the fresh-copy-of-scenario-data step in `src/preview/session.ts` and its `scenario_data_is_fresh_per_render` workaround, then rerun the preview session tests (plans/009-Phase-4-Part-B-Preview.md Task 8, F7).
 
 ## Reject nested non-JSON composed props and improve SDK diagnostics
 
@@ -201,6 +203,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Source: plans/008-Phase-4-Part-A-React-Renderer.md Task 11 (F2), plans/evidence/008-impact-analysis.md
 - What: profile the same 679-node agent-home selection update under both design systems in a production browser build. Record machine/browser/build/load, warm repeated samples and separate arrival validation, React rendering, layout and paint. Compare against the development instrumentation in `proof/tests/renderer-browser.test.tsx` (`selection_rerender_cost_is_recorded`); avoid treating Profiler callback intervals as isolated DOM commit or paint. Propose optimization only from measured costs, preserving full arrival checks, stable ids, fallbacks and all existing budgets. This handoff approves investigation, not a cache, tree patches or a new browser budget.
 - Why: Task 8 Certified/Rack validation was 2.5/3.0 ms, Profiler render 58.8/59.5 ms and synchronous update 81.8/84.6 ms, above its 2 ms reporting threshold. These are development/profiling observations, not a measured production regression. HTTP state and warm switching pass their existing gates; neither measures full browser update latency. Keep the independent standalone-validator gate in its own P1 entry.
+- Preview follow-up: also profile the preview matrix. Drawing 12 cells of the 679-node agent-home tree took 1.35 s (navigation plus draw, `proof/tests/preview-browser.test.ts`), with no budget and no split between validation, React, layout and paint (plans/009-Phase-4-Part-B-Preview.md Task 8, F5). Investigation only; no budget is approved.
 
 ## Evaluate generated implementation types for JSON-loaded catalogs
 
@@ -209,3 +212,35 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Source: plans/008-Phase-4-Part-A-React-Renderer.md Task 11 (F4), plans/evidence/008-impact-analysis.md
 - What: if an adopter needs inferred implementation props/slot/event names from a JSON-loaded catalog, compare extending `liveframe gen` with continuing to use literal definitions or explicit prop narrowing. Any approved generator work must retain drift checks and type-level rejection tests, without importing the SDK into `/react` or generating runtime primitive implementations.
 - Why: `implement()` already infers literal definitions, while JSON-loaded definitions use JSON records and string names by design. Explicit prop narrowing works today; no adopter requirement justifies adding a generator mode during renderer closeout.
+
+## Give capture a public home for the authoring MCP server
+
+- Section: Phase 8 (spec §7.5, §13)
+- Priority: P2
+- Source: plans/009-Phase-4-Part-B-Preview.md Task 8 (F2)
+- What: decide how `liveframe mcp` and outsiders call `capture(url, options)`. Today only the `liveframe preview capture` command is public; `src/cli/capture.ts` has no `package.json` export. Options are a `/preview/capture` subpath (a spec §13 table and host-API decision, since it needs Playwright and `Bun.write`) or keeping the MCP server in the same CLI module. Settle it in the Phase 8 plan with a decision log if it adds a subpath.
+- Why: `docs/preview.md` says capture is a command only, while the Phase 8 note plans a direct call. The CLI may import its optional peers lazily, which a library subpath may not.
+
+## Validate the page's published axes in capture
+
+- Section: Capture robustness (spec §7.5)
+- Priority: P4
+- Source: plans/009-Phase-4-Part-B-Preview.md Task 8 (F4)
+- What: validate the JSON in `data-lf-preview` (scenarios, widths, themes, designSystems) before use, and report a malformed value as an actionable error naming the attribute.
+- Why: `capture()` currently trusts the page, so a malformed attribute surfaces as a raw `TypeError`. Pages built with `<Preview>` always publish valid axes, so this matters only for hand-built pages.
+
+## Capture overlays that are open inside a preview cell
+
+- Section: Conditional capture feature (spec §7.5)
+- Priority: P4
+- Source: plans/009-Phase-4-Part-B-Preview.md Task 8 (F6)
+- What: if an agent needs to review a menu, dialog or popover, design a way to open an overlay in a cell before capture, for example a URL parameter or a scripted step, without drafts gaining authority. Do nothing until an adopter asks.
+- Why: capture screenshots each cell element after `data-lf-ready`, so overlays render closed. Portals sit outside the cell element.
+
+## Evaluate a conformance suite for runners
+
+- Section: Conditional conformance work (spec §7.4, §7.5)
+- Priority: P4
+- Source: plans/009-Phase-4-Part-B-Preview.md Task 8 (F9)
+- What: if an adopter supplies an isolated runner (Synapta's), consider a Phase 5 suite proving it returns the same trees, typed errors and time-limit behaviour as the reference runners. The `every_proof_scenario_passes_check` cases in `src/__tests__/preview-session.test.ts` are the seed.
+- Why: preview and production must use the same runner, and today nothing checks a custom runner against the contract. Phase 5 covers catalogs, design systems, renderers and stores only.

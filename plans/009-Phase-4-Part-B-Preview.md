@@ -421,7 +421,18 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Closed the backlog item "Build preview sessions on the shipped package and runner contracts" with its resolution, and recorded the Phase 8 note there: `liveframe mcp` should call `createPreview()` and `capture()` directly and keep the MCP SDK lazily imported.
     - Verification: lint, format and the full suite pass (462 tests, 0 failures); `src` typechecks clean. `bun run typecheck` still fails on the six pre-existing TS1543 errors in `proof/` recorded in Task 5.
 
-- [ ] Task 8: Analyze architectural impact and dispose of every finding
+- [x] Task 7a: Fix the capture findings from the impact analysis
+  - Acceptance Criteria:
+    - Functional: `docs/preview.md` no longer implies `capture()` is importable (F1). Cells whose sanitised filenames collide keep distinct PNG and snapshot files, and spec §7.5 says so (F3).
+    - Performance: n/a.
+    - Code Quality: one `Set` in `capture()`; no new dependency.
+    - Security: filenames still stay under `--out`.
+  - Test Cases to Write:
+    - `cells_whose_names_sanitise_alike_keep_distinct_files`.
+  - Notes (executed 2026-10-24):
+    - Scenarios `a b` and `a-b` sanitise alike, so their cells now get a `-2`, `-3` suffix; the test posts both to a draft and checks that all 8 cells have distinct, existing files. The guide and spec describe the suffix and tell readers to take paths from `index.json`. The guide says capture is a command, not a library export.
+
+- [x] Task 8: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional:
       - `plans/evidence/009-impact-analysis.md` sweeps all twelve impact areas of the create-plan reference against what shipped, and records each one, or `None — <reason>`.
@@ -456,6 +467,11 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `plans/backlog.md`, this plan's Compromises Made and Further Actions, `roadmap.md` §3.
   - Test Cases to Write:
     - n/a — analysis.
+  - Notes (executed 2026-10-24):
+    - Wrote `plans/evidence/009-impact-analysis.md`, sweeping all twelve areas. Nine findings went to the owner in one table; the owner answered "Accept all", adopting the recommended dispositions. F1 and F3 became Task 7a above this task and are done. F2 and F4–F9 went to `plans/backlog.md` (four new entries and notes on three existing ones).
+    - Every Done bullet of roadmap Phase 4 Part B has a passing test (listed in the analysis), so Phase 4 is marked complete in §3.
+    - Performance evidence from Tasks 4–6 is recorded: matrix draw 1.35 s, capture 173–320 ms per cell, agent loop 4.6 s.
+    - Whole-plan verification ran. `bun run check` stops at typecheck on the six pre-existing TS1543 errors in `proof/` (Task 5 Notes); the other gates pass. Task 3's timing exception stands as recorded.
 
 ## Verification (whole plan)
 
@@ -468,8 +484,16 @@ Probe answers that hold for every task, unless a task says otherwise:
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- Task 3 closed with an owner-approved timing exception; its reproduction is in that task's Notes.
+- `bun run check` does not pass in this checkout: `bun run typecheck` reports six TS1543 JSON-import-attribute errors in `proof/css/*` and `proof/host/view.tsx`, files this plan did not change. They reproduce on the baseline. Lint, format and all tests pass.
+- Capture is a command only. The library exports no `capture()` function (F2).
+- Capture needs Bun and Chromium; no other browser or runtime was tested.
 
 ## Further Actions
 
-- To be filled after task completion with improvements, rationale, and priority.
+- P2: give `capture()` a public home for the Phase 8 MCP server (F2).
+- P2: profile the preview matrix with the renderer selection costs (F5).
+- P1 (existing): drop the fresh-copy workaround once the SDK data-cache fix lands (F7).
+- P4: validate the page's published axes (F4); capture open overlays (F6); a runner conformance suite (F9).
+- P4 (existing): hand Synapta and Clay their preview adoption notes (F8).
+- Also investigate the pre-existing `proof/` typecheck failures so `bun run check` passes again.
