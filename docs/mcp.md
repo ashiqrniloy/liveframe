@@ -136,9 +136,26 @@ The server speaks stdio, so it must be started by the client, once per session.
 
 ## Errors and exit codes
 
-Every rejected tool call is `isError: true` with a JSON array of `LiveframeError`s
-(`kind`, `pointer`, `message`, and `expected`/`nodeId` when known) in its text
-block. The kinds you will see: `catalog-mismatch`, `transpile-failed`,
+A rejected tool call is `isError: true`, in one of two shapes.
+
+A malformed call — an argument of the wrong type, a missing field, an extra
+property — is refused before the tool runs, with the schema's own message:
+
+```
+Input validation error: Invalid arguments for tool pack_draft: data/manifest/id must match pattern "^[a-z][a-zA-Z0-9.-]*$"
+```
+
+Anything past the schema is a JSON array of `LiveframeError`s in one text block
+(`kind`, `pointer`, `message`, and `expected`/`nodeId` when known), with JSON
+pointers from the document root rather than the tool arguments:
+
+```json
+[{ "kind": "undeclared-action", "pointer": "/root/inline/One/events/onPress/name",
+   "message": "Expected an action in the manifest: decisions.review",
+   "expected": "an action in the manifest: decisions.review", "nodeId": "root/inline/One" }]
+```
+
+The kinds you will see: `catalog-mismatch`, `transpile-failed`,
 `invalid-document`, `invalid-prop`, `undeclared-action`, `unknown-component`,
 `unknown-name`, `not-found`, `limit-exceeded`.
 

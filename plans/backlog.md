@@ -78,6 +78,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
   - Clay: Rack's `box.default.root.rest` pads every box by 12 px, so the lamp, jack and pips clamp to 24 px instead of the declared 8/4 px. A bare box variant (or a padding-free recipe) would let a small indicator keep its size (G10).
   - Clay: plan 007's migrated Rack surface uses the theme's native `color-scheme` scrollbar instead of the old hard-coded `surface.scrollbar`/WebKit thumb styling (`proof/GAPS.md:180`, `proof/PARITY.md:83`). Confirm native scrollbar appearance and geometry during adoption. Placeholder/scrollbar recipe properties are not part of the current projection; do not restore a proof-only projector or hard-code app roles in `/css`.
   - Both hosts, preview: Synapta plugs its isolated runner into `createPreview` and uses the same runner in production; Clay mounts `<Preview>` in its desktop shell with its own primitives and CSS. Draft persistence, approval and live-data preview stay the host's (spec §7.5; plans/009-Phase-4-Part-B-Preview.md Task 8, F8).
+  - Both hosts, authoring MCP server: `liveframe mcp <config-module>` takes the app's own `AuthoringConfig` — `catalog` and `capabilities` as installed, `runner` as production (Synapta's isolated runner, omitted for the default `workerRunner()`), and `preview(binding)` binding the host's existing page to the server's session, never a shipped page (spec §13, `docs/mcp.md`; plans/011-Phase-8-Authoring-MCP-Server.md Task 9, F6). Neither needs the proof host's code. Neither reference runner is a sandbox: a hostile draft needs the adopter's isolated runner on both paths.
   - Synapta: provide an isolated backend `Runner` for organisation/agent widgets and use it for preview and production. Reference runners do not restrict host access; import validation and SHA-256 do not grant trust. Tenant scoping, data resolution, approval and action authorisation remain the app's.
   - Clay: `fileStore(dir)` fits a desktop host with one writing process and atomic per-record replacement. Persist packages, placements and state, report load errors and state resets, and decide explicitly whether to save reset state. Multiple writing processes, power-loss durability and transactions across records are not provided; choose a host backend if those become requirements. No production adoption is proved by the library's reopen tests.
 - Why: these are the source apps' own gaps, plus the look data this repo tuned in a copy. Record them for the adopters; never bend the library to them (problem class first).
@@ -261,3 +262,35 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Source: plans/011-Phase-8-Authoring-MCP-Server.md Task 2 (finding)
 - What: a Bun preload `plugin()` with `onResolve` does not intercept dynamic imports of bare specifiers on Bun 1.4.4, so `no-playwright.ts` never blocks `playwright` and `gen_runs_without_playwright` passes trivially. Rewrite it with `mock.module` from `bun:test` like `src/__tests__/fixtures/no-mcp-sdk.ts`, then confirm `gen_runs_without_playwright` and a `preview capture` case both fail when the peer is blocked.
 - Why: the equivalent MCP SDK case is proved today; the Playwright one is not, and plan 009's "runs without Playwright" claim rests on it.
+
+## Give the MCP tools one error shape
+
+- Section: Phase 8 follow-up (spec §13, `liveframe mcp`)
+- Priority: P4
+- Source: plans/011-Phase-8-Authoring-MCP-Server.md Task 9 (F2), `plans/evidence/011-impact-analysis.md`
+- What: argument-schema rejection happens in the MCP layer (`fromJsonSchema`) before the tool's handler, so it returns a bare string — `Input validation error: Invalid arguments for tool pack_draft: data/manifest/id must match pattern "…"` — with `data/…` pointers and no `kind`, `expected` or `nodeId`, while every failure past the schema is a `LiveframeError[]` with JSON pointers from the document root. Decide either to have `pack_draft` and `render_scenarios` accept a looser argument schema and validate inside the handler with `validateManifest`/`validateWidgetPackageShape`, returning the same typed errors, or to state the two shapes as the contract. `docs/mcp.md` already documents both; the cost of the first option is losing per-argument schema hints in `tools/list`.
+- Why: an agent that reads structured errors everywhere has to special-case one path, and the `data/` pointer prefix does not address the manifest the agent wrote.
+
+## Prove layout mistakes structurally, not by pixel height
+
+- Section: Phase 8 follow-up (agent authoring)
+- Priority: P4
+- Source: plans/011-Phase-8-Authoring-MCP-Server.md Task 7 (loop 3), Task 9 (F5)
+- What: the layout proof measures a captured cell's PNG height at width 360 and asserts a threshold fixed at 133 px (`Inline` cells 102–113 px, `Stack` cells 163–177 px). It catches the shipped mistake, but it says nothing about a row that is too wide, and the margin is machine-sensitive. If adopters rely on layout iteration, consider a structural assertion instead — for example a tool that returns each node's box, or a cell-width check for overflow — rather than thresholds.
+- Why: a pixel threshold proves one layout at one width; it is a proof of the loop, not a general layout check, and no tool today reports geometry.
+
+## Let an app raise the capture cell bound
+
+- Section: Phase 8 follow-up (spec §7.5, §13)
+- Priority: P4
+- Source: plans/011-Phase-8-Authoring-MCP-Server.md Task 6, Task 9 (F7)
+- What: `capture_preview` caps a call at the literal `12` in `src/cli/mcp.ts`, and spec §13 states that bound. Three widths × two themes × two design systems is already twelve, so an app with a third theme or design system cannot capture its full matrix in one call. Either keep the cap and say the reason in the spec, or take it from `AuthoringConfig` with a documented maximum.
+- Why: the number was chosen to bound one PNG per cell in a tool result; it is a transport bound, not a contract the app should be unable to reach.
+
+## Bound the tree size render_scenarios returns
+
+- Section: Phase 8 follow-up (spec §13)
+- Priority: P4
+- Source: plans/011-Phase-8-Authoring-MCP-Server.md Task 4, Task 9 (F8)
+- What: `render_scenarios({ scenario })` returns the whole tree as one text block — 115,851 bytes for the proof's 679-node agent-home tree in 25.6 ms. Nothing bounds a larger widget, so a tree could exceed a client's per-result limit and truncate mid-JSON, which is worse than a typed error. Measure the practical client limit, then either return a summary plus a per-node handle, or refuse past a byte budget with a typed error naming the scenario and the size.
+- Why: every other agent-facing result is bounded (12 cells, sixteen kinds, one vocabulary), and a truncated tree gives an agent no actionable error.

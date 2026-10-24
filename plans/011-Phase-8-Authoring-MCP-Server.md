@@ -505,7 +505,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `plans/backlog.md`: "Give capture a public home for the authoring MCP server" is closed with resolution D3 (no subpath; the CLI imports `capture()` directly); the Phase 8 note under "Build preview sessions on the shipped package and runner contracts" is marked done; "Verify installed-package loader and worker entry before release" now also proves `liveframe mcp` from the installed package with its default `workerRunner()`; new P4 entries cover the `setState` intent tool, disk-path drafts, a tool-shaped answer to the missing `catalogId` plus duplicated per-scenario errors (Task 7 findings), and rewriting `src/__tests__/fixtures/no-playwright.ts` with `mock.module`.
     - Validation: `bun run check` passed (590 tests, 0 failures); `git diff --check` clean. No spec change was needed: §13 already states the tool list, the config shape, the default runner and the exit behaviour the guide describes.
 
-- [ ] Task 9: Analyze architectural impact and dispose of every finding
+- [x] Task 9: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional:
       - `plans/evidence/011-impact-analysis.md` sweeps all twelve impact areas of the create-plan reference against what shipped, recording each one or `None — <reason>`.
@@ -539,6 +539,14 @@ Probe answers that hold for every task, unless a task says otherwise:
   - Test Cases to Write:
     - n/a — analysis.
 
+  - Notes (executed 2026-10-24):
+    - `plans/evidence/011-impact-analysis.md` sweeps all twelve areas; six are `None — <reason>` (styling, conformance, and the spec/public-api/portability/performance areas with no gap), and eight findings came out. The twelve-area sweep produced no spec, format or public-surface change: §13 already states the invocation, config shape, start-up validation, session lifetime, default runner, page binding, cell bound, seven tools and stdout rule, and each has a passing test.
+    - Findings presented to the owner in one table; the owner answered "accept all". F1 (guide stated one error shape; argument-schema rejections are a bare string) was `execute` and is applied: `docs/mcp.md` now shows the schema message and the `LiveframeError[]` block with `/root/…` pointers. F2–F8 are backlog: two tool-shape entries ("Give the MCP tools one error shape", "Bound the tree size render_scenarios returns"), the 12-cell bound ("Let an app raise the capture cell bound"), the pixel-threshold layout proof ("Prove layout mistakes structurally, not by pixel height"), plus the two Task 7 findings already handed over in Task 8 (`catalogId`/duplicated errors, `setState` intent tool) and the `AuthoringConfig` handoff bullet in "Hand adopter gaps to Synapta and Clay".
+    - Re-measured over stdio on the proof config for the record: the 679-node ready tree returns as 115,851 bytes in 25.6 ms, all eight scenarios as 364 bytes in 16.4 ms, one-cell `capture_preview` 2.26 s. Tasks 2, 4, 6 and 7 had already recorded start-up, pack/render and per-cell costs; no budget exists for this authoring path and `bun run bench` is untouched.
+    - Law 4 has a test on every new path: the seven-tool pin (extra or renamed tool fails), `mcp_server_imports_no_store`, the 405 on `POST /preview/draft` and `/preview/publish` for an attached session, and the fact that `list_capabilities` returns declarations only. Law 1 is rejected per capture — the loop and capture tests scan the bound page and its bundle for a draft-only marker.
+    - Roadmap Phase 8's Done clauses each map to one loop of `proof/tests/mcp-agent-loop.test.ts` (write and render; fix the invalid draft from the errors; fix the layout from a capture), so the phase is marked complete in `roadmap.md` §3.
+    - One `bun run check` run failed 13 browser-host tests (`preview-capture`, `conformance-browser`, `conformance-renderer-browser`) while an unrelated C++ build held the machine at load average ~29 on 16 cores (cc1plus processes, elapsed run 756 s against 233 s). No source changed in this task; the same files passed individually afterwards and the full check then passed 590/590 at load 4. Recorded so the failure is not mistaken for a regression.
+
 ## Verification (whole plan)
 
 - `timeout 600s bun install` (installs the new dev dependencies)
@@ -550,8 +558,21 @@ Probe answers that hold for every task, unless a task says otherwise:
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- **One error shape for the agent was not achieved.** The MCP layer validates tool arguments before the handler, so a malformed `pack_draft` returns the SDK's text and `data/…` pointers while everything downstream returns `LiveframeError[]`. Documented as two shapes (`docs/mcp.md`) and handed to the backlog; changing it means loosening the tool schemas (F2).
+- **The server does not own era negotiation.** 2.4.0 offers `serveStdio(factory)`, which owns the 2025/2026 protocol era; the shipped server uses `McpServer` + `StdioServerTransport` + `connect()`, which is enough for a coding agent's client. Not revisited — no client needed it (Task 2).
+- **A draft's `catalogId` is not discoverable through the tools.** The scripted agent writes the proof catalog's id as a literal; an outside agent that guesses wrong gets `catalog-mismatch` with no `expected`. Handed to the backlog rather than widening a tool's result inside this plan (Task 7, F4).
+- **The guide's tested config stands in its own page.** `src/__tests__/fixtures/mcp-guide-host.ts` serves the bound session from a raw `Bun.serve` because `tsc` cannot compile `proof/host/server.ts` under `src/`'s `NodeNext` config; the real page path is proved in `proof/tests/mcp-capture.test.ts` instead of in the guide test (Task 8).
+- **The layout proof is a pixel threshold, not structure.** 133 px at width 360 separates the row from the stack on this machine; it proves the loop, not layout in general (Task 7, F5). Handed to the backlog.
+- **`capture_preview`'s bound is the literal `12`.** It bounds the images in one tool result; an app with a larger matrix cannot raise it. Recorded as a spec sentence and a backlog entry (F7).
+- Two test-hygiene debts remain rather than being fixed here: `no-playwright.ts` never blocks its peer (`plugin()` cannot see bare-specifier dynamic imports on Bun 1.4.4, Task 2), and the whole loop test is one long test rather than one per loop, so a failure names the loop only in its stack (Task 7).
 
 ## Further Actions
 
-- To be filled after task completion with improvements, rationale, and priority.
+1. **P4 — give the MCP tools one error shape.** Mirror `LiveframeError`s for argument rejection, or state the two shapes as the contract for good. Rationale: an agent that only reads tool results must special-case one path today.
+2. **P4 — let an app raise the capture cell bound.** Twelve is a transport bound (one PNG per cell), not an app contract; a 3×2×2 matrix already exceeds it.
+3. **P4 — bound the `render_scenarios` tree size.** A truncated 116 KB+ tree is worse for an agent than a typed refusal; measure the client limit first.
+4. **P4 — prove layout mistakes structurally.** Replace the height threshold with geometry once a tool can report it.
+5. **P4 — `catalogId` and deduplicated render errors** (Task 7). Both are tool-result shape decisions that need a spec §13 change.
+6. **P4 — a `setState` intent tool** and **disk-path drafts** stay deferred; each changes the seven-tool surface.
+7. **P4 — make the no-playwright preload effective** with `mock.module`, and confirm `gen_runs_without_playwright` and a `preview capture` case fail when the peer is blocked.
+8. **P1 (Phase 6 gate) — prove `liveframe mcp` from the installed package** with its default `workerRunner()`; extended in Task 8's backlog edit.
