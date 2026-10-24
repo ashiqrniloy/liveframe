@@ -203,3 +203,87 @@ test("set_state_http_round_trip_under_50_ms", async () => {
   console.log(`host setState: ${max.toFixed(2)} ms max (${samples.length} local HTTP round trips, 50 rows)`);
   expect(max).toBeLessThan(50);
 });
+
+test("tier_one_stays_local_and_tier_two_preserves_focus_scroll_and_local_state", async () => {
+  for (const system of ["certified", "rack"]) {
+    const page = await browser.newPage();
+    page.setDefaultTimeout(5000);
+    try {
+      await page.goto(new URL("/ui/harness", server.url).toString());
+      await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+      await page.getByLabel("Design system").selectOption(system);
+      const requests: string[] = [];
+      page.on("request", (request) => requests.push(request.url()));
+      await page.getByRole("button", { name: "Local menu", exact: true }).click();
+      await page.getByRole("menuitem", { name: "Local item" }).waitFor();
+      await page.keyboard.press("Escape");
+      await page.getByRole("tab", { name: "Second", exact: true }).click();
+      await page.getByText("Second local panel", { exact: true }).waitFor();
+      await page.locator("summary").click();
+      const field = page.getByRole("textbox", { name: "Query" });
+      await field.fill("uncommitted draft");
+      const region = page.getByRole("region", { name: "Harness rows" });
+      const offset = await region.evaluate((el) => {
+        el.scrollTop = 24;
+        return el.scrollTop;
+      });
+      expect(offset).toBeGreaterThan(0);
+      expect(requests).toEqual([]);
+      const fieldNode = await field.elementHandle();
+      const scrollNode = await region.elementHandle();
+      const response = page.waitForResponse((response) => response.url().endsWith("/intent"));
+      // A programmatic press leaves the draft focused and uncommitted during the host round trip.
+      await page.getByRole("button", { name: "Select task:1", exact: true }).evaluate((el) => {
+        if (!(el instanceof HTMLButtonElement)) throw new Error("Missing select button");
+        el.click();
+      });
+      const next = await (await response).json();
+      expect(next.tree.revision).toBe(2);
+      await page.getByText("Selected: task:1", { exact: true }).waitFor();
+      expect(requests).toHaveLength(1);
+      expect(await field.inputValue()).toBe("uncommitted draft");
+      expect(await fieldNode?.evaluate((el) => el === document.activeElement)).toBe(true);
+      expect(await scrollNode?.evaluate((el) => el.isConnected && el.scrollTop)).toBe(offset);
+      expect(await page.getByText("Local reference content", { exact: true }).isVisible()).toBe(true);
+      expect(await page.getByRole("tab", { name: "Second", exact: true }).getAttribute("aria-selected")).toBe("true");
+    } finally {
+      await page.close();
+    }
+  }
+}, 20000);
+
+test("bound_reason_is_completed_logged_once_and_does_not_rerender", async () => {
+  for (const system of ["certified", "rack"]) {
+    const page = await browser.newPage();
+    try {
+      await page.goto(new URL("/ui/harness", server.url).toString());
+      await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+      await page.getByLabel("Design system").selectOption(system);
+      const posts: unknown[] = [];
+      page.on("request", (request) => {
+        if (request.method() === "POST") posts.push(request.postDataJSON());
+      });
+      const reason = page.getByRole("textbox", { name: "Bound reason" });
+      await reason.fill("Needs another owner");
+      expect(posts).toEqual([]);
+      const node = await reason.elementHandle();
+      const response = page.waitForResponse((response) => response.url().endsWith("/intent"));
+      await reason.press("Enter");
+      const next = await (await response).json();
+      expect(next.tree.revision).toBe(1);
+      expect(next.tree).toEqual(
+        await page.locator("#bootstrap").evaluate((el) => JSON.parse(el.textContent ?? "null").tree),
+      );
+      const intent = { type: "action", name: "tasks.escalate", args: { id: "task:0", reason: "Needs another owner" } };
+      expect(next.actions).toEqual([intent]);
+      expect(posts).toHaveLength(1);
+      expect(posts[0]).toMatchObject({ revision: 1, intent });
+      await page.waitForFunction(() =>
+        document.getElementById("actions")?.textContent?.includes("Needs another owner"),
+      );
+      expect(await node?.evaluate((el) => el.isConnected && el === document.activeElement)).toBe(true);
+    } finally {
+      await page.close();
+    }
+  }
+}, 20000);

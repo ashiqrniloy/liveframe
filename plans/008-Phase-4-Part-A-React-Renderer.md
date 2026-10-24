@@ -441,7 +441,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - The fallback element must keep its identity during style switches to avoid rerendering primitives; the host now holds it outside render. Regenerated the static CSS fixture from the package-backed host; the CSS-only harness supplies its own scopes. The parity script targets the widget root inside Surface's new wrapper: changed pixels remain exactly **9712 / 7088 / 5572**, or **0.72% / 0.75% / 0.97%** at 1440 / 1024 / 390 px. The approved 281 DOM / 32 style differences, dimensions and zero diagnostics also match. No parity data or style workaround was needed; the 679-node benchmark holds.
     - `bun run check` passed: **423 tests, zero failures**, including all proof browser tests, both runner suites, package-loop equality and the six regenerated CSS-scope tests. The final full run measured **1.36 ms** maximum over 25 warm 50-row HTTP state round trips; ten-switch warm maxima were **6.4 ms** for agent-home and **3.8 ms** for git-status (cold **13.4 / 4.7 ms**). `git diff --check`, the three-width parity command and `graft build` passed. Task 8 retains the additional overlay lifecycle gates and browser validation/commit cost measurements.
 
-- [ ] Task 8: Prove the three tiers, survival and overlays end to end, and re-run the gates
+- [x] Task 8: Prove the three tiers, survival and overlays end to end, and re-run the gates
   - Acceptance Criteria:
     - Functional (proof host, Chromium, under both design systems):
       - Tier 1: open a menu, type in a field, switch a local tab, expand a disclosure — no request leaves the browser (request log empty).
@@ -466,28 +466,45 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Library Documentation to Check Before Implementation:
       - React Aria Components 1.22.1 Modal / ModalOverlay `data-entering` / `data-exiting` and interaction blocking (Context7 `/websites/react-aria_adobe`; checked 2026-10-24, scroll lock not stated in the fetched docs).
       - Playwright 1.64.1 request interception (`page.on("request")`) and `emulateMedia({ reducedMotion })`.
+      - React 19.3 `Profiler.onRender` (`actualDuration`, `commitTime`); profiling adds development overhead and is disabled in ordinary production builds.
     - Documentation Reviewed:
       - `proof/tests/renderer-browser.test.tsx:232–450`: survival, tiers, disclosure and switch cases to carry over.
       - `proof/tests/host.test.ts:128–190`.
       - Spec §8, §11.
+      - Context7, 2026-10-24: React Aria [Modal](https://react-aria.adobe.com/Modal) and [styling](https://react-aria.adobe.com/styling) document exit states and delayed removal; Playwright `/microsoft/playwright` documents request bodies and reduced-motion emulation; React `/reactjs/react.dev` documents Profiler callbacks and overhead.
     - Options Considered:
       - Assert React Aria's internals (`usePreventScroll`) — rejected: tests observe behaviour, since another app's behaviour library must pass the same checks later (Phase 5).
     - Chosen Approach:
       - Behavioural browser tests on the real host, written so Phase 5 can lift them into the renderer suite.
+      - Extend the existing package-backed smoke fixture with local menu/tabs/disclosure/scroll and a bound-action field. Reuse Task 5's fallback harness and the app's React Aria bindings. The proof recipes have no exit motion, so the lifecycle harness supplies a small exit animation plus its reduced-motion override; no renderer lifecycle code or production styling changes.
+      - Time the real runner's 679-node before/after selection trees in the existing browser harness with the same published Surface and app primitives. Wrap its compiled arrival validator and use Profiler for render duration and commit-start-to-callback duration; also record the full synchronous update. These development-mode observations are informational, including instrumentation overhead.
     - API Notes and Examples:
       ```bash
       timeout 300s bun test proof/tests/renderer-browser.test.tsx proof/tests/host.test.ts proof/tests/switch.test.ts
       ```
     - Files to Create/Edit:
       - `proof/tests/renderer-browser.test.tsx`, `proof/tests/host.test.ts`: new cases.
+      - `proof/tests/fixtures/renderer-client.tsx`: browser-only timing instrumentation.
+      - `proof/tests/{agent-home,clay}-browser.test.ts`: exact request/action/revision checks under both systems.
+      - `src/__tests__/fixtures/widgets/harness/{widget.tsx,manifest.json}`: local controls, scroll region and bound escalation action.
+      - `src/__tests__/react-browser.test.tsx`, `src/__tests__/fixtures/react-client.tsx`: both-system browser fallback proof using Task 5's harness.
+      - `roadmap.md` §3: task execution status.
       - `proof/GAPS.md`: measurements.
   - Test Cases to Write:
-    - `three_interaction_tiers_end_to_end` (both systems).
-    - `focus_scroll_local_state_and_disclosure_survive_rerender`.
-    - `stale_revision_changes_nothing`.
-    - `dialog_exit_animates_then_unmounts`; `open_dialog_locks_scroll_and_makes_background_inert`; `reduced_motion_skips_exit`.
-    - `browser_shows_fallbacks_for_invalid_tree_and_throwing_node`.
+    - `agent_home_hydrates_selects_filters_pages_and_dispatches_card_controls_{system}` and `clay_panels_hydrate_and_exercise_three_interaction_tiers_{system}`: reference-host tier 2 and 3 controls, exact requests, completed args and revision behavior under both systems.
+    - `tier_one_stays_local_and_tier_two_preserves_focus_scroll_and_local_state`: empty local request log; focus, scroll, draft, tab and disclosure survive a real host round trip under both systems.
+    - `bound_reason_is_completed_logged_once_and_does_not_rerender`: one completed bound action, unchanged tree/revision and retained focused input.
+    - `local_state_focus_scroll_and_ids_survive_new_and_stale_revisions`: stale arrival preserves focus, draft, scroll and open disclosure.
+    - `dialog_exit_animates_then_unmounts_and_reduced_motion_skips_exit`; `open_dialog_locks_scroll_and_makes_background_inert`.
+    - `browser_shows_fallbacks_for_invalid_tree_and_throwing_node_under_both_systems`.
     - `selection_rerender_cost_is_recorded` (records, asserts only that it ran).
+
+  - Notes (executed 2026-10-24):
+    - Proved all three tiers under Certified and Rack on the package-backed host. Local menu, typing, local tabs and disclosure send no request. Selection, filter and pagination each send exactly one intent and advance the revision. Claim, completed bound escalation and Send each log one action without advancing the tree revision; the bound escalation returns the unchanged tree. Existing host rejection tests still cover offered intents, manifest/capability schemas and stale revisions.
+    - Extended only the existing harness widget and tests: a real host round trip retains the focused input identity, uncommitted draft, scroll node/offset, local tab and disclosure. Stale browser arrivals preserve focus, draft, scroll and disclosure. Task 5's harness now proves both whole-surface invalid-tree fallback and node-level throw fallback under both systems. No published renderer, dependency, API or spec change.
+    - React Aria's existing app implementation passes delayed exit, scroll blocking, background `aria-hidden` and pointer interception. The lifecycle harness supplies a 180 ms CSS exit animation because the proof recipes have no exit motion; it observes `data-exiting`, a running animation, `animationend`, then removal. Reduced motion removes it without starting an animation. No renderer lifecycle code or production animation was added. Native Windows and assistive-technology audits remain G29's release work.
+    - Recorded the 679-node selection update in Chromium using real runner trees, the same published Surface and app primitives. In the full check, Certified / Rack arrival validation was **2.5 / 3.0 ms**, Profiler render duration **58.8 / 59.5 ms** plus nested updates **1.1 / 1.2 ms**, commit-start-to-callback intervals **6.1 + 0.2 / 7.0 + 0.2 ms**, and full synchronous updates **81.8 / 84.6 ms**. These single development/profiling samples include instrumentation and subtree layout overhead, not isolated DOM-mutation or paint time. Values above 2 ms were flagged to the owner and recorded in `proof/GAPS.md`; Task 11 must sweep the finding. No optimization or new budget was introduced.
+    - `bun run check` passed (**431 tests, zero failures**). All whole-plan verification commands were rerun: Chromium installation, React suites (**37 tests**), proof suites (**86 tests**), CSS-scope/switch suites (**10 tests**), parity capture and `graft build`. In the full check, host state round trips reached **1.59 ms maximum** over 25 warm 50-row samples (50 ms budget); agent-home/git-status switches were **7.4 / 3.6 ms warm maximum**, **10.6 / 4.8 ms cold** (16.67 ms warm budget). Pixel counts remain **9712 / 7088 / 5572**, or **0.72% / 0.75% / 0.97%**, with the existing 281 DOM/32 style differences and zero browser diagnostics. Images stay local under `evidence/parity`, regenerated by `timeout 600s bun proof/scripts/parity.ts --out evidence/parity`. `git diff --check` passed.
 
 - [ ] Task 9: Document the renderer for outsiders
   - Acceptance Criteria:

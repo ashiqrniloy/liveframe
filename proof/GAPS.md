@@ -206,3 +206,42 @@ The findings from the parity re-proof, numbered so the report, the decision log 
   `timeout 120s bun test proof/tests/host.test.ts`. The fallback element is
   stable so style switches do not rerender primitives. Task 8 retains the
   arrival-validation and React commit measurements and overlay lifecycle gates.
+
+## Plan 008 Task 8 — interaction, survival and overlay proof
+
+- Chromium now proves all three tiers under Certified and Rack. The package-backed
+  harness opens a menu, types, switches a local tab and expands a disclosure with
+  an empty request log. A row selection sends one intent and advances the revision
+  while retaining the focused input, uncommitted draft, scroll node/offset, local
+  tab and disclosure. The renderer harness also preserves these states on stale
+  arrival. Agent-home filter, pagination and selection each send exactly one
+  intent. Claim, completed bound escalation and Send each log one action without
+  advancing the tree revision; the bound escalation returns the unchanged tree.
+- React Aria keeps a closing dialog mounted through `data-exiting` until its CSS
+  animation ends. The lifecycle test supplies a 180 ms exit animation and a
+  reduced-motion override because the proof recipes do not define exit motion.
+  Reduced motion produces no animation. The modal blocks page scrolling, hides
+  background content with `aria-hidden` and intercepts pointer hits on a background
+  button. This proves the existing app implementation; no lifecycle logic or
+  animation was added to the published renderer. The Task 5 harness proves invalid
+  arrivals show only the surface fallback and throwing nodes leave healthy
+  siblings interactive, under both design systems.
+- **679-node selection cost finding (above the 2 ms reporting threshold).**
+  In the full check, arrival validation measured **2.5 / 3.0 ms** under
+  Certified / Rack. React Profiler reported **58.8 / 59.5 ms** render duration,
+  followed by **1.1 / 1.2 ms** for a nested update. Commit-start-to-Profiler-callback
+  intervals were **6.1 + 0.2 / 7.0 + 0.2 ms**; whole synchronous updates were
+  **81.8 / 84.6 ms**. These are single selection samples per system, using the
+  actual runner's before/after trees, published Surface, arrival validator and
+  app primitives in the existing browser harness. They include development and
+  profiling overhead; callback intervals include subtree layout work and are
+  not isolated DOM mutation or paint timings. No new performance budget is
+  asserted. Flagged to the owner; Plan 008 Task 11 must sweep this finding.
+  Regenerate with `timeout 120s bun test proof/tests/renderer-browser.test.tsx`.
+- In the full check the 50-row HTTP state round trip reached **1.59 ms maximum**
+  over 25 warm samples (50 ms budget). Agent-home and git-status warm switch
+  maxima were **7.4 / 3.6 ms**, with cold flips **10.6 / 4.8 ms** (16.67 ms warm
+  budget). Regenerate with `timeout 120s bun test proof/tests/host.test.ts` and
+  `timeout 120s bun test proof/tests/switch.test.ts`.
+- Scope, switching and automated accessibility evidence remains Chromium-only;
+  the native Windows and assistive-technology audit in G29 remains open.

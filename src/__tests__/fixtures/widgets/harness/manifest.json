@@ -57,6 +57,7 @@
     }
   },
   "actions": [
-    "tasks.claim"
+    "tasks.claim",
+    "tasks.escalate"
   ]
 }

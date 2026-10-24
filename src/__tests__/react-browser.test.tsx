@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
-import { renderToString } from "react-dom/server";
-import { hydrationTree, renderer, surfaceProps } from "./fixtures/react-surface.tsx";
 import { type Browser, chromium } from "playwright";
+import { renderToString } from "react-dom/server";
 import { baseCss, designSystemCss, themeCss } from "../css/index.ts";
 import type { Catalog, DesignSystem, Result, Theme } from "../index.ts";
+import { hydrationTree, renderer, surfaceProps } from "./fixtures/react-surface.tsx";
 
 const read = (name: string) => Bun.file(new URL(`./fixtures/proof/${name}.json`, import.meta.url)).json();
 const catalog: Catalog = await read("catalog");
@@ -180,6 +180,37 @@ test("throwing_implementation_falls_back_at_that_node", async () => {
     }
   } finally {
     await page.close();
+  }
+});
+
+test("browser_shows_fallbacks_for_invalid_tree_and_throwing_node_under_both_systems", async () => {
+  for (const system of ["certified", "rack"]) {
+    const page = await browser.newPage();
+    try {
+      await page.goto(server.url.href);
+      await page.waitForSelector("button");
+      await page.evaluate((system) => window.surfaceTest.setScope(system), system);
+      await page.evaluate(() => window.surfaceTest.update({ ...window.surfaceTest.tree(2), catalogId: "bad.ui@1" }));
+      expect(await page.locator("#app").textContent()).toBe("Unavailable");
+      expect(await page.locator("#app button").count()).toBe(0);
+      await page.evaluate(() => {
+        const next = window.surfaceTest.tree(3);
+        window.surfaceTest.update({
+          ...next,
+          root: {
+            ...next.root,
+            children: [
+              { id: "root/first", kind: "text", props: { text: "throw" } },
+              ...(next.root.children?.slice(1) ?? []),
+            ],
+          },
+        });
+      });
+      expect(await page.locator("#app p").textContent()).toBe("Unavailable");
+      expect(await page.locator("#app button").count()).toBe(1);
+    } finally {
+      await page.close();
+    }
   }
 });
 

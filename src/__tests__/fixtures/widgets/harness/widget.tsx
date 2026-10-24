@@ -1,6 +1,19 @@
 /** @jsxImportSource @arnilo/liveframe/sdk */
 import { action, state, type WidgetProps } from "@arnilo/liveframe/sdk";
-import { Button, Heading, Inline, Stack, Text, TextField } from "../ui.gen.ts";
+import {
+  Button,
+  Disclosure,
+  Heading,
+  Inline,
+  Menu,
+  MenuItem,
+  Scroll,
+  Stack,
+  Tab,
+  Tabs,
+  Text,
+  TextField,
+} from "../ui.gen.ts";
 export function harnessWidget({
   state: s,
   data,
@@ -17,7 +30,26 @@ export function harnessWidget({
       <Text key="size" text={`Size: ${context.size}`} />
       <Text key="selected" text={`Selected: ${s.selected}`} />
       <TextField label="Query" value={s.query} onChange={state.set("query")} />
-      <Stack key="rows" gap="space.1">
+      <TextField
+        key="reason"
+        label="Bound reason"
+        onCommit={action("tasks.escalate", { id: "task:0" }, { bind: "reason" })}
+      />
+      <Menu label="Local menu">
+        <MenuItem label="Local item" />
+      </Menu>
+      <Tabs label="Local views" value="first">
+        <Tab key="first" label="First" value="first">
+          <Text text="First local panel" />
+        </Tab>
+        <Tab key="second" label="Second" value="second">
+          <Text text="Second local panel" />
+        </Tab>
+      </Tabs>
+      <Disclosure key="reference" label="Local reference">
+        <Text text="Local reference content" />
+      </Disclosure>
+      <Scroll key="rows" label="Harness rows" height="space.7">
         {data.items.map((row) => (
           <Inline key={row.id} gap="space.2">
             <Text text={row.title} />
@@ -30,7 +62,7 @@ export function harnessWidget({
             />
           </Inline>
         ))}
-      </Stack>
+      </Scroll>
     </Stack>
   );
 }

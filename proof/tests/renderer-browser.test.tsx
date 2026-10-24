@@ -3,6 +3,7 @@ import type { UiNode, UiTree } from "@arnilo/liveframe";
 import { type Browser, chromium, type Page } from "playwright";
 import { renderToString } from "react-dom/server";
 import { base, proofSheets, systemSheets, themeSheets } from "../css/sheets.ts";
+import { openPage } from "../host/pages.ts";
 import { primitiveCss } from "../renderer/primitives/base.ts";
 import { certifiedTheme } from "../styles/certified/theme.ts";
 import { rackTheme } from "../styles/rack/theme.ts";
@@ -196,11 +197,144 @@ async function update(page: Page, tree: UiTree) {
   await page.evaluate((json) => window.update(JSON.parse(json)), JSON.stringify(tree));
 }
 
+async function openDialog(page: Page) {
+  const next = widget(2);
+  await update(page, {
+    ...next,
+    root: {
+      ...next.root,
+      children: (next.root.children ?? []).map((node) =>
+        node.kind === "dialog" ? { ...node, props: { ...node.props, open: true } } : node,
+      ),
+    },
+  });
+  await page.getByRole("dialog", { name: "Confirm", exact: true }).waitFor();
+}
+
+test("selection_rerender_cost_is_recorded", async () => {
+  const session = await openPage("full", "agent-home", "ready");
+  const before = session.snapshot();
+  const count = (node: UiNode): number => 1 + (node.children ?? []).reduce((sum, child) => sum + count(child), 0);
+  expect(count(before.tree.root)).toBe(679);
+  const after = await session.dispatch(1, { type: "setState", key: "selected", value: "task-1" });
+  await visit(async (page) => {
+    const timing = await page.evaluate((json) => {
+      const { before, after } = JSON.parse(json);
+      return window.measureSelection(before, after);
+    }, JSON.stringify({ before, after }));
+    expect(timing.validation).toHaveLength(1);
+    expect(timing.render.length).toBeGreaterThan(0);
+    expect(timing.commit.length).toBeGreaterThan(0);
+    expect(timing.synchronous).toBeGreaterThan(0);
+    console.log(
+      `679-node selection ${await page.locator("#app > div").first().getAttribute("data-lf-ds")}: ${JSON.stringify(timing)} ms`,
+    );
+    await page.getByRole("heading", { name: "Synthetic task 1", exact: true }).waitFor();
+  });
+}, 20000);
+
+test(
+  "dialog_exit_animates_then_unmounts_and_reduced_motion_skips_exit",
+  () =>
+    visit(async (page) => {
+      // Supply motion in the app harness: shipped proof recipes intentionally have no exit animation.
+      await page.addStyleTag({
+        content: `
+    @keyframes proof-exit { from { opacity: 1 } to { opacity: 0 } }
+    .lf_dialog_default_backdrop[data-exiting] { animation: proof-exit 180ms linear }
+    @media (prefers-reduced-motion: reduce) { .lf_dialog_default_backdrop[data-exiting] { animation: none } }
+  `,
+      });
+      await openDialog(page);
+      const backdrop = page.locator(".lf_dialog_default_backdrop");
+      await backdrop.evaluate((el) => {
+        el.addEventListener("animationend", () => {
+          document.body.dataset.exitCompleted = "true";
+        });
+      });
+      await page.keyboard.press("Escape");
+      await page.locator(".lf_dialog_default_backdrop[data-exiting]").waitFor();
+      expect(
+        await backdrop.evaluate((el) => el.getAnimations().some((animation) => animation.playState === "running")),
+      ).toBe(true);
+      expect(await page.getByRole("dialog", { name: "Confirm" }).count()).toBe(1);
+      await backdrop.waitFor({ state: "detached" });
+      expect(await page.locator("body").getAttribute("data-exit-completed")).toBe("true");
+
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await update(page, widget(3));
+      const next = widget(4);
+      await update(page, {
+        ...next,
+        root: {
+          ...next.root,
+          children: (next.root.children ?? []).map((node) =>
+            node.kind === "dialog" ? { ...node, props: { ...node.props, open: true } } : node,
+          ),
+        },
+      });
+      await page.getByRole("dialog", { name: "Confirm" }).waitFor();
+      await backdrop.evaluate((el) => {
+        document.body.dataset.reducedAnimation = "false";
+        el.addEventListener("animationstart", () => {
+          document.body.dataset.reducedAnimation = "true";
+        });
+      });
+      await page.keyboard.press("Escape");
+      await backdrop.waitFor({ state: "detached" });
+      expect(await page.locator("body").getAttribute("data-reduced-animation")).toBe("false");
+    }),
+  20000,
+);
+
+test(
+  "open_dialog_locks_scroll_and_makes_background_inert",
+  () =>
+    visit(async (page) => {
+      await page.addStyleTag({ content: "body { min-height: 3000px }" });
+      await page.mouse.move(1000, 700);
+      await page.mouse.wheel(0, 180);
+      await page.waitForFunction(() => window.scrollY > 0);
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.waitForFunction(() => window.scrollY === 0);
+      await openDialog(page);
+      const offset = await page.evaluate(() => window.scrollY);
+      await page.mouse.move(5, 5);
+      await page.mouse.wheel(0, 300);
+      await page.evaluate(
+        () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+      );
+      expect(await page.evaluate(() => window.scrollY)).toBe(offset);
+      expect(
+        await page
+          .locator("#app > div:first-child")
+          .evaluate((el) => Boolean(el.closest('[aria-hidden="true"], [inert]'))),
+      ).toBe(true);
+      // Hit the background button's coordinates; the modal backdrop must receive the pointer.
+      const save = page.getByRole("button", { name: "Save", exact: true, includeHidden: true });
+      const bounds = await save.boundingBox();
+      if (!bounds) throw new Error("Missing background button");
+      expect(bounds.y).toBeGreaterThanOrEqual(0);
+      expect(
+        await page.evaluate(
+          ({ x, y }) => Boolean(document.elementFromPoint(x, y)?.closest(".lf_dialog_default_backdrop")),
+          { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 },
+        ),
+      ).toBe(true);
+      await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+      expect(
+        await page.evaluate(() => window.intents.some((intent) => intent.type === "action" && intent.name === "save")),
+      ).toBe(false);
+    }),
+  20000,
+);
+
 test(
   "local_state_focus_scroll_and_ids_survive_new_and_stale_revisions",
   () =>
     visit(async (page) => {
       const field = page.getByRole("textbox", { name: "Query" });
+      await page.locator("summary").click();
       await field.fill("local draft");
       await page.getByRole("region", { name: "Results" }).evaluate((el) => {
         el.scrollTop = 12;
@@ -216,6 +350,10 @@ test(
       const stale = widget(1);
       await update(page, stale);
       expect(await page.getByText("Inserted", { exact: true }).isVisible()).toBe(true);
+      expect(await field.inputValue()).toBe("local draft");
+      expect(await field.evaluate((el) => el === document.activeElement)).toBe(true);
+      expect(await page.getByRole("region", { name: "Results" }).evaluate((el) => el.scrollTop)).toBe(scroll);
+      expect(await page.getByText("Hidden detail", { exact: true }).isVisible()).toBe(true);
       const changed = widget(3);
       await update(page, {
         ...changed,

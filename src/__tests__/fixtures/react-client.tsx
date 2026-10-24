@@ -61,6 +61,7 @@ const styles = [
   { theme: { id: "rack", version: "1.0.0" }, designSystem: { id: "rack", version: "1.0.0" } },
 ];
 let switching = false;
+let normalStyle = styles[0];
 
 const firstPortals: Record<string, boolean> = {};
 let button: ImplementationProps | undefined;
@@ -107,7 +108,9 @@ function draw() {
     return;
   }
   flushSync(() =>
-    root.render(<Surface {...surfaceProps} validator={currentValidator} tree={input} onIntent={onIntent} />),
+    root.render(
+      <Surface {...surfaceProps} {...normalStyle} validator={currentValidator} tree={input} onIntent={onIntent} />,
+    ),
   );
 }
 declare global {
@@ -126,10 +129,15 @@ declare global {
       switchStyles(index: number, theme: string, designSystem?: string, version?: string): void;
       renders(): number;
       unmount(): void;
+      setScope(system: string): void;
     };
   }
 }
 window.surfaceTest = {
+  setScope(system) {
+    normalStyle = { theme: { id: system, version: "1.0.0" }, designSystem: { id: system, version: "1.0.0" } };
+    draw();
+  },
   update(value) {
     input = value;
     draw();
