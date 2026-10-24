@@ -493,7 +493,6 @@ Probe answers that hold for every task, unless a task says otherwise:
 
 - P2: give `capture()` a public home for the Phase 8 MCP server (F2).
 - P2: profile the preview matrix with the renderer selection costs (F5).
-- P1 (existing): drop the fresh-copy workaround once the SDK data-cache fix lands (F7).
 - P4: validate the page's published axes (F4); capture open overlays (F6); a runner conformance suite (F9).
 - P4 (existing): hand Synapta and Clay their preview adoption notes (F8).
 - Also investigate the pre-existing `proof/` typecheck failures so `bun run check` passes again.
