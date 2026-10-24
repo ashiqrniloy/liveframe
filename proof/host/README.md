@@ -99,3 +99,32 @@ switch proof. It checks ten alternating switches per widget, immediate computed
 typography through the next animation frame and a 16.67 ms local switch budget,
 unchanged node identities/markup/focus/tree, no requests and unchanged widget
 source hashes. This proves CSS activation, not reference pixel parity.
+
+`/preview` opens an independent `createPreview()` session using the same
+in-process runner and shared package drafts as the reference pages. It starts
+with agent-home's `ready` scenario and draws 360, 768 and 1280 px containers
+under all four combinations of the Certified/Rack themes and design systems.
+Scenario and cell selection are mirrored in the URL. Only scenario changes
+request another tree; state intents rerender the session, and actions enter its
+log without calling a dispatcher.
+
+The URL gains `session=<id>`. Keep that id when updating or revisiting a draft:
+
+- `POST /preview/draft?session=<id>` accepts `{ files, entry, manifest, scenarios }`
+  and returns `{ ok: true, hash }` or the pack errors. Failed updates preserve
+  the previous package.
+- `GET /preview/render?session=<id>&scenario=ready` returns the result, manifest,
+  scenario names and intent log.
+- `POST /preview/intent?session=<id>` accepts a completed intent and returns the
+  result and intent log.
+- `POST /preview/publish?session=<id>` accepts `{}`, stores the last successfully
+  packed package in a shared `memoryStore()`, and returns its stored hash.
+  Publishing different content at an already stored id/version returns 409.
+
+POSTs require same-origin JSON. The host bounds request bodies at 1 MiB so shared
+source drafts fit; the reference `/intent` route keeps its 64 KiB limit.
+Reload `/preview?session=<id>&scenario=<name>` after updating a draft to mount
+its new manifest and scenarios. Omit `session` for a fresh page/session. The
+browser receives rendered data only; source code and packages stay on the
+backend. These sessions and published packages last only until host shutdown.
+Verify with `timeout 300s bun test proof/tests/preview-browser.test.ts`.

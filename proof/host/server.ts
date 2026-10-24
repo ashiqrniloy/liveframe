@@ -5,16 +5,19 @@ import { base, systemSheets, themeSheets } from "../css/sheets.ts";
 import { primitiveCss } from "../renderer/primitives/base.ts";
 import { isRecord } from "../runtime/data.ts";
 import { type HostedSurface, InvalidIntent, openPage, packages, pages, StaleRevision } from "./pages.ts";
+import { previewRoutes } from "./preview.ts";
 import { ProofSurface } from "./view.tsx";
 
 export async function startHost(port = 3000) {
   const build = await Bun.build({
-    entrypoints: [new URL("./client.tsx", import.meta.url).pathname],
+    entrypoints: ["client.tsx", "preview-client.tsx"].map((path) => new URL(path, import.meta.url).pathname),
     target: "browser",
   });
   if (!build.success) throw new AggregateError(build.logs, "Proof client build failed");
-  const bundle = build.outputs[0];
-  if (!bundle) throw new Error("Missing proof client bundle");
+  const bundle = build.outputs.find((output) => output.path.endsWith("/client.js"));
+  const previewBundle = build.outputs.find((output) => output.path.endsWith("/preview-client.js"));
+  const preview = previewRoutes();
+  if (!bundle || !previewBundle) throw new Error("Missing proof client bundle");
   const sheets = new Map([
     ["/styles/base.css", base],
     ["/styles/primitives.css", primitiveCss],
@@ -46,11 +49,18 @@ body { margin: 0; -webkit-font-smoothing: antialiased; }
   return Bun.serve({
     hostname: "127.0.0.1",
     port,
-    maxRequestBodySize: 65536,
+    maxRequestBodySize: 1048576,
     async fetch(request) {
       const url = new URL(request.url);
       if (url.hostname !== "127.0.0.1") return error("Unknown host", 403);
+      if (url.pathname === "/preview" || url.pathname.startsWith("/preview/"))
+        return preview(request, (bootstrap) =>
+          html(
+            `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Liveframe preview</title>${fontFaces}<link rel="stylesheet" href="/styles/base.css"><link rel="stylesheet" href="/styles/primitives.css">${["certified", "rack"].map((name) => `<link rel="stylesheet" href="/styles/${name}.theme.css"><link rel="stylesheet" href="/styles/${name}.css">`).join("")}</head><body><a href="/">All reference UIs</a><h1>Preview</h1><div id="app"></div><script type="application/json" id="bootstrap">${JSON.stringify(bootstrap).replaceAll("<", "\\u003c")}</script><script type="module" src="/preview-client.js"></script></body></html>`,
+          ),
+        );
       if (request.method === "POST" && url.pathname === "/intent") {
+        if ((await request.clone().arrayBuffer()).byteLength > 65536) return error("Request too large", 413);
         const origin = request.headers.get("origin");
         if (origin && origin !== url.origin) return error("Cross-origin intent rejected", 403);
         if (!request.headers.get("content-type")?.startsWith("application/json")) return error("Expected JSON", 415);
@@ -76,6 +86,8 @@ body { margin: 0; -webkit-font-smoothing: antialiased; }
         }
       }
       if (request.method !== "GET") return error("Method not allowed", 405);
+      if (url.pathname === "/preview-client.js")
+        return new Response(previewBundle, { headers: { "Content-Type": "text/javascript" } });
       if (url.pathname === "/client.js")
         return new Response(bundle, { headers: { "Content-Type": "text/javascript" } });
       const css = sheets.get(url.pathname);
@@ -86,7 +98,7 @@ body { margin: 0; -webkit-font-smoothing: antialiased; }
       }
       if (url.pathname === "/")
         return html(
-          `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Liveframe proof</title></head><body><h1>Liveframe proof</h1><ul>${links}</ul></body></html>`,
+          `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Liveframe proof</title></head><body><h1>Liveframe proof</h1><ul>${links}<li><a href="/preview">Preview</a></li></ul></body></html>`,
         );
       const name = url.pathname.slice("/ui/".length);
       if (!url.pathname.startsWith("/ui/") || !Object.hasOwn(pages, name)) return error("Not found", 404);

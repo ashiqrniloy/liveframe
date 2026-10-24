@@ -234,7 +234,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Compared that remaining test with an isolated checkout of pre-Task-3 commit `f195f82a409ffd05292b2a26ba6fe5182456f50d`, using the same installed dependencies and unchanged test/limits. Baseline failed at 22.7 ms; the current tree's isolated rerun failed at 26 ms, with most samples around 10–14 ms. Both drew 685 DOM nodes. Command in each checkout: `timeout 120s bun test src/__tests__/react-browser.test.tsx -t switch_under_budget_with_blur_through_surface`. Logs: `/tmp/liveframe-plan009-t3-load-retry.log`, `/tmp/liveframe-plan009-t3-baseline-timing.log`, `/tmp/liveframe-plan009-t3-current-timing.log`.
     - Load evidence: the earlier run exceeded load average 100 on 16 CPUs; follow-up CPU idle initially recovered to 71%, but contention returned during testing. The baseline comparison observed 30% CPU idle and roughly 81 MB/s swap-out. Recovery of the other timing gates with no code changes, and reproduction of the final failure on the baseline, attribute these failures to host contention rather than this task. Closed Task 3 under the owner's explicit timing exception; the full check is recorded as 447 pass / 1 fail, not green. No limits were relaxed and no unrelated workload was changed. No spec meaning changed. Proof-host wiring, matrix performance measurement, capture and the outsider guide remain later tasks.
 
-- [ ] Task 4: Mount the preview on the proof host
+- [x] Task 4: Mount the preview on the proof host
   - Acceptance Criteria:
     - Functional:
       - The proof host serves `/preview`, a page mounting `<Preview>` with the proof catalog, both themes and design systems, and widths 360, 768 and 1280.
@@ -268,13 +268,25 @@ Probe answers that hold for every task, unless a task says otherwise:
       ```
     - Files to Create/Edit:
       - `proof/host/preview.ts`, `proof/host/preview-client.tsx`: new.
-      - `proof/host/server.ts`, `proof/host/README.md`.
+      - `proof/host/server.ts`, `proof/host/README.md`: serve and document the page, routes and session URL.
+      - `proof/host/pages.ts`: export the existing runner for reuse.
+      - `roadmap.md` §3: Task 4 execution status.
       - `proof/tests/preview-browser.test.ts`: new.
   - Test Cases to Write:
     - `every_proof_scenario_draws_at_three_widths_under_both_design_systems`: every scenario of every proof widget draws all 12 cells with no error. Each cell's computed styles belong to its own theme and design system, and responsive values follow the cell width.
     - `set_state_rerenders_within_the_session_in_the_browser`.
     - `action_appears_in_the_log_and_the_dispatcher_records_no_call`.
-    - `no_draft_code_reaches_the_browser`: a unique identifier placed only in draft code (never in a rendered string) is absent from the client bundle, the served HTML and the hydrated DOM.
+    - `responsive_values_and_design_system_recipes_are_scoped_to_each_cell`.
+    - `only_scenario_changes_fetch_and_obsolete_responses_are_discarded`.
+    - `preview_routes_reject_bad_requests_and_isolate_sessions`.
+    - `no_draft_code_reaches_the_browser_and_publish_stores_the_last_package`: a unique identifier placed only in draft code (never in a rendered string) is absent from the client bundle, the served HTML and the hydrated DOM.
+
+  - Notes (executed 2026-10-24):
+    - Mounted `/preview` with the proof primitives, catalog and arrival validator: 360/768/1280 px × both themes × both design systems. Each new page gets an independent backend session on the same exported in-process runner as the reference pages. The URL carries its session id; revisiting that id after a draft update mounts the new manifest and scenarios.
+    - Added draft, render, intent and publish routes in `proof/host/preview.ts`. Draft updates return only their hash or pack errors; publishing puts the last successfully packed package in a shared memory store and returns the stored hash, with 409 for version conflicts. Browser bootstrap contains rendered data only. POSTs enforce same-origin JSON; requests are bounded at 1 MiB because the shared drafts measure 84–224 KB, while the reference `/intent` route retains its 64 KiB limit, including streamed bodies.
+    - The client serializes host requests, fetches only for scenario changes, and discards obsolete responses. State intents rerender every cell; actions enter the session log without opening or dispatching a production surface. Draft source stays on the backend. The host README documents the HTTP shapes, session URL and reload workflow.
+    - Wrote the tests first; the initial run failed waiting for the missing preview page. Seven browser tests now cover all 22 proof scenarios (264 cells), computed theme fonts and design-system recipes, responsive grid columns at each container width, state and action intents, dispatcher spies, isolated sessions, rejected requests, stale responses, source-marker exclusion from both bundles/HTML/hydrated DOM, and published hash equality. Corrected test assumptions about shared heading typography and Certified's 3 px control radius; no implementation contract changed.
+    - The 679-node agent-home `ready` scenario's 12-cell navigation plus draw measured 1295.24 ms in the final full run (no budget). `timeout 600s bun run check` passed: generated types, both typechecks, lint, formatting and all 455 tests across 70 files (0 failures). `git diff --check` passed and `graft build` refreshed the local graph. No library API, spec meaning or dependency changes. Tasks 5–8 remain.
 
 - [ ] Task 5: Add `liveframe preview capture`
   - Acceptance Criteria:

@@ -20,7 +20,7 @@ export const packages = new Map(
     return [fixture.name, value(pack(draft, packageOptions))];
   }),
 );
-const runner = inProcessRunner();
+export const runner = inProcessRunner();
 export class StaleRevision extends Error {}
 export class InvalidIntent extends Error {}
 export interface Snapshot {
