@@ -1,17 +1,21 @@
-import { resolve } from "node:path";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import pkg from "../../package.json" with { type: "json" };
 import manifestDoc from "../../schemas/manifest.json" with { type: "json" };
 import packageDoc from "../../schemas/widget-package.json" with { type: "json" };
 import { type Capabilities, validateCapabilities } from "../formats/capabilities.ts";
 import { type Catalog, validateCatalog } from "../formats/catalog.ts";
+import type { WidgetPackage } from "../formats/package.ts";
 import type { LiveframeError } from "../index.ts";
 import type { Json, UiNode } from "../formats/tree.ts";
-import type { AuthoringConfig } from "../preview/authoring.ts";
+import type { AuthoringConfig, PreviewSession } from "../preview/authoring.ts";
 import type { Runner } from "../preview/runner.ts";
 import { createPreview } from "../preview/session.ts";
 import { workerRunner } from "../preview/worker/index.ts";
 import { generate } from "../sdk/gen.ts";
+import { capture, PlaywrightMissing } from "./capture.ts";
 
 export class McpSdkMissing extends Error {
   override name = "McpSdkMissing";
@@ -170,12 +174,62 @@ const renderSchema = {
 
 const nodes = (node: UiNode): number => 1 + (node.children?.reduce((sum, child) => sum + nodes(child), 0) ?? 0);
 
+/** What the draft and capture tools share: the one session, the last good package, the bound page. */
+function createAuthoring({
+  config,
+  catalog,
+  capabilities,
+  runner,
+}: {
+  config: AuthoringConfig;
+  catalog: Catalog;
+  capabilities: Capabilities;
+  runner: Runner;
+}) {
+  const session: PreviewSession = createPreview({ catalog, capabilities, runner });
+  let packed: WidgetPackage | undefined;
+  let bound: { readonly url: string; close(): Promise<void> } | undefined;
+  let dir: string | undefined;
+  return {
+    session,
+    get package() {
+      return packed;
+    },
+    update(input: Parameters<PreviewSession["update"]>[0]) {
+      const result = session.update(input);
+      if (result.ok) packed = result.value;
+      return result;
+    },
+    /** Binds the app's page on first use, so a run that never captures never starts a host. */
+    async url(): Promise<string> {
+      if (!config.preview)
+        throw new Error(
+          "The config module names no preview(): add `preview: async (binding) => ({ url, close })` to serve the app's own page.",
+        );
+      bound ??= await config.preview({ session, package: () => packed ?? unreachable() });
+      return bound.url;
+    },
+    async dir(): Promise<string> {
+      dir ??= await mkdtemp(join(tmpdir(), "liveframe-mcp-"));
+      return dir;
+    },
+    async close(): Promise<void> {
+      await bound?.close();
+      if (dir) await rm(dir, { recursive: true, force: true });
+    },
+  };
+}
+
+function unreachable(): never {
+  throw new Error("No draft has been packed");
+}
+
 /** The draft tools: one preview session, rendered by the app's own runner. */
-function registerDraftTools(sdk: Sdk, server: Server, session: ReturnType<typeof createPreview>): void {
+function registerDraftTools(sdk: Sdk, server: Server, authoring: ReturnType<typeof createAuthoring>): void {
+  const { session } = authoring;
   type PackInput = Parameters<typeof session.update>[0];
   type RenderInput = { scenario?: string; state?: Json; context?: Json };
   const schema = (value: object) => value as Parameters<Sdk["fromJsonSchema"]>[0];
-  let packed = false;
   server.registerTool(
     "pack_draft",
     {
@@ -184,9 +238,8 @@ function registerDraftTools(sdk: Sdk, server: Server, session: ReturnType<typeof
       inputSchema: sdk.fromJsonSchema<PackInput>(schema(packSchema)),
     },
     (input) => {
-      const result = session.update(input);
+      const result = authoring.update(input);
       if (!result.ok) return failure(result.errors);
-      packed = true;
       const { manifest, scenarios, hash } = result.value;
       return text({ hash, id: manifest.id, version: manifest.version, scenarios: scenarios.map(({ name }) => name) });
     },
@@ -199,7 +252,7 @@ function registerDraftTools(sdk: Sdk, server: Server, session: ReturnType<typeof
       inputSchema: sdk.fromJsonSchema<RenderInput>(schema(renderSchema)),
     },
     async ({ scenario, state, context }) => {
-      if (!packed)
+      if (!authoring.package)
         return failure([{ kind: "not-found", pointer: "", message: "Call pack_draft before render_scenarios" }]);
       if (scenario !== undefined) {
         const result = await session.render({
@@ -222,6 +275,81 @@ function registerDraftTools(sdk: Sdk, server: Server, session: ReturnType<typeof
   );
 }
 
+const captureSchema = {
+  type: "object",
+  properties: {
+    scenarios: { type: "array", items: { type: "string" } },
+    widths: { type: "array", items: { type: "integer" } },
+    themes: { type: "array", items: { type: "string" } },
+    designSystems: { type: "array", items: { type: "string" } },
+  },
+  additionalProperties: false,
+};
+
+type Content = { type: "text"; text: string } | { type: "image"; data: string; mimeType: "image/png" };
+
+/** `capture_preview`: the bound page's cells, captured by the same `capture()` the CLI uses. */
+function registerCaptureTool(sdk: Sdk, server: Server, authoring: ReturnType<typeof createAuthoring>): void {
+  type Options = { scenarios?: string[]; widths?: number[]; themes?: string[]; designSystems?: string[] };
+  server.registerTool(
+    "capture_preview",
+    {
+      description:
+        "Captures the bound preview page's cells — at most 12 per call — and returns each cell's coordinates, LiveframeErrors and accessibility snapshot as text with its PNG as an image. Omit an axis to keep every value the page declares.",
+      inputSchema: sdk.fromJsonSchema<Options>(captureSchema as Parameters<Sdk["fromJsonSchema"]>[0]),
+    },
+    async (options: Options) => {
+      if (!authoring.package)
+        return failure([{ kind: "not-found", pointer: "", message: "Call pack_draft before capture_preview" }]);
+      let url: string;
+      try {
+        url = await authoring.url();
+      } catch (error) {
+        return failure([
+          { kind: "not-found", pointer: "", message: String(error instanceof Error ? error.message : error) },
+        ]);
+      }
+      const out = await authoring.dir();
+      try {
+        const index = await capture(url, { out, ...options, maxCells: 12 });
+        const content: Content[] = [
+          text(
+            index.cells.map(({ scenario, width, theme, designSystem, errors }) => ({
+              scenario,
+              width,
+              theme,
+              designSystem,
+              errors,
+            })),
+          ).content[0] as Content,
+        ];
+        for (const cell of index.cells) {
+          content.push({
+            type: "text",
+            text: `${cell.scenario} @${cell.width}px
+${await Bun.file(join(out, cell.snapshot)).text()}`,
+          });
+          content.push({
+            type: "image",
+            data: Buffer.from(await Bun.file(join(out, cell.png)).arrayBuffer()).toString("base64"),
+            mimeType: "image/png",
+          });
+        }
+        return { content };
+      } catch (error) {
+        const message = String(error instanceof Error ? error.message : error);
+        return failure([
+          {
+            kind: error instanceof PlaywrightMissing ? "not-found" : "limit-exceeded",
+            pointer: "",
+            message,
+          },
+        ]);
+      }
+    },
+  );
+}
+
 /** Runs the authoring MCP server until stdin ends or a signal arrives. Returns the exit code. */
 export async function mcp(path: string, load: () => Promise<Sdk> = loadSdk): Promise<number> {
   const sdk = await load().catch(() => {
@@ -236,8 +364,10 @@ export async function mcp(path: string, load: () => Promise<Sdk> = loadSdk): Pro
   const owned = config.runner === undefined;
   const runner: Runner & { close?(): void } = config.runner ?? workerRunner();
   const server = new sdk.McpServer({ name: "liveframe", version: pkg.version });
+  const authoring = createAuthoring({ config, catalog, capabilities, runner });
   registerCatalogTools(sdk, server, catalog, capabilities);
-  registerDraftTools(sdk, server, createPreview({ catalog, capabilities, runner }));
+  registerDraftTools(sdk, server, authoring);
+  registerCaptureTool(sdk, server, authoring);
   await server.connect(new sdk.StdioServerTransport());
   await new Promise<void>((resolveStop) => {
     const stop = () => resolveStop();
@@ -247,6 +377,7 @@ export async function mcp(path: string, load: () => Promise<Sdk> = loadSdk): Pro
     process.stdin.once("close", stop);
   });
   await server.close().catch(() => {});
+  await authoring.close();
   if (owned) runner.close?.();
   return 0;
 }

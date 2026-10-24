@@ -8,6 +8,8 @@ export type CaptureOptions = {
   readonly widths?: readonly number[] | undefined;
   readonly themes?: readonly string[] | undefined;
   readonly designSystems?: readonly string[] | undefined;
+  /** Refuses a call that would capture more cells than this, before any file is written. */
+  readonly maxCells?: number | undefined;
 };
 export type CapturedCell = {
   readonly scenario: string;
@@ -75,6 +77,11 @@ export async function capture(
     const widths = narrow("width", declared.widths, options.widths);
     const themes = narrow("theme", declared.themes, options.themes);
     const designSystems = narrow("design system", declared.designSystems, options.designSystems);
+    const requested = scenarios.length * widths.length * themes.length * designSystems.length;
+    if (options.maxCells !== undefined && requested > options.maxCells)
+      throw new Error(
+        `Requested ${requested} cells; at most ${options.maxCells} per call. Narrow with scenarios (${declared.scenarios.join(", ")}), widths (${declared.widths.join(", ")}), themes (${declared.themes.join(", ")}) or designSystems (${declared.designSystems.join(", ")}) — leave an argument out to keep every declared value.`,
+      );
     await mkdir(options.out, { recursive: true });
 
     const cells: CapturedCell[] = [];
