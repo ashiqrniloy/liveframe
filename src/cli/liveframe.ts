@@ -45,7 +45,23 @@ async function previewCapture(args: string[]): Promise<number> {
   }
 }
 
+async function mcpCommand(args: string[]): Promise<number> {
+  const [config, ...rest] = args;
+  if (!config || rest.length > 0) throw new Error("Usage: liveframe mcp <config-module>");
+  try {
+    const { mcp } = await import("./mcp.ts");
+    return await mcp(config);
+  } catch (error) {
+    if (error instanceof Error && error.name === "McpSdkMissing") {
+      console.error(error.message);
+      return 1;
+    }
+    throw error;
+  }
+}
+
 async function main(args: string[]): Promise<number> {
+  if (args[0] === "mcp") return mcpCommand(args.slice(1));
   if (args[0] === "preview" && args[1] === "capture") return previewCapture(args.slice(2));
   const [command, catalogPath, ...flags] = args;
   let out: string | undefined;

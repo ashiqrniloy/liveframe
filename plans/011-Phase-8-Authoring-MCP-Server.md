@@ -123,7 +123,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Validation: `bun run gen:check`, `bun run typecheck`, `bun run lint` and `bun run format:check` pass; `git diff --check` is clean. `bun run test` reported 16 failures, all in the render-budget, worker and browser-fixture suites (`limit-exceeded` on a 100 ms render, 5 s test timeouts) while the machine was at load average 38 on 16 cores; the only changes in the tree are documentation, and the same suites pass when re-run alone except the warm-overhead budget report. Task 2 re-runs `bun run check` on a quiet machine.
     - No code, package export or dependency was touched. Later tasks are unchanged.
 
-- [ ] Task 2: Start `liveframe mcp` from a host config, behind an optional peer
+- [x] Task 2: Start `liveframe mcp` from a host config, behind an optional peer
   - Acceptance Criteria:
     - Functional:
       - `liveframe mcp <config>` imports the module and reads its default export. It validates `catalog` with `validateCatalog` and `capabilities` with `validateCapabilities`, then connects an `McpServer` over `StdioServerTransport`. No tools yet. Task 3 adds the first ones.
@@ -171,6 +171,15 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `missing_mcp_sdk_reports_how_to_install`: an injected loader failure.
     - `gen_runs_without_the_mcp_sdk`: a preload blocks every `@modelcontextprotocol/*` import.
     - `default_worker_runner_is_closed_on_shutdown`: no live worker after stdin ends.
+
+  - Notes (executed 2026-10-24):
+    - `src/cli/mcp.ts` holds the whole command: `mcp(path, load = loadSdk)` lazily loads `McpServer` and `StdioServerTransport` through one injectable loader, imports the config with `pathToFileURL(resolve(path))`, validates the catalog and capabilities, connects over stdio, then waits for stdin end, `SIGTERM` or `SIGINT`, closes the server and closes the runner only when it created it (`workerRunner()`). Config errors print the `LiveframeError[]` JSON to stderr and return 2; a loader failure throws `McpSdkMissing`, which `liveframe.ts` turns into the install message and exit 1; a missing argument throws the usage line through the CLI's existing exit-2 catch. `liveframe.ts` gained only the `mcp` subcommand and the lazy `import("./mcp.ts")`.
+    - `src/preview/authoring.ts` is type-only (`PreviewSession`, `PreviewBinding`, `AuthoringConfig`) and `/preview` re-exports the three names. `package.json` gained the optional `@modelcontextprotocol/server` peer at 2.4.0 and both MCP packages at 2.4.0 as dev dependencies; `bun.lock` follows. No subpath was added.
+    - The server reports `name: "liveframe"` and the `package.json` version (read through a JSON import), so the handshake cannot drift from the release.
+    - Findings. (1) MCP SDK 2.4.0's `McpServer` + `StdioServerTransport` + `connect()` work unchanged under Bun 1.4.4 over stdio, so the plan's stop-and-record branch did not trigger; 2.4.0 also offers `serveStdio(factory)`, which owns the 2025/2026 era decision, and the simpler `connect()` path is enough for Tasks 3–7 because a coding agent's client sends a normal `initialize`. (2) A Bun preload `plugin()` with `onResolve` does **not** intercept dynamic imports of bare specifiers under 1.4.4 — it only sees relative paths — so the existing `src/__tests__/fixtures/no-playwright.ts` never actually blocks Playwright, and plan 009's `gen_runs_without_playwright` passed trivially. `src/__tests__/fixtures/no-mcp-sdk.ts` therefore uses `mock.module` from `bun:test` in the preload, which does block; Task 8 now hands the `no-playwright.ts` fix to the backlog.
+    - Extra fixtures beyond this task's file list: `mcp-worker.config.ts` (no runner), `mcp-runner-close.config.ts` (a config runner whose `close()` writes a marker, to prove it is never called), `mcp-bad-catalog.config.ts`, `mcp-bad-capabilities.config.ts`, `mcp-no-default.ts` and `no-mcp-sdk.ts`.
+    - Performance: spawn to a completed `initialize` measured at 107, 96 and 100 ms over three runs on the loaded machine (client connect includes Bun's own start-up). No tools yet, so no per-call time.
+    - Validation: `bun run check` passed (563 tests, 0 failures, 260 s), including `cli-mcp.test.ts` (6 tests) and the host-API-free scan for `/preview`. `git diff --check` is clean. No spec change was needed: Task 1 already wrote this behaviour into §13.
 
 - [ ] Task 3: Add the read-only catalog tools
   - Acceptance Criteria:
@@ -408,7 +417,8 @@ Probe answers that hold for every task, unless a task says otherwise:
         - "Give capture a public home for the authoring MCP server" is closed, with resolution D3;
         - the Phase 8 note under "Build preview sessions…" is marked done;
         - "Verify installed-package loader and worker entry before release" adds `liveframe mcp` with its default `workerRunner()` from the installed package;
-        - new P4 entries for the `setState` intent tool and disk-path drafts.
+        - new P4 entries for the `setState` intent tool and disk-path drafts;
+        - a new entry for `src/__tests__/fixtures/no-playwright.ts`, which a Bun preload `plugin()` cannot make effective (found in Task 2): rewrite it with `mock.module` like `no-mcp-sdk.ts`, and confirm `gen_runs_without_playwright` and a `preview capture` case fail when the peer is blocked.
     - Performance: n/a.
     - Code Quality: written for someone outside the repo. Each rule is stated once and links to spec §13.
     - Security: the guide states that the config runs as host code, that drafts never reach the browser, and that no tool installs, places, approves, resolves data or dispatches.
