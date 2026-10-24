@@ -212,7 +212,12 @@ test("public_validator_types_support_error_guided_repairs", () => {
 });
 
 test("subpath_export_surfaces", () => {
-  expect(Object.keys(conformance).sort()).toEqual(["ConformanceFailure", "catalogSuite", "storeSuite"]);
+  expect(Object.keys(conformance).sort()).toEqual([
+    "ConformanceFailure",
+    "catalogSuite",
+    "designSystemSuite",
+    "storeSuite",
+  ]);
   const cases: ConformanceCase[] = conformance.storeSuite({ create: store.memoryStore });
   expect(cases).toHaveLength(9);
   expect(Object.keys(previewReact).sort()).toEqual(["Preview"]);

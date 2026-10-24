@@ -204,7 +204,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Performance: a standalone sequential run of all five cases against the proof catalog (23 examples, 31 pairs; fixture preparation excluded) took 38.14 ms. No runtime render, validation or style path changed; no new dependencies, proof imports into the published suite, or spec changes.
     - Validation: `timeout 600s bun run check` passed (487 tests across 75 files, 0 failures; tests 113.25s). Lint retained 37 existing warnings and 3 existing informational findings; none in the new suite/tests/fixtures. Public-export and browser-portability checks passed, as did `git diff --check` and `timeout 120s graft build`. Other runtimes/test runners remain untested; later tasks need no amendment.
 
-- [ ] Task 4: Add the design-system suite
+- [x] Task 4: Add the design-system suite
   - Acceptance Criteria:
     - Functional:
       - `designSystemSuite({ catalog, themes, designSystems, sheets? })` returns:
@@ -235,10 +235,18 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `src/conformance/design-system.ts`: new; `src/conformance/index.ts`: export.
       - `src/__tests__/conformance-design-system.test.ts`: new (proof JSON fixtures).
       - `proof/tests/conformance.test.ts`: new, runs the catalog and design-system suites with `primitiveCss` as an app sheet.
+      - `src/__tests__/exports.test.ts`: pin the added public export.
+      - This plan: Task 4 completion and execution notes; `roadmap.md` §3: task progress.
   - Test Cases to Write:
     - `proof_styles_pass_the_design_system_suite`: Certified and Rack, both themes and `primitiveCss` pass.
     - `design_system_suite_catches_broken_styles`: each fails its named case — a theme missing a role, a design system missing a rest recipe, a design system that `extends` an uninstalled one, and an app sheet with `color: #f00` or `background: red`.
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-24):
+    - Exported `designSystemSuite` from `/conformance`: independent theme-install, design-system-install and projection cases, plus the app-sheet case only when `sheets` is supplied. Cases validate the catalog and reuse the format validators and CSS projectors, preserving library errors in bounded `ConformanceFailure` diagnostics. The inheritance registry includes the whole supplied set, including parents listed after children.
+    - Added proof registrations for both catalog and design-system suites using the existing conformance examples, Certified and Rack, both themes and the real `primitiveCss`. The new suite imports no proof code, test runner, assertion library, host API or new dependency. The existing library colour-authority test is unchanged.
+    - Broken subjects fail for missing theme roles, missing rest recipes, missing inheritance parents, literal recipe colours and malformed installation/projection inputs. Sheet tests cover hex, functional, named and system colours in direct properties, shorthands, gradients, shadows, filters, vendor properties, custom properties and variable fallbacks, including CSS comments, escapes and mixed case. Structural declarations, strings/URLs, transparent/currentColor and theme references pass. Sheet diagnostics identify the supplied sheet index and declaration.
+    - The sheet scan checks supplied CSS contents, not external `@import` targets; adopters must pass every app sheet's contents. This limit is documented in the scanner. It does not scan the library's projected sheets or add browser/state-precedence cases; those retain their existing tests and later plan tasks.
+    - Performance: a standalone sequential run of all four cases against Certified and Rack, both themes and `primitiveCss` took 115.63 ms, excluding fixture preparation. No runtime render, validation or style path changed.
+    - Validation: `timeout 600s bun run check` passed (500 tests across 77 files, 0 failures; tests 105.76s). Lint retained 37 existing warnings and 3 existing informational findings; none in the new suite/tests. Focused suite, public-export and browser-portability tests passed, as did `git diff --check`, the final format check and `timeout 120s graft build`. No spec change or later-task amendment was needed; other runtimes/test runners remain untested.
 
 - [ ] Task 5: Ship `/conformance/react` with the renderer server cases
   - Acceptance Criteria:
