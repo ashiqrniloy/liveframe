@@ -341,7 +341,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Verification: five new tests pass; `bun run lint`, `format:check` and `bun run test` pass (460 tests, 0 failures). `bun run typecheck` fails on six TS1543 JSON-import-attribute errors in `proof/css/*` and `proof/host/view.tsx`, files this task does not touch; they reproduce with this task's changes stashed, so `bun run check` is not green here for that reason. `src` typechecks clean. The cause is not investigated.
     - Mistake corrected: a `biome --write` over all of `src` reformatted 33 unrelated files; they were restored from git with the owner's approval and are not part of this task.
 
-- [ ] Task 6: Prove the scripted agent loop
+- [x] Task 6: Prove the scripted agent loop
   - Acceptance Criteria:
     - Functional: a test drives the proof host as an agent would, using only HTTP and `capture()`:
       1. It posts a draft whose widget sets an undeclared style value on a layout node (a deliberate layout error, e.g. `gap: "space.99"`).
@@ -369,6 +369,12 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `src/__tests__/preview-agent-loop.test.ts`: new.
   - Test Cases to Write:
     - `scripted_agent_fixes_a_layout_error_from_its_capture_and_publishes_the_previewed_hash`.
+
+  - Notes (executed 2026-10-24):
+    - Added `src/__tests__/preview-agent-loop.test.ts`: one deterministic test driving the proof host through HTTP (page GET for the session id, `POST /preview/draft`, `POST /preview/publish`) and `capture()`. A draft with `<Stack gap="space.99">` at the root of `agent-home/queue.tsx` is captured; `index.json` carries `invalid-prop` with `nodeId` `root/stack`, pointer `/root/stack/style/gap` and the allowed values in `expected`, and the PNG exists. The fix picks an allowed value from that `expected` text alone; the next capture has no errors in any cell; the published hash equals the hash the clean `update` returned.
+    - Law 1: after each capture the test fetches the served page HTML and the client bundle and asserts a marker identifier that exists only in draft code is absent from both. The hydrated DOM was already scanned in Task 4.
+    - The loop took about 4.8 s (two captures of four cells each, plus launch and publish). No implementation changed.
+    - Verification: the new test passes; lint and format pass, and `src` typechecks clean. The full suite was last run before this test was added (460 pass, 0 fail). `bun run typecheck` still fails on the six pre-existing TS1543 errors in `proof/` recorded in Task 5.
 
 - [ ] Task 7: Document the preview for outsiders and hand off to Phase 8
   - Acceptance Criteria:
