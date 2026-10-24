@@ -57,7 +57,88 @@ const next: UiTree = {
     children: [...(tree.root.children ?? []).slice(0, 1), ...(tree.root.children ?? []).slice(1).reverse()],
   },
 };
+const overlay: UiTree = {
+  ...tree,
+  surfaceId: "lifecycle-dialog",
+  root: {
+    id: "root",
+    kind: "stack",
+    props: {},
+    children: [
+      {
+        id: "root/background",
+        kind: "button",
+        props: { label: "Background" },
+        events: { onPress: { type: "action", name: "save", args: {} } },
+      },
+      { id: "root/dialog", kind: "dialog", props: { label: "Lifecycle", open: false } },
+    ],
+  },
+};
+export const lifecycleRules = [
+  "overlay_keeps_surface_scope",
+  "overlay_exit_finishes_before_unmount",
+  "open_overlay_locks_scroll_and_makes_background_inert",
+  "text_input_counts_code_points",
+];
 export const fixtures = {
+  overlayKinds: ["dialog"],
+  overlays: [
+    {
+      kind: "dialog",
+      tree: overlay,
+      open: async (p: Page) => {
+        await p.evaluate((serialized) => {
+          const tree = JSON.parse(serialized) as UiTree;
+          const scope = document.querySelector("[data-lf-conformance] > .lf_surface");
+          const [theme, tv] = (scope?.getAttribute("data-lf-theme") ?? "").split("@");
+          const [system, sv] = (scope?.getAttribute("data-lf-ds") ?? "").split("@");
+          if (!theme || !tv || !system || !sv) throw new Error("Missing fixture scope");
+          window.liveframeConformance.mount(
+            {
+              ...tree,
+              revision: 2,
+              root: {
+                ...tree.root,
+                children: tree.root.children?.map((node) =>
+                  node.kind === "dialog" ? { ...node, props: { ...node.props, open: true } } : node,
+                ),
+              },
+            },
+            { theme: { id: theme, version: tv }, designSystem: { id: system, version: sv } },
+          );
+        }, JSON.stringify(overlay));
+        await p.getByRole("dialog", { name: "Lifecycle" }).focus();
+      },
+      close: (p: Page) => p.keyboard.press("Escape"),
+      content: (p: Page) => p.getByRole("dialog", { name: "Lifecycle", includeHidden: true }),
+      backdrop: (p: Page) => p.locator(".lf_dialog_default_backdrop"),
+      background: (p: Page) => p.getByRole("button", { name: "Background", includeHidden: true }),
+      exitCss: `
+      @keyframes conformance-exit { from { opacity: 1 } to { opacity: 0 } }
+      .lf_dialog_default_backdrop[data-exiting] { animation: conformance-exit 400ms linear }
+      @media (prefers-reduced-motion: reduce) { .lf_dialog_default_backdrop[data-exiting] { animation: none } }
+    `,
+    },
+  ],
+  textInputKinds: ["textField"],
+  textInputs: [
+    {
+      kind: "textField",
+      tree: {
+        ...tree,
+        surfaceId: "text-bound",
+        root: {
+          id: "root",
+          kind: "textField",
+          props: { label: "Bound", value: "", maxLength: 3 },
+          events: { onChange: { type: "setState", key: "query" } },
+        },
+      },
+      field: (p: Page) => p.getByRole("textbox", { name: "Bound" }),
+      maxLength: 3,
+    },
+  ],
   states: stateFixtures(),
   interactions: [
     {
@@ -79,7 +160,7 @@ export const fixtures = {
     },
   ],
   survival: { tree, next, focus, input: focus, scroll: (p: Page) => p.getByRole("region", { name: "Results" }) },
-};
+} satisfies BrowserFixtures;
 
 function stateFixtures(): NonNullable<BrowserFixtures["states"]> {
   const result: Record<string, NonNullable<BrowserFixtures["states"]>[string]> = {};

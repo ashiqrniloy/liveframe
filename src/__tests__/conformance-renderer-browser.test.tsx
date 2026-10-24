@@ -5,7 +5,7 @@ import { ConformanceFailure } from "../conformance/index.ts";
 import { type BrowserFixtures, rendererBrowserSuite } from "../conformance/react/index.ts";
 import { compileValidator } from "../index.ts";
 import { createRenderer } from "../react/index.ts";
-import { examples, fixtures, pageOptions } from "./fixtures/conformance-browser.tsx";
+import { examples, fixtures, overlayFixtures, pageOptions, textFixtures } from "./fixtures/conformance-browser.tsx";
 import { browserHost } from "./fixtures/conformance-browser-host.ts";
 
 let server: Awaited<ReturnType<typeof browserHost>>;
@@ -211,3 +211,100 @@ test("production_without_profiling_fails_instead_of_hiding_renders", async () =>
     await production.stop(true);
   }
 }, 30000);
+
+const lifecycleRules = [
+  "overlay_keeps_surface_scope",
+  "overlay_exit_finishes_before_unmount",
+  "open_overlay_locks_scroll_and_makes_background_inert",
+  "text_input_counts_code_points",
+];
+function lifecycleSuite(mode = "", extra: Partial<BrowserFixtures> = {}) {
+  return rendererBrowserSuite({
+    ...pageOptions,
+    examples,
+    fixtures: {
+      ...fixtures,
+      overlayKinds: ["dialog"],
+      overlays: overlayFixtures,
+      textInputKinds: ["textField"],
+      textInputs: textFixtures,
+      ...extra,
+    },
+    page: () => browser.newPage(),
+    url: `${server.url.href}?mutant=${mode}`,
+  }).filter((c) => lifecycleRules.includes(c.name));
+}
+test("overlay_and_text_cases_pass_on_reference_implementations", async () => {
+  const cases = lifecycleSuite();
+  expect(cases).toHaveLength(4);
+  for (const c of cases) await c.run();
+}, 120000);
+async function fails(c: ReturnType<typeof lifecycleSuite>[number] | undefined, detail?: string) {
+  if (!c) throw new Error("Missing lifecycle case");
+  try {
+    await c.run();
+  } catch (error) {
+    expect(error).toBeInstanceOf(ConformanceFailure);
+    expect((error as ConformanceFailure).rule).toBe(c.name);
+    if (detail) expect(JSON.stringify((error as ConformanceFailure).details)).toContain(detail);
+    return;
+  }
+  throw new Error(`Mutant passed ${c.name}`);
+}
+for (const [mode, rule] of [
+  ["scope", lifecycleRules[0]],
+  ["instant-exit", lifecycleRules[1]],
+  ["nonmodal", lifecycleRules[2]],
+  ["utf16", lifecycleRules[3]],
+  ["text-intent", lifecycleRules[3]],
+])
+  test(`overlay_and_text_cases_catch_${mode}`, async () => {
+    await fails(lifecycleSuite(mode).find((c) => c.name === rule));
+  }, 120000);
+test("overlay_and_text_cases_name_missing_declared_kinds", async () => {
+  for (const c of lifecycleSuite("", { overlays: [], textInputs: [] }))
+    await fails(c, c.name.startsWith("text_") ? "textField" : "dialog");
+  for (const c of lifecycleSuite("", { overlayKinds: ["dialog", "popover"], textInputKinds: ["textField", "other"] }))
+    await fails(c, c.name.startsWith("text_") ? "other" : "popover");
+}, 120000);
+test("overlay_cases_catch_backdrop_ancestors_and_reduced_motion", async () => {
+  for (const css of [".lf_surface { opacity: 0.8 }", ".lf_surface { filter: blur(0px) }"]) {
+    await fails(
+      lifecycleSuite("", { overlays: overlayFixtures.map((f) => ({ ...f, exitCss: f.exitCss + css })) }).find(
+        (c) => c.name === lifecycleRules[0],
+      ),
+      "backdrop ancestor",
+    );
+  }
+  await fails(
+    lifecycleSuite("", {
+      overlays: overlayFixtures.map((f) => ({
+        ...f,
+        exitCss: `${f.exitCss}@media (prefers-reduced-motion: reduce) {
+      .lf_dialog_default_backdrop[data-exiting] { animation: conformance-exit 400ms linear !important }
+    }`,
+      })),
+    }).find((c) => c.name === lifecycleRules[1]),
+    "reducedMotion=true",
+  );
+}, 120000);
+test("overlay_case_rejects_content_removed_during_exit", async () => {
+  await fails(
+    lifecycleSuite("", {
+      overlays: overlayFixtures.map((f) => ({
+        ...f,
+        async close(p) {
+          await f.close(p);
+          await p.locator(".lf_dialog_default_backdrop[data-exiting]").waitFor();
+          await f.content(p).evaluate((element) => element.remove());
+        },
+      })),
+    }).find((c) => c.name === lifecycleRules[1]),
+  );
+}, 120000);
+
+test("text_case_accepts_intents_emitted_while_typing", async () => {
+  const c = lifecycleSuite("live-change").find((c) => c.name === lifecycleRules[3]);
+  if (!c) throw new Error("Missing text case");
+  await c.run();
+}, 120000);

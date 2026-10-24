@@ -3,11 +3,12 @@ import { renderToString } from "react-dom/server";
 import { compileValidator, type UiTree, validateCatalog } from "../../index.ts";
 import { createRenderer } from "../../react/index.ts";
 import { type ConformanceCase, ConformanceFailure, check } from "../case.ts";
+import { type LifecycleFixtures, lifecycleCases } from "./overlays.ts";
 import type { PageOptions, Styles } from "./page.tsx";
 import { type StateFixtures, styledStates } from "./states.ts";
 
 type Target = (page: Page) => Locator;
-export type BrowserFixtures = {
+export type BrowserFixtures = LifecycleFixtures & {
   states?: StateFixtures;
   interactions: readonly { tree: UiTree; act(page: Page): Promise<unknown>; intents: readonly unknown[] }[];
   survival: { tree: UiTree; next: UiTree; focus: Target; scroll?: Target; input?: Target };
@@ -212,6 +213,14 @@ export function rendererBrowserSuite(
         () => settle(page),
       );
     },
+    ...lifecycleCases(
+      options,
+      async (page, tree, styles) => {
+        await open(page);
+        await mount(page, tree, styles);
+      },
+      settle,
+    ),
   };
   async function mount(page: Page, tree: unknown, styles: Styles) {
     await page.evaluate(({ tree, styles }) => window.liveframeConformance.mount(tree, styles), { tree, styles });

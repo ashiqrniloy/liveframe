@@ -407,15 +407,15 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Performance: the full check recorded 57156.01 ms for the 58-state proof case across both themes and both design systems, excluding browser/server startup. A standalone focused run took 46018.90 ms. Initial focused attempts hit page-load timeouts while the machine's load average reached about 69; the final focused and full runs passed without relaxing timeouts or existing performance gates.
     - Validation: `timeout 600s bun run check` passed (526 tests across 81 files, zero failures; tests 244.63s; 37 existing lint warnings and 3 informational findings). Focused browser controls (12 tests), proof browser cases (2 tests), state/projection controls (12 tests), `git diff --check` and `timeout 120s graft build` passed. No spec change, public export change, dependency addition or later-task amendment was needed. Browser evidence is Chromium only; pixel parity and other runtimes/test runners were not rerun.
 
-- [ ] Task 8: Add the overlay lifecycle and text-bound browser cases
+- [x] Task 8: Add the overlay lifecycle and text-bound browser cases
   - Acceptance Criteria:
     - Functional:
-      - For each `fixtures.overlays` entry `{ tree, open(page), close(page), content, backdrop, exitCss }`:
+      - For each `fixtures.overlays` entry `{ kind, tree, open(page), close(page), content, backdrop, background, exitCss }`:
         - `overlay_keeps_surface_scope`: the open content sits inside the surface's scope element (wrapper or portal) or in the top layer with that DOM ancestry, and a backdrop ancestor has opacity 1 and no filter.
         - `overlay_exit_finishes_before_unmount`: with the app's `exitCss` injected, the overlay stays mounted while its exit animation runs and unmounts after it ends. Under reduced motion, no exit animation starts.
         - `open_overlay_locks_scroll_and_makes_background_inert`: wheeling over the page doesn't move it, the surface wrapper is inside `[inert]` or `[aria-hidden=true]`, and a pointer at a background control hits the backdrop and raises no intent.
-      - For each `fixtures.textInputs` entry `{ tree, field, maxLength }`, `text_input_counts_code_points`: typing astral characters past the bound keeps exactly `maxLength` code points, in both the field and the raised intent.
-      - The kit requires at least one overlay fixture when the app declares overlay kinds (`fixtures.overlayKinds`), and one text-input fixture per declared text-input kind.
+      - For each `fixtures.textInputs` entry `{ kind, tree, field, maxLength }`, `text_input_counts_code_points`: typing astral characters past the bound keeps exactly `maxLength` code points, in both the field and the raised intent.
+      - The kit requires one fixture per declared overlay kind (`fixtures.overlayKinds`) and text-input kind (`fixtures.textInputKinds`). Each fixture names its kind explicitly and its validated tree contains that kind.
       - Spec §11's overlay sentence says the renderer conformance suite proves the contract, replacing "later".
     - Performance: record wall time.
     - Code Quality: cases are seeded from `proof/tests/renderer-browser.test.tsx:237–330` and `text_field_counts_code_points` (`:654`), with proof classes and roles replaced by fixture locators. `exitCss` is app harness data, as in the proof.
@@ -431,25 +431,36 @@ Probe answers that hold for every task, unless a task says otherwise:
       - The kit detecting overlay kinds from the catalog — rejected: definitions don't mark overlays, and adding a field is a format change outside this phase. The app declares them (decision 4) and the guide says so.
       - Proving exit motion with the app's shipped recipes only — rejected: a design system with no exit motion would leave the rule untested; `exitCss` makes the lifecycle observable either way.
     - Chosen Approach:
-      - Port the proof's lifecycle and code-point tests behind fixtures.
+      - Port the proof's lifecycle and code-point tests behind fixtures. `background` locates the app's background control for inertness and pointer checks; explicit `kind` associates coverage with each declared kind. Open fixtures after mounting a closed tree, as in the seeded proof tests.
     - API Notes and Examples:
       ```ts
-      fixtures.overlays = [{ tree, open: (p) => p.getByRole("button", { name: "Open" }).click(), close: (p) => p.keyboard.press("Escape"),
-        content: (p) => p.getByRole("dialog"), backdrop: (p) => p.locator(".lf_dialog_default_backdrop"), exitCss }];
+      fixtures.overlayKinds = ["dialog"];
+      fixtures.overlays = [{ kind: "dialog", tree, open: (p) => p.getByRole("button", { name: "Open" }).click(), close: (p) => p.keyboard.press("Escape"),
+        content: (p) => p.getByRole("dialog"), backdrop: (p) => p.locator(".lf_dialog_default_backdrop"),
+        background: (p) => p.getByRole("button", { name: "Save", includeHidden: true }), exitCss }];
       ```
     - Files to Create/Edit:
       - `src/conformance/react/overlays.ts`: new; `src/conformance/react/browser.tsx`: register the cases.
       - `docs/spec.md` §11: the overlay sentence.
       - `proof/tests/fixtures/conformance.ts`, `proof/tests/conformance-browser.test.ts`: overlay and text-input fixtures.
+      - `src/__tests__/conformance-renderer-browser.test.tsx`, `src/__tests__/fixtures/conformance-browser.tsx`: positive, coverage and mutant controls.
+      - This plan and `roadmap.md` §3: completion evidence and progress.
   - Test Cases to Write:
     - `proof_host_passes_the_overlay_and_text_cases`: passes under Certified and Rack.
     - `overlay_and_text_cases_catch_broken_implementations`: each fails its named case — a dialog without a modal underlay (background not inert, scroll not locked), a dialog that unmounts at once on close, and a text field bounded by native `maxlength` (UTF-16 units).
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-24):
+    - Registered the three overlay cases and `text_input_counts_code_points` on `rendererBrowserSuite`. Public `BrowserFixtures` now accepts `overlayKinds`, `overlays`, `textInputKinds` and `textInputs`; every declared kind requires a fixture. Each fixture names its kind, its tree is validated and must contain that kind, and missing coverage names the uncovered kinds. `background` supplies the app's control locator rather than assuming a proof role or class.
+    - Scope checks inspect both content and backdrop ancestry and the installed scope identities, then reject backdrop ancestors with opacity or filters. Exit checks observe actual start/end/cancel events, retain element handles, reject content removed during exit and require eventual unmount; reduced motion must start no exit animation. Scroll checks prove an unlocked scrolling baseline before opening the overlay, then check wheel locking, inert background ancestry, backdrop hit testing and no new intent from a background pointer. Text checks type one astral character past the bound and verify the exact field value and latest complete intent, supporting both live-change and blur emission.
+    - The proof dialog and text-field fixtures pass across both themes and both design systems. Mutants reject escaped scope, immediate modal removal, missing modality, native UTF-16 `maxlength`, wrong emitted text, opacity/filter ancestors, reduced-motion animation and early content removal. Coverage controls reject both empty fixture sets and an uncovered second declared kind; a live-change control proves intermediate input intents are accepted. The first new positive test failed on the missing four cases before implementation.
+    - Lifecycle fixtures start closed and open after the scoped portal mounts, as the original proof tests do. An exploratory first-arrival `open: true` dialog retained an inert ancestor after portal relocation and could not receive Escape; recorded that separate initial-mount finding in Task 10's impact candidates. Task 9 now names the exact declaration/fixture fields and setup its guide must explain. No primitive, renderer, page-host or CSS runtime behaviour changed, and no dependency or top-level export was added.
+    - Updated spec §11 to say the renderer conformance suite now proves the overlay contract. Context7 `/microsoft/playwright` confirmed wheel scrolling is asynchronous, media emulation and style injection; the installed Playwright 1.64.1 types pass (no exact 1.64.1 index was available).
+    - Performance: the full check recorded 10730.70 ms for all four proof cases across the four Certified/Rack combinations, excluding server/browser startup. The focused proof run took 10933.89 ms; the focused nine lifecycle positive/mutant/coverage controls passed in 16.37s before the additional live-change control passed in the full run. No runtime render, validation or style path changed.
+    - Validation: `timeout 600s bun run check` passed (537 tests across 81 files, zero failures; tests 226.39s; 37 existing lint warnings and 3 informational findings). Changed-file Biome checks, typechecking, `git diff --check` and `timeout 120s graft build` passed. Initial mutant assertions using Bun's promise/Error matcher stalled; explicit failure capture removed that test-harness issue without relaxing timeouts or production checks. Browser evidence remains Chromium only; pixel parity, other browsers and other runners/runtimes were not rerun.
 
 - [ ] Task 9: Document the kit for outsiders and close the conformance backlog seed
   - Acceptance Criteria:
     - Functional:
-      - `docs/conformance.md` explains, for an outsider: what each suite proves and doesn't, how to register cases with Bun, Vitest or Jest, what fixtures an app supplies (including SSR-visible examples for server root-presence checks, browser fixtures for deferred content, and development/profiling React for browser render counts), the page entry and test for the browser cases, and that overlay and text-input kinds are the app's declaration. Its examples compile and run as `src/__tests__/conformance-guide.test.ts`.
+      - `docs/conformance.md` explains, for an outsider: what each suite proves and doesn't, how to register cases with Bun, Vitest or Jest, what fixtures an app supplies (including SSR-visible examples for server root-presence checks, browser fixtures for deferred content, and development/profiling React for browser render counts), the page entry and test for the browser cases, and that overlay and text-input kinds are the app's declaration (`overlayKinds` / `textInputKinds`, explicit fixture `kind`, background-control locator and a closed tree opened after mounting). Its examples compile and run as `src/__tests__/conformance-guide.test.ts`.
       - `docs/packages.md` (the store-suite pointer Task 2 left), `docs/renderer.md` and `docs/styling.md` link to the new guide.
       - The backlog entry "Seed conformance suites from the proof tests" is closed with a pointer to this plan. Cases deliberately left internal are listed there, with the reason.
       - "Hand adopter gaps to Synapta and Clay" lists what each adopter must supply: Synapta runs `storeSuite` on its own store, and both supply renderer fixtures and a page entry.
@@ -489,7 +500,8 @@ Probe answers that hold for every task, unless a task says otherwise:
         - a catalog marker for overlay and text-input kinds, if fixtures proved error-prone;
         - Phase 8's use of the kit (for example `liveframe mcp` reporting conformance);
         - Phase 6's demo host running the kit from the published package;
-        - suites that only Bun and Chromium have run.
+        - suites that only Bun and Chromium have run;
+        - initially-open proof dialogs: mounting a first-arrival tree with `dialog.open: true` can move React Aria's modal from the body into the scoped portal while leaving `[data-lf-conformance]` inert, so Escape does not reach it. Task 8's lifecycle fixtures start closed and open after the portal mounts, matching the seeded proof tests. Investigate deferred initial portal mounting in `proof/renderer/primitives/index.tsx` and add a regression before release.
       - Roadmap Phase 5 is marked complete in §3 only if every Done bullet has a passing test.
     - Performance: confirm each task's wall time was recorded.
     - Code Quality: findings name files and spans.
