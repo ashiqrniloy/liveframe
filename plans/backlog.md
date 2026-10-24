@@ -86,8 +86,9 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phase 7 (reference hosts)
 - Priority: P4
-- Source: plans/001-Phase-0-Primitive-Set-Proof.md, plans/002-Phase-0-Parity-Re-Proof.md, plans/005-Phase-2-Part-A-SDK.md (F5), plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F5), plans/007-Phase-3-CSS-Projection.md (F9)
+- Source: plans/001-Phase-0-Primitive-Set-Proof.md, plans/002-Phase-0-Parity-Re-Proof.md, plans/005-Phase-2-Part-A-SDK.md (F5), plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F5), plans/007-Phase-3-CSS-Projection.md (F9), plans/008-Phase-4-Part-A-React-Renderer.md Task 11 (F3)
 - What:
+  - Both hosts: supply the widget manifest alongside the tree so the browser can compile the same catalog/capabilities/manifest arrival validator. Re-check completed intents and current revisions in the authorized backend; the browser grants no authority. Use `/react`'s scoped portal and implement overlay lifecycle in app primitives. If an adopter cannot send the manifest, record the concrete restriction and reopen the accepted Phase 4 decision; do not bypass arrival validation or introduce a catalog-only validator. The proof host demonstrates the full path, not production adoption.
   - Synapta: Certified has no five-patch identity roles or diagnostic fill roles (G2).
   - Synapta: replace positional widget ids with stable keyed paths and generate catalog components into an app-relative typed source module (`liveframe gen … --out …`), rather than inside the SDK package. Bundle that module through ordinary relative imports. Test list reordering, keyed composed fragments and generator drift; no positional-id compatibility mode or package-time component import rewrite is provided.
   - Synapta: the Certified look the parity work proved lives in `proof/styles/certified/` and must be ported to `synapta-core` — the typography roles (`fine`, `ui`, `caption`, `label.small`, `label.strong`, `mono.strong`, `overline`, `heading.2.compact`), `fontSizeAdjust` on the mono roles, the `foil` tone, `size.glyph`, `bp.sm`, the `plate`/`rule`/`callout` box recipes and the per-side border widths.
@@ -189,3 +190,19 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Source: plans/005-Phase-2-Part-A-SDK.md Task 10 (F3), plans/evidence/005-impact-analysis.md
 - What: add nested function/promise cases for primitive JSON props and composed-component props, including values discarded during expansion. Reject non-JSON composed props before invoking the component; preserve `function-prop` / `async-render` classifications and exact escaped pointers at the responsible check. Preserve bounded failures and all byte/depth checks, rerun the SDK budget, and update the guide's limitation when corrected.
 - Why: top-level function/promise props have dedicated kinds, while nested primitive values can report `invalid-prop` (or be rejected by schema first). Composed props check only top-level values before expansion: a component that discards `{ payload: { callback: () => 0 } }` currently renders successfully. The emitted tree is valid, but this misses §7.1's non-JSON prop restriction. These are distinct rejection and diagnostic gaps; this handoff changes no implementation or current error contract.
+
+## Profile production browser selection costs before optimizing the renderer
+
+- Section: Renderer performance investigation (spec §7.1, §11)
+- Priority: P2
+- Source: plans/008-Phase-4-Part-A-React-Renderer.md Task 11 (F2), plans/evidence/008-impact-analysis.md
+- What: profile the same 679-node agent-home selection update under both design systems in a production browser build. Record machine/browser/build/load, warm repeated samples and separate arrival validation, React rendering, layout and paint. Compare against the development instrumentation in `proof/tests/renderer-browser.test.tsx` (`selection_rerender_cost_is_recorded`); avoid treating Profiler callback intervals as isolated DOM commit or paint. Propose optimization only from measured costs, preserving full arrival checks, stable ids, fallbacks and all existing budgets. This handoff approves investigation, not a cache, tree patches or a new browser budget.
+- Why: Task 8 Certified/Rack validation was 2.5/3.0 ms, Profiler render 58.8/59.5 ms and synchronous update 81.8/84.6 ms, above its 2 ms reporting threshold. These are development/profiling observations, not a measured production regression. HTTP state and warm switching pass their existing gates; neither measures full browser update latency. Keep the independent standalone-validator gate in its own P1 entry.
+
+## Evaluate generated implementation types for JSON-loaded catalogs
+
+- Section: Conditional implementation authoring improvement (spec §7.2, §11)
+- Priority: P4
+- Source: plans/008-Phase-4-Part-A-React-Renderer.md Task 11 (F4), plans/evidence/008-impact-analysis.md
+- What: if an adopter needs inferred implementation props/slot/event names from a JSON-loaded catalog, compare extending `liveframe gen` with continuing to use literal definitions or explicit prop narrowing. Any approved generator work must retain drift checks and type-level rejection tests, without importing the SDK into `/react` or generating runtime primitive implementations.
+- Why: `implement()` already infers literal definitions, while JSON-loaded definitions use JSON records and string names by design. Explicit prop narrowing works today; no adopter requirement justifies adding a generator mode during renderer closeout.

@@ -236,7 +236,9 @@ The findings from the parity re-proof, numbered so the report, the decision log 
   app primitives in the existing browser harness. They include development and
   profiling overhead; callback intervals include subtree layout work and are
   not isolated DOM mutation or paint timings. No new performance budget is
-  asserted. Flagged to the owner; Plan 008 Task 11 must sweep this finding.
+  asserted. Plan 008 Task 11 disposed this as a P2 production-build profiling
+  follow-up in `plans/backlog.md` ("Profile production browser selection costs
+  before optimizing the renderer"); see `plans/evidence/008-impact-analysis.md`.
   Regenerate with `timeout 120s bun test proof/tests/renderer-browser.test.tsx`.
 - In the full check the 50-row HTTP state round trip reached **1.59 ms maximum**
   over 25 warm samples (50 ms budget). Agent-home and git-status warm switch
