@@ -18,7 +18,7 @@ test("clay_panels_hydrate_under_rack_and_exercise_three_interaction_tiers", asyn
       await page.goto(new URL(`/ui/${name}`, server.url).toString());
       await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
       expect(await page.getByLabel("Design system").inputValue()).toBe("rack");
-      expect(await page.locator("#app").getAttribute("data-lf-ds")).toBe("rack@1.0.0");
+      expect(await page.locator("#app > div:first-child").getAttribute("data-lf-ds")).toBe("rack@1.0.0");
       if (name === "git-status") {
         await page.getByRole("heading", { name: "Git", exact: true }).waitFor();
         expect(await page.locator('[data-icon="git.branch"]').count()).toBe(4);

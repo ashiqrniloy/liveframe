@@ -1,0 +1,317 @@
+[
+  {
+    "name": "ready",
+    "params": {},
+    "state": {
+      "selected": "task:0",
+      "query": ""
+    },
+    "data": {
+      "items": [
+        {
+          "id": "task:0",
+          "title": "Synthetic task 0",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:1",
+          "title": "Synthetic task 1",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:2",
+          "title": "Synthetic task 2",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:3",
+          "title": "Synthetic task 3",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:4",
+          "title": "Synthetic task 4",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:5",
+          "title": "Synthetic task 5",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:6",
+          "title": "Synthetic task 6",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:7",
+          "title": "Synthetic task 7",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:8",
+          "title": "Synthetic task 8",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:9",
+          "title": "Synthetic task 9",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:10",
+          "title": "Synthetic task 10",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:11",
+          "title": "Synthetic task 11",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:12",
+          "title": "Synthetic task 12",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:13",
+          "title": "Synthetic task 13",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:14",
+          "title": "Synthetic task 14",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:15",
+          "title": "Synthetic task 15",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:16",
+          "title": "Synthetic task 16",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:17",
+          "title": "Synthetic task 17",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:18",
+          "title": "Synthetic task 18",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:19",
+          "title": "Synthetic task 19",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:20",
+          "title": "Synthetic task 20",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:21",
+          "title": "Synthetic task 21",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:22",
+          "title": "Synthetic task 22",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:23",
+          "title": "Synthetic task 23",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:24",
+          "title": "Synthetic task 24",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:25",
+          "title": "Synthetic task 25",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:26",
+          "title": "Synthetic task 26",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:27",
+          "title": "Synthetic task 27",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:28",
+          "title": "Synthetic task 28",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:29",
+          "title": "Synthetic task 29",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:30",
+          "title": "Synthetic task 30",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:31",
+          "title": "Synthetic task 31",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:32",
+          "title": "Synthetic task 32",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:33",
+          "title": "Synthetic task 33",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:34",
+          "title": "Synthetic task 34",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:35",
+          "title": "Synthetic task 35",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:36",
+          "title": "Synthetic task 36",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:37",
+          "title": "Synthetic task 37",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:38",
+          "title": "Synthetic task 38",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:39",
+          "title": "Synthetic task 39",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:40",
+          "title": "Synthetic task 40",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:41",
+          "title": "Synthetic task 41",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:42",
+          "title": "Synthetic task 42",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:43",
+          "title": "Synthetic task 43",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:44",
+          "title": "Synthetic task 44",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:45",
+          "title": "Synthetic task 45",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:46",
+          "title": "Synthetic task 46",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:47",
+          "title": "Synthetic task 47",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:48",
+          "title": "Synthetic task 48",
+          "status": "open",
+          "reasonCode": "assigned"
+        },
+        {
+          "id": "task:49",
+          "title": "Synthetic task 49",
+          "status": "open",
+          "reasonCode": "assigned"
+        }
+      ]
+    },
+    "context": {
+      "size": "full"
+    }
+  }
+]

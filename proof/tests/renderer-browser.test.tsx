@@ -1,31 +1,13 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
+import type { UiNode, UiTree } from "@arnilo/liveframe";
 import { type Browser, chromium, type Page } from "playwright";
 import { renderToString } from "react-dom/server";
-import { definitions } from "../catalog/definitions.ts";
+import { base, proofSheets, systemSheets, themeSheets } from "../css/sheets.ts";
+import { primitiveCss } from "../renderer/primitives/base.ts";
 import { certifiedTheme } from "../styles/certified/theme.ts";
 import { rackTheme } from "../styles/rack/theme.ts";
-import { base, proofSheets, themeSheets, systemSheets } from "../css/sheets.ts";
-import { primitiveCss } from "../renderer/primitives/base.ts";
-import { implementations } from "../renderer/primitives/index.tsx";
-import { registry } from "../renderer/registry.ts";
-import { Surface } from "../renderer/surface.tsx";
-import type { RenderOptions, UiNode, UiTree } from "../runtime/types.ts";
+import { Surface, scope, systems, themes } from "./fixtures/renderer.ts";
 
-const options: RenderOptions = {
-  catalog: { catalogId: "proof@1", definitions },
-  actions: ["save", "close"],
-  state: {
-    type: "object",
-    properties: {
-      query: { type: "string", maxLength: 100 },
-      selected: { type: "string", maxLength: 100 },
-      enabled: { type: "boolean" },
-    },
-    required: [],
-    additionalProperties: false,
-  },
-};
-const registered = registry(options.catalog, implementations);
 let widgetRenders = 0;
 function widget(revision = 1): UiTree {
   widgetRenders++;
@@ -37,7 +19,7 @@ function widget(revision = 1): UiTree {
   });
   return {
     format: "liveframe/1",
-    catalogId: "proof@1",
+    catalogId: "proof.ui@1",
     surfaceId: "test",
     revision,
     root: {
@@ -60,7 +42,7 @@ function widget(revision = 1): UiTree {
                 {
                   events: {
                     onChange: { type: "setState", key: "query" },
-                    onSubmit: { type: "action", name: "save", args: { source: "query" } },
+                    onCommit: { type: "action", name: "save", args: { source: "query" } },
                   },
                 },
               ),
@@ -170,15 +152,7 @@ beforeAll(async () => {
   const output = build.outputs[0];
   if (!output) throw new Error("Missing browser bundle");
   const bundle = await output.text();
-  const html = renderToString(
-    <Surface
-      tree={initial}
-      options={options}
-      registry={registered}
-      fallback={<p>Unavailable</p>}
-      onIntent={() => {}}
-    />,
-  );
+  const html = renderToString(<Surface tree={initial} {...scope} fallback={<p>Unavailable</p>} onIntent={() => {}} />);
   server = Bun.serve({
     port: 0,
     hostname: "127.0.0.1",
@@ -209,14 +183,7 @@ async function visit(run: (page: Page, errors: string[]) => Promise<void>) {
     try {
       await page.goto(server.url.toString());
       await page.waitForFunction(() => window.ready);
-      await page.evaluate((system) => {
-        const scope = document.getElementById("app");
-        scope?.setAttribute("data-lf-switching", "");
-        scope?.setAttribute("data-lf-theme", `${system}@1.0.0`);
-        scope?.setAttribute("data-lf-ds", `${system}@1.0.0`);
-        scope?.offsetWidth;
-        scope?.removeAttribute("data-lf-switching");
-      }, system);
+      await page.evaluate((system) => window.switchSystem(system), system);
       await run(page, errors);
       expect(errors).toEqual([]);
     } finally {
@@ -321,7 +288,9 @@ test(
       expect(await page.getByRole("switch", { name: "Power" }).isChecked()).toBe(true);
       await page.locator(".lf_tooltip_default_trigger").focus();
       await page.getByRole("tooltip").waitFor();
-      expect(await page.getByRole("tooltip").evaluate((el) => el.closest("[data-lf-ds]")?.id)).toBe("app");
+      expect(
+        await page.getByRole("tooltip").evaluate((el) => el.closest("[data-lf-ds]")?.hasAttribute("data-lf-portal")),
+      ).toBe(true);
       expect(await page.getByRole("tooltip").evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe(
         "rgba(0, 0, 0, 0)",
       );
@@ -381,22 +350,18 @@ test(
       const count = widgetRenders;
       const button = page.getByRole("button", { name: "Save", exact: true });
       const before = await button.evaluate((el) => getComputedStyle(el).backgroundColor);
-      const dom = await page.locator("#app").innerHTML();
-      await page.evaluate(() => {
-        const scope = document.getElementById("app");
-        const next = scope?.getAttribute("data-lf-ds") === "rack@1.0.0" ? "certified" : "rack";
-        scope?.setAttribute("data-lf-switching", "");
-        scope?.setAttribute("data-lf-theme", `${next}@1.0.0`);
-        scope?.setAttribute("data-lf-ds", `${next}@1.0.0`);
-        scope?.offsetWidth;
-        requestAnimationFrame(() => scope?.removeAttribute("data-lf-switching"));
-      });
+      const dom = await page.locator("#app > div:first-child").innerHTML();
+      await page.evaluate(() =>
+        window.switchSystem(
+          document.querySelector("#app > div")?.getAttribute("data-lf-ds") === "rack@1.0.0" ? "certified" : "rack",
+        ),
+      );
       await page.waitForFunction((colour) => {
         const button = document.querySelector(".lf_button_primary_root");
         return button && getComputedStyle(button).backgroundColor !== colour;
       }, before);
       expect(widgetRenders).toBe(count);
-      expect(await page.locator("#app").innerHTML()).toBe(dom);
+      expect(await page.locator("#app > div:first-child").innerHTML()).toBe(dom);
       await page.emulateMedia({ forcedColors: "active" });
       expect(await button.evaluate((el) => getComputedStyle(el).forcedColorAdjust)).toBe("auto");
       expect(await button.evaluate((el) => getComputedStyle(el).boxShadow)).toBe("none");
@@ -411,7 +376,14 @@ async function statics(tree: UiTree, css: string, width: number, run: (page: Pag
   page.on("pageerror", (error) => errors.push(error.message));
   try {
     const html = renderToString(
-      <Surface tree={tree} options={options} registry={registered} fallback={<p>Unavailable</p>} onIntent={() => {}} />,
+      <Surface
+        tree={tree}
+        {...scope}
+        theme={css === rack ? themes.rack : themes.certified}
+        designSystem={css === rack ? systems.rack : systems.certified}
+        fallback={<p>Unavailable</p>}
+        onIntent={() => {}}
+      />,
     );
     await page.setContent(
       `<!doctype html><html lang="en"><head><meta charset="utf-8"><style>html,body{margin:0}${css}</style></head><body><div id="host" class="lf_surface" data-lf-theme="${css === rack ? "rack" : "certified"}@1.0.0" data-lf-ds="${css === rack ? "rack" : "certified"}@1.0.0" style="width:${width}px">${html}</div></body></html>`,
@@ -425,7 +397,7 @@ async function statics(tree: UiTree, css: string, width: number, run: (page: Pag
 
 const responsiveTree: UiTree = {
   format: "liveframe/1",
-  catalogId: "proof@1",
+  catalogId: "proof.ui@1",
   surfaceId: "responsive",
   revision: 1,
   root: {
@@ -539,3 +511,34 @@ test("sticky_position_sticks_within_its_scroller", async () => {
     expect(Math.round(stickyTop - regionTop)).toBe(0);
   });
 }, 15000);
+
+test(
+  "text_field_counts_code_points",
+  () =>
+    visit(async (page) => {
+      const next = widget(2);
+      const children = (next.root.children ?? []).map((node) =>
+        node.kind === "scroll"
+          ? {
+              ...node,
+              children: (node.children ?? []).map((child) =>
+                child.kind === "textField" ? { ...child, props: { ...child.props, value: "", maxLength: 3 } } : child,
+              ),
+            }
+          : node,
+      );
+      await update(page, { ...next, root: { ...next.root, children } });
+      const field = page.getByRole("textbox", { name: "Query" });
+      expect(await field.getAttribute("maxlength")).toBeNull();
+      await field.fill("😀😀😀");
+      await field.press("Enter");
+      expect(await field.inputValue()).toBe("😀😀😀");
+      expect(await page.evaluate(() => window.intents.slice(-2))).toEqual([
+        { type: "setState", key: "query", value: "😀😀😀" },
+        { type: "action", name: "save", args: { source: "query" } },
+      ]);
+      await field.pressSequentially("😀");
+      expect(await field.inputValue()).toBe("😀😀😀");
+    }),
+  15000,
+);

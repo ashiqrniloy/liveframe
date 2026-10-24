@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { compileValidator, type Result, validateCapabilities, validateCatalog } from "@arnilo/liveframe";
-import { pack, type Scenario } from "@arnilo/liveframe/pack";
+import { pack } from "@arnilo/liveframe/pack";
 import { inProcessRunner } from "@arnilo/liveframe/preview";
 import { workerRunner } from "@arnilo/liveframe/preview/worker";
 import { render } from "@arnilo/liveframe/sdk";
@@ -11,6 +11,7 @@ import { loadPlacement, type Placement } from "@arnilo/liveframe/store";
 import { fileStore } from "@arnilo/liveframe/store/fs";
 import catalogDoc from "./fixtures/proof/catalog.json" with { type: "json" };
 import capabilitiesDoc from "./fixtures/widgets/capabilities.json" with { type: "json" };
+import { drafts } from "./fixtures/widgets/drafts.ts";
 import { proofWidgets } from "./fixtures/widgets/index.ts";
 
 function value<T>(result: Result<T>): T {
@@ -34,26 +35,6 @@ const options = {
   surfaceId: "phase-2-loop",
   revision: 1,
 };
-const root = new URL("./fixtures/widgets/", import.meta.url);
-const files: Record<string, string> = {};
-for await (const path of new Bun.Glob("**/*.{ts,tsx}").scan(root.pathname))
-  files[path] = await Bun.file(new URL(path, root)).text();
-const entries = [
-  ["agent-home/queue.tsx", "AgentHomeQueue"],
-  ["core-queue/widget.tsx", "CoreQueue"],
-  ["git-status/git-status.tsx", "GitStatus"],
-  ["rack-module/rack-module.tsx", "RackModule"],
-];
-const drafts = proofWidgets.map((fixture, i) => {
-  const entry = entries[i];
-  if (!entry) throw new Error("Missing widget entry");
-  return {
-    files: { ...files, "entry.ts": `export { ${entry[1]} as default } from "./${entry[0]}";` },
-    entry: "entry.ts",
-    manifest: fixture.manifest,
-    scenarios: fixture.scenarios as readonly Scenario[],
-  };
-});
 const draft = drafts[0];
 const fixture = proofWidgets[0];
 if (!draft || !fixture) throw new Error("Missing agent-home fixture");

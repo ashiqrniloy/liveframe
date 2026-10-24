@@ -1,13 +1,10 @@
 import { resolve, sep } from "node:path";
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";
-import { surfaceAttributes } from "@arnilo/liveframe/css";
-import { base, themes, systems, themeSheets, systemSheets } from "../css/sheets.ts";
+import { base, systemSheets, themeSheets } from "../css/sheets.ts";
 import { primitiveCss } from "../renderer/primitives/base.ts";
 import { isRecord } from "../runtime/data.ts";
-import { WidgetError } from "../runtime/errors.ts";
-import { agentHomeScenarios, openPage, pages } from "./pages.ts";
-import { type HostedSurface, StaleRevision } from "./state.ts";
+import { type HostedSurface, InvalidIntent, openPage, packages, pages, StaleRevision } from "./pages.ts";
 import { ProofSurface } from "./view.tsx";
 
 export async function startHost(port = 3000) {
@@ -68,12 +65,12 @@ body { margin: 0; -webkit-font-smoothing: antialiased; }
             return error("Invalid intent request", 400);
           const session = sessions.get(body.surfaceId);
           if (!session) return error("Unknown surface", 404);
-          return Response.json(session.dispatch(body.revision as number, body.intent), {
+          return Response.json(await session.dispatch(body.revision as number, body.intent), {
             headers: { "Cache-Control": "no-store" },
           });
         } catch (cause) {
           if (cause instanceof StaleRevision) return error(cause.message, 409);
-          if (cause instanceof WidgetError || cause instanceof SyntaxError) return error(cause.message, 400);
+          if (cause instanceof InvalidIntent || cause instanceof SyntaxError) return error(cause.message, 400);
           console.error(cause);
           return error("Host failed to process intent", 500);
         }
@@ -93,28 +90,26 @@ body { margin: 0; -webkit-font-smoothing: antialiased; }
         );
       const name = url.pathname.slice("/ui/".length);
       if (!url.pathname.startsWith("/ui/") || !Object.hasOwn(pages, name)) return error("Not found", 404);
-      const size = url.searchParams.get("size") ?? "full";
+      const scenario = url.searchParams.get("scenario") ?? undefined;
+      const pkg = packages.get(name === "design-system" ? "agent-home" : name);
+      const selectedScenario = pkg?.scenarios.find((entry) => entry.name === scenario);
+      if (scenario !== undefined && !selectedScenario) return error("Invalid package scenario", 400);
+      const scenarioSize = isRecord(selectedScenario?.context) ? selectedScenario.context.size : undefined;
+      const size = url.searchParams.get("size") ?? (typeof scenarioSize === "string" ? scenarioSize : "full");
       if (!["small", "medium", "large", "full"].includes(size)) return error("Invalid widget size", 400);
-      const scenario = url.searchParams.get("scenario") ?? "ready";
-      if (!agentHomeScenarios.includes(scenario)) return error("Invalid queue scenario", 400);
       const specimenWidth =
         name === "core-queue"
           ? ({ small: "21rem", medium: "36rem", large: "54rem", full: "100%" }[size] ?? "100%")
           : "100%";
       const designSystem = name === "git-status" || name === "rack-module" ? "rack" : "certified";
 
-      const session = openPage(size, name, scenario);
+      const session = await openPage(size, name, scenario);
       const snapshot = session.snapshot();
-      const attributes = surfaceAttributes({
-        theme: themes[designSystem],
-        designSystem: systems[designSystem],
-        tree: snapshot.tree,
-      });
       sessions.set(snapshot.tree.surfaceId, session);
-      const markup = renderToString(createElement(ProofSurface, { snapshot, onIntent: () => {} }));
+      const markup = renderToString(createElement(ProofSurface, { snapshot, designSystem, onIntent: () => {} }));
       const json = JSON.stringify(snapshot).replaceAll("<", "\\u003c");
       return html(
-        `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Liveframe proof</title>${fontFaces}<link rel="stylesheet" href="/styles/base.css"><link rel="stylesheet" href="/styles/primitives.css">${["certified", "rack"].map((name) => `<link data-design-system="${name}" rel="stylesheet" href="/styles/${name}.theme.css"><link data-design-system="${name}" rel="stylesheet" href="/styles/${name}.css">`).join("")}</head><body><nav aria-label="Reference UIs"><a href="/">All reference UIs</a></nav><h1>${pages[name as keyof typeof pages]}</h1><label>Design system <select id="design-system" disabled><option value="certified"${designSystem === "certified" ? " selected" : ""}>Certified</option><option value="rack"${designSystem === "rack" ? " selected" : ""}>Rack</option></select></label><p>Widget size: ${size}. Use ?size=small, medium, large or full.</p><div id="app" class="${attributes.class}" data-lf-theme="${attributes["data-lf-theme"]}" data-lf-ds="${attributes["data-lf-ds"]}" style="max-width:${specimenWidth}">${markup}</div><p id="status" role="alert"></p><h2>Actions (logged only)</h2><pre id="actions" aria-live="polite">[]</pre><script type="application/json" id="bootstrap">${json}</script><script type="module" src="/client.js"></script></body></html>`,
+        `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Liveframe proof</title>${fontFaces}<link rel="stylesheet" href="/styles/base.css"><link rel="stylesheet" href="/styles/primitives.css">${["certified", "rack"].map((name) => `<link data-design-system="${name}" rel="stylesheet" href="/styles/${name}.theme.css"><link data-design-system="${name}" rel="stylesheet" href="/styles/${name}.css">`).join("")}</head><body><nav aria-label="Reference UIs"><a href="/">All reference UIs</a></nav><h1>${pages[name as keyof typeof pages]}</h1><label>Design system <select id="design-system" disabled><option value="certified"${designSystem === "certified" ? " selected" : ""}>Certified</option><option value="rack"${designSystem === "rack" ? " selected" : ""}>Rack</option></select></label><p>Widget size: ${size}. Use ?size=small, medium, large or full.</p><div id="app" data-design-system="${designSystem}" style="max-width:${specimenWidth}">${markup}</div><p id="status" role="alert"></p><h2>Actions (logged only)</h2><pre id="actions" aria-live="polite">[]</pre><script type="application/json" id="bootstrap">${json}</script><script type="module" src="/client.js"></script></body></html>`,
       );
     },
   });

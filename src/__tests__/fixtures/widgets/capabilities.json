@@ -369,6 +369,47 @@
         },
         "maxItems": 100
       }
+    },
+    "harness.items": {
+      "description": "Synthetic host protocol rows.",
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "array",
+        "maxItems": 50,
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "title": {
+              "type": "string",
+              "maxLength": 1000
+            },
+            "status": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "reasonCode": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "status",
+            "reasonCode"
+          ],
+          "additionalProperties": false
+        }
+      }
     }
   },
   "actions": {

@@ -23,6 +23,8 @@ let browser: Browser;
 let markup: string;
 beforeAll(async () => {
   markup = await Bun.file(new URL("./fixtures/css/agent-home.html", import.meta.url)).text();
+  // This CSS-only harness supplies its own scopes around the captured Surface markup.
+  markup = markup.replace(/ data-lf-(?:theme|ds)="[^"]*"/g, "");
   browser = await chromium.launch({ headless: true });
 });
 afterAll(async () => browser?.close());

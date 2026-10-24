@@ -124,7 +124,7 @@ Two plans: Part A (the renderer), then Part B (the preview), which draws drafts 
 
 ## 3. Execution state
 
-- **Current phase:** Phase 4 Part A (React renderer, plan 008) in progress — Tasks 1–6 complete; Task 7 is next. Part B is plan 009. Phase 3 plan 007 Tasks 1–12 and impact follow-up Task 11a are complete; findings disposed in the impact analysis and backlog. Phase 2 plans 005 and 006 are complete; plan 005's impact findings include active SDK validation and validator-performance backlog items. Plan 002 Task 9's owner gate remains recorded separately.
+- **Current phase:** Phase 4 Part A (React renderer, plan 008) in progress — Tasks 1–7 complete; Task 8 is next. Part B is plan 009. Phase 3 plan 007 Tasks 1–12 and impact follow-up Task 11a are complete; findings disposed in the impact analysis and backlog. Phase 2 plans 005 and 006 are complete; plan 005's impact findings include active SDK validation and validator-performance backlog items. Plan 002 Task 9's owner gate remains recorded separately.
 - **Next free plan number:** 010.
 
 One line per plan. Detail lives in the plan file, never here.
@@ -138,5 +138,5 @@ One line per plan. Detail lives in the plan file, never here.
 | [005](plans/005-Phase-2-Part-A-SDK.md) | 2 | complete (Tasks 1–10 and Task 9a; findings disposed in the impact analysis and backlog) |
 | [006](plans/006-Phase-2-Part-B-Packages-Storage-Runners.md) | 2 | complete (Tasks 1–12; findings disposed in the impact analysis and backlog) |
 | [007](plans/007-Phase-3-CSS-Projection.md) | 3 | complete (Tasks 1–12 and Task 11a; findings disposed in the impact analysis and backlog) |
-| [008](plans/008-Phase-4-Part-A-React-Renderer.md) | 4 | in progress (Tasks 1–6 complete) |
+| [008](plans/008-Phase-4-Part-A-React-Renderer.md) | 4 | in progress (Tasks 1–7 complete) |
 | [009](plans/009-Phase-4-Part-B-Preview.md) | 4 | planned (depends on 008) |

@@ -15,16 +15,22 @@ to commit it before pressing Escalate. Claims, review, escalation, alert control
 and retry are logged only.
 
 Use `/ui/agent-home?scenario=loading`, `empty`, `failed`, `read-only`, `no-alerts`
-or `no-escalate` to inspect its fixture states. `/ui/core-queue` supports the same
-scenarios and renders a decision metric at small, decision rows at medium, rows
+or `no-escalate` to inspect its fixture states. Its default `host-ready` scenario
+keeps the approved six-subject parity fixture; `?scenario=ready` selects the
+679-node, 50-task benchmark. `/ui/core-queue` has the package scenarios `small`,
+`medium`, `large` and `full` for benchmarks, plus `host-small`, `host-medium`,
+`host-large` and `host-full` for the paged reference data (defaults to
+`host-<size>`). A scenario supplies its context size unless `?size=` overrides
+it. It renders a decision metric at small, decision rows at medium, rows
 plus a selectable focus card at large, and the grouped queue at full. Its host
 placement uses the approved 21rem/36rem/54rem/100% specimen caps. Medium and large
 page decisions only.
 
 `/ui/git-status` shows synthetic Clay workspace roots with branch, dirty and
-refresh labels and icons. Use `?scenario=empty` for no workspace roots.
+refresh labels and icons. Use `?scenario=empty` for no workspace roots or
+`?scenario=benchmark` for 52 label rows.
 `/ui/rack-module` shows the agent-info module's rail, header, file tabs, footer
-and composer. Both pages start under Rack. Typing stays local; leave the message
+and composer. `?scenario=benchmark` selects its 50-file fixture. Both pages start under Rack. Typing stays local; leave the message
 field to commit the draft before Send. Files / OM / Context tabs rerun the widget;
 OM has no source fixture and says so. Close container and Send log declared
 actions without closing a container or contacting an agent. Model and effort
@@ -44,12 +50,20 @@ parity script draws its widget region at the artifact's own page origin, not at
 the host's, so sub-pixel glyph phases match and the number measures look rather
 than antialiasing.
 
-Widgets run in Bun. The browser bundle contains the compiled renderer and host
-client; it receives only validated tree data and render options. POST `/intent`
-sends `{ surfaceId, revision, intent }` and returns `{ tree, options, actions }`.
-Requests must match the current revision and an offered intent. State and action
-arguments are schema checked. A failed rerender leaves the prior state intact.
-The client serializes commits to preserve revision order.
+The host builds each SDK fixture with `pack()` from the shared drafts in
+`src/__tests__/fixtures/widgets/drafts.ts`, then runs it through
+`inProcessRunner()` in Bun. A package scenario supplies params, state, data and
+context; state falls back to the manifest initial state when omitted. The
+browser bundle contains the app primitives and `@arnilo/liveframe/react`, and
+receives `{ tree, manifest, actions }`. It compiles an arrival validator from
+the installed catalog, capabilities and manifest before mounting `Surface`.
+POST `/intent` sends `{ surfaceId, revision, intent }` and returns the same
+snapshot shape. Requests must match the current revision and an offered intent.
+The host checks state keys and values against the manifest, and action names
+and completed arguments against the manifest and capability schemas. A failed rerender leaves the prior state intact.
+The client serializes commits to preserve revision order; concurrent state
+requests cannot overwrite an already accepted revision. Text fields count
+Unicode code points without native `maxlength`: three emoji fit a limit of three.
 
 Fonts are a host asset, not widget or theme data. The host serves the Certified
 faces from `proof/references/synapta-core/design-artifacts/fonts/` at `/fonts/…`
@@ -58,7 +72,8 @@ serves the same snapshot so the approved artifact loads its own faces.
 
 The renderer adds the surface typography and, only when the tree uses a
 responsive style value, the query container that `@container` breakpoint rules
-read. A surface without responsive values stays a plain style target, so a
+read, plus a sibling container for scoped overlays. Only the surface gains
+`lf_container`, not each parent of a responsive node. A surface without responsive values stays a plain style target, so a
 design-system switch keeps the Plan 001 activation budget.
 
 This is a localhost-only, trusted in-process proof. Surfaces and logs stay in

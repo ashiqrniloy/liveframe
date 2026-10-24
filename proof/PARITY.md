@@ -1,6 +1,12 @@
 # Agent-home queue parity evidence
 
-Re-proved by Plan 007 Task 10, 2026-10-24, using the published `/css` projection and scoped proof host. The pixel counts, 281 positional DOM differences and 32 sampled style differences exactly match the approved Plan 002 Task 8 capture (2026-10-22). The original approval and inventory below still apply.
+Re-proved by Plan 008 Task 7, 2026-10-24, using SDK widget packages, the
+in-process runner and the published `/react` renderer. The pixel counts, 281
+positional DOM differences and 32 sampled style differences exactly match the
+approved capture below. The parity script captures the widget root inside the
+new Surface wrapper; the wrapper and scoped portal do not change its pixels.
+
+Previously re-proved by Plan 007 Task 10, 2026-10-24, using the published `/css` projection and scoped proof host. The pixel counts, 281 positional DOM differences and 32 sampled style differences exactly match the approved Plan 002 Task 8 capture (2026-10-22). The original approval and inventory below still apply.
 
 **Result: the ≤ 1% pixel bar is met at all three widths.** Ten DOM causes and 32 style values remain, each with its reason and disposition below. The raw positional counts (281 DOM paths, 32 style values) are in the capture; the cause list is what the owner is asked to approve.
 
@@ -13,7 +19,7 @@ timeout 60 bun proof/scripts/inventory.ts --dir evidence/parity    # the same ca
 
 The first script starts two ephemeral localhost servers and headless Chromium, then closes them. It uses the existing Playwright dependency, browser Canvas for PNG decoding and diffing, and Bun for execution and file output. No image dependency or other runtime is added. If Chromium is absent, install it with `timeout 600 bunx playwright install chromium`. The second script reads the capture: no browser, no network.
 
-Inputs: the verbatim `proof/references/synapta-core/design-artifacts/approved/agent-home-certified.html` from Synapta commit `fc6df4b3a68e117c10120276193717e7213b07bf`, queue section lines 1137–1245, and the unmodified `/ui/agent-home` ready/full fixture under Certified. Artifact SHA-256: `2a2a6579867b3ce77030583c3b0b8212a843323b2f1622200609ae168042e266`. Both show the same six initial subjects, default decision focus and totals 12/5/4/3. Data is synthetic; actions only log. The two artifact faces and their licences are snapshotted (`references/SOURCES.md`, Plan 002 Task 2).
+Inputs: the verbatim `proof/references/synapta-core/design-artifacts/approved/agent-home-certified.html` from Synapta commit `fc6df4b3a68e117c10120276193717e7213b07bf`, queue section lines 1137–1245, and the unmodified `/ui/agent-home` default `host-ready`/full fixture under Certified. Artifact SHA-256: `2a2a6579867b3ce77030583c3b0b8212a843323b2f1622200609ae168042e266`. Both show the same six initial subjects, default decision focus and totals 12/5/4/3. Data is synthetic; actions only log. The two artifact faces and their licences are snapshotted (`references/SOURCES.md`, Plan 002 Task 2).
 
 Environment for the Plan 007 re-proof: Linux, Bun 1.4.4, Playwright 1.64.1, Chromium 156.0.8078.4. Each width uses a fresh browser context, height 1000 CSS px, device scale 1, light colour scheme, reduced motion, en-US and UTC. External network requests are blocked. Hydration, an explicit load of both artifact faces and `document.fonts.ready` complete before capture. Both faces must report loaded on both pages; any browser exception or HTTP failure fails the run.
 

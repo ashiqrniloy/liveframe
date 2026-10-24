@@ -179,3 +179,30 @@ The findings from the parity re-proof, numbered so the report, the decision log 
 - **Parity preserved.** `timeout 600s bun proof/scripts/parity.ts --out evidence/parity` reproduces **0.72% / 0.75% / 0.97%** at 1440 / 1024 / 390 px, with exactly the approved 281 DOM / 32 style differences and no diagnostics. See `proof/PARITY.md`.
 - **Rack scrollbar adopter deviation.** App primitive CSS no longer hard-codes the `surface.scrollbar` role or webkit scrollbar thumb. The scrollbar follows the selected theme's native `color-scheme`; this accepted Phase 3 omission has no agent-home parity impact. Primitive structure lives in trusted app CSS (`proof/renderer/primitives/base.ts`), outside widget/style-data colour-authority scans. Any future app colours must reference theme roles through `colourVar`.
 - **Grid-track handoff closed.** Both QueueRows use keyed flex composition with fixed marker, growing body, non-shrinking flag and trailing padding when the flag is absent. The exporter no longer substitutes `0fr`; SDK and exported trees compare without layout exceptions and retain the 679-node benchmark.
+
+## Plan 008 Task 7 — package-backed proof host and published renderer
+
+- **G20 renderer half closed.** The app-owned text field uses a controlled value
+  and counts Unicode code points, never native `maxlength`. Three emoji at a
+  limit of three commit; a fourth is refused. Blur uses `onChange`, Enter uses
+  `onChange` followed by `onCommit`. Regenerate with
+  `timeout 120s bun test proof/tests/renderer-browser.test.tsx`. Earlier notes
+  about native UTF-16 limits describe the removed proof renderer.
+- The host builds five packages (the four reference widgets and the 50-row
+  harness) from shared SDK drafts. All 22 package scenarios draw through
+  `inProcessRunner()` and hydrate through `/react` under both design systems.
+  Manifest state, capability arguments, current offered intents and revisions
+  are rechecked; actions are logged. Concurrent state requests cannot overwrite
+  an accepted revision. The old renderer and host state helper are removed.
+- Pixel counts remain **9712 / 7088 / 5572** at 1440 / 1024 / 390 px, meeting
+  the ≤ 1% bar. The parity capture targets the widget root inside the new
+  surface wrapper: the approved 281 DOM paths and 32 sampled style values
+  also match Plan 007 exactly. See `proof/PARITY.md`; regenerate with
+  `timeout 600s bun proof/scripts/parity.ts --out evidence/parity`.
+- Focused hydrated-host measurements: agent-home **11.5 ms cold / 7.1 ms warm
+  maximum**, git-status **4.8 / 4.1 ms**, ten switches each. The 50-row state
+  HTTP round trip measured **3.42 ms maximum** over 25 warm samples. Commands:
+  `timeout 120s bun test proof/tests/switch.test.ts` and
+  `timeout 120s bun test proof/tests/host.test.ts`. The fallback element is
+  stable so style switches do not rerender primitives. Task 8 retains the
+  arrival-validation and React commit measurements and overlay lifecycle gates.

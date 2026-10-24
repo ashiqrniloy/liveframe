@@ -74,9 +74,10 @@ test("proof_scenario_inventory", () => {
     Object.fromEntries(proofWidgets.map((fixture) => [fixture.name, fixture.scenarios.map((s) => s.name)])),
   ).toEqual({
     "agent-home": ["ready", "host-ready", "loading", "empty", "failed", "read-only", "no-alerts", "no-escalate"],
-    "core-queue": ["small", "medium", "large", "full"],
+    "core-queue": ["small", "medium", "large", "full", "host-small", "host-medium", "host-large", "host-full"],
     "git-status": ["ready", "empty", "benchmark"],
     "rack-module": ["ready", "benchmark"],
+    harness: ["ready"],
   });
 });
 

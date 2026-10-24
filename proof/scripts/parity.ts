@@ -67,7 +67,7 @@ const different = (before: string, after: string) => {
 assert(!different("10px", "10.5px") && different("10px", "10.51px") && different("grid", "flex"));
 
 async function capture(page: Page, approved: boolean, width: number, align?: { x: number; y: number }) {
-  const selector = approved ? '[data-widget="core.queue"]' : "#app > :first-child";
+  const selector = approved ? '[data-widget="core.queue"]' : "#app > :first-child > :first-child";
   const region = page.locator(selector);
   assert.equal(await region.count(), 1, `Expected one queue: ${selector}`);
   // Sub-pixel glyph rasterisation depends on the page offset: a region drawn at another fraction of a

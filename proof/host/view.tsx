@@ -1,28 +1,38 @@
-import { definitions } from "../catalog/definitions.ts";
+import { compileValidator, type Intent, validateCapabilities } from "@arnilo/liveframe";
+import { createRenderer } from "@arnilo/liveframe/react";
+import { useMemo } from "react";
+import capabilities from "../../src/__tests__/fixtures/widgets/capabilities.json";
+import { catalog } from "../css/fixtures.ts";
+import { systems, themes } from "../css/sheets.ts";
 import { implementations } from "../renderer/primitives/index.tsx";
-import { registry } from "../renderer/registry.ts";
-import { Surface } from "../renderer/surface.tsx";
-import type { Intent } from "../runtime/types.ts";
-import type { Snapshot } from "./state.ts";
+import type { Snapshot } from "./pages.ts";
 
-const registered = registry({ definitions }, implementations);
+const checked = validateCapabilities(capabilities);
+if (!checked.ok) throw new Error(JSON.stringify(checked.errors));
+const installedCapabilities = checked.value;
+const { Surface } = createRenderer({ catalog, implementations });
+const fallback = <p>Widget unavailable</p>;
 export function ProofSurface({
   snapshot,
   onIntent,
-  portalContainer,
+  designSystem = "certified",
 }: {
   snapshot: Snapshot;
   onIntent: (intent: Intent) => void;
-  portalContainer?: Element | undefined;
+  designSystem?: keyof typeof systems;
 }) {
+  const validator = useMemo(
+    () => compileValidator({ catalog, capabilities: installedCapabilities, manifest: snapshot.manifest }),
+    [snapshot.manifest],
+  );
   return (
     <Surface
-      portalContainer={portalContainer}
       tree={snapshot.tree}
-      options={snapshot.options}
-      registry={registered}
+      validator={validator}
+      theme={themes[designSystem]}
+      designSystem={systems[designSystem]}
       onIntent={onIntent}
-      fallback={<p>Widget unavailable</p>}
+      fallback={fallback}
     />
   );
 }

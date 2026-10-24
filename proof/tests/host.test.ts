@@ -1,33 +1,34 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
+import { pack } from "@arnilo/liveframe/pack";
 import { type Browser, chromium } from "playwright";
+import { drafts, packageOptions, value } from "../../src/__tests__/fixtures/widgets/drafts.ts";
+import { createSession, openPage, packages } from "../host/pages.ts";
 import { startHost } from "../host/server.ts";
-import { createSurface } from "../host/state.ts";
-import { harnessActions, harnessInputs, harnessOptions, harnessWidget } from "../widgets/harness.tsx";
 
-const surface = () => createSurface(harnessWidget, harnessInputs, harnessOptions, harnessActions);
+const surface = () => openPage("full", "harness");
 
-test("set_state_reruns_widget_and_returns_new_tree", () => {
-  const session = surface();
+test("set_state_reruns_widget_and_returns_new_tree", async () => {
+  const session = await surface();
   const initial = session.snapshot();
-  const next = session.dispatch(initial.tree.revision, { type: "setState", key: "selected", value: "task:1" });
+  const next = await session.dispatch(initial.tree.revision, { type: "setState", key: "selected", value: "task:1" });
   expect(next.tree.revision).toBe(initial.tree.revision + 1);
   expect(JSON.stringify(next.tree)).toContain("Selected: task:1");
   expect(initial.tree.revision).toBe(1);
-  expect(surface().snapshot().tree.surfaceId).not.toBe(next.tree.surfaceId);
-  expect(JSON.stringify(surface().snapshot().tree)).toContain("Selected: task:0");
+  expect((await surface()).snapshot().tree.surfaceId).not.toBe(next.tree.surfaceId);
+  expect(JSON.stringify((await surface()).snapshot().tree)).toContain("Selected: task:0");
 });
 
-test("action_is_logged_and_never_rerenders_by_itself", () => {
-  const session = surface();
+test("action_is_logged_and_never_rerenders_by_itself", async () => {
+  const session = await surface();
   const initial = session.snapshot();
-  const next = session.dispatch(1, { type: "action", name: "tasks.claim", args: { id: "task:0" } });
+  const next = await session.dispatch(1, { type: "action", name: "tasks.claim", args: { id: "task:0" } });
   expect(next.tree).toBe(initial.tree);
   expect(next.actions).toEqual([{ type: "action", name: "tasks.claim", args: { id: "task:0" } }]);
   expect(initial.actions).toEqual([]);
 });
 
-test("dispatch_rechecks_state_actions_current_tree_and_revision", () => {
-  const session = surface();
+test("dispatch_rechecks_state_actions_current_tree_and_revision", async () => {
+  const session = await surface();
   for (const intent of [
     { type: "setState", key: "unknown", value: "x" },
     { type: "setState", key: "selected", value: 3 },
@@ -40,27 +41,37 @@ test("dispatch_rechecks_state_actions_current_tree_and_revision", () => {
     { type: "action", name: "tasks.claim", args: { id: "task:0", extra: true } },
     null,
   ])
-    expect(() => session.dispatch(1, intent)).toThrow();
-  expect(() => session.dispatch(0, { type: "setState", key: "query", value: "ok" })).toThrow("revision");
+    await expect(session.dispatch(1, intent)).rejects.toThrow();
+  await expect(session.dispatch(0, { type: "setState", key: "query", value: "ok" })).rejects.toThrow("revision");
   expect(session.snapshot().tree.revision).toBe(1);
   expect(session.snapshot().actions).toEqual([]);
-  const next = session.dispatch(1, { type: "setState", key: "query", value: "committed" });
+  const next = await session.dispatch(1, { type: "setState", key: "query", value: "committed" });
   expect(JSON.stringify(next.tree)).toContain("committed");
 });
 
-test("failed_rerender_rolls_back_state_and_action_schemas_are_checked", () => {
-  const widget = (props: Parameters<typeof harnessWidget>[0]): unknown =>
-    props.state.query === "fail" ? null : harnessWidget(props);
-  const session = createSurface(widget, harnessInputs, harnessOptions, harnessActions);
-  expect(() => session.dispatch(1, { type: "setState", key: "query", value: "fail" })).toThrow();
+test("failed_rerender_rolls_back_state", async () => {
+  const draft = drafts.at(-1);
+  const original = packages.get("harness");
+  if (!draft || !original?.scenarios[0]) throw new Error("Missing harness");
+  const pkg = value(
+    pack(
+      {
+        ...draft,
+        files: {
+          ...draft.files,
+          "entry.ts":
+            'import { harnessWidget } from "./harness/widget.tsx"; export default (props) => props.state.query === "fail" ? null : harnessWidget(props);',
+        },
+      },
+      packageOptions,
+    ),
+  );
+  const input = { ...original.scenarios[0], state: original.scenarios[0].state ?? original.manifest.initialState };
+  const session = await createSession(pkg, input);
+  await expect(session.dispatch(1, { type: "setState", key: "query", value: "fail" })).rejects.toThrow();
   expect(session.snapshot().tree.revision).toBe(1);
-  const next = session.dispatch(1, { type: "setState", key: "selected", value: "task:1" });
+  const next = await session.dispatch(1, { type: "setState", key: "selected", value: "task:1" });
   expect(next.tree.root.children?.find((node) => node.kind === "textField")?.props.value).toBe("");
-  const restricted = createSurface(harnessWidget, harnessInputs, harnessOptions, {
-    "tasks.claim": { type: "object", properties: {}, required: [], additionalProperties: false },
-  });
-  expect(() => restricted.dispatch(1, { type: "action", name: "tasks.claim", args: { id: "task:0" } })).toThrow();
-  expect(restricted.snapshot().actions).toEqual([]);
 });
 
 let server: Awaited<ReturnType<typeof startHost>>;
@@ -78,7 +89,7 @@ async function openSurface(path = "harness") {
   const html = await (await fetch(new URL(`/ui/${path}`, server.url))).text();
   const json = html.match(/<script type="application\/json" id="bootstrap">(.*?)<\/script>/s)?.[1];
   if (!json) throw new Error("Missing bootstrap");
-  return JSON.parse(json) as ReturnType<ReturnType<typeof surface>["snapshot"]>;
+  return JSON.parse(json) as ReturnType<Awaited<ReturnType<typeof surface>>["snapshot"]>;
 }
 const post = (body: unknown, origin?: string) =>
   fetch(new URL("/intent", server.url), {
@@ -93,6 +104,10 @@ test("host_serves_reference_pages_and_rejects_invalid_requests", async () => {
   }
   expect((await fetch(new URL("/ui/missing", server.url))).status).toBe(404);
   expect((await fetch(new URL("/ui/core-queue?size=huge", server.url))).status).toBe(400);
+  for (const scenario of ["missing", ""])
+    expect((await fetch(new URL(`/ui/core-queue?scenario=${scenario}`, server.url))).status).toBe(400);
+  const small = await openSurface("core-queue?scenario=small");
+  expect(small.tree.root).toEqual((await openPage("small", "core-queue", "small")).snapshot().tree.root);
   for (const [path, bytes] of [
     ["/fonts/schibsted-grotesk/latin-wght-normal.woff2", 46752],
     ["/fonts/martian-mono/latin-wdth-normal.woff2", 38492],
@@ -153,14 +168,14 @@ test("browser_hydrates_posts_intents_logs_actions_and_switches_styles", async ()
     const before = await button.evaluate((el) => getComputedStyle(el).backgroundColor);
     await page.getByLabel("Design system").focus();
     await page.mouse.move(0, 0);
-    const dom = await page.locator("#app").innerHTML();
+    const dom = await page.locator("#app > div:first-child").innerHTML();
     const postCount = posts;
     await page.getByLabel("Design system").selectOption("rack");
     await page.waitForFunction((colour) => {
       const el = document.querySelector(".lf_button_primary_root");
       return el && getComputedStyle(el).backgroundColor !== colour;
     }, before);
-    expect(await page.locator("#app").innerHTML()).toBe(dom);
+    expect(await page.locator("#app > div:first-child").innerHTML()).toBe(dom);
     expect(posts).toBe(postCount);
     expect(errors).toEqual([]);
   } finally {

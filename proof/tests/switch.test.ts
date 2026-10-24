@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { type Browser, chromium } from "playwright";
-import { agentHomeScenarios, openPage } from "../host/pages.ts";
+import { openPage, packages } from "../host/pages.ts";
 import { startHost } from "../host/server.ts";
 
 let server: Awaited<ReturnType<typeof startHost>>;
@@ -14,9 +14,9 @@ afterAll(async () => {
   await server?.stop(true);
 });
 
-test("design_system_page_uses_the_unchanged_reference_queue", () => {
-  expect(openPage("full", "design-system").snapshot().tree.root).toEqual(
-    openPage("full", "agent-home").snapshot().tree.root,
+test("design_system_page_uses_the_unchanged_reference_queue", async () => {
+  expect((await openPage("full", "design-system")).snapshot().tree.root).toEqual(
+    (await openPage("full", "agent-home")).snapshot().tree.root,
   );
 });
 
@@ -29,25 +29,20 @@ test("all_proof_scenarios_render_with_both_scoped_design_systems", async () => {
     if (message.type() === "error") errors.push(message.text());
   });
   try {
-    const paths = [
-      ...["agent-home", "core-queue"].flatMap((name) =>
-        (name === "core-queue" ? ["small", "medium", "large", "full"] : ["full"]).flatMap((size) =>
-          agentHomeScenarios.map((scenario) => `/ui/${name}?size=${size}&scenario=${scenario}`),
-        ),
+    const paths = [...packages].flatMap(([name, pkg]) =>
+      pkg.scenarios.map(
+        (scenario) =>
+          `/ui/${name}?size=${(scenario.context as Record<string, unknown>).size}&scenario=${scenario.name}`,
       ),
-      "/ui/git-status",
-      "/ui/git-status?scenario=empty",
-      "/ui/rack-module",
-      "/ui/harness",
-    ];
+    );
     for (const path of paths) {
       await page.goto(new URL(path, server.url).toString());
       await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
       expect(await page.locator("link[data-design-system]").count()).toBe(4);
       for (const system of ["certified", "rack"]) {
         await page.getByLabel("Design system").selectOption(system);
-        expect(await page.locator("#app").getAttribute("data-lf-theme")).toBe(`${system}@1.0.0`);
-        expect(await page.locator("#app").getAttribute("data-lf-ds")).toBe(`${system}@1.0.0`);
+        expect(await page.locator("#app > div:first-child").getAttribute("data-lf-theme")).toBe(`${system}@1.0.0`);
+        expect(await page.locator("#app > div:first-child").getAttribute("data-lf-ds")).toBe(`${system}@1.0.0`);
         expect(await page.locator("#app").textContent()).not.toBe("");
         expect(await page.locator("#app").textContent()).not.toContain("Widget unavailable");
       }
@@ -88,7 +83,7 @@ for (const name of ["agent-home", "git-status"]) {
         const select = document.getElementById("design-system");
         const heading = app?.querySelector("h2");
         if (!app || !heading || !(select instanceof HTMLSelectElement)) throw new Error("Missing reference UI");
-        const html = app.innerHTML;
+        const html = [...app.children].map((scope) => scope.innerHTML).join("");
         const nodes = Array.from(app.querySelectorAll("*"));
         const focus = document.activeElement;
         const bootstrap = document.getElementById("bootstrap")?.textContent;
@@ -142,13 +137,13 @@ for (const name of ["agent-home", "git-status"]) {
           samples,
           styles,
           immediate,
-          sameMarkup: app.innerHTML === html,
+          sameMarkup: [...app.children].map((scope) => scope.innerHTML).join("") === html,
           sameNodes: nodes.length === after.length && nodes.every((node, i) => node === after[i]),
           sameFocus: document.activeElement === focus,
           sameTree: document.getElementById("bootstrap")?.textContent === bootstrap,
           mutations: mutations.filter(
             (m) =>
-              m.target !== app ||
+              !(m.target instanceof Element && m.target.parentElement === app) ||
               m.type !== "attributes" ||
               !["data-lf-theme", "data-lf-ds", "data-lf-switching"].includes(m.attributeName ?? ""),
           ).length,

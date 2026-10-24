@@ -11,6 +11,9 @@ import { CoreQueue } from "./core-queue/widget.tsx";
 import { GitStatus } from "./git-status/git-status.tsx";
 import type { GitEntry } from "./git-status/manifest.ts";
 import gitScenarios from "./git-status/scenarios.json" with { type: "json" };
+import harnessManifest from "./harness/manifest.json" with { type: "json" };
+import harnessScenarios from "./harness/scenarios.json" with { type: "json" };
+import { harnessWidget } from "./harness/widget.tsx";
 import type { RackData, RackState } from "./rack-module/manifest.ts";
 import { RackModule } from "./rack-module/rack-module.tsx";
 import rackScenarios from "./rack-module/scenarios.json" with { type: "json" };
@@ -64,5 +67,12 @@ export const proofWidgets: readonly Fixture[] = [
     widget: (inputs) => RackModule(inputs as WidgetProps<object, RackState, RackData, { size: string }>),
     scenarios: rackScenarios,
     exports: { benchmark: "rack-module" },
+  },
+  {
+    name: "harness",
+    manifest: harnessManifest,
+    widget: (inputs) => harnessWidget(inputs as Parameters<typeof harnessWidget>[0]),
+    scenarios: harnessScenarios,
+    exports: {},
   },
 ];

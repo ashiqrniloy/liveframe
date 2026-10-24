@@ -2,10 +2,11 @@ import { expect, test } from "bun:test";
 import { jsx, primitive, render } from "@arnilo/liveframe/sdk";
 import { compileValidator, type Result, validateCapabilities, validateCatalog } from "../index.ts";
 import { packageHash } from "../pack/hash.ts";
-import { pack, type Scenario, type WidgetPackage } from "../pack/index.ts";
+import { pack, type WidgetPackage } from "../pack/index.ts";
 import { workerRunner } from "../preview/worker/index.ts";
 import catalogDoc from "./fixtures/proof/catalog.json" with { type: "json" };
 import capabilitiesDoc from "./fixtures/widgets/capabilities.json" with { type: "json" };
+import { drafts } from "./fixtures/widgets/drafts.ts";
 import { proofWidgets } from "./fixtures/widgets/index.ts";
 
 function value<T>(result: Result<T>): T {
@@ -16,31 +17,7 @@ function value<T>(result: Result<T>): T {
 const catalog = value(validateCatalog(catalogDoc));
 const capabilities = value(validateCapabilities(capabilitiesDoc));
 const options = { catalog, capabilities, surfaceId: "runner", revision: 1 };
-const root = new URL("./fixtures/widgets/", import.meta.url);
-const files: Record<string, string> = {};
-for await (const path of new Bun.Glob("**/*.{ts,tsx}").scan(root.pathname))
-  files[path] = await Bun.file(new URL(path, root)).text();
-const entries = [
-  ["agent-home/queue.tsx", "AgentHomeQueue"],
-  ["core-queue/widget.tsx", "CoreQueue"],
-  ["git-status/git-status.tsx", "GitStatus"],
-  ["rack-module/rack-module.tsx", "RackModule"],
-];
-const packages = proofWidgets.map((fixture, i) => {
-  const entry = entries[i];
-  if (!entry) throw new Error("Missing widget entry");
-  return value(
-    pack(
-      {
-        files: { ...files, "entry.ts": `export { ${entry[1]} as default } from "./${entry[0]}";` },
-        entry: "entry.ts",
-        manifest: fixture.manifest,
-        scenarios: fixture.scenarios as readonly Scenario[],
-      },
-      options,
-    ),
-  );
-});
+const packages = drafts.map((draft) => value(pack(draft, options)));
 const base = packages[0];
 const inputs = proofWidgets[0]?.scenarios[0];
 if (!base || !inputs) throw new Error("Missing agent-home fixture");

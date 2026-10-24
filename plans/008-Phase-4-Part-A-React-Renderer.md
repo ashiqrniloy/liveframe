@@ -359,7 +359,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Proved `renderToString` propagates a throwing implementation to the host. The host sends fallback markup; client rendering recovers with fallback at the failed node and an interactive healthy sibling. Spec §11 and the initial `docs/renderer.md` document this exception. Task 9 extends that guide with the remaining renderer API topics.
     - Agent-home SSR with test-local implementations measured 16.91 ms in the full check (informational, no budget). The focused React suites passed (36 tests), followed by `bun run check` (412 tests, zero failures) and `git diff --check`. Full proof-host scenario adoption remains Task 7; no new dependency or public export.
 
-- [ ] Task 7: Drive the proof host with packages, the in-process runner and `/react`
+- [x] Task 7: Drive the proof host with packages, the in-process runner and `/react`
   - Acceptance Criteria:
     - Functional:
       - `proof/renderer/primitives/index.tsx` binds every primitive with `implement()` against the library catalog (`src/__tests__/fixtures/proof/catalog.json`, the `proof.ui@1` definitions). Its behaviour and DOM stay the same:
@@ -390,6 +390,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Library Documentation to Check Before Implementation:
       - React Aria Components 1.22.1 collections (`items` with render functions) and `TextField` controlled input (Context7 `/websites/react-aria_adobe`).
       - Playwright 1.64.1 screenshot and font readiness, as in plan 007 Task 10.
+      - Checked 2026-10-24 with Context7: React Aria `/websites/react-aria_adobe` (controlled TextField, dynamic Menu/TabList items); Playwright `/microsoft/playwright` (screenshot animations and font readiness).
     - Documentation Reviewed:
       - `proof/renderer/primitives/index.tsx:1–470`: all 24 bindings; `textField` at 201–232, `menu` 313–340, `tabs` 415–450, overlays 233–413.
       - `proof/host/{server.ts,client.tsx,state.ts,pages.ts,view.tsx}`.
@@ -415,12 +416,30 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `src/__tests__/fixtures/widgets/drafts.ts`: new; `src/__tests__/phase-2-loop.test.ts`: imports it.
       - `src/__tests__/fixtures/widgets/harness/`: new SDK harness widget, manifest and scenario; `src/__tests__/fixtures/widgets/index.ts`.
       - `proof/tests/{renderer.test.tsx,renderer-browser.test.tsx,host.test.ts,switch.test.ts}`, `proof/tests/fixtures/renderer-client.tsx`, `proof/css/sheets.ts`: callers.
+      - `proof/tests/{agent-home,core-queue,clay}.test.ts`: migrate every deleted host-state caller to package sessions; retain direct historical runtime render assertions.
+      - `proof/tests/{packages.test.ts,fixtures/renderer.ts}`: package equality, bound-action and concurrent-revision rejection tests; shared app primitive bindings and validator.
+      - `proof/scripts/parity.ts`: capture the widget root inside the new Surface wrapper.
+      - `proof/scripts/capture-css-scope.ts`, `src/__tests__/fixtures/css/agent-home.html`, `src/__tests__/css-scope-browser.test.ts`: regenerate the real server markup; the CSS-only harness supplies its own scopes.
+      - `src/__tests__/runner-{in-process,worker}.test.ts`: consume the shared drafts, including the harness.
+      - `src/__tests__/fixtures/widgets/core-queue/scenarios.json`: add four explicit paged `host-*` scenarios, keeping benchmark scenarios unchanged.
+      - `proof/tests/clay-browser.test.ts`: target the renderer-owned scope.
+      - `src/__tests__/fixtures/widgets/capabilities.json`: declare the harness row source; `src/__tests__/sdk-proof-widgets.test.ts`: add its scenario inventory.
+      - `roadmap.md` §3: task execution status.
       - `proof/host/README.md`; evidence in `proof/PARITY.md` and `proof/GAPS.md` (G20's renderer half closed in the test host).
   - Test Cases to Write:
     - Existing `proof/tests/*` (moved to `/react`) are the regression suite.
     - `text_field_counts_code_points`: 3 emoji with `maxLength: 3` commit; a fourth is refused; fails with native `maxlength`.
     - `host_rechecks_intents_against_manifest_and_capabilities`: an undeclared action, bad args, an unknown state key and a stale revision are each rejected.
     - `host_pages_render_through_packages_and_runner`: every page and scenario returns a tree equal to `render()` of the same package.
+    - `bound_action_values_are_checked_against_capability_args`: completed bound args reject missing, wrong-type, oversized and extra values.
+    - `concurrent_state_requests_cannot_overwrite_an_accepted_revision`: one of two requests against the same revision commits; the other rejects.
+
+  - Notes (executed 2026-10-24):
+    - The proof host builds five packages from shared SDK drafts and renders every session through `inProcessRunner()`. All 22 scenarios SSR and hydrate with the published `/react` renderer under both design systems, with no browser diagnostics. The host sends the manifest, the client compiles the arrival validator, and style switches use Surface's wrapper and scoped portal. No library API, dependency or spec change.
+    - Ported all 24 app primitives in place: collections consume item contexts, overlays use the supplied portal, and text fields use `onChange`/`onCommit` with a controlled Unicode code-point limit. Three emoji at a limit of three commit, and a fourth is refused without native `maxlength`. The legacy renderer and host state helper are deleted; every caller is migrated. Historical direct-render benches/tests retain `proof/runtime/`.
+    - Preserved offered-intent, manifest state, capability argument and revision checks; actions only log. Added tests for package/direct-render equality, completed bound-action arguments, rollback and concurrent state requests. Both runner suites and the install-loop test now reuse the same drafts. The harness has its own row-source capability, manifest and 50-row scenario. Four explicit `host-*` core-queue scenarios preserve the paged reference UI while leaving its benchmark scenarios unchanged. Scenario URLs select their context size unless `?size=` overrides it; unknown and empty scenario names reject.
+    - The fallback element must keep its identity during style switches to avoid rerendering primitives; the host now holds it outside render. Regenerated the static CSS fixture from the package-backed host; the CSS-only harness supplies its own scopes. The parity script targets the widget root inside Surface's new wrapper: changed pixels remain exactly **9712 / 7088 / 5572**, or **0.72% / 0.75% / 0.97%** at 1440 / 1024 / 390 px. The approved 281 DOM / 32 style differences, dimensions and zero diagnostics also match. No parity data or style workaround was needed; the 679-node benchmark holds.
+    - `bun run check` passed: **423 tests, zero failures**, including all proof browser tests, both runner suites, package-loop equality and the six regenerated CSS-scope tests. The final full run measured **1.36 ms** maximum over 25 warm 50-row HTTP state round trips; ten-switch warm maxima were **6.4 ms** for agent-home and **3.8 ms** for git-status (cold **13.4 / 4.7 ms**). `git diff --check`, the three-width parity command and `graft build` passed. Task 8 retains the additional overlay lifecycle gates and browser validation/commit cost measurements.
 
 - [ ] Task 8: Prove the three tiers, survival and overlays end to end, and re-run the gates
   - Acceptance Criteria:

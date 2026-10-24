@@ -1,20 +1,19 @@
+import type { Definition } from "@arnilo/liveframe";
+import { type ImplementationProps, implement } from "@arnilo/liveframe/react";
 import { createElement, useState } from "react";
 import * as Aria from "react-aria-components";
-import { definitions } from "../../catalog/definitions.ts";
-import { slotClasses, styleProps } from "../../css/project.ts";
-import type { PrimitiveDefinition, PrimitiveProps, UiNode } from "../../runtime/types.ts";
-import { type ImplementationProps, implement } from "../implement.ts";
+import { catalog } from "../../css/fixtures.ts";
+import type { PrimitiveDefinition, PrimitiveProps } from "../../runtime/types.ts";
 
 type Def<K> = Extract<PrimitiveDefinition, { kind: K }>;
 function bind<K extends PrimitiveDefinition["kind"]>(
   kind: K,
-  Component: (context: ImplementationProps<PrimitiveProps<Def<K>>>) => React.ReactNode,
+  Component: (context: ImplementationProps<Definition, PrimitiveProps<Def<K>>>) => React.ReactNode,
 ) {
-  const definition = definitions.find((entry) => entry.kind === kind) as Def<K>;
-  return implement(definition, Component);
+  const definition = catalog.definitions.find((entry) => entry.kind === kind);
+  if (!definition) throw new Error(`Missing primitive: ${kind}`);
+  return implement<Definition, PrimitiveProps<Def<K>>>(definition, Component);
 }
-const childSlot = (node: UiNode, slot: string) =>
-  slotClasses(node.kind, node.variant ?? "default", slot, node.style ?? {});
 function useValue<T>(incoming: T) {
   const [value, setValue] = useState(incoming);
   const [previous, setPrevious] = useState(incoming);
@@ -117,29 +116,31 @@ const icons: Record<string, string> = {
 };
 
 export const implementations = [
-  bind("box", ({ props, node, slot, layout, children }) =>
+  bind("box", ({ props, slot, style, children }) =>
     element(
       props.semantics,
       props.label,
       slot("root"),
-      layout,
+      style,
       <>
-        {node.variant === "callout" ? <span key="rail" aria-hidden="true" className={slot("rail")} /> : null}
+        {slot("root").includes("lf_box_callout_root") ? (
+          <span key="rail" aria-hidden="true" className={slot("rail")} />
+        ) : null}
         {children}
       </>,
     ),
   ),
-  bind("stack", ({ props, slot, layout, children }) =>
-    element(props.semantics, props.label, slot("root"), layout, children),
+  bind("stack", ({ props, slot, style, children }) =>
+    element(props.semantics, props.label, slot("root"), style, children),
   ),
-  bind("inline", ({ props, slot, layout, children }) =>
-    element(props.semantics, props.label, slot("root"), layout, children),
+  bind("inline", ({ props, slot, style, children }) =>
+    element(props.semantics, props.label, slot("root"), style, children),
   ),
-  bind("grid", ({ props, slot, layout, children }) =>
-    element(props.semantics, props.label, slot("root"), layout, children),
+  bind("grid", ({ props, slot, style, children }) =>
+    element(props.semantics, props.label, slot("root"), style, children),
   ),
-  bind("scroll", ({ props, slot, layout, children }) => (
-    <div className={slot("root")} style={layout}>
+  bind("scroll", ({ props, slot, style, children }) => (
+    <div className={slot("root")} style={style}>
       <section
         aria-label={props.label}
         // biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard users must be able to focus and scroll this named region.
@@ -154,56 +155,55 @@ export const implementations = [
       </section>
     </div>
   )),
-  bind("separator", ({ props, slot, layout }) => (
-    <Aria.Separator orientation={props.orientation ?? "horizontal"} className={slot("root")} style={layout} />
+  bind("separator", ({ props, slot, style }) => (
+    <Aria.Separator orientation={props.orientation ?? "horizontal"} className={slot("root")} style={style} />
   )),
-  bind("text", ({ props, slot, layout }) => (
-    <span className={slot("root")} style={layout}>
+  bind("text", ({ props, slot, style }) => (
+    <span className={slot("root")} style={style}>
       {props.text}
     </span>
   )),
-  bind("heading", ({ props, slot, layout }) =>
-    createElement(`h${props.level}`, { className: slot("root"), style: layout }, props.text),
+  bind("heading", ({ props, slot, style }) =>
+    createElement(`h${props.level}`, { className: slot("root"), style }, props.text),
   ),
-  bind("icon", ({ props, slot, layout }) => (
+  bind("icon", ({ props, slot, style }) => (
     <span
       role="img"
       aria-label={props.label}
       aria-hidden={!props.label || undefined}
       className={slot("root")}
-      style={layout}
+      style={style}
       data-icon={props.name}
     >
       <Glyph name={props.name} />
     </span>
   )),
-  bind("image", ({ props, slot, layout }) => (
-    <img src={props.src} alt={props.alt} className={slot("root")} style={layout} />
+  bind("image", ({ props, slot, style }) => (
+    <img src={props.src} alt={props.alt} className={slot("root")} style={style} />
   )),
-  bind("link", ({ props, slot, layout }) => (
-    <Aria.Link href={props.href} className={slot("root")} style={layout}>
+  bind("link", ({ props, slot, style }) => (
+    <Aria.Link href={props.href} className={slot("root")} style={style}>
       <span className={slot("label")}>{props.label}</span>
     </Aria.Link>
   )),
-  bind("button", ({ props, slot, layout, emit }) => (
+  bind("button", ({ props, slot, style, emit }) => (
     <Aria.Button
       isDisabled={props.disabled ?? false}
       {...(props.current ? { "aria-current": "true" as const } : {})}
       {...(props.pressed === undefined ? {} : { "aria-pressed": props.pressed })}
       className={slot("root")}
-      style={layout}
+      style={style}
       onPress={() => emit("onPress")}
     >
       {icon(props.icon, slot("icon"))}
       <span className={slot("label")}>{props.label}</span>
     </Aria.Button>
   )),
-  bind("textField", function TextField({ props, slot, layout, emit }) {
+  bind("textField", function TextField({ props, slot, style, emit }) {
     const [value, setValue] = useValue(props.value ?? "");
     const input = {
       className: slot("input"),
       ...(props.placeholder === undefined ? {} : { placeholder: props.placeholder }),
-      ...(props.maxLength === undefined ? {} : { maxLength: props.maxLength }),
       onBlur: () => emit("onChange", value),
       onKeyDown: (event: React.KeyboardEvent) => {
         if (
@@ -212,16 +212,18 @@ export const implementations = [
           (!props.multiline || event.ctrlKey || event.metaKey)
         ) {
           emit("onChange", value);
-          emit("onSubmit", value);
+          emit("onCommit", value);
         }
       },
     };
     return (
       <Aria.TextField
         className={slot("root")}
-        style={layout}
+        style={style}
         value={value}
-        onChange={setValue}
+        onChange={(next) => {
+          if (props.maxLength === undefined || Array.from(next).length <= props.maxLength) setValue(next);
+        }}
         isDisabled={props.disabled ?? false}
         isReadOnly={props.readOnly ?? false}
       >
@@ -230,13 +232,13 @@ export const implementations = [
       </Aria.TextField>
     );
   }),
-  bind("select", function Select({ props, slot, layout, emit, portalContainer }) {
+  bind("select", function Select({ props, slot, style, emit, portal }) {
     const [value, setValue] = useValue<string | null>(props.value ?? null);
     return (
       <Aria.Select
         aria-label={props.label}
         className={slot("root")}
-        style={layout}
+        style={style}
         selectedKey={value}
         isDisabled={props.disabled ?? false}
         onSelectionChange={(key) => {
@@ -249,7 +251,7 @@ export const implementations = [
         <Aria.Button className={slot("trigger")}>
           <Aria.SelectValue />
         </Aria.Button>
-        <Aria.Popover {...(portalContainer ? { UNSTABLE_portalContainer: portalContainer } : {})}>
+        <Aria.Popover {...(portal ? { UNSTABLE_portalContainer: portal } : {})}>
           <Aria.ListBox className={slot("list")} items={props.options}>
             {(option) => (
               <Aria.ListBoxItem
@@ -266,12 +268,12 @@ export const implementations = [
       </Aria.Select>
     );
   }),
-  bind("checkbox", function Checkbox({ props, slot, layout, emit }) {
+  bind("checkbox", function Checkbox({ props, slot, style, emit }) {
     const [value, setValue] = useValue(props.checked ?? false);
     return (
       <Aria.Checkbox
         className={slot("root")}
-        style={layout}
+        style={style}
         isSelected={value}
         isDisabled={props.disabled ?? false}
         onChange={(checked) => {
@@ -290,12 +292,12 @@ export const implementations = [
       </Aria.Checkbox>
     );
   }),
-  bind("switch", function Switch({ props, slot, layout, emit }) {
+  bind("switch", function Switch({ props, slot, style, emit }) {
     const [value, setValue] = useValue(props.checked ?? false);
     return (
       <Aria.Switch
         className={slot("root")}
-        style={layout}
+        style={style}
         isSelected={value}
         isDisabled={props.disabled ?? false}
         onChange={(checked) => {
@@ -310,28 +312,25 @@ export const implementations = [
       </Aria.Switch>
     );
   }),
-  bind("menu", ({ props, slot, layout, nodes, emitNode, portalContainer }) => (
-    <div className={slot("root")} style={layout}>
+  bind("menu", ({ props, slot, style, items, portal }) => (
+    <div className={slot("root")} style={style}>
       <Aria.MenuTrigger>
         <Aria.Button className={slot("trigger")} isDisabled={props.disabled ?? false}>
           {props.label}
         </Aria.Button>
-        <Aria.Popover
-          {...(portalContainer ? { UNSTABLE_portalContainer: portalContainer } : {})}
-          className={slot("content")}
-        >
-          <Aria.Menu aria-label={props.label} items={nodes}>
+        <Aria.Popover {...(portal ? { UNSTABLE_portalContainer: portal } : {})} className={slot("content")}>
+          <Aria.Menu aria-label={props.label} items={items}>
             {(node) => (
               <Aria.MenuItem
                 id={node.id}
                 textValue={String(node.props.label)}
                 isDisabled={node.props.disabled === true}
-                className={childSlot(node, "root")}
-                style={styleProps(node.style ?? {})}
-                onAction={() => emitNode(node, "onPress")}
+                className={node.slot("root")}
+                style={node.style}
+                onAction={() => node.emit("onPress")}
               >
-                {icon(typeof node.props.icon === "string" ? node.props.icon : undefined, childSlot(node, "icon"))}
-                <span className={childSlot(node, "label")}>{String(node.props.label)}</span>
+                {icon(typeof node.props.icon === "string" ? node.props.icon : undefined, node.slot("icon"))}
+                <span className={node.slot("label")}>{String(node.props.label)}</span>
               </Aria.MenuItem>
             )}
           </Aria.Menu>
@@ -339,12 +338,11 @@ export const implementations = [
       </Aria.MenuTrigger>
     </div>
   )),
-  bind("menuItem", ({ props, slot, layout, emit, node }) => (
+  bind("menuItem", ({ props, slot, style, emit }) => (
     <Aria.MenuItem
-      id={node.id}
       textValue={props.label}
       className={slot("root")}
-      style={layout}
+      style={style}
       isDisabled={props.disabled ?? false}
       onAction={() => emit("onPress")}
     >
@@ -352,25 +350,22 @@ export const implementations = [
       <span className={slot("label")}>{props.label}</span>
     </Aria.MenuItem>
   )),
-  bind("popover", ({ props, slot, layout, children, portalContainer }) => (
-    <div className={slot("root")} style={layout}>
+  bind("popover", ({ props, slot, style, children, portal }) => (
+    <div className={slot("root")} style={style}>
       <Aria.DialogTrigger>
         <Aria.Button className={slot("trigger")}>{props.label}</Aria.Button>
-        <Aria.Popover
-          {...(portalContainer ? { UNSTABLE_portalContainer: portalContainer } : {})}
-          className={slot("content")}
-        >
+        <Aria.Popover {...(portal ? { UNSTABLE_portalContainer: portal } : {})} className={slot("content")}>
           <Aria.Dialog aria-label={props.label}>{children}</Aria.Dialog>
         </Aria.Popover>
       </Aria.DialogTrigger>
     </div>
   )),
-  bind("dialog", function Dialog({ props, slot, layout, children, emit, portalContainer }) {
+  bind("dialog", function Dialog({ props, slot, style, children, emit, portal }) {
     const [open, setOpen] = useValue(props.open ?? false);
     return (
-      <div className={slot("root")} style={layout}>
+      <div className={slot("root")} style={style}>
         <Aria.ModalOverlay
-          {...(portalContainer ? { UNSTABLE_portalContainer: portalContainer } : {})}
+          {...(portal ? { UNSTABLE_portalContainer: portal } : {})}
           isOpen={open}
           isDismissable
           onOpenChange={(next) => {
@@ -394,8 +389,8 @@ export const implementations = [
       </div>
     );
   }),
-  bind("tooltip", ({ props, slot, layout, children, portalContainer }) => (
-    <span className={slot("root")} style={layout}>
+  bind("tooltip", ({ props, slot, style, children, portal }) => (
+    <span className={slot("root")} style={style}>
       <Aria.TooltipTrigger>
         <Aria.Focusable>
           {/* biome-ignore lint/a11y/noNoninteractiveTabindex: Non-interactive tooltip content needs a keyboard focus target. */}
@@ -403,65 +398,62 @@ export const implementations = [
             {children}
           </span>
         </Aria.Focusable>
-        <Aria.Tooltip
-          {...(portalContainer ? { UNSTABLE_portalContainer: portalContainer } : {})}
-          className={slot("content")}
-        >
+        <Aria.Tooltip {...(portal ? { UNSTABLE_portalContainer: portal } : {})} className={slot("content")}>
           {props.text}
         </Aria.Tooltip>
       </Aria.TooltipTrigger>
     </span>
   )),
-  bind("tabs", function Tabs({ props, slot, layout, nodes, render, emit }) {
-    const [value, setValue] = useValue(props.value ?? String(nodes[0]?.props.value));
+  bind("tabs", function Tabs({ props, slot, style, items, emit }) {
+    const [value, setValue] = useValue(props.value ?? String(items[0]?.props.value));
     return (
       <Aria.Tabs
         className={slot("root")}
-        style={layout}
+        style={style}
         selectedKey={value}
         onSelectionChange={(key) => {
           setValue(String(key));
           emit("onChange", String(key));
         }}
       >
-        <Aria.TabList aria-label={props.label} className={slot("list")} items={nodes}>
+        <Aria.TabList aria-label={props.label} className={slot("list")} items={items}>
           {(node) => (
             <Aria.Tab
               id={String(node.props.value)}
               isDisabled={node.props.disabled === true}
-              className={childSlot(node, "root")}
-              style={styleProps(node.style ?? {})}
+              className={node.slot("root")}
+              style={node.style}
             >
-              <span className={childSlot(node, "label")}>{String(node.props.label)}</span>
+              <span className={node.slot("label")}>{String(node.props.label)}</span>
             </Aria.Tab>
           )}
         </Aria.TabList>
-        {nodes.map((node) => (
+        {items.map((node) => (
           <Aria.TabPanel
             key={node.id}
             id={String(node.props.value)}
-            className={`${slot("panel")} ${childSlot(node, "panel")}`}
+            className={`${slot("panel")} ${node.slot("panel")}`}
           >
-            {node.children?.map(render)}
+            {node.children}
           </Aria.TabPanel>
         ))}
       </Aria.Tabs>
     );
   }),
-  bind("disclosure", ({ props, slot, layout, children, emit }) => (
+  bind("disclosure", ({ props, slot, style, children, emit }) => (
     // The browser owns the open attribute; a supplied `open` only changes it when the host value changes.
     <details
       {...(props.open === undefined ? {} : { open: props.open })}
       className={slot("root")}
-      style={layout}
+      style={style}
       onToggle={(event) => emit("onToggle", event.currentTarget.open)}
     >
       <summary className={slot("summary")}>{props.label}</summary>
       <div className={slot("panel")}>{children}</div>
     </details>
   )),
-  bind("tab", ({ props, slot, layout }) => (
-    <Aria.Tab id={props.value} isDisabled={props.disabled ?? false} className={slot("root")} style={layout}>
+  bind("tab", ({ props, slot, style }) => (
+    <Aria.Tab id={props.value} isDisabled={props.disabled ?? false} className={slot("root")} style={style}>
       <span className={slot("label")}>{props.label}</span>
     </Aria.Tab>
   )),

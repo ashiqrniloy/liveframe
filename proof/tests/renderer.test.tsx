@@ -1,47 +1,31 @@
 import { expect, test } from "bun:test";
+import type { UiTree } from "@arnilo/liveframe";
+import { createRenderer } from "@arnilo/liveframe/react";
 import { renderToString } from "react-dom/server";
 import { implementations } from "../renderer/primitives/index.tsx";
-import { registry } from "../renderer/registry.ts";
-import { Surface } from "../renderer/surface.tsx";
-import { proofCatalog } from "../runtime/index.ts";
-import type { RenderOptions, UiTree } from "../runtime/types.ts";
+import { catalog, Surface, scope } from "./fixtures/renderer.ts";
 
-export const options: RenderOptions = {
-  catalog: proofCatalog,
-  actions: ["save"],
-  state: {
-    type: "object",
-    properties: { query: { type: "string", maxLength: 100 } },
-    required: [],
-    additionalProperties: false,
-  },
-};
 export const tree: UiTree = {
   format: "liveframe/1",
-  catalogId: "proof@1",
+  catalogId: "proof.ui@1",
   surfaceId: "test",
   revision: 1,
   root: { id: "root", kind: "text", props: { text: "Hello" } },
 };
 
 test("registry_check_fails_on_missing_or_duplicate_implementation", () => {
-  expect(() => registry(proofCatalog, implementations.slice(1))).toThrow("Missing implementation");
-  expect(() => registry(proofCatalog, [...implementations, ...implementations])).toThrow("Duplicate implementation");
-  expect(registry(proofCatalog, implementations).size).toBe(proofCatalog.definitions.length);
+  expect(() => createRenderer({ catalog, implementations: implementations.slice(1) })).toThrow(
+    "Missing implementation",
+  );
+  expect(() => createRenderer({ catalog, implementations: [...implementations, ...implementations] })).toThrow(
+    "Duplicate implementation",
+  );
+  expect(createRenderer({ catalog, implementations }).Surface).toBeInstanceOf(Function);
 });
 
 test("server_rendering_and_transport_revalidation", () => {
-  const registered = registry(proofCatalog, implementations);
   const html = (value: unknown) =>
-    renderToString(
-      <Surface
-        tree={value}
-        options={options}
-        registry={registered}
-        fallback={<p>Unavailable</p>}
-        onIntent={() => {}}
-      />,
-    );
+    renderToString(<Surface tree={value} {...scope} fallback={<p>Unavailable</p>} onIntent={() => {}} />);
   expect(html(tree)).toContain("Hello");
   for (const root of [
     { ...tree.root, kind: "unknown" },
@@ -54,11 +38,8 @@ test("server_rendering_and_transport_revalidation", () => {
 });
 
 test("semantics_and_disclosure_render_their_elements", () => {
-  const registered = registry(proofCatalog, implementations);
   const html = (root: UiTree["root"]) =>
-    renderToString(
-      <Surface tree={{ ...tree, root }} options={options} registry={registered} fallback={null} onIntent={() => {}} />,
-    );
+    renderToString(<Surface tree={{ ...tree, root }} {...scope} fallback={null} onIntent={() => {}} />);
   const facts = html({
     id: "root",
     kind: "stack",

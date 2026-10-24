@@ -1,6 +1,7 @@
+import type { Intent } from "@arnilo/liveframe";
+import { flushSync } from "react-dom";
 import { hydrateRoot } from "react-dom/client";
-import type { Intent } from "../runtime/types.ts";
-import type { Snapshot } from "./state.ts";
+import type { Snapshot } from "./pages.ts";
 import { ProofSurface } from "./view.tsx";
 
 const container = document.getElementById("app");
@@ -8,6 +9,8 @@ const bootstrap = document.getElementById("bootstrap");
 if (!container || !bootstrap) throw new Error("Missing proof host bootstrap");
 let snapshot = JSON.parse(bootstrap.textContent ?? "null") as Snapshot;
 let pending = Promise.resolve();
+let designSystem = container.dataset.designSystem as "certified" | "rack";
+const draw = () => <ProofSurface snapshot={snapshot} onIntent={onIntent} designSystem={designSystem} />;
 const status = document.getElementById("status");
 const log = document.getElementById("actions");
 const onIntent = (intent: Intent) => {
@@ -21,8 +24,8 @@ const onIntent = (intent: Intent) => {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Intent rejected");
-      snapshot = result;
-      root.render(<ProofSurface snapshot={snapshot} onIntent={onIntent} portalContainer={container} />);
+      snapshot = { ...result, manifest: snapshot.manifest };
+      root.render(draw());
       if (log) log.textContent = JSON.stringify(snapshot.actions, null, 2);
       if (status) status.textContent = "";
     })
@@ -30,10 +33,7 @@ const onIntent = (intent: Intent) => {
       if (status) status.textContent = error instanceof Error ? error.message : String(error);
     });
 };
-const root = hydrateRoot(
-  container,
-  <ProofSurface snapshot={snapshot} onIntent={onIntent} portalContainer={container} />,
-);
+const root = hydrateRoot(container, draw());
 const switcher = document.getElementById("design-system");
 const sheets = Array.from(document.querySelectorAll<HTMLLinkElement>("link[data-design-system]"));
 await Promise.all(
@@ -48,11 +48,8 @@ await Promise.all(
 );
 if (switcher instanceof HTMLSelectElement) {
   switcher.addEventListener("change", () => {
-    container.setAttribute("data-lf-switching", "");
-    container.setAttribute("data-lf-theme", `${switcher.value}@1.0.0`);
-    container.setAttribute("data-lf-ds", `${switcher.value}@1.0.0`);
-    container.offsetWidth;
-    requestAnimationFrame(() => container.removeAttribute("data-lf-switching"));
+    designSystem = switcher.value as "certified" | "rack";
+    flushSync(() => root.render(draw()));
   });
   switcher.disabled = false;
 }
