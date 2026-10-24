@@ -110,7 +110,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Verified Playwright through Context7 `/microsoft/playwright/v1.63.0` (newest indexed) and installed 1.64.1 declarations: element PNG screenshots and full default YAML ARIA snapshots are supported, including optional `mode`, `depth` and `boxes`; no extra capture options added.
     - `timeout 600s bun run check` passed: generated types, typecheck, lint, format and all 432 tests (0 failures). `git diff --check` passed. No runtime code or dependencies changed; session, UI and capture implementation remain Tasks 2–8.
 
-- [ ] Task 2: Build preview sessions on `pack()` and the runner
+- [x] Task 2: Build preview sessions on `pack()` and the runner
   - Acceptance Criteria:
     - Functional:
       - `createPreview({ catalog, capabilities, runner })` is exported from `@arnilo/liveframe/preview`.
@@ -140,12 +140,13 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Chosen Approach:
       - A thin state machine over `pack()` and `runner.render()`, with intent re-checks through `checkValue`.
     - API Notes and Examples:
-      - as in Task 1.
+      - As in Task 1. `check()` returns `Promise<Result<readonly { scenario: string; result: Result<UiTree> }[]>>`: the outer result reports a missing package, and each inner result reports its scenario's render. `intents()` returns an empty array before an update or any logged action.
     - Files to Create/Edit:
       - `src/preview/session.ts`: new; `src/preview/index.ts`: export.
       - `src/__tests__/portability.test.ts`: `preview` entry gains `dependencies: true` (it now bundles `/pack`).
       - `src/__tests__/exports.test.ts`: `/preview` surface.
       - `src/__tests__/preview-session.test.ts`: new.
+      - `roadmap.md` §3: Task 2 execution status.
   - Test Cases to Write:
     - `update_returns_the_packed_package_or_pack_errors`: the previous package survives a failed update.
     - `render_selects_scenario_state_and_increments_revision`.
@@ -156,6 +157,13 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `published_package_matches_the_last_preview`: same hash, and an equal tree after `memoryStore` and `loadPlacement`.
     - `scenario_data_is_fresh_per_render`: a render that would mutate data (frozen input) cannot affect the next one.
     - `preview_bundles_without_host_apis` (existing `host_api_free_subpaths_bundle_clean: preview`).
+    - `runner_errors_pass_through_including_node_ids`; `pending_render_cannot_restore_a_session_reset_by_update`.
+  - Notes (executed 2026-10-24):
+    - Exported `createPreview()` from `/preview`, implemented as a 131-line closure over the existing `pack()` and `Runner`. Failed updates preserve the package, selected scenario, state and action log; successful updates reset selection and log while preserving the session's surface id and increasing revision sequence.
+    - State intents re-check the declared key and value; completed actions re-check manifest membership and capability args, append an isolated log entry, and return the current runner result without calling the runner or dispatching. Unknown scenarios and sessions without a draft/current render return pointed `not-found` errors. `intents()` stays an array; `check()` uses an outer `Result` for its missing-draft error.
+    - Every runner call receives copied inputs, including fresh scenario data for the SDK cache caveat. Results and node-attributable errors pass through unchanged; scenario checks preserve current selection, state, context and result. A late result cannot restore a selection reset by `update()`.
+    - Added ten session tests, including every scenario of all four proof widgets and the harness through both reference runners, frozen mutation attempts, invalid intents, and publish/reload hash and tree equality. Updated the export pin and enabled the existing packer-dependency allowance in the `/preview` portability scan.
+    - Tests were written first and initially failed on the missing export. `timeout 600s bun run check` passed: generated types, typecheck, lint, format and all 442 tests (0 failures). No spec meaning or dependency changes. Preview UI, host wiring, capture and outsider documentation remain Tasks 3–7.
 
 - [ ] Task 3: Add `<Preview>` in `/preview/react`
   - Acceptance Criteria:

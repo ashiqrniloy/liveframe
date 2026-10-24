@@ -6,7 +6,7 @@ const subpaths = [
   { path: "pack", dependencies: true, loader: false, host: "none" },
   { path: "store", dependencies: true, loader: false, host: "none" },
   { path: "store/fs", dependencies: false, loader: false, host: "filesystem" },
-  { path: "preview", dependencies: false, loader: true, host: "none" },
+  { path: "preview", dependencies: true, loader: true, host: "none" },
   { path: "preview/worker", dependencies: false, loader: true, host: "Worker/self" },
   { path: "react", dependencies: false, loader: false, host: "DOM" },
 ] as const;
