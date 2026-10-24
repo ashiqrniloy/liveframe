@@ -159,7 +159,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Performance: one standalone sequential run, including fixture packing and excluding cleanup, took 48.31 ms for memory (9 cases) and 38.69 ms for filesystem (10 cases); memory ran first in the process. No render, validator or style path changed.
     - Validation: final `timeout 600s bun run check` passed (483 tests across 74 files, 0 failures; tests 102.86s). Lint retained 37 existing warnings and 3 existing informational findings; none in the new suite/tests. `git diff --check` and `timeout 120s graft build` passed. No spec change or later-task amendment was needed; other runtimes/test runners remain untested.
 
-- [ ] Task 3: Add the catalog suite
+- [x] Task 3: Add the catalog suite
   - Acceptance Criteria:
     - Functional:
       - `catalogSuite({ catalog, capabilities, manifest, examples, published? })` returns:
@@ -192,10 +192,17 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `src/conformance/catalog.ts`: new; `src/conformance/index.ts`: export.
       - `src/__tests__/conformance-catalog.test.ts`: new.
       - `src/__tests__/fixtures/conformance/`: new, example trees covering the proof catalog's remaining `(kind, variant)` pairs, if the proof trees don't (tentative until coverage is measured).
+      - `src/__tests__/exports.test.ts`: pin the added public export.
+      - This plan: Task 3 completion and execution notes; `roadmap.md` §3: task progress.
   - Test Cases to Write:
     - `proof_catalog_passes_the_catalog_suite`: the proof catalog, capabilities, a conformance manifest and the examples pass.
     - `catalog_suite_catches_broken_catalogs`: each fails its named case — a missing variant example, an invalid example, a removed prop under the same `catalogId`, and an added optional prop with a new major id.
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-24):
+    - Exported `catalogSuite` from `/conformance`: four independent cases for catalog/capabilities/manifest installation and validated example coverage, plus the catalog-version case when `published` is supplied. Cases reuse the root validators/compiler/classifier and fail with `ConformanceFailure`, preserving pointed library errors or bounded missing-pair/classifier diagnostics. Trees are validated before traversal; omitted variants count as their declared default.
+    - Measured the existing proof fixtures: 22 rendered scenario trees cover 20 of 31 catalog kind/variant pairs. Added one explicit supplemental tree for the remaining 11: grid, image, link, danger button, select, checkbox, switch, danger menu item, popover, dialog and tooltip. The shared fixture exports these 23 trees with validated capabilities and a conformance manifest combining the proof widgets' state fields and declared actions, ready for Tasks 5–8. New catalog pairs are not auto-generated into fixtures and still fail coverage.
+    - Mutants fail their named cases for a missing danger-button example, an invalid tree after otherwise complete coverage, malformed catalog/vocabulary and capabilities, a mismatched manifest, a removed optional prop without a major bump, and an optional prop added with an unnecessary major bump. Version tests also cover accepted compatible additions and breaking increases, changed names, unchanged/decreasing versions, malformed published catalogs, and majors beyond the safe integer range. Version comparison uses integer precision rather than floating-point coercion.
+    - Performance: a standalone sequential run of all five cases against the proof catalog (23 examples, 31 pairs; fixture preparation excluded) took 38.14 ms. No runtime render, validation or style path changed; no new dependencies, proof imports into the published suite, or spec changes.
+    - Validation: `timeout 600s bun run check` passed (487 tests across 75 files, 0 failures; tests 113.25s). Lint retained 37 existing warnings and 3 existing informational findings; none in the new suite/tests/fixtures. Public-export and browser-portability checks passed, as did `git diff --check` and `timeout 120s graft build`. Other runtimes/test runners remain untested; later tasks need no amendment.
 
 - [ ] Task 4: Add the design-system suite
   - Acceptance Criteria:
