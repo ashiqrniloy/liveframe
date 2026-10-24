@@ -318,7 +318,11 @@ export const implementations = [
         <Aria.Button className={slot("trigger")} isDisabled={props.disabled ?? false}>
           {props.label}
         </Aria.Button>
-        <Aria.Popover {...(portal ? { UNSTABLE_portalContainer: portal } : {})} className={slot("content")}>
+        <Aria.Popover
+          {...(portal ? { UNSTABLE_portalContainer: portal } : {})}
+          className={slot("content")}
+          data-open=""
+        >
           <Aria.Menu aria-label={props.label} items={items}>
             {(node) => (
               <Aria.MenuItem

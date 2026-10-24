@@ -1490,8 +1490,7 @@
         "value": 140,
         "unit": "ms"
       },
-      "transitionTiming": "expo-out",
-      "backgroundOpacity": 0.85
+      "transitionTiming": "expo-out"
     },
     "scroll.default.scrollbar.active": {
       "backgroundColor": "surface.scrollbar",
@@ -1507,8 +1506,7 @@
         "value": 140,
         "unit": "ms"
       },
-      "transitionTiming": "expo-out",
-      "backgroundOpacity": 0.7
+      "transitionTiming": "expo-out"
     },
     "scroll.default.scrollbar.focus": {
       "backgroundColor": "surface.scrollbar",
@@ -3338,7 +3336,7 @@
     "textField.default.input.invalid": {
       "backgroundColor": "surface.well",
       "textColor": "text.primary",
-      "borderColor": "diagnostic.error",
+      "borderColor": "border.hairline",
       "borderWidth": {
         "value": 1,
         "unit": "px"
@@ -5497,8 +5495,8 @@
       "transitionTiming": "expo-out"
     },
     "menuItem.default.root.selected": {
-      "backgroundColor": "accent.primary",
-      "textColor": "text.primary",
+      "backgroundColor": "colour.transparent",
+      "textColor": "text.muted",
       "borderWidth": {
         "value": 0,
         "unit": "px"
@@ -5513,8 +5511,7 @@
         "value": 140,
         "unit": "ms"
       },
-      "transitionTiming": "expo-out",
-      "backgroundOpacity": 0.15
+      "transitionTiming": "expo-out"
     },
     "menuItem.default.root.invalid": {
       "backgroundColor": "colour.transparent",
@@ -5683,7 +5680,7 @@
       "transitionTiming": "expo-out"
     },
     "menuItem.danger.root.selected": {
-      "backgroundColor": "accent.primary",
+      "backgroundColor": "colour.transparent",
       "textColor": "diagnostic.error",
       "borderWidth": {
         "value": 0,
@@ -5699,8 +5696,7 @@
         "value": 140,
         "unit": "ms"
       },
-      "transitionTiming": "expo-out",
-      "backgroundOpacity": 0.15
+      "transitionTiming": "expo-out"
     },
     "menuItem.danger.root.invalid": {
       "backgroundColor": "colour.transparent",
@@ -5960,7 +5956,7 @@
     },
     "popover.default.trigger.disabled": {
       "backgroundColor": "colour.transparent",
-      "textColor": "text.disabled",
+      "textColor": "text.primary",
       "borderColor": "border.hairline",
       "borderWidth": {
         "value": 1,
@@ -5977,8 +5973,7 @@
         "unit": "ms"
       },
       "transitionTiming": "expo-out",
-      "typography": "label",
-      "opacity": 0.5
+      "typography": "label"
     },
     "popover.default.trigger.selected": {
       "backgroundColor": "colour.transparent",
@@ -7451,7 +7446,7 @@
     },
     "dialog.default.close.disabled": {
       "backgroundColor": "colour.transparent",
-      "textColor": "text.disabled",
+      "textColor": "text.muted",
       "borderWidth": {
         "value": 0,
         "unit": "px"
@@ -7467,8 +7462,7 @@
         "unit": "ms"
       },
       "transitionTiming": "expo-out",
-      "typography": "label",
-      "opacity": 0.5
+      "typography": "label"
     },
     "dialog.default.close.selected": {
       "backgroundColor": "colour.transparent",

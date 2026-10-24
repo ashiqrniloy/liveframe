@@ -2745,6 +2745,18 @@ const textRoles = {
 for (const [prefix, role] of Object.entries(textRoles))
   seeds[`${prefix}.rest`] = { ...seeds[`${prefix}.rest`], typography: role };
 
+// Source families include states the proof controls do not expose.
+for (const key of [
+  "popover.default.trigger.disabled",
+  "dialog.default.close.disabled",
+  "textField.default.input.invalid",
+  "menuItem.default.root.selected",
+  "menuItem.danger.root.selected",
+  "scroll.default.scrollbar.hover",
+  "scroll.default.scrollbar.active",
+])
+  delete seeds[key];
+
 export const rackDesignSystem = {
   id: "rack",
   values: {

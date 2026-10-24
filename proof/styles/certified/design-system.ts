@@ -237,7 +237,6 @@ for (const prefix of ["textField.default.input", "select.default.trigger"]) {
     backgroundColor: "surface.well",
     borderColor: "border.subtle",
   };
-  seeds[`${prefix}.invalid`] = { borderColor: "diagnostic.error" };
 }
 for (const prefix of ["checkbox.default.indicator", "switch.default.track"]) {
   seeds[`${prefix}.selected`] = {
@@ -251,6 +250,8 @@ for (const prefix of ["checkbox.default.root", "switch.default.root"]) {
   seeds[`${prefix}.focus`] = focus;
   seeds[`${prefix}.disabled`] = { textColor: "text.disabled", opacity: "opacity.disabled" };
 }
+// These controls have no disabled prop; their copied button recipes cannot be reached.
+for (const prefix of ["popover.default.trigger", "dialog.default.close"]) delete seeds[`${prefix}.disabled`];
 // Every slot that draws text names a typography role, so no label falls back to the host page's fonts.
 const textRoles: Readonly<Record<string, NonNullable<Recipe["typography"]>>> = {
   "link.default.label": "body",

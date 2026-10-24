@@ -2,7 +2,7 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import { type Browser, chromium } from "playwright";
 import { renderToString } from "react-dom/server";
 import { ConformanceFailure } from "../conformance/index.ts";
-import { rendererBrowserSuite } from "../conformance/react/index.ts";
+import { type BrowserFixtures, rendererBrowserSuite } from "../conformance/react/index.ts";
 import { compileValidator } from "../index.ts";
 import { createRenderer } from "../react/index.ts";
 import { examples, fixtures, pageOptions } from "./fixtures/conformance-browser.tsx";
@@ -27,8 +27,58 @@ const suite = (mode = "") =>
     url: `${server.url.href}?mutant=${mode}`,
   });
 
-test("reference_fixture_passes_all_browser_cases", async () => {
-  for (const c of suite()) await c.run();
+test("reference_fixture_passes_arrival_and_interaction_browser_cases", async () => {
+  for (const c of suite().filter((c) => c.name !== "every_styled_state_is_reachable")) await c.run();
+}, 120000);
+
+const stateRule = "every_styled_state_is_reachable";
+function stateCase(
+  mode = "",
+  states: BrowserFixtures["states"] = {
+    "button.primary.selected": {
+      tree: {
+        ...fixtures.survival.tree,
+        root: { id: "root", kind: "button", variant: "primary", props: { label: "Selected", pressed: true } },
+      },
+      target: (p: import("playwright").Page) => p.getByRole("button", { name: "Selected" }),
+    },
+  },
+) {
+  return rendererBrowserSuite({
+    ...pageOptions,
+    designSystems: pageOptions.designSystems.map((system) => ({
+      ...system,
+      recipes: {
+        ...Object.fromEntries(
+          Object.entries(system.recipes)
+            .filter(([key]) => key.endsWith(".rest"))
+            .flatMap(([key, value]) => [
+              [key, value],
+              [key.replace(/rest$/, "focus"), {}],
+            ]),
+        ),
+        "button.primary.root.selected": { opacity: 0.5 },
+      },
+    })),
+    examples,
+    fixtures: { ...fixtures, states },
+    page: () => browser.newPage(),
+    url: `${server.url.href}?mutant=${mode}`,
+  }).find((c) => c.name === stateRule);
+}
+test("state_case_reaches_selected_and_catches_an_unreachable_state", async () => {
+  expect(stateCase()).toBeDefined();
+  await stateCase()?.run();
+  await expect(stateCase("selected")?.run()).rejects.toMatchObject({
+    rule: stateRule,
+    details: [expect.stringContaining("button.primary.selected")],
+  });
+}, 120000);
+test("state_case_lists_missing_fixtures", async () => {
+  await expect(stateCase("", {})?.run()).rejects.toMatchObject({
+    rule: stateRule,
+    details: [expect.stringContaining("button.primary.selected")],
+  });
 }, 120000);
 
 for (const [mode, name] of [

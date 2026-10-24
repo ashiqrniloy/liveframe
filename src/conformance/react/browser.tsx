@@ -4,9 +4,11 @@ import { compileValidator, type UiTree, validateCatalog } from "../../index.ts";
 import { createRenderer } from "../../react/index.ts";
 import { type ConformanceCase, ConformanceFailure, check } from "../case.ts";
 import type { PageOptions, Styles } from "./page.tsx";
+import { type StateFixtures, styledStates } from "./states.ts";
 
 type Target = (page: Page) => Locator;
 export type BrowserFixtures = {
+  states?: StateFixtures;
   interactions: readonly { tree: UiTree; act(page: Page): Promise<unknown>; intents: readonly unknown[] }[];
   survival: { tree: UiTree; next: UiTree; focus: Target; scroll?: Target; input?: Target };
 };
@@ -195,6 +197,20 @@ export function rendererBrowserSuite(
           );
         }
       await snapshot.dispose();
+    },
+    async every_styled_state_is_reachable(page: Page, styles: Styles, rule: string) {
+      await styledStates(
+        options,
+        options.fixtures.states,
+        page,
+        rule,
+        async (tree) => {
+          // Fallback unmounts primitive state without reloading the adopter's bundle per fixture.
+          await mount(page, { ...tree, root: { ...tree.root, kind: "" } }, styles);
+          await mount(page, tree, styles);
+        },
+        () => settle(page),
+      );
     },
   };
   async function mount(page: Page, tree: unknown, styles: Styles) {

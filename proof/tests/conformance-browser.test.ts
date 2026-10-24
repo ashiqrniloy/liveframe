@@ -25,6 +25,20 @@ test("proof_host_passes_the_renderer_browser_cases", async () => {
     examples: browserExamples,
     fixtures,
   }))
-    await c.run();
+    if (c.name !== "every_styled_state_is_reachable") await c.run();
   console.log(`Renderer browser conformance (Certified × Rack): ${(performance.now() - start).toFixed(2)} ms`);
+}, 120000);
+
+test("proof_host_reaches_every_styled_state", async () => {
+  const c = rendererBrowserSuite({
+    ...pageOptions,
+    page: () => browser.newPage(),
+    url: server.url.href,
+    examples: browserExamples,
+    fixtures,
+  }).find((c) => c.name === "every_styled_state_is_reachable");
+  const start = performance.now();
+  if (!c) throw new Error("Missing state case");
+  await c.run();
+  console.log(`Styled-state conformance (Certified × Rack): ${(performance.now() - start).toFixed(2)} ms`);
 }, 120000);

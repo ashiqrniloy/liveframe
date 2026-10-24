@@ -1527,8 +1527,7 @@
       1,
       0.3,
       1
-    ],
-    "backgroundOpacity": 0.85
+    ]
   },
   "scroll.default.scrollbar.active": {
     "backgroundColor": "surface.scrollbar",
@@ -1549,8 +1548,7 @@
       1,
       0.3,
       1
-    ],
-    "backgroundOpacity": 0.7
+    ]
   },
   "scroll.default.scrollbar.focus": {
     "backgroundColor": "surface.scrollbar",
@@ -3829,7 +3827,7 @@
   "textField.default.input.invalid": {
     "backgroundColor": "surface.well",
     "textColor": "text.primary",
-    "borderColor": "diagnostic.error",
+    "borderColor": "border.hairline",
     "borderWidth": {
       "value": 1,
       "unit": "px"
@@ -6619,8 +6617,8 @@
     ]
   },
   "menuItem.default.root.selected": {
-    "backgroundColor": "accent.primary",
-    "textColor": "text.primary",
+    "backgroundColor": "colour.transparent",
+    "textColor": "text.muted",
     "borderWidth": {
       "value": 0,
       "unit": "px"
@@ -6646,8 +6644,7 @@
       1,
       0.3,
       1
-    ],
-    "backgroundOpacity": 0.15
+    ]
   },
   "menuItem.default.root.invalid": {
     "backgroundColor": "colour.transparent",
@@ -6893,7 +6890,7 @@
     ]
   },
   "menuItem.danger.root.selected": {
-    "backgroundColor": "accent.primary",
+    "backgroundColor": "colour.transparent",
     "textColor": "diagnostic.error",
     "borderWidth": {
       "value": 0,
@@ -6920,8 +6917,7 @@
       1,
       0.3,
       1
-    ],
-    "backgroundOpacity": 0.15
+    ]
   },
   "menuItem.danger.root.invalid": {
     "backgroundColor": "colour.transparent",
@@ -7247,7 +7243,7 @@
   },
   "popover.default.trigger.disabled": {
     "backgroundColor": "colour.transparent",
-    "textColor": "text.disabled",
+    "textColor": "text.primary",
     "borderColor": "border.hairline",
     "borderWidth": {
       "value": 1,
@@ -7275,8 +7271,7 @@
       0.3,
       1
     ],
-    "typography": "label",
-    "opacity": 0.5
+    "typography": "label"
   },
   "popover.default.trigger.selected": {
     "backgroundColor": "colour.transparent",
@@ -9018,7 +9013,7 @@
   },
   "dialog.default.close.disabled": {
     "backgroundColor": "colour.transparent",
-    "textColor": "text.disabled",
+    "textColor": "text.muted",
     "borderWidth": {
       "value": 0,
       "unit": "px"
@@ -9045,8 +9040,7 @@
       0.3,
       1
     ],
-    "typography": "label",
-    "opacity": 0.5
+    "typography": "label"
   },
   "dialog.default.close.selected": {
     "backgroundColor": "colour.transparent",

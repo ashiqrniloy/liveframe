@@ -1,4 +1,5 @@
 import type { UiTree } from "@arnilo/liveframe";
+import type { BrowserFixtures } from "@arnilo/liveframe/conformance/react";
 import type { Page } from "playwright";
 import { conformanceOptions } from "./renderer.ts";
 
@@ -57,6 +58,7 @@ const next: UiTree = {
   },
 };
 export const fixtures = {
+  states: stateFixtures(),
   interactions: [
     {
       tree,
@@ -78,6 +80,83 @@ export const fixtures = {
   ],
   survival: { tree, next, focus, input: focus, scroll: (p: Page) => p.getByRole("region", { name: "Results" }) },
 };
+
+function stateFixtures(): NonNullable<BrowserFixtures["states"]> {
+  const result: Record<string, NonNullable<BrowserFixtures["states"]>[string]> = {};
+  for (const [kind, variants, states, slot] of [
+    ["button", ["default", "primary", "danger", "ghost"], ["hover", "active", "focus", "disabled"], "root"],
+    ["link", ["default"], ["hover", "focus"], "root"],
+    ["textField", ["default"], ["hover", "focus", "disabled"], "input"],
+    ["select", ["default"], ["hover", "active", "focus", "disabled", "selected"], "trigger"],
+    ["checkbox", ["default"], ["focus", "disabled", "selected"], "root"],
+    ["switch", ["default"], ["focus", "disabled", "selected"], "root"],
+    ["menu", ["default"], ["hover", "active", "focus", "disabled", "open"], "trigger"],
+    ["menuItem", ["default", "danger"], ["hover", "active", "focus", "disabled"], "root"],
+    ["popover", ["default"], ["hover", "active", "focus"], "trigger"],
+    ["dialog", ["default"], ["hover", "active", "focus"], "close"],
+    ["disclosure", ["default"], ["hover", "focus"], "summary"],
+    ["tab", ["default"], ["hover", "active", "focus", "disabled", "selected"], "root"],
+  ] as const) {
+    for (const variant of variants)
+      for (const state of states) {
+        const selected = state === "selected",
+          disabled = state === "disabled";
+        let root: UiTree["root"] = { id: "root", kind, variant, props: { label: "State target" } };
+        if (kind === "link") root = { ...root, props: { ...root.props, href: "#state" } };
+        if (["button", "textField", "select", "checkbox", "switch", "menu", "menuItem", "tab"].includes(kind))
+          root = { ...root, props: { ...root.props, disabled } };
+        if (kind === "checkbox" || kind === "switch") root = { ...root, props: { ...root.props, checked: selected } };
+        if (kind === "dialog") root = { ...root, props: { ...root.props, open: true } };
+        if (kind === "menu" || kind === "menuItem") {
+          const item =
+            kind === "menuItem"
+              ? { ...root, id: "root/item" }
+              : { id: "root/item", kind: "menuItem", props: { label: "Item" } };
+          root = {
+            id: "root",
+            kind: "menu",
+            props: { label: "Menu", ...(kind === "menu" ? { disabled } : {}) },
+            children: [item],
+          };
+        }
+        if (kind === "select")
+          root = { ...root, props: { ...root.props, value: "one", options: [{ label: "One", value: "one" }] } };
+        if (kind === "tab") {
+          root = { ...root, props: { ...root.props, value: "one" } };
+          root = {
+            id: "root",
+            kind: "tabs",
+            props: { label: "Tabs", value: "one" },
+            children: [{ ...root, id: "root/tab" }],
+          };
+        }
+        const targetSlot =
+          kind === "select" && selected ? "option" : kind === "menu" && state === "open" ? "content" : slot;
+        const target = (page: Page) => page.locator(`.lf_${kind}_${variant}_${targetSlot}`).first();
+        result[`${kind}.${variant}.${state}`] = {
+          tree: { ...tree, surfaceId: `state-${kind}-${variant}-${state}`, root },
+          target,
+          ...(state === "focus" || kind === "menuItem" || (kind === "select" && selected) || state === "open"
+            ? {
+                async drive(page: Page) {
+                  if (kind === "menuItem" || state === "open") await page.locator(".lf_menu_default_trigger").click();
+                  if (kind === "select" && selected) await page.locator(".lf_select_default_trigger").click();
+                  if (state === "focus") {
+                    await page.keyboard.press(kind === "menuItem" ? "ArrowDown" : "Tab");
+                    if (kind === "checkbox" || kind === "switch") await target(page).locator("input").focus();
+                    else await target(page).focus();
+                  } else if (state === "hover" || state === "active") {
+                    await target(page).hover();
+                    if (state === "active") await page.mouse.down();
+                  }
+                },
+              }
+            : {}),
+        };
+      }
+  }
+  return result;
+}
 export const browserExamples: UiTree[] = [
   tree,
   {

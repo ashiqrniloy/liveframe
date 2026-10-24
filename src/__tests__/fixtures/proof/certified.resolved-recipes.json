@@ -2550,7 +2550,7 @@
   "textField.default.input.invalid": {
     "backgroundColor": "surface.module",
     "textColor": "text.primary",
-    "borderColor": "diagnostic.error",
+    "borderColor": "border.strong",
     "borderWidth": {
       "value": 1,
       "unit": "px"
@@ -2888,7 +2888,7 @@
   "select.default.trigger.invalid": {
     "backgroundColor": "surface.module",
     "textColor": "text.primary",
-    "borderColor": "diagnostic.error",
+    "borderColor": "border.strong",
     "borderWidth": {
       "value": 1,
       "unit": "px"
@@ -5502,7 +5502,7 @@
   },
   "popover.default.trigger.disabled": {
     "backgroundColor": "colour.transparent",
-    "textColor": "text.disabled",
+    "textColor": "text.primary",
     "borderColor": "colour.transparent",
     "borderWidth": {
       "value": 1,
@@ -6820,7 +6820,7 @@
   },
   "dialog.default.close.disabled": {
     "backgroundColor": "colour.transparent",
-    "textColor": "text.disabled",
+    "textColor": "text.primary",
     "borderColor": "colour.transparent",
     "borderWidth": {
       "value": 1,

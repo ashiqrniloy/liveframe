@@ -47,6 +47,7 @@ export function implementations(mode = "") {
             className={input.slot("root")}
             style={input.style}
             data-context={context}
+            data-selected={mode !== "selected" && input.props.pressed ? "" : undefined}
             onClick={() => {
               input.emit(mode === "undeclared" ? "missing" : "onPress", mode === "wrong-value" ? "bad" : undefined);
             }}

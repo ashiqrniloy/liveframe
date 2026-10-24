@@ -12,7 +12,7 @@ import { cssString, slotClass, valueVar } from "./names.ts";
 import { recipeDeclarations } from "./recipe.ts";
 import { responsiveRules } from "./style-props.ts";
 
-const stateSelectors = {
+export const stateSelectors = {
   rest: "",
   hover: "[data-hovered]",
   focus: ":focus-visible,[data-focus-visible],:has(:focus-visible)",
@@ -22,6 +22,12 @@ const stateSelectors = {
   invalid: ":user-invalid,[data-invalid],[aria-invalid=true]",
   disabled: ":disabled,[data-disabled],[aria-disabled=true]",
 } as const;
+
+/** The projection and conformance compare emitted declarations, including resolved defaults. */
+export function stateDeclarations(recipe: Parameters<typeof recipeDeclarations>[0], rest: string) {
+  const body = recipeDeclarations(recipe);
+  return body === rest ? undefined : body;
+}
 
 function selector(scope: string, cls: string, root: string, condition: string, guarded: boolean): string {
   const disabled = stateSelectors.disabled;
@@ -62,13 +68,14 @@ export function designSystemCss(system: DesignSystem, context: DesignSystemConte
           const key = `${definition.kind}.${variant}.${slot}` as const;
           const restRecipe = resolved[`${key}.rest`] ?? {};
           const rest = recipeDeclarations(restRecipe);
-          const body = recipeDeclarations(resolved[`${key}.${state}` as RecipeKey] ?? {});
+          const body =
+            state === "rest" ? rest : stateDeclarations(resolved[`${key}.${state}` as RecipeKey] ?? {}, rest);
           const cls = `.${slotClass(definition.kind, variant, slot)}`;
           if (state === "rest") {
             rules.push(`${scope} ${cls}{${body}}`);
             const edge = forcedEdgeDeclarations(restRecipe);
             if (edge) forced.push(`${scope} ${cls}{${edge}}`);
-          } else if (body !== rest) {
+          } else if (body !== undefined) {
             const guarded = state === "hover" || state === "active";
             const target = selector(scope, cls, root, condition, guarded);
             rules.push(`${target}{${body}}`);

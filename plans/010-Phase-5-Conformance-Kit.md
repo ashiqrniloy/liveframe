@@ -362,10 +362,10 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Performance: the full check recorded 8770.85 ms for all five proof browser cases across Certified/Rack, excluding server/browser startup. No render, validation or style runtime path changed.
     - Validation: `timeout 600s bun run check` passed (520 tests across 80 files, zero failures; tests 154.41s; 37 existing lint warnings). Focused browser/portability tests, final typechecking and changed-file lint also passed. Export tests pin the two new functions, and the portability scan permits `react-dom/client` only in DOM subpaths while still rejecting runtime Playwright imports. `git diff --check` and `timeout 120s graft build` passed. No spec change; Tasks 7–8 remain unimplemented, and their registration path now reflects `browser.tsx`. Browser execution was Chromium only.
 
-- [ ] Task 7: Add the state-reachability browser case
+- [x] Task 7: Add the state-reachability browser case
   - Acceptance Criteria:
     - Functional:
-      - `every_styled_state_is_reachable`: the kit computes every `(kind, variant, state)` for which some slot's resolved recipe differs from rest in any installed design system (`resolveRecipes`, compared as the projection compares them). Each needs a `fixtures.states["kind.variant.state"]` entry `{ tree, target, drive? }`. After `drive` (default: `target.hover()` for `hover`, a mouse press held for `active`; otherwise the tree's props put the node in the state), the target root element matches the spec §6.4 selector for that state.
+      - `every_styled_state_is_reachable`: the kit computes every `(kind, variant, state)` for which some slot's resolved recipe differs from rest in any installed design system (`resolveRecipes`, compared as the projection compares them). Each needs a `fixtures.states["kind.variant.state"]` entry `{ tree, target, drive? }`. After `drive` (default: `target.hover()` for `hover`, a mouse press held for `active`; otherwise the tree's props put the node in the state), the target root or affected slot element matches the spec §6.4 selector for that state.
       - A missing entry fails and lists every missing key, so coverage fails closed (decision 4).
     - Performance: record wall time on the proof host.
     - Code Quality: the selector table is the one in `src/css/design-system.ts:15–24`, exported internally to the kit, never copied. The required set uses the same rest comparison as the projection, not a second definition.
@@ -377,23 +377,35 @@ Probe answers that hold for every task, unless a task says otherwise:
       - Playwright 1.64.1 (as Task 6). React Aria Components 1.22.1 hover, press and focus-visible data attributes (Context7), for the proof fixtures.
     - Documentation Reviewed:
       - Spec §6.4 (states and the selector table); `src/css/design-system.ts:15–90`; `src/resolve.ts:15–73`; `src/__tests__/css-browser.test.ts` (`state_precedence_follows_the_fixed_order`, root-to-slot propagation).
+      - Execution lookup: Context7 `/microsoft/playwright` confirmed `Locator.hover`, held `Mouse.down` and element evaluation; `/websites/react-aria_adobe` confirmed hover, press and focus-visible data attributes. Installed Playwright 1.64.1 and React Aria Components 1.22.1 types pass.
     - Options Considered:
       - Comparing computed styles with the recipe — rejected: given a matching element, the library's CSS is already proved (`css-browser.test.ts`). What the app controls is whether its implementation reaches the selector.
       - Requiring a fixture for every `(kind, variant, state)` — rejected: states equal to rest emit no rule (spec §6.4), so they need no proof.
     - Chosen Approach:
-      - Derive the required set from the app's own design systems, drive each state, assert `element.matches(selector)` on the root.
+      - Derive the required set from the app's own design systems, drive each state, and assert the normative selector on the root or an affected slot, with the matching slot class. The owner explicitly approved slot targets and corrections to unreachable proof recipe mappings during execution; this follows spec §6.4's slot-local selectors and root-to-slot propagation.
     - API Notes and Examples:
       ```ts
       fixtures.states["button.primary.hover"] = { tree, target: (page) => page.getByRole("button", { name: "Save" }) };
       fixtures.states["button.primary.disabled"] = { tree: disabledTree, target };
       ```
     - Files to Create/Edit:
-      - `src/conformance/react/states.ts`: new; `src/css/design-system.ts`: export `stateSelectors` and the rest comparison internally (no public export change).
+      - `src/conformance/react/states.ts`: new; `src/css/design-system.ts`: export `stateSelectors` and the declaration comparison internally (no public export change).
+      - `src/conformance/react/browser.tsx`: register the case and state-fixture type.
+      - `src/__tests__/{conformance-renderer-browser.test.tsx,conformance-states.test.ts}`, the browser implementation fixture: positive, mutant and projection-equivalence controls.
+      - Proof recipe mappings and regenerated design-system/resolved JSON fixtures: remove states that the controls cannot expose; the menu content marks its mounted open state.
+      - `decision-logs/2026-10-24-2153-state-reachability-slot-targets.md`: approved slot-target interpretation.
+      - This plan and `roadmap.md` §3: execution evidence and progress.
       - `proof/tests/fixtures/conformance.ts`, `proof/tests/conformance-browser.test.ts`: state fixtures for the proof primitives.
   - Test Cases to Write:
     - `proof_host_reaches_every_styled_state`: passes under Certified and Rack.
     - `state_case_catches_unreachable_states`: fails for an implementation that never sets `data-selected`/`aria-selected`, and lists the missing keys when a fixture is removed.
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-24):
+    - Registered `every_styled_state_is_reachable` on `rendererBrowserSuite`, with optional `fixtures.states` (omission still fails whenever a styled state needs coverage). Required keys are the union across installed design systems after inheritance and recipe resolution. The case reuses the projection's selector table and emitted-declaration comparison; equivalent declarations need no fixture. Missing keys are grouped into bounded diagnostics rather than losing coverage after the first 20 keys.
+    - The owner explicitly approved affected-slot targets and proof mapping corrections, recorded in `decision-logs/2026-10-24-2153-state-reachability-slot-targets.md`. Targets must carry the matching root class or a slot class affected by that state. Native hover is checked only on hover-capable devices, and disabled controls cannot satisfy hover/active. Active presses are released in `finally`; drive and locator errors name the tuple. An invalid arrival unmounts primitive state before each fixture, avoiding repeated page/bundle loads without widening the page API.
+    - The proof supplies exactly 58 required fixtures and passes all 232 fixture × theme × design-system checks across Certified and Rack. Corrected copied recipes for unavailable invalid-input states, disabled dialog-close/popover-trigger controls, selected menu items and the unrendered scrollbar slot; regenerated the four design-system/resolved JSON fixtures. The mounted menu content now exposes its open state. Fixtures drive actual controls and never synthesize state attributes.
+    - Positive and mutant browser controls prove selected-state reachability and rejection when an implementation drops the selected marker; missing fixtures fail by name. Unit controls cover missing keys from both installed systems (including slot-only and late-listed states), projection-equivalent defaults, and rest-equivalent states requiring no browser work. Existing projection tests remain green.
+    - Performance: the full check recorded 57156.01 ms for the 58-state proof case across both themes and both design systems, excluding browser/server startup. A standalone focused run took 46018.90 ms. Initial focused attempts hit page-load timeouts while the machine's load average reached about 69; the final focused and full runs passed without relaxing timeouts or existing performance gates.
+    - Validation: `timeout 600s bun run check` passed (526 tests across 81 files, zero failures; tests 244.63s; 37 existing lint warnings and 3 informational findings). Focused browser controls (12 tests), proof browser cases (2 tests), state/projection controls (12 tests), `git diff --check` and `timeout 120s graft build` passed. No spec change, public export change, dependency addition or later-task amendment was needed. Browser evidence is Chromium only; pixel parity and other runtimes/test runners were not rerun.
 
 - [ ] Task 8: Add the overlay lifecycle and text-bound browser cases
   - Acceptance Criteria:
