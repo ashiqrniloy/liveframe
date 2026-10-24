@@ -121,10 +121,13 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phase 4 Part B and Phase 8 (spec §7.5, §13)
 - Priority: P2
+- Status: closed 2026-10-24 by plan 009 Tasks 2–7; the Phase 8 note below remains.
 - Source: plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F2), plans/007-Phase-3-CSS-Projection.md (F3)
 - What: implement `createPreview({ catalog, capabilities, runner })` using the shipped `pack()` and `Runner.render(pkg, inputs, options)` contracts, as settled by `decision-logs/2026-10-24-0306-phase-4-renderer-and-preview-contracts.md` and plan 009. Draft updates remain unstored, `check()` renders every validated scenario, `setState` stays in the session and actions are logged without dispatch. Publishing retains the last previewed package hash. Use the same host-supplied runner for preview and production; the browser receives only trees. Carry these conditions into the Phase 4 plan and Phase 8 MCP integration tests.
 - Why: Part B ships runners and required scenarios, not preview sessions or capture. This explicit handoff prevents a second packaging/validation path or a browser draft-execution path.
 - CSS integration: reuse `/css` and the Phase 4 Part A renderer, cache N + M + 1 sheets for a fixed catalog and keep each matrix cell's surface and overlays scoped independently. Cells must be siblings, never nested surfaces; container widths, not viewport widths, select responsive values. Include `src/__tests__/css-scope-browser.test.ts` isolation/switch cases in preview acceptance and keep draft code out of captured browser HTML.
+- Resolution: `createPreview()`, `<Preview>` and `liveframe preview capture` ship with tests for the session contract, the 12-cell matrix, no dispatch, no draft code in the bundle or HTML, and a scripted agent loop whose published hash equals the previewed one. The outsider guide is `docs/preview.md`.
+- Phase 8 note: `liveframe mcp` should call `createPreview()` and `capture()` from `src/cli/capture.ts` directly instead of spawning `liveframe`, keep the optional MCP SDK lazily imported like Playwright, and never install, place, approve or dispatch. Its tests should reuse the agent-loop shape in `src/__tests__/preview-agent-loop.test.ts`.
 
 ## Carry the CSS overlay contract into the production renderer
 

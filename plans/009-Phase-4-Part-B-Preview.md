@@ -376,7 +376,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - The loop took about 4.8 s (two captures of four cells each, plus launch and publish). No implementation changed.
     - Verification: the new test passes; lint and format pass, and `src` typechecks clean. The full suite was last run before this test was added (460 pass, 0 fail). `bun run typecheck` still fails on the six pre-existing TS1543 errors in `proof/` recorded in Task 5.
 
-- [ ] Task 7: Document the preview for outsiders and hand off to Phase 8
+- [x] Task 7: Document the preview for outsiders and hand off to Phase 8
   - Acceptance Criteria:
     - Functional:
       - `docs/preview.md` covers:
@@ -413,6 +413,13 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `plans/backlog.md`.
   - Test Cases to Write:
     - `preview_guide_example_runs`.
+
+  - Notes (executed 2026-10-24):
+    - Added `docs/preview.md`: sessions (with the runner-is-not-a-sandbox caveat and laws 1 and 4), publishing the previewed package, mounting `<Preview>` and wiring `onSelect`/`onIntent`, URL addressing, capture with the `index.json` format and exit codes, calling `capture()` from code, and installing the optional Playwright peer. `docs/packages.md` (which no longer says preview is future work) and `docs/model.md` link to it; the preview skill reference's "Today" section describes what shipped.
+    - The guide's backend example is `src/__tests__/fixtures/preview-guide.ts`, embedded verbatim in the guide and run by `preview-guide.test.ts` (tree, setState re-render, logged action, `check()`, and the stored package's hash). Its host-supplied values come from `preview-guide-host.ts`. The `<Preview>` mount snippet points to the proof host's page rather than duplicating it, so only the backend example is executed.
+    - Writing the example showed the session's own state re-check working: my first `setState` value was outside the manifest's enum and the session rejected it with `invalid-prop` at `/value`.
+    - Closed the backlog item "Build preview sessions on the shipped package and runner contracts" with its resolution, and recorded the Phase 8 note there: `liveframe mcp` should call `createPreview()` and `capture()` directly and keep the MCP SDK lazily imported.
+    - Verification: lint, format and the full suite pass (462 tests, 0 failures); `src` typechecks clean. `bun run typecheck` still fails on the six pre-existing TS1543 errors in `proof/` recorded in Task 5.
 
 - [ ] Task 8: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
