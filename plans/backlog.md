@@ -4,6 +4,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 ## Phase 1 performance gate: 3 µs per node
 
+- Disposition: existing P1 retained by the owner on 2026-10-25 (plan 002 Task 9 carry-over F2; plans/evidence/002-impact-analysis.md).
 - Section: Phase 1 (spec §10, §12)
 - Priority: P1
 - Source: plans/002-Phase-0-Parity-Re-Proof.md (G32), plans/004-Phase-1-Part-B-Compiled-Validator.md, plans/005-Phase-2-Part-A-SDK.md Task 8
@@ -27,6 +28,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 ## Composition surface gaps from the parity re-proof
 
+- Disposition: existing P3 retained by the owner on 2026-10-25 (plan 002 Task 9 carry-over F1; plans/evidence/002-impact-analysis.md).
 - Section: Phase 2 (spec §5, §6.3)
 - Priority: P3
 - Source: plans/002-Phase-0-Parity-Re-Proof.md (G30, G31)
@@ -38,6 +40,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 ## Later-phase gaps from the Phase 0 reports
 
+- Disposition: G29's existing P2 retained by the owner on 2026-10-25 (plan 002 Task 9 carry-over F3; plans/evidence/002-impact-analysis.md). R20's post-0.1.0 deferral remains in force; G19/G20/G27/G28 are closed as recorded below.
 - Section: Phases 1, 3, 4, 6 and 7 (spec §6.4, §8, §10, §11)
 - Priority: P2
 - Source: plans/001-Phase-0-Primitive-Set-Proof.md, plans/002-Phase-0-Parity-Re-Proof.md, plans/003-Phase-1-Part-A-Formats.md, plans/004-Phase-1-Part-B-Compiled-Validator.md, plans/007-Phase-3-CSS-Projection.md (F1, F6)
@@ -65,6 +68,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 ## Hand adopter gaps to Synapta and Clay
 
+- Disposition: existing Phase 7 P4 retained by the owner on 2026-10-25 (plan 002 Task 9 carry-over F4; plans/evidence/002-impact-analysis.md).
 - Section: Phase 7 (reference hosts)
 - Priority: P4
 - Source: plans/001-Phase-0-Primitive-Set-Proof.md, plans/002-Phase-0-Parity-Re-Proof.md, plans/005-Phase-2-Part-A-SDK.md (F5), plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F5), plans/007-Phase-3-CSS-Projection.md (F9), plans/008-Phase-4-Part-A-React-Renderer.md Task 11 (F3), plans/010-Phase-5-Conformance-Kit.md Task 9

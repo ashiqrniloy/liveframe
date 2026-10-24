@@ -62,6 +62,52 @@ Plan 002 Task 9, 2026-10-22. This sweeps the impact areas in `.agents/skills/cre
 | F9 | G30 (icon hue), G31 (tab count), `position: relative` and px-only `basis` are look/expressiveness gaps inside the pixel bar. | 5 | backlog (P3) | backlog "Composition surface gaps from the parity re-proof" |
 | F10 | G30–G33 were cited by the report, the decision log and the plan but existed only as prose in `GAPS.md`; the numbers now have a register. | 1, 10 | execute | executed (`GAPS.md` "Plan 002 gap numbers") |
 
-Owner's answer (2026-10-22): pending in this task's gate — the ten findings were presented with the dispositions above, and the answer will be recorded here before the task is ticked.
+The owner gate remained pending after the 2026-10-22 analysis. The closure
+below preserves these historical findings and reconciles their later resolutions.
 
 Areas with no finding: 3 (four laws — evidence above), 8 (portability), 9 (agent authoring — Phase 2 scope).
+
+## Closure review — 2026-10-25
+
+All twelve areas above were rechecked for plan 012 Task 1. The executed
+historical corrections (F1, F2, F7, F8, F10) remain delivered; no new spec or
+runtime change is required. Historical F4 (G33) was addressed by plan 007's
+warm-switch gate, with cold-start sensitivity retained in “Later-phase gaps”.
+Historical F5 was settled by the Phase 1 format decision and plan 003.
+Historical F6's conformance seed is closed by plan 010 Tasks 2–9; the host
+adoption handoff remains open. G19/G20/G27/G28 are closed by plans 003/004/007/008.
+
+Current four-laws evidence includes `proof/tests/runtime.test.ts:165–235`
+(`responsive_style_values_are_closed_data`, `fill_accepts_only_declared_fillable_roles`,
+`semantics_are_a_closed_enum_with_terms_child_rules`),
+`proof/tests/catalog.test.ts:56` (`definitions_admit_no_colour_or_raw_style_props`),
+`proof/tests/projection.test.ts` (`projection_rejects_injection_missing_recipes_and_unresolved_values`)
+and `proof/tests/host.test.ts:30` (`dispatch_rechecks_state_actions_current_tree_and_revision`).
+The host and widget browser tests check that widget code never reaches browser
+bundles. Shared conformance law mutants remain part of the full check.
+
+The following **carry-over IDs** are the four remaining handoffs presented to
+the owner on 2026-10-25; they do not renumber the historical findings above.
+
+| Carry-over ID | Finding / historical mapping | Owner disposition and handoff |
+| --- | --- | --- |
+| F1 | G30/G31 and position/basis composition limits (historical F9; `proof/REPORT.md` §6, `proof/GAPS.md:147–167`) | backlog P3; retain “Composition surface gaps from the parity re-proof”. |
+| F2 | Proof render budget and production performance stability (historical F3; `proof/REPORT.md` §9; plan 005 Task 10 F8) | backlog P1; retain “Phase 1 performance gate: 3 µs per node”, measured by plan 012 Task 13 with unchanged thresholds. |
+| F3 | Native Windows/AT evidence G29 (`proof/GAPS.md`, `proof/REPORT.md` §6) | backlog P2; retain “Later-phase gaps from the Phase 0 reports” and R20's already-approved post-0.1.0 deferral. |
+| F4 | Source-host look/icon/adoption gaps (historical F6; `proof/REPORT.md` §6) | backlog P4; retain “Hand adopter gaps to Synapta and Clay”. |
+
+Owner answer, 2026-10-25: **“Approve all eight dispositions”**, meaning these
+four carry-overs plus plan 010 F1–F4. Approval is recorded in
+`decision-logs/2026-10-25-0247-phase-0-and-phase-5-carry-over-dispositions.md`.
+Existing entries are reused rather than duplicated. This closes the historical
+impact gate without changing the approved Phase 0 go or claiming deferred work
+is implemented. The later initially-open dialog finding remains plan 010 F1,
+required in plan 013 Task 5.
+
+Verification: `timeout 900s bun run check` passed (590 tests across 87 files,
+zero failures; 251.08s; 38 existing lint warnings and 3 informational findings),
+including the proof rejection cases and conformance law mutants. Historical parity/harness
+evidence remains in Task 8 and plan 007 Task 10 / plan 008 Task 7. No pixel
+or budget rerun is needed for this process-only task; regenerate captures with
+`timeout 600s bun proof/scripts/parity.ts --out evidence/parity` and the inventory
+with `timeout 120s bun proof/scripts/inventory.ts --dir evidence/parity`.

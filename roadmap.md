@@ -132,7 +132,7 @@ Two plans: Part A (release hardening and API freeze), then Part B (packaging, de
 
 ## 3. Execution state
 
-- **Current phase:** Phase 6 in progress (plan 012 Task 1, closing the carry-over gates). Phase 5 complete (plan 010, Tasks 1–10; owner dispositions recorded in the impact analysis and backlog). Phase 8 complete (plan 011, Tasks 1–9; findings disposed in the impact analysis and backlog). Phase 4 complete. Part B (Preview, plan 009) is complete — Tasks 1–8 and impact follow-up Task 7a; Task 3 closed with an owner-approved timing exception reproduced on the pre-task baseline; findings disposed in the impact analysis and backlog. Phase 4 Part A (React renderer, plan 008) complete — Tasks 1–11 and impact follow-up Task 11a complete; findings disposed in the impact analysis and backlog. Phase 3 plan 007 Tasks 1–12 and impact follow-up Task 11a are complete; findings disposed in the impact analysis and backlog. Phase 2 plans 005 and 006 are complete; plan 005's impact findings include active SDK validation and validator-performance backlog items. Plan 002 Task 9's closure remains recorded separately.
+- **Current phase:** Phase 6 in progress (plan 012 Task 1, closing the carry-over gates). Phase 5 complete (plan 010, Tasks 1–10; owner dispositions recorded in the impact analysis and backlog). Phase 8 complete (plan 011, Tasks 1–9; findings disposed in the impact analysis and backlog). Phase 4 complete. Part B (Preview, plan 009) is complete — Tasks 1–8 and impact follow-up Task 7a; Task 3 closed with an owner-approved timing exception reproduced on the pre-task baseline; findings disposed in the impact analysis and backlog. Phase 4 Part A (React renderer, plan 008) complete — Tasks 1–11 and impact follow-up Task 11a complete; findings disposed in the impact analysis and backlog. Phase 3 plan 007 Tasks 1–12 and impact follow-up Task 11a are complete; findings disposed in the impact analysis and backlog. Phase 2 plans 005 and 006 are complete; plan 005's impact findings include active SDK validation and validator-performance backlog items. Phase 0 complete (plan 002, Tasks 1–9; owner dispositions recorded in the impact analysis and backlog).
 - **Next free plan number:** 014.
 
 One line per plan. Detail lives in the plan file, never here.
@@ -140,7 +140,7 @@ One line per plan. Detail lives in the plan file, never here.
 | Plan | Phase | Status |
 | --- | --- | --- |
 | [001](plans/001-Phase-0-Primitive-Set-Proof.md) | 0 | complete (conditional go; closed by plan 002) |
-| [002](plans/002-Phase-0-Parity-Re-Proof.md) | 0 | in progress (Task 8 approved: Phase 0 is go; Task 9 remains) |
+| [002](plans/002-Phase-0-Parity-Re-Proof.md) | 0 | complete (Tasks 1–9; Phase 0 go unchanged; owner dispositions recorded in the impact analysis and backlog) |
 | [003](plans/003-Phase-1-Part-A-Formats.md) | 1 | complete (Tasks 1–9; findings disposed in the impact analysis and backlog) |
 | [004](plans/004-Phase-1-Part-B-Compiled-Validator.md) | 1 | complete (Tasks 1–7; findings disposed in the impact analysis and backlog) |
 | [005](plans/005-Phase-2-Part-A-SDK.md) | 2 | complete (Tasks 1–10 and Task 9a; findings disposed in the impact analysis and backlog) |

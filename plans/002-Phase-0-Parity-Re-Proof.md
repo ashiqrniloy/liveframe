@@ -478,7 +478,7 @@ Sources (read-only):
     - Owner gate, 2026-10-22: the ten causes and the 32 style values were presented with three verdict options (go, conditional go, no-go) and approved as intended. **Verdict: go** — "go with recommendation", i.e. go, with the render budget carried into Phase 1 as a per-node gate (≤ 3 µs/node, 2 ms at 680 nodes) instead of a flat 2 ms bench that the artifact-faithful tree cannot meet at the proof's 8.5 µs/node cost. Recorded in `proof/PARITY.md` "Approval", `proof/REPORT.md` §8, `docs/spec.md` §12, `decision-logs/2026-10-22-1519-phase-0-go.md` (superseding the conditional go's open condition) and `roadmap.md` §3 (Phase 1, formats frozen).
     - Report deltas beyond the above: the verdict paragraph now reads go; §7 records that every spec change it lists is implemented rather than queued; §10 re-confirms the four laws against the new surfaces (`fill_accepts_only_declared_fillable_roles`, `responsive_style_values_are_closed_data`, `semantics_are_a_closed_enum_with_terms_child_rules`, `projection_rejects_injection_missing_recipes_and_unresolved_values`).
 
-- [ ] Task 9: Analyze architectural impact and dispose of every finding
+- [x] Task 9: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional: every impact area in `.agents/skills/create-plan/references/liveframe.md` §5 is recorded in `plans/evidence/002-impact-analysis.md`, or marked `None — <reason>`. Every finding is executed above this task or backlogged, with the owner's answer recorded. Existing `plans/backlog.md` entries from Plan 001 that this plan resolves are updated or removed.
     - Performance: n/a.
@@ -502,6 +502,11 @@ Sources (read-only):
       - `plans/backlog.md`: update.
   - Test Cases to Write:
     - None.
+  - Notes (executed 2026-10-25 under plan 012 Task 1):
+    - Preserved the existing 2026-10-22 twelve-area review and ten historical findings; added a closure review mapping later resolutions and four remaining carry-over handoffs. The evidence file already existed despite the task's original “new” annotation.
+    - Owner approved all four carry-overs as backlog (“Approve all eight dispositions”, including plan 010 F1–F4). Recorded the answer in the review and `decision-logs/2026-10-25-0247-phase-0-and-phase-5-carry-over-dispositions.md`; attached it to existing backlog entries rather than duplicating them.
+    - Rechecked four-laws evidence, explicitly including fill, responsive values and semantics rejection controls. Later plans already closed the install-validator, code-point editor, scoped projection, conformance seed and format-decision handoffs; adopter composition, performance, native audit and production adoption limits remain explicit.
+    - Validation: `timeout 900s bun run check` passed (590 tests across 87 files, zero failures; 251.08s; 38 existing lint warnings and 3 informational findings), including proof rejection cases and conformance law mutants. No runtime, normative spec or dependency change. Historical parity, harness and bench evidence is retained from Task 8 and later integration plans; this process-only closure does not rerun pixels or relabel the proof's known failed render budgets as passing. The Phase 0 go is unchanged.
 
 ## Verification (whole plan)
 
@@ -515,8 +520,13 @@ Sources (read-only):
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- The artifact-faithful proof exceeded its flat 2 ms render budget. The owner-approved go carries the production ≤ 3 µs/node gate, with current stability work in plan 012 Task 13; no budget was relaxed here.
+- G30/G31 and position/basis expressiveness limits remain within the approved parity inventory. Native Windows/AT and real-host adoption are unproved; G29's release deferral is already approved by R20.
 
 ## Further Actions
 
-- To be filled after task completion with improvements, rationale, and priority.
+- Carry-over F1 — P3: retain “Composition surface gaps from the parity re-proof” (historical F9).
+- Carry-over F2 — P1: retain “Phase 1 performance gate: 3 µs per node” and plan 012 Task 13's unchanged-budget measurements (historical F3).
+- Carry-over F3 — P2: retain G29 in “Later-phase gaps from the Phase 0 reports”, deferred past 0.1.0 by R20.
+- Carry-over F4 — P4: retain “Hand adopter gaps to Synapta and Clay” (historical F6). The conformance seed is closed by plan 010.
+- All four carry-over dispositions were approved on 2026-10-25 and recorded against existing `plans/backlog.md` entries; historical executed findings and subsequent resolutions remain in `plans/evidence/002-impact-analysis.md`.
