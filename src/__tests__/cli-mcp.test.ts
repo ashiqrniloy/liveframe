@@ -5,7 +5,12 @@ import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { McpSdkMissing, mcp } from "../cli/mcp.ts";
+import type { Result } from "../errors.ts";
+import { type Capabilities, validateCapabilities } from "../formats/capabilities.ts";
+import { type Catalog, validateCatalog } from "../formats/catalog.ts";
 import type { LiveframeError } from "../index.ts";
+import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
+import catalog from "./fixtures/proof/catalog.json" with { type: "json" };
 
 const fixtures = "src/__tests__/fixtures";
 const config = `${fixtures}/mcp.config.ts`;
@@ -18,11 +23,94 @@ function cli(args: string[], preload?: string, env: Record<string, string> = {})
   });
 }
 
+function valid<T>(result: Result<T>): T {
+  if (!result.ok) throw new Error(JSON.stringify(result.errors));
+  return result.value;
+}
+
+const proofCatalog = valid(validateCatalog(catalog));
+const proofCapabilities = valid(validateCapabilities(capabilities));
+const [firstDefinition, secondDefinition] = proofCatalog.definitions;
+if (!firstDefinition || !secondDefinition) throw new Error("The proof catalog needs at least two definitions");
+
+async function withClient<T>(fn: (client: Client) => Promise<T>): Promise<T> {
+  const client = new Client({ name: "cli-mcp-test", version: "0" });
+  await client.connect(
+    new StdioClientTransport({ command: "bun", args: ["src/cli/liveframe.ts", "mcp", config], stderr: "pipe" }),
+  );
+  try {
+    return await fn(client);
+  } finally {
+    await client.close();
+  }
+}
+
+async function call(client: Client, name: string, args: Record<string, unknown> = {}) {
+  const result = await client.callTool({ name, arguments: args });
+  const [block] = result.content as [{ type: "text"; text: string }];
+  return { isError: result.isError === true, text: block.text, json: () => JSON.parse(block.text) as unknown };
+}
+
 async function temp(): Promise<string> {
   const dir = join(tmpdir(), `lf-mcp-${crypto.randomUUID()}`);
   await Bun.write(join(dir, ".keep"), "");
   return dir;
 }
+
+test("tools_list_has_the_four_read_only_tools", async () => {
+  const tools = await withClient(async (client) => (await client.listTools()).tools);
+  expect(tools.map((tool) => tool.name).sort()).toEqual([
+    "generated_types",
+    "list_capabilities",
+    "list_primitives",
+    "list_vocabulary",
+  ]);
+  for (const tool of tools) expect(tool.description?.length ?? 0).toBeGreaterThan(20);
+  expect(JSON.stringify(tools.find((tool) => tool.name === "list_primitives")?.inputSchema)).toContain('"kinds"');
+}, 30000);
+
+test("list_primitives_returns_every_definition_or_the_named_ones", async () => {
+  const [all, named] = await withClient(async (client) => [
+    await call(client, "list_primitives"),
+    await call(client, "list_primitives", { kinds: [secondDefinition.kind] }),
+  ]);
+  expect(all?.isError).toBe(false);
+  expect(all?.json() as Catalog["definitions"]).toEqual(proofCatalog.definitions);
+  expect(named?.json() as Catalog["definitions"]).toEqual([secondDefinition]);
+}, 30000);
+
+test("unknown_kind_is_an_error_naming_known_kinds", async () => {
+  const result = await withClient((client) => call(client, "list_primitives", { kinds: ["not-a-kind"] }));
+  expect(result.isError).toBe(true);
+  const [error] = result.json() as LiveframeError[];
+  expect(error?.kind).toBe("unknown-component");
+  expect(error?.message).toContain("not-a-kind");
+  expect(error?.expected).toContain(firstDefinition.kind);
+}, 30000);
+
+test("list_vocabulary_matches_the_catalog_vocabulary", async () => {
+  const result = await withClient((client) => call(client, "list_vocabulary"));
+  expect(result.isError).toBe(false);
+  expect(result.json()).toEqual(proofCatalog.vocabulary);
+}, 30000);
+
+test("list_capabilities_lists_sources_and_actions_with_schemas", async () => {
+  const result = await withClient((client) => call(client, "list_capabilities"));
+  const declared = result.json() as Capabilities;
+  expect(declared).toEqual(proofCapabilities);
+  for (const source of Object.values(declared.sources)) {
+    expect(source.params.type).toBe("object");
+    expect(source.result).toBeDefined();
+  }
+  for (const action of Object.values(declared.actions)) expect(action.args.type).toBe("object");
+}, 30000);
+
+test("generated_types_equals_liveframe_gen_output", async () => {
+  const result = await withClient((client) => call(client, "generated_types"));
+  const { note, types } = result.json() as { note: string; types: string };
+  expect(types).toBe(await Bun.file("src/__tests__/fixtures/widgets/ui.gen.ts").text());
+  expect(note).toContain("ui.gen.ts");
+}, 30000);
 
 test("mcp_server_initializes_over_stdio", async () => {
   const client = new Client({ name: "cli-mcp-test", version: "0" });

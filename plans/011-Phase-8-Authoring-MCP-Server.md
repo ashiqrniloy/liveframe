@@ -181,7 +181,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Performance: spawn to a completed `initialize` measured at 107, 96 and 100 ms over three runs on the loaded machine (client connect includes Bun's own start-up). No tools yet, so no per-call time.
     - Validation: `bun run check` passed (563 tests, 0 failures, 260 s), including `cli-mcp.test.ts` (6 tests) and the host-API-free scan for `/preview`. `git diff --check` is clean. No spec change was needed: Task 1 already wrote this behaviour into §13.
 
-- [ ] Task 3: Add the read-only catalog tools
+- [x] Task 3: Add the read-only catalog tools
   - Acceptance Criteria:
     - Functional:
       - `list_primitives({ kinds? })` returns each definition in full: kind, props schema, children, events with `carries` and description, variants, slots, style props, `description` and `deprecated`. Omitting `kinds` returns all of them. An unknown kind is `isError` with `unknown-component` and the list of known kinds.
@@ -216,6 +216,17 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `list_vocabulary_matches_the_catalog_vocabulary`.
     - `list_capabilities_lists_sources_and_actions_with_schemas`.
     - `generated_types_equals_liveframe_gen_output`: compared with `src/__tests__/fixtures/widgets/ui.gen.ts`, so a drift in either fails.
+
+  - Notes (executed 2026-10-24):
+    - `registerCatalogTools(sdk, server, catalog, capabilities)` in `src/cli/mcp.ts` registers the four handlers, each two to eight lines, over values fixed for the server's lifetime: `known` kinds, `catalog.vocabulary`, the validated capabilities document and `generate(catalog)` (`generated_types` computes it per call, which measured 1.7–2.1 ms). Two helpers, `text()` and `failure()`, keep every result one JSON text block. `loadSdk()` now also returns `fromJsonSchema`, so nothing else in the CLI imports the SDK and `gen` stays SDK-free. `loadConfig()` returns the validated `catalog` and `capabilities` beside the config, because `AuthoringConfig`'s fields are `unknown` until validated; Task 4 uses the same values.
+    - `list_primitives` takes `{ kinds?: string[] }` through `fromJsonSchema<{ kinds?: string[] }>`, returns the definitions verbatim (in catalog order, filtered by `kinds`), and on an unknown kind returns `isError` with one `LiveframeError` per bad kind: `kind: "unknown-component"`, `pointer: "/kinds/<i>"`, the bad name in `message`, and the known kinds comma-joined in `expected`.
+    - `list_capabilities` returns the validated capabilities document verbatim (format, actions with `args`, sources with `params` and `result`, descriptions, `confirm`). It calls nothing, and `Capabilities` has no slot for a resolver, so law 4 holds by type.
+    - `generated_types` returns `{ note, types }` — JSON, like every other result — with `types` holding `generate(catalog)` unchanged, so the string is byte-identical. The test compares it with `fixtures/widgets/ui.gen.ts`, which `sdk-gen.test.ts` already holds to `generate()` and `liveframe gen`.
+    - Findings. (1) `fromJsonSchema` in SDK 2.4.0 defaults to an Ajv validator, so `tools/list` advertises the real JSON Schema and bad arguments are rejected by the SDK before the handler — the path Task 4's second error test relies on. (2) The SDK's `fromJsonSchema<T>` infers the handler argument type, so no `unknown` casting is needed in the handlers. (3) Tool descriptions are the only place an agent learns each tool's purpose; each names what the result is for, and a test keeps them at least 20 characters so a placeholder description cannot pass.
+    - Tests added to `src/__tests__/cli-mcp.test.ts` (12 tests total): `tools_list_has_the_four_read_only_tools` (names, descriptions, the `kinds` input schema), `list_primitives_returns_every_definition_or_the_named_ones`, `unknown_kind_is_an_error_naming_known_kinds`, `list_vocabulary_matches_the_catalog_vocabulary`, `list_capabilities_lists_sources_and_actions_with_schemas`, `generated_types_equals_liveframe_gen_output` — all through a real stdio client over the proof fixtures.
+    - Performance: 130–133 ms spawn to completed `initialize`; per-call medians over 10 calls, twice: `list_primitives` 0.8 ms (17.9 KB), `list_vocabulary` 0.5–0.6 ms (2.2 KB), `list_capabilities` 0.3–0.4 ms (1.7 KB), `generated_types` 1.7–2.1 ms (35.7 KB) — sizes are the proof catalog's.
+    - Validation: `bun run check` passed (569 tests, 0 failures, 234 s) at load average 50 on 16 cores, including `cli-mcp.test.ts` 12/12; `git diff --check` is clean.
+    - Spec and roadmap need no change: Task 1 wrote these tools into §13.
 
 - [ ] Task 4: Pack and render drafts on one preview session
   - Acceptance Criteria:
