@@ -324,7 +324,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Files to Create/Edit:
       - `src/cli/capture.ts`: new; `src/cli/liveframe.ts`: subcommand.
       - `package.json`: `peerDependencies.playwright` (`^1.64.1`) and `peerDependenciesMeta.playwright.optional`.
-      - `src/__tests__/preview-capture.test.ts`: new (against the proof host).
+      - `proof/tests/preview-capture.test.ts`: new (against the proof host).
   - Test Cases to Write:
     - `capture_writes_png_snapshot_and_index_per_cell`: files exist; PNG signature; the YAML names the cell's landmarks; the index lists every cell once.
     - `flags_narrow_the_cells`.
@@ -338,7 +338,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `package.json` gains `playwright ^1.64.1` as an optional peer. Justification as in the Approach: capture is the agent's only way to see pixels, and Playwright is already a pinned dev dependency.
     - Capture time: about 320 ms per cell (24 cells, 2 scenarios, one CLI process including browser launch).
     - Findings for later tasks: a bare `/preview` GET creates the session and puts its id in the bootstrap JSON, not in a redirect, so an agent must read the id from the page HTML (or pass `?session=`) to post drafts to the same session it captures. Task 6 does this. A deliberate layout error that always renders is `<Stack gap="space.99">` at the root of `agent-home/queue.tsx`; the same value in `decision-card.tsx` is not drawn in the `ready` scenario.
-    - Verification: five new tests pass; `bun run lint`, `format:check` and `bun run test` pass (460 tests, 0 failures). `bun run typecheck` fails on six TS1543 JSON-import-attribute errors in `proof/css/*` and `proof/host/view.tsx`, files this task does not touch; they reproduce with this task's changes stashed, so `bun run check` is not green here for that reason. `src` typechecks clean. The cause is not investigated.
+    - Verification: five new tests pass; `bun run lint`, `format:check` and `bun run test` pass (460 tests, 0 failures). `bun run typecheck` fails on six TS1543 JSON-import-attribute errors in `proof/css/*` and `proof/host/view.tsx`, files this task does not touch; they reproduce with this task's changes stashed, so `bun run check` is not green here for that reason. `src` typechecks clean. The cause is not investigated. Correction: the TS1543 typecheck errors were caused by this plan's own tests and are fixed (see Compromises Made).
     - Mistake corrected: a `biome --write` over all of `src` reformatted 33 unrelated files; they were restored from git with the owner's approval and are not part of this task.
 
 - [x] Task 6: Prove the scripted agent loop
@@ -366,15 +366,15 @@ Probe answers that hold for every task, unless a task says otherwise:
     - API Notes and Examples:
       - n/a.
     - Files to Create/Edit:
-      - `src/__tests__/preview-agent-loop.test.ts`: new.
+      - `proof/tests/preview-agent-loop.test.ts`: new.
   - Test Cases to Write:
     - `scripted_agent_fixes_a_layout_error_from_its_capture_and_publishes_the_previewed_hash`.
 
   - Notes (executed 2026-10-24):
-    - Added `src/__tests__/preview-agent-loop.test.ts`: one deterministic test driving the proof host through HTTP (page GET for the session id, `POST /preview/draft`, `POST /preview/publish`) and `capture()`. A draft with `<Stack gap="space.99">` at the root of `agent-home/queue.tsx` is captured; `index.json` carries `invalid-prop` with `nodeId` `root/stack`, pointer `/root/stack/style/gap` and the allowed values in `expected`, and the PNG exists. The fix picks an allowed value from that `expected` text alone; the next capture has no errors in any cell; the published hash equals the hash the clean `update` returned.
+    - Added `proof/tests/preview-agent-loop.test.ts`: one deterministic test driving the proof host through HTTP (page GET for the session id, `POST /preview/draft`, `POST /preview/publish`) and `capture()`. A draft with `<Stack gap="space.99">` at the root of `agent-home/queue.tsx` is captured; `index.json` carries `invalid-prop` with `nodeId` `root/stack`, pointer `/root/stack/style/gap` and the allowed values in `expected`, and the PNG exists. The fix picks an allowed value from that `expected` text alone; the next capture has no errors in any cell; the published hash equals the hash the clean `update` returned.
     - Law 1: after each capture the test fetches the served page HTML and the client bundle and asserts a marker identifier that exists only in draft code is absent from both. The hydrated DOM was already scanned in Task 4.
     - The loop took about 4.8 s (two captures of four cells each, plus launch and publish). No implementation changed.
-    - Verification: the new test passes; lint and format pass, and `src` typechecks clean. The full suite was last run before this test was added (460 pass, 0 fail). `bun run typecheck` still fails on the six pre-existing TS1543 errors in `proof/` recorded in Task 5.
+    - Verification: the new test passes; lint and format pass, and `src` typechecks clean. The full suite was last run before this test was added (460 pass, 0 fail). `bun run typecheck` still fails on the six pre-existing TS1543 errors in `proof/` recorded in Task 5. Correction: the TS1543 typecheck errors were caused by this plan's own tests and are fixed (see Compromises Made).
 
 - [x] Task 7: Document the preview for outsiders and hand off to Phase 8
   - Acceptance Criteria:
@@ -419,7 +419,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - The guide's backend example is `src/__tests__/fixtures/preview-guide.ts`, embedded verbatim in the guide and run by `preview-guide.test.ts` (tree, setState re-render, logged action, `check()`, and the stored package's hash). Its host-supplied values come from `preview-guide-host.ts`. The `<Preview>` mount snippet points to the proof host's page rather than duplicating it, so only the backend example is executed.
     - Writing the example showed the session's own state re-check working: my first `setState` value was outside the manifest's enum and the session rejected it with `invalid-prop` at `/value`.
     - Closed the backlog item "Build preview sessions on the shipped package and runner contracts" with its resolution, and recorded the Phase 8 note there: `liveframe mcp` should call `createPreview()` and `capture()` directly and keep the MCP SDK lazily imported.
-    - Verification: lint, format and the full suite pass (462 tests, 0 failures); `src` typechecks clean. `bun run typecheck` still fails on the six pre-existing TS1543 errors in `proof/` recorded in Task 5.
+    - Verification: lint, format and the full suite pass (462 tests, 0 failures); `src` typechecks clean. `bun run typecheck` still fails on the six pre-existing TS1543 errors in `proof/` recorded in Task 5. Correction: the TS1543 typecheck errors were caused by this plan's own tests and are fixed (see Compromises Made).
 
 - [x] Task 7a: Fix the capture findings from the impact analysis
   - Acceptance Criteria:
@@ -471,13 +471,13 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Wrote `plans/evidence/009-impact-analysis.md`, sweeping all twelve areas. Nine findings went to the owner in one table; the owner answered "Accept all", adopting the recommended dispositions. F1 and F3 became Task 7a above this task and are done. F2 and F4–F9 went to `plans/backlog.md` (four new entries and notes on three existing ones).
     - Every Done bullet of roadmap Phase 4 Part B has a passing test (listed in the analysis), so Phase 4 is marked complete in §3.
     - Performance evidence from Tasks 4–6 is recorded: matrix draw 1.35 s, capture 173–320 ms per cell, agent loop 4.6 s.
-    - Whole-plan verification ran. `bun run check` stops at typecheck on the six pre-existing TS1543 errors in `proof/` (Task 5 Notes); the other gates pass. Task 3's timing exception stands as recorded.
+    - Whole-plan verification ran. `bun run check` stops at typecheck on the six pre-existing TS1543 errors in `proof/` (Task 5 Notes); the other gates pass. Task 3's timing exception stands as recorded. Correction: the TS1543 typecheck errors were caused by this plan's own tests and are fixed (see Compromises Made).
 
 ## Verification (whole plan)
 
 - `timeout 600s bunx playwright install chromium` (once per machine)
 - `timeout 600s bun run check`
-- `timeout 300s bun test src/__tests__/preview-`
+- `timeout 300s bun test src/__tests__/preview- proof/tests/preview-`
 - `timeout 300s bun test proof/tests/preview-browser.test.ts`
 - `timeout 300s bun src/cli/liveframe.ts preview capture "http://127.0.0.1:3000/preview" --out evidence/preview` (with `bun run proof` running)
 - `timeout 120s graft build`
@@ -485,7 +485,7 @@ Probe answers that hold for every task, unless a task says otherwise:
 ## Compromises Made
 
 - Task 3 closed with an owner-approved timing exception; its reproduction is in that task's Notes.
-- `bun run check` does not pass in this checkout: `bun run typecheck` reports six TS1543 JSON-import-attribute errors in `proof/css/*` and `proof/host/view.tsx`, files this plan did not change. They reproduce on the baseline. Lint, format and all tests pass.
+- Task 5 and 6 recorded a failing `bun run typecheck` as pre-existing. That was wrong: the six TS1543 errors came from this plan's own `preview-capture` and `preview-agent-loop` tests, which sat in `src/` and imported `proof/host/server.ts`, so the NodeNext `src` program followed into `proof/`. My stash comparison missed it because it left untracked files in place. The two tests now live in `proof/tests/`, and `bun run typecheck` passes.
 - Capture is a command only. The library exports no `capture()` function (F2).
 - Capture needs Bun and Chromium; no other browser or runtime was tested.
 
@@ -495,4 +495,3 @@ Probe answers that hold for every task, unless a task says otherwise:
 - P2: profile the preview matrix with the renderer selection costs (F5).
 - P4: validate the page's published axes (F4); capture open overlays (F6); a runner conformance suite (F9).
 - P4 (existing): hand Synapta and Clay their preview adoption notes (F8).
-- Also investigate the pre-existing `proof/` typecheck failures so `bun run check` passes again.

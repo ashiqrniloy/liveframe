@@ -128,7 +128,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Why: Part B ships runners and required scenarios, not preview sessions or capture. This explicit handoff prevents a second packaging/validation path or a browser draft-execution path.
 - CSS integration: reuse `/css` and the Phase 4 Part A renderer, cache N + M + 1 sheets for a fixed catalog and keep each matrix cell's surface and overlays scoped independently. Cells must be siblings, never nested surfaces; container widths, not viewport widths, select responsive values. Include `src/__tests__/css-scope-browser.test.ts` isolation/switch cases in preview acceptance and keep draft code out of captured browser HTML.
 - Resolution: `createPreview()`, `<Preview>` and `liveframe preview capture` ship with tests for the session contract, the 12-cell matrix, no dispatch, no draft code in the bundle or HTML, and a scripted agent loop whose published hash equals the previewed one. The outsider guide is `docs/preview.md`.
-- Phase 8 note: `liveframe mcp` should call `createPreview()` and `capture()` from `src/cli/capture.ts` directly instead of spawning `liveframe`, keep the optional MCP SDK lazily imported like Playwright, and never install, place, approve or dispatch. Its tests should reuse the agent-loop shape in `src/__tests__/preview-agent-loop.test.ts`.
+- Phase 8 note: `liveframe mcp` should call `createPreview()` and `capture()` from `src/cli/capture.ts` directly instead of spawning `liveframe`, keep the optional MCP SDK lazily imported like Playwright, and never install, place, approve or dispatch. Its tests should reuse the agent-loop shape in `proof/tests/preview-agent-loop.test.ts`.
 
 ## Carry the CSS overlay contract into the production renderer
 

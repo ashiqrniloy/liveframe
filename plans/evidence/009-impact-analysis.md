@@ -23,7 +23,7 @@ roadmap Phase 4 Part B, spec §7.5 and §13, and all twelve impact areas in
 3. **The four laws.** Law 1: drafts reach only the runner. The proof host's
    bundle, served HTML and hydrated DOM are scanned for a draft-only marker in
    `proof/tests/preview-browser.test.ts`, and again after every capture in
-   `src/__tests__/preview-agent-loop.test.ts`. Law 2: every cell re-checks
+   `proof/tests/preview-agent-loop.test.ts`. Law 2: every cell re-checks
    through `<Surface>`, including the retained last-good tree
    (`src/__tests__/preview-react.test.tsx`). Law 3: `<Preview>` chrome carries
    structural rules only, no colour or font. Law 4: no dispatcher exists in the
@@ -102,11 +102,7 @@ Synapta's isolated runner is F8 and F9.
 
 ## Verification
 
-- `timeout 590s bun run check`: generation drift passed; typecheck stopped on
-  six TS1543 JSON-import-attribute errors in `proof/css/*` and
-  `proof/host/view.tsx`. They reproduce with this plan's changes stashed and
-  were not investigated. Lint, format and the full test suite pass separately
-  (462 tests, 0 failures before Task 7a).
+- `timeout 590s bun run check`: generation drift passed; typecheck failed on six TS1543 errors at the time, later traced to this plan's own tests importing the proof host from `src/` and fixed by moving them to `proof/tests/` (see Compromises Made). Lint, format and the full test suite passed separately (462 tests, 0 failures before Task 7a).
 - `timeout 300s bun test src/__tests__/preview-`: 29 pass, 0 fail (before Task 7a).
 - `timeout 300s bun test proof/tests/preview-browser.test.ts`: 7 pass, 0 fail;
   matrix draw 1,348 ms.

@@ -2,9 +2,9 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { startHost } from "../../proof/host/server.ts";
-import { capture, PlaywrightMissing } from "../cli/capture.ts";
-import { drafts } from "./fixtures/widgets/drafts.ts";
+import { drafts } from "../../src/__tests__/fixtures/widgets/drafts.ts";
+import { capture, PlaywrightMissing } from "../../src/cli/capture.ts";
+import { startHost } from "../host/server.ts";
 
 let server: Awaited<ReturnType<typeof startHost>>;
 let out: string;
