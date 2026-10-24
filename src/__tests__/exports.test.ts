@@ -213,7 +213,7 @@ test("public_validator_types_support_error_guided_repairs", () => {
 });
 
 test("subpath_export_surfaces", () => {
-  expect(Object.keys(conformanceReact).sort()).toEqual(["rendererSuite"]);
+  expect(Object.keys(conformanceReact).sort()).toEqual(["conformancePage", "rendererBrowserSuite", "rendererSuite"]);
   expect(Object.keys(conformance).sort()).toEqual([
     "ConformanceFailure",
     "catalogSuite",

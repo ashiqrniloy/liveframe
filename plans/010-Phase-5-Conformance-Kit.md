@@ -301,7 +301,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Validation: `timeout 600s bun run check` passed (509 tests across 78 files, 0 failures; tests 109.29s; 37 existing lint warnings). Latest focused renderer/proof tests passed (17 tests), as did typechecking, formatting, `git diff --check` and `timeout 120s graft build`. An earlier full run hit the existing blur-switch timing gate at 17 ms versus 16.67 ms; the successful full rerun passed without changing that gate. Other runtimes/test runners remain untested.
 
 
-- [ ] Task 6: Add the page host and the arrival, intent, survival, hydration and switching browser cases
+- [x] Task 6: Add the page host and the arrival, intent, survival, hydration and switching browser cases
   - Acceptance Criteria:
     - Functional:
       - `conformancePage({ catalog, capabilities, manifest, implementations, themes, designSystems, fallback })`, called from the app's page entry, inserts the projected sheets and exposes `window.liveframeConformance` with `mount(tree, styles)`, `hydrate(markup, tree, styles)`, `switch(styles)`, `intents()` and `renders()`. It accepts trees and style identities only.
@@ -323,7 +323,7 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `liveframe-execution` (renderer), `find-docs` (Playwright 1.64.1, React DOM 19.3.1 `hydrateRoot` and `onRecoverableError`).
     - Library Documentation to Check Before Implementation:
       - Playwright 1.64.1 `Page.evaluate`, `Locator.focus`, `Locator.evaluate`, `Page.keyboard`, `Page.mouse`, `Page.emulateMedia` (Context7 `/microsoft/playwright`, newest indexed; check the installed 1.64.1 types).
-      - React DOM 19.3.1 `hydrateRoot(…, { onRecoverableError })`.
+      - React DOM 19.3.1 `hydrateRoot(…, { onRecoverableError })`; React `Profiler` needs a development or profiling build to observe updates below a binding.
     - Documentation Reviewed:
       - Spec §8, §11; `src/__tests__/react-browser.test.tsx:20–70` (the harness) and its named cases; `proof/tests/renderer-browser.test.tsx` (`local_state_focus_scroll_and_ids_survive_new_and_stale_revisions`); `proof/tests/host.test.ts` (`tier_one_stays_local_and_tier_two_preserves_focus_scroll_and_local_state`); `src/__tests__/fixtures/react-client.tsx`.
     - Options Considered:
@@ -336,17 +336,31 @@ Probe answers that hold for every task, unless a task says otherwise:
       // app page entry
       conformancePage({ catalog, capabilities, manifest, implementations, themes, designSystems, fallback: <Unavailable /> });
       // app test
-      for (const c of rendererBrowserSuite({ page: () => browser.newPage(), url, examples, fixtures })) test(c.name, c.run, c.timeout);
+      for (const c of rendererBrowserSuite({ catalog, capabilities, manifest, implementations, themes, designSystems, fallback: <Unavailable />, page: () => browser.newPage(), url, examples, fixtures })) test(c.name, c.run, c.timeout);
       ```
     - Files to Create/Edit:
-      - `src/conformance/react/{page.tsx,browser.ts}`: new; `src/conformance/react/index.ts`: export.
+      - `src/conformance/react/{page.tsx,browser.tsx}`: new; `src/conformance/react/index.ts`: export.
       - `proof/host/conformance-client.tsx`: new page entry; `proof/tests/conformance-browser.test.ts`, `proof/tests/fixtures/conformance.ts` (fixtures and locators): new.
-      - `src/__tests__/conformance-renderer-browser.test.tsx`: new, mutants on the `react-surface` fixture renderer.
+      - `src/__tests__/conformance-renderer-browser.test.tsx`: new, positive and mutant runs using the `react-surface` catalog.
+      - `src/__tests__/fixtures/{conformance-browser-host.ts,conformance-browser.tsx,conformance-client.tsx}`: test-only server, fixture implementations and page entry.
+      - `proof/tests/fixtures/renderer.ts`: share its data-only renderer configuration with the conformance page; keep widget code out of the client bundle.
+      - `src/__tests__/{exports,portability}.test.ts`: pin the two new functions and allow `react-dom/client` only in DOM subpaths.
+      - This plan and `roadmap.md` §3: completion evidence and progress.
   - Test Cases to Write:
     - `proof_host_passes_the_renderer_browser_cases`: every case resolves under both design systems.
     - `renderer_browser_cases_catch_broken_implementations`: each fails its named case — an implementation whose markup differs between server and client, one that emits on an undeclared event or with the wrong value type, one that keys its children by index (state lost on reorder), and one that reads the design system from context and re-renders on switch.
-    - `conformance_page_accepts_trees_only`: a call with a non-tree value fails and mounts nothing.
-  - Notes (executed <date>):
+    - `conformance_page_accepts_trees_only_and_rejects_unknown_styles`: non-tree values and unknown style identities mount nothing.
+    - `hydration_can_be_followed_by_updates_without_remounting`: a hydrated input retains its draft and DOM identity through a new revision and style switch.
+    - `missing_browser_fixtures_fail_with_the_named_rule`: absent hydration examples fail with the rule name.
+    - `production_without_profiling_fails_instead_of_hiding_renders`: an ordinary production bundle fails with an actionable message.
+  - Notes (executed 2026-10-24):
+    - Shipped `conformancePage()` and `rendererBrowserSuite()` on `/conformance/react`, with public fixture/configuration types. The adopter still owns its page, bundling, server and Playwright page factory. The host inserts projected sheets, accepts tree arrivals and installed style identities, records complete intents without dispatching them, and exposes mount/hydrate/switch plus intent/render diagnostics. No runtime dependencies, widget-code loader or renderer behavior changes.
+    - All five cases pass on the proof's React Aria implementations across the Certified/Rack theme × design-system combinations. Hydration covers an interactive tree and a dialog whose portal mounts after hydration; every supplied example is server-rendered with the same renderer before hydration. The proof client imports only renderer configuration and implementations, without importing widget/scenario execution. Scroll/input survival keeps the scroll container stable while reordering its siblings; moving a focused scroll container itself caused a browser scroll reset. A separate index-keyed collection mutant proves reordered input identity and draft survival.
+    - The cases reject hydration errors and attribute warnings, invalid-arrival implementation calls, incorrect or missing intents, interaction exceptions, lost focus/scroll/drafts, stale DOM replacement, incorrect switched scopes, replaced nodes and render activity during a style switch. Each case closes its page, and failures retain the case name and bounded details.
+    - Mutants fail their named cases for server/client markup differences, undeclared events, wrong carried values, index-keyed children and context-driven rerenders. Additional controls cover non-tree commands, unknown styles, missing hydration examples and hydration followed by updates/switching without remounting.
+    - React `Profiler` observes descendant/context commits that a binding-call counter alone misses. Ordinary production React disables those callbacks: the page fails explicitly rather than reporting misleading zero updates. The production-bundle control proves this rejection; Task 9 now documents development/profiling React as the page prerequisite. Context7 `/microsoft/playwright` and `/reactjs/react.dev` confirmed page/locator evaluation, `hydrateRoot` error callbacks and `Profiler` build requirements; installed Playwright 1.64.1 and React DOM 19.3.1 types pass.
+    - Performance: the full check recorded 8770.85 ms for all five proof browser cases across Certified/Rack, excluding server/browser startup. No render, validation or style runtime path changed.
+    - Validation: `timeout 600s bun run check` passed (520 tests across 80 files, zero failures; tests 154.41s; 37 existing lint warnings). Focused browser/portability tests, final typechecking and changed-file lint also passed. Export tests pin the two new functions, and the portability scan permits `react-dom/client` only in DOM subpaths while still rejecting runtime Playwright imports. `git diff --check` and `timeout 120s graft build` passed. No spec change; Tasks 7–8 remain unimplemented, and their registration path now reflects `browser.tsx`. Browser execution was Chromium only.
 
 - [ ] Task 7: Add the state-reachability browser case
   - Acceptance Criteria:
@@ -412,7 +426,7 @@ Probe answers that hold for every task, unless a task says otherwise:
         content: (p) => p.getByRole("dialog"), backdrop: (p) => p.locator(".lf_dialog_default_backdrop"), exitCss }];
       ```
     - Files to Create/Edit:
-      - `src/conformance/react/overlays.ts`: new; `src/conformance/react/browser.ts`: register the cases.
+      - `src/conformance/react/overlays.ts`: new; `src/conformance/react/browser.tsx`: register the cases.
       - `docs/spec.md` §11: the overlay sentence.
       - `proof/tests/fixtures/conformance.ts`, `proof/tests/conformance-browser.test.ts`: overlay and text-input fixtures.
   - Test Cases to Write:
@@ -423,7 +437,7 @@ Probe answers that hold for every task, unless a task says otherwise:
 - [ ] Task 9: Document the kit for outsiders and close the conformance backlog seed
   - Acceptance Criteria:
     - Functional:
-      - `docs/conformance.md` explains, for an outsider: what each suite proves and doesn't, how to register cases with Bun, Vitest or Jest, what fixtures an app supplies (including SSR-visible examples for server root-presence checks, and browser fixtures for deferred content), the page entry and test for the browser cases, and that overlay and text-input kinds are the app's declaration. Its examples compile and run as `src/__tests__/conformance-guide.test.ts`.
+      - `docs/conformance.md` explains, for an outsider: what each suite proves and doesn't, how to register cases with Bun, Vitest or Jest, what fixtures an app supplies (including SSR-visible examples for server root-presence checks, browser fixtures for deferred content, and development/profiling React for browser render counts), the page entry and test for the browser cases, and that overlay and text-input kinds are the app's declaration. Its examples compile and run as `src/__tests__/conformance-guide.test.ts`.
       - `docs/packages.md` (the store-suite pointer Task 2 left), `docs/renderer.md` and `docs/styling.md` link to the new guide.
       - The backlog entry "Seed conformance suites from the proof tests" is closed with a pointer to this plan. Cases deliberately left internal are listed there, with the reason.
       - "Hand adopter gaps to Synapta and Clay" lists what each adopter must supply: Synapta runs `storeSuite` on its own store, and both supply renderer fixtures and a page entry.

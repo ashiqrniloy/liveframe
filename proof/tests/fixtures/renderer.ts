@@ -43,3 +43,13 @@ export const validator = compileValidator({ catalog, capabilities: checked.value
 export const { Surface } = createRenderer({ catalog, implementations });
 export { catalog, systems, themes };
 export const scope = { validator, theme: themes.certified, designSystem: systems.certified };
+
+export const conformanceOptions = {
+  catalog,
+  capabilities: checked.value,
+  manifest,
+  implementations,
+  themes: Object.values(themes),
+  designSystems: Object.values(systems),
+  fallback: "Unavailable",
+};

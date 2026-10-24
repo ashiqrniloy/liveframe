@@ -81,9 +81,14 @@ test("src_is_host_api_free", async () => {
     for (const dependency of transpiler.scanImports(source)) {
       if (
         subpath?.host === "DOM" &&
-        ["react", "react/jsx-runtime", "react/jsx-dev-runtime", "react-dom", "react-dom/server"].includes(
-          dependency.path,
-        )
+        [
+          "react",
+          "react/jsx-runtime",
+          "react/jsx-dev-runtime",
+          "react-dom",
+          "react-dom/client",
+          "react-dom/server",
+        ].includes(dependency.path)
       )
         continue;
       if (path === "pack/bundle.ts" && ["sucrase", "acorn"].includes(dependency.path)) continue;
