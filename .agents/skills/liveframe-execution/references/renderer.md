@@ -28,4 +28,8 @@ Recommended, not required: build interactive primitives on React Aria for access
 
 ## Today
 
-Not built.
+- `@arnilo/liveframe/react` ships `createRenderer()` and `implement()`; `Surface` is returned by the factory. React and React DOM are optional peers. The registry is checked once; arrivals use the host's compiled validator before revision comparison.
+- `src/react/` implements id-keyed nodes, complete frozen intents, whole-surface invalid-tree fallback, per-node client error boundaries, scoped portals and prop-driven theme/design-system switching.
+- SSR and hydration are supported. `portal` is undefined until mount. Server implementation errors escape `renderToString`; the host catches them and supplies fallback markup. Hydrating that replacement can recover by client rendering; successful SSR and invalid-tree fallbacks match.
+- The proof host consumes packages through `inProcessRunner()` and the published renderer, with app-owned React Aria primitives. Tests cover the three tiers, state/focus/scroll retention, scoped overlays and lifecycle, switching, fallbacks and hydration. Text input bounds count code points rather than native UTF-16 units.
+- `docs/renderer.md` is the outsider guide; `src/__tests__/fixtures/renderer-guide.tsx` is its compiled, server-tested example. Renderer conformance suites remain planned work.

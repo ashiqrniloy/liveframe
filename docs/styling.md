@@ -102,6 +102,10 @@ a 16px root font size; use one unit for consistent ordering at other root sizes.
 
 ## Renderer contract
 
+For React bindings, arrival validation, intents, overlays and server rendering,
+see [Render validated trees with React](renderer.md). The app's implementations
+deliver the interaction and overlay lifecycle described here.
+
 Every rendered slot carries exactly one recipe class from
 `slotClass(kind, variant, slot)`, such as `lf_button_primary_label`. It stays the
 same under every state, theme and design system. Keep the root class on the

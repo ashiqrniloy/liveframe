@@ -1,43 +1,315 @@
-# React renderer
+# Render validated trees with React
 
-The renderer draws validated UI trees using the host's primitive implementations. Import `createRenderer` and `implement` from `@arnilo/liveframe/react`. The host supplies the catalog, implementations, arrival validator, theme and design-system identities, intent handler and fallback.
+`@arnilo/liveframe/react` draws a UI tree with your app's primitive implementations.
+It ships no primitives, behaviour library or visual style. Widget code runs on the
+backend; the browser receives JSON trees and intent data. Use React and React DOM
+matching the package's peer requirements (`^19.3.1`).
+
+Your host supplies a catalog, implementations for every kind, the widget's manifest
+and app capabilities, and theme/design-system CSS. Read [the model](model.md) for
+ownership and [styling](styling.md) for generating and loading the three sheets.
+
+## Build a renderer and mount a surface
+
+This example uses your app's `vocabulary.json`, the token vocabulary shared by its
+catalog and design systems (see [styling](styling.md)). The remaining documents are
+small enough to show in full. In a real host, load the installed catalog,
+capabilities and manifest, and receive `tree` from your backend. The literal tree
+here shows the wire format without running a widget in the browser.
+
+```tsx
+import { type Catalog, compileValidator, defineComponent, type Intent, obj, str, type UiTree } from "@arnilo/liveframe";
+import { createRenderer, implement } from "@arnilo/liveframe/react";
+import vocabulary from "./vocabulary.json" with { type: "json" };
+
+export const button = defineComponent({
+  kind: "button",
+  description: "Requests an operation.",
+  props: obj({ label: str({ maxLength: 80 }) }),
+  children: "none",
+  variants: ["default"],
+  defaultVariant: "default",
+  slots: ["root", "label"],
+  events: { onPress: { carries: "none", description: "Pressed." } },
+  styleProps: [],
+  a11y: { role: "button", name: "label" },
+});
+export const catalog = {
+  format: "liveframe-catalog/1",
+  catalogId: "acme.ui@1",
+  description: "App primitives.",
+  vocabulary,
+  definitions: [button],
+} as const satisfies Catalog;
+export const capabilities = {
+  format: "liveframe-capabilities/1",
+  sources: {},
+  actions: { "tasks.claim": { description: "Claim a task.", args: obj({ id: str({ maxLength: 128 }) }) } },
+};
+export const manifest = {
+  format: "liveframe-manifest/1",
+  id: "claim",
+  version: "1.0.0",
+  catalogId: catalog.catalogId,
+  params: obj({}),
+  state: obj({}),
+  context: obj({}),
+  initialState: {},
+  sources: {},
+  actions: ["tasks.claim"],
+};
+
+const Button = implement(button, ({ props, slot, style, emit }) => (
+  <button type="button" className={slot("root")} style={style} onClick={() => emit("onPress")}>
+    <span className={slot("label")}>{props.label}</span>
+  </button>
+));
+const { Surface } = createRenderer({ catalog, implementations: [Button] });
+export const validator = compileValidator({ catalog, capabilities, manifest });
+export const tree: UiTree = {
+  format: "liveframe/1",
+  catalogId: catalog.catalogId,
+  surfaceId: "claim-panel",
+  revision: 1,
+  root: {
+    id: "root",
+    kind: "button",
+    props: { label: "Claim" },
+    events: { onPress: { type: "action", name: "tasks.claim", args: { id: "t1" } } },
+  },
+};
+export const identity = { id: "acme", version: "1.0.0" };
+
+export function GuideSurface({ tree, onIntent }: { tree: unknown; onIntent: (intent: Intent) => void }) {
+  return (
+    <Surface
+      tree={tree}
+      validator={validator}
+      theme={identity}
+      designSystem={identity}
+      onIntent={onIntent}
+      fallback={<p>Unavailable</p>}
+    />
+  );
+}
+```
+
+Create the renderer once, outside React rendering. It validates the catalog and
+checks the entire registry at startup. Every catalog kind needs exactly one
+binding. A missing or duplicate binding, a kind outside the catalog, or a binding
+whose definition differs from the catalog throws a `RendererError`. Its `errors`
+array contains `LiveframeError` entries with `kind`, JSON-pointer `pointer` and
+`message`; registry discrepancies use `catalog-mismatch`. Invalid catalogs retain
+the catalog validator's errors. Object key order does not affect comparison.
+`RendererError` is exported as a TypeScript type, not a runtime constructor; catch
+startup errors at the host's initialization boundary and report their diagnostics.
+
+`compileValidator({ catalog, capabilities, manifest })` validates those documents
+and compiles the arrival checks. Reuse it while the installed documents stay the
+same. Use the same catalog as the renderer and replace the validator when the
+widget's manifest or capabilities change. **Send the manifest to the browser**
+alongside the catalog and capabilities so it can independently re-check arrivals.
+Backend validation does not replace browser validation: the transport is untrusted.
+
+Mount `<GuideSurface tree={tree} onIntent={sendIntent} />` in your app's React root;
+`sendIntent` is your host transport, described below. Load the matching CSS before
+displaying it. The example's server markup includes:
+
+```html
+<button type="button" class="lf_button_default_root"><span class="lf_button_default_label">Claim</span></button>
+```
+
+`Surface` surrounds that root with its own wrapper and adds a sibling empty portal
+container. Both carry `lf_surface`, `data-lf-theme="acme@1.0.0"` and
+`data-lf-ds="acme@1.0.0"`; the portal also carries `data-lf-portal=""`.
+Responsive trees add `lf_container` to both scope containers. Node slots and
+parents of responsive nodes do not gain container classes. Mount multiple surfaces
+as siblings; surfaces must not nest.
+
+Every new tree is checked before any field, including its revision, is read.
+An invalid tree displays only `fallback` inside the wrapper; none of its nodes
+reach implementations. For a valid tree with the same `surfaceId`, a lower
+`revision` is ignored. A different surface replaces the current one. Nodes are
+keyed by `id`, preserving focus, scroll and local state when their React identity
+and ancestry remain stable. Replace tree objects when data changes: validation is
+memoized on tree and validator identity, so mutating an existing tree is unsupported.
+
+## Write primitive implementations
+
+`implement(definition, Component)` creates an opaque binding for `createRenderer`.
+With a literal `defineComponent` definition, TypeScript infers props from its
+schema, slot names from `slots`, and event names and values from `events`.
+JSON-loaded definitions use `Record<string, Json>` props and string names; an
+explicit `implement<Definition, MyProps>` type argument can narrow their props.
+Runtime arrival validation still establishes the contract.
+
+| Input | What your component does with it |
+| --- | --- |
+| `props` | Read validated data; produce accessible native elements or app behaviour components. |
+| `slot(name)` | Attach its stable recipe class to that slot. An undeclared name throws. The root slot also includes style-prop classes. |
+| `style` | Forward the projected inline declarations to the primitive root. These contain token-constrained layout, not arbitrary widget CSS. |
+| `emit(event, value?)` | Report the declared event with its carried value; do not invent or dispatch an action yourself. |
+| `children` | Render the already rendered child nodes once for an ordinary container. |
+| `items` | For collections, use each child's context: `id`, `kind`, `variant`, `props`, `slot`, `style`, `children`, `emit` and `render()`. |
+| `portal` | Use this surface's scoped overlay container after mount; it is initially `undefined`. |
+
+A collection can call `item.render()` to draw the child's implementation, or use
+its slots, props and rendered children to build collection-specific parts such as
+a tab and its panel. Use `item.id` as the key for parts you map yourself, and
+`item.emit(...)` for that item's event. Drawing both `children` and `items.map(item
+=> item.render())` would duplicate the children.
+
+Forward `slot("root")` and `style` to the primitive root; attach other slot classes
+to their corresponding elements. Keep classes unchanged across states, themes and
+design systems. Colours and typography come from theme roles and recipes, not
+widget props or ad hoc CSS. App CSS may provide primitive structure; see
+[the styling contract](styling.md#renderer-contract).
+
+Expose states through native semantics or this selector table, shared with the
+styling contract:
+
+| State | Matching selectors |
+| --- | --- |
+| hover | `:hover` on hover-capable devices; `[data-hovered]` on any device |
+| active | `:active`, `[data-pressed]` |
+| focus | `:focus-visible`, `[data-focus-visible]`, `:has(:focus-visible)` |
+| open | `[open]`, `[data-open]`, `[data-expanded]`, `[aria-expanded=true]`, `:popover-open` |
+| selected | `[data-selected]`, `[aria-selected=true]`, `[aria-checked=true]` |
+| invalid | `:user-invalid`, `[data-invalid]`, `[aria-invalid=true]` |
+| disabled | `:disabled`, `[data-disabled]`, `[aria-disabled=true]` |
+
+Presence attributes such as `data-disabled` must be absent when false: the string
+`"false"` still matches. ARIA attributes must describe the actual accessible
+state. Keep the root class on the primitive root so states reach descendant slots.
+State precedence is `rest < hover < focus < active < open < selected < invalid < disabled`.
+A behaviour library can handle accessibility and state attributes; Liveframe does
+not supply that behaviour.
+
+## Handle intents at the host boundary
+
+There are three interaction tiers. Typing drafts, opening menus and other local
+primitive state stay inside the implementation without calling `emit`. A committed
+`setState` requests a widget re-run. An action requests an app operation. One event
+carries at most one intent.
+
+`emit` only raises an intent present on that node's event map; an absent event is
+a no-op. For an offered event, its value must match `carries`: no value for `none`,
+a string for `string`, or a boolean for `boolean`. A mismatch throws and raises
+nothing. Event-handler exceptions are implementation bugs and are not caught by
+React render error boundaries.
+
+`onIntent` receives a fresh, frozen, complete intent:
+
+- `{ type: "setState", key: "reason" }` emitted with `"Ready"` becomes
+  `{ type: "setState", key: "reason", value: "Ready" }`. An explicit value is preserved.
+- `{ type: "action", name: "tasks.escalate", args: { id: "t1" }, bind: "reason" }`
+  emitted with `"Ready"` becomes
+  `{ type: "action", name: "tasks.escalate", args: { id: "t1", reason: "Ready" } }`.
+  `bind` is removed.
+
+Your transport should associate the intent with the authenticated placement,
+surface and accepted revision. **The host re-checks every intent on dispatch**:
+reject stale revisions and intents not offered by the current tree; check the
+manifest's state keys and action allowlist, the filled value/argument schemas,
+and the user's authorization. Browser checks grant no authority.
+
+For `setState`, the host updates placement state, re-runs the widget on the backend,
+and returns a validated tree with a newer revision. Pass that new object to
+`Surface`. For an action, authorize and dispatch through the app's capability
+handler; refresh data and return a new tree only if needed. Never execute widget
+code or privileged operations in the renderer.
+
+## Switch themes and design systems
+
+Preload and cache the next theme and design-system sheets using
+[the CSS helpers](styling.md#generate-three-independent-sheets). Pass their
+`{ id, version }` identities as new `theme` and/or `designSystem` props to the same
+`Surface`. Both identities can change in one render.
+
+`Surface` marks the wrapper and portal with `data-lf-switching`, changes both
+scope attributes before paint, resolves the new styles, then clears the markers
+on the next animation frame. Transitions are suppressed during the switch.
+An open overlay switches with its surface. Node identities, slot classes and
+widget output stay the same; no widget code runs. Keep the tree, validator,
+callback and fallback identities stable for style-only updates. The host still
+owns theme selection and loading the corresponding sheets.
+
+## Keep overlays scoped and accessible
+
+An overlay may use the browser's top layer while retaining DOM ancestry, or
+portal into the supplied `portal` element. Do not portal into `document.body`:
+it loses the surface's theme, typography and responsive scope. For portals,
+return no overlay until `portal` exists; pass it to your app's behaviour library
+or React's `createPortal(content, portal)`. The container exists only after mount.
+
+Keep backdrop and overlay content as siblings. No backdrop ancestor may set
+opacity below 1 or a filter that creates a backdrop root and prevents the
+backdrop sampling the page behind it.
+
+Your implementation owes the complete lifecycle: accessible naming, keyboard
+operation, focus management and restoration, scroll locking, an inert background
+while modal, exit motion and delayed unmounting until that motion finishes.
+Reduced motion must skip the animation and still complete cleanup. Entry styling
+from recipes does not implement exit handling. A behaviour library such as React
+Aria is recommended; verify these behaviours in a browser against your actual
+implementations.
+
+## Text input bounds count code points
+
+Schema `maxLength` counts Unicode code points. Native HTML `maxlength` counts
+UTF-16 code units: a non-BMP character such as many emoji uses two units. Relying
+on it alone rejects valid strings early. Use a controlled local draft and check
+`Array.from(nextValue).length <= limit` before accepting changes, then emit the
+committed string on your definition's commit events. Preserve composition/IME
+behaviour and avoid splitting surrogate pairs. Three emoji fit a code-point
+limit of three; a fourth does not. Grapheme clusters may contain multiple code
+points. The host independently checks the committed string against its schema.
 
 ## Server rendering and hydration
 
-Create the renderer once, then render its `Surface` with React DOM on the server:
+Use the same implementations, installed documents, tree, identities and fallback
+on the server and first client render. Implementations must render without DOM
+access. `portal` is `undefined` during server rendering and the first client
+render, so portal overlays wait until mount.
+
+On the server, React's error boundaries do not catch implementation failures.
+Catch around `renderToString` and supply fallback markup:
 
 ```tsx
-const { Surface } = createRenderer({ catalog, implementations });
-const props = { tree, validator, theme, designSystem, onIntent, fallback };
-const html = renderToString(<Surface {...props} />);
+import { renderToString } from "react-dom/server";
+
+let html: string;
+try {
+  html = renderToString(<GuideSurface tree={tree} onIntent={() => {}} />);
+} catch (error) {
+  reportError(error); // Your server's error reporter.
+  html = renderToString(<p>Unavailable</p>);
+}
 ```
 
-In the browser, build the validator from the same catalog, capabilities and widget manifest, and hydrate with the same tree, style identities, implementations and fallback:
+`reportError` is host-owned. Insert `html` into your app's root using its normal
+HTML response path. Transfer the tree and validator documents with your framework's
+safe JSON serialization, and load the matching styles. For a successful server
+render, the client hydrates that root:
 
 ```tsx
-hydrateRoot(container, <Surface {...props} />, {
+import { hydrateRoot } from "react-dom/client";
+
+hydrateRoot(container, <GuideSurface tree={tree} onIntent={sendIntent} />, {
   onRecoverableError: reportError,
 });
 ```
 
-The host transports tree data and the manifest; widget code stays on the backend. The server and browser both validate the tree before drawing any primitive. Invalid trees render the whole-surface fallback and hydrate normally. An intent only requests an operation: the host must re-check it before updating state or dispatching an action.
+`container`, `sendIntent` and `reportError` belong to your host. Successful renders
+and invalid-tree fallbacks hydrate with matching markup. If an implementation
+threw on the server and you substituted the bare fallback, hydrating `Surface`
+can report a recoverable mismatch and switch to client rendering. Do not treat
+that replacement path as mismatch-free hydration. On the client, an implementation
+render failure shows `fallback` at that node; healthy siblings remain visible.
 
-`Surface` includes a wrapper and a sibling scoped portal container in its server markup. An implementation receives `portal: undefined` during SSR and its first browser render. Portal-based overlays should return `null` until the container is supplied after mounting, then use `createPortal(children, portal)`. Both containers retain the surface's theme and design-system scope. Rendering must not branch on browser globals or otherwise change the initial markup.
-
-## Server rendering failures
-
-React error boundaries do not catch server rendering errors. If an implementation throws, `renderToString(<Surface … />)` throws to the host. Catch that failure at the request boundary, report it, and send fallback markup instead:
-
-```tsx
-let html;
-try {
-  html = renderToString(<Surface {...props} />);
-} catch (error) {
-  reportError(error);
-  html = renderToString(fallback);
-}
-```
-
-If the browser then hydrates `Surface` over this replacement markup, React recovers by rendering on the client. This exceptional path can report a recoverable hydration error; ordinary successful SSR and invalid-tree fallbacks require matching markup and produce none. A primitive that still throws in the browser is caught by its node's error boundary, which renders `fallback` while healthy sibling nodes remain interactive.
-
-These semantics follow React's [hydration contract](https://react.dev/reference/react-dom/client/hydrateRoot) and [error-boundary limitations](https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary).
+React documents [error-boundary limitations](https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary)
+and [matching hydration output](https://react.dev/reference/react-dom/client/hydrateRoot#caveats).
+The executable example is [renderer-guide.tsx](../src/__tests__/fixtures/renderer-guide.tsx);
+its test checks that this page includes it verbatim, validates its tree and checks
+server markup and invalid-tree fallback. Existing renderer browser tests exercise
+hydration, state retention, overlays and switching.
