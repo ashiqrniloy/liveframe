@@ -1,5 +1,5 @@
 import type { AuthoringConfig } from "../../preview/authoring.ts";
-import capabilities from "./proof/capabilities.json" with { type: "json" };
+import capabilities from "./widgets/capabilities.json" with { type: "json" };
 import catalog from "./proof/catalog.json" with { type: "json" };
 
 // No runner: the server owns the default `workerRunner()`.

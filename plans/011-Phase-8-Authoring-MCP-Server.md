@@ -228,7 +228,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Validation: `bun run check` passed (569 tests, 0 failures, 234 s) at load average 50 on 16 cores, including `cli-mcp.test.ts` 12/12; `git diff --check` is clean.
     - Spec and roadmap need no change: Task 1 wrote these tools into §13.
 
-- [ ] Task 4: Pack and render drafts on one preview session
+- [x] Task 4: Pack and render drafts on one preview session
   - Acceptance Criteria:
     - Functional:
       - The server holds one `createPreview({ catalog, capabilities, runner })` session for its lifetime.
@@ -272,6 +272,16 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `render_before_pack_says_to_pack_first`.
     - `config_runner_is_used_for_every_render`: a spy runner counts the calls.
     - `pack_draft_schema_embeds_the_published_schemas`: fails if `/schemas` changes and the tool's schema doesn't follow.
+
+  - Notes (executed 2026-10-24):
+    - `mcp()` creates one `createPreview({ catalog, capabilities, runner })` after registering the read-only tools and passes it to `registerDraftTools(sdk, server, session)`. That function owns a `packed` flag: `pack_draft` sets it on success, and `render_scenarios` answers `isError` with `not-found` and `Call pack_draft before render_scenarios` while it is false. A failed pack never sets it and `session.update()` itself keeps the previous package, which the test proves by rendering the previous draft afterwards.
+    - `pack_draft` returns `{ hash, id, version, scenarios }` — the package hash, the manifest's `id` and `version`, and the packed scenario names — or `isError` with the `LiveframeError[]` from `pack()`. `render_scenarios` returns the tree verbatim with a `scenario`, or `[{ scenario, ok: true, nodes } | { scenario, ok: false, errors }]` without one, where `nodes` counts the tree recursively; `state` and `context` are passed only when given, because the repo runs with `exactOptionalPropertyTypes`.
+    - The input schema is composed from the published JSON at start, not hand-written: `manifest` is `schemas/manifest.json` with `$schema`, `$id` and `$defs` stripped (a nested `$id` would rebase its local `$ref`s), `scenarios.items` is `{ "$ref": "#/$defs/scenario" }` from `schemas/widget-package.json`, and both documents' `$defs` are hoisted to the tool's root. The two documents' `json` `$def` is byte-identical, so hoisting has no collision; the test pins `properties.manifest.properties`, `$defs.scenario` and `$defs.schema` against the files, so a partial copy fails.
+    - `render_scenarios`' `state` and `context` reuse that same `json` `$def`. The SDK's Ajv (2020-12, `strict: false`, `validateSchema: false`) resolves the local `$ref`s and returns `data/...`-prefixed messages, so `schema_rejection_names_the_pointer` asserts on `data/manifest` and `required property`.
+    - Findings. (1) `src/__tests__/fixtures/proof/capabilities.json` declares zero sources, but the agent-home draft reads `queue.*` and `rack.*`; the MCP config fixture now uses `src/__tests__/fixtures/widgets/capabilities.json` (proof catalog + the drafts' capabilities, the pair `drafts.ts` already packs), and Task 3's `list_capabilities` test imports the same file. (2) Manifest cross-reference failures are `unknown-name` with a `/manifest/...` pointer, not `undeclared-action`; the undeclared-action test asserts `unknown-name` at `/manifest/actions/0`. (3) `mcp-worker.config.ts` and `mcp-runner-close.config.ts` moved to the same capabilities document for consistency. (4) The SIGTERM case in `default_worker_runner_is_closed_on_shutdown` now waits 2 s before signalling: the server loads two published schemas at start, and on a loaded machine start-up measured ~700 ms, so the earlier 500 ms wait could deliver SIGTERM before the handler existed and the process died with 143. The suite's exit guard is still 10 s.
+    - Performance (in-process runner, medians of 5 over the agent-home draft: 19 files, 8 scenarios): `pack_draft` 38.8 ms, check-all 6.3 ms, one scenario 5.1 ms. The tool response for a pack is 275 bytes (hash, id, version, 8 names).
+    - Tests added: `pack_draft_returns_the_hash_session_update_returns`, `pack_errors_keep_the_previous_package`, `schema_rejection_names_the_pointer`, `cross_reference_error_is_a_liveframe_error`, `render_scenarios_returns_tree_or_errors`, `render_all_matches_session_check` (compares with a locally created session's `check()` and an independent node count), `render_before_pack_says_to_pack_first`, `config_runner_is_used_for_every_render` (a `mcp-spy.config.ts` wrapper appends one line per render; `scenarios + 1` lines prove every render used it), `pack_draft_schema_embeds_the_published_schemas`. `tools_list_has_the_four_read_only_tools` became `tools_list_has_the_six_tools`.
+    - Validation: `bun run check` passed (578 tests, 0 failures, 242 s) at load average 30 on 16 cores, including `cli-mcp.test.ts` 21/21; `git diff --check` is clean. No spec change was needed.
 
 - [ ] Task 5: Bind the proof host's preview page to an injected session
   - Acceptance Criteria:

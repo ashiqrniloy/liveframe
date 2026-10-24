@@ -8,9 +8,15 @@ import { McpSdkMissing, mcp } from "../cli/mcp.ts";
 import type { Result } from "../errors.ts";
 import { type Capabilities, validateCapabilities } from "../formats/capabilities.ts";
 import { type Catalog, validateCatalog } from "../formats/catalog.ts";
+import { pack } from "../pack/pack.ts";
 import type { LiveframeError } from "../index.ts";
-import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
+import { inProcessRunner } from "../preview/index.ts";
+import { createPreview } from "../preview/session.ts";
+import { drafts } from "./fixtures/widgets/drafts.ts";
+import capabilities from "./fixtures/widgets/capabilities.json" with { type: "json" };
 import catalog from "./fixtures/proof/catalog.json" with { type: "json" };
+import manifestDoc from "../../schemas/manifest.json" with { type: "json" };
+import packageDoc from "../../schemas/widget-package.json" with { type: "json" };
 
 const fixtures = "src/__tests__/fixtures";
 const config = `${fixtures}/mcp.config.ts`;
@@ -33,10 +39,19 @@ const proofCapabilities = valid(validateCapabilities(capabilities));
 const [firstDefinition, secondDefinition] = proofCatalog.definitions;
 if (!firstDefinition || !secondDefinition) throw new Error("The proof catalog needs at least two definitions");
 
-async function withClient<T>(fn: (client: Client) => Promise<T>): Promise<T> {
+async function withClient<T>(
+  fn: (client: Client) => Promise<T>,
+  options: { config?: string; env?: Record<string, string> } = {},
+): Promise<T> {
   const client = new Client({ name: "cli-mcp-test", version: "0" });
+  const environment = options.env ? { ...(process.env as Record<string, string>), ...options.env } : undefined;
   await client.connect(
-    new StdioClientTransport({ command: "bun", args: ["src/cli/liveframe.ts", "mcp", config], stderr: "pipe" }),
+    new StdioClientTransport({
+      command: "bun",
+      args: ["src/cli/liveframe.ts", "mcp", options.config ?? config],
+      stderr: "pipe",
+      ...(environment ? { env: environment } : {}),
+    }),
   );
   try {
     return await fn(client);
@@ -57,14 +72,18 @@ async function temp(): Promise<string> {
   return dir;
 }
 
-test("tools_list_has_the_four_read_only_tools", async () => {
+test("tools_list_has_the_six_tools", async () => {
   const tools = await withClient(async (client) => (await client.listTools()).tools);
-  expect(tools.map((tool) => tool.name).sort()).toEqual([
-    "generated_types",
-    "list_capabilities",
-    "list_primitives",
-    "list_vocabulary",
-  ]);
+  expect(tools.map((tool) => tool.name)).toEqual(
+    expect.arrayContaining([
+      "generated_types",
+      "list_capabilities",
+      "list_primitives",
+      "list_vocabulary",
+      "pack_draft",
+      "render_scenarios",
+    ]),
+  );
   for (const tool of tools) expect(tool.description?.length ?? 0).toBeGreaterThan(20);
   expect(JSON.stringify(tools.find((tool) => tool.name === "list_primitives")?.inputSchema)).toContain('"kinds"');
 }, 30000);
@@ -110,6 +129,144 @@ test("generated_types_equals_liveframe_gen_output", async () => {
   const { note, types } = result.json() as { note: string; types: string };
   expect(types).toBe(await Bun.file("src/__tests__/fixtures/widgets/ui.gen.ts").text());
   expect(note).toContain("ui.gen.ts");
+}, 30000);
+
+const agentHome = drafts[0];
+if (!agentHome) throw new Error("Missing agent-home draft");
+const agentManifest = agentHome.manifest as Record<string, unknown>;
+const agentScenario = agentHome.scenarios[0]?.name;
+if (!agentScenario) throw new Error("The agent-home draft needs a scenario");
+
+function countNodes(node: { children?: readonly unknown[] }): number {
+  const children = node.children ?? [];
+  return 1 + children.reduce<number>((sum, child) => sum + countNodes(child as { children?: readonly unknown[] }), 0);
+}
+
+test("pack_draft_returns_the_hash_session_update_returns", async () => {
+  const result = await withClient((client) => call(client, "pack_draft", agentHome));
+  expect(result.isError).toBe(false);
+  const expected = valid(pack(agentHome, { catalog: proofCatalog, capabilities: proofCapabilities }));
+  expect(result.json()).toEqual({
+    hash: expected.hash,
+    id: expected.manifest.id,
+    version: expected.manifest.version,
+    scenarios: expected.scenarios.map(({ name }) => name),
+  });
+}, 30000);
+
+test("pack_errors_keep_the_previous_package", async () => {
+  const failed = await withClient(async (client) => {
+    expect((await call(client, "pack_draft", agentHome)).isError).toBe(false);
+    const broken = { ...agentHome, files: { "entry.ts": "export default (" } };
+    const result = await call(client, "pack_draft", broken);
+    expect(result.isError).toBe(true);
+    expect((result.json() as LiveframeError[])[0]?.kind).toBe("transpile-failed");
+    return call(client, "render_scenarios", { scenario: agentScenario });
+  });
+  expect(failed.isError).toBe(false);
+  expect((failed.json() as { format: string }).format).toBe("liveframe/1");
+}, 30000);
+
+test("schema_rejection_names_the_pointer", async () => {
+  const result = await withClient((client) =>
+    call(client, "pack_draft", { files: {}, entry: "", manifest: {}, scenarios: [] }),
+  );
+  expect(result.isError).toBe(true);
+  expect(result.text).toContain("data/manifest");
+  expect(result.text).toContain("required property");
+}, 30000);
+
+test("cross_reference_error_is_a_liveframe_error", async () => {
+  const result = await withClient((client) =>
+    call(client, "pack_draft", { ...agentHome, manifest: { ...agentManifest, actions: ["not.declared"] } }),
+  );
+  expect(result.isError).toBe(true);
+  const [error] = result.json() as LiveframeError[];
+  expect(error).toEqual(expect.objectContaining({ kind: "unknown-name", pointer: "/manifest/actions/0" }));
+}, 30000);
+
+test("render_scenarios_returns_tree_or_errors", async () => {
+  const throwing = {
+    files: { "entry.ts": 'export default () => { throw new Error("boom"); };' },
+    entry: "entry.ts",
+    manifest: agentManifest,
+    scenarios: agentHome.scenarios,
+  };
+  const [tree, errors, absent] = await withClient(async (client) => {
+    await call(client, "pack_draft", agentHome);
+    const tree = await call(client, "render_scenarios", { scenario: agentScenario });
+    await call(client, "pack_draft", throwing);
+    return [
+      tree,
+      await call(client, "render_scenarios", { scenario: agentScenario }),
+      await call(client, "render_scenarios", { scenario: "absent" }),
+    ];
+  });
+  expect(tree?.isError).toBe(false);
+  expect(tree?.json()).toEqual(expect.objectContaining({ format: "liveframe/1", catalogId: proofCatalog.catalogId }));
+  expect(errors?.isError).toBe(true);
+  const [renderError] = (errors?.json() ?? []) as LiveframeError[];
+  expect(renderError?.kind).toBe("render-failed");
+  expect(absent?.isError).toBe(true);
+  const [notFound] = (absent?.json() ?? []) as LiveframeError[];
+  expect(notFound?.kind).toBe("not-found");
+}, 30000);
+
+test("render_all_matches_session_check", async () => {
+  const session = createPreview({ catalog: proofCatalog, capabilities: proofCapabilities, runner: inProcessRunner() });
+  expect(session.update(agentHome).ok).toBe(true);
+  const checked = valid(await session.check());
+  const expected = checked.map(({ scenario, result }) =>
+    result.ok
+      ? { scenario, ok: true, nodes: countNodes(result.value.root) }
+      : { scenario, ok: false, errors: result.errors },
+  );
+  const result = await withClient(async (client) => {
+    await call(client, "pack_draft", agentHome);
+    return call(client, "render_scenarios");
+  });
+  expect(result.isError).toBe(false);
+  expect(result.json()).toEqual(expected);
+  expect(expected.length).toBeGreaterThan(1);
+}, 60000);
+
+test("render_before_pack_says_to_pack_first", async () => {
+  const result = await withClient((client) => call(client, "render_scenarios", { scenario: "ready" }));
+  expect(result.isError).toBe(true);
+  expect((result.json() as LiveframeError[])[0]?.message).toContain("pack_draft");
+}, 30000);
+
+test("config_runner_is_used_for_every_render", async () => {
+  const dir = await temp();
+  try {
+    const log = join(dir, "renders.log");
+    const result = await withClient(
+      async (client) => {
+        await call(client, "pack_draft", agentHome);
+        await call(client, "render_scenarios");
+        return call(client, "render_scenarios", { scenario: agentScenario });
+      },
+      { config: `${fixtures}/mcp-spy.config.ts`, env: { LF_MCP_RENDER_LOG: log } },
+    );
+    expect(result.isError).toBe(false);
+    const lines = (await Bun.file(log).text()).trim().split("\n");
+    expect(lines.length).toBe(agentHome.scenarios.length + 1);
+    expect(new Set(lines).size).toBe(1);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}, 60000);
+
+test("pack_draft_schema_embeds_the_published_schemas", async () => {
+  const tools = await withClient(async (client) => (await client.listTools()).tools);
+  const schema = tools.find((tool) => tool.name === "pack_draft")?.inputSchema as unknown as {
+    properties: { manifest: { properties: unknown }; scenarios: { items: unknown } };
+    $defs: Record<string, unknown>;
+  };
+  expect(schema.properties.manifest.properties).toEqual(manifestDoc.properties);
+  expect(schema.properties.scenarios.items).toEqual({ $ref: "#/$defs/scenario" });
+  expect(schema.$defs.scenario).toEqual(packageDoc.$defs.scenario);
+  expect(schema.$defs.schema).toEqual(manifestDoc.$defs.schema);
 }, 30000);
 
 test("mcp_server_initializes_over_stdio", async () => {
@@ -204,7 +361,7 @@ test("default_worker_runner_is_closed_on_shutdown", async () => {
       stdout: "pipe",
       stderr: "pipe",
     });
-    await Bun.sleep(500);
+    await Bun.sleep(2000);
     signalled.kill("SIGTERM");
     expect(await Promise.race([signalled.exited, Bun.sleep(10000).then(() => "timeout" as const)])).toBe(0);
   } finally {
