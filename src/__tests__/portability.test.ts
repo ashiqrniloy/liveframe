@@ -3,6 +3,7 @@ import { expect, test } from "bun:test";
 // Per-subpath exceptions from spec §13 and plan 006 Tasks 4, 7–9.
 // Store reaches the packer through loadPlacement → verifyPackage.
 const subpaths = [
+  { path: "conformance/react", dependencies: false, loader: false, host: "DOM" },
   { path: "conformance", dependencies: true, loader: false, host: "none" },
   { path: "pack", dependencies: true, loader: false, host: "none" },
   { path: "store", dependencies: true, loader: false, host: "none" },
@@ -80,7 +81,9 @@ test("src_is_host_api_free", async () => {
     for (const dependency of transpiler.scanImports(source)) {
       if (
         subpath?.host === "DOM" &&
-        ["react", "react/jsx-runtime", "react/jsx-dev-runtime", "react-dom"].includes(dependency.path)
+        ["react", "react/jsx-runtime", "react/jsx-dev-runtime", "react-dom", "react-dom/server"].includes(
+          dependency.path,
+        )
       )
         continue;
       if (path === "pack/bundle.ts" && ["sucrase", "acorn"].includes(dependency.path)) continue;

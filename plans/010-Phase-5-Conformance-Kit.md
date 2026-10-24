@@ -248,7 +248,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Performance: a standalone sequential run of all four cases against Certified and Rack, both themes and `primitiveCss` took 115.63 ms, excluding fixture preparation. No runtime render, validation or style path changed.
     - Validation: `timeout 600s bun run check` passed (500 tests across 77 files, 0 failures; tests 105.76s). Lint retained 37 existing warnings and 3 existing informational findings; none in the new suite/tests. Focused suite, public-export and browser-portability tests passed, as did `git diff --check`, the final format check and `timeout 120s graft build`. No spec change or later-task amendment was needed; other runtimes/test runners remain untested.
 
-- [ ] Task 5: Ship `/conformance/react` with the renderer server cases
+- [x] Task 5: Ship `/conformance/react` with the renderer server cases
   - Acceptance Criteria:
     - Functional:
       - `package.json` exports `./conformance/react`.
@@ -266,12 +266,14 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Library Documentation to Check Before Implementation:
       - React DOM 19.3.1 `renderToString` (Context7).
     - Documentation Reviewed:
+      - Execution lookup (2026-10-24): Context7 `/reactjs/react.dev`, official React DOM `renderToString` reference (current indexed docs; no 19.3.1-specific docs available): HTML serialization and immediate Suspense fallback. Checked against installed React DOM 19.3.1 types and the existing SSR contract.
       - Spec §11; `src/react/{renderer.tsx,implement.ts}`; `src/__tests__/react-registry.test.tsx`, `react-surface.test.tsx` (`surface_renders_slot_classes_styles_and_scope`, `invalid_tree_renders_only_the_fallback`), `react-ssr.test.tsx`; `proof/tests/fixtures/renderer.ts`.
     - Options Considered:
       - Locating nodes by a DOM node id — rejected: `<Surface>` emits no per-node attribute (`src/react/`), and adding one for tests would widen the wire-to-DOM contract.
       - Repeating the registry's missing, duplicate and mismatch rejections — rejected: library behaviour, covered by `react-registry.test.tsx`.
     - Chosen Approach:
       - Server-only checks of what the app's implementations control: rendering without throwing, and putting `slot("root")` and `style` on their root element.
+      - Supply explicit SSR-visible examples for the root-presence case: spec §11 defers portals until mount, and collection implementations can defer inactive contents. Do not silently exempt missing nodes in the case. The proof also runs the render-success case against all 23 shared catalog examples, keeping full scenario coverage. Browser fixtures in Tasks 6–8 exercise deferred content.
     - API Notes and Examples:
       ```ts
       import { rendererSuite } from "@arnilo/liveframe/conformance/react";
@@ -283,11 +285,21 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `package.json`: `./conformance/react` export.
       - `src/__tests__/conformance-renderer.test.tsx`: new, mutants on the `react-surface` fixture renderer.
       - `proof/tests/conformance.test.ts`: add the server cases on the proof host's implementations.
+      - `proof/tests/fixtures/conformance-server.ts`: explicit SSR-visible scenarios and supplemental nodes.
+      - This plan: Task 5 execution notes and Task 9 fixture guidance; `roadmap.md` §3: task progress.
       - `src/__tests__/portability.test.ts`: a `conformance/react` row (host `DOM`); `src/__tests__/exports.test.ts`.
   - Test Cases to Write:
     - `proof_implementations_pass_the_renderer_server_cases`: every case resolves under Certified and Rack.
     - `renderer_server_cases_catch_broken_implementations`: each fails its named case — an implementation that drops `slot("root")`, one that ignores `style`, one that throws for a variant, and a catalog kind with no implementation.
-  - Notes (executed <date>):
+  - Notes (executed 2026-10-24):
+    - Shipped public `/conformance/react` with `rendererSuite` and the four named server cases. Cases are independent, runner-free promises and reject with bounded `ConformanceFailure` diagnostics. No new dependencies, renderer behaviour changes, proof imports into the library, or spec changes.
+    - Every supplied example is validated before traversal. Rendering crosses every example × theme × design system and checks serialized scope attributes. Root checks count actual class-bearing elements and each distinct projected class/style requirement, including responsive classes and declarations; repeated nodes cannot share one matching styled element. Empty examples, themes or design systems fail the rendering cases.
+    - Invalid-arrival checks corrupt a child when available (otherwise the root) with an unknown kind or undeclared event, compare the complete output against scoped fallback-only markup, and wrap implementations to prove zero calls. The internal binding is read only by that counting wrapper.
+    - Registered all four cases on the proof host with both Certified/Rack themes and design systems. Added explicit SSR-visible fixtures because portals, menu items and inactive panels may emit no server markup (existing spec §11 contract). Missing roots still fail rather than being silently skipped. Separately, all 23 shared catalog examples pass the render-success case. Task 9 now explicitly documents the SSR-visible fixture requirement; Tasks 6–8 retain browser coverage of deferred content.
+    - Mutants fail for omitted root classes, dropped responsive classes, ignored inline styles, a primary-variant throw and a missing implementation. A repeated-node mutant proves style multiplicity, and invalid arrivals pass even with an implementation that would throw if called. Export and portability tests cover the new subpath and its React DOM server import.
+    - Performance: the final focused proof integration recorded 935.73 ms for all four cases on SSR-visible fixtures plus full-scenario render success across all four Certified/Rack combinations, excluding fixture preparation. This is recorded timing, not a conformance budget.
+    - Validation: `timeout 600s bun run check` passed (509 tests across 78 files, 0 failures; tests 109.29s; 37 existing lint warnings). Latest focused renderer/proof tests passed (17 tests), as did typechecking, formatting, `git diff --check` and `timeout 120s graft build`. An earlier full run hit the existing blur-switch timing gate at 17 ms versus 16.67 ms; the successful full rerun passed without changing that gate. Other runtimes/test runners remain untested.
+
 
 - [ ] Task 6: Add the page host and the arrival, intent, survival, hydration and switching browser cases
   - Acceptance Criteria:
@@ -411,7 +423,7 @@ Probe answers that hold for every task, unless a task says otherwise:
 - [ ] Task 9: Document the kit for outsiders and close the conformance backlog seed
   - Acceptance Criteria:
     - Functional:
-      - `docs/conformance.md` explains, for an outsider: what each suite proves and doesn't, how to register cases with Bun, Vitest or Jest, what fixtures an app supplies, the page entry and test for the browser cases, and that overlay and text-input kinds are the app's declaration. Its examples compile and run as `src/__tests__/conformance-guide.test.ts`.
+      - `docs/conformance.md` explains, for an outsider: what each suite proves and doesn't, how to register cases with Bun, Vitest or Jest, what fixtures an app supplies (including SSR-visible examples for server root-presence checks, and browser fixtures for deferred content), the page entry and test for the browser cases, and that overlay and text-input kinds are the app's declaration. Its examples compile and run as `src/__tests__/conformance-guide.test.ts`.
       - `docs/packages.md` (the store-suite pointer Task 2 left), `docs/renderer.md` and `docs/styling.md` link to the new guide.
       - The backlog entry "Seed conformance suites from the proof tests" is closed with a pointer to this plan. Cases deliberately left internal are listed there, with the reason.
       - "Hand adopter gaps to Synapta and Clay" lists what each adopter must supply: Synapta runs `storeSuite` on its own store, and both supply renderer fixtures and a page entry.

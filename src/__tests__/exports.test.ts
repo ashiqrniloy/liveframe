@@ -10,6 +10,7 @@ import type {
   ValidateTreeOptions,
 } from "@arnilo/liveframe";
 import * as conformance from "@arnilo/liveframe/conformance";
+import * as conformanceReact from "@arnilo/liveframe/conformance/react";
 import type { ConformanceCase } from "@arnilo/liveframe/conformance";
 import * as pack from "@arnilo/liveframe/pack";
 import * as store from "@arnilo/liveframe/store";
@@ -212,6 +213,7 @@ test("public_validator_types_support_error_guided_repairs", () => {
 });
 
 test("subpath_export_surfaces", () => {
+  expect(Object.keys(conformanceReact).sort()).toEqual(["rendererSuite"]);
   expect(Object.keys(conformance).sort()).toEqual([
     "ConformanceFailure",
     "catalogSuite",
