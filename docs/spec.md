@@ -511,7 +511,7 @@ It opens the app's preview page in headless Chromium and captures all declared c
 { "url": "…", "cells": [{ "scenario": "…", "width": 360, "theme": "…", "designSystem": "…", "png": "…", "snapshot": "…", "errors": [] }] }
 ```
 
-Playwright is an optional peer dependency, used only by this command. The authoring MCP server (§13) exposes the same capture as a tool.
+Playwright is an optional peer dependency, used only by this command. The authoring MCP server (§13) exposes the same capture as its `capture_preview` tool, against a page its config bound to the server's own session.
 
 ## 8. Interaction (Synapta's three tiers)
 
@@ -695,7 +695,7 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
   | `@arnilo/liveframe/pack` | Package and scenario formats, structural validators, `pack()` and `verifyPackage()` (§7.3) |
   | `@arnilo/liveframe/store` | Record formats, the `Store` interface, `memoryStore()` and `loadPlacement()` (§7.4) |
   | `@arnilo/liveframe/store/fs` | `fileStore(dir)`, which reads and writes the file system |
-  | `@arnilo/liveframe/preview` | The `Runner` interface, `inProcessRunner()` and `createPreview()` (§7.5) |
+  | `@arnilo/liveframe/preview` | The `Runner` interface, `inProcessRunner()` and `createPreview()` (§7.5), plus the type-only `PreviewSession`, `PreviewBinding` and `AuthoringConfig` |
   | `@arnilo/liveframe/preview/worker` | `workerRunner()`, which needs the `Worker` global |
   | `@arnilo/liveframe/preview/react` | `<Preview>`. Like `/react`, it needs the optional `react` peer |
   | `@arnilo/liveframe/conformance` | Host-API-free catalog, design-system and store suites: `catalogSuite()`, `designSystemSuite()`, `storeSuite()`, plus `ConformanceCase` and `ConformanceFailure` |
@@ -703,8 +703,22 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
 
 - A JSON Schema for every format is published at `@arnilo/liveframe/schemas/<format>.json`, so apps and agents in any language can validate the documents.
 - One CLI, `liveframe`, exposed through the package's `bin` (`liveframe gen`, `liveframe gen --check`, `liveframe preview capture`, `liveframe mcp`). `liveframe gen` writes a widget's typed component module into the app (§7.2). `playwright` is an optional peer dependency, needed only by `preview capture`.
-- **`liveframe mcp`** is an authoring-time MCP server for coding agents. It lists primitives, roles and design-value names, shows the generated types, packs a draft and renders its scenarios through a preview session, and captures a preview. It never installs, places or approves a widget, and never runs an action. The MCP SDK is an optional peer dependency, needed only by this command.
-- Everything outside `/react`, `/store/fs`, `/preview/worker`, `/preview/react`, `/conformance/react` and the CLI is host-API-free, and CI checks it. `/css` returns strings and plain objects; inserting a sheet through `<style>`, `<link>` or a CSP nonce is the host's job. Across the library subpaths, the only dynamic `import(` is the package loader in `/preview` (§7.5), and the scan names that file as its only exception. The CLI may lazily import command-specific optional peers: `playwright` for capture and the MCP SDK for `liveframe mcp`. `liveframe gen` must run without either installed.
+- **`liveframe mcp <config-module>`** is an authoring-time MCP server for coding agents, serving the MCP protocol over stdio. The module default-exports an `AuthoringConfig`: `{ catalog, capabilities, runner?, preview? }`. The server validates `catalog` and `capabilities` on start; an invalid config prints typed `LiveframeError`s to stderr and exits 2. Stdout carries only the protocol.
+
+  It holds one preview session (§7.5) for its lifetime, rendered by `config.runner`, or by `workerRunner()` when the config names none, so preview and production use the same runner. `config.preview(binding)` binds the app's own `<Preview>` page to that session; the library ships no page (§3). It is called once, after the first successful `pack_draft`, and the binding it returns is closed on shutdown.
+
+  `tools/list` holds exactly seven tools, each returning JSON in one text block:
+
+  - `list_primitives({ kinds? })` — every definition in full, or the named kinds: props schema, children, events with `carries`, variants, slots, style props, `description` and `deprecated`.
+  - `list_vocabulary()` — the catalog's color, surface, fillable and typography roles, tones, `surfaceTypography`, and the `space`, `radius`, `size` and `bp` names.
+  - `list_capabilities()` — each source's params and result schemas and each action's args schema. It never calls a resolver.
+  - `generated_types()` — the `liveframe gen` output, byte-identical.
+  - `pack_draft({ files, entry, manifest, scenarios })` — `session.update()`'s input, returning `{ hash, id, version, scenarios }` or the pack errors; a failed pack keeps the previous package.
+  - `render_scenarios({ scenario?, state?, context? })` — one scenario's tree or its `LiveframeError`s, or every scenario's status.
+  - `capture_preview({ scenarios?, widths?, themes?, designSystems? })` — captures the bound page's cells, at most 12 per call, returning each cell's coordinates, accessibility snapshot, `LiveframeError`s and PNG as image content.
+
+  The server is authoring-only (law 4): it has no store, dispatcher, data resolver or intent tool, and no tool installs, places or approves a widget, resolves real data or runs an action. The bound page receives trees only, never draft code (law 1). The MCP SDK is an optional peer dependency, needed only by this command; a missing SDK is reported with how to install it, and `liveframe gen` runs without it.
+- Everything outside `/react`, `/store/fs`, `/preview/worker`, `/preview/react`, `/conformance/react` and the CLI is host-API-free, and CI checks it. `/css` returns strings and plain objects; inserting a sheet through `<style>`, `<link>` or a CSP nonce is the host's job. Across the library subpaths, the only dynamic `import(` is the package loader in `/preview` (§7.5), and the scan names that file as its only exception. The CLI may lazily import command-specific optional peers: `playwright` for capture and the MCP SDK for `liveframe mcp`, and it may import the host's config module named on the `liveframe mcp` command line. `liveframe gen` must run without either peer installed.
 - Split into separate packages only if a real consumer needs to version the parts independently.
 
 **Conformance contracts.** The kit tests the app's side of the catalog, styling, renderer and store contracts; library-internal correctness stays in the library's own tests.
