@@ -288,7 +288,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Wrote the tests first; the initial run failed waiting for the missing preview page. Seven browser tests now cover all 22 proof scenarios (264 cells), computed theme fonts and design-system recipes, responsive grid columns at each container width, state and action intents, dispatcher spies, isolated sessions, rejected requests, stale responses, source-marker exclusion from both bundles/HTML/hydrated DOM, and published hash equality. Corrected test assumptions about shared heading typography and Certified's 3 px control radius; no implementation contract changed.
     - The 679-node agent-home `ready` scenario's 12-cell navigation plus draw measured 1295.24 ms in the final full run (no budget). `timeout 600s bun run check` passed: generated types, both typechecks, lint, formatting and all 455 tests across 70 files (0 failures). `git diff --check` passed and `graft build` refreshed the local graph. No library API, spec meaning or dependency changes. Tasks 5–8 remain.
 
-- [ ] Task 5: Add `liveframe preview capture`
+- [x] Task 5: Add `liveframe preview capture`
   - Acceptance Criteria:
     - Functional:
       - `liveframe preview capture <url> … --out <dir>` follows Task 1, refinement 5:
@@ -331,6 +331,15 @@ Probe answers that hold for every task, unless a task says otherwise:
     - `cell_errors_reach_the_index`.
     - `missing_playwright_reports_how_to_install` (simulated by an import failure in `capture.ts`'s loader).
     - `gen_runs_without_playwright`.
+
+  - Notes (executed 2026-10-24):
+    - Added `capture(url, options, load?)` in `src/cli/capture.ts` and the `liveframe preview capture` subcommand in `src/cli/liveframe.ts`. It opens the page once to read `data-lf-preview`, navigates once per scenario (`scenario` query parameter, other parameters such as `session` preserved), waits for `data-lf-ready` and fonts, then writes each requested cell's PNG, `.aria.yml` and an `index.json` carrying the errors read from `data-lf-errors`. Filenames come from the coordinates with every character outside `[\w.@-]` replaced, so they stay under `--out`.
+    - Flags are parsed by hand in the existing style. An undeclared axis value, bad flag, non-URL or missing `--out` is a usage error (exit 2); an unreachable or non-`<Preview>` page throws a descriptive error. Exit 1 when any captured cell has render errors (index is still written) or Playwright is missing; the missing-peer message says how to install it. `playwright` is imported lazily from `capture.ts`, itself imported lazily by the subcommand, so `liveframe gen` never loads it (`gen_runs_without_playwright` blocks every `playwright` import with a Bun preload).
+    - `package.json` gains `playwright ^1.64.1` as an optional peer. Justification as in the Approach: capture is the agent's only way to see pixels, and Playwright is already a pinned dev dependency.
+    - Capture time: about 320 ms per cell (24 cells, 2 scenarios, one CLI process including browser launch).
+    - Findings for later tasks: a bare `/preview` GET creates the session and puts its id in the bootstrap JSON, not in a redirect, so an agent must read the id from the page HTML (or pass `?session=`) to post drafts to the same session it captures. Task 6 does this. A deliberate layout error that always renders is `<Stack gap="space.99">` at the root of `agent-home/queue.tsx`; the same value in `decision-card.tsx` is not drawn in the `ready` scenario.
+    - Verification: five new tests pass; `bun run lint`, `format:check` and `bun run test` pass (460 tests, 0 failures). `bun run typecheck` fails on six TS1543 JSON-import-attribute errors in `proof/css/*` and `proof/host/view.tsx`, files this task does not touch; they reproduce with this task's changes stashed, so `bun run check` is not green here for that reason. `src` typechecks clean. The cause is not investigated.
+    - Mistake corrected: a `biome --write` over all of `src` reformatted 33 unrelated files; they were restored from git with the owner's approval and are not part of this task.
 
 - [ ] Task 6: Prove the scripted agent loop
   - Acceptance Criteria:

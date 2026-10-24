@@ -2,7 +2,51 @@
 import { validateCatalog } from "../formats/catalog.ts";
 import { generate } from "../sdk/gen.ts";
 
+const captureUsage =
+  "Usage: liveframe preview capture <url> --out <dir> [--scenario <a,b>] [--width <n,m>] [--theme <id@v,…>] [--design-system <id@v,…>]";
+
+async function previewCapture(args: string[]): Promise<number> {
+  const [url, ...flags] = args;
+  const values = new Map<string, string>();
+  for (let i = 0; i < flags.length; i += 2) {
+    const name = flags[i];
+    const value = flags[i + 1];
+    if (
+      !["--out", "--scenario", "--width", "--theme", "--design-system"].includes(name ?? "") ||
+      values.has(name ?? "")
+    )
+      throw new Error(captureUsage);
+    if (!value || value.startsWith("--")) throw new Error(captureUsage);
+    values.set(name as string, value);
+  }
+  const out = values.get("--out");
+  if (!url || !out || !URL.canParse(url)) throw new Error(captureUsage);
+  const list = (name: string) => values.get(name)?.split(",");
+  const widths = list("--width")?.map(Number);
+  if (widths?.some((width) => !Number.isInteger(width) || width <= 0)) throw new Error(captureUsage);
+  try {
+    const { capture } = await import("./capture.ts");
+    const index = await capture(url, {
+      out,
+      scenarios: list("--scenario"),
+      widths,
+      themes: list("--theme"),
+      designSystems: list("--design-system"),
+    });
+    const failed = index.cells.filter((cell) => cell.errors.length > 0);
+    for (const cell of failed) console.error(`${cell.png}: ${cell.errors.length} render error(s)`);
+    return failed.length > 0 ? 1 : 0;
+  } catch (error) {
+    if (error instanceof Error && error.name === "PlaywrightMissing") {
+      console.error(error.message);
+      return 1;
+    }
+    throw error;
+  }
+}
+
 async function main(args: string[]): Promise<number> {
+  if (args[0] === "preview" && args[1] === "capture") return previewCapture(args.slice(2));
   const [command, catalogPath, ...flags] = args;
   let out: string | undefined;
   let check = false;

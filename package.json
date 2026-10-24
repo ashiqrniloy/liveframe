@@ -52,10 +52,12 @@
     "typescript": "^7.0.2"
   },
   "peerDependencies": {
+    "playwright": "^1.64.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
   "peerDependenciesMeta": {
+    "playwright": { "optional": true },
     "react": { "optional": true },
     "react-dom": { "optional": true }
   },
