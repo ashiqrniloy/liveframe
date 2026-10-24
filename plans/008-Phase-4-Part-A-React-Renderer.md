@@ -551,7 +551,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Added a verbatim compiled example and `renderer_guide_example_runs`, checking a valid tree, exact server markup and whole-surface invalid-tree fallback. The test first failed on the missing fixture, then passed after implementation. Linked the guide from styling and model D2; updated both execution references' Today sections to describe the shipped renderer.
     - Checked React's current error-boundary and hydration documentation with Context7 against the existing SSR/browser tests. `bun run check` passed (**432 tests, zero failures**), including the new example, typecheck, lint, formatting and existing browser suites; `git diff --check` passed. Tasks 10–11 remain pending.
 
-- [ ] Task 10: Hand the renderer cases to the conformance backlog
+- [x] Task 10: Hand the renderer cases to the conformance backlog
   - Acceptance Criteria:
     - Functional: the "Seed conformance suites from the proof tests" entry in `plans/backlog.md` names the cases a Phase 5 renderer suite reuses. It says which need a browser and which run against any app's implementations (tiers, survival, overlay lifecycle, scope and switching, fallbacks, intent completion, hydration):
       - `react-registry`, `react-surface`, `react-intents`, `react-ssr`;
@@ -575,8 +575,13 @@ Probe answers that hold for every task, unless a task says otherwise:
       - n/a.
     - Files to Create/Edit:
       - `plans/backlog.md`.
+      - This plan: execution notes and completion checkbox; `roadmap.md` §3: task execution status.
   - Test Cases to Write:
     - n/a — documentation.
+  - Notes (executed 2026-10-24):
+    - Updated the existing "Seed conformance suites from the proof tests" backlog entry with named cases from `react-registry`, `react-surface`, `react-intents`, `react-ssr`, `react-browser` and Task 8's proof-host suites. Distinguished no-browser checks, browser interactions and server-plus-client hydration; documented app-supplied fixtures/drivers for tiers, survival, lifecycle, scope/switching, fallbacks and intent completion.
+    - Kept React-specific caching/copy/type checks and performance/profiling observations internal. App implementations own overlay lifecycle, and hosts still authorize completed intents. No runtime, dependency, public API or spec change; the shared conformance suite remains Phase 5 work.
+    - `bun run check` passed (**432 tests, zero failures**), including typecheck, lint, formatting and browser suites; `git diff --check` passed. Task 11 remains pending.
 
 - [ ] Task 11: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
