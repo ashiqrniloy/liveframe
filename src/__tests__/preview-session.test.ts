@@ -202,17 +202,16 @@ test("published_package_matches_the_last_preview", async () => {
   ).toEqual(preview);
 });
 
-test("scenario_data_is_fresh_per_render", async () => {
+test("scenario_data_is_the_packages_own_and_frozen_by_the_sdk", async () => {
   const { session, calls } = setup();
   const pkg = value(session.update(draft));
   value(await session.render({ scenario: "first" }));
   value(await session.intent({ type: "setState", key: "query", value: "next" }));
   value(await session.check());
   const data = calls.map((call) => call.inputs.data);
-  expect(new Set(data).size).toBe(data.length);
-  expect(data[0]).not.toBe(pkg.scenarios[0]?.data);
+  const own = pkg.scenarios.map((scenario) => scenario.data);
+  expect(data.every((entry) => own.includes(entry as never))).toBe(true);
   expect(Object.isFrozen((data[0] as { items: unknown }).items)).toBe(true);
-  expect(Object.isFrozen(pkg.scenarios[0]?.data)).toBe(false);
   const mutating = {
     ...draft,
     files: { ...draft.files, "entry.ts": "export default ({data}) => { data.items.push({}); return null; };" },

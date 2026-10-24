@@ -34,15 +34,12 @@ export function createPreview({
   }
 
   async function run(active: WidgetPackage, selected: Selection): Promise<Result<UiTree>> {
-    // The SDK freezes inputs in place: copy them so the package's own scenarios stay unfrozen.
-    const inputs = JSON.parse(
-      JSON.stringify({
-        params: selected.scenario.params,
-        state: selected.state,
-        context: selected.context,
-        data: selected.scenario.data,
-      }),
-    );
+    const inputs = {
+      params: selected.scenario.params,
+      state: selected.state,
+      context: selected.context,
+      data: selected.scenario.data,
+    };
     const result = await runner.render(active, inputs, { catalog, capabilities, surfaceId, revision: ++revision });
     if (pkg === active && current === selected) selected.result = result;
     return result;

@@ -76,8 +76,8 @@ export { filtered, log, pkg, store, tree };
 Publishing stores the package `update` returned, so its hash is the hash you
 previewed. Tenancy, approval and placement stay yours.
 
-Each render receives a fresh copy of the scenario's data. Scenario data grants
-no authority.
+The session passes the package's own scenario objects to the runner, and the
+SDK freezes them in place on the first render. Scenario data grants no authority.
 
 ## Mount `<Preview>` in your page
 

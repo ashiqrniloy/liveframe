@@ -41,7 +41,7 @@ Probe answers that hold for every task, unless a task says otherwise:
 - **Dependencies:** `playwright` becomes an optional peer dependency used only by `liveframe preview capture` (spec §13). It is already a dev dependency at 1.64.1. Task 6 justifies it. No new runtime dependency.
 - **Reference hosts:** Synapta plugs its isolated runner into `createPreview`, which is the same runner it uses in production (`plans/backlog.md`, "Hand adopter gaps to Synapta and Clay"). Clay mounts `<Preview>` in its desktop shell.
 - **Performance:** no new budget, since preview is an authoring path. Session renders cost what the runner costs (`src/__tests__/runner-in-process.test.ts` overhead). Task 4 records the time to draw a 12-cell matrix of the 679-node agent-home tree, and Task 5 records capture time per cell.
-- **SDK data caveat:** until the backlog item "Scope SDK data validation caching to the source-schema contract" (P1, plan 005 F2) lands, a session hands the runner a fresh copy of scenario data on every render (`docs/sdk.md`).
+- **SDK data caveat:** until the backlog item "Scope SDK data validation caching to the source-schema contract" (P1, plan 005 F2) lands, a session hands the runner a fresh copy of scenario data on every render (`docs/sdk.md`). The fix landed after this plan and the copy was dropped: the session now passes the package's own scenario objects, which the SDK freezes in place.
 
 ## Tasks
 
