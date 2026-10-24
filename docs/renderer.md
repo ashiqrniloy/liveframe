@@ -126,6 +126,12 @@ Responsive trees add `lf_container` to both scope containers. Node slots and
 parents of responsive nodes do not gain container classes. Mount multiple surfaces
 as siblings; surfaces must not nest.
 
+Preview surfaces pass an optional `diagnostics` array of `LiveframeError`s. This
+adds a `display: contents` wrapper per node with `data-lf-node`, and
+`data-lf-error` when an error names that node. Ordinary surfaces omit this prop.
+Diagnostic wrappers add no layout box, but remain elements for CSS child
+selectors; host structural CSS must account for them when using preview.
+
 Every new tree is checked before any field, including its revision, is read.
 An invalid tree displays only `fallback` inside the wrapper; none of its nodes
 reach implementations. For a valid tree with the same `surfaceId`, a lower

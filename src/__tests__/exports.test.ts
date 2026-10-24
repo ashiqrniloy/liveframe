@@ -14,6 +14,7 @@ import * as store from "@arnilo/liveframe/store";
 import * as fileStore from "@arnilo/liveframe/store/fs";
 import * as preview from "@arnilo/liveframe/preview";
 import * as worker from "@arnilo/liveframe/preview/worker";
+import * as previewReact from "@arnilo/liveframe/preview/react";
 import * as liveframe from "@arnilo/liveframe";
 import * as css from "@arnilo/liveframe/css";
 import * as react from "@arnilo/liveframe/react";
@@ -209,6 +210,7 @@ test("public_validator_types_support_error_guided_repairs", () => {
 });
 
 test("subpath_export_surfaces", () => {
+  expect(Object.keys(previewReact).sort()).toEqual(["Preview"]);
   expect(Object.keys(fileStore).sort()).toEqual(["fileStore"]);
   expect(Object.keys(preview).sort()).toEqual(["createPreview", "inProcessRunner"]);
   expect(Object.keys(worker).sort()).toEqual(["workerRunner"]);

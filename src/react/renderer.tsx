@@ -24,6 +24,7 @@ type SurfaceProps = {
   readonly designSystem: { readonly id: string; readonly version: string };
   readonly onIntent: (intent: Intent) => void;
   readonly fallback: ReactNode;
+  readonly diagnostics?: readonly LiveframeError[];
 };
 
 class Boundary extends Component<{ node: UiNode; fallback: ReactNode; children: ReactNode }> {
@@ -123,7 +124,7 @@ export function createRenderer({
   };
 
   // biome-ignore lint/correctness/noComponentHookFactories: The startup factory creates Surface once; renders reuse it.
-  function Surface({ tree, validator, theme, designSystem, onIntent, fallback }: SurfaceProps) {
+  function Surface({ tree, validator, theme, designSystem, onIntent, fallback, diagnostics }: SurfaceProps) {
     const arrival = useMemo(() => validator.validateTree(tree), [tree, validator]);
     const [accepted, setAccepted] = useState({ arrival, validator, tree: arrival.ok ? arrival.value : undefined });
     if (arrival !== accepted.arrival || validator !== accepted.validator) {
@@ -202,14 +203,24 @@ export function createRenderer({
           portal: portal ?? undefined,
           render: () => (
             <Boundary key={node.id} node={node} fallback={fallback}>
-              <Node item={item} implementation={implementation} />
+              {diagnostics ? (
+                <div
+                  style={{ display: "contents" }}
+                  data-lf-node={node.id}
+                  data-lf-error={diagnostics.some((error) => error.nodeId === node.id) ? "" : undefined}
+                >
+                  <Node item={item} implementation={implementation} />
+                </div>
+              ) : (
+                <Node item={item} implementation={implementation} />
+              )}
             </Boundary>
           ),
         };
         return item;
       }
       return context(accepted.tree.root).render();
-    }, [accepted.tree, portal, fallback, onIntent]);
+    }, [accepted.tree, portal, fallback, onIntent, diagnostics]);
     const { class: className, ...scope } = surfaceAttributes({ ...appliedScope, tree: accepted.tree ?? emptyTree });
     return (
       <>

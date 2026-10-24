@@ -165,7 +165,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Added ten session tests, including every scenario of all four proof widgets and the harness through both reference runners, frozen mutation attempts, invalid intents, and publish/reload hash and tree equality. Updated the export pin and enabled the existing packer-dependency allowance in the `/preview` portability scan.
     - Tests were written first and initially failed on the missing export. `timeout 600s bun run check` passed: generated types, typecheck, lint, format and all 442 tests (0 failures). No spec meaning or dependency changes. Preview UI, host wiring, capture and outsider documentation remain Tasks 3–7.
 
-- [ ] Task 3: Add `<Preview>` in `/preview/react`
+- [x] Task 3: Add `<Preview>` in `/preview/react`
   - Acceptance Criteria:
     - Functional:
       - `package.json` exports `./preview/react`.
@@ -199,6 +199,8 @@ Probe answers that hold for every task, unless a task says otherwise:
       - Styling preview chrome with the app's design system — rejected: chrome is not a widget tree, and law 3 keeps the library from shipping visual style.
     - Chosen Approach:
       - A controlled component: the host owns data and transport, `<Preview>` owns layout and URL.
+      - Non-empty axes are typed as tuples. Read the URL on mount, preserve unrelated query parameters and the hash, and notify the host after initialization. A scenario change waits for a new result identity before publishing readiness; width/style selection reuses the tree. The host supplies the initial URL scenario's result and ignores obsolete transport responses.
+      - Retain successful results per scenario. Optional renderer diagnostics add `display: contents` node wrappers for error markers; ordinary surfaces retain their existing markup. Document that child selectors still see these wrappers.
     - API Notes and Examples:
       ```tsx
       <Preview scenarios={["ready", "empty"]} widths={[360, 768, 1280]}
@@ -211,13 +213,26 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `package.json`: `exports`.
       - `src/__tests__/portability.test.ts`: `preview/react` entry with the same DOM and React exception as `react/`.
       - `src/__tests__/exports.test.ts`.
-      - `src/__tests__/preview-react.test.tsx`: new (server-rendered structure).
+      - `src/__tests__/preview-react.test.tsx`: new (server-rendered structure and Chromium effects/interactions).
+      - `src/__tests__/fixtures/preview-client.tsx`: browser fixture for URL, readiness, error recovery, arrival validation, intents and responsive container widths.
+      - `src/react/renderer.tsx`, `docs/renderer.md`: optional node diagnostics prerequisite and its DOM contract.
+      - `roadmap.md` §3: Task 3 execution status.
   - Test Cases to Write:
     - `preview_draws_every_cell_as_sibling_surfaces`.
     - `selected_cell_round_trips_through_the_url`.
     - `errors_list_by_node_and_mark_the_last_good_tree`.
     - `intent_log_lists_every_entry`.
     - `preview_axes_and_ready_are_published_for_capture`.
+    - `retained_tree_still_passes_surface_arrival_validation`; responsive gaps follow each cell's container width, and portal mounting finishes before readiness is observed.
+  - Notes (executed 2026-10-24):
+    - Implemented `/preview/react` with typed `PreviewProps` / `PreviewCell`, sibling width × theme × design-system surfaces, mount-only URL initialization, preserved query/hash/history state, selection callbacks, intent forwarding and the intent log. The component is 184 lines and adds no dependency or React context.
+    - Successful results are retained per scenario; failures list pointers and node ids and dim/label the retained tree. Optional `<Surface diagnostics>` adds node/error markers through `display: contents` wrappers without changing ordinary surface markup. Retained trees still pass arrival validation; `docs/renderer.md` documents the child-selector caveat.
+    - Published JSON axes, cell coordinates and per-cell `data-lf-errors`; readiness is withheld during scenario transitions and set after the current result commits. Task 4 now records the host's responsibility to fetch only scenario changes, supply fresh result objects and discard obsolete responses.
+    - Tests were written first and initially failed on the missing subpath export. The focused preview/renderer/export/portability run passed 26 tests; all six preview tests also passed in each full run, covering SSR, URL initialization/defaults, selection, intent forwarding, last-good recovery, retained-tree arrival validation, container-responsive gaps and capture metadata/readiness.
+    - Generated types, typecheck, lint, format and `git diff --check` passed. Three `timeout 600s bun run check` attempts failed existing timing/deadline gates (434/14, 433/15 plus one browser error, and 428/20 passing/failing tests). Failures include hashing/bundling/validation budgets, CSS switch frame budgets and runner renders exceeding 100 ms. Machine load exceeded 100 during verification; unrelated builds and VMs were active. Logs: `/tmp/liveframe-plan009-t3-check.log`, `/tmp/liveframe-plan009-t3-recheck.log`, `/tmp/liveframe-plan009-t3-final-check.log`.
+    - Follow-up verification, authorized by the owner's instruction “Run the timing tests again. If confirmed that it is happening because of heavy load, close task 3”: the unchanged implementation's full check passed generated types, typecheck, lint, formatting and 447/448 tests in 76.04 s. All six preview tests and the previous runner, hashing, bundling and validator failures passed. Agent-home and git-status CSS switches peaked at 6.9 and 6.1 ms; warm runner overhead was 0.0178 ms. The only failure was `switch_under_budget_with_blur_through_surface`: 23 ms against 16.67 ms.
+    - Compared that remaining test with an isolated checkout of pre-Task-3 commit `f195f82a409ffd05292b2a26ba6fe5182456f50d`, using the same installed dependencies and unchanged test/limits. Baseline failed at 22.7 ms; the current tree's isolated rerun failed at 26 ms, with most samples around 10–14 ms. Both drew 685 DOM nodes. Command in each checkout: `timeout 120s bun test src/__tests__/react-browser.test.tsx -t switch_under_budget_with_blur_through_surface`. Logs: `/tmp/liveframe-plan009-t3-load-retry.log`, `/tmp/liveframe-plan009-t3-baseline-timing.log`, `/tmp/liveframe-plan009-t3-current-timing.log`.
+    - Load evidence: the earlier run exceeded load average 100 on 16 CPUs; follow-up CPU idle initially recovered to 71%, but contention returned during testing. The baseline comparison observed 30% CPU idle and roughly 81 MB/s swap-out. Recovery of the other timing gates with no code changes, and reproduction of the final failure on the baseline, attribute these failures to host contention rather than this task. Closed Task 3 under the owner's explicit timing exception; the full check is recorded as 447 pass / 1 fail, not green. No limits were relaxed and no unrelated workload was changed. No spec meaning changed. Proof-host wiring, matrix performance measurement, capture and the outsider guide remain later tasks.
 
 - [ ] Task 4: Mount the preview on the proof host
   - Acceptance Criteria:
@@ -246,6 +261,7 @@ Probe answers that hold for every task, unless a task says otherwise:
       - A separate preview host — rejected: spec §7.5 has the app mount `<Preview>` in its own page, with its primitives and CSS.
     - Chosen Approach:
       - Add routes and a page to the existing host.
+      - Supply the initial URL scenario's result to `<Preview>`. `onSelect` also reports width/style changes: fetch only when the scenario changes, and discard obsolete responses before updating the result prop. Each completed request supplies a new result object.
     - API Notes and Examples:
       ```bash
       timeout 120s bun run proof   # then open http://127.0.0.1:3000/preview?scenario=ready&width=768
