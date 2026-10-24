@@ -110,7 +110,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Why: Part B ships runners and required scenarios, not preview sessions or capture. This explicit handoff prevents a second packaging/validation path or a browser draft-execution path.
 - CSS integration: reuse `/css` and the Phase 4 Part A renderer, cache N + M + 1 sheets for a fixed catalog and keep each matrix cell's surface and overlays scoped independently. Cells must be siblings, never nested surfaces; container widths, not viewport widths, select responsive values. Include `src/__tests__/css-scope-browser.test.ts` isolation/switch cases in preview acceptance and keep draft code out of captured browser HTML.
 - Resolution: `createPreview()`, `<Preview>` and `liveframe preview capture` ship with tests for the session contract, the 12-cell matrix, no dispatch, no draft code in the bundle or HTML, and a scripted agent loop whose published hash equals the previewed one. The outsider guide is `docs/preview.md`.
-- Phase 8 note: `liveframe mcp` should call `createPreview()` and `capture()` from `src/cli/capture.ts` directly instead of spawning `liveframe`, keep the optional MCP SDK lazily imported like Playwright, and never install, place, approve or dispatch. Its tests should reuse the agent-loop shape in `proof/tests/preview-agent-loop.test.ts`.
+- Phase 8 note (done 2026-10-24 by plan 011): `liveframe mcp` calls `createPreview()` and `capture()` from `src/cli/capture.ts` directly instead of spawning `liveframe`, keeps the optional MCP SDK lazily imported like Playwright, and never installs, places, approves or dispatches. Its tests reuse the agent-loop shape in `proof/tests/preview-agent-loop.test.ts` (`proof/tests/mcp-agent-loop.test.ts`); the outsider guide is `docs/mcp.md`.
 
 ## Carry the CSS overlay contract into the production renderer
 
@@ -157,7 +157,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Section: Phase 6 (spec §7.5, §13)
 - Priority: P1
 - Source: plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F4)
-- What: install a Bun-generated release archive in an independent host outside this checkout, run it from another working directory, and pack, store, reload and render with both reference runners. Prove that the published `/preview` loader resolves all three SDK entry points through the installed package's own exports, shares the runner's SDK instance, and imports dot-escaped `data:` modules. Prove that `/preview/worker` includes and resolves its `./entry.ts` and protocol dependencies, times out a looping widget, then recovers. Coordinate archive inspection with “Exclude test fixtures from the release package”; preserve required worker/runtime files when removing tests. Re-run the approved loader gate on supported Bun upgrades.
+- What: install a Bun-generated release archive in an independent host outside this checkout, run it from another working directory, and pack, store, reload and render with both reference runners. Prove that the published `/preview` loader resolves all three SDK entry points through the installed package's own exports, shares the runner's SDK instance, and imports dot-escaped `data:` modules. Prove that `/preview/worker` includes and resolves its `./entry.ts` and protocol dependencies, times out a looping widget, then recovers. Prove `liveframe mcp` starts from the installed package with its default `workerRunner()`, listing the seven tools and packing and rendering one draft over stdio, so the published `bin` reaches both the MCP SDK and the worker entry. Coordinate archive inspection with “Exclude test fixtures from the release package”; preserve required worker/runtime files when removing tests. Re-run the approved loader gate on supported Bun upgrades.
 
 - Why: checkout tests and browser bundle scans do not prove installed archive resolution. The approved `2026-10-23-2016-data-url-loader-encoding-and-sdk-resolution.md` decision requires this gate. If its revisit conditions occur, reopen plan 006 Task 8.5 and obtain approval for the factory-module fallback before changing the package format or loading scheme.
 
@@ -201,8 +201,10 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Section: Phase 8 (spec §7.5, §13)
 - Priority: P2
 - Source: plans/009-Phase-4-Part-B-Preview.md Task 8 (F2)
+- Status: closed 2026-10-24 by plan 011.
 - What: decide how `liveframe mcp` and outsiders call `capture(url, options)`. Today only the `liveframe preview capture` command is public; `src/cli/capture.ts` has no `package.json` export. Options are a `/preview/capture` subpath (a spec §13 table and host-API decision, since it needs Playwright and `Bun.write`) or keeping the MCP server in the same CLI module. Settle it in the Phase 8 plan with a decision log if it adds a subpath.
 - Why: `docs/preview.md` says capture is a command only, while the Phase 8 note plans a direct call. The CLI may import its optional peers lazily, which a library subpath may not.
+- Resolution: decision D3 in `decision-logs/2026-10-24-2330-authoring-mcp-server-contract.md`: no subpath. `capture()` stays in `src/cli/capture.ts` and `src/cli/mcp.ts` imports it directly, so `/preview` gains only the type-only `AuthoringConfig`, `PreviewBinding` and `PreviewSession`. A library subpath would need Playwright and host APIs; the CLI may import both lazily. `docs/preview.md` keeps capture as a command and `docs/mcp.md` documents the tool.
 
 ## Validate the page's published axes in capture
 
@@ -227,3 +229,35 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Source: plans/009-Phase-4-Part-B-Preview.md Task 8 (F9)
 - What: if an adopter supplies an isolated runner (Synapta's), consider a Phase 5 suite proving it returns the same trees, typed errors and time-limit behaviour as the reference runners. The `every_proof_scenario_passes_check` cases in `src/__tests__/preview-session.test.ts` are the seed.
 - Why: preview and production must use the same runner, and today nothing checks a custom runner against the contract. Phase 5 covers catalogs, design systems, renderers and stores only.
+
+## Give agents the catalog id and one error set
+
+- Section: Phase 8 follow-up (spec §13, `liveframe mcp`)
+- Priority: P4
+- Source: plans/011-Phase-8-Authoring-MCP-Server.md Task 7 (findings), Task 8 handoff
+- What: no MCP tool returns `catalogId`, so a widget manifest's `/catalogId` can only be known out of band; a wrong guess fails as `catalog-mismatch` with no `expected` and no way to look it up. Separately, `render_scenarios` renders every scenario and so repeats an identical tree error once per scenario. Decide whether `list_vocabulary` or `list_primitives` should carry the catalog id, whether `pack_draft` should name the expected id, and whether the all-scenarios result should deduplicate errors by `pointer`, `kind` and `message`.
+- Why: both are tool-result shape decisions that change spec §13, so plan 011's scripted agent records them instead of making them; it writes `"proof.ui@1"` as a literal in `proof/tests/mcp-agent-loop.test.ts`. A real agent has no file system and only these tools.
+
+## Add a setState intent tool to the authoring MCP server
+
+- Section: Phase 8 follow-up (spec §7.5, §13)
+- Priority: P4
+- Source: plans/011-Phase-8-Authoring-MCP-Server.md (not in this plan), Task 8 handoff
+- What: an agent cannot check tier-2 behaviour (a filter or a toggle changing the tree) except by passing `state` to `render_scenarios`. If adopters need the loop, add one tool that posts a `setState` intent to the session and returns the re-rendered tree, keeping actions out (law 4). `session.intent()` already does the work; the cost is a spec §13 change and a second place where agent input reaches the session.
+- Why: deferred so v1 keeps the seven-tool surface and no intent path from an agent.
+
+## Accept draft files from disk paths in pack_draft
+
+- Section: Phase 8 follow-up (spec §13)
+- Priority: P4
+- Source: plans/011-Phase-8-Authoring-MCP-Server.md (not in this plan, D5), Task 8 handoff
+- What: `pack_draft` takes inline file contents, which suits an agent without a file system but makes a human-driven client paste every file. If a client needs paths, add them behind an explicit opt-in in the config, with the path checks (`..`, symlinks, allowed roots) that D5 rejected for v1.
+- Why: rejection recorded in `decision-logs/2026-10-24-2330-authoring-mcp-server-contract.md`; revisit only when an adopter asks.
+
+## Make the no-playwright test preload effective
+
+- Section: Test hygiene (`src/__tests__/fixtures/no-playwright.ts`)
+- Priority: P4
+- Source: plans/011-Phase-8-Authoring-MCP-Server.md Task 2 (finding)
+- What: a Bun preload `plugin()` with `onResolve` does not intercept dynamic imports of bare specifiers on Bun 1.4.4, so `no-playwright.ts` never blocks `playwright` and `gen_runs_without_playwright` passes trivially. Rewrite it with `mock.module` from `bun:test` like `src/__tests__/fixtures/no-mcp-sdk.ts`, then confirm `gen_runs_without_playwright` and a `preview capture` case both fail when the peer is blocked.
+- Why: the equivalent MCP SDK case is proved today; the Playwright one is not, and plan 009's "runs without Playwright" claim rests on it.

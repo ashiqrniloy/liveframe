@@ -452,7 +452,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Also added to `src/__tests__/cli-mcp.test.ts`: `tools_list_is_exactly_the_authoring_set` (sorted, so a rename or an extra tool fails) and `mcp_server_imports_no_store` (no `/store` import or dynamic `import("/store")` in `src/cli/mcp.ts`).
     - Validation: `bun run check` passed (589 tests, 0 failures, 246 s); `git diff --check` clean. Spec and roadmap need no change: the seven tools are already §13's list.
 
-- [ ] Task 8: Document `liveframe mcp` for outsiders and hand off the rest
+- [x] Task 8: Document `liveframe mcp` for outsiders and hand off the rest
   - Acceptance Criteria:
     - Functional:
       - `docs/mcp.md` covers:
@@ -495,6 +495,15 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `.agents/skills/liveframe-execution/references/preview.md`, `plans/backlog.md`.
   - Test Cases to Write:
     - `mcp_guide_config_starts_and_lists_the_tools`.
+
+  - Notes (executed 2026-10-24):
+    - `docs/mcp.md` is written for someone outside the repo, in the same shape as `docs/preview.md`: what the server is and is not (authoring only, laws 1 and 4, link to spec §13), the two optional peers, the config module, the seven tools in one table, the agent registration snippet, and the error shapes with the exit-code table. Every rule appears once; sessions, pages and the capture contract stay in `docs/preview.md` and are linked, not repeated.
+    - The guide's config example is `src/__tests__/fixtures/mcp-guide.config.ts`, embedded verbatim: `src/__tests__/mcp-guide.test.ts` reads the fixture, rewrites its `./mcp-guide-host.ts` import to the guide's `./host.ts` (the `preview-guide.test.ts` pattern), asserts the exact fenced block, then starts `liveframe mcp` on the fixture over stdio and checks `tools/list` plus one `list_capabilities` call.
+    - The fixture's `startApp(binding)` had to be a stand-in instead of the proof host: `tsc --noEmit` covers `src/` under `NodeNext` and importing `proof/host/server.ts` fails on that config's JSON imports (the same class of breakage plan 009 recorded), so `src/__tests__/fixtures/mcp-guide-host.ts` serves the bound package's scenario list and `/preview/render` from a raw `Bun.serve` and says so. It is enough for a tools-only test; `docs/mcp.md` tells an app to mount `<Preview>` there, and the real page is proved in `proof/tests/mcp-capture.test.ts`.
+    - The guide's example results are captured from the proof-host config, not written from memory: the `catalog-mismatch`, `invalid-prop` (with `expected`) and `not-found` error shapes, the `render_scenarios` node-count list, and the four-cell `capture_preview` summary (`loading @360px` × two themes × two design systems).
+    - Links added: `docs/preview.md` (intro and the capture section) and `README.md`'s guide list. `.agents/skills/liveframe-execution/references/preview.md` gains a "Today" entry for the shipped server and now names both agent loops.
+    - `plans/backlog.md`: "Give capture a public home for the authoring MCP server" is closed with resolution D3 (no subpath; the CLI imports `capture()` directly); the Phase 8 note under "Build preview sessions on the shipped package and runner contracts" is marked done; "Verify installed-package loader and worker entry before release" now also proves `liveframe mcp` from the installed package with its default `workerRunner()`; new P4 entries cover the `setState` intent tool, disk-path drafts, a tool-shaped answer to the missing `catalogId` plus duplicated per-scenario errors (Task 7 findings), and rewriting `src/__tests__/fixtures/no-playwright.ts` with `mock.module`.
+    - Validation: `bun run check` passed (590 tests, 0 failures); `git diff --check` clean. No spec change was needed: §13 already states the tool list, the config shape, the default runner and the exit behaviour the guide describes.
 
 - [ ] Task 9: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:

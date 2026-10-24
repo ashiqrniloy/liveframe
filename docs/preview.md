@@ -1,7 +1,8 @@
 # Preview widgets before you publish them
 
 Preview lets an author, or a coding agent, see a draft widget exactly as
-production will draw it, with no storage, approval or action side effects. It has
+production will draw it, with no storage, approval or action side effects. To
+give a coding agent those steps as MCP tools, see [the agent guide](mcp.md). It has
 three parts: a **session** on your backend, a **`<Preview>`** page in your app,
 and **capture**, a command that turns every preview cell into files an agent can
 read. Start with the [package guide](packages.md) for `pack()`, stores and runners.
@@ -153,7 +154,8 @@ cell has errors or Playwright is missing, and 2 on a usage error.
 Cell filenames come from the coordinates with unsafe characters replaced; if two
 cells sanitise to the same name, later ones get a `-2`, `-3` suffix. Read the
 paths from `index.json`, not from the coordinates. Capture is a command today;
-the library does not export it as a function.
+the library does not export it as a function. A coding agent reaches the same
+capture through the `capture_preview` tool ([agent guide](mcp.md)).
 
 The capture URL must reach a session that holds the draft. In the proof host,
 `GET /preview` creates a session and returns its id in the page, and
