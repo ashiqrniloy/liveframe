@@ -1,4 +1,4 @@
-import { Component, Fragment, type ReactNode, useMemo, useState } from "react";
+import { Component, Fragment, type ReactNode, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { slotClass, styleDeclarations, surfaceAttributes } from "../css/index.ts";
 import {
   type CompiledValidator,
@@ -139,6 +139,36 @@ export function createRenderer({
       });
     }
     const [portal, setPortal] = useState<HTMLDivElement | null>(null);
+    const wrapper = useRef<HTMLDivElement>(null);
+    const requestedScope = useMemo(
+      () => ({
+        theme: { id: theme.id, version: theme.version },
+        designSystem: { id: designSystem.id, version: designSystem.version },
+      }),
+      [theme.id, theme.version, designSystem.id, designSystem.version],
+    );
+    const [appliedScope, setAppliedScope] = useState(requestedScope);
+    const previousScope = useRef(requestedScope);
+    useLayoutEffect(() => {
+      if (previousScope.current === requestedScope) return;
+      previousScope.current = requestedScope;
+      const scopes = [wrapper.current, portal];
+      for (const scope of scopes) scope?.setAttribute("data-lf-switching", "");
+      // Suppress transitions before React commits the new scope attributes.
+      setAppliedScope(requestedScope);
+      const clear = () => {
+        for (const scope of scopes) scope?.removeAttribute("data-lf-switching");
+      };
+      const frame = requestAnimationFrame(() => {
+        // Resolve the new styles while transitions are still suppressed, even before the first paint.
+        for (const scope of scopes) if (scope) void scope.offsetWidth;
+        clear();
+      });
+      return () => {
+        cancelAnimationFrame(frame);
+        clear();
+      };
+    }, [requestedScope, portal]);
     const root = useMemo(() => {
       if (!accepted.tree) return null;
       function context(node: UiNode): Item {
@@ -180,10 +210,10 @@ export function createRenderer({
       }
       return context(accepted.tree.root).render();
     }, [accepted.tree, portal, fallback, onIntent]);
-    const { class: className, ...scope } = surfaceAttributes({ theme, designSystem, tree: accepted.tree ?? emptyTree });
+    const { class: className, ...scope } = surfaceAttributes({ ...appliedScope, tree: accepted.tree ?? emptyTree });
     return (
       <>
-        <div {...scope} className={className}>
+        <div {...scope} className={className} ref={wrapper}>
           {arrival.ok ? <Fragment key={accepted.tree?.surfaceId}>{root}</Fragment> : fallback}
         </div>
         <div {...scope} className={className} data-lf-portal="" ref={setPortal} />

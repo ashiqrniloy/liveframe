@@ -265,7 +265,7 @@ Probe answers that hold for every task, unless a task says otherwise:
     - Wrote the intent tests first: seven failed against the no-op emitter. All 23 focused React tests then passed, including browser proof for local interactions and callback replacement. Existing spec §8/§11 already requires the host to re-check filled intents; the new rejection test proves why. No spec or public export change. The full outsider guide remains Task 9.
     - `bun run check` passed (399 tests, zero failures). The first full run hit the existing in-process runner timing gate at 0.109 ms against 0.1 ms; all eight runner tests passed immediately in isolation, followed by a green full rerun without changing the limit. `git diff --check` passed. Overlay switching and hydration remain Tasks 5–6; proof-host adoption remains Task 7.
 
-- [ ] Task 5: Keep overlays in scope and switch styles from `<Surface>` props
+- [x] Task 5: Keep overlays in scope and switch styles from `<Surface>` props
   - Acceptance Criteria:
     - Functional:
       - After mount, `portal` is the sibling container. An overlay portalled into it computes the surface's theme and design-system values (`getComputedStyle`).
@@ -286,11 +286,13 @@ Probe answers that hold for every task, unless a task says otherwise:
       - Spec §6.4 "Preferences and switching", §11 overlays.
       - `proof/host/client.tsx`: the manual switch this replaces.
       - `src/__tests__/css-scope-browser.test.ts`: `two_surfaces_keep_their_own_styles`, `switch_changes_one_surface_only`, `overlays_keep_scope`.
+      - Context7, 2026-10-24: React [useLayoutEffect](https://react.dev/reference/react/useLayoutEffect) processes its state updates before repaint; [createPortal](https://react.dev/reference/react-dom/createPortal) uses an existing DOM container. React Aria's current indexed docs describe [PortalProvider](https://react-aria.adobe.com/PortalProvider), rather than the proof's older `UNSTABLE_portalContainer` prop; this task proves the generic portal contract with test-local `createPortal` implementations. React Aria adoption remains Task 7.
     - Options Considered:
       - Create the portal container with `document.createElement` — rejected: it breaks SSR and lives outside React's ownership.
       - Leave switching to the host — rejected by the decision.
     - Chosen Approach:
       - The portal and the wrapper share one attribute object; one layout effect brackets the change with `data-lf-switching`.
+      - Hold the applied theme/system identities until that effect marks both scopes, then commit the requested identities before paint. Resolve pending layout before removing suppression on the next animation frame; cancel pending frames and clear markers on replacement or unmount. Compare identity fields, including versions, rather than caller object references.
     - API Notes and Examples:
       ```tsx
       <Surface … theme={next.theme} designSystem={next.designSystem} />  // switch = prop change
@@ -299,12 +301,17 @@ Probe answers that hold for every task, unless a task says otherwise:
       - `src/react/renderer.tsx`.
       - `src/__tests__/react-browser.test.tsx`: extend Task 3's browser suite (Bun-built client and Playwright Chromium, following `src/__tests__/css-scope-browser.test.ts`), with test-local implementations.
       - `src/__tests__/fixtures/react-client.tsx`: extend Task 3's browser entry.
+      - `roadmap.md` §3: record task completion after checks pass.
   - Test Cases to Write:
     - `portal_overlay_keeps_surface_scope`.
     - `switch_runs_the_switching_sequence_on_root_and_portal`.
     - `switch_rerenders_no_implementation_and_keeps_focus`.
     - `sibling_surfaces_switch_independently`.
     - `switch_under_budget_with_blur_through_surface`: ≤ 16.67 ms warm; records the cold value.
+  - Notes (executed 2026-10-24):
+    - Added ordered theme/design-system switching to `Surface`: one layout effect marks the wrapper and sibling portal before React commits new scope attributes; the next animation frame resolves pending layout and removes suppression. Replacement and unmount cancel the frame and clear its markers. Theme-only, design-system-only and version changes work without primitive renders, node/class changes or focus loss. No spec or public export change.
+    - Wrote the five browser cases first. The original renderer failed the sequence test and started 84 transitions. A further test without forced style reads exposed that removing suppression before resolving pending styles could still start transitions; the animation-frame layout read fixes that path. Test-local implementations portal an open dialog into the supplied container on a 50-row agent-home fixture, beside an independently scoped surface.
+    - All 34 focused React/CSS-scope tests passed. The focused renderer performance run measured 8.8 ms cold and 7.9 ms maximum over ten warm switches of 685 elements, including the blurred dialog (16.67 ms budget). `bun run check` passed (404 tests, zero failures); `git diff --check` and `graft build` passed. SSR/hydration remains Task 6; React Aria lifecycle and real proof-host adoption remain Tasks 7–8.
 
 - [ ] Task 6: Render on the server and hydrate without mismatch
   - Acceptance Criteria:

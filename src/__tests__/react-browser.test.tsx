@@ -1,5 +1,20 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { type Browser, chromium } from "playwright";
+import { baseCss, designSystemCss, themeCss } from "../css/index.ts";
+import type { Catalog, DesignSystem, Result, Theme } from "../index.ts";
+
+const read = (name: string) => Bun.file(new URL(`./fixtures/proof/${name}.json`, import.meta.url)).json();
+const catalog: Catalog = await read("catalog");
+function css(result: Result<string>) {
+  if (!result.ok) throw new Error(JSON.stringify(result.errors));
+  return result.value;
+}
+const sheets = [css(baseCss(catalog))];
+for (const name of ["certified", "rack"]) {
+  const theme: Theme = await read(`${name}.theme`);
+  const system: DesignSystem = await read(`${name}.design-system`);
+  sheets.push(css(themeCss(theme, catalog)), css(designSystemCss(system, { catalog, registry: {} })));
+}
 
 let server: ReturnType<typeof Bun.serve>;
 let browser: Browser;
@@ -19,7 +34,11 @@ beforeAll(async () => {
       new URL(request.url).pathname === "/client.js"
         ? new Response(bundle, { headers: { "Content-Type": "text/javascript" } })
         : new Response(
-            '<!doctype html><html lang="en"><head><title>Surface tests</title></head><body><div id="app"></div><script type="module" src="/client.js"></script></body></html>',
+            `<!doctype html><html lang="en"><head><title>Surface tests</title><style>${sheets.join("\n")}</style><style>
+              #app:has(section){display:flex;gap:16px}section{position:relative;width:760px;flex-shrink:0}
+              [role=dialog]{position:absolute;top:40px;left:40px;z-index:2}
+              .lf_dialog_default_backdrop{position:absolute;inset:0;z-index:1}
+            </style></head><body><div id="app"></div><script type="module" src="/client.js"></script></body></html>`,
             { headers: { "Content-Type": "text/html" } },
           ),
   });
@@ -149,3 +168,183 @@ test("throwing_implementation_falls_back_at_that_node", async () => {
     await page.close();
   }
 });
+
+async function mountSwitching() {
+  const page = await browser.newPage({ viewport: { width: 1700, height: 1000 } });
+  await page.goto(server.url.href);
+  await page.waitForSelector("button");
+  await page.evaluate(() => window.surfaceTest.mountSwitching());
+  await page.waitForSelector("#b [role=dialog]");
+  return page;
+}
+
+test("portal_overlay_keeps_surface_scope", async () => {
+  const page = await mountSwitching();
+  try {
+    const values = await page.locator("[role=dialog]").evaluateAll((dialogs) =>
+      dialogs.map((el) => {
+        const scope = el.closest("[data-lf-portal]");
+        const style = getComputedStyle(el);
+        return {
+          sibling: scope?.previousElementSibling?.className === scope?.className,
+          theme: scope?.getAttribute("data-lf-theme"),
+          color: style.color,
+          font: style.fontFamily,
+          blur: el.previousElementSibling && getComputedStyle(el.previousElementSibling).backdropFilter,
+        };
+      }),
+    );
+    expect(values.map((value) => value.sibling)).toEqual([true, true]);
+    expect(values.map((value) => value.theme)).toEqual(["certified@1.0.0", "rack@1.0.0"]);
+    expect(values[0]?.font).not.toBe(values[1]?.font);
+    expect(values[1]?.blur).toBe("blur(2px) saturate(1)");
+    await page.evaluate(() => window.surfaceTest.switchStyles(0, "rack"));
+    const switched = await page.locator("[role=dialog]").evaluateAll((dialogs) =>
+      dialogs.map((el) => {
+        const style = getComputedStyle(el);
+        return [style.color, style.fontFamily, style.backgroundColor];
+      }),
+    );
+    expect(switched[0]).toEqual(switched[1]);
+  } finally {
+    await page.close();
+  }
+});
+
+test("switch_runs_the_switching_sequence_on_root_and_portal", async () => {
+  const page = await mountSwitching();
+  try {
+    const result = await page.evaluate(async () => {
+      const scopes = [...document.querySelectorAll("#a > [data-lf-ds]")];
+      const records: MutationRecord[] = [];
+      const observer = new MutationObserver((batch) => records.push(...batch));
+      for (const scope of scopes) observer.observe(scope, { attributes: true, attributeOldValue: true });
+      window.surfaceTest.switchStyles(0, "rack");
+      const marked = scopes.every((el) => el.hasAttribute("data-lf-switching"));
+      const durations = [...document.querySelectorAll("#a button")].map(
+        (el) => getComputedStyle(el).transitionDuration,
+      );
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      observer.disconnect();
+      return {
+        marked,
+        durations: [...new Set(durations)],
+        removed: scopes.every((el) => !el.hasAttribute("data-lf-switching")),
+        order: scopes.map((scope) =>
+          records.filter((record) => record.target === scope).map((record) => record.attributeName),
+        ),
+      };
+    });
+    expect(result.marked).toBe(true);
+    expect(result.removed).toBe(true);
+    expect(result.durations).toEqual(["0s"]);
+    expect(result.order).toEqual(
+      Array(2).fill(["data-lf-switching", "data-lf-theme", "data-lf-ds", "data-lf-switching"]),
+    );
+  } finally {
+    await page.close();
+  }
+});
+
+test("switch_rerenders_no_implementation_and_keeps_focus", async () => {
+  const page = await mountSwitching();
+  try {
+    await page.locator("#a [role=dialog] button").focus();
+    await page.evaluate(
+      () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+    );
+    const result = await page.evaluate(async () => {
+      const nodes = [...document.querySelectorAll("#a *")];
+      const classes = nodes.map((el) => el.className);
+      const focus = document.activeElement;
+      const renders = window.surfaceTest.renders();
+      let transitions = 0;
+      document.addEventListener("transitionrun", () => transitions++);
+      window.surfaceTest.switchStyles(0, "rack");
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      const after = [...document.querySelectorAll("#a *")];
+      return {
+        renders: window.surfaceTest.renders() - renders,
+        focus: focus === document.activeElement,
+        nodes: nodes.every((node, i) => node === after[i]),
+        classes: classes.every((value, i) => value === after[i]?.className),
+        transitions,
+      };
+    });
+    expect(result).toEqual({ renders: 0, focus: true, nodes: true, classes: true, transitions: 0 });
+  } finally {
+    await page.close();
+  }
+});
+
+test("sibling_surfaces_switch_independently", async () => {
+  const page = await mountSwitching();
+  try {
+    const snapshot = () =>
+      page.locator("#b").evaluate((root) => ({
+        html: root.innerHTML,
+        styles: [...root.querySelectorAll("*")].map((el) => {
+          const s = getComputedStyle(el);
+          return [s.color, s.fontFamily, s.backgroundColor, s.backdropFilter];
+        }),
+      }));
+    const before = await snapshot();
+    for (const [theme, system, version] of [
+      ["rack", "certified", "1.0.0"],
+      ["rack", "rack", "1.0.0"],
+      ["rack", "rack", "2.0.0"],
+    ] as const) {
+      await page.evaluate(([theme, system, version]) => window.surfaceTest.switchStyles(0, theme, system, version), [
+        theme,
+        system,
+        version,
+      ] as const);
+      expect(await snapshot()).toEqual(before);
+      expect(await page.locator("#a > [data-lf-theme]").first().getAttribute("data-lf-theme")).toBe(
+        `${theme}@${version}`,
+      );
+      expect(await page.locator("#a > [data-lf-ds]").last().getAttribute("data-lf-ds")).toBe(`${system}@${version}`);
+    }
+    await page.evaluate(() => {
+      window.surfaceTest.switchStyles(0, "certified");
+      window.surfaceTest.unmount();
+    });
+    expect(await page.locator("#app").textContent()).toBe("");
+  } finally {
+    await page.close();
+  }
+});
+
+test("switch_under_budget_with_blur_through_surface", async () => {
+  const page = await mountSwitching();
+  try {
+    const result = await page.evaluate(async () => {
+      const nodes = [...document.querySelectorAll("#b *")];
+      const samples: number[] = [];
+      let cold = 0;
+      for (let i = 0; i < 11; i++) {
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+        const start = performance.now();
+        window.surfaceTest.switchStyles(1, i % 2 ? "rack" : "certified");
+        for (const el of nodes) {
+          const s = getComputedStyle(el);
+          void s.fontSize;
+          void s.backgroundColor;
+          void s.backdropFilter;
+          void s.display;
+        }
+        const elapsed = performance.now() - start;
+        if (i === 0) cold = elapsed;
+        else samples.push(elapsed);
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      }
+      return { cold, samples, nodes: nodes.length };
+    });
+    console.log(`Surface two-surface switch with blur: ${JSON.stringify(result)}`);
+    expect(result.nodes).toBeGreaterThan(500);
+    expect(result.samples).toHaveLength(10);
+    expect(Math.max(...result.samples)).toBeLessThanOrEqual(16.67);
+  } finally {
+    await page.close();
+  }
+}, 20000);
