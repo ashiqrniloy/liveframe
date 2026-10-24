@@ -25,7 +25,7 @@ The normative design is [`docs/spec.md`](docs/spec.md). This roadmap orders the 
 
 **Library rules.**
 - **Primitives, not product components.** The library ships no components. Catalogs hold only primitives; anything composable from primitives is widget code.
-- **Host-API-free core.** Everything outside `/react`, `/store/fs`, `/preview/worker`, `/preview/react` and the CLI imports no `node:`, `bun:`, DOM or `require`, and CI enforces it.
+- **Host-API-free core.** Everything outside `/react`, `/store/fs`, `/preview/worker`, `/preview/react`, `/conformance/react` and the CLI imports no `node:`, `bun:`, DOM or `require`, and CI enforces it.
 - **The problem class first.** Liveframe is designed for any app with this problem. Never bend it to ease one adopter's migration; record the adopter's gap instead.
 - **No new runtime dependency** without an explicit plan task that justifies it.
 - **Green after every task.** `bun run check` passes when each plan task ends.
@@ -101,8 +101,8 @@ Two plans: Part A (the renderer), then Part B (the preview), which draws drafts 
 
 ### Phase 5 — Conformance kit
 
-- **Goal:** `@arnilo/liveframe/conformance`: shared suites for catalogs, design systems, renderers and stores (spec §7.4).
-- **Done:** an app can prove its catalog, design system, renderer and store conform with one test import. `memoryStore()` and `fileStore()` both pass the store suite.
+- **Goal:** `@arnilo/liveframe/conformance` and `@arnilo/liveframe/conformance/react`: shared suites for catalogs, design systems, renderers and stores (spec §7.4, §13).
+- **Done:** an app can prove its catalog, design system, renderer and store conform with one test import of the kit per environment. `memoryStore()` and `fileStore()` both pass the store suite.
 
 ### Phase 8 — Authoring MCP server for coding agents (runs before Phase 6)
 
@@ -124,8 +124,8 @@ Two plans: Part A (the renderer), then Part B (the preview), which draws drafts 
 
 ## 3. Execution state
 
-- **Current phase:** Phase 4 complete. Part B (Preview, plan 009) is complete — Tasks 1–8 and impact follow-up Task 7a; Task 3 closed with an owner-approved timing exception reproduced on the pre-task baseline; findings disposed in the impact analysis and backlog. Phase 4 Part A (React renderer, plan 008) complete — Tasks 1–11 and impact follow-up Task 11a complete; findings disposed in the impact analysis and backlog. Phase 3 plan 007 Tasks 1–12 and impact follow-up Task 11a are complete; findings disposed in the impact analysis and backlog. Phase 2 plans 005 and 006 are complete; plan 005's impact findings include active SDK validation and validator-performance backlog items. Plan 002 Task 9's owner gate remains recorded separately.
-- **Next free plan number:** 010.
+- **Current phase:** Phase 5 in progress (plan 010). Phase 4 complete. Part B (Preview, plan 009) is complete — Tasks 1–8 and impact follow-up Task 7a; Task 3 closed with an owner-approved timing exception reproduced on the pre-task baseline; findings disposed in the impact analysis and backlog. Phase 4 Part A (React renderer, plan 008) complete — Tasks 1–11 and impact follow-up Task 11a complete; findings disposed in the impact analysis and backlog. Phase 3 plan 007 Tasks 1–12 and impact follow-up Task 11a are complete; findings disposed in the impact analysis and backlog. Phase 2 plans 005 and 006 are complete; plan 005's impact findings include active SDK validation and validator-performance backlog items. Plan 002 Task 9's owner gate remains recorded separately.
+- **Next free plan number:** 011.
 
 One line per plan. Detail lives in the plan file, never here.
 
@@ -140,3 +140,4 @@ One line per plan. Detail lives in the plan file, never here.
 | [007](plans/007-Phase-3-CSS-Projection.md) | 3 | complete (Tasks 1–12 and Task 11a; findings disposed in the impact analysis and backlog) |
 | [008](plans/008-Phase-4-Part-A-React-Renderer.md) | 4 | complete (Tasks 1–11 and Task 11a; findings disposed in the impact analysis and backlog) |
 | [009](plans/009-Phase-4-Part-B-Preview.md) | 4 | complete (Tasks 1–8 and Task 7a; Task 3 owner-approved timing exception; findings disposed in the impact analysis and backlog) |
+| [010](plans/010-Phase-5-Conformance-Kit.md) | 5 | in progress (Task 1 complete) |

@@ -11,7 +11,7 @@ A router. Apply **Always apply**, read the architecture reference, then read **o
 ## Where the repo is
 
 - `docs/spec.md` is the normative design. `roadmap.md` §3 holds the current phase, the plan ledger and the next free plan number. Never copy execution state into a skill or a doc.
-- The root export provides formats, install validators, the compiled tree validator and the recipe resolver; `./schemas/*` publishes their JSON Schemas. See the area references for implementation details. Later work adds the subpaths (`/sdk`, `/pack`, `/store`, `/store/fs`, `/preview`, `/preview/worker`, `/preview/react`, `/css`, `/react`, `/conformance`).
+- The root export provides formats, install validators, the compiled tree validator and the recipe resolver; `./schemas/*` publishes their JSON Schemas. See the area references for implementation details. Later work adds the subpaths (`/sdk`, `/pack`, `/store`, `/store/fs`, `/preview`, `/preview/worker`, `/preview/react`, `/css`, `/react`, `/conformance`, `/conformance/react`).
 - Phase 0 proof code lives in `proof/` and is never published or imported by `src/`.
 
 ## Always apply
@@ -24,7 +24,7 @@ A router. Apply **Always apply**, read the architecture reference, then read **o
   4. A widget never holds authority.
   Never weaken a test that enforces one of them.
 - **Primitives only.** The library ships no components and no visual style. Catalogs hold primitives; anything composable from primitives is widget code.
-- **Host-API-free core.** Nothing outside `/react`, `/store/fs`, `/preview/worker`, `/preview/react` and the CLI imports `node:`, `bun:`, DOM globals or `require`.
+- **Host-API-free core.** Nothing outside `/react`, `/store/fs`, `/preview/worker`, `/preview/react`, `/conformance/react` and the CLI imports `node:`, `bun:`, DOM globals or `require`.
 - **The problem class first.** Never bend the design to ease Synapta's or Clay's migration; record their gaps instead.
 - **Simplest thing that holds.** No feature the spec doesn't require. No new runtime dependency without a plan task that justifies it.
 - **Green after every task.** `bun run check` passes before a checkbox is ticked.

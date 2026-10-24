@@ -690,7 +690,7 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
   |---|---|
   | `@arnilo/liveframe` | Definition, catalog, theme and design-system formats; the validator; the recipe resolver |
   | `@arnilo/liveframe/sdk` | The JSX runtime (`/sdk/jsx-runtime`, `/sdk/jsx-dev-runtime`), intent helpers, and `render()` |
-  | `@arnilo/liveframe/react` | The renderer: `createRenderer()`, `<Surface>` and `implement()` (§11). `react` and `react-dom` are optional peer dependencies, needed only by this import |
+  | `@arnilo/liveframe/react` | The renderer: `createRenderer()`, `<Surface>` and `implement()` (§11). `react` and `react-dom` are optional peer dependencies used by the React subpaths |
   | `@arnilo/liveframe/css` | Pure, host-API-free projection into three scoped sheets, plus class, style, scope and variable helpers (§6.4); the host inserts sheets |
   | `@arnilo/liveframe/pack` | Package and scenario formats, structural validators, `pack()` and `verifyPackage()` (§7.3) |
   | `@arnilo/liveframe/store` | Record formats, the `Store` interface, `memoryStore()` and `loadPlacement()` (§7.4) |
@@ -698,13 +698,21 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
   | `@arnilo/liveframe/preview` | The `Runner` interface, `inProcessRunner()` and `createPreview()` (§7.5) |
   | `@arnilo/liveframe/preview/worker` | `workerRunner()`, which needs the `Worker` global |
   | `@arnilo/liveframe/preview/react` | `<Preview>`. Like `/react`, it needs the optional `react` peer |
-  | `@arnilo/liveframe/conformance` | Shared tests for catalogs, design systems, renderers and stores |
+  | `@arnilo/liveframe/conformance` | Host-API-free catalog, design-system and store suites: `catalogSuite()`, `designSystemSuite()`, `storeSuite()`, plus `ConformanceCase` and `ConformanceFailure` |
+  | `@arnilo/liveframe/conformance/react` | `rendererSuite()` (server cases), `rendererBrowserSuite()` (browser cases) and `conformancePage()` (the app's in-page host); needs the optional `react` and `react-dom` peers |
 
 - A JSON Schema for every format is published at `@arnilo/liveframe/schemas/<format>.json`, so apps and agents in any language can validate the documents.
 - One CLI, `liveframe`, exposed through the package's `bin` (`liveframe gen`, `liveframe gen --check`, `liveframe preview capture`, `liveframe mcp`). `liveframe gen` writes a widget's typed component module into the app (§7.2). `playwright` is an optional peer dependency, needed only by `preview capture`.
 - **`liveframe mcp`** is an authoring-time MCP server for coding agents. It lists primitives, roles and design-value names, shows the generated types, packs a draft and renders its scenarios through a preview session, and captures a preview. It never installs, places or approves a widget, and never runs an action. The MCP SDK is an optional peer dependency, needed only by this command.
-- Everything outside `/react`, `/store/fs`, `/preview/worker`, `/preview/react` and the CLI is host-API-free, and CI checks it. `/css` returns strings and plain objects; inserting a sheet through `<style>`, `<link>` or a CSP nonce is the host's job. Across the library subpaths, the only dynamic `import(` is the package loader in `/preview` (§7.5), and the scan names that file as its only exception. The CLI may lazily import command-specific optional peers: `playwright` for capture and the MCP SDK for `liveframe mcp`. `liveframe gen` must run without either installed.
+- Everything outside `/react`, `/store/fs`, `/preview/worker`, `/preview/react`, `/conformance/react` and the CLI is host-API-free, and CI checks it. `/css` returns strings and plain objects; inserting a sheet through `<style>`, `<link>` or a CSP nonce is the host's job. Across the library subpaths, the only dynamic `import(` is the package loader in `/preview` (§7.5), and the scan names that file as its only exception. The CLI may lazily import command-specific optional peers: `playwright` for capture and the MCP SDK for `liveframe mcp`. `liveframe gen` must run without either installed.
 - Split into separate packages only if a real consumer needs to version the parts independently.
+
+**Conformance contracts.** The kit tests the app's side of the catalog, styling, renderer and store contracts; library-internal correctness stays in the library's own tests.
+
+- Every suite returns `ConformanceCase[]`: `{ name: string; run(): Promise<void>; timeout?: number }`, with timeout in milliseconds. The app registers each case with its own runner's `test(name, fn, timeout)`. The kit imports no test runner or assertion library. A failing case rejects with `ConformanceFailure`, an `Error` whose `rule` names the case, `spec` identifies the enforced section, and `details` holds bounded strings or the library's `LiveframeError[]`.
+- An app needs one import of the kit per environment. The host-API-free suites need no React installation; renderer suites and the page host use the React subpath.
+- Browser cases run in the app's test process through an app-supplied Playwright `Page`. The app bundles and serves its own page, whose entry calls `conformancePage()` with its catalog, implementations and styles. The kit bundles and serves nothing, and uses Playwright types without loading it at runtime. The page host accepts UI trees and style identities, never widget code (law 1); it records intents without dispatching actions or granting authority (law 4).
+- Fixtures are app-supplied trees and locators. Coverage fails closed: every catalog `(kind, variant)` needs an example; missing examples fail the suite and name the missing pairs. Every `(kind, variant, state)` whose resolved recipe differs from rest in any installed design system needs a state fixture; a missing fixture fails and names the tuple. The app declares which kinds are overlays and text inputs and supplies the corresponding lifecycle and text-bound fixtures; the catalog does not mark these roles. The conformance guide must explain this declaration requirement.
 
 ## 14. Non-goals for v1
 

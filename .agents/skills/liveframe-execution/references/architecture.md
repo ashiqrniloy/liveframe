@@ -25,7 +25,8 @@ One npm package with subpath exports:
 | `/preview/react` | `<Preview>` | Yes (React, DOM) |
 | `/css` | Theme and design system → CSS custom properties and classes | No |
 | `/react` | `<Surface>`, `implement()`, reconciliation, `onIntent` | Yes (React, DOM) |
-| `/conformance` | Shared suites for catalogs, design systems, renderers, stores | Test runner only |
+| `/conformance` | `catalogSuite()`, `designSystemSuite()`, `storeSuite()`, `ConformanceCase`, `ConformanceFailure` | No |
+| `/conformance/react` | `rendererSuite()`, `rendererBrowserSuite()`, `conformancePage()` | Yes (React, DOM) |
 
 Placement rules:
 - The library never ships a primitive implementation, a design system or a product component. Those live in apps, a demo host, or `proof/`.

@@ -22,7 +22,7 @@ Spec §11 (renderer), §8 (interaction tiers). Roadmap Phase 4 (renderer) and Ph
 - Contracts: `decision-logs/2026-10-24-0306-phase-4-renderer-and-preview-contracts.md`.
 - Server-side rendering is supported.
 - Tier 1 lives inside primitives. `setState` and actions go to `onIntent`, and the app passes the new tree back.
-- Conformance: shared suites (documents plus interactions) that an app runs against its catalog, design system and renderer.
+- Conformance: spec §13 defines the runner-independent cases, two subpaths, app-owned browser page and required fixture coverage. `/conformance` holds catalog, design-system and store suites; `/conformance/react` holds `rendererSuite()`, `rendererBrowserSuite()` and `conformancePage()`. The app supplies trees, locators and a Playwright `Page`, and declares its overlay and text-input kinds. The page records intents without dispatching actions.
 
 Recommended, not required: build interactive primitives on React Aria for accessibility. Check its current API with `find-docs`.
 

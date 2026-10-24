@@ -15,7 +15,8 @@
 | The JSX runtime, intent helpers, `render()`, the `liveframe gen` CLI | `/sdk` | the root export |
 | Projecting a theme or design system to CSS | `/css` | the root export, `/react` |
 | Drawing a UI tree, `implement()`, `onIntent` | `/react` | any other subpath |
-| Shared test suites for apps | `/conformance` | the other subpaths |
+| Shared catalog, design-system and store suites for apps | `/conformance` | the other subpaths |
+| Renderer suites and the app's conformance page host | `/conformance/react` | the other subpaths |
 | Phase 0 proof code, reference-UI snapshots | `proof/` (never published) | `src/` |
 | A primitive's React implementation or a design system | an app, a demo host or `proof/` | the published package |
 
@@ -24,7 +25,7 @@
 Ask each probe for every task. Record the answer as an acceptance criterion, a listed file, a test, or `n/a — <reason>`.
 
 1. **Spec section.** Which `docs/spec.md` sections does this implement? Does it change their meaning? If so, update the spec in this task.
-2. **Placement.** Which subpath (§2)? Does anything outside `/react`, `/store/fs`, `/preview/worker`, `/preview/react` and the CLI import a host API? It must not.
+2. **Placement.** Which subpath (§2)? Does anything outside `/react`, `/store/fs`, `/preview/worker`, `/preview/react`, `/conformance/react` and the CLI import a host API? It must not.
 3. **The four laws.** Which of spec §2's laws does this touch, and what rejects a violation? Every rejection gets a test.
 4. **Primitives only.** Does this add anything product-shaped to a catalog, or to the library? It must not.
 5. **Public surface.** Which exports, subpaths or format fields are added, changed or removed? Update `package.json` `exports` and the spec together.
