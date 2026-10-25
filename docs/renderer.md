@@ -3,7 +3,7 @@
 `@arnilo/liveframe/react` draws a UI tree with your app's primitive implementations.
 It ships no primitives, behaviour library or visual style. Widget code runs on the
 backend; the browser receives JSON trees and intent data. Use React and React DOM
-matching the package's peer requirements (`^19.3.1`).
+matching the package's peer requirements (`^19.0.0`).
 
 Your host supplies a catalog, implementations for every kind, the widget's manifest
 and app capabilities, and theme/design-system CSS. Read [the model](model.md) for

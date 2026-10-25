@@ -175,7 +175,7 @@ This plan implements the remainder of roadmap Phase 6 (the first release), under
     - Deviations: the consumer project also installs `@types/node` and uses `lib: [ESNext, DOM, DOM.Iterable]`, because `@types/react`'s Playwright declarations need `Buffer` and `Symbol.asyncDispose` even with `skipLibCheck: false`; the gate installs nothing else. `tsconfig.json` now includes `scripts` so `bun run typecheck` covers the gate and the build script (both were previously unchecked); `tsconfig.build.json` still compiles `src` only, so nothing new reaches `dist`. Fixtures reference the repository's proof catalog and capabilities (copied into the archive's temp dir) instead of duplicating 100 KB of JSON.
     - `package.json` gains `release:gate`. Both backlog entries are closed with pointers here. `bun run check` passes below; the gate is not part of it because it installs from the registry cache and takes seconds to minutes.
 
-- [ ] Task 3: Prove and widen the peer-dependency floors
+- [x] Task 3: Prove and widen the peer-dependency floors
   - Acceptance Criteria:
     - Functional:
       - Each peer range starts at the oldest version that passes its suites:
@@ -208,6 +208,12 @@ This plan implements the remainder of roadmap Phase 6 (the first release), under
       - `scripts/release/peer-floors.ts` (new), `package.json`, `docs/spec.md` §13.
   - Test Cases to Write:
     - The floor run is the test. The Notes record each floor tried and the first passing version.
+  - Notes (executed 2026-10-25):
+    - Floors proved by `scripts/release/peer-floors.ts` and now declared in `package.json`: `react`/`react-dom` `^19.0.0` (19.0.0 passes 69 tests across the nine renderer, preview and conformance-react suites; React 19.0 is also the release that added `onCaughtError`/`onUncaughtError` to `hydrateRoot`), `playwright` `^1.49.0` (1.49.0 passes all 17 capture tests in `mcp-capture` and `preview-capture`; 1.49 added `locator.ariaSnapshot()`, which `src/cli/capture.ts` writes the `.aria.yml` with), `@modelcontextprotocol/server` `^2.0.0` (2.0.0, the first stable 2.x, passes `cli-mcp`, `mcp-guide` and `mcp-agent-loop`; `.` and `./stdio` export `McpServer`, `fromJsonSchema` and `StdioServerTransport` already there, 2.4 only adds `./ext/skills`). Each floor is the oldest version tried; the current dev versions stay at 19.3.1 / 1.64.1 / 2.4.0, so only `peerDependencies` and the lockfile's peer block moved.
+    - The script copies the checkout (source, proof, docs, scripts, schemas, bench and the config files) into a `mkdtemp`, runs `bun install --frozen-lockfile`, then per floor restores every peer to its shipped range, installs the one floor package, and runs that floor's suites with `--conditions liveframe:source`. Failure is the child's non-zero exit, printed with the run that failed. Full run: 61 s react, 57 s playwright, 9 s server — about 2 min 10 s, no budget set.
+    - Browsers are a prerequisite, not script work: capture waits out a 30 s page timeout per cell when no browser is installed, which looks like a hang. Before the playwright floor the script launches and closes a headless browser once and, if that fails, stops with the install command. Worth knowing: Playwright 1.49's own installer left `chromium_headless_shell-1148` holding only `icudtl.dat` on this machine (also when run under Node), while `unzip` of the same official zip produced a working build — so the local run needed `bunx playwright install chromium chromium-headless-shell` plus that manual unzip, and `bunx playwright install` deletes the shell again when it decides the build is missing. CI installs both browsers in its setup step (Task 8).
+    - Negative check: running the react floor at 18.2.0 failed 6 of 63 tests and exited 1, so a floor under the stated range is not silently accepted.
+    - Capture suites are load-sensitive (the preview render limit is 100 ms); the numbers above were measured at load < 8, and earlier runs at load 20–50 timed out. `docs/spec.md` §13 gained the ranges bullet and `docs/renderer.md` now names `^19.0.0`; readiness B5 is closed in `plans/evidence/012-release-readiness-review.md`.
 
 - [ ] Task 4: Write the outsider docs
   - Acceptance Criteria:

@@ -145,10 +145,10 @@
     "typescript": "^7.0.2"
   },
   "peerDependencies": {
-    "playwright": "^1.64.1",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1",
-    "@modelcontextprotocol/server": "2.4.0"
+    "@modelcontextprotocol/server": "^2.0.0",
+    "playwright": "^1.49.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "peerDependenciesMeta": {
     "playwright": {
