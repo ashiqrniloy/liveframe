@@ -172,6 +172,33 @@ test("capture_errors_carry_their_kind", async () => {
   expect(sandbox).not.toBeInstanceOf(CaptureError);
 }, 120000);
 
+test("capture_without_playwright_reports_install_hint", async () => {
+  const dir = await temp();
+  try {
+    // The preload blocks both Playwright specifiers; without it the installed peer would load and
+    // report an unreachable page instead of the install hint, so this fails if the block goes away.
+    const run = Bun.spawnSync(
+      [
+        "bun",
+        "--preload",
+        "./src/__tests__/fixtures/no-playwright.ts",
+        "src/cli/liveframe.ts",
+        "preview",
+        "capture",
+        "http://127.0.0.1:1/",
+        "--out",
+        join(dir, "cells"),
+      ],
+      { stderr: "pipe" },
+    );
+    expect(run.exitCode).toBe(1);
+    expect(run.stderr.toString()).toContain("bunx playwright install chromium");
+    expect(run.stderr.toString()).not.toContain("Cannot open");
+  } finally {
+    await rm(dir, { recursive: true });
+  }
+});
+
 test("gen_runs_without_playwright", async () => {
   const dir = await temp();
   try {

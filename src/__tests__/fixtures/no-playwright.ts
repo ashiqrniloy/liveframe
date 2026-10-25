@@ -1,11 +1,8 @@
-import { plugin } from "bun";
+import { mock } from "bun:test";
 
-// Makes every `playwright` import fail, as on an install without the optional peer.
-plugin({
-  name: "no-playwright",
-  setup(build) {
-    build.onResolve({ filter: /^playwright(-core)?$/ }, () => {
-      throw new Error("playwright is not installed");
-    });
-  },
-});
+// Makes every Playwright import fail, as on an install without the optional peer.
+// A preload `plugin()` cannot see dynamic imports of bare specifiers (Bun 1.4.4); `mock.module` can.
+for (const specifier of ["playwright", "playwright-core"])
+  mock.module(specifier, () => {
+    throw new Error(`${specifier} is not installed`);
+  });

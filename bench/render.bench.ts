@@ -3,15 +3,31 @@ import { cpus, loadavg, platform, release } from "node:os";
 import { countNodes, renderWorkloads } from "../src/__tests__/fixtures/render-workloads.ts";
 
 const runs = 1_000;
+/** Independent samples per workload; the verdict is their median, not one noisy batch. */
+const BATCHES = 5;
+/** A batch runs at least this long, so a 5-node tree is not dominated by timer and loop overhead. */
+const BATCH_MS = 50;
+/** One batch's mean milliseconds per run, grown until it covers `BATCH_MS`. */
+function batch(run: (i: number) => void): number {
+  let iterations = 16;
+  for (;;) {
+    const start = performance.now();
+    for (let i = 0; i < iterations; i++) run(i);
+    const elapsed = performance.now() - start;
+    if (elapsed >= BATCH_MS || iterations >= 10_000_000) return elapsed / iterations;
+    iterations *= 2;
+  }
+}
 function measure(run: (i: number) => void): number {
   for (let i = 0; i < 200; i++) run(i);
-  const start = performance.now();
-  for (let i = 0; i < runs; i++) run(i);
-  return (performance.now() - start) / runs;
+  const samples = Array.from({ length: BATCHES }, () => batch(run)).sort((a, b) => a - b);
+  return samples[Math.floor(BATCHES / 2)] ?? 0;
 }
 
 console.log(`Bun ${Bun.version}; ${platform()} ${release()}; ${cpus()[0]?.model}; ${cpus().length} logical CPUs`);
-console.log(`Load average (1/5/15 min): ${loadavg().join(", ")}; 200 warm-ups, 1,000 runs per implementation`);
+console.log(
+  `Load average (1/5/15 min): ${loadavg().join(", ")}; 200 warm-ups, then the median of ${BATCHES} batches of at least ${BATCH_MS} ms`,
+);
 console.log("Compile/load and first data resolution excluded; selection/state changes included.");
 console.log(
   "Split: standalone validateTree on emitted trees; render minus validation estimates other work, not an in-render profile.",

@@ -638,7 +638,7 @@ This plan implements roadmap Phase 6's hardening and freeze half, under the deci
     - Docs: `docs/sdk.md` drops the limitation paragraph and says composed props are walked at every depth before the component runs, and that primitive props keep `invalid-prop` for nested non-JSON values; spec §7.1's non-JSON prop list gains one sentence that props are JSON at every depth. `plans/backlog.md` closes the P2 entry with a Done line.
     - Validation: `bun test src/__tests__/sdk-render.test.tsx` 10/10; `tsc --noEmit` clean; `bun run lint` 0 errors; `bun run bench` passes every gate in the run recorded above.
 
-- [ ] Task 13: Prove the Playwright-free claim and stabilise the render bench verdict
+- [x] Task 13: Prove the Playwright-free claim and stabilise the render bench verdict
   - Acceptance Criteria:
     - Functional:
       - `src/__tests__/fixtures/no-playwright.ts` blocks `playwright` with `mock.module`, like `no-mcp-sdk.ts`.
@@ -670,6 +670,16 @@ This plan implements roadmap Phase 6's hardening and freeze half, under the deci
   - Test Cases to Write:
     - `capture_without_playwright_reports_install_hint`.
     - The bench is not a unit test. Its Notes record three runs.
+
+  - Notes (executed 2026-10-26):
+    - Preload (D6): `src/__tests__/fixtures/no-playwright.ts` now mirrors `no-mcp-sdk.ts` — `mock.module("playwright")` and `mock.module("playwright-core")` throw at import time. The old `plugin()`/`onResolve` version never fired for Bun's dynamic `import("playwright")`, so the block was decorative.
+    - Proof the block is real (the criterion "it fails if the preload is removed"): `capture_without_playwright_reports_install_hint` spawns `bun --preload …/no-playwright.ts src/cli/liveframe.ts preview capture http://127.0.0.1:1/ --out <tmp>` and expects exit 1 with the install hint and no page error. Removing `--preload` was checked by hand: the run then loads the installed peer and prints `Cannot open http://127.0.0.1:1/: … net::ERR_UNSAFE_PORT`, so the test fails without the block. `gen_runs_without_playwright` is unchanged and now proves what it claims.
+    - Bench (D7): only `bench/render.bench.ts` changed. `measure()` used one batch of 1,000 runs after 200 warm-ups; for `core-queue.small` (5 nodes, ~0.010 ms per render) that was ~10 ms of samples, which timer and loop overhead dominate. It now takes the **median of 5 independent batches**, each grown from 16 iterations in doubling steps until it covers **≥ 50 ms** of samples, so every batch is real work, and reports that median. Workload code, node-count assertions, thresholds and gates are untouched; the header line states the new sampling.
+    - Why not a threshold change: the backlog P1 entry forbids relaxing the 3 µs/node or 2 ms gates without the owner. This is variance reduction only, and nothing on the measured path moved.
+    - Three full `bun run bench` runs (validator + render + css, exit 0), Bun 1.4.4, `linux 7.3.0-4-cachyos`, AMD Ryzen 9 PRO 7940HS / 16 logical CPUs, load 2.0–2.9 (1 min) and 2.78–2.85 (15 min), with a 3.15 (1 min) spike at the start of run 2. Render, agent-home 679 nodes: 1.2735 / 1.2592 / 1.2376 ms = 1.875 / 1.854 / 1.823 µs/node. `core-queue.small`: **2.075 / 2.180 / 2.023 µs/node** — the workload that measured 3.006–3.209 µs/node with the single 1,000-run batch is now stable and 0.8–1.0 µs/node under the gate. medium/large/full per run: 0.8465/0.9185/1.0787, 0.7958/0.8558/0.9853, 0.8187/0.8872/0.9945 ms (1.92–2.28 µs/node). git-status 1.77/1.71/1.71, rack-module 1.69/1.68/1.66, synthetic-queue 1.71/1.70/1.68 µs/node. Every workload ≤ 3 µs/node and every required tree ≤ 2 ms in all three runs.
+    - Standalone validator, same three runs: agent-home 1.245 / 1.309 / 1.277 µs/node, props check 11.4–16.0× over equal-work `checkValue`; validator exit 0 each time, so the P1 entry's 1.5 µs/node reservation also held while the machine was calm.
+    - Backlog: P4 "Make the no-playwright test preload effective" closed with a Done line; the P1 "Phase 1 performance gate" entry gained a Measured (2026-10-26) line with machine, Bun, load and all three runs, and its Status line now records that the stabilised sampling — not a threshold change — is what closed the `core-queue.small` wobble.
+    - Spec/docs sync: none required — no contract, API or documented number changed. `bun run lint` 0 errors, `tsc --noEmit` clean.
 
 - [ ] Task 14: Gate cognitive complexity and merge duplicate helpers
   - Acceptance Criteria:
