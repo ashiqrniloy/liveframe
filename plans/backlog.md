@@ -249,6 +249,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Status: owner-approved backlog 2026-10-25.
 - What: smoke-test registrations in Vitest/Jest using Bun as tool runner and run adopter-relevant Firefox/WebKit coverage. Keep Bun/Chromium as the current evidence limit until executed.
 - Why: runner-independent signatures and Chromium execution do not establish compatibility with other runners or browsers.
+- Note (2026-10-25, plan 012 Task 15 F4): both peer-blocking preloads (`src/__tests__/fixtures/no-playwright.ts`, `no-mcp-sdk.ts`) use Bun's `mock.module`, so moving the suite to another runner silently makes them decorative again — the exact defect plan 012 Task 13 fixed (D6). Whatever registration is verified must also re-prove that the two blocked-peer tests fail without their preloads.
 
 ## Prove the demo conforms through the installed package
 
@@ -309,6 +310,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Section: Phase 8 follow-up (spec §13, `liveframe mcp`)
 - Priority: P4
 - Status: closed 2026-10-26 in plan 012 Task 10 (`decision-logs/2026-10-25-0231-release-0-1-0-hardening-and-api-freeze.md`, R13): chose the looser argument schema — `pack_draft` and `render_scenarios` validate in the handler with `validateManifestShape`, `validateScenario` and `validateJson`, so argument errors are `LiveframeError[]` at document-root pointers; the published shapes stay in `$defs` as documentation.
+- Status (residual, 2026-10-25, plan 012 Task 15 F1): one path still fails before the handler — a missing required key or a non-object argument is rejected by the MCP layer, so that call alone returns the SDK's bare string. Spec §13 states the exception. Drop `required` from the two top-level schemas and validate the envelope in the handler (it already checks `/files`, `/entry`, `/scenarios`), or keep the exception documented. The cost of the first option is losing required-key hints in `tools/list`; a `description` per property can carry them.
 - Source: plans/011-Phase-8-Authoring-MCP-Server.md Task 9 (F2), `plans/evidence/011-impact-analysis.md`
 - What: argument-schema rejection happens in the MCP layer (`fromJsonSchema`) before the tool's handler, so it returns a bare string — `Input validation error: Invalid arguments for tool pack_draft: data/manifest/id must match pattern "…"` — with `data/…` pointers and no `kind`, `expected` or `nodeId`, while every failure past the schema is a `LiveframeError[]` with JSON pointers from the document root. Decide either to have `pack_draft` and `render_scenarios` accept a looser argument schema and validate inside the handler with `validateManifest`/`validateWidgetPackageShape`, returning the same typed errors, or to state the two shapes as the contract. `docs/mcp.md` already documents both; the cost of the first option is losing per-argument schema hints in `tools/list`.
 - Why: an agent that reads structured errors everywhere has to special-case one path, and the `data/` pointer prefix does not address the manifest the agent wrote.
@@ -337,3 +339,35 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Source: plans/011-Phase-8-Authoring-MCP-Server.md Task 4, Task 9 (F8)
 - What: `render_scenarios({ scenario })` returns the whole tree as one text block — 115,851 bytes for the proof's 679-node agent-home tree in 25.6 ms. Nothing bounds a larger widget, so a tree could exceed a client's per-result limit and truncate mid-JSON, which is worse than a typed error. Measure the practical client limit, then either return a summary plus a per-node handle, or refuse past a byte budget with a typed error naming the scenario and the size.
 - Why: every other agent-facing result is bounded (12 cells, sixteen kinds, one vocabulary), and a truncated tree gives an agent no actionable error.
+
+## Gate the lint warnings, not only complexity
+
+- Section: tooling (`biome.json`, `bun run lint`)
+- Priority: P3
+- Source: plans/evidence/012-impact-analysis.md F2
+- What: `bun run lint` exits 0 with 40 warnings (`noNonNullAssertion` 31, `noUnusedVariables` 4, `noUnusedImports` 3, `noTemplateCurlyInString` 1, `useDomNodeTextContent` 1) plus 3 infos; only `complexity/noExcessiveCognitiveComplexity` is an error. Raise the rules the codebase can meet to `error` (start with the unused-symbol pair, which is always safe), fix the sites, and either fix or explicitly `off` the non-null assertions in test fixtures — or add `--error-on-warnings` once the count is zero. Do not enable a rule that needs a mass suppression.
+- Why: a gate that only one rule enforces leaves the rest to drift; the count has been stable at 40 for months because nothing checks it.
+
+## Return the bound preview URL from the authoring MCP server
+
+- Section: Phase 8 follow-up (spec §13, `liveframe mcp`)
+- Priority: P4
+- Source: plans/evidence/012-impact-analysis.md F5
+- What: `authoring.url()` resolves the host's `preview()` binding but no tool result carries it, so neither the agent nor the human reviewing a capture can open the page the captures came from. Return it once — from `pack_draft` (after the first successful pack, when the binding exists) or from a small read-only `preview_url` tool — and document that the URL is the app's own page, not a public one.
+- Why: the agent loop proves a page exists and is read-only; without the URL a reviewer cannot look at what the agent iterated on, which is the point of a bound preview.
+
+## Cap or report the in-process runner's module memory
+
+- Section: Preview runners (spec §7.5)
+- Priority: P4
+- Source: plans/evidence/012-impact-analysis.md F6
+- What: `inProcessRunner()` cannot unload a module, so its memory grows with every distinct package it renders; spec §7.5 and `docs/packages.md` say so, and nothing measures or bounds it. Decide between a recycle mechanism (in-process there is no worker to replace, so real recycling means a fresh context — a different design) and an observable count (a `stats()` or a logged warning past a threshold), so a long-lived server rendering many drafts does not grow silently.
+- Why: every other cache in the reference runners is bounded (64 validators, `maxPackages` in the worker); the in-process module map is the one unbounded structure, documented but unmeasured.
+
+## Record the worker host re-validation cost in a budget
+
+- Section: Preview runners (spec §7.5)
+- Priority: P4
+- Source: plans/evidence/012-impact-analysis.md F7, plan 012 Task 3 notes
+- What: re-validating every worker result on the host costs ~2 ms/render against 1.8 ms of render (4.19 ms overhead, plan 012 Task 3), above that task's 1 ms target. The cost is the price of law 2 for code outside the host's realm, and it stays inside the 100 ms default timeout. Either state the overhead as the runner's budget in `docs/packages.md`/spec §7.5, or cache the validator per `(catalog, capabilities, manifest)` so repeat renders of one package stop recompiling — the validator cache exists but is keyed for the in-process path.
+- Why: a security control with an unrecorded price gets removed the first time someone measures it, and the same package re-rendered in a loop currently compiles its validator on every call.

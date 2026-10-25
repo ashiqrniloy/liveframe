@@ -729,7 +729,38 @@ This plan implements roadmap Phase 6's hardening and freeze half, under the deci
     - Performance, before → after. Before (Task 13's three stabilised runs, same machine, Bun 1.4.4, load 2.0–2.9): agent-home render 1.875 / 1.854 / 1.823 µs/node (1.2735 / 1.2592 / 1.2376 ms) and its standalone validation 1.423 µs/node; `core-queue.small` 2.075 / 2.180 / 2.023. After (two full `bun run bench` runs, load 3.1–3.2 rising to 3.8): agent-home render 1.774 / 1.799 µs/node (1.2047 / 1.2214 ms), validation 1.407 / 1.427 µs/node, `core-queue.small` 2.100 / 2.194; medium/large/full 1.935/1.965/2.212 and 1.899/1.949/2.203 µs/node. Every gate passes in both runs (≤ 3 µs/node, agent-home and medium…full ≤ 2 ms), and the validator bench's compiled-vs-generic ratio moved 0.65–0.70 → 0.70–0.71, i.e. inside noise. No regression from the extra helper calls on the measured paths.
     - Validation: `bun run check` = 632 pass, 0 fail, 113068 expect() across 87 files (263 s) — the same count as before this task, so no test was added, removed or edited. `tsc --noEmit` and `tsc -p proof --noEmit` clean, `bun run lint` 0 errors (the new rule included), `biome format --check` clean.
 
-- [ ] Task 15: Analyze architectural impact and dispose of every finding
+- [x] Task 14.1: Key the all-scenario dedup on `expected` (impact finding F3)
+  - Acceptance Criteria:
+    - Functional:
+      - `render_scenarios` reports two errors that share `kind`, `pointer` and `message` but differ in `expected` as two entries, each naming the scenarios that share it.
+      - Spec §13 and `docs/mcp.md` state the dedup key.
+      - Disposition of plan 012 impact finding F3, approved `execute` by the owner on 2026-10-25.
+    - Performance: no measurable change — the key gains one short string per error.
+    - Code Quality: the key is built in one place, `checkAll()`; no other dedup exists.
+    - Security: n/a — presentation only, no new data reaches an agent.
+  - Approach:
+    - Skills to Use:
+      - `surgical-patch`.
+    - Library Documentation to Check Before Implementation:
+      - none.
+    - Documentation Reviewed:
+      - `plans/evidence/012-impact-analysis.md` (F3); `docs/spec.md:727`; `docs/mcp.md` *render_scenarios* example.
+    - Options Considered:
+      - Deduplicate on the full error object — rejected: `expected` is the only other field, so naming it is the same result with a key that survives a future field.
+    - Chosen Approach:
+      - Add `expected` (or `""`) to the existing key.
+    - API Notes and Examples:
+      - n/a.
+    - Files to Create/Edit:
+      - `src/cli/mcp.ts`, `src/__tests__/cli-mcp.test.ts`, `docs/spec.md`, `docs/mcp.md`.
+  - Test Cases to Write:
+    - `errors_differing_only_in_expected_are_kept` — three synthetic results, two distinct `expected` texts, asserting two entries with scenarios `["a","c"]` and `["b"]`. Verified to fail with the key component removed.
+  - Notes (executed 2026-10-25):
+    - The key is now `kind` + `pointer` + `message` + `expected` (`src/cli/mcp.ts`, `checkAll`), so two errors that differed only in the repair hint are both reported. `checkAll` is exported for the unit test; `src/cli/` is not a package subpath, so nothing public changed (`exports.test.ts` untouched).
+    - `docs/spec.md` §13 now says "distinct by `kind`, `pointer`, `message` and `expected`", and `docs/mcp.md`'s all-scenarios example says the same; the guide fixture embeds only the config example, so `mcp-guide.test.ts` needed no change.
+    - The new test fails without the extra key component (checked by removing it: 1 fail) and passes with it. `bun test src/__tests__/cli-mcp.test.ts` 27 pass; the whole-plan `bun run check` is 633 pass, 0 fail.
+
+- [x] Task 15: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional:
       - `plans/evidence/012-impact-analysis.md` sweeps all twelve impact areas against what shipped, recording each one or `None — <reason>`.
@@ -757,6 +788,15 @@ This plan implements roadmap Phase 6's hardening and freeze half, under the deci
   - Test Cases to Write:
     - None.
 
+  - Notes (executed 2026-10-25):
+    - Sweep: `plans/evidence/012-impact-analysis.md` reviews all twelve areas against what shipped (Tasks 1–14, commits `cee1f91`…`1a78403`) and records eleven of them as shipped with their tests; area 5 (styling) and area 12 (reference hosts) are `None — <reason>`.
+    - Readiness: the evidence file carries a status line with the holding test for every id this plan owns — S1–S4, D1–D8, A1–A6, A8, T1, T2 (partly: the installed archive is 013 T2), C1–C3, P1–P3. S5, A7, T3, P4, P5, P6 are explicitly not this plan's, each with the id or plan that holds it, so plan 013 can copy the table into the pre-release review without re-deriving anything.
+    - Findings: seven, presented as one table with recommended dispositions; the owner answered "Approve as recommended" on 2026-10-25 and the dispositions are recorded in the evidence file. One `execute` (F3) became Task 14.1 above and shipped in the same commit; five `backlog` items went to `plans/backlog.md` — two as new entries (P3 lint warnings, P4 in-process memory), one as a new entry after Task 14.1 (P4 preview URL), one as a new entry for the worker overhead (P4), and F1 as a residual Status line on the existing "Give the MCP tools one error shape" entry, F4 as a note on "Verify conformance registrations in other runners and browsers". No finding was dropped or deferred silently.
+    - Readiness probes re-run from the review's appendix, copied outside the repo (`timeout 300s bun test /tmp/probe-012.test.ts`): 6 pass, 0.36 s. P1's forged result is `render-failed` with `expected: "one result for the pending render id"`; P2 hijacked 0/20; P3's ReDoS manifest is `pack ok=false` in 1/0/0/0 ms; P4's top-level await is `pack ok: false`; P5 stored a 128-code-point id; P6 loaded `good` with a malformed sibling present. P1, P2, P5 and P6 no longer reproduce; P3 and P4 fail fast.
+    - Whole-plan verification: `bun run check` 632 pass, 0 fail, 113068 expect() across 87 files in 258.8 s at load 3.9 (before Task 14.1's one new test); targeted runner/store/manifest/pack/MCP/render/schema/export files 132 pass in 10.7 s; `proof/tests/mcp-*` and `preview-*` 28 pass, 1813 expect in 96.2 s; three full `bun run bench` runs pass every gate (agent-home render 1.774 / 1.799 / 1.877 µs/node, `core-queue.small` 2.100 / 2.194 / 2.213 against 3); `graft build` and `git diff --check` clean. After Task 14.1: `bun run check` 633 pass, 0 fail.
+    - Honest exception: Task 3's worker host re-validation costs 4.19 ms/render of overhead against a 1 ms target (recorded in the evidence file's performance table and handed to the backlog as F7), and S1's residual (a hostile widget can answer another render with a tree that is valid for that render's manifest) remains, as spec §7.5 states, for an app's isolated runner (§14). Neither is papered over.
+    - No dependency, public subpath or normative spec meaning changed by this task; Task 14.1 changed one tool result's dedup key and two doc sentences.
+
 ## Verification (whole plan)
 
 - `timeout 900s bun run check`
@@ -768,8 +808,20 @@ This plan implements roadmap Phase 6's hardening and freeze half, under the deci
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- **The worker path's host re-validation costs more than the plan budgeted.** Re-validating every worker result is what makes law 2 hold for code outside the host's realm, and it costs 4.19 ms/render of overhead against the task's 1 ms target (T3). Kept, because the alternative — trusting a message a widget can post — is the defect S1 named. Handed to the backlog (F7) rather than optimised inside a hardening plan.
+- **A hostile widget still shares a worker with other packages.** S1's result correlation stops forged ids, stray answers and trees that fail the host validator, but a widget can answer another render with a tree that *is* valid for that render's manifest. Stated in spec §7.5 and routed to the app's isolated runner (§14): a worker bounds time and crashes, not what code can reach.
+- **One MCP error path stays outside the typed shape.** A missing required key or a non-object argument is rejected by the SDK before any handler, so that call returns a bare string. Loosening the two top-level schemas costs the required-key hints in `tools/list`; the owner approved leaving it documented and backlogged (F1).
+- **The in-process runner's memory is documented, not bounded.** Modules cannot be unloaded, so `inProcessRunner()` grows with the distinct packages it renders (T4 documents this in spec §7.5 and `docs/packages.md`); a cap needs a different design, so it went to the backlog (F6).
+- **The lint gate covers one rule.** `biome.json` makes complexity an error but leaves 40 pre-existing warnings passing, so the rest of the rule set can still drift (F2, backlog P3).
+- **A pixel threshold still proves layout, not geometry.** The agent loop's layout fix is asserted by a captured height at one width (011 F5); this plan did not change it.
+- **No installed-archive, other-runner or other-browser proof.** T2's remaining half (installed archive) is 013 T2; runner/browser registrations stay in the backlog (P3). The two peer-blocking preloads are Bun-only, noted there (F4).
 
 ## Further Actions
 
-- To be filled after task completion with improvements, rationale, and priority.
+1. **P3 — gate the lint warnings, not only complexity.** Raise the unused-symbol pair first, then decide on the 31 non-null assertions; add `--error-on-warnings` once the count is zero (F2).
+2. **P4 — return the bound preview URL.** No tool carries `authoring.url()`, so a reviewer cannot open the page an agent iterated on (F5).
+3. **P4 — cap or report the in-process runner's module memory.** It is the only unbounded cache in the reference runners (F6).
+4. **P4 — record the worker re-validation cost in a budget** and consider caching the validator per `(catalog, capabilities, manifest)` so repeat renders stop recompiling it (F7).
+5. **P4 — finish the one-error-shape contract** by validating the MCP envelope in the handler, or keep the documented exception (F1).
+6. **P3 — a suite-runner change must re-prove both blocked-peer tests** (`no-playwright.ts`, `no-mcp-sdk.ts` are Bun's `mock.module`) (F4).
+7. **Carried into plan 013:** installed-archive conformance (T2), the demo host's initially-open dialog (D8b), the Phase 6 Done gate (P5), the repository-publication secret and reference scan (P6), and the pre-release review that copies the readiness table from this plan's evidence file.
