@@ -206,14 +206,20 @@ inputs for each render. Loading also does not execute the package.
 `capabilities`, `surfaceId` and `revision`, with optional `limits` and `timeoutMs`.
 
 Reference runners compile and cache validators, then use the SDK's validated
-render path. They **do not verify packages**: call `verifyPackage` on received
-packages or use `loadPlacement` before running one. In-process modules are cached
-by hash, and validators by catalog identity, capabilities identity and hash.
-Replace configuration objects when their contracts change.
+render path. Before loading anything they check that `pkg.hash` matches the
+package's content, once per package object; a mismatch is `hash-mismatch` and
+nothing is loaded. They do not validate the documents themselves, so still call
+`verifyPackage` on received packages or use `loadPlacement` before running one.
+Modules are cached by hash, and validators per catalog identity, capabilities
+identity and hash, keeping the 64 most recently used. Replace configuration
+objects when their contracts change.
 
 - `inProcessRunner()` uses a default 100 ms elapsed-time check. It reports
   `limit-exceeded` after slow code returns; it cannot interrupt an infinite loop.
-- `workerRunner({ timeoutMs? })` serializes requests in one lazy worker, with a
+  Loaded modules cannot be unloaded, so its memory grows with every distinct
+  package it renders; a host with unbounded drafts should use the worker runner.
+- `workerRunner({ timeoutMs?, maxPackages? })` serializes requests in one lazy
+  worker, with a
   default 100 ms deadline including startup. Per-render `timeoutMs` overrides
   that default. Timeout terminates the worker and returns `limit-exceeded`;
   crashes return `render-failed`. The next request starts a fresh worker.
@@ -223,10 +229,11 @@ Replace configuration objects when their contracts change.
   request's manifest, and only that request's id is accepted: a result with no
   pending render, the wrong id or a second answer for one id terminates the
   worker and fails the pending render with `render-failed`. A tree the host
-  rejects returns the host validator's errors and starts a fresh worker. One
-  worker still serves every package, so a hostile widget can answer a later
-  render with a tree valid for that render's manifest: run hostile drafts in
-  your own isolated runner.
+  rejects returns the host validator's errors and starts a fresh worker. It
+  restarts the worker once `maxPackages` distinct hashes have been loaded (64 by
+  default), because loaded modules cannot be unloaded. One worker still serves
+  every package, so a hostile widget can answer a later render with a tree valid
+  for that render's manifest: run hostile drafts in your own isolated runner.
 
 `limits` supports the SDK's node (5,000), depth (64) and UTF-8 tree byte
 (1,048,576) defaults. Bad modules and non-function default exports are

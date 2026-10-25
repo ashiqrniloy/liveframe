@@ -306,3 +306,45 @@ export default () => {
     runner.close();
   }
 });
+
+test("worker_refuses_forged_hash_before_loading", async () => {
+  const runner = workerRunner({ timeoutMs: 2000 });
+  const loaded = withCode(simpleCode);
+  try {
+    expect((await runner.render(loaded, inputs, options)).ok).toBe(true);
+    const forged = { ...loaded, code: "throw new Error('the forged module was loaded');" };
+    expect(await runner.render(forged, inputs, options)).toMatchObject({
+      ok: false,
+      errors: [{ kind: "hash-mismatch", pointer: "/hash" }],
+    });
+    expect((await runner.render(loaded, inputs, options)).ok).toBe(true);
+  } finally {
+    runner.close();
+  }
+});
+
+test("worker_recycles_after_max_packages", async () => {
+  const runner = workerRunner({ timeoutMs: 2000, maxPackages: 2 });
+  const counted = (marker: number) =>
+    withCode(`import * as __lf_sdk0 from "@arnilo/liveframe/sdk";
+let renders = 0;
+export default () => __lf_sdk0.jsx(__lf_sdk0.primitive("text"), { text: String(++renders) });\n// ${marker}`);
+  const text = async (pkg: WidgetPackage): Promise<unknown> => {
+    const result = await runner.render(pkg, inputs, options);
+    if (!result.ok) throw new Error(JSON.stringify(result.errors));
+    return result.value.root.props.text;
+  };
+  try {
+    const [first, second, third] = [counted(0), counted(1), counted(2)];
+    if (!first || !second || !third) throw new Error("Missing package");
+    expect(await text(first)).toBe("1");
+    expect(await text(first)).toBe("2");
+    expect(await text(second)).toBe("1");
+    expect(await text(first)).toBe("3");
+    // The third distinct hash restarts the worker, so loaded modules start over.
+    expect(await text(third)).toBe("1");
+    expect(await text(first)).toBe("1");
+  } finally {
+    runner.close();
+  }
+});

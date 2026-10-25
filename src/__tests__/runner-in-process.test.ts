@@ -6,6 +6,7 @@ import { render } from "@arnilo/liveframe/sdk";
 import { compileValidator, type Result, validateCatalog, validateCapabilities } from "../index.ts";
 import { pack, type WidgetPackage } from "../pack/index.ts";
 import { packageHash } from "../pack/hash.ts";
+import { cachedValidatorCount } from "../preview/cache.ts";
 import { inProcessRunner, type Runner } from "../preview/index.ts";
 import { loadModule } from "../preview/load.ts";
 import catalogDoc from "./fixtures/proof/catalog.json" with { type: "json" };
@@ -94,9 +95,30 @@ test("in_process_preserves_sdk_errors_and_limits", async () => {
   expect(thrown).toMatchObject({ ok: false, errors: [{ kind: "render-failed" }] });
 });
 
-test("in_process_leaves_package_verification_to_host", async () => {
-  const pkg = { ...withCode(simpleCode), hash: `sha256-${"0".repeat(64)}` };
-  expect((await inProcessRunner().render(pkg, inputs, options)).ok).toBe(true);
+test("forged_hash_cannot_reuse_a_loaded_module", async () => {
+  const runner = inProcessRunner();
+  const loaded = withCode(simpleCode);
+  expect((await runner.render(loaded, inputs, options)).ok).toBe(true);
+  // Under the loaded package's hash: if the hash were trusted, this code would never run.
+  const forged = { ...loaded, code: "throw new Error('the forged module was loaded');" };
+  expect(await runner.render(forged, inputs, options)).toMatchObject({
+    ok: false,
+    errors: [{ kind: "hash-mismatch", pointer: "/hash" }],
+  });
+  const after = await runner.render(loaded, inputs, options);
+  expect(after).toMatchObject({ ok: true });
+  if (after.ok) expect(after.value.root.props.text).toBe("ok");
+});
+
+test("validator_cache_is_bounded", async () => {
+  const runner = inProcessRunner();
+  const current = { ...options, catalog: { ...catalog }, capabilities: { ...capabilities } };
+  expect(cachedValidatorCount(current.catalog, current.capabilities)).toBe(0);
+  for (let i = 0; i <= 64; i++) {
+    expect((await runner.render(withCode(`${simpleCode}\n// ${i}`), inputs, current)).ok).toBe(true);
+    expect(cachedValidatorCount(current.catalog, current.capabilities)).toBeLessThanOrEqual(64);
+  }
+  expect(cachedValidatorCount(current.catalog, current.capabilities)).toBe(64);
 });
 
 test("in_process_caches_validator_per_catalog_capabilities_and_hash", async () => {

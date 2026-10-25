@@ -1,7 +1,7 @@
 import type { LiveframeError, Result } from "../../errors.ts";
 import type { WidgetPackage } from "../../formats/package.ts";
 import type { UiTree } from "../../formats/tree.ts";
-import { compileValidator } from "../../validate/compile.ts";
+import { compiledValidator, verifyPackageHash } from "../cache.ts";
 import type { Runner, RunnerOptions } from "../runner.ts";
 import type { WorkerMessage } from "./protocol.ts";
 
@@ -19,13 +19,18 @@ const reason = (error: unknown): string => (error instanceof Error ? error.messa
  * Requests run serially; timeoutMs defaults to 100 and render options override it.
  * Each render carries an id, and only that id's result is accepted. Every tree is
  * re-validated on the host, and a worker that answers out of turn or with a tree
- * the host rejects is terminated. One worker still serves every package, so
- * hostile code needs the app's own isolated runner.
+ * the host rejects is terminated. A package's hash is checked once per object
+ * before anything is loaded, and the worker restarts after maxPackages (64)
+ * distinct hashes, since loaded modules cannot be unloaded. One worker still
+ * serves every package, so hostile code needs the app's own isolated runner.
  * close() stops active work and returns render-failed for queued and future renders.
  */
-export function workerRunner(defaults: { timeoutMs?: number } = {}): Runner & { close(): void } {
+export function workerRunner(defaults: { timeoutMs?: number; maxPackages?: number } = {}): Runner & { close(): void } {
+  const maxPackages = defaults.maxPackages ?? 64;
   let worker: Worker | undefined;
   let configuration: Pick<RunnerOptions, "catalog" | "capabilities"> | undefined;
+  /** Distinct hashes loaded into the current worker; modules cannot be unloaded. */
+  let loaded = new Set<string>();
   let pending: Pending | undefined;
   let nextId = 1;
   let queue = Promise.resolve();
@@ -37,11 +42,15 @@ export function workerRunner(defaults: { timeoutMs?: number } = {}): Runner & { 
     active?.resolve(result);
   }
 
-  function stop(kind: LiveframeError["kind"], message: string, expected?: string): void {
-    const previous = worker;
+  function recycle(): void {
+    worker?.terminate();
     worker = undefined;
     configuration = undefined;
-    previous?.terminate();
+    loaded = new Set();
+  }
+
+  function stop(kind: LiveframeError["kind"], message: string, expected?: string): void {
+    recycle();
     settle({ ok: false, errors: [{ kind, pointer: "", message, ...(expected === undefined ? {} : { expected }) }] });
   }
 
@@ -52,6 +61,15 @@ export function workerRunner(defaults: { timeoutMs?: number } = {}): Runner & { 
           new Promise<Result<UiTree>>((resolve) => {
             if (closed) {
               resolve({ ok: false, errors: [{ kind: "render-failed", pointer: "", message: "Runner closed" }] });
+              return;
+            }
+            if (!verifyPackageHash(pkg)) {
+              resolve({
+                ok: false,
+                errors: [
+                  { kind: "hash-mismatch", pointer: "/hash", message: "Package content does not match its hash" },
+                ],
+              });
               return;
             }
             const id = nextId++;
@@ -66,7 +84,7 @@ export function workerRunner(defaults: { timeoutMs?: number } = {}): Runner & { 
               validate: (result) => {
                 if (!result.ok) return result;
                 try {
-                  const validator = compileValidator({ ...options, manifest: pkg.manifest });
+                  const validator = compiledValidator({ ...options, manifest: pkg.manifest }, pkg.hash);
                   return validator.validateTree(result.value, options.limits ? { limits: options.limits } : undefined);
                 } catch (error) {
                   return { ok: false, errors: [{ kind: "render-failed", pointer: "", message: reason(error) }] };
@@ -74,6 +92,8 @@ export function workerRunner(defaults: { timeoutMs?: number } = {}): Runner & { 
               },
             };
             try {
+              if (!loaded.has(pkg.hash) && loaded.size >= maxPackages) recycle();
+              loaded.add(pkg.hash);
               if (!worker) {
                 const current = new Worker(new URL("./entry.ts", import.meta.url));
                 worker = current;
@@ -93,11 +113,8 @@ export function workerRunner(defaults: { timeoutMs?: number } = {}): Runner & { 
                   if (
                     (data.result.ok && !validated.ok) ||
                     (!data.result.ok && data.result.errors.some((error) => error.kind === "render-failed"))
-                  ) {
-                    current.terminate();
-                    worker = undefined;
-                    configuration = undefined;
-                  }
+                  )
+                    recycle();
                   settle(validated);
                 };
                 current.onerror = (event) => {
