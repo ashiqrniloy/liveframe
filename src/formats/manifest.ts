@@ -80,6 +80,26 @@ export const manifestSchema = {
   },
 };
 
+const noPattern = "no pattern in widget schemas; use enum or a capability";
+
+/**
+ * params, state and context are matched against untrusted values on the app's
+ * thread, so a pattern would be an author's code running there (spec §5).
+ */
+function rejectPatterns(
+  schema: LanguageSchema,
+  pointer: string,
+  reject: (pointer: string, message: string, kind?: "invalid-document", expected?: string) => void,
+): void {
+  if (schema.type === "string") {
+    if (Object.hasOwn(schema, "pattern"))
+      reject(`${pointer}/pattern`, "Expected no pattern in widget schemas", "invalid-document", noPattern);
+  } else if (schema.type === "array") rejectPatterns(schema.items, `${pointer}/items`, reject);
+  else if (schema.type === "object")
+    for (const [key, child] of Object.entries(schema.properties))
+      rejectPatterns(child, at(at(pointer, "properties"), key), reject);
+}
+
 /** Context must contain an installed, validated catalog and capabilities. */
 export function validateManifest(
   doc: unknown,
@@ -89,7 +109,10 @@ export function validateManifest(
   if (!isRecord(doc)) c.reject("", "Expected a manifest object");
   else {
     c.collect(checkValue(fields, shell(doc, ["params", "state", "context", "initialState", "sources"])), "");
-    for (const key of ["params", "state", "context"] as const) c.schema(doc[key], `/${key}`);
+    for (const key of ["params", "state", "context"] as const) {
+      const schema = c.schema(doc[key], `/${key}`);
+      if (schema) rejectPatterns(schema, `/${key}`, c.reject);
+    }
     // Schema checks must pass before traversing author-supplied schemas.
     if (c.errors.length) return { ok: false, errors: c.errors };
     const value = doc as Manifest;
@@ -159,7 +182,10 @@ export function validateManifestShape(doc: unknown): Result<Manifest> {
   if (!isRecord(doc)) c.reject("", "Expected a manifest object");
   else {
     c.collect(checkValue(fields, shell(doc, ["params", "state", "context", "initialState", "sources"])), "");
-    for (const key of ["params", "state", "context"] as const) c.schema(doc[key], `/${key}`);
+    for (const key of ["params", "state", "context"] as const) {
+      const schema = c.schema(doc[key], `/${key}`);
+      if (schema) rejectPatterns(schema, `/${key}`, c.reject);
+    }
     if (Array.isArray(doc.actions)) {
       const seen = new Set<unknown>();
       for (const [i, name] of doc.actions.entries()) {

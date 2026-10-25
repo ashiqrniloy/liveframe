@@ -411,7 +411,17 @@ const manifest = {
 validateManifest(manifest, { catalog, capabilities });
 ```
 
-`params`, `state` and `context` are closed language object schemas. Source parameters accept literals checked against the capability's parameter schema, or `{ from: "params" | "state" | "context", path }`. An object with a `from` field is interpreted as a binding. Paths traverse object properties only, with at most eight identifier segments; array indices and expressions are rejected. A binding's schema type must equal the destination type. Bound values still need checking against the destination's bounds when the host resolves them. Every required source parameter must be supplied; extra parameters are errors.
+`params`, `state` and `context` are closed language object schemas without
+`pattern`. Those three are matched against values the app does not author (typed
+input, intent payloads, stored state) both on the host and in the browser, so a
+pattern there would be widget code running in the app's own threads: one
+catastrophic backtrack stalls them. A pattern anywhere inside them is
+`invalid-document` at the keyword (`/state/properties/evil/pattern`), reported
+before any value is matched by `validateManifest`, by the package's
+`validateManifestShape` and by the published `manifest.json` schema, which omits
+the keyword. Use `enum`, or an app capability that checks the value where it is
+trusted. Catalog definitions and capabilities keep `pattern`: they are the app's
+documents. Source parameters accept literals checked against the capability's parameter schema, or `{ from: "params" | "state" | "context", path }`. An object with a `from` field is interpreted as a binding. Paths traverse object properties only, with at most eight identifier segments; array indices and expressions are rejected. A binding's schema type must equal the destination type. Bound values still need checking against the destination's bounds when the host resolves them. Every required source parameter must be supplied; extra parameters are errors.
 
 Manifest ids start with a lowercase letter and contain letters, digits, dots or hyphens (128 characters maximum). Versions are nonempty bounded strings, with no enforced versioning scheme. Source keys follow capability naming rules; there are at most 512 sources and 512 distinct actions. The catalog id must match exactly. A manifest describes requests and never grants permission.
 

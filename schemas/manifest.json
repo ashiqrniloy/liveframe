@@ -148,11 +148,6 @@
               "type": "integer",
               "minimum": 0
             },
-            "pattern": {
-              "type": "string",
-              "maxLength": 256,
-              "format": "regex"
-            },
             "enum": {
               "type": "array",
               "items": {

@@ -51,8 +51,13 @@ export const capabilitiesSchema = {
 // Shared document checks preserve pointed, bounded failures for both formats.
 export function documentChecks() {
   const errors: LiveframeError[] = [];
-  function reject(pointer: string, message: string, kind: LiveframeError["kind"] = "invalid-document") {
-    if (errors.length < 20) errors.push({ kind, pointer, message });
+  function reject(
+    pointer: string,
+    message: string,
+    kind: LiveframeError["kind"] = "invalid-document",
+    expected?: string,
+  ) {
+    if (errors.length < 20) errors.push({ kind, pointer, message, ...(expected === undefined ? {} : { expected }) });
   }
   function collect(result: Result<unknown>, pointer: string) {
     if (!result.ok)
@@ -75,9 +80,12 @@ export function documentChecks() {
       visit(entry, path);
     }
   }
-  function schema(value: unknown, pointer: string, object = true) {
-    if (!isLanguageSchema(value) || (object && value.type !== "object"))
+  function schema(value: unknown, pointer: string, object = true): LanguageSchema | undefined {
+    if (!isLanguageSchema(value) || (object && value.type !== "object")) {
       reject(pointer, object ? "Expected a language object schema" : "Expected a language schema");
+      return undefined;
+    }
+    return value;
   }
   return { errors, reject, collect, map, schema };
 }

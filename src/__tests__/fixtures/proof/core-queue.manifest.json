@@ -45,17 +45,14 @@
         "properties": {
           "decisions": {
             "type": "string",
-            "pattern": "^.+$",
             "maxLength": 128
           },
           "tasks": {
             "type": "string",
-            "pattern": "^.+$",
             "maxLength": 128
           },
           "alerts": {
             "type": "string",
-            "pattern": "^.+$",
             "maxLength": 128
           }
         },

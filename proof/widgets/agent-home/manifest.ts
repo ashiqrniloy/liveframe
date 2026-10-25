@@ -50,6 +50,8 @@ export const initialQueueState: QueueState = {
 };
 export type QueueProps = WidgetProps<typeof queueParams, QueueState, QueueData, { size: string }>;
 const id = { type: "string", pattern: "^.+$", maxLength: 128 } as const;
+// Widget state schemas may not use pattern (spec §5); action args are the app's.
+const cursor = { type: "string", maxLength: 128 } as const;
 const object = (properties: Record<string, PropSchema>): PropSchema => ({
   type: "object",
   properties,
@@ -75,7 +77,7 @@ export const agentHomeOptions: RenderOptions = {
     properties: {
       filter: { type: "string", enum: ["all", "decisions", "tasks", "alerts"] },
       selected: { type: "string", maxLength: 128 },
-      cursors: object({ decisions: id, tasks: id, alerts: id }),
+      cursors: object({ decisions: cursor, tasks: cursor, alerts: cursor }),
       escalating: { type: "string", maxLength: 128 },
       reason: { type: "string", maxLength: 500 },
     },

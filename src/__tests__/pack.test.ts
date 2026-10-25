@@ -97,6 +97,27 @@ test("pack_rejections", () => {
     "catalog-mismatch",
     "/manifest/catalogId",
   );
+  // A pattern in widget state is rejected before any value is matched (spec §5).
+  rejects(
+    pack(
+      {
+        ...input,
+        manifest: {
+          ...manifest,
+          state: {
+            type: "object",
+            properties: { evil: { type: "string", maxLength: 100, pattern: "^(a+)+$" } },
+            required: ["evil"],
+            additionalProperties: false,
+          },
+          initialState: { evil: `${"a".repeat(40)}!` },
+        },
+      },
+      options,
+    ),
+    "invalid-document",
+    "/manifest/state/properties/evil/pattern",
+  );
   rejects(
     pack({ ...input, files: { "entry.ts": "export default (" }, entry: "entry.ts" }, options),
     "transpile-failed",

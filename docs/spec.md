@@ -116,6 +116,8 @@ A definition declares:
 
 **The schema language.** Props, params, state, context, action arguments and data-source shapes all use one closed subset of JSON Schema 2020-12, in the spirit of JSON Type Definition (RFC 8927). Its forms are `string` (with `maxLength` in code points, and optional `pattern` and string `enum`), `number` and `integer` (with optional `minimum` and `maximum`), `boolean`, `array` (with `maxItems`) and `object` (closed: `additionalProperties: false`, with `required`). Every string and array is bounded: `maxLength` and `maxItems` are required. Any schema may carry `description` and `deprecated`. A schema outside the language is rejected at install.
 
+**Widget schemas carry no `pattern`.** The three schemas a widget manifest declares — `params`, `state` and `context` — are matched against values the app does not author: what a user types, what an intent carries, and what storage holds. A pattern there is widget code running on the host thread and in the browser, where one catastrophic backtrack on a short value costs seconds. So a `pattern` anywhere inside them is `invalid-document` at the keyword (`/state/properties/evil/pattern`), rejected before any value is matched, by `validateManifest`, `validateManifestShape` and the published manifest schema alike. Authors use `enum`, or ask the app for an action or source that checks the value where it is trusted. Catalog definitions and capabilities are the app's own documents and keep `pattern`.
+
 **The catalog.** A catalog is one document:
 
 ```ts
@@ -338,7 +340,7 @@ A widget **manifest** declares:
 
 - `id` and `version`
 - the `catalogId` it targets
-- schemas for `params` (set where the widget is placed), `state` (changed by `setState`) and `context` (host-provided, for example `size`)
+- schemas for `params` (set where the widget is placed), `state` (changed by `setState`) and `context` (host-provided, for example `size`), none of which may use `pattern` (§5)
 - the **data sources** it reads: `sources: Record<dataKey, { source, params }>`. Each `source` names a declared capability, and each of its params is bound to a literal or to `{ from: "params" | "state" | "context", path }`, checked against the source's params schema. `data[dataKey]` holds the source's result
 - the **actions** it may invoke, each a declared capability
 - the **initial `state`**, valid against its schema, used for a new placement and when a stored state no longer fits (§7.4)

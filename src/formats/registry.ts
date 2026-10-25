@@ -33,16 +33,16 @@ const objectSchema = form(
   ["properties", "required", "additionalProperties"],
 );
 
-const schemaLanguage = {
-  $ref: "#/$defs/schema",
-  $defs: {
+/** Manifest params, state and context may not use pattern (spec §5), so its schema omits it. */
+function languageForms(pattern: boolean) {
+  return {
     schema: {
       oneOf: [
         form(
           "string",
           {
             maxLength: bound,
-            pattern: { type: "string", maxLength: 256, format: "regex" },
+            ...(pattern ? { pattern: { type: "string", maxLength: 256, format: "regex" } } : {}),
             enum: { type: "array", items: { type: "string" }, minItems: 1, uniqueItems: true },
           },
           ["maxLength"],
@@ -54,8 +54,10 @@ const schemaLanguage = {
         objectSchema,
       ],
     },
-  },
-} as const;
+  };
+}
+
+const schemaLanguage = { $ref: "#/$defs/schema", $defs: languageForms(true) } as const;
 
 /** Add each format here; publishing and drift checks both read this registry. */
 export const formats = {
@@ -64,7 +66,7 @@ export const formats = {
   theme: themeSchema,
   "schema-language": schemaLanguage,
   capabilities: { ...capabilitiesSchema, $defs: { ...schemaLanguage.$defs, objectSchema } },
-  manifest: { ...manifestSchema, $defs: { ...schemaLanguage.$defs, objectSchema, ...manifestSchema.$defs } },
+  manifest: { ...manifestSchema, $defs: { ...languageForms(false), objectSchema, ...manifestSchema.$defs } },
   "widget-package": widgetPackageSchema,
   placement: placementSchema,
   "style-record": styleRecordSchema,

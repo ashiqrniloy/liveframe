@@ -1,12 +1,14 @@
 import { expect, test } from "bun:test";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { schemaDocument } from "../formats/registry.ts";
+import { validateManifestShape } from "../formats/manifest.ts";
 import {
   arr,
   bool,
   obj,
   str,
   validateCapabilities,
+  validateCatalog,
   validateManifest,
   type Capabilities,
   type Manifest,
@@ -144,6 +146,7 @@ test("published_capabilities_and_manifest_match_structure", () => {
 test("agent_home_manifest_validates_under_two_milliseconds", () => {
   // Mirrors the proof contracts; Task 8 supplies the reproducible export fixture.
   const id = str({ maxLength: 128, pattern: "^.+$" });
+  const cursor = str({ maxLength: 128 });
   const actions = {
     "decisions.review": obj({ id }),
     "tasks.claim": obj({ id }),
@@ -160,7 +163,7 @@ test("agent_home_manifest_validates_under_two_milliseconds", () => {
     state: obj({
       filter: str({ maxLength: 9, enum: ["all", "decisions", "tasks", "alerts"] }),
       selected: text,
-      cursors: obj({ decisions: id, tasks: id, alerts: id }),
+      cursors: obj({ decisions: cursor, tasks: cursor, alerts: cursor }),
       escalating: text,
       reason: str({ maxLength: 500 }),
     }),
@@ -223,4 +226,78 @@ test("source_literals_validate_nested_values_and_bindings_stay_closed", () => {
     expect(oracle(binding({ cursor, limit: "50" }))).toBe(false);
     expect(validateManifest(binding({ cursor, limit: "50" }), context).ok).toBe(false);
   }
+});
+
+const patternInput = {
+  state: obj({ evil: str({ maxLength: 100, pattern: "^(a+)+$" }) }),
+  initialState: { evil: "a" },
+};
+
+test("manifest_schemas_reject_patterns", () => {
+  for (const key of ["params", "state", "context"] as const) {
+    rejects({ ...manifest, ...patternInput, [key]: patternInput.state }, `/${key}/properties/evil/pattern`);
+  }
+  const nested = obj({ deep: arr(obj({ evil: str({ maxLength: 4, pattern: "^a$" }) }), { maxItems: 2 }) });
+  for (const key of ["params", "state", "context"] as const) {
+    rejects({ ...manifest, [key]: nested }, `/${key}/properties/deep/items/properties/evil/pattern`);
+  }
+  const shape = validateManifestShape({ ...manifest, ...patternInput });
+  expect(shape.ok).toBe(false);
+  if (!shape.ok)
+    expect(shape.errors).toContainEqual(
+      expect.objectContaining({
+        kind: "invalid-document",
+        pointer: "/state/properties/evil/pattern",
+        expected: expect.stringContaining("no pattern in widget schemas"),
+      }),
+    );
+  expect(validateManifest({ ...manifest, ...patternInput }, context).ok).toBe(false);
+  expect(validateManifest(manifest, context).ok).toBe(true);
+});
+
+test("catalog_and_capability_patterns_still_install", () => {
+  // The app owns these documents, and a catalog keeps its patterns.
+  const first = catalog.definitions[0];
+  if (!first) throw new Error("Fixture catalog has no definitions");
+  const labelled = {
+    ...first,
+    props: {
+      ...first.props,
+      properties: { ...first.props.properties, label: str({ maxLength: 80, pattern: "^[a-z]+$" }) },
+    },
+  };
+  expect(validateCatalog({ ...catalog, definitions: [labelled] }).ok).toBe(true);
+  const patterned = {
+    ...capabilities,
+    actions: {
+      "tasks.claim": { description: "Claim a task", args: obj({ id: str({ maxLength: 8, pattern: "^t-" }) }) },
+    },
+  };
+  expect(validateCapabilities(patterned).ok).toBe(true);
+  const doc = { ...manifest, sources: {}, actions: ["tasks.claim"] as const };
+  expect(validateManifest(doc, { catalog, capabilities: patterned }).ok).toBe(true);
+});
+
+test("redos_manifest_fails_fast", () => {
+  // "^(a+)+$" against 40 "a"s takes longer than any run would; rejection precedes matching.
+  const doc = { ...manifest, state: patternInput.state, initialState: { evil: `${"a".repeat(40)}!` } };
+  const start = performance.now();
+  const result = validateManifest(doc, context);
+  const elapsed = performance.now() - start;
+  expect(result.ok).toBe(false);
+  if (!result.ok) expect(result.errors.map((error) => error.pointer)).toContain("/state/properties/evil/pattern");
+  expect(elapsed).toBeLessThan(50);
+});
+
+test("published_manifest_schema_rejects_patterns", () => {
+  const ajv = new Ajv2020({ strict: true });
+  ajv.addFormat("regex", { type: "string", validate: () => true });
+  const oracle = ajv.compile(schemaDocument("manifest"));
+  expect(oracle(manifest)).toBe(true);
+  for (const key of ["params", "state", "context"] as const)
+    expect(oracle({ ...manifest, [key]: patternInput.state })).toBe(false);
+  // Capabilities keep pattern: the app owns them, and the published schema agrees.
+  const args = obj({ id: str({ maxLength: 8, pattern: "^t-" }) });
+  const capabilityOracle = ajv.compile(schemaDocument("capabilities"));
+  expect(capabilityOracle({ ...capabilities, actions: { "tasks.claim": { description: "Claim", args } } })).toBe(true);
 });
