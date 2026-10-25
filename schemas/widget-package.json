@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://liveframe.dev/schemas/widget-package.json",
+  "$id": "urn:liveframe:widget-package:1",
   "type": "object",
   "properties": {
     "format": {
@@ -11,7 +11,7 @@
       "type": "string"
     },
     "manifest": {
-      "$ref": "https://liveframe.dev/schemas/manifest.json"
+      "$ref": "urn:liveframe:manifest:1"
     },
     "code": {
       "maxLength": 1048576,

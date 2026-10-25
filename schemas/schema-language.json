@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://liveframe.dev/schemas/schema-language.json",
+  "$id": "urn:liveframe:schema-language:1",
   "$ref": "#/$defs/schema",
   "$defs": {
     "schema": {

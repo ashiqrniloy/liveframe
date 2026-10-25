@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://liveframe.dev/schemas/ui-tree.json",
+  "$id": "urn:liveframe:ui-tree:1",
   "type": "object",
   "properties": {
     "format": {

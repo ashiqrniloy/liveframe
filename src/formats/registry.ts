@@ -59,6 +59,9 @@ function languageForms(pattern: boolean) {
 
 const schemaLanguage = { $ref: "#/$defs/schema", $defs: languageForms(true) } as const;
 
+/** One place builds every published id. A URN names the format and its version, not a domain or a package version. */
+const schemaId = (format: string) => `urn:liveframe:${format}:1`;
+
 /** Add each format here; publishing and drift checks both read this registry. */
 export const formats = {
   "ui-tree": treeSchema,
@@ -67,7 +70,11 @@ export const formats = {
   "schema-language": schemaLanguage,
   capabilities: { ...capabilitiesSchema, $defs: { ...schemaLanguage.$defs, objectSchema } },
   manifest: { ...manifestSchema, $defs: { ...languageForms(false), objectSchema, ...manifestSchema.$defs } },
-  "widget-package": widgetPackageSchema,
+  "widget-package": {
+    ...widgetPackageSchema,
+    // A `$ref` by id, so a consumer that adds both published schemas resolves it without a network.
+    properties: { ...widgetPackageSchema.properties, manifest: { $ref: schemaId("manifest") } },
+  },
   placement: placementSchema,
   "style-record": styleRecordSchema,
   catalog: {
@@ -79,7 +86,7 @@ export const formats = {
 export function schemaDocument(name: keyof typeof formats) {
   return {
     $schema: "https://json-schema.org/draft/2020-12/schema",
-    $id: `https://liveframe.dev/schemas/${name}.json`,
+    $id: schemaId(name),
     ...formats[name],
   };
 }

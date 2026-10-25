@@ -210,6 +210,14 @@ generic interpreter reports `invalid-document`.
 
 ## Published JSON Schemas
 
+Every published document's `$id` is `urn:liveframe:<format>:1` — the format and
+its version, never a domain or a package version — and a cross-document `$ref`
+uses that id (`widget-package.json` references `urn:liveframe:manifest:1`).
+Register the documents you need with your validator and its `$ref`s resolve
+offline; nothing is fetched at runtime, so no domain owner and no CDN can change
+what a consumer validates against. The files ship inside the package under
+`schemas/`; a new format version gets a new id (`:2`) rather than a moved one.
+
 The language's structural meta-schema is available at
 `@arnilo/liveframe/schemas/schema-language.json`. It declares the 2020-12 dialect
 and a stable `$id`. Configure your validator to check the standard `regex`
@@ -626,8 +634,9 @@ non-JSON values, cycles and non-finite numbers are rejected.
 
 The published schemas are `@arnilo/liveframe/schemas/widget-package.json`,
 `placement.json` and `style-record.json` under the same schemas subpath.
-The package schema references `manifest.json` by its published `$id`; register
-that schema with your JSON Schema validator too. Scenario and JSON value schemas
+The package schema references the manifest by its published id
+(`urn:liveframe:manifest:1`); register that schema with your JSON Schema
+validator too. Scenario and JSON value schemas
 are embedded. Standard JSON Schema cannot enforce unique scenario names or a
 UTF-8 byte bound, so use the structural validator for those checks.
 

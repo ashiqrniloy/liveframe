@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://liveframe.dev/schemas/placement.json",
+  "$id": "urn:liveframe:placement:1",
   "type": "object",
   "properties": {
     "id": {

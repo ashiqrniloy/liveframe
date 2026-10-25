@@ -33,6 +33,40 @@ test("published_schemas_match_sources", async () => {
   }
 });
 
+test("schema_ids_are_format_urns", async () => {
+  for (const name of Object.keys(formats) as (keyof typeof formats)[]) {
+    const doc = schemaDocument(name);
+    // A format-versioned URN: no domain can be redirected, and Ajv resolves it by id alone.
+    expect(doc.$id).toBe(`urn:liveframe:${name}:1`);
+    const published = await Bun.file(new URL(`../../schemas/${name}.json`, import.meta.url)).text();
+    // Every cross-document reference in the published bytes names a format id.
+    for (const [, target] of published.matchAll(/\$ref": "(?!#)([^"]+)"/g)) expect(target).toMatch(/^urn:liveframe:/);
+  }
+});
+
+test("package_schema_resolves_manifest_by_urn_offline", async () => {
+  // No `loadSchema` and no fetch: compiling with every schema added is the only way to resolve ids.
+  const validator = new Ajv2020({ strict: true, unicodeRegExp: true });
+  for (const name of Object.keys(formats) as (keyof typeof formats)[]) validator.addSchema(schemaDocument(name));
+  const validate = validator.getSchema("urn:liveframe:widget-package:1");
+  if (!validate) throw new Error("widget-package schema was not registered");
+  expect(validator.getSchema("urn:liveframe:manifest:1")).toBeDefined();
+  const manifest = JSON.parse(
+    await Bun.file(new URL("../__tests__/fixtures/proof/agent-home.manifest.json", import.meta.url)).text(),
+  );
+  const pkg = {
+    format: "liveframe-package/1",
+    manifest,
+    code: "export default () => null;",
+    scenarios: [{ name: "default", params: {}, context: {}, data: {} }],
+    hash: `sha256-${"0".repeat(64)}`,
+  };
+  expect(validate(pkg)).toBe(true);
+  // The reference is live: a manifest that fails its own schema fails the package too.
+  expect(validate({ ...pkg, manifest: { ...manifest, id: 1 } })).toBe(false);
+  expect(validate.errors?.[0]?.instancePath).toBe("/manifest/id");
+});
+
 test("meta_schema_agrees_with_language_forms", () => {
   const validate =
     ajv.getSchema(schemaDocument("schema-language").$id) ?? ajv.compile(schemaDocument("schema-language"));

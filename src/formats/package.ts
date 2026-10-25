@@ -41,7 +41,7 @@ export const widgetPackageSchema = {
   ...fields,
   properties: {
     ...fields.properties,
-    manifest: { $ref: "https://liveframe.dev/schemas/manifest.json" },
+    manifest: bool(), // replaced by a `$ref` to the manifest format id in registry.ts
     scenarios: { ...fields.properties.scenarios, minItems: 1, items: { $ref: "#/$defs/scenario" } },
   },
   $defs: { json: treeSchema.$defs.json, scenario: scenarioSchema },

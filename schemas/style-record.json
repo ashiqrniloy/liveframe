@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://liveframe.dev/schemas/style-record.json",
+  "$id": "urn:liveframe:style-record:1",
   "type": "object",
   "properties": {
     "kind": {
