@@ -5,10 +5,12 @@ import { pathToFileURL } from "node:url";
 import pkg from "../../package.json" with { type: "json" };
 import manifestDoc from "../../schemas/manifest.json" with { type: "json" };
 import packageDoc from "../../schemas/widget-package.json" with { type: "json" };
-import { type Capabilities, validateCapabilities } from "../formats/capabilities.ts";
+import { type Capabilities, isRecord, validateCapabilities } from "../formats/capabilities.ts";
 import { type Catalog, validateCatalog } from "../formats/catalog.ts";
-import type { WidgetPackage } from "../formats/package.ts";
-import type { LiveframeError } from "../index.ts";
+import { type WidgetPackage, validateScenario } from "../formats/package.ts";
+import { type LiveframeError, type Result } from "../index.ts";
+import { validateJson } from "../formats/json.ts";
+import { validateManifestShape } from "../formats/manifest.ts";
 import type { Json, UiNode } from "../formats/tree.ts";
 import type { AuthoringConfig, PreviewSession } from "../preview/authoring.ts";
 import type { Runner } from "../preview/runner.ts";
@@ -114,9 +116,9 @@ function registerCatalogTools(sdk: Sdk, server: Server, catalog: Catalog, capabi
     "list_vocabulary",
     {
       description:
-        "The catalog's closed vocabulary — colour, surface, fillable and typography roles, tones, surfaceTypography, and the space, radius, size and bp names — so style props, recipes and themes use installed names.",
+        "The catalog's id and closed vocabulary — colour, surface, fillable and typography roles, tones, surfaceTypography, and the space, radius, size and bp names — so style props, recipes and themes use installed names, and a manifest names the catalog it was authored against.",
     },
-    () => text(catalog.vocabulary),
+    () => text({ catalogId: catalog.catalogId, vocabulary: catalog.vocabulary }),
   );
   server.registerTool(
     "list_capabilities",
@@ -145,34 +147,110 @@ const manifestSchema = manifestDoc as JsonObject;
 const packageSchema = packageDoc as JsonObject;
 const packageDefs = packageSchema.$defs as JsonObject;
 
-/** `pack_draft`'s input: the published manifest and scenario schemas, with their `$defs` hoisted. */
+/**
+ * `pack_draft` and `render_scenarios` take a permissive top-level object: the
+ * handler validates the nested documents itself, so every argument error is a
+ * `LiveframeError` with a document-root pointer (`/manifest/id`) rather than the
+ * SDK's bare validation string. The published schemas stay in `$defs` so an agent
+ * reading `tools/list` still sees the shapes it must author against.
+ */
 const packSchema = {
   type: "object",
   properties: {
-    files: { type: "object", minProperties: 1, additionalProperties: { type: "string" } },
-    entry: { type: "string", minLength: 1 },
-    manifest: strip(manifestSchema, ["$schema", "$id", "$defs"]),
-    scenarios: { type: "array", minItems: 1, maxItems: 64, items: { $ref: "#/$defs/scenario" } },
+    files: {
+      description: 'Source files by path: a non-empty object of file path to module source. See "$defs".',
+    },
+    entry: { description: "The entry file path: one of `files`' keys." },
+    manifest: { description: 'The widget manifest. Its published schema is "$defs" (urn:liveframe:manifest:1).' },
+    scenarios: {
+      description: 'One to 64 scenarios: name, params, context, optional state and data sources. See "$defs.scenario".',
+    },
   },
   required: ["files", "entry", "manifest", "scenarios"],
-  additionalProperties: false,
   // `json` is byte-identical in both published schemas, so one copy serves both.
-  $defs: { ...(manifestSchema.$defs as JsonObject), ...packageDefs },
+  $defs: { ...(manifestDoc.$defs as JsonObject), ...(packageDoc.$defs as JsonObject) },
 };
 
 const renderSchema = {
   type: "object",
   properties: {
-    scenario: { type: "string", minLength: 1 },
-    state: { $ref: "#/$defs/json" },
-    context: { $ref: "#/$defs/json" },
+    scenario: { description: "A scenario name from the packed draft. Omit it to check every scenario at once." },
+    state: {
+      description: 'Optional state override for this render: any JSON value. "$defs.json" is the value schema.',
+    },
+    context: {
+      description: 'Optional context override for this render: any JSON value. "$defs.json" is the value schema.',
+    },
   },
-  required: [],
-  additionalProperties: false,
-  $defs: { json: packageDefs.json },
+  $defs: { json: (packageDoc.$defs as JsonObject).json },
 };
 
+/** A tree larger than this is refused: a whole tree is a poor tool result, and 256 KiB is plenty. */
+const MAX_TREE_BYTES = 262144;
+
+const at = (pointer: string, message: string, expected?: string): LiveframeError => ({
+  kind: "invalid-document",
+  pointer,
+  message,
+  ...(expected === undefined ? {} : { expected }),
+});
+
+/** Errors validated against a document take that document's root, not the tool's argument object. */
+const rooted = (base: string, errors: readonly LiveframeError[]): LiveframeError[] =>
+  errors.map((error) => ({ ...error, pointer: `${base}${error.pointer}` }));
+
+const key = (path: string) => path.replaceAll("~", "~0").replaceAll("/", "~1");
+
+type PackInput = Parameters<PreviewSession["update"]>[0];
+type RenderInput = { scenario?: string; state?: Json; context?: Json };
+
+/** `pack_draft`'s arguments, checked before the packer so its error set is the whole answer. */
+function packArguments(input: unknown): Result<PackInput> {
+  if (!isRecord(input))
+    return { ok: false, errors: [at("", "Expected an object with files, entry, manifest and scenarios")] };
+  const { files, entry, manifest, scenarios } = input;
+  const errors: LiveframeError[] = [];
+  if (!isRecord(files) || Object.keys(files).length === 0)
+    errors.push(at("/files", "Expected a non-empty object of source files"));
+  else
+    for (const [path, source] of Object.entries(files))
+      if (typeof source !== "string") errors.push(at(`/files/${key(path)}`, "Expected a source string"));
+  if (typeof entry !== "string" || entry.length === 0)
+    errors.push(at("/entry", "Expected the entry file path", "one of the keys of files"));
+  else if (!isRecord(files) || !Object.hasOwn(files, entry))
+    errors.push(at("/entry", `No file is named "${entry}"`, "one of the keys of files"));
+  const shaped = validateManifestShape(manifest);
+  if (!shaped.ok) errors.push(...rooted("/manifest", shaped.errors));
+  if (!Array.isArray(scenarios) || scenarios.length === 0 || scenarios.length > 64)
+    errors.push(at("/scenarios", "Expected one to 64 scenarios"));
+  else
+    for (const [index, scenario] of scenarios.entries()) {
+      const checked = validateScenario(scenario);
+      if (!checked.ok) errors.push(...rooted(`/scenarios/${index}`, checked.errors));
+    }
+  return errors.length > 0 ? { ok: false, errors } : { ok: true, value: input as PackInput };
+}
+
+/** `render_scenarios`' arguments: a scenario name and two JSON overrides. */
+function renderArguments(input: unknown): Result<RenderInput> {
+  if (!isRecord(input)) return { ok: false, errors: [at("", "Expected an object with scenario, state and context")] };
+  const errors: LiveframeError[] = [];
+  if (input.scenario !== undefined && (typeof input.scenario !== "string" || input.scenario.length === 0))
+    errors.push(at("/scenario", "Expected a scenario name"));
+  for (const name of ["state", "context"] as const) {
+    const value = input[name];
+    if (value === undefined) continue;
+    const checked = validateJson(value);
+    if (!checked.ok) errors.push(...rooted(`/${name}`, checked.errors));
+  }
+  return errors.length > 0 ? { ok: false, errors } : { ok: true, value: input as RenderInput };
+}
+
 const nodes = (node: UiNode): number => 1 + (node.children?.reduce((sum, child) => sum + nodes(child), 0) ?? 0);
+
+type ScenarioStatus =
+  | { scenario: string; ok: true; nodes: number }
+  | (LiveframeError & { ok: false; scenarios: string[] });
 
 /** What the draft and capture tools share: the one session, the last good package, the bound page. */
 function createAuthoring({
@@ -227,18 +305,18 @@ function unreachable(): never {
 /** The draft tools: one preview session, rendered by the app's own runner. */
 function registerDraftTools(sdk: Sdk, server: Server, authoring: ReturnType<typeof createAuthoring>): void {
   const { session } = authoring;
-  type PackInput = Parameters<typeof session.update>[0];
-  type RenderInput = { scenario?: string; state?: Json; context?: Json };
   const schema = (value: object) => value as Parameters<Sdk["fromJsonSchema"]>[0];
   server.registerTool(
     "pack_draft",
     {
       description:
         "Packs a draft — files, entry, manifest and scenarios — through the same packer production uses, and returns its hash plus manifest id, version and scenario names. A failed pack returns its LiveframeErrors and keeps the previous draft current.",
-      inputSchema: sdk.fromJsonSchema<PackInput>(schema(packSchema)),
+      inputSchema: sdk.fromJsonSchema<unknown>(schema(packSchema)),
     },
     (input) => {
-      const result = authoring.update(input);
+      const arguments_ = packArguments(input);
+      if (!arguments_.ok) return failure(arguments_.errors);
+      const result = authoring.update(arguments_.value);
       if (!result.ok) return failure(result.errors);
       const { manifest, scenarios, hash } = result.value;
       return text({ hash, id: manifest.id, version: manifest.version, scenarios: scenarios.map(({ name }) => name) });
@@ -248,10 +326,13 @@ function registerDraftTools(sdk: Sdk, server: Server, authoring: ReturnType<type
     "render_scenarios",
     {
       description:
-        "Renders the packed draft through the app's runner. With `scenario`, returns that scenario's UI tree or its LiveframeErrors, optionally overridden by `state` and `context`. Without it, returns every scenario's status: ok with its node count, or its errors.",
-      inputSchema: sdk.fromJsonSchema<RenderInput>(schema(renderSchema)),
+        "Renders the packed draft through the app's runner. With `scenario`, returns that scenario's UI tree (at most 256 KiB) or its LiveframeErrors, optionally overridden by `state` and `context`. Without it, returns every scenario's status — ok with its node count — plus each distinct error once, listing the scenarios that share it.",
+      inputSchema: sdk.fromJsonSchema<unknown>(schema(renderSchema)),
     },
-    async ({ scenario, state, context }) => {
+    async (input) => {
+      const arguments_ = renderArguments(input);
+      if (!arguments_.ok) return failure(arguments_.errors);
+      const { scenario, state, context } = arguments_.value;
       if (!authoring.package)
         return failure([{ kind: "not-found", pointer: "", message: "Call pack_draft before render_scenarios" }]);
       if (scenario !== undefined) {
@@ -260,17 +341,42 @@ function registerDraftTools(sdk: Sdk, server: Server, authoring: ReturnType<type
           ...(state === undefined ? {} : { state }),
           ...(context === undefined ? {} : { context }),
         });
-        return result.ok ? text(result.value) : failure(result.errors);
+        if (!result.ok) return failure(result.errors);
+        const body = JSON.stringify(result.value);
+        const size = Buffer.byteLength(body, "utf8");
+        if (size > MAX_TREE_BYTES)
+          return failure([
+            {
+              kind: "limit-exceeded",
+              pointer: "/scenario",
+              message: `Scenario "${scenario}" rendered ${size} bytes, over the ${MAX_TREE_BYTES}-byte limit`,
+              expected: `a tree of at most ${MAX_TREE_BYTES} bytes`,
+            },
+          ]);
+        return { content: [{ type: "text" as const, text: body }] };
       }
       const checked = await session.check();
       if (!checked.ok) return failure(checked.errors);
-      return text(
-        checked.value.map(({ scenario: name, result }) =>
-          result.ok
-            ? { scenario: name, ok: true, nodes: nodes(result.value.root) }
-            : { scenario: name, ok: false, errors: result.errors },
-        ),
-      );
+      const statuses: ScenarioStatus[] = [];
+      const shared = new Map<string, ScenarioStatus & { ok: false }>();
+      for (const { scenario: name, result } of checked.value) {
+        if (result.ok) {
+          statuses.push({ scenario: name, ok: true, nodes: nodes(result.value.root) });
+          continue;
+        }
+        for (const error of result.errors) {
+          const id = `${error.kind}\u0000${error.pointer}\u0000${error.message}`;
+          const existing = shared.get(id);
+          if (existing) {
+            if (!existing.scenarios.includes(name)) existing.scenarios.push(name);
+            continue;
+          }
+          const entry: ScenarioStatus & { ok: false } = { ...error, ok: false, scenarios: [name] };
+          shared.set(id, entry);
+          statuses.push(entry);
+        }
+      }
+      return text(statuses);
     },
   );
 }

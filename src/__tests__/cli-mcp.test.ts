@@ -126,10 +126,10 @@ test("unknown_kind_is_an_error_naming_known_kinds", async () => {
   expect(error?.expected).toContain(firstDefinition.kind);
 }, 30000);
 
-test("list_vocabulary_matches_the_catalog_vocabulary", async () => {
+test("list_vocabulary_names_the_catalog", async () => {
   const result = await withClient((client) => call(client, "list_vocabulary"));
   expect(result.isError).toBe(false);
-  expect(result.json()).toEqual(proofCatalog.vocabulary);
+  expect(result.json()).toEqual({ catalogId: proofCatalog.catalogId, vocabulary: proofCatalog.vocabulary });
 }, 30000);
 
 test("list_capabilities_lists_sources_and_actions_with_schemas", async () => {
@@ -186,14 +186,78 @@ test("pack_errors_keep_the_previous_package", async () => {
   expect((failed.json() as { format: string }).format).toBe("liveframe/1");
 }, 30000);
 
-test("schema_rejection_names_the_pointer", async () => {
+test("argument_errors_are_liveframe_errors", async () => {
   const result = await withClient((client) =>
-    call(client, "pack_draft", { files: {}, entry: "", manifest: {}, scenarios: [] }),
+    call(client, "pack_draft", { ...agentHome, manifest: { ...agentManifest, id: "Bad Id" } }),
   );
   expect(result.isError).toBe(true);
-  expect(result.text).toContain("data/manifest");
-  expect(result.text).toContain("required property");
+  // One error shape, and the pointer is rooted at the document the agent edits.
+  expect(result.text).not.toContain("Input validation error");
+  const [error] = result.json() as LiveframeError[];
+  expect(error?.kind).toBe("invalid-document");
+  expect(error?.pointer).toBe("/manifest/id");
+  // The envelope is checked too, with the same shape.
+  const empty = await withClient((client) =>
+    call(client, "pack_draft", { files: {}, entry: "missing.ts", manifest: {}, scenarios: [] }),
+  );
+  const [first] = empty.json() as LiveframeError[];
+  expect(first?.pointer).toBe("/files");
+  expect(empty.text).not.toContain("Input validation error");
 }, 30000);
+
+test("oversized_tree_is_refused_with_a_typed_error", async () => {
+  const draft = {
+    ...agentHome,
+    files: {
+      ...agentHome.files,
+      "big.tsx": `/** @jsxImportSource @arnilo/liveframe/sdk */
+import { Stack, Text } from "./ui.gen.ts";
+const rows = Array.from({ length: 1200 }, (_, index) => index);
+export default function Big() {
+  return (
+    <Stack gap="space.1">
+      {rows.map((index) => (
+        <Text key={String(index)} text={"row-" + index + "-" + "x".repeat(200)} />
+      ))}
+    </Stack>
+  );
+}
+`,
+    },
+  };
+  const result = await withClient(async (client) => {
+    const packed = await call(client, "pack_draft", { ...draft, entry: "big.tsx" });
+    expect(packed.isError).toBe(false);
+    return call(client, "render_scenarios", { scenario: agentScenario });
+  });
+  expect(result.isError).toBe(true);
+  const [error] = result.json() as LiveframeError[];
+  expect(error?.kind).toBe("limit-exceeded");
+  expect(error?.pointer).toBe("/scenario");
+  expect(error?.expected).toContain(String(262144));
+  expect(error?.message).toMatch(/rendered \d+ bytes/);
+  expect(Number(error?.message.match(/rendered (\d+) bytes/)?.[1])).toBeGreaterThan(262144);
+}, 60000);
+
+test("all_scenarios_errors_are_deduplicated", async () => {
+  const throwing = {
+    files: { "entry.ts": 'export default () => { throw new Error("boom"); };' },
+    entry: "entry.ts",
+    manifest: agentManifest,
+    scenarios: agentHome.scenarios,
+  };
+  const result = await withClient(async (client) => {
+    await call(client, "pack_draft", throwing);
+    return call(client, "render_scenarios");
+  });
+  const statuses = result.json() as { ok: boolean; kind?: string; scenarios?: string[] }[];
+  const shared = statuses.filter((status) => !status.ok);
+  expect(shared).toHaveLength(1);
+  expect(shared[0]?.kind).toBe("render-failed");
+  expect(shared[0]?.scenarios).toEqual(agentHome.scenarios.map((scenario) => scenario.name));
+  // The identical error appears once in the answer, not once per scenario.
+  expect(result.text.split("boom")).toHaveLength(2);
+}, 60000);
 
 test("cross_reference_error_is_a_liveframe_error", async () => {
   const result = await withClient((client) =>
@@ -279,11 +343,15 @@ test("config_runner_is_used_for_every_render", async () => {
 test("pack_draft_schema_embeds_the_published_schemas", async () => {
   const tools = await withClient(async (client) => (await client.listTools()).tools);
   const schema = tools.find((tool) => tool.name === "pack_draft")?.inputSchema as unknown as {
-    properties: { manifest: { properties: unknown }; scenarios: { items: unknown } };
+    properties: Record<string, object>;
+    required: string[];
     $defs: Record<string, unknown>;
   };
-  expect(schema.properties.manifest.properties).toEqual(manifestDoc.properties);
-  expect(schema.properties.scenarios.items).toEqual({ $ref: "#/$defs/scenario" });
+  // The handler validates the nested documents, so the argument object stays permissive and documented.
+  expect(schema.required).toEqual(["files", "entry", "manifest", "scenarios"]);
+  expect(Object.keys(schema.properties).sort()).toEqual(["entry", "files", "manifest", "scenarios"]);
+  for (const shape of Object.values(schema.properties)) expect(Object.keys(shape)).toEqual(["description"]);
+  // The published shapes stay visible to an agent reading `tools/list`.
   expect(schema.$defs.scenario).toEqual(packageDoc.$defs.scenario);
   expect(schema.$defs.schema).toEqual(manifestDoc.$defs.schema);
 }, 30000);

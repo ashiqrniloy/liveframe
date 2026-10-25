@@ -271,7 +271,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phase 8 follow-up (spec §13, `liveframe mcp`)
 - Priority: P4
-- Status: scheduled 2026-10-25 in plan 012 Task 10 (`decision-logs/2026-10-25-0231-release-0-1-0-hardening-and-api-freeze.md`, R13).
+- Status: closed 2026-10-26 in plan 012 Task 10 (`decision-logs/2026-10-25-0231-release-0-1-0-hardening-and-api-freeze.md`, R13): `list_vocabulary` now returns `{ catalogId, vocabulary }`, and the all-scenarios result reports each distinct error once with the scenarios that share it. The agent loop reads the id from the tool instead of a literal.
 - Source: plans/011-Phase-8-Authoring-MCP-Server.md Task 7 (findings), Task 8 handoff
 - What: no MCP tool returns `catalogId`, so a widget manifest's `/catalogId` can only be known out of band; a wrong guess fails as `catalog-mismatch` with no `expected` and no way to look it up. Separately, `render_scenarios` renders every scenario and so repeats an identical tree error once per scenario. Decide whether `list_vocabulary` or `list_primitives` should carry the catalog id, whether `pack_draft` should name the expected id, and whether the all-scenarios result should deduplicate errors by `pointer`, `kind` and `message`.
 - Why: both are tool-result shape decisions that change spec §13, so plan 011's scripted agent records them instead of making them; it writes `"proof.ui@1"` as a literal in `proof/tests/mcp-agent-loop.test.ts`. A real agent has no file system and only these tools.
@@ -305,7 +305,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phase 8 follow-up (spec §13, `liveframe mcp`)
 - Priority: P4
-- Status: scheduled 2026-10-25 in plan 012 Task 10 (`decision-logs/2026-10-25-0231-release-0-1-0-hardening-and-api-freeze.md`, R13).
+- Status: closed 2026-10-26 in plan 012 Task 10 (`decision-logs/2026-10-25-0231-release-0-1-0-hardening-and-api-freeze.md`, R13): chose the looser argument schema — `pack_draft` and `render_scenarios` validate in the handler with `validateManifestShape`, `validateScenario` and `validateJson`, so argument errors are `LiveframeError[]` at document-root pointers; the published shapes stay in `$defs` as documentation.
 - Source: plans/011-Phase-8-Authoring-MCP-Server.md Task 9 (F2), `plans/evidence/011-impact-analysis.md`
 - What: argument-schema rejection happens in the MCP layer (`fromJsonSchema`) before the tool's handler, so it returns a bare string — `Input validation error: Invalid arguments for tool pack_draft: data/manifest/id must match pattern "…"` — with `data/…` pointers and no `kind`, `expected` or `nodeId`, while every failure past the schema is a `LiveframeError[]` with JSON pointers from the document root. Decide either to have `pack_draft` and `render_scenarios` accept a looser argument schema and validate inside the handler with `validateManifest`/`validateWidgetPackageShape`, returning the same typed errors, or to state the two shapes as the contract. `docs/mcp.md` already documents both; the cost of the first option is losing per-argument schema hints in `tools/list`.
 - Why: an agent that reads structured errors everywhere has to special-case one path, and the `data/` pointer prefix does not address the manifest the agent wrote.
@@ -330,7 +330,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phase 8 follow-up (spec §13)
 - Priority: P4
-- Status: scheduled 2026-10-25 in plan 012 Task 10 (`decision-logs/2026-10-25-0231-release-0-1-0-hardening-and-api-freeze.md`, R13).
+- Status: closed 2026-10-26 in plan 012 Task 10 (`decision-logs/2026-10-25-0231-release-0-1-0-hardening-and-api-freeze.md`, R13): kept the whole tree and refused past 256 KiB with `limit-exceeded` at `/scenario`, naming the size and the limit — a typed error beats a client-side truncation, and a node handle would need a new tool or session state.
 - Source: plans/011-Phase-8-Authoring-MCP-Server.md Task 4, Task 9 (F8)
 - What: `render_scenarios({ scenario })` returns the whole tree as one text block — 115,851 bytes for the proof's 679-node agent-home tree in 25.6 ms. Nothing bounds a larger widget, so a tree could exceed a client's per-result limit and truncate mid-JSON, which is worse than a typed error. Measure the practical client limit, then either return a summary plus a per-node handle, or refuse past a byte budget with a typed error naming the scenario and the size.
 - Why: every other agent-facing result is bounded (12 cells, sixteen kinds, one vocabulary), and a truncated tree gives an agent no actionable error.

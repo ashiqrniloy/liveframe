@@ -19,11 +19,11 @@ const pngSize = (base64: string) => {
   return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
 };
 
-const manifest = (action: string) => ({
+const manifest = (catalogId: string, action: string) => ({
   format: "liveframe-manifest/1",
   id: "agent-widget",
   version: "1.0.0",
-  catalogId: "proof.ui@1",
+  catalogId,
   params: { type: "object", properties: {}, required: [], additionalProperties: false },
   state: { type: "object", properties: {}, required: [], additionalProperties: false },
   context: { type: "object", properties: {}, required: [], additionalProperties: false },
@@ -95,7 +95,12 @@ test("scripted_agent_writes_fixes_and_lays_out_a_widget_through_mcp_tools_only",
       props: { properties: Record<string, unknown> };
     }[];
     expect(definitions.map((d) => d.kind).sort()).toEqual(["button", "heading", "inline", "stack"]);
-    const vocabulary = json(await ask("list_vocabulary")) as { space: string[] };
+    // The catalog id comes from the server, not from the test: an agent authors against what it was told.
+    const { catalogId, vocabulary } = json(await ask("list_vocabulary")) as {
+      catalogId: string;
+      vocabulary: { space: string[] };
+    };
+    expect(catalogId).toBe("proof.ui@1");
     const gap = vocabulary.space.includes("space.3") ? "space.3" : vocabulary.space[0];
     if (!gap) throw new Error("No space values");
     const capabilities = json(await ask("list_capabilities")) as { actions: Record<string, unknown> };
@@ -107,7 +112,7 @@ test("scripted_agent_writes_fixes_and_lays_out_a_widget_through_mcp_tools_only",
     const draft = (options: { layout: "Stack" | "Inline"; gap: string; action: string; declared: string }) => ({
       files: { "ui.gen.ts": generated, "entry.tsx": widget(options) },
       entry: "entry.tsx",
-      manifest: manifest(options.declared),
+      manifest: manifest(catalogId, options.declared),
       scenarios,
     });
 
@@ -122,13 +127,17 @@ test("scripted_agent_writes_fixes_and_lays_out_a_widget_through_mcp_tools_only",
     // 2. Fix invalid: an action that is not declared and a style value outside the vocabulary.
     const broken = draft({ layout: "Inline", gap: "space.99", action: "queue.load", declared: action });
     await ask("pack_draft", broken);
+    // Each distinct error arrives once, with the scenarios that share it.
     const checked = json(await ask("render_scenarios")) as {
-      scenario: string;
       ok: boolean;
-      errors?: { kind: string; pointer: string; expected?: string }[];
+      kind?: string;
+      pointer: string;
+      expected?: string;
+      scenarios: string[];
     }[];
     expect(checked.every((entry) => entry.ok)).toBe(false);
-    const errors = checked.flatMap((entry) => entry.errors ?? []);
+    expect(checked.every((entry) => entry.scenarios.length === 2)).toBe(true);
+    const errors = checked;
     const actionError = errors.find((error) => error.kind === "undeclared-action");
     const styleError = errors.find((error) => error.kind === "invalid-prop");
     if (!actionError?.expected || !styleError?.expected) throw new Error("Errors carry no expected text");

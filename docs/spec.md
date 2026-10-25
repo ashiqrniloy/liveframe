@@ -718,11 +718,13 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
   `tools/list` holds exactly seven tools, each returning JSON in one text block:
 
   - `list_primitives({ kinds? })` — every definition in full, or the named kinds: props schema, children, events with `carries`, variants, slots, style props, `description` and `deprecated`.
-  - `list_vocabulary()` — the catalog's color, surface, fillable and typography roles, tones, `surfaceTypography`, and the `space`, `radius`, `size` and `bp` names.
+  - `list_vocabulary()` — `{ catalogId, vocabulary }`: the id a manifest must name, then the catalog's color, surface, fillable and typography roles, tones, `surfaceTypography`, and the `space`, `radius`, `size` and `bp` names.
   - `list_capabilities()` — each source's params and result schemas and each action's args schema. It never calls a resolver.
   - `generated_types()` — the `liveframe gen` output, byte-identical.
   - `pack_draft({ files, entry, manifest, scenarios })` — `session.update()`'s input, returning `{ hash, id, version, scenarios }` or the pack errors; a failed pack keeps the previous package.
-  - `render_scenarios({ scenario?, state?, context? })` — one scenario's tree or its `LiveframeError`s, or every scenario's status.
+  - `render_scenarios({ scenario?, state?, context? })` — one scenario's tree of at most 256 KiB (262144 bytes of JSON; past that, `limit-exceeded` at `/scenario`, naming the size and the limit) or its `LiveframeError`s, or every scenario's status — `{ scenario, ok: true, nodes }` for each renderable scenario, plus each distinct error once as `{ ok: false, kind, pointer, message, expected?, scenarios }`, where `scenarios` names the scenarios that share it.
+
+  `pack_draft` and `render_scenarios` declare only a permissive top-level object — required keys, a description per argument, and the published schemas in `$defs` for reference — and validate inside the handler with the same format validators the library uses. An argument error is therefore always a `LiveframeError[]` rooted at the document an agent edits (`/manifest/id`, `/scenarios/0/params`), never the MCP layer's own validation string; only a missing required key or a non-object argument still fails before the handler.
   - `capture_preview({ scenarios?, widths?, themes?, designSystems? })` — captures the bound page's cells, at most 12 per call, returning each cell's coordinates, accessibility snapshot, `LiveframeError`s and PNG as image content.
 
   The server is authoring-only (law 4): it has no store, dispatcher, data resolver or intent tool, and no tool installs, places or approves a widget, resolves real data or runs an action. The bound page receives trees only, never draft code (law 1). The MCP SDK is an optional peer dependency, needed only by this command; a missing SDK is reported with how to install it, and `liveframe gen` runs without it.

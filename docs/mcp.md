@@ -72,16 +72,24 @@ registered. Log to stderr only: stdout carries the protocol.
 | Tool | Arguments | Result |
 |---|---|---|
 | `list_primitives` | `{ kinds? }` | Every definition in full, or the named kinds |
-| `list_vocabulary` | — | Colours, surfaces, typography, tones and the `space`/`radius`/`size`/`bp` names |
+| `list_vocabulary` | — | `{ catalogId, vocabulary }`: the id a manifest must name, then colours, surfaces, typography, tones and the `space`/`radius`/`size`/`bp` names |
 | `list_capabilities` | — | Each source's params and result schema and each action's args schema |
 | `generated_types` | — | The `liveframe gen` output, byte-identical |
 | `pack_draft` | `{ files, entry, manifest, scenarios }` | `{ hash, id, version, scenarios }` |
-| `render_scenarios` | `{ scenario?, state?, context? }` | One scenario's tree, or every scenario's status |
+| `render_scenarios` | `{ scenario?, state?, context? }` | One scenario's tree (at most 256 KiB), or every scenario's status and each distinct error once |
 | `capture_preview` | `{ scenarios?, widths?, themes?, designSystems? }` | Each cell's coordinates, errors, accessibility snapshot and PNG |
 
 `pack_draft` takes the same input as `session.update()`. A failed pack returns
 the errors and keeps the previous package, so the agent can fix a draft without
-losing the page it was looking at:
+losing the page it was looking at.
+
+`list_vocabulary` answers with the catalog id as well as the vocabulary, because
+a manifest's `catalogId` must match the running catalog exactly and there is no
+other way to learn it:
+
+```json
+{ "catalogId": "proof.ui@1", "vocabulary": { "space": ["space.0", "space.1"], "radius": ["radius.0"] } }
+```
 
 ```json
 [{ "kind": "catalog-mismatch", "pointer": "/manifest/catalogId", "message": "Catalog does not match" }]
@@ -93,6 +101,21 @@ one's node count; with one, it returns the tree or the errors:
 ```json
 [{ "scenario": "ready", "ok": true, "nodes": 679 }, { "scenario": "empty", "ok": true, "nodes": 10 }]
 ```
+
+The same error often hits every scenario, so the all-scenarios form reports each
+distinct `kind`/`pointer`/`message` once and lists the scenarios that share it,
+instead of repeating the array per scenario:
+
+```json
+[{ "ok": false, "kind": "undeclared-action", "pointer": "/root/inline/One/events/onPress/name",
+   "message": "Expected an action in the manifest: decisions.review",
+   "expected": "an action in the manifest: decisions.review", "scenarios": ["ready", "empty"] }]
+```
+
+One scenario's tree is capped at 256 KiB (262144 bytes of JSON). Past that the
+call is `limit-exceeded` at `/scenario`, with the actual size in the message and
+the limit in `expected`, rather than a truncated block: split the widget into
+smaller ones, or render one scenario at a time.
 
 Render errors carry a `pointer` into the tree and often an `expected` string that
 names the allowed values, which is usually enough to fix the draft without
@@ -136,18 +159,25 @@ The server speaks stdio, so it must be started by the client, once per session.
 
 ## Errors and exit codes
 
-A rejected tool call is `isError: true`, in one of two shapes.
+A rejected tool call is `isError: true`, with one shape for every tool: a JSON
+array of `LiveframeError`s in one text block (`kind`, `pointer`, `message`, and
+`expected`/`nodeId` when known). Pointers are rooted at the document you edit,
+not at the tool arguments, so `/manifest/id` is where the fix goes even though
+the manifest arrived as an argument:
 
-A malformed call — an argument of the wrong type, a missing field, an extra
-property — is refused before the tool runs, with the schema's own message:
-
+```json
+[{ "kind": "invalid-document", "pointer": "/manifest/id", "message": "Expected a string matching ^[a-z][a-zA-Z0-9.-]*$" }]
 ```
-Input validation error: Invalid arguments for tool pack_draft: data/manifest/id must match pattern "^[a-z][a-zA-Z0-9.-]*$"
-```
 
-Anything past the schema is a JSON array of `LiveframeError`s in one text block
-(`kind`, `pointer`, `message`, and `expected`/`nodeId` when known), with JSON
-pointers from the document root rather than the tool arguments:
+`pack_draft` and `render_scenarios` declare a permissive top-level object on
+purpose — the required keys, a description per argument, and the published
+schemas in `$defs` for reference — so that a malformed nested document reaches
+the handler and comes back as these errors instead of the MCP layer's bare
+string. The cost is that `tools/list` does not machine-validate a draft's
+nested fields; read `$defs` for the shapes. Only a missing required key or a
+non-object argument still fails before the handler, in the client's own words.
+
+A render or pack failure looks the same:
 
 ```json
 [{ "kind": "undeclared-action", "pointer": "/root/inline/One/events/onPress/name",
