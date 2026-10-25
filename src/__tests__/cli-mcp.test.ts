@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
-import { McpSdkMissing, mcp } from "../cli/mcp.ts";
+import { McpSdkMissing, checkAll, mcp } from "../cli/mcp.ts";
 import type { Result } from "../errors.ts";
 import { type Capabilities, validateCapabilities } from "../formats/capabilities.ts";
 import { type Catalog, validateCatalog } from "../formats/catalog.ts";
@@ -257,6 +257,20 @@ test("all_scenarios_errors_are_deduplicated", async () => {
   expect(shared[0]?.scenarios).toEqual(agentHome.scenarios.map((scenario) => scenario.name));
   // The identical error appears once in the answer, not once per scenario.
   expect(result.text.split("boom")).toHaveLength(2);
+}, 60000);
+
+test("errors_differing_only_in_expected_are_kept", () => {
+  const shared = { kind: "invalid-prop", pointer: "/root/params/gap", message: "Invalid prop" } as const;
+  const results = [
+    { scenario: "a", result: { ok: false, errors: [{ ...shared, expected: "a number" }] } },
+    { scenario: "b", result: { ok: false, errors: [{ ...shared, expected: "a string" }] } },
+    { scenario: "c", result: { ok: false, errors: [{ ...shared, expected: "a number" }] } },
+  ] as unknown as Parameters<typeof checkAll>[0];
+  const statuses = checkAll(results);
+  expect(statuses.map((status) => (status.ok ? "ok" : [status.expected, status.scenarios]))).toEqual([
+    ["a number", ["a", "c"]],
+    ["a string", ["b"]],
+  ]);
 }, 60000);
 
 test("cross_reference_error_is_a_liveframe_error", async () => {

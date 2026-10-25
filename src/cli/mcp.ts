@@ -254,7 +254,7 @@ type ScenarioStatus =
   | (LiveframeError & { ok: false; scenarios: string[] });
 
 /** Every scenario's status; identical errors are reported once, naming the scenarios that share them. */
-function checkAll(
+export function checkAll(
   results: readonly { readonly scenario: string; readonly result: Result<UiTree> }[],
 ): ScenarioStatus[] {
   const statuses: ScenarioStatus[] = [];
@@ -265,7 +265,7 @@ function checkAll(
       continue;
     }
     for (const error of result.errors) {
-      const id = `${error.kind}\u0000${error.pointer}\u0000${error.message}`;
+      const id = `${error.kind}\u0000${error.pointer}\u0000${error.message}\u0000${error.expected ?? ""}`;
       const existing = shared.get(id);
       if (existing) {
         if (!existing.scenarios.includes(name)) existing.scenarios.push(name);

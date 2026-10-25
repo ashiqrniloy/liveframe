@@ -117,7 +117,7 @@ one's node count; with one, it returns the tree or the errors:
 ```
 
 The same error often hits every scenario, so the all-scenarios form reports each
-distinct `kind`/`pointer`/`message` once and lists the scenarios that share it,
+distinct `kind`/`pointer`/`message`/`expected` once and lists the scenarios that share it,
 instead of repeating the array per scenario:
 
 ```json
