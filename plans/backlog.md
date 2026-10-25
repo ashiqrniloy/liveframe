@@ -102,7 +102,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phase 6 (spec §13, release packaging)
 - Priority: P2
-- Status: scheduled 2026-10-25 in plan 013 Tasks 1–2 (archive allowlist and installed-archive gate).
+- Status: closed 2026-10-25 by plan 013 Tasks 1–2. `package.json` ships `dist`, `schemas`, `docs` and `CHANGELOG.md` only; `archive_contains_only_the_release_files` fails on any `src/`, `__tests__`, `proof` or non-declaration `.ts` file, and the installed-archive gate builds its own fixtures outside the checkout.
 - Source: plans/003-Phase-1-Part-A-Formats.md, plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F4)
 - What: before publishing, narrow the package file list or exclude `src/__tests__/`, and inspect a Bun-generated package archive. Assert it contains the public source/subpaths and published schemas while excluding tests, proof-derived catalogs, themes, design systems and benchmark trees.
 - Why: `package.json` currently includes all of `src`, including the committed proof fixtures. The package is private and unpublished, but the release must not ship an app's primitive catalog or visual style as library content. Preserve the local fixtures and their reproducibility tests.
@@ -163,7 +163,8 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phase 6 (spec §7.5, §13)
 - Priority: P1
-- Status: scheduled 2026-10-25 in plan 013 Task 2 (`scripts/release/archive-gate.ts`), re-run against the registry in Tasks 10 and 13.
+- Status: closed 2026-10-25 in plan 013 Task 2 (`scripts/release/archive-gate.ts`); re-run against the registry in Tasks 10 and 13.
+- Resolution: the gate installs the packed archive into a temporary directory outside the checkout and runs from there: pack, store, reload and render through both runners (all three SDK entry points in the linked code); worker timeout then recovery; `liveframe gen`/`gen --check` through the installed binary; `liveframe mcp` over stdio with the default `workerRunner()` (seven tools, one draft packed and rendered); a browser bundle importing `/react`, `/preview/react`, `/css` and `/conformance/react` with no draft code; strict NodeNext consumer types for every subpath; and plain-Node calls into the host-API-free subpaths. Deleting `dist/preview/worker/entry.js` from a repacked archive makes step 1 fail with `ModuleNotFound ... entry.js`, so the gate can fail.
 - Source: plans/006-Phase-2-Part-B-Packages-Storage-Runners.md (F4)
 - What: install a Bun-generated release archive in an independent host outside this checkout, run it from another working directory, and pack, store, reload and render with both reference runners. Prove that the published `/preview` loader resolves all three SDK entry points through the installed package's own exports, shares the runner's SDK instance, and imports dot-escaped `data:` modules. Prove that `/preview/worker` includes and resolves its `./entry.ts` and protocol dependencies, times out a looping widget, then recovers. Prove `liveframe mcp` starts from the installed package with its default `workerRunner()`, listing the seven tools and packing and rendering one draft over stdio, so the published `bin` reaches both the MCP SDK and the worker entry. Coordinate archive inspection with “Exclude test fixtures from the release package”; preserve required worker/runtime files when removing tests. Re-run the approved loader gate on supported Bun upgrades.
 
