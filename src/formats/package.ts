@@ -59,6 +59,36 @@ export function validateScenario(doc: unknown): Result<Scenario> {
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: doc as Scenario };
 }
 
+type Checks = ReturnType<typeof documentChecks>;
+
+/** At most 1 MiB of UTF-8 code, counted without allocating a copy. */
+function checkCodeSize(code: unknown, c: Checks): void {
+  if (typeof code !== "string") return;
+  let bytes = 0;
+  for (const char of code) {
+    const unit = char.charCodeAt(0);
+    bytes += char.length === 2 ? 4 : unit <= 0x7f ? 1 : unit <= 0x7ff ? 2 : 3;
+    if (bytes > 1048576) {
+      c.reject("/code", "Expected at most 1 MiB of UTF-8 code");
+      return;
+    }
+  }
+}
+
+/** Every scenario is valid and its name is unique. */
+function checkScenarios(scenarios: readonly unknown[], c: Checks): void {
+  if (!scenarios.length) c.reject("/scenarios", "Expected at least one scenario");
+  const seen = new Set<string>();
+  for (const [i, scenario] of scenarios.entries()) {
+    if (c.errors.length >= 20) break;
+    const checked = validateScenario(scenario);
+    c.collect(checked, `/scenarios/${i}`);
+    if (!checked.ok) continue;
+    if (seen.has(checked.value.name)) c.reject(`/scenarios/${i}/name`, "Duplicate scenario name");
+    seen.add(checked.value.name);
+  }
+}
+
 /** Transport structure only: never executes code or checks hashes and manifest semantics. */
 export function validateWidgetPackageShape(doc: unknown): Result<WidgetPackage> {
   const c = documentChecks();
@@ -67,31 +97,9 @@ export function validateWidgetPackageShape(doc: unknown): Result<WidgetPackage> 
     const input = shell(doc, ["manifest"]);
     if (Array.isArray(doc.scenarios)) input.scenarios = doc.scenarios.map(() => true);
     c.collect(checkValue(fields, input), "");
-    if (typeof doc.code === "string") {
-      let bytes = 0;
-      for (const char of doc.code) {
-        const unit = char.charCodeAt(0);
-        bytes += char.length === 2 ? 4 : unit <= 0x7f ? 1 : unit <= 0x7ff ? 2 : 3;
-        if (bytes > 1048576) {
-          c.reject("/code", "Expected at most 1 MiB of UTF-8 code");
-          break;
-        }
-      }
-    }
+    checkCodeSize(doc.code, c);
     c.collect(validateManifestShape(doc.manifest), "/manifest");
-    if (Array.isArray(doc.scenarios)) {
-      if (!doc.scenarios.length) c.reject("/scenarios", "Expected at least one scenario");
-      const seen = new Set<string>();
-      for (const [i, scenario] of doc.scenarios.entries()) {
-        if (c.errors.length >= 20) break;
-        const checked = validateScenario(scenario);
-        c.collect(checked, `/scenarios/${i}`);
-        if (checked.ok) {
-          if (seen.has(checked.value.name)) c.reject(`/scenarios/${i}/name`, "Duplicate scenario name");
-          seen.add(checked.value.name);
-        }
-      }
-    }
+    if (Array.isArray(doc.scenarios)) checkScenarios(doc.scenarios, c);
   }
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: doc as WidgetPackage };
 }

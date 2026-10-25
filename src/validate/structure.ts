@@ -38,6 +38,29 @@ export type CompiledStructure = {
   forbidsChildren(kind: string): boolean;
 };
 
+/** `terms` accepts only term and detail children, and only `terms` accepts them. */
+function checkTerms(parentKind: string, childKind: string, sink: StructureSink): void {
+  const term = childKind === "term" || childKind === "detail";
+  if (term && parentKind !== "terms") sink.reject("term and detail nodes directly inside terms", "/kind");
+  else if (!term && parentKind === "terms") sink.reject("only term or detail children inside terms", "/kind");
+}
+
+/** A node below the root must be a child kind its parent's rule declares. */
+function checkPlacement(
+  children: ReadonlyMap<string, ChildRules>,
+  placementExpected: ReadonlyMap<string, string>,
+  parentKind: string,
+  childKind: string,
+  depth: number,
+  sink: StructureSink,
+): void {
+  if (depth <= 1) return;
+  const rule = children.get(parentKind);
+  if (rule === undefined || typeof rule === "string" || rule.has(childKind)) return;
+  const expected = placementExpected.get(parentKind);
+  if (expected) sink.reject(expected, "/kind");
+}
+
 export function compileStructure(catalog: Catalog): CompiledStructure {
   const children = new Map<string, ChildRules>(
     catalog.definitions.map((definition) => [
@@ -61,16 +84,8 @@ export function compileStructure(catalog: Catalog): CompiledStructure {
   return {
     children,
     node(parentKind, childKind, depth, hasChildren, sink) {
-      const term = childKind === "term" || childKind === "detail";
-      if (term && parentKind !== "terms") sink.reject("term and detail nodes directly inside terms", "/kind");
-      else if (!term && parentKind === "terms") sink.reject("only term or detail children inside terms", "/kind");
-      if (depth > 1) {
-        const rule = children.get(parentKind);
-        if (rule !== undefined && typeof rule !== "string" && !rule.has(childKind)) {
-          const expected = placementExpected.get(parentKind);
-          if (expected) sink.reject(expected, "/kind");
-        }
-      }
+      checkTerms(parentKind, childKind, sink);
+      checkPlacement(children, placementExpected, parentKind, childKind, depth, sink);
       if (!hasChildren) {
         const required = missingExpected.get(childKind);
         if (required) for (const expected of required) sink.reject(expected, "/children");
@@ -124,6 +139,8 @@ export type JsonWalk = {
 /**
  * Checks one JSON value and counts its UTF-8 `JSON.stringify` bytes without
  * serialising: plain objects only, acyclic, finite numbers, `stringBytes` strings.
+ * The one shared walk (validator and `render()`'s builder both use it) because both need the byte
+ * total; the other walkers stop at yes/no, at a thrown error, or at canonical text.
  */
 export function walkJson(value: unknown, ctx: JsonWalk): void {
   const scalar = jsonScalarBytes(value, ctx.maximum - ctx.bytes);
@@ -158,40 +175,47 @@ export function walkJson(value: unknown, ctx: JsonWalk): void {
     ctx.stopped = true;
     return;
   }
-  if (array) {
-    for (let i = 0; i < value.length && !ctx.stopped; i++) {
-      ctx.path.push(i);
-      if (i) {
-        ctx.bytes += 1;
-        if (ctx.bytes > ctx.maximum) {
-          ctx.limit();
-          ctx.stopped = true;
-        }
-      }
-      if (ctx.stopped) {
-        ctx.path.pop();
-        break;
-      }
-      walkJson(value[i], ctx);
-      ctx.path.pop();
-    }
-  } else {
-    let first = true;
-    for (const key in value) {
-      if (ctx.stopped) break;
-      if (!Object.hasOwn(value, key)) continue;
-      ctx.path.push(key);
-      ctx.bytes += stringBytes(key, ctx.maximum - ctx.bytes) + 1 + (first ? 0 : 1);
-      first = false;
+  if (array) walkArray(value, ctx);
+  else walkObject(value, ctx);
+  ctx.ancestors.delete(value);
+}
+
+/** Array elements, counting a comma between them. */
+function walkArray(value: readonly unknown[], ctx: JsonWalk): void {
+  for (let i = 0; i < value.length && !ctx.stopped; i++) {
+    ctx.path.push(i);
+    if (i) {
+      ctx.bytes += 1;
       if (ctx.bytes > ctx.maximum) {
         ctx.limit();
         ctx.stopped = true;
-        ctx.path.pop();
-        break;
       }
-      walkJson((value as Record<string, unknown>)[key], ctx);
-      ctx.path.pop();
     }
+    if (ctx.stopped) {
+      ctx.path.pop();
+      break;
+    }
+    walkJson(value[i], ctx);
+    ctx.path.pop();
   }
-  ctx.ancestors.delete(value);
+}
+
+/** Object members, counting the quotes and colon of each key and commas between them. */
+function walkObject(value: object, ctx: JsonWalk): void {
+  let first = true;
+  for (const key in value) {
+    if (ctx.stopped) break;
+    if (!Object.hasOwn(value, key)) continue;
+    ctx.path.push(key);
+    ctx.bytes += stringBytes(key, ctx.maximum - ctx.bytes) + 1 + (first ? 0 : 1);
+    first = false;
+    if (ctx.bytes > ctx.maximum) {
+      ctx.limit();
+      ctx.stopped = true;
+      ctx.path.pop();
+      break;
+    }
+    walkJson((value as Record<string, unknown>)[key], ctx);
+    ctx.path.pop();
+  }
 }

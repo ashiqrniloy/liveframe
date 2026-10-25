@@ -100,6 +100,83 @@ function rejectPatterns(
       rejectPatterns(child, at(at(pointer, "properties"), key), reject);
 }
 
+type Checks = ReturnType<typeof documentChecks>;
+type Source = Capabilities["sources"][string];
+
+function checkActionList(actions: readonly string[], capabilities: Capabilities, c: Checks): void {
+  const seen = new Set<string>();
+  for (const [i, name] of actions.entries()) {
+    if (c.errors.length >= 20) break;
+    if (!Object.hasOwn(capabilities.actions, name)) c.reject(`/actions/${i}`, "Undeclared action", "unknown-name");
+    if (seen.has(name)) c.reject(`/actions/${i}`, "Duplicate action");
+    seen.add(name);
+  }
+}
+
+/** Walks a dotted binding path from a top-level manifest schema to the bound schema. */
+function resolveBindingPath(from: string, path: string, manifest: Manifest): LanguageSchema | undefined {
+  let resolved: LanguageSchema | undefined = manifest[from as "params" | "state" | "context"];
+  for (const segment of path.split("."))
+    resolved =
+      resolved?.type === "object" && Object.hasOwn(resolved.properties, segment)
+        ? resolved.properties[segment]
+        : undefined;
+  return resolved;
+}
+
+function checkSourceParam(
+  key: string,
+  input: unknown,
+  pointer: string,
+  source: Source,
+  manifest: Manifest,
+  c: Checks,
+): void {
+  const target = Object.hasOwn(source.params.properties, key) ? source.params.properties[key] : undefined;
+  if (!target) {
+    c.reject(pointer, "Undeclared source parameter", "unknown-name");
+    return;
+  }
+  if (!isRecord(input) || !Object.hasOwn(input, "from")) {
+    c.collect(checkValue(target, input), pointer);
+    return;
+  }
+  const checked = checkValue(binding, input);
+  c.collect(checked, pointer);
+  if (!checked.ok) return;
+  const resolved = resolveBindingPath(checked.value.from, checked.value.path, manifest);
+  if (!resolved) c.reject(`${pointer}/path`, "Binding path does not resolve");
+  else if (resolved.type !== target.type) c.reject(pointer, "Binding type does not match source parameter");
+}
+
+function checkSource(entry: unknown, pointer: string, manifest: Manifest, capabilities: Capabilities, c: Checks): void {
+  if (!isRecord(entry)) {
+    c.reject(pointer, "Expected a source object");
+    return;
+  }
+  const structure = checkValue(sourceFields, shell(entry, ["params"]));
+  c.collect(structure, pointer);
+  if (!structure.ok) return;
+  const source = Object.hasOwn(capabilities.sources, entry.source as string)
+    ? capabilities.sources[entry.source as string]
+    : undefined;
+  if (!source) {
+    c.reject(`${pointer}/source`, "Undeclared source", "unknown-name");
+    return;
+  }
+  if (!isRecord(entry.params)) {
+    c.reject(`${pointer}/params`, "Expected a source parameter map");
+    return;
+  }
+  for (const key of source.params.required)
+    if (!Object.hasOwn(entry.params, key))
+      c.reject(at(`${pointer}/params`, key), "Required source parameter is unbound");
+  for (const [key, input] of Object.entries(entry.params)) {
+    if (c.errors.length >= 20) break;
+    checkSourceParam(key, input, at(`${pointer}/params`, key), source, manifest, c);
+  }
+}
+
 /** Context must contain an installed, validated catalog and capabilities. */
 export function validateManifest(
   doc: unknown,
@@ -118,59 +195,8 @@ export function validateManifest(
     const value = doc as Manifest;
     if (value.catalogId !== catalog.catalogId) c.reject("/catalogId", "Catalog does not match", "catalog-mismatch");
     c.collect(checkValue(value.state, value.initialState), "/initialState");
-    const seen = new Set<string>();
-    for (const [i, name] of value.actions.entries()) {
-      if (c.errors.length >= 20) break;
-      if (!Object.hasOwn(capabilities.actions, name)) c.reject(`/actions/${i}`, "Undeclared action", "unknown-name");
-      if (seen.has(name)) c.reject(`/actions/${i}`, "Duplicate action");
-      seen.add(name);
-    }
-    c.map(value.sources, "/sources", (entry, pointer) => {
-      if (!isRecord(entry)) {
-        c.reject(pointer, "Expected a source object");
-        return;
-      }
-      const structure = checkValue(sourceFields, shell(entry, ["params"]));
-      c.collect(structure, pointer);
-      if (!structure.ok) return;
-      const source = Object.hasOwn(capabilities.sources, entry.source as string)
-        ? capabilities.sources[entry.source as string]
-        : undefined;
-      if (!source) {
-        c.reject(`${pointer}/source`, "Undeclared source", "unknown-name");
-        return;
-      }
-      if (!isRecord(entry.params)) {
-        c.reject(`${pointer}/params`, "Expected a source parameter map");
-        return;
-      }
-      for (const key of source.params.required)
-        if (!Object.hasOwn(entry.params, key))
-          c.reject(at(`${pointer}/params`, key), "Required source parameter is unbound");
-      for (const [key, input] of Object.entries(entry.params)) {
-        if (c.errors.length >= 20) break;
-        const path = at(`${pointer}/params`, key);
-        const target = Object.hasOwn(source.params.properties, key) ? source.params.properties[key] : undefined;
-        if (!target) {
-          c.reject(path, "Undeclared source parameter", "unknown-name");
-          continue;
-        }
-        if (isRecord(input) && Object.hasOwn(input, "from")) {
-          const checked = checkValue(binding, input);
-          c.collect(checked, path);
-          if (!checked.ok) continue;
-          let resolved: LanguageSchema | undefined = value[checked.value.from];
-          for (const segment of checked.value.path.split(".")) {
-            resolved =
-              resolved?.type === "object" && Object.hasOwn(resolved.properties, segment)
-                ? resolved.properties[segment]
-                : undefined;
-          }
-          if (!resolved) c.reject(`${path}/path`, "Binding path does not resolve");
-          else if (resolved.type !== target.type) c.reject(path, "Binding type does not match source parameter");
-        } else c.collect(checkValue(target, input), path);
-      }
-    });
+    checkActionList(value.actions, capabilities, c);
+    c.map(value.sources, "/sources", (entry, pointer) => checkSource(entry, pointer, value, capabilities, c));
   }
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: doc as Manifest };
 }

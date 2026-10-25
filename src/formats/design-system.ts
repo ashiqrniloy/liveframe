@@ -11,7 +11,7 @@ import {
   roleName,
   shadow,
   shadowLayer,
-  shadowLayers,
+  type shadowLayers,
   signedDimension,
   type CubicBezier,
 } from "./dtcg.ts";
@@ -149,141 +149,168 @@ function literalCheck(
   c: Checks,
   colours: ReadonlySet<string>,
   signed = false,
-) {
-  if (kind === "shadow") {
-    const layers = Array.isArray(value) ? value : [value];
-    if (Array.isArray(value) && value.length > 16) {
-      c.reject(pointer, "Expected at most 16 shadow layers");
-      return;
-    }
-    for (const [i, layer] of layers.entries()) {
-      const path = Array.isArray(value) ? at(pointer, i) : pointer;
-      if (!isRecord(layer)) {
-        c.reject(path, "Expected a shadow layer");
-        continue;
-      }
-      c.collect(
-        checkValue(shadowLayer, { ...layer, ...(Object.hasOwn(layer, "color") ? { color: "role" } : {}) }),
-        path,
-      );
-      // Check colour authority separately to report the specific trust-boundary error.
-      if (typeof layer.color !== "string" || !colours.has(layer.color))
-        c.reject(`${path}/color`, "Shadow colour must name a theme role", "colour-outside-theme");
-    }
-  } else if (kind === "easing") {
-    c.collect(checkValue({ type: "array", items: bezierCoordinate, maxItems: 4 }, value), pointer);
-    if (!Array.isArray(value) || value.length !== 4) c.reject(pointer, "Expected four cubic Bezier coordinates");
-    else for (const i of [0, 2]) c.collect(checkValue(num({ minimum: 0, maximum: 1 }), value[i]), at(pointer, i));
-  } else c.collect(checkValue(signed ? signedDimension : (literalSchemas[kind] as LanguageSchema), value), pointer);
+): void {
+  if (kind === "shadow") checkShadow(value, pointer, c, colours);
+  else if (kind === "easing") checkEasing(value, pointer, c);
+  else c.collect(checkValue(signed ? signedDimension : (literalSchemas[kind] as LanguageSchema), value), pointer);
 }
-/** Internal shared install pass: validate the chain, merge it, then check references. */
-export function prepareDesignSystem(
-  doc: unknown,
+
+function checkShadow(value: unknown, pointer: string, c: Checks, colours: ReadonlySet<string>): void {
+  const layers = Array.isArray(value) ? value : [value];
+  if (Array.isArray(value) && value.length > 16) {
+    c.reject(pointer, "Expected at most 16 shadow layers");
+    return;
+  }
+  for (const [i, layer] of layers.entries())
+    checkShadowLayer(layer, Array.isArray(value) ? at(pointer, i) : pointer, c, colours);
+}
+
+function checkShadowLayer(layer: unknown, path: string, c: Checks, colours: ReadonlySet<string>): void {
+  if (!isRecord(layer)) {
+    c.reject(path, "Expected a shadow layer");
+    return;
+  }
+  c.collect(checkValue(shadowLayer, { ...layer, ...(Object.hasOwn(layer, "color") ? { color: "role" } : {}) }), path);
+  // Check colour authority separately to report the specific trust-boundary error.
+  if (typeof layer.color !== "string" || !colours.has(layer.color))
+    c.reject(`${path}/color`, "Shadow colour must name a theme role", "colour-outside-theme");
+}
+
+function checkEasing(value: unknown, pointer: string, c: Checks): void {
+  c.collect(checkValue({ type: "array", items: bezierCoordinate, maxItems: 4 }, value), pointer);
+  if (!Array.isArray(value) || value.length !== 4) {
+    c.reject(pointer, "Expected four cubic Bezier coordinates");
+    return;
+  }
+  for (const i of [0, 2]) c.collect(checkValue(num({ minimum: 0, maximum: 1 }), value[i]), at(pointer, i));
+}
+
+/** Checks one document of the chain and returns it, or undefined when it is invalid. */
+function checkDocument(
+  input: unknown,
+  base: string,
+  c: Checks,
   context: DesignSystemContext,
-): Result<{ values: Readonly<Record<string, DesignValue>>; recipes: Readonly<Partial<Record<RecipeKey, Recipe>>> }> {
-  const c = documentChecks();
-  const chain: DesignSystem[] = [];
-  const seen = new Set<string>();
+  seen: Set<string>,
+): DesignSystem | undefined {
+  if (!isRecord(input)) {
+    c.reject(base, "Expected a design system object");
+    return undefined;
+  }
+  c.collect(checkValue(fields, shell(input, ["values", "recipes"])), base);
+  if (typeof input.id === "string") {
+    if (seen.has(input.id)) {
+      c.reject(`${base}/extends`, "Cyclic design-system derivation", "cyclic-extends");
+      return undefined;
+    }
+    seen.add(input.id);
+  }
+  return checkMaps(input, base, c, context) ? (input as DesignSystem) : undefined;
+}
+
+/** Checks the `values` and `recipes` entries of one document; returns whether none failed. */
+function checkMaps(input: Record<string, unknown>, base: string, c: Checks, context: DesignSystemContext): boolean {
   const colours = new Set(context.catalog.vocabulary.colourRoles);
-  let input = doc;
-  let base = "";
-  while (true) {
-    if (!isRecord(input)) {
-      c.reject(base, "Expected a design system object");
-      break;
+  for (const field of ["values", "recipes"] as const) {
+    const map = input[field];
+    const pointer = `${base}/${field}`;
+    if (!isRecord(map)) {
+      c.reject(pointer, "Expected a name map");
+      continue;
     }
-    c.collect(checkValue(fields, shell(input, ["values", "recipes"])), base);
-    if (typeof input.id === "string") {
-      if (seen.has(input.id)) {
-        c.reject(`${base}/extends`, "Cyclic design-system derivation", "cyclic-extends");
-        break;
-      }
-      seen.add(input.id);
+    if (Object.keys(map).length > (field === "values" ? 1024 : 16384)) {
+      c.reject(pointer, "Too many entries");
+      continue;
     }
-    for (const field of ["values", "recipes"] as const) {
-      const map = input[field];
-      const pointer = `${base}/${field}`;
-      if (!isRecord(map)) {
-        c.reject(pointer, "Expected a name map");
+    for (const [name, entry] of Object.entries(map)) {
+      if (c.errors.length >= 20) break;
+      const path = at(pointer, name);
+      c.collect(checkValue(field === "values" ? roleName : keyName, name), path);
+      if (!isRecord(entry)) {
+        c.reject(path, "Expected an object");
         continue;
       }
-      if (Object.keys(map).length > (field === "values" ? 1024 : 16384)) {
-        c.reject(pointer, "Too many entries");
-        continue;
-      }
-      for (const [name, entry] of Object.entries(map)) {
-        if (c.errors.length >= 20) break;
-        const path = at(pointer, name);
-        c.collect(checkValue(field === "values" ? roleName : keyName, name), path);
-        if (!isRecord(entry)) {
-          c.reject(path, "Expected an object");
-          continue;
-        }
-        if (field === "values") {
-          c.collect(
-            checkValue(
-              obj({ kind: str({ maxLength: 16, enum: Object.keys(literalSchemas) }), value: bool() }),
-              shell(entry, ["value"]),
-            ),
-            path,
-          );
-          if (typeof entry.kind === "string" && Object.hasOwn(literalSchemas, entry.kind))
-            literalCheck(entry.kind as DesignValue["kind"], entry.value, `${path}/value`, c, colours);
-        } else {
-          const [kind, variant, slot, state] = name.split(".");
-          const definition = context.catalog.definitions.find((d) => d.kind === kind);
-          if (
-            !definition ||
-            (variant !== "*" && !definition.variants.includes(variant ?? "")) ||
-            !definition.slots.includes(slot ?? "") ||
-            !states.includes(state as (typeof states)[number])
-          )
-            c.reject(path, "Unknown recipe kind, variant, slot or state", "unknown-name");
-          for (const [property, value] of Object.entries(entry)) {
-            const propPath = at(path, property);
-            if (!Object.hasOwn(propertyKinds, property)) {
-              c.reject(propPath, "Unknown recipe property");
-              continue;
-            }
-            const k = propertyKinds[property as Property];
-            if (k === "colour") {
-              if (typeof value !== "string" || !colours.has(value))
-                c.reject(propPath, "Colour must name a theme role", "colour-outside-theme");
-            } else if (k === "typography") {
-              if (typeof value !== "string" || !context.catalog.vocabulary.typographyRoles.includes(value))
-                c.reject(propPath, "Unknown typography role", "unknown-name");
-            } else if (k === "style") c.collect(checkValue(lineStyle, value), propPath);
-            else if (typeof value === "string") c.collect(checkValue(roleName, value), propPath);
-            else
-              literalCheck(k, value, propPath, c, colours, property === "translateY" || property === "outlineOffset");
-          }
-        }
-      }
-    }
-    if (c.errors.length) break;
-    chain.push(input as DesignSystem);
-    if (input.extends === undefined) break;
-    const parent = input.extends;
-    if (typeof parent !== "string" || !Object.hasOwn(context.registry, parent)) {
-      c.reject(`${base}/extends`, "Unknown parent design system", "unknown-name");
-      break;
-    }
-    input = context.registry[parent];
-    base = at("/registry", parent);
-    if (isRecord(input) && input.id !== parent) {
-      c.reject(base, "Registry key must equal design-system id");
-      break;
+      if (field === "values") checkDesignValue(entry, path, c, colours);
+      else checkRecipe(name, entry, path, c, context, colours);
     }
   }
-  if (c.errors.length) return { ok: false, errors: c.errors };
+  return c.errors.length === 0;
+}
+
+function checkDesignValue(entry: Record<string, unknown>, path: string, c: Checks, colours: ReadonlySet<string>): void {
+  c.collect(
+    checkValue(
+      obj({ kind: str({ maxLength: 16, enum: Object.keys(literalSchemas) }), value: bool() }),
+      shell(entry, ["value"]),
+    ),
+    path,
+  );
+  if (typeof entry.kind === "string" && Object.hasOwn(literalSchemas, entry.kind))
+    literalCheck(entry.kind as DesignValue["kind"], entry.value, `${path}/value`, c, colours);
+}
+
+function checkRecipe(
+  name: string,
+  entry: Record<string, unknown>,
+  path: string,
+  c: Checks,
+  context: DesignSystemContext,
+  colours: ReadonlySet<string>,
+): void {
+  const [kind, variant, slot, state] = name.split(".");
+  const definition = context.catalog.definitions.find((d) => d.kind === kind);
+  if (
+    !definition ||
+    (variant !== "*" && !definition.variants.includes(variant ?? "")) ||
+    !definition.slots.includes(slot ?? "") ||
+    !states.includes(state as (typeof states)[number])
+  )
+    c.reject(path, "Unknown recipe kind, variant, slot or state", "unknown-name");
+  for (const [property, value] of Object.entries(entry))
+    checkRecipeProperty(property, value, at(path, property), c, context, colours);
+}
+
+function checkRecipeProperty(
+  property: string,
+  value: unknown,
+  pointer: string,
+  c: Checks,
+  context: DesignSystemContext,
+  colours: ReadonlySet<string>,
+): void {
+  if (!Object.hasOwn(propertyKinds, property)) {
+    c.reject(pointer, "Unknown recipe property");
+    return;
+  }
+  const kind = propertyKinds[property as Property];
+  if (kind === "colour") {
+    if (typeof value !== "string" || !colours.has(value))
+      c.reject(pointer, "Colour must name a theme role", "colour-outside-theme");
+  } else if (kind === "typography") {
+    if (typeof value !== "string" || !context.catalog.vocabulary.typographyRoles.includes(value))
+      c.reject(pointer, "Unknown typography role", "unknown-name");
+  } else if (kind === "style") c.collect(checkValue(lineStyle, value), pointer);
+  else if (typeof value === "string") c.collect(checkValue(roleName, value), pointer);
+  else literalCheck(kind, value, pointer, c, colours, property === "translateY" || property === "outlineOffset");
+}
+
+/** Values and recipes of every document in the chain, nearest document last. */
+function mergeChain(chain: readonly DesignSystem[]) {
   const values: Record<string, DesignValue> = Object.create(null);
   const recipes: Partial<Record<RecipeKey, Recipe>> = Object.create(null);
-  for (const ds of chain.reverse()) {
+  for (const ds of chain) {
     Object.assign(values, ds.values);
     for (const [key, recipe] of Object.entries(ds.recipes))
       recipes[key as RecipeKey] = { ...recipes[key as RecipeKey], ...recipe };
   }
-  const vocabulary = context.catalog.vocabulary;
+  return { values, recipes };
+}
+
+function checkDeclaredVocabulary(
+  values: Readonly<Record<string, DesignValue>>,
+  vocabulary: DesignSystemContext["catalog"]["vocabulary"],
+  c: Checks,
+): void {
   for (const [names, kind] of [
     [vocabulary.space, "spacing"],
     [vocabulary.radius, "radius"],
@@ -292,7 +319,14 @@ export function prepareDesignSystem(
   ] as const)
     for (const name of names)
       if (values[name]?.kind !== kind) c.reject(at("/values", name), `Expected declared ${kind} value`, "unknown-name");
-  // Validate every reference, including inherited recipes hidden by a variant/state overlay.
+}
+
+/** Validates every reference, including inherited recipes hidden by a variant/state overlay. */
+function checkReferences(
+  chain: readonly DesignSystem[],
+  values: Readonly<Record<string, DesignValue>>,
+  c: Checks,
+): void {
   for (const ds of chain)
     for (const [key, recipe] of Object.entries(ds.recipes))
       for (const [property, value] of Object.entries(recipe ?? {})) {
@@ -306,10 +340,44 @@ export function prepareDesignSystem(
         )
           c.reject(at(at("/recipes", key), property), `Expected a ${kind} value reference`, "unknown-name");
       }
-  const merged = { values, recipes };
+}
+
+/** Internal shared install pass: validate the chain, merge it, then check references. */
+export function prepareDesignSystem(
+  doc: unknown,
+  context: DesignSystemContext,
+): Result<{ values: Readonly<Record<string, DesignValue>>; recipes: Readonly<Partial<Record<RecipeKey, Recipe>>> }> {
+  const c = documentChecks();
+  const chain: DesignSystem[] = [];
+  const seen = new Set<string>();
+  let input = doc;
+  let base = "";
+  while (true) {
+    const current = checkDocument(input, base, c, context, seen);
+    if (!current) break;
+    chain.push(current);
+    if (current.extends === undefined) break;
+    const parent = current.extends;
+    if (typeof parent !== "string" || !Object.hasOwn(context.registry, parent)) {
+      c.reject(`${base}/extends`, "Unknown parent design system", "unknown-name");
+      break;
+    }
+    input = context.registry[parent];
+    base = at("/registry", parent);
+    if (isRecord(input) && input.id !== parent) {
+      c.reject(base, "Registry key must equal design-system id");
+      break;
+    }
+  }
+  if (c.errors.length) return { ok: false, errors: c.errors };
+  const ordered = chain.reverse();
+  const merged = mergeChain(ordered);
+  checkDeclaredVocabulary(merged.values, context.catalog.vocabulary, c);
+  checkReferences(ordered, merged.values, c);
   cascadeRecipes(merged, context.catalog, c.reject);
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: merged };
 }
+
 /** Validate before installing; returns the original document and at most 20 errors. */
 export function validateDesignSystem(doc: unknown, context: DesignSystemContext): Result<DesignSystem> {
   const result = prepareDesignSystem(doc, context);

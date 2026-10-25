@@ -9,6 +9,8 @@ const MAX_DEPTH = 128;
 /**
  * Rejects non-JSON data at once, naming the key: a function prop, a promise, a non-finite
  * number, a class instance, a cycle. The value never reaches a widget's tree this way.
+ * Its own walk (not the shared one) because it throws a `TypeError` at the first bad value
+ * instead of collecting bounded errors, and it runs before a render, not on one.
  */
 function assertJson(value: unknown, path: string, ancestors = new Set<object>(), depth = 0): void {
   if (value === null || typeof value === "string" || typeof value === "boolean") return;

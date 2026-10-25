@@ -73,68 +73,91 @@ export const themeSchema = {
   },
 };
 
+type Checks = ReturnType<typeof documentChecks>;
+
 /** Validates a resolved theme against an installed vocabulary, collecting up to 20 errors. */
 export function validateTheme(doc: unknown, vocabulary: Vocabulary): Result<Theme> {
   const c = documentChecks();
   if (!isRecord(doc)) c.reject("", "Expected a theme object");
   else {
     c.collect(checkValue(fields, shell(doc, ["colours", "typography"])), "");
-    for (const key of ["colours", "typography"] as const) {
-      const values = doc[key];
-      const roles = vocabulary[key === "colours" ? "colourRoles" : "typographyRoles"];
-      const declared = new Set(roles);
-      if (!isRecord(values)) {
-        c.reject(`/${key}`, "Expected a role map");
-        continue;
-      }
-      if (Object.keys(values).length > 256) {
-        c.reject(`/${key}`, "Expected at most 256 roles");
-        continue;
-      }
-      for (const role of roles)
-        if (!Object.hasOwn(values, role)) c.reject(at(`/${key}`, role), "Missing declared role", "unknown-name");
-      for (const [role, entry] of Object.entries(values)) {
-        if (c.errors.length >= 20) break;
-        const pointer = at(`/${key}`, role);
-        c.collect(checkValue(roleName, role), pointer);
-        if (!declared.has(role)) c.reject(pointer, "Undeclared role", "unknown-name");
-        if (!isRecord(entry)) {
-          c.reject(pointer, "Expected a role value object");
-          continue;
-        }
-        if (key === "colours") {
-          c.collect(checkValue(colourFields, shell(entry, ["components"])), pointer);
-          if (!Array.isArray(entry.components) || entry.components.length !== 3) {
-            c.reject(`${pointer}/components`, "Expected exactly three components");
-            continue;
-          }
-          if (typeof entry.colorSpace !== "string" || !Object.hasOwn(colourRanges, entry.colorSpace)) continue;
-          const ranges = colourRanges[entry.colorSpace as Colour["colorSpace"]];
-          for (const [i, range] of ranges.entries()) {
-            const value = entry.components[i];
-            if (value === "none") continue;
-            c.collect(
-              checkValue("exclusiveMaximum" in range ? num({ minimum: range.minimum }) : range, value),
-              `${pointer}/components/${i}`,
-            );
-            if ("exclusiveMaximum" in range && typeof value === "number" && value >= range.exclusiveMaximum)
-              c.reject(`${pointer}/components/${i}`, "Expected a hue below 360 degrees");
-          }
-        } else {
-          c.collect(checkValue(typographyFields, shell(entry, ["fontFamily", "fontWeight"])), pointer);
-          c.collect(
-            checkValue(Array.isArray(entry.fontFamily) ? fontList : fontName, entry.fontFamily),
-            `${pointer}/fontFamily`,
-          );
-          if (Array.isArray(entry.fontFamily) && !entry.fontFamily.length)
-            c.reject(`${pointer}/fontFamily`, "Expected at least one font name");
-          c.collect(
-            checkValue(typeof entry.fontWeight === "number" ? fontWeightNumber : fontWeightAlias, entry.fontWeight),
-            `${pointer}/fontWeight`,
-          );
-        }
-      }
-    }
+    checkRoleMap("colours", doc.colours, vocabulary.colourRoles, c);
+    checkRoleMap("typography", doc.typography, vocabulary.typographyRoles, c);
   }
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: doc as Theme };
+}
+
+/** One role map: every declared role present, then every entry's own value. */
+function checkRoleMap(key: "colours" | "typography", values: unknown, roles: readonly string[], c: Checks): void {
+  if (!isRecord(values)) {
+    c.reject(`/${key}`, "Expected a role map");
+    return;
+  }
+  if (Object.keys(values).length > 256) {
+    c.reject(`/${key}`, "Expected at most 256 roles");
+    return;
+  }
+  const declared = new Set(roles);
+  for (const role of roles)
+    if (!Object.hasOwn(values, role)) c.reject(at(`/${key}`, role), "Missing declared role", "unknown-name");
+  for (const [role, entry] of Object.entries(values)) {
+    if (c.errors.length >= 20) break;
+    checkRole(key, role, entry, declared, c);
+  }
+}
+
+function checkRole(
+  key: "colours" | "typography",
+  role: string,
+  entry: unknown,
+  declared: ReadonlySet<string>,
+  c: Checks,
+): void {
+  const pointer = at(`/${key}`, role);
+  c.collect(checkValue(roleName, role), pointer);
+  if (!declared.has(role)) c.reject(pointer, "Undeclared role", "unknown-name");
+  if (!isRecord(entry)) {
+    c.reject(pointer, "Expected a role value object");
+    return;
+  }
+  if (key === "colours") checkColour(entry, pointer, c);
+  else checkTypography(entry, pointer, c);
+}
+
+function checkColour(entry: Record<string, unknown>, pointer: string, c: Checks): void {
+  c.collect(checkValue(colourFields, shell(entry, ["components"])), pointer);
+  if (!Array.isArray(entry.components) || entry.components.length !== 3) {
+    c.reject(`${pointer}/components`, "Expected exactly three components");
+    return;
+  }
+  if (typeof entry.colorSpace !== "string" || !Object.hasOwn(colourRanges, entry.colorSpace)) return;
+  const ranges = colourRanges[entry.colorSpace as Colour["colorSpace"]];
+  for (const [i, range] of ranges.entries())
+    checkComponent(range, entry.components[i], `${pointer}/components/${i}`, c);
+}
+
+function checkComponent(
+  range: (typeof colourRanges)[Colour["colorSpace"]][number],
+  value: unknown,
+  pointer: string,
+  c: Checks,
+): void {
+  if (value === "none") return;
+  c.collect(checkValue("exclusiveMaximum" in range ? num({ minimum: range.minimum }) : range, value), pointer);
+  if ("exclusiveMaximum" in range && typeof value === "number" && value >= range.exclusiveMaximum)
+    c.reject(pointer, "Expected a hue below 360 degrees");
+}
+
+function checkTypography(entry: Record<string, unknown>, pointer: string, c: Checks): void {
+  c.collect(checkValue(typographyFields, shell(entry, ["fontFamily", "fontWeight"])), pointer);
+  c.collect(
+    checkValue(Array.isArray(entry.fontFamily) ? fontList : fontName, entry.fontFamily),
+    `${pointer}/fontFamily`,
+  );
+  if (Array.isArray(entry.fontFamily) && !entry.fontFamily.length)
+    c.reject(`${pointer}/fontFamily`, "Expected at least one font name");
+  c.collect(
+    checkValue(typeof entry.fontWeight === "number" ? fontWeightNumber : fontWeightAlias, entry.fontWeight),
+    `${pointer}/fontWeight`,
+  );
 }

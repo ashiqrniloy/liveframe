@@ -1,7 +1,7 @@
 import type { Definition, PropSchema } from "../catalog/define.ts";
 import type { definitions } from "../catalog/definitions.ts";
 import type { ColourRole, TypographyRole } from "../styles/types.ts";
-import { type Breakpoint, fillableRoles, type RadiusName, type SizeName, valueNames } from "../styles/types.ts";
+import type { Breakpoint, fillableRoles, RadiusName, SizeName, valueNames } from "../styles/types.ts";
 
 export type Json = null | boolean | number | string | readonly Json[] | { readonly [key: string]: Json };
 export type Intent =

@@ -133,6 +133,7 @@ export function compileTree(
     }
     if (errors.length) return { ok: false, errors };
 
+    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: the tree walk's branches are its budget checks (nodes, depth, child width); splitting it would add a call per node on the bench-gated path (`bun run bench`, ≤ 3 µs/node).
     function walk(value: unknown, mode: Mode, depth: number, parentId: string, parentKind: string): undefined {
       if (stopped) return;
       // A JSON value is checked and byte-counted by the shared piece; it contains no nodes.

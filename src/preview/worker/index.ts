@@ -54,22 +54,79 @@ export function workerRunner(defaults: { timeoutMs?: number; maxPackages?: numbe
     settle({ ok: false, errors: [{ kind, pointer: "", message, ...(expected === undefined ? {} : { expected }) }] });
   }
 
+  /** Why this render cannot start, if it cannot. */
+  function refusal(pkg: WidgetPackage): Result<never> | undefined {
+    if (closed) return { ok: false, errors: [{ kind: "render-failed", pointer: "", message: "Runner closed" }] };
+    if (verifyPackageHash(pkg)) return undefined;
+    return {
+      ok: false,
+      errors: [{ kind: "hash-mismatch", pointer: "/hash", message: "Package content does not match its hash" }],
+    };
+  }
+
+  /** A worker result is only accepted after the host re-validates its tree. */
+  function validateResult(result: Result<UiTree>, pkg: WidgetPackage, options: RunnerOptions): Result<UiTree> {
+    if (!result.ok) return result;
+    try {
+      const validator = compiledValidator({ ...options, manifest: pkg.manifest }, pkg.hash);
+      return validator.validateTree(result.value, options.limits ? { limits: options.limits } : undefined);
+    } catch (error) {
+      return { ok: false, errors: [{ kind: "render-failed", pointer: "", message: reason(error) }] };
+    }
+  }
+
+  /** Wires a fresh worker: results by id, crashes, and exits all recycle it. */
+  function attach(current: Worker): void {
+    current.onmessage = ({ data }: MessageEvent<WorkerMessage>) => {
+      if (worker !== current || data.type !== "result") return;
+      const active = pending;
+      if (!active || data.id !== active.id) {
+        stop("render-failed", "Worker answered a render it was not asked for", "one result for the pending render id");
+        return;
+      }
+      const validated = active.validate(data.result);
+      // A crashed realm or a tree the host rejects is not reused.
+      if (
+        (data.result.ok && !validated.ok) ||
+        (!data.result.ok && data.result.errors.some((error) => error.kind === "render-failed"))
+      )
+        recycle();
+      settle(validated);
+    };
+    current.onerror = (event) => {
+      event.preventDefault();
+      if (worker === current) stop("render-failed", event.message || "Worker error");
+    };
+    current.addEventListener("close", () => {
+      if (worker === current) stop("render-failed", "Worker exited");
+    });
+  }
+
+  /** Starts or reuses the worker, sends it the configuration it lacks, then the render. */
+  function send(pkg: WidgetPackage, inputs: Parameters<Runner["render"]>[1], options: RunnerOptions, id: number): void {
+    if (!loaded.has(pkg.hash) && loaded.size >= maxPackages) recycle();
+    loaded.add(pkg.hash);
+    if (!worker) {
+      const current = new Worker(new URL("./entry.ts", import.meta.url));
+      worker = current;
+      attach(current);
+    }
+    const { catalog, capabilities, ...renderOptions } = options;
+    if (configuration?.catalog !== catalog || configuration?.capabilities !== capabilities) {
+      worker.postMessage({ type: "configure", catalog, capabilities } satisfies WorkerMessage);
+      configuration = { catalog, capabilities };
+    }
+    worker.postMessage({ type: "render", id, pkg, inputs, options: renderOptions } satisfies WorkerMessage);
+  }
+
   return {
     render(pkg, inputs, options) {
       const result = queue.then(
         () =>
           new Promise<Result<UiTree>>((resolve) => {
-            if (closed) {
-              resolve({ ok: false, errors: [{ kind: "render-failed", pointer: "", message: "Runner closed" }] });
-              return;
-            }
-            if (!verifyPackageHash(pkg)) {
-              resolve({
-                ok: false,
-                errors: [
-                  { kind: "hash-mismatch", pointer: "/hash", message: "Package content does not match its hash" },
-                ],
-              });
+            const refused = refusal(pkg);
+            if (refused) {
+              resolve(refused);
               return;
             }
             const id = nextId++;
@@ -81,56 +138,10 @@ export function workerRunner(defaults: { timeoutMs?: number; maxPackages?: numbe
                 clearTimeout(timer);
                 resolve(result);
               },
-              validate: (result) => {
-                if (!result.ok) return result;
-                try {
-                  const validator = compiledValidator({ ...options, manifest: pkg.manifest }, pkg.hash);
-                  return validator.validateTree(result.value, options.limits ? { limits: options.limits } : undefined);
-                } catch (error) {
-                  return { ok: false, errors: [{ kind: "render-failed", pointer: "", message: reason(error) }] };
-                }
-              },
+              validate: (result) => validateResult(result, pkg, options),
             };
             try {
-              if (!loaded.has(pkg.hash) && loaded.size >= maxPackages) recycle();
-              loaded.add(pkg.hash);
-              if (!worker) {
-                const current = new Worker(new URL("./entry.ts", import.meta.url));
-                worker = current;
-                current.onmessage = ({ data }: MessageEvent<WorkerMessage>) => {
-                  if (worker !== current || data.type !== "result") return;
-                  const active = pending;
-                  if (!active || data.id !== active.id) {
-                    stop(
-                      "render-failed",
-                      "Worker answered a render it was not asked for",
-                      "one result for the pending render id",
-                    );
-                    return;
-                  }
-                  const validated = active.validate(data.result);
-                  // A crashed realm or a tree the host rejects is not reused.
-                  if (
-                    (data.result.ok && !validated.ok) ||
-                    (!data.result.ok && data.result.errors.some((error) => error.kind === "render-failed"))
-                  )
-                    recycle();
-                  settle(validated);
-                };
-                current.onerror = (event) => {
-                  event.preventDefault();
-                  if (worker === current) stop("render-failed", event.message || "Worker error");
-                };
-                current.addEventListener("close", () => {
-                  if (worker === current) stop("render-failed", "Worker exited");
-                });
-              }
-              const { catalog, capabilities, ...renderOptions } = options;
-              if (configuration?.catalog !== catalog || configuration?.capabilities !== capabilities) {
-                worker.postMessage({ type: "configure", catalog, capabilities } satisfies WorkerMessage);
-                configuration = { catalog, capabilities };
-              }
-              worker.postMessage({ type: "render", id, pkg, inputs, options: renderOptions } satisfies WorkerMessage);
+              send(pkg, inputs, options, id);
             } catch (error) {
               stop("render-failed", reason(error));
             }

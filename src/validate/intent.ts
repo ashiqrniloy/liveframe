@@ -2,7 +2,7 @@ import { at, type Capabilities, isRecord } from "../formats/capabilities.ts";
 import type { Definition } from "../formats/catalog.ts";
 import type { Manifest } from "../formats/manifest.ts";
 import { closed, field, reject } from "./checks.ts";
-import { compileSchema, type SchemaCheck } from "./schema.ts";
+import { compileSchema, type SchemaCheck, type SchemaSink } from "./schema.ts";
 
 const stateFields = new Set(["type", "key", "value"]);
 const actionFields = new Set(["type", "name", "args", "bind"]);
@@ -34,48 +34,52 @@ export function compileIntents(capabilities: Capabilities, manifest: Manifest): 
   );
   const stateExpected = `a declared state key: ${[...states.keys()].join(", ") || "none"}`;
   const actionExpected = `an action in the manifest: ${[...actions.keys()].join(", ") || "none"}`;
+
+  function checkSetState(value: Record<string, unknown>, carries: Carries, sink: SchemaSink): boolean {
+    let valid = closed(value, stateFields, sink);
+    const state = typeof value.key === "string" && Object.hasOwn(value, "key") ? states.get(value.key) : undefined;
+    if (!state) return reject(sink, "/key", stateExpected);
+    if (Object.hasOwn(value, "value")) {
+      if (!field(state.check, value.value, sink, "value")) valid = false;
+    } else if (carries === "none" || carries !== state.type)
+      valid = reject(sink, "/value", `an explicit ${state.type} value, or an event carrying ${state.type}`);
+    return valid;
+  }
+
+  const bindExpected = (action: { bindings: Map<string, { type: string }> }, carries: Carries) => {
+    const compatible = [...action.bindings]
+      .filter(([, argument]) => carries !== "none" && argument.type === carries)
+      .map(([key]) => key);
+    return compatible.length
+      ? `one of: ${compatible.join(", ")} (event carries ${carries})`
+      : `omit bind: no compatible arguments (event carries ${carries})`;
+  };
+
+  function checkAction(value: Record<string, unknown>, carries: Carries, sink: SchemaSink): boolean {
+    let valid = closed(value, actionFields, sink);
+    const action = typeof value.name === "string" && Object.hasOwn(value, "name") ? actions.get(value.name) : undefined;
+    if (!action) return reject(sink, "/name", actionExpected, "undeclared-action");
+    if (!Object.hasOwn(value, "args") || !isRecord(value.args))
+      return reject(sink, "/args", "an object of action arguments");
+    let check = action.check;
+    if (Object.hasOwn(value, "bind")) {
+      const bound = typeof value.bind === "string" ? value.bind : "";
+      const binding = action.bindings.get(bound);
+      if (!binding || carries === "none" || binding.type !== carries)
+        return reject(sink, "/bind", bindExpected(action, carries));
+      if (Object.hasOwn(value.args, bound))
+        valid = reject(sink, at("/args", bound), "the bound argument omitted from args");
+      check = binding.check;
+    }
+    if (!field(check, value.args, sink, "args")) valid = false;
+    return valid;
+  }
+
   return (carries) => (value, path, sink) => {
     if (!isRecord(value)) return reject(sink, path, "one setState or action intent");
     if (!Object.hasOwn(value, "type")) return reject(sink, "/type", "intent type setState or action");
-    if (value.type === "setState") {
-      let valid = closed(value, stateFields, sink);
-      const state = typeof value.key === "string" && Object.hasOwn(value, "key") ? states.get(value.key) : undefined;
-      if (!state) return reject(sink, "/key", stateExpected);
-      if (Object.hasOwn(value, "value")) {
-        if (!field(state.check, value.value, sink, "value")) valid = false;
-      } else if (carries === "none" || carries !== state.type)
-        valid = reject(sink, "/value", `an explicit ${state.type} value, or an event carrying ${state.type}`);
-      return valid;
-    }
-    if (value.type === "action") {
-      let valid = closed(value, actionFields, sink);
-      const action =
-        typeof value.name === "string" && Object.hasOwn(value, "name") ? actions.get(value.name) : undefined;
-      if (!action) return reject(sink, "/name", actionExpected, "undeclared-action");
-      if (!Object.hasOwn(value, "args") || !isRecord(value.args))
-        return reject(sink, "/args", "an object of action arguments");
-      let check = action.check;
-      if (Object.hasOwn(value, "bind")) {
-        const binding = typeof value.bind === "string" ? action.bindings.get(value.bind) : undefined;
-        if (!binding || carries === "none" || binding.type !== carries) {
-          const compatible = [...action.bindings]
-            .filter(([, argument]) => carries !== "none" && argument.type === carries)
-            .map(([key]) => key);
-          return reject(
-            sink,
-            "/bind",
-            compatible.length
-              ? `one of: ${compatible.join(", ")} (event carries ${carries})`
-              : `omit bind: no compatible arguments (event carries ${carries})`,
-          );
-        }
-        if (Object.hasOwn(value.args, value.bind as string))
-          valid = reject(sink, at("/args", value.bind as string), "the bound argument omitted from args");
-        check = binding.check;
-      }
-      if (!field(check, value.args, sink, "args")) valid = false;
-      return valid;
-    }
+    if (value.type === "setState") return checkSetState(value, carries, sink);
+    if (value.type === "action") return checkAction(value, carries, sink);
     return reject(sink, "/type", "intent type setState or action");
   };
 }

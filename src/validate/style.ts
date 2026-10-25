@@ -2,13 +2,36 @@ import { isRecord } from "../formats/capabilities.ts";
 import { styleProps } from "../formats/fixed.ts";
 import type { Vocabulary } from "../formats/vocabulary.ts";
 import { field, reject } from "./checks.ts";
-import type { SchemaCheck } from "./schema.ts";
+import type { SchemaCheck, SchemaSink } from "./schema.ts";
 
 type StyleProp = (typeof styleProps)[number];
 function choices(values: readonly string[]): SchemaCheck {
   const names = new Set(values);
   const expected = `one of: ${values.join(", ") || "no declared values"}`;
   return (value, at, sink) => (typeof value === "string" && names.has(value)) || reject(sink, at, expected);
+}
+
+/** A responsive value: `base` first, then only declared breakpoints, each checked by `check`. */
+function checkBreakpointMap(
+  value: Record<string, unknown>,
+  check: SchemaCheck,
+  at: string,
+  breakpoints: ReadonlySet<string>,
+  expected: string,
+  sink: SchemaSink,
+): boolean {
+  let first = true;
+  let valid = Object.hasOwn(value, "base") || reject(sink, at, expected);
+  for (const key in value) {
+    if (!Object.hasOwn(value, key)) continue;
+    if (first && key !== "base") valid = reject(sink, at, expected);
+    first = false;
+    if (!breakpoints.has(key))
+      valid = reject(sink, `${at}/${key.replaceAll("~", "~0").replaceAll("/", "~1")}`, expected);
+    else if (!field(check, value[key], sink, key)) valid = false;
+    if (!valid && sink.errors.length >= sink.maxErrors) break;
+  }
+  return valid;
 }
 
 export function compileStyles(vocabulary: Vocabulary): ReadonlyMap<StyleProp, SchemaCheck> {
@@ -98,21 +121,10 @@ export function compileStyles(vocabulary: Vocabulary): ReadonlyMap<StyleProp, Sc
   return new Map(
     styleProps.map((prop) => {
       const check = scalar[prop];
-      const responsive: SchemaCheck = (value, at, sink) => {
-        if (!isRecord(value)) return check(value, at, sink);
-        let first = true;
-        let valid = Object.hasOwn(value, "base") || reject(sink, at, breakpointExpected);
-        for (const key in value) {
-          if (!Object.hasOwn(value, key)) continue;
-          if (first && key !== "base") valid = reject(sink, at, breakpointExpected);
-          first = false;
-          if (!breakpoints.has(key))
-            valid = reject(sink, `${at}/${key.replaceAll("~", "~0").replaceAll("/", "~1")}`, breakpointExpected);
-          else if (!field(check, value[key], sink, key)) valid = false;
-          if (!valid && sink.errors.length >= sink.maxErrors) break;
-        }
-        return valid;
-      };
+      const responsive: SchemaCheck = (value, at, sink) =>
+        isRecord(value)
+          ? checkBreakpointMap(value, check, at, breakpoints, breakpointExpected, sink)
+          : check(value, at, sink);
       return [prop, responsive];
     }),
   );

@@ -5,7 +5,7 @@ import { type Manifest, validateManifest } from "../formats/manifest.ts";
 import type { LanguageSchema } from "../schema.ts";
 import { closed, field, reject } from "./checks.ts";
 import { compileIntents } from "./intent.ts";
-import { compileSchema, type SchemaCheck } from "./schema.ts";
+import { compileSchema, type SchemaCheck, type SchemaSink } from "./schema.ts";
 import { type ChildRules, type CompiledStructure, compileStructure } from "./structure.ts";
 import { compileStyles } from "./style.ts";
 import { compileTree, type TreeValidator } from "./tree.ts";
@@ -54,6 +54,50 @@ export function buildFacts(validator: CompiledValidator): CompiledBuild {
   if (!facts) throw new LiveframeFailure([{ kind: "invalid-document", pointer: "", message: "Unknown validator" }]);
   return facts;
 }
+type NodeCheckSpec = {
+  readonly fields: ReadonlySet<string>;
+  readonly props: SchemaCheck;
+  readonly style: SchemaCheck;
+  readonly events: SchemaCheck;
+  readonly variants: ReadonlySet<string>;
+  readonly variantExpected: string;
+};
+
+/** One kind's node check; the dispatcher has already checked the node object and its kind. */
+function nodeCheck(spec: NodeCheckSpec): SchemaCheck {
+  return (value, _path, sink) => {
+    const node = value as Record<string, unknown>;
+    let valid = closed(node, spec.fields, sink);
+    if (!Object.hasOwn(node, "id") || typeof node.id !== "string" || node.id.length === 0)
+      valid = reject(sink, "/id", "a non-empty key-path id");
+    if (Object.hasOwn(node, "variant") && (typeof node.variant !== "string" || !spec.variants.has(node.variant)))
+      valid = reject(sink, "/variant", spec.variantExpected);
+    if (!field(spec.props, Object.hasOwn(node, "props") ? node.props : undefined, sink, "props")) valid = false;
+    if (Object.hasOwn(node, "style") && !field(spec.style, node.style, sink, "style")) valid = false;
+    if (Object.hasOwn(node, "events") && !field(spec.events, node.events, sink, "events")) valid = false;
+    if (Object.hasOwn(node, "children") && !Array.isArray(node.children))
+      valid = reject(sink, "/children", "an array of child nodes", "invalid-children");
+    return valid;
+  };
+}
+
+/** Moves a node's failures to its tree path, attributing them to the node's own id. */
+function rebaseErrors(sink: SchemaSink, start: number, path: string, node: unknown): void {
+  for (let i = start; i < sink.errors.length; i++) {
+    const error = sink.errors[i];
+    if (error)
+      sink.errors[i] = {
+        ...error,
+        pointer: path + error.pointer,
+        ...(isRecord(node) && typeof node.id === "string"
+          ? { nodeId: node.id }
+          : sink.nodeId === undefined
+            ? {}
+            : { nodeId: sink.nodeId }),
+      };
+  }
+}
+
 const fields = new Set(["id", "kind", "variant", "props", "style", "events", "children"]);
 
 /** Validate installed documents once, then compile specialised per-kind checks. */
@@ -113,21 +157,17 @@ function compile(catalog: Catalog, capabilities: Capabilities, manifest: Manifes
       }
       return valid;
     };
-    kinds.set(definition.kind, (value, _path, sink) => {
-      // The dispatcher has already checked the node object and kind.
-      const node = value as Record<string, unknown>;
-      let valid = closed(node, fields, sink);
-      if (!Object.hasOwn(node, "id") || typeof node.id !== "string" || node.id.length === 0)
-        valid = reject(sink, "/id", "a non-empty key-path id");
-      if (Object.hasOwn(node, "variant") && (typeof node.variant !== "string" || !variants.has(node.variant)))
-        valid = reject(sink, "/variant", variantExpected);
-      if (!field(props, Object.hasOwn(node, "props") ? node.props : undefined, sink, "props")) valid = false;
-      if (Object.hasOwn(node, "style") && !field(style, node.style, sink, "style")) valid = false;
-      if (Object.hasOwn(node, "events") && !field(eventMap, node.events, sink, "events")) valid = false;
-      if (Object.hasOwn(node, "children") && !Array.isArray(node.children))
-        valid = reject(sink, "/children", "an array of child nodes", "invalid-children");
-      return valid;
-    });
+    kinds.set(
+      definition.kind,
+      nodeCheck({
+        fields,
+        props,
+        style,
+        events: eventMap,
+        variants,
+        variantExpected,
+      }),
+    );
   }
   const kindExpected = `a catalog kind: ${[...kinds.keys()].join(", ")}`;
   const checkNode: SchemaCheck = (node, path, sink) => {
@@ -138,20 +178,7 @@ function compile(catalog: Catalog, capabilities: Capabilities, manifest: Manifes
       const check = Object.hasOwn(node, "kind") && typeof node.kind === "string" ? kinds.get(node.kind) : undefined;
       valid = check ? check(node, "", sink) : reject(sink, "/kind", kindExpected, "unknown-component");
     }
-    if (!valid)
-      for (let i = start; i < sink.errors.length; i++) {
-        const error = sink.errors[i];
-        if (error)
-          sink.errors[i] = {
-            ...error,
-            pointer: path + error.pointer,
-            ...(isRecord(node) && typeof node.id === "string"
-              ? { nodeId: node.id }
-              : sink.nodeId === undefined
-                ? {}
-                : { nodeId: sink.nodeId }),
-          };
-      }
+    if (!valid) rebaseErrors(sink, start, path, node);
     return valid;
   };
   const dataProperties: Record<string, LanguageSchema> = {};

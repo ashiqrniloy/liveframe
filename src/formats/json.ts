@@ -2,11 +2,26 @@ import type { Result } from "../errors.ts";
 import { at, documentChecks } from "./capabilities.ts";
 import type { Json } from "./tree.ts";
 
-/** Checks JSON values without recursion, including cycles and values JSON.stringify would discard. */
+type Entry = { value: unknown; pointer: string; exit?: boolean };
+
+/** Children pushed last-first, so popping walks them in document order. */
+function pushChildren(value: object, pointer: string, pending: Entry[]): void {
+  if (Array.isArray(value)) {
+    for (let i = value.length - 1; i >= 0; i--) pending.push({ value: value[i], pointer: at(pointer, i) });
+    return;
+  }
+  for (const [key, child] of Object.entries(value).reverse()) pending.push({ value: child, pointer: at(pointer, key) });
+}
+
+/**
+ * Checks JSON values without recursion, including cycles and values JSON.stringify would discard.
+ * Its own stack-based walk (not the shared recursive one) because it collects bounded pointed
+ * errors, while render's predicate answers yes/no and the hash walk counts bytes.
+ */
 export function validateJson(doc: unknown): Result<Json> {
   const c = documentChecks();
   const ancestors = new Set<object>();
-  const pending: { value: unknown; pointer: string; exit?: boolean }[] = [{ value: doc, pointer: "" }];
+  const pending: Entry[] = [{ value: doc, pointer: "" }];
   while (pending.length && c.errors.length < 20) {
     const entry = pending.pop();
     if (!entry) break;
@@ -28,13 +43,7 @@ export function validateJson(doc: unknown): Result<Json> {
     }
     ancestors.add(value);
     pending.push({ value, pointer, exit: true });
-    if (Array.isArray(value)) {
-      for (let i = value.length - 1; i >= 0; i--) pending.push({ value: value[i], pointer: at(pointer, i) });
-    } else {
-      for (const [key, child] of Object.entries(value).reverse()) {
-        pending.push({ value: child, pointer: at(pointer, key) });
-      }
-    }
+    pushChildren(value, pointer, pending);
   }
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: doc as Json };
 }

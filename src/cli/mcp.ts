@@ -8,7 +8,8 @@ import packageDoc from "../../schemas/widget-package.json" with { type: "json" }
 import { type Capabilities, isRecord, validateCapabilities } from "../formats/capabilities.ts";
 import { type Catalog, validateCatalog } from "../formats/catalog.ts";
 import { type WidgetPackage, validateScenario } from "../formats/package.ts";
-import { type LiveframeError, type Result } from "../index.ts";
+import type { UiTree } from "../formats/tree.ts";
+import type { LiveframeError, Result } from "../index.ts";
 import { validateJson } from "../formats/json.ts";
 import { validateManifestShape } from "../formats/manifest.ts";
 import type { Json, UiNode } from "../formats/tree.ts";
@@ -252,6 +253,32 @@ type ScenarioStatus =
   | { scenario: string; ok: true; nodes: number }
   | (LiveframeError & { ok: false; scenarios: string[] });
 
+/** Every scenario's status; identical errors are reported once, naming the scenarios that share them. */
+function checkAll(
+  results: readonly { readonly scenario: string; readonly result: Result<UiTree> }[],
+): ScenarioStatus[] {
+  const statuses: ScenarioStatus[] = [];
+  const shared = new Map<string, ScenarioStatus & { ok: false }>();
+  for (const { scenario: name, result } of results) {
+    if (result.ok) {
+      statuses.push({ scenario: name, ok: true, nodes: nodes(result.value.root) });
+      continue;
+    }
+    for (const error of result.errors) {
+      const id = `${error.kind}\u0000${error.pointer}\u0000${error.message}`;
+      const existing = shared.get(id);
+      if (existing) {
+        if (!existing.scenarios.includes(name)) existing.scenarios.push(name);
+        continue;
+      }
+      const entry: ScenarioStatus & { ok: false } = { ...error, ok: false, scenarios: [name] };
+      shared.set(id, entry);
+      statuses.push(entry);
+    }
+  }
+  return statuses;
+}
+
 /** What the draft and capture tools share: the one session, the last good package, the bound page. */
 function createAuthoring({
   config,
@@ -324,6 +351,32 @@ function registerDraftTools(
 ): void {
   const { session } = authoring;
   const schema = (value: object) => value as Parameters<Sdk["fromJsonSchema"]>[0];
+
+  /** One scenario's tree, refused when its JSON would exceed the tool-result limit. */
+  async function renderOne(input: RenderInput) {
+    const { scenario, state, context } = input;
+    if (scenario === undefined)
+      return failure([{ kind: "not-found", pointer: "/scenario", message: "Unknown scenario" }]);
+    const result = await session.render({
+      scenario,
+      ...(state === undefined ? {} : { state }),
+      ...(context === undefined ? {} : { context }),
+    });
+    if (!result.ok) return failure(result.errors);
+    const body = JSON.stringify(result.value);
+    const size = Buffer.byteLength(body, "utf8");
+    if (size > MAX_TREE_BYTES)
+      return failure([
+        {
+          kind: "limit-exceeded",
+          pointer: "/scenario",
+          message: `Scenario "${scenario}" rendered ${size} bytes, over the ${MAX_TREE_BYTES}-byte limit`,
+          expected: `a tree of at most ${MAX_TREE_BYTES} bytes`,
+        },
+      ]);
+    return { content: [{ type: "text" as const, text: body }] };
+  }
+
   server.registerTool(
     "pack_draft",
     {
@@ -352,51 +405,12 @@ function registerDraftTools(
       exclusive(async () => {
         const arguments_ = renderArguments(input);
         if (!arguments_.ok) return failure(arguments_.errors);
-        const { scenario, state, context } = arguments_.value;
         if (!authoring.package)
           return failure([{ kind: "not-found", pointer: "", message: "Call pack_draft before render_scenarios" }]);
-        if (scenario !== undefined) {
-          const result = await session.render({
-            scenario,
-            ...(state === undefined ? {} : { state }),
-            ...(context === undefined ? {} : { context }),
-          });
-          if (!result.ok) return failure(result.errors);
-          const body = JSON.stringify(result.value);
-          const size = Buffer.byteLength(body, "utf8");
-          if (size > MAX_TREE_BYTES)
-            return failure([
-              {
-                kind: "limit-exceeded",
-                pointer: "/scenario",
-                message: `Scenario "${scenario}" rendered ${size} bytes, over the ${MAX_TREE_BYTES}-byte limit`,
-                expected: `a tree of at most ${MAX_TREE_BYTES} bytes`,
-              },
-            ]);
-          return { content: [{ type: "text" as const, text: body }] };
-        }
+        if (arguments_.value.scenario !== undefined) return renderOne(arguments_.value);
         const checked = await session.check();
         if (!checked.ok) return failure(checked.errors);
-        const statuses: ScenarioStatus[] = [];
-        const shared = new Map<string, ScenarioStatus & { ok: false }>();
-        for (const { scenario: name, result } of checked.value) {
-          if (result.ok) {
-            statuses.push({ scenario: name, ok: true, nodes: nodes(result.value.root) });
-            continue;
-          }
-          for (const error of result.errors) {
-            const id = `${error.kind}\u0000${error.pointer}\u0000${error.message}`;
-            const existing = shared.get(id);
-            if (existing) {
-              if (!existing.scenarios.includes(name)) existing.scenarios.push(name);
-              continue;
-            }
-            const entry: ScenarioStatus & { ok: false } = { ...error, ok: false, scenarios: [name] };
-            shared.set(id, entry);
-            statuses.push(entry);
-          }
-        }
-        return text(statuses);
+        return text(checkAll(checked.value));
       }),
   );
 }

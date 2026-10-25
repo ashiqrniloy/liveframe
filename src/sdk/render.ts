@@ -100,21 +100,32 @@ export function render<P, S, D, C>(
    * Rejects a non-JSON value (function, promise, class instance, NaN, cycle) at its pointer, within
    * the depth bound every input walk uses. `composed` is a composed component's node id: its props
    * are data too, so a nested function or promise keeps its own kind (spec §7.1).
+   * A boolean predicate with no allocation (not the shared error-collecting walk): it runs once per
+   * value on the bench-gated render path.
    */
   function isJson(value: unknown, pointer: string, ancestors: Set<object>, composed?: string, depth = 0): boolean {
     const reject = (kind: LiveframeError["kind"], expected: string): false => {
       fail(kind, pointer + jsonPointer(), expected, composed);
       return false;
     };
-    if (typeof value === "function")
-      return reject(composed ? "function-prop" : "invalid-prop", "JSON data, not a function");
-    if (isThenable(value)) return reject(composed ? "async-render" : "invalid-prop", "JSON data, not a promise");
-    if (value === null || typeof value === "string" || typeof value === "boolean") return true;
-    if (typeof value === "number") {
-      if (Number.isFinite(value)) return true;
-      return reject("invalid-prop", "a finite number");
-    }
-    if (!Array.isArray(value) && !isRecord(value)) return reject("invalid-prop", "plain JSON data");
+    const shape = shapeOf(value);
+    if (shape === "json") return true;
+    if (shape === "function") return reject(composed ? "function-prop" : "invalid-prop", "JSON data, not a function");
+    if (shape === "promise") return reject(composed ? "async-render" : "invalid-prop", "JSON data, not a promise");
+    if (shape === "number") return reject("invalid-prop", "a finite number");
+    if (shape === "other") return reject("invalid-prop", "plain JSON data");
+    return isJsonContainer(value as object, pointer, ancestors, composed, depth, reject);
+  }
+
+  /** The recursion half of `isJson`: depth bound, cycle guard, then every child. */
+  function isJsonContainer(
+    value: object,
+    pointer: string,
+    ancestors: Set<object>,
+    composed: string | undefined,
+    depth: number,
+    reject: (kind: LiveframeError["kind"], expected: string) => false,
+  ): boolean {
     if (depth >= INPUT_DEPTH) return reject("invalid-prop", `data nested at most ${INPUT_DEPTH} deep`);
     if (ancestors.has(value)) return reject("invalid-prop", "acyclic data");
     ancestors.add(value);
@@ -129,16 +140,22 @@ export function render<P, S, D, C>(
       for (const key in value) {
         if (!Object.hasOwn(value, key)) continue;
         path.push(key);
-        const entryValid = isJson(value[key], pointer, ancestors, composed, depth + 1);
+        valid = isJson((value as Record<string, unknown>)[key], pointer, ancestors, composed, depth + 1);
         path.pop();
-        if (!entryValid) {
-          valid = false;
-          break;
-        }
+        if (!valid) break;
       }
     }
     ancestors.delete(value);
     return valid;
+  }
+
+  /** Cheapest-first classification of one value; `container` means a non-empty recursion is due. */
+  function shapeOf(value: unknown): "json" | "container" | "function" | "promise" | "number" | "other" {
+    if (value === null || typeof value === "string" || typeof value === "boolean") return "json";
+    if (typeof value === "number") return Number.isFinite(value) ? "json" : "number";
+    if (typeof value === "function") return "function";
+    if (isThenable(value)) return "promise";
+    return Array.isArray(value) || isRecord(value) ? "container" : "other";
   }
 
   /** Freezes in place: inputs are never copied, and frozen data cannot be mutated behind the widget. */
@@ -242,6 +259,7 @@ export function render<P, S, D, C>(
     emit(child as Element, parentId, parentKind, depth, list, siblings, out);
   }
 
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: one pass builds, validates and byte-counts each node as it emits it, so the budget is checked once per node; splitting it would add a call per node on the bench-gated path (`bun run bench`, ≤ 3 µs/node).
   function emit(
     start: Element,
     parentId: string | null,

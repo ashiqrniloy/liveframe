@@ -1,5 +1,15 @@
 import type { LiveframeError, Result } from "../errors.ts";
-import { bool, checkValue, type Infer, isLanguageSchema, type LanguageSchema, obj, record, str } from "../schema.ts";
+import {
+  bool,
+  checkValue,
+  type Infer,
+  isLanguageSchema,
+  isRecord,
+  type LanguageSchema,
+  obj,
+  record,
+  str,
+} from "../schema.ts";
 
 export type ObjectSchema = Extract<LanguageSchema, { readonly type: "object" }>;
 export const capabilityName = str({ maxLength: 128, pattern: "^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)*$" });
@@ -89,9 +99,7 @@ export function documentChecks() {
   }
   return { errors, reject, collect, map, schema };
 }
-export function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
+export { isRecord };
 export function at(pointer: string, key: string | number) {
   return `${pointer}/${String(key).replaceAll("~", "~0").replaceAll("/", "~1")}`;
 }

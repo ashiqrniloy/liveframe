@@ -7,7 +7,26 @@ function jsonString(value: string): string {
   return JSON.stringify(value);
 }
 
-/** RFC 8785: sort raw UTF-16 keys, retaining array order and ECMAScript primitives. */
+/** One container's members, pushed in reverse so the stack emits them in order. */
+function pushMembers(
+  item: object,
+  keys: readonly string[],
+  array: boolean,
+  pending: (string | { value: unknown })[],
+): void {
+  for (let i = keys.length - 1; i >= 0; i--) {
+    const key = keys[i] as string;
+    if (i < keys.length - 1) pending.push(",");
+    pending.push({ value: (item as Record<string, unknown>)[key] });
+    if (!array) pending.push(`${jsonString(key)}:`);
+  }
+}
+
+/**
+ * RFC 8785: sort raw UTF-16 keys, retaining array order and ECMAScript primitives.
+ * Byte-exact serialisation, not validation: its own walk because hashing needs the canonical text,
+ * while the validator collects errors and render only asks whether a value is JSON.
+ */
 export function canonicalJson(value: unknown): string {
   if (!validateJson(value).ok) throw new TypeError("Expected a JSON value");
   const output: string[] = [];
@@ -27,12 +46,7 @@ export function canonicalJson(value: unknown): string {
       const keys = array ? Array.from({ length: item.length }, (_, i) => String(i)) : Object.keys(item).sort();
       output.push(array ? "[" : "{");
       pending.push(array ? "]" : "}");
-      for (let i = keys.length - 1; i >= 0; i--) {
-        const key = keys[i] as string;
-        if (i < keys.length - 1) pending.push(",");
-        pending.push({ value: (item as Record<string, unknown>)[key] });
-        if (!array) pending.push(`${jsonString(key)}:`);
-      }
+      pushMembers(item, keys, array, pending);
     }
   }
   return output.join("");

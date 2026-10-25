@@ -46,6 +46,51 @@ export function createPreview({
     return result;
   }
 
+  /** Applies one `setState` intent to the current selection and renders it. */
+  async function setState(active: WidgetPackage, intent: Record<string, unknown>): Promise<Result<UiTree>> {
+    const { key } = intent;
+    if (typeof key !== "string" || !Object.hasOwn(active.manifest.state.properties, key))
+      return failure("invalid-prop", "/key", "Undeclared state key");
+    if (Object.keys(intent).some((field) => !["type", "key", "value"].includes(field)))
+      return failure("invalid-prop", "", "Unexpected intent field");
+    const schema = active.manifest.state.properties[key];
+    if (!schema) return failure("invalid-prop", "/key", "Undeclared state key");
+    const checked = checkValue(schema, intent.value);
+    if (!checked.ok)
+      return {
+        ok: false,
+        errors: checked.errors.map((error) => ({ ...error, kind: "invalid-prop", pointer: `/value${error.pointer}` })),
+      };
+    if (!current || !isRecord(current.state)) return failure("invalid-prop", "/state", "Expected object state");
+    current = {
+      ...current,
+      state: { ...current.state, [key]: JSON.parse(JSON.stringify(intent.value)) },
+    };
+    return run(active, current);
+  }
+
+  /** Applies one completed `action` intent: validate its arguments, log it, re-render nothing. */
+  async function action(intent: Record<string, unknown>): Promise<Result<UiTree>> {
+    const { name, args } = intent;
+    if (typeof name !== "string" || !pkg?.manifest.actions.includes(name) || !Object.hasOwn(capabilities.actions, name))
+      return failure("undeclared-action", "/name", "Undeclared action");
+    if (
+      Object.keys(intent).some((field) => !["type", "name", "args", "bind"].includes(field)) ||
+      intent.bind !== undefined
+    )
+      return failure("invalid-prop", "", "Expected a completed action");
+    const capability = capabilities.actions[name];
+    if (!capability) return failure("undeclared-action", "/name", "Undeclared action");
+    const checked = checkValue(capability.args, args);
+    if (!checked.ok)
+      return {
+        ok: false,
+        errors: checked.errors.map((error) => ({ ...error, kind: "invalid-prop", pointer: `/args${error.pointer}` })),
+      };
+    log = [...log, JSON.parse(JSON.stringify(intent)) as Intent];
+    return current?.result ?? failure("not-found", "", "No current render");
+  }
+
   return {
     update(draft: Parameters<typeof pack>[0]): Result<WidgetPackage> {
       const result = pack(draft, { catalog, capabilities });
@@ -74,45 +119,9 @@ export function createPreview({
     async intent(intent: Intent): Promise<Result<UiTree>> {
       if (!pkg || !current?.result) return failure("not-found", "", "No current render");
       if (!isRecord(intent)) return failure("invalid-prop", "", "Expected an intent");
-      if (intent.type === "setState") {
-        if (typeof intent.key !== "string" || !Object.hasOwn(pkg.manifest.state.properties, intent.key))
-          return failure("invalid-prop", "/key", "Undeclared state key");
-        if (Object.keys(intent).some((key) => !["type", "key", "value"].includes(key)))
-          return failure("invalid-prop", "", "Unexpected intent field");
-        const schema = pkg.manifest.state.properties[intent.key];
-        if (!schema) return failure("invalid-prop", "/key", "Undeclared state key");
-        const checked = checkValue(schema, intent.value);
-        if (!checked.ok)
-          return {
-            ok: false,
-            errors: checked.errors.map((error) => ({
-              ...error,
-              kind: "invalid-prop",
-              pointer: `/value${error.pointer}`,
-            })),
-          };
-        if (!isRecord(current.state)) return failure("invalid-prop", "/state", "Expected object state");
-        current = { ...current, state: { ...current.state, [intent.key]: JSON.parse(JSON.stringify(intent.value)) } };
-        return run(pkg, current);
-      }
+      if (intent.type === "setState") return setState(pkg, intent);
       if (intent.type !== "action") return failure("invalid-prop", "/type", "Unknown intent type");
-      if (!pkg.manifest.actions.includes(intent.name) || !Object.hasOwn(capabilities.actions, intent.name))
-        return failure("undeclared-action", "/name", "Undeclared action");
-      if (
-        Object.keys(intent).some((key) => !["type", "name", "args", "bind"].includes(key)) ||
-        intent.bind !== undefined
-      )
-        return failure("invalid-prop", "", "Expected a completed action");
-      const capability = capabilities.actions[intent.name];
-      if (!capability) return failure("undeclared-action", "/name", "Undeclared action");
-      const checked = checkValue(capability.args, intent.args);
-      if (!checked.ok)
-        return {
-          ok: false,
-          errors: checked.errors.map((error) => ({ ...error, kind: "invalid-prop", pointer: `/args${error.pointer}` })),
-        };
-      log = [...log, JSON.parse(JSON.stringify(intent))];
-      return current.result;
+      return action(intent);
     },
     intents(): readonly Intent[] {
       return log;

@@ -2,6 +2,8 @@ import type { Locator, Page } from "playwright";
 import { stateDeclarations, stateSelectors } from "../../css/design-system.ts";
 import { slotClass } from "../../css/names.ts";
 import { recipeDeclarations } from "../../css/recipe.ts";
+import type { Catalog } from "../../formats/catalog.ts";
+import type { DesignSystem } from "../../formats/design-system.ts";
 import { type UiTree, validateCatalog } from "../../index.ts";
 import { resolveRecipes } from "../../resolve.ts";
 import { check, ConformanceFailure } from "../case.ts";
@@ -18,6 +20,48 @@ export type StateFixtures = Readonly<
   >
 >;
 
+/** Every (kind, variant, state) that resolves to a state recipe, with the classes it must add. */
+type Recipes = ReturnType<typeof resolveRecipes>;
+
+/** Records one (kind, variant, state) that resolves to a state recipe. */
+function recordState(
+  required: Map<string, Set<string>>,
+  recipes: Recipes,
+  definition: Catalog["definitions"][number],
+  variant: string,
+  state: Exclude<keyof typeof stateSelectors, "rest">,
+): void {
+  const slots = definition.slots.filter((slot) => {
+    const prefix = `${definition.kind}.${variant}.${slot}` as const;
+    return (
+      stateDeclarations(recipes[`${prefix}.${state}`] ?? {}, recipeDeclarations(recipes[`${prefix}.rest`] ?? {})) !==
+      undefined
+    );
+  });
+  if (!slots.length) return;
+  const key = `${definition.kind}.${variant}.${state}`;
+  const classes = required.get(key) ?? new Set<string>();
+  // Root state propagates to every slot; a slot's own state applies only to itself.
+  for (const slot of ["root", ...slots]) classes.add(slotClass(definition.kind, variant, slot));
+  required.set(key, classes);
+}
+
+function requiredStates(
+  catalog: Catalog,
+  designSystems: PageOptions["designSystems"],
+  registry: Readonly<Record<string, DesignSystem>>,
+): Map<string, Set<string>> {
+  const required = new Map<string, Set<string>>();
+  for (const system of designSystems) {
+    const recipes = resolveRecipes(system, { catalog, registry });
+    for (const definition of catalog.definitions)
+      for (const variant of definition.variants)
+        for (const state of Object.keys(stateSelectors) as (keyof typeof stateSelectors)[])
+          if (state !== "rest") recordState(required, recipes, definition, variant, state);
+  }
+  return required;
+}
+
 export async function styledStates(
   options: PageOptions,
   fixtures: StateFixtures | undefined,
@@ -31,30 +75,7 @@ export async function styledStates(
   const registry = Object.fromEntries(
     options.designSystems.map((system) => [`${system.id}@${system.version}`, system]),
   );
-  const required = new Map<string, Set<string>>();
-  for (const system of options.designSystems) {
-    const recipes = resolveRecipes(system, { catalog: catalog.value, registry });
-    for (const definition of catalog.value.definitions)
-      for (const variant of definition.variants)
-        for (const state of Object.keys(stateSelectors) as (keyof typeof stateSelectors)[]) {
-          if (state === "rest") continue;
-          const slots = definition.slots.filter((slot) => {
-            const prefix = `${definition.kind}.${variant}.${slot}` as const;
-            return (
-              stateDeclarations(
-                recipes[`${prefix}.${state}`] ?? {},
-                recipeDeclarations(recipes[`${prefix}.rest`] ?? {}),
-              ) !== undefined
-            );
-          });
-          if (!slots.length) continue;
-          const key = `${definition.kind}.${variant}.${state}`;
-          const classes = required.get(key) ?? new Set<string>();
-          // Root state propagates to every slot; a slot's own state applies only to itself.
-          for (const slot of ["root", ...slots]) classes.add(slotClass(definition.kind, variant, slot));
-          required.set(key, classes);
-        }
-  }
+  const required = requiredStates(catalog.value, options.designSystems, registry);
   const missing = [...required.keys()].filter((key) => !Object.hasOwn(fixtures ?? {}, key)).sort();
   const details: string[] = [];
   for (let i = 0; i < missing.length; i += 10)

@@ -1,5 +1,5 @@
 import type { LiveframeError } from "../errors.ts";
-import type { LanguageSchema } from "../schema.ts";
+import { codePointsWithin, type LanguageSchema } from "../schema.ts";
 
 export type SchemaSink = {
   readonly errors: LiveframeError[];
@@ -29,21 +29,58 @@ function prefixErrors(sink: SchemaSink, start: number, at: string, key: string |
   }
 }
 
-function codePointsWithin(value: string, maximum: number): boolean {
-  if (value.length <= maximum) return true;
-  let count = 0;
-  for (let i = 0; i < value.length; i++) {
-    if (++count > maximum) return false;
-    const first = value.charCodeAt(i);
-    if (first >= 0xd800 && first <= 0xdbff) {
-      const second = value.charCodeAt(i + 1);
-      if (second >= 0xdc00 && second <= 0xdfff) i++;
-    }
-  }
-  return true;
-}
+type ObjectCheck = {
+  readonly properties: Map<string, SchemaCheck>;
+  readonly required: readonly { readonly key: string; readonly expected: string }[];
+  readonly expected: string;
+  readonly objectExpected: string;
+};
 
 /** Compiles an install-validated language schema; checks allocate only on failure. */
+/** A missing required property, reported at its own pointer. */
+function missing(sink: SchemaSink, at: string, key: string, expected: string): false {
+  const start = sink.errors.length;
+  const failed = reject("", sink, expected);
+  prefixErrors(sink, start, at, key);
+  return failed;
+}
+
+/** One declared property: its own check, or "not declared"; failures are re-based on the key. */
+function checkProperty(
+  check: SchemaCheck | undefined,
+  value: unknown,
+  at: string,
+  key: string,
+  sink: SchemaSink,
+  expected: string,
+): boolean {
+  const start = sink.errors.length;
+  const passed = check ? check(value, "", sink) : reject("", sink, expected);
+  if (passed) return true;
+  prefixErrors(sink, start, at, key);
+  return false;
+}
+
+/** The object case of `compileSchema`: required properties first, then every declared property. */
+function objectCheck(spec: ObjectCheck): SchemaCheck {
+  return (value, at, sink) => {
+    if (value === null || typeof value !== "object" || Array.isArray(value))
+      return reject(at, sink, spec.objectExpected);
+    let valid = true;
+    for (const { key, expected } of spec.required) {
+      if (!valid && sink.errors.length >= sink.maxErrors) return false;
+      if (!Object.hasOwn(value, key)) valid = missing(sink, at, key, expected);
+    }
+    for (const key in value) {
+      if (!valid && sink.errors.length >= sink.maxErrors) return false;
+      if (!Object.hasOwn(value, key)) continue;
+      const check = spec.properties.get(key);
+      if (!checkProperty(check, (value as Record<string, unknown>)[key], at, key, sink, spec.expected)) valid = false;
+    }
+    return valid;
+  };
+}
+
 export function compileSchema(schema: LanguageSchema): SchemaCheck {
   switch (schema.type) {
     case "string": {
@@ -100,39 +137,15 @@ export function compileSchema(schema: LanguageSchema): SchemaCheck {
       };
     }
     case "object": {
-      const properties = new Map(Object.entries(schema.properties).map(([key, child]) => [key, compileSchema(child)]));
-      const required = schema.required.map((key) => ({
-        key,
-        expected: `the required property ${JSON.stringify(key)}`,
-      }));
-      const expected = `a declared property (one of: ${[...properties.keys()].join(", ") || "none"})`;
-      const objectExpected = `an object with declared properties: ${[...properties.keys()].join(", ") || "none"}`;
-      return (value, at, sink) => {
-        if (value === null || typeof value !== "object" || Array.isArray(value))
-          return reject(at, sink, objectExpected);
-        let valid = true;
-        for (const { key, expected } of required) {
-          if (!valid && sink.errors.length >= sink.maxErrors) return false;
-          if (!Object.hasOwn(value, key)) {
-            const start = sink.errors.length;
-            valid = reject("", sink, expected);
-            prefixErrors(sink, start, at, key);
-          }
-        }
-        for (const key in value) {
-          if (!valid && sink.errors.length >= sink.maxErrors) return false;
-          if (!Object.hasOwn(value, key)) continue;
-          const check = properties.get(key);
-          const start = sink.errors.length;
-          const passed = check ? check((value as Record<string, unknown>)[key], "", sink) : reject("", sink, expected);
-          if (!passed) {
-            valid = false;
-            // Prefix only failures: successful nested checks never build paths.
-            prefixErrors(sink, start, at, key);
-          }
-        }
-        return valid;
-      };
+      return objectCheck({
+        properties: new Map(Object.entries(schema.properties).map(([key, child]) => [key, compileSchema(child)])),
+        required: schema.required.map((key) => ({
+          key,
+          expected: `the required property ${JSON.stringify(key)}`,
+        })),
+        expected: `a declared property (one of: ${Object.keys(schema.properties).join(", ") || "none"})`,
+        objectExpected: `an object with declared properties: ${Object.keys(schema.properties).join(", ") || "none"}`,
+      });
     }
   }
 }

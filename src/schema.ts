@@ -8,19 +8,21 @@ type StringOptions = Annotations & {
 };
 type NumberOptions = Annotations & { readonly minimum?: number; readonly maximum?: number };
 
-export type LanguageSchema = Annotations &
-  (
-    | ({ readonly type: "string" } & StringOptions)
-    | ({ readonly type: "number" | "integer" } & NumberOptions)
-    | { readonly type: "boolean" }
-    | { readonly type: "array"; readonly items: LanguageSchema; readonly maxItems: number }
-    | {
-        readonly type: "object";
-        readonly properties: Readonly<Record<string, LanguageSchema>>;
-        readonly required: readonly string[];
-        readonly additionalProperties: false;
-      }
-  );
+type StringSchema = Annotations & { readonly type: "string" } & StringOptions;
+type NumericSchema = Annotations & { readonly type: "number" | "integer" } & NumberOptions;
+type ArraySchema = Annotations & {
+  readonly type: "array";
+  readonly items: LanguageSchema;
+  readonly maxItems: number;
+};
+type ObjectSchema = Annotations & {
+  readonly type: "object";
+  readonly properties: Readonly<Record<string, LanguageSchema>>;
+  readonly required: readonly string[];
+  readonly additionalProperties: false;
+};
+
+export type LanguageSchema = StringSchema | NumericSchema | { readonly type: "boolean" } | ArraySchema | ObjectSchema;
 
 export type Infer<S> = S extends { readonly type: "string"; readonly enum: readonly (infer E)[] }
   ? E
@@ -85,7 +87,8 @@ export function record<S>(pattern: string, values: S, maxProperties: number) {
   } as const;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+/** The one record test in the package: object, not null, not an array. */
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
@@ -93,7 +96,7 @@ function isBound(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0;
 }
 
-function codePointsWithin(value: string, maximum: number): boolean {
+export function codePointsWithin(value: string, maximum: number): boolean {
   if (value.length <= maximum) return true;
   let count = 0;
   for (const _ of value) if (++count > maximum) return false;
@@ -113,67 +116,89 @@ const keywords: Record<string, readonly string[]> = {
 export function isLanguageSchema(value: unknown): value is LanguageSchema {
   const ancestors = new Set<unknown>();
   function visit(schema: unknown): boolean {
-    if (
-      !isRecord(schema) ||
-      ancestors.has(schema) ||
-      typeof schema.type !== "string" ||
-      !Object.hasOwn(keywords, schema.type)
-    )
-      return false;
+    if (!isRecord(schema) || ancestors.has(schema)) return false;
+    if (typeof schema.type !== "string" || !Object.hasOwn(keywords, schema.type)) return false;
     const allowed = keywords[schema.type];
-    if (!allowed) return false;
-    for (const key of Object.keys(schema)) {
-      if (key !== "type" && key !== "description" && key !== "deprecated" && !allowed.includes(key)) return false;
-    }
-    if (Object.hasOwn(schema, "description") && typeof schema.description !== "string") return false;
-    if (Object.hasOwn(schema, "deprecated") && typeof schema.deprecated !== "boolean") return false;
+    if (!allowed || !hasOnlyAllowedKeys(schema, allowed) || !hasValidAnnotations(schema)) return false;
     ancestors.add(schema);
-    let valid: boolean;
-    switch (schema.type) {
-      case "string":
-        valid = isBound(schema.maxLength);
-        if (Object.hasOwn(schema, "enum"))
-          valid &&=
-            Array.isArray(schema.enum) &&
-            schema.enum.length > 0 &&
-            schema.enum.every((entry) => typeof entry === "string") &&
-            new Set(schema.enum).size === schema.enum.length;
-        if (Object.hasOwn(schema, "pattern")) {
-          valid &&= typeof schema.pattern === "string" && codePointsWithin(schema.pattern, 256);
-          if (valid) {
-            try {
-              new RegExp(schema.pattern as string, "u");
-            } catch {
-              valid = false;
-            }
-          }
-        }
-        break;
-      case "number":
-      case "integer":
-        valid = ["minimum", "maximum"].every(
-          (key) => !Object.hasOwn(schema, key) || (typeof schema[key] === "number" && Number.isFinite(schema[key])),
-        );
-        break;
-      case "boolean":
-        valid = true;
-        break;
-      case "array":
-        valid = isBound(schema.maxItems) && visit(schema.items);
-        break;
-      default:
-        valid =
-          schema.additionalProperties === false &&
-          isRecord(schema.properties) &&
-          Array.isArray(schema.required) &&
-          schema.required.every((key) => typeof key === "string" && Object.hasOwn(schema.properties as object, key)) &&
-          new Set(schema.required).size === schema.required.length &&
-          Object.values(schema.properties).every(visit);
-    }
+    const valid = isWellFormed(schema, schema.type, visit);
     ancestors.delete(schema);
     return valid;
   }
   return visit(value);
+}
+
+/** Only the keywords a form declares, plus the two annotations every form shares. */
+function hasOnlyAllowedKeys(schema: Record<string, unknown>, allowed: readonly string[]): boolean {
+  return Object.keys(schema).every(
+    (key) => key === "type" || key === "description" || key === "deprecated" || allowed.includes(key),
+  );
+}
+
+function hasValidAnnotations(schema: Record<string, unknown>): boolean {
+  return (
+    (!Object.hasOwn(schema, "description") || typeof schema.description === "string") &&
+    (!Object.hasOwn(schema, "deprecated") || typeof schema.deprecated === "boolean")
+  );
+}
+
+/** Whether the keywords of one declared `type` are well formed, recursing through `visit`. */
+function isWellFormed(schema: Record<string, unknown>, type: string, visit: (schema: unknown) => boolean): boolean {
+  switch (type) {
+    case "string":
+      return isStringKeywordsValid(schema);
+    case "number":
+    case "integer":
+      return isNumericKeywordsValid(schema);
+    case "boolean":
+      return true;
+    case "array":
+      return isBound(schema.maxItems) && visit(schema.items);
+    default:
+      return isObjectKeywordsValid(schema, visit);
+  }
+}
+
+function isStringKeywordsValid(schema: Record<string, unknown>): boolean {
+  if (!isBound(schema.maxLength)) return false;
+  if (Object.hasOwn(schema, "enum") && !isNonEmptyUniqueStrings(schema.enum)) return false;
+  return !Object.hasOwn(schema, "pattern") || isUnicodePattern(schema.pattern);
+}
+
+function isNonEmptyUniqueStrings(value: unknown): boolean {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((entry) => typeof entry === "string") &&
+    new Set(value).size === value.length
+  );
+}
+
+function isUnicodePattern(pattern: unknown): boolean {
+  if (typeof pattern !== "string" || !codePointsWithin(pattern, 256)) return false;
+  try {
+    new RegExp(pattern, "u");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function isNumericKeywordsValid(schema: Record<string, unknown>): boolean {
+  return ["minimum", "maximum"].every(
+    (key) => !Object.hasOwn(schema, key) || (typeof schema[key] === "number" && Number.isFinite(schema[key])),
+  );
+}
+
+function isObjectKeywordsValid(schema: Record<string, unknown>, visit: (schema: unknown) => boolean): boolean {
+  if (schema.additionalProperties !== false || !isRecord(schema.properties)) return false;
+  const { properties, required } = schema;
+  return (
+    Array.isArray(required) &&
+    required.every((key) => typeof key === "string" && Object.hasOwn(properties, key)) &&
+    new Set(required).size === required.length &&
+    Object.values(properties).every(visit)
+  );
 }
 
 function pointerAt(pointer: string, key: string | number): string {
@@ -196,58 +221,56 @@ export function checkValue<const S extends LanguageSchema>(
     reject("", "a bounded, closed schema in the Liveframe language");
     return { ok: false, errors };
   }
+  const full = () => errors.length >= maxErrors;
+  function checkString(s: StringSchema, input: unknown, pointer: string) {
+    if (typeof input !== "string") return reject(pointer, "a string");
+    if (!codePointsWithin(input, s.maxLength)) reject(pointer, `at most ${s.maxLength} code points`);
+    if (s.enum && !s.enum.includes(input)) reject(pointer, `one of ${s.enum.join(", ")}`);
+    if (s.pattern && !new RegExp(s.pattern, "u").test(input)) reject(pointer, `a string matching ${s.pattern}`);
+  }
+  function checkNumeric(s: NumericSchema, input: unknown, pointer: string) {
+    if (typeof input !== "number" || !Number.isFinite(input) || (s.type === "integer" && !Number.isInteger(input)))
+      return reject(pointer, `a finite ${s.type}`);
+    if (s.minimum !== undefined && input < s.minimum) reject(pointer, `a number >= ${s.minimum}`);
+    if (s.maximum !== undefined && input > s.maximum) reject(pointer, `a number <= ${s.maximum}`);
+  }
+  function checkArray(s: ArraySchema, input: unknown, pointer: string) {
+    if (!Array.isArray(input)) return reject(pointer, "an array");
+    if (input.length > s.maxItems) reject(pointer, `at most ${s.maxItems} items`);
+    for (let i = 0; i < input.length && !full(); i++) visit(s.items, input[i], pointerAt(pointer, i));
+  }
+  function checkObject(s: ObjectSchema, input: unknown, pointer: string) {
+    if (!isRecord(input)) return reject(pointer, "an object");
+    for (const key of s.required) {
+      if (full()) return;
+      if (!Object.hasOwn(input, key)) reject(pointerAt(pointer, key), "a required property");
+    }
+    for (const key of Object.keys(input)) {
+      if (full()) return;
+      const property = Object.hasOwn(s.properties, key) ? s.properties[key] : undefined;
+      if (!property) reject(pointerAt(pointer, key), "a declared property");
+      else visit(property, input[key], pointerAt(pointer, key));
+    }
+  }
   function visit(s: LanguageSchema, input: unknown, pointer: string): void {
-    if (errors.length >= maxErrors) return;
+    if (full()) return;
     switch (s.type) {
       case "string":
-        if (typeof input !== "string") {
-          reject(pointer, "a string");
-          return;
-        }
-        if (!codePointsWithin(input, s.maxLength)) reject(pointer, `at most ${s.maxLength} code points`);
-        if (s.enum && !s.enum.includes(input)) reject(pointer, `one of ${s.enum.join(", ")}`);
-        if (s.pattern && !new RegExp(s.pattern, "u").test(input)) reject(pointer, `a string matching ${s.pattern}`);
+        checkString(s, input, pointer);
         return;
       case "number":
       case "integer":
-        if (
-          typeof input !== "number" ||
-          !Number.isFinite(input) ||
-          (s.type === "integer" && !Number.isInteger(input))
-        ) {
-          reject(pointer, `a finite ${s.type}`);
-          return;
-        }
-        if (s.minimum !== undefined && input < s.minimum) reject(pointer, `a number >= ${s.minimum}`);
-        if (s.maximum !== undefined && input > s.maximum) reject(pointer, `a number <= ${s.maximum}`);
+        checkNumeric(s, input, pointer);
         return;
       case "boolean":
         if (typeof input !== "boolean") reject(pointer, "a boolean");
         return;
       case "array":
-        if (!Array.isArray(input)) {
-          reject(pointer, "an array");
-          return;
-        }
-        if (input.length > s.maxItems) reject(pointer, `at most ${s.maxItems} items`);
-        for (let i = 0; i < input.length && errors.length < maxErrors; i++)
-          visit(s.items, input[i], pointerAt(pointer, i));
+        checkArray(s, input, pointer);
         return;
       case "object":
-        if (!isRecord(input)) {
-          reject(pointer, "an object");
-          return;
-        }
-        for (const key of s.required) {
-          if (errors.length >= maxErrors) return;
-          if (!Object.hasOwn(input, key)) reject(pointerAt(pointer, key), "a required property");
-        }
-        for (const key of Object.keys(input)) {
-          if (errors.length >= maxErrors) return;
-          const property = Object.hasOwn(s.properties, key) ? s.properties[key] : undefined;
-          if (!property) reject(pointerAt(pointer, key), "a declared property");
-          else visit(property, input[key], pointerAt(pointer, key));
-        }
+        checkObject(s, input, pointer);
+        return;
     }
   }
   visit(schema, value, "");
