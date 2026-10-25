@@ -8,7 +8,7 @@ import {
   type ResolvedRecipe,
 } from "./formats/design-system.ts";
 import { states } from "./formats/fixed.ts";
-import type { LiveframeError } from "./errors.ts";
+import { LiveframeFailure, type LiveframeError } from "./errors.ts";
 
 export type ResolvedRecipes = Readonly<Partial<Record<RecipeKey, ResolvedRecipe>>>;
 /** One cascade serves completeness checks and projection output. */
@@ -68,6 +68,6 @@ export function cascadeRecipes(
 /** Resolve installed data into a flat table. Validate first; invalid input throws with install errors. */
 export function resolveRecipes(ds: DesignSystem, context: DesignSystemContext): ResolvedRecipes {
   const result = prepareDesignSystem(ds, context);
-  if (!result.ok) throw new Error(JSON.stringify(result.errors));
+  if (!result.ok) throw new LiveframeFailure(result.errors);
   return cascadeRecipes(result.value, context.catalog);
 }

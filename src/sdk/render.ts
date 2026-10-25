@@ -2,7 +2,7 @@ import { addBoundMarker, DEFAULT_MAX_ERRORS, type LiveframeError, type Result } 
 import { at, isRecord } from "../formats/capabilities.ts";
 import type { UiNode, UiTree } from "../formats/tree.ts";
 import { stringBytes } from "../validate/bytes.ts";
-import type { CompiledValidator, KindFacts } from "../validate/compile.ts";
+import { buildFacts, type CompiledValidator, type KindFacts } from "../validate/compile.ts";
 import type { SchemaCheck, SchemaSink } from "../validate/schema.ts";
 import { encodeSegment, type JsonWalk, walkJson } from "../validate/structure.ts";
 import { DEFAULT_LIMITS } from "../validate/tree.ts";
@@ -54,7 +54,7 @@ export function render<P, S, D, C>(
   options: RenderOptions,
 ): Result<UiTree> {
   const { validator, surfaceId, revision } = options;
-  const { catalogId, kinds, structure } = validator.build;
+  const { catalogId, kinds, structure } = buildFacts(validator);
   const budget = options.limits ? { ...DEFAULT_LIMITS, ...options.limits } : DEFAULT_LIMITS;
   const maxErrors = options.maxErrors ?? DEFAULT_MAX_ERRORS;
   const errors: LiveframeError[] = [];
@@ -157,7 +157,7 @@ export function render<P, S, D, C>(
   }
 
   function checkInputs(): void {
-    const checks = validator.build.inputs;
+    const checks = buildFacts(validator).inputs;
     checkInput("params", checks.params);
     checkInput("state", checks.state);
     checkInput("context", checks.context);

@@ -1,7 +1,7 @@
 /** The wire format id stamped on every UI tree (spec §9). */
 export const LIVEFRAME_FORMAT = "liveframe/1" as const;
 
-export type { LiveframeError, Result } from "./errors.ts";
+export { LiveframeFailure, type LiveframeError, type Result } from "./errors.ts";
 export {
   type Catalog,
   type Definition,
@@ -39,5 +39,4 @@ export {
 export { type ResolvedRecipes, resolveRecipes } from "./resolve.ts";
 export type { Intent, Json, UiNode, UiTree } from "./formats/tree.ts";
 export { compileValidator, type CompileValidatorOptions, type CompiledValidator } from "./validate/compile.ts";
-export type { SchemaSink as NodeCheckSink, SchemaCheck as NodeCheck } from "./validate/schema.ts";
 export type { ValidateTreeOptions } from "./validate/tree.ts";

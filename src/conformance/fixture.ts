@@ -1,8 +1,8 @@
-import { int, obj, validateCatalog, validateCapabilities, type Result } from "../index.ts";
+import { int, LiveframeFailure, obj, validateCatalog, validateCapabilities, type Result } from "../index.ts";
 import { pack } from "../pack/index.ts";
 
 export function value<T>(result: Result<T>): T {
-  if (!result.ok) throw new Error(JSON.stringify(result.errors));
+  if (!result.ok) throw new LiveframeFailure(result.errors);
   return result.value;
 }
 

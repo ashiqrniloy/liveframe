@@ -3,8 +3,6 @@ import type {
   CompiledValidator,
   CompileValidatorOptions,
   LiveframeError,
-  NodeCheck,
-  NodeCheckSink,
   Result,
   UiTree,
   ValidateTreeOptions,
@@ -56,7 +54,77 @@ test("css_exports_are_pinned", () => {
 });
 
 test("react_export_surface", () => {
-  expect(Object.keys(react).sort()).toEqual(["createRenderer", "implement"]);
+  expect(Object.keys(react).sort()).toEqual(["RendererError", "createRenderer", "implement"]);
+});
+
+test("renderer_error_is_a_value_export", () => {
+  const failed = (() => {
+    try {
+      react.createRenderer({ catalog, implementations: [] });
+    } catch (error) {
+      return error;
+    }
+  })();
+  expect(react.RendererError).toBeInstanceOf(Function);
+  expect(failed).toBeInstanceOf(react.RendererError);
+  expect(failed).toBeInstanceOf(liveframe.LiveframeFailure);
+  expect(failed).toBeInstanceOf(Error);
+  const { errors } = failed as InstanceType<typeof react.RendererError>;
+  // One per catalog kind, bounded like every other error list.
+  expect(catalog.definitions.length).toBeGreaterThan(20);
+  expect(errors).toHaveLength(20);
+  expect(errors[0]).toMatchObject({ kind: "catalog-mismatch", pointer: "/catalog/definitions/0/kind" });
+  expect((failed as Error).name).toBe("RendererError");
+});
+
+test("install_failures_throw_liveframe_failure", () => {
+  const thrown = (run: () => unknown): InstanceType<typeof liveframe.LiveframeFailure> => {
+    try {
+      run();
+    } catch (error) {
+      if (error instanceof liveframe.LiveframeFailure) return error;
+      throw error;
+    }
+    throw new Error("Expected a LiveframeFailure");
+  };
+  function value<T>(result: Result<T>): T {
+    if (!result.ok) throw new Error(JSON.stringify(result.errors));
+    return result.value;
+  }
+  const installedCatalog = value(liveframe.validateCatalog(catalog));
+  const context = { catalog: installedCatalog, registry: {} };
+  const installedSystem = value(liveframe.validateDesignSystem(designSystem, context));
+
+  const compiler = thrown(() => liveframe.compileValidator({ catalog: {}, capabilities, manifest }));
+  expect(compiler.errors[0]).toMatchObject({ kind: "invalid-document", pointer: "/format" });
+  expect(compiler.message).toBe(compiler.errors.map((error) => `${error.pointer}: ${error.message}`).join("\n"));
+
+  const resolver = thrown(() =>
+    liveframe.resolveRecipes({ ...installedSystem, recipes: {} } as typeof installedSystem, context),
+  );
+  expect(resolver.errors).toContainEqual(expect.objectContaining({ kind: "incomplete-design-system" }));
+
+  const style = thrown(() => css.styleDeclarations({ bogus: 1 }, installedCatalog));
+  expect(style.errors).toEqual([
+    {
+      kind: "invalid-prop",
+      pointer: "/style/bogus",
+      message: "Undeclared style prop: bogus",
+      expected: "a declared style prop",
+    },
+  ]);
+});
+
+test("liveframe_failure_message_is_bounded", () => {
+  const many = Array.from({ length: 30 }, (_, i) => ({
+    kind: "invalid-prop" as const,
+    pointer: `/items/${i}`,
+    message: "Expected a string",
+  }));
+  const failure = new liveframe.LiveframeFailure(many);
+  expect(failure.errors).toHaveLength(20);
+  expect(failure.message.split("\n")).toHaveLength(20);
+  expect(failure.message.startsWith("/items/0: Expected a string\n")).toBe(true);
 });
 
 test("css_public_return_types", () => {
@@ -152,6 +220,7 @@ test("root_export_surface", () => {
   expect(Object.keys(liveframe).sort()).toEqual(
     [
       "LIVEFRAME_FORMAT",
+      "LiveframeFailure",
       "arr",
       "bool",
       "checkValue",
@@ -178,21 +247,22 @@ test("root_export_surface", () => {
   );
 });
 
-test("build_facts_are_internal", () => {
+test("compiled_validator_has_only_the_two_members", () => {
   const validator = liveframe.compileValidator({ catalog, capabilities, manifest });
-  // `render()` reads these facts from the validator; the root export publishes no name for them.
-  expect(Object.keys(validator).sort()).toEqual(["build", "checkNode", "validateTree"]);
-  expect(Object.keys(liveframe).filter((name) => /build|structure|facts/i.test(name))).toEqual([]);
-  expect(validator.build.structure.children.get("stack")).toBeDefined();
-  expect(validator.build.kinds.get("button")?.events.has("onPress")).toBe(true);
+  // `render()` reads the build facts through a module-private WeakMap; nothing of them is
+  // published, and the root exports no name for them.
+  expect(Object.keys(validator).sort()).toEqual(["checkNode", "validateTree"]);
+  expect(Object.keys(liveframe).filter((name) => /build|structure|facts|node/i.test(name))).toEqual([]);
+  expect("NodeCheck" in liveframe).toBe(false);
+  expect("NodeCheckSink" in liveframe).toBe(false);
 });
 
 test("public_validator_types_support_error_guided_repairs", () => {
   const inputs: CompileValidatorOptions = { catalog, capabilities, manifest };
   const validator: CompiledValidator = liveframe.compileValidator(inputs);
-  const check: NodeCheck = validator.checkNode;
+  const check: CompiledValidator["checkNode"] = validator.checkNode;
   const errors: LiveframeError[] = [];
-  const sink: NodeCheckSink = { errors, maxErrors: 20 };
+  const sink: Parameters<CompiledValidator["checkNode"]>[2] = { errors, maxErrors: 20 };
   const root = { id: "root", kind: "button", props: { label: 7 } };
   expect(check(root, "/root", sink)).toBe(false);
   expect(errors[0]).toMatchObject({ kind: "invalid-prop", nodeId: "root", pointer: "/root/props/label" });

@@ -1,18 +1,13 @@
 import { Component, Fragment, type ReactNode, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { slotClass, styleDeclarations, surfaceAttributes } from "../css/index.ts";
-import {
-  type CompiledValidator,
-  type Intent,
-  type LiveframeError,
-  type UiNode,
-  type UiTree,
-  validateCatalog,
-} from "../index.ts";
+import { LiveframeFailure, type LiveframeError } from "../errors.ts";
+import { type CompiledValidator, type Intent, type UiNode, type UiTree, validateCatalog } from "../index.ts";
 import { binding, type Implementation, type Item } from "./implement.ts";
 
-export class RendererError extends Error {
-  constructor(readonly errors: LiveframeError[]) {
-    super(errors.map((error) => `${error.pointer}: ${error.message}`).join("\n"));
+/** The registry check's failures, with the diagnostics the other install-time APIs throw. */
+export class RendererError extends LiveframeFailure {
+  constructor(errors: readonly LiveframeError[]) {
+    super(errors);
     this.name = "RendererError";
   }
 }

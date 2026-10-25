@@ -36,6 +36,22 @@ export type Result<T> =
 /** The default error bound: enough to fix a draft in one round (spec §10). */
 export const DEFAULT_MAX_ERRORS = 20;
 
+/**
+ * Startup failures the object under construction would otherwise have to hide
+ * (spec §10). It carries the same bounded `LiveframeError[]` the `Result` APIs
+ * return, one `pointer: message` line each.
+ */
+export class LiveframeFailure extends Error {
+  readonly errors: readonly LiveframeError[];
+
+  constructor(errors: readonly LiveframeError[]) {
+    const shown = errors.slice(0, DEFAULT_MAX_ERRORS);
+    super(shown.map((error) => `${error.pointer}: ${error.message}`).join("\n"));
+    this.name = "LiveframeFailure";
+    this.errors = shown;
+  }
+}
+
 /** Ends a bounded error list with the marker every validator uses. */
 export function addBoundMarker(errors: LiveframeError[], nodeId: string): void {
   errors.push({

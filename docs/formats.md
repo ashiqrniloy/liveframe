@@ -354,12 +354,30 @@ then calls `validateTree` again. Only a successful result is sent for display;
 the next run may reveal further errors if collection stopped at the bound.
 
 The root also exports `CompileValidatorOptions`, `CompiledValidator`,
-`ValidateTreeOptions`, `NodeCheck`, `NodeCheckSink`, `Result` and
-`LiveframeError`. `validator.checkNode(node, pointer, sink)` returns a boolean
-and appends bounded errors to `{ errors: LiveframeError[], maxErrors: number,
-nodeId?: string }`. It supplies per-node checks for a builder; it does not
-check tree metadata, parent relationships, unique ids, child-kind counts or
-whole-tree limits. Use `validateTree` at transport boundaries.
+`ValidateTreeOptions`, `Result`, `LiveframeError` and `LiveframeFailure`.
+`validator.checkNode(node, pointer, sink)` returns a boolean and appends bounded
+errors to a sink `{ errors: LiveframeError[], maxErrors: number, nodeId?: string }`.
+It supplies per-node checks for a builder; it does not check tree metadata,
+parent relationships, unique ids, child-kind counts or whole-tree limits. Use
+`validateTree` at transport boundaries. The validator itself has exactly those
+two members: the facts `render()` needs are held in a module-private `WeakMap`,
+so no consumer can read or replace them.
+
+`compileValidator`, `resolveRecipes`, `styleDeclarations` and the renderer's
+registry check have no value to return when their input is invalid, so they
+throw `LiveframeFailure` (or its `RendererError` subclass, `/react`) instead of
+an `Error` with JSON in its message:
+
+```ts
+try {
+  const validator = compileValidator({ catalog, capabilities, manifest });
+} catch (error) {
+  if (error instanceof LiveframeFailure) report(error.errors); // bounded LiveframeError[]
+  else throw error;
+}
+```
+
+Its `message` is one `pointer: message` line per error, bounded to the same 20.
 
 Validation is not authorisation. An action matching the capabilities and
 manifest is still only a request. On dispatch, the host fills any bound event

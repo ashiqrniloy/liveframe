@@ -1,9 +1,22 @@
+import type { Result } from "../errors.ts";
 import type { WidgetPackage } from "../formats/package.ts";
+import type { Intent, Json, UiTree } from "../formats/tree.ts";
+import type { pack } from "../pack/pack.ts";
 import type { Runner } from "./runner.ts";
-import type { createPreview } from "./session.ts";
 
-/** One backend draft session, as `createPreview()` returns it (spec §7.5). */
-export type PreviewSession = ReturnType<typeof createPreview>;
+/** One backend draft session (spec §7.5). */
+export type PreviewSession = {
+  /** Pack a draft; on success it becomes the session's current package. */
+  update(draft: Parameters<typeof pack>[0]): Result<WidgetPackage>;
+  /** Render one scenario, with optional state and context overrides. */
+  render(options: { scenario: string; state?: Json; context?: Json }): Promise<Result<UiTree>>;
+  /** Apply `setState` or a declared action to the current render. */
+  intent(intent: Intent): Promise<Result<UiTree>>;
+  /** Every intent applied since the current package was packed. */
+  intents(): readonly Intent[];
+  /** Render and check every scenario of the current package. */
+  check(): Promise<Result<readonly { scenario: string; result: Result<UiTree> }[]>>;
+};
 
 /** What `liveframe mcp` hands a host's `preview()` factory to bind its own `<Preview>` page. */
 export type PreviewBinding = {

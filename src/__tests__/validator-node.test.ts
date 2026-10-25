@@ -1,5 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { bool, compileValidator, type LiveframeError, obj, styleProps, validateCatalog } from "../index.ts";
+import {
+  bool,
+  compileValidator,
+  type LiveframeError,
+  LiveframeFailure,
+  obj,
+  styleProps,
+  validateCatalog,
+} from "../index.ts";
 import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 import tree from "./fixtures/proof/agent-home.tree.json" with { type: "json" };
 import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
@@ -50,6 +58,16 @@ function fails(patch: Record<string, unknown>, kind: LiveframeError["kind"], suf
 }
 function event(intent: unknown, name = "onPress") {
   return { events: { [name]: intent } };
+}
+
+function failure(run: () => unknown): LiveframeFailure {
+  try {
+    run();
+  } catch (error) {
+    if (error instanceof LiveframeFailure) return error;
+    throw error;
+  }
+  throw new Error("Expected a LiveframeFailure");
 }
 
 describe("compiled node validator", () => {
@@ -124,9 +142,9 @@ describe("compiled node validator", () => {
   test("install_documents_are_validated_before_compilation", () => {
     for (const key of ["catalog", "capabilities", "manifest"] as const)
       expect(() => compileValidator({ ...options, [key]: {} })).toThrow();
-    expect(() => compileValidator({ ...options, manifest: { ...manifest, catalogId: "other.ui@1" } })).toThrow(
-      "catalog-mismatch",
-    );
+    expect(
+      failure(() => compileValidator({ ...options, manifest: { ...manifest, catalogId: "other.ui@1" } })).errors,
+    ).toEqual([expect.objectContaining({ kind: "catalog-mismatch", pointer: "/catalogId" })]);
   });
   test("malformed_nodes_and_bounded_sinks", () => {
     for (const node of [null, [], {}, { kind: "probe" }]) {
@@ -151,7 +169,7 @@ describe("compiled node validator", () => {
     const result = validateCatalog(invalid);
     expect(result.ok).toBe(false);
     if (!result.ok)
-      expect(() => compileValidator({ ...options, catalog: invalid })).toThrow(JSON.stringify(result.errors));
+      expect(failure(() => compileValidator({ ...options, catalog: invalid })).errors).toEqual(result.errors);
     const limited = compileValidator({ ...options, manifest: { ...manifest, actions: [] } });
     const errors: LiveframeError[] = [];
     expect(

@@ -579,7 +579,7 @@ It checks:
 - ids are unique and key-derived
 - limits hold: node count (default 5,000), depth (default 64), and tree size in bytes (default 1 MiB), all configurable. Tree size is the UTF-8 length of the tree's `JSON.stringify` output, counted during the walk without serialising. String bounds count code points. The runner adds a time limit (§7.5)
 
-**Errors.** Every validator returns `Result<T>`: `{ ok: true, value } | { ok: false, errors }`. A failed validation returns every error it found, up to a bound (default 20), so an author or agent fixes them in one round. `pack()`, `verifyPackage()`, `loadPlacement()` and `Runner.render()` use the same result and error bound; async operations wrap the result in a promise. Each `LiveframeError` is `{ kind, pointer, message, expected?, nodeId? }`: `pointer` is a JSON Pointer into the document (the empty string at its root), `expected` is the rule that failed, in words an agent can act on, and `nodeId`, when present, is the key path of the UI node. The complete kind list is:
+**Errors.** Every validator returns `Result<T>`: `{ ok: true, value } | { ok: false, errors }`. A failed validation returns every error it found, up to a bound (default 20), so an author or agent fixes them in one round. Install-time APIs that have no value to return on failure throw `LiveframeFailure`, a subclass of `Error` whose `errors` is that same bounded `LiveframeError[]` and whose `message` is one `pointer: message` line per error. `pack()`, `verifyPackage()`, `loadPlacement()` and `Runner.render()` use the same result and error bound; async operations wrap the result in a promise. Each `LiveframeError` is `{ kind, pointer, message, expected?, nodeId? }`: `pointer` is a JSON Pointer into the document (the empty string at its root), `expected` is the rule that failed, in words an agent can act on, and `nodeId`, when present, is the key path of the UI node. The complete kind list is:
 
 | Kind | Meaning |
 |---|---|
@@ -607,6 +607,8 @@ It checks:
 | `render-failed` | A component threw or a runner failed to load or execute a widget. |
 | `limit-exceeded` | A node, depth, byte, error-collection or runner time limit was reached. |
 
+`kind` is open: a minor release may add kinds, so a consumer must handle an unknown kind by name — report it, never fail to compile or silently drop it. Removing a kind, or changing what one means, is a major change.
+
 The validator is **compiled per catalog**: when the catalog, vocabulary, capabilities and manifest are loaded, each definition and schema becomes a closure over precomputed sets and checks, instead of schemas interpreted on every render. It never uses `eval` or the `Function` constructor, which content security policies and some sandboxes forbid. Its per-node checks are what `render()` calls while it builds the tree, so building and validating are one pass; the same validator re-checks a whole tree on arrival. In the Phase 0 proof, validation is more than half of a render's cost, and building the tree checks the same props a second time. Build and validate become one pass (`docs/model.md`, "Performance"; `decision-logs/2026-10-22-1540-typescript-runtime-render-budget.md`).
 
 It validates every other format on install: a catalog's definitions and schema language, the vocabulary, the capabilities, a manifest against its catalog and capabilities, a theme against the vocabulary (every role present), and a design system against the catalog and vocabulary (values typed, every declared name defined, recipes complete after the cascade, and no colour outside the theme). The library publishes a JSON Schema for every format (§13).
@@ -621,7 +623,7 @@ const validator = compileValidator({ catalog, capabilities, manifest });
 <Surface tree={tree} validator={validator} theme={theme} designSystem={designSystem} onIntent={onIntent} fallback={<Unavailable />} />;
 ```
 
-- **`createRenderer({ catalog, implementations })`** runs the registry check once, at startup: it fails if a catalog kind has no implementation, two implementations bind one kind, or an implementation's definition differs from the catalog's. It returns `{ Surface }`.
+- **`createRenderer({ catalog, implementations })`** runs the registry check once, at startup: it fails if a catalog kind has no implementation, two implementations bind one kind, or an implementation's definition differs from the catalog's. It returns `{ Surface }`; a failed check throws `RendererError`, a `LiveframeFailure` whose `errors` name each discrepancy (`catalog-mismatch`), so a host catches it with the same handler as every other install failure.
 - **`<Surface>`** draws one surface. `theme` and `designSystem` are `{ id, version }` identities for §6.4's scope attributes.
 - **`implement(definition, Component)`** binds a primitive's React implementation. The implementation receives:
   - `props`: validated values
@@ -693,7 +695,7 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
 
   | Import | Holds |
   |---|---|
-  | `@arnilo/liveframe` | Definition, catalog, theme and design-system formats; the validator; the recipe resolver |
+  | `@arnilo/liveframe` | Definition, catalog, theme and design-system formats; the validator; the recipe resolver; `LiveframeFailure` and `LiveframeError` |
   | `@arnilo/liveframe/sdk` | The JSX runtime (`/sdk/jsx-runtime`, `/sdk/jsx-dev-runtime`), intent helpers, and `render()` |
   | `@arnilo/liveframe/react` | The renderer: `createRenderer()`, `<Surface>` and `implement()` (§11). `react` and `react-dom` are optional peer dependencies used by the React subpaths |
   | `@arnilo/liveframe/css` | Pure, host-API-free projection into three scoped sheets, plus class, style, scope and variable helpers (§6.4); the host inserts sheets |

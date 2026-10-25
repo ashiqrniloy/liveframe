@@ -104,8 +104,9 @@ whose definition differs from the catalog throws a `RendererError`. Its `errors`
 array contains `LiveframeError` entries with `kind`, JSON-pointer `pointer` and
 `message`; registry discrepancies use `catalog-mismatch`. Invalid catalogs retain
 the catalog validator's errors. Object key order does not affect comparison.
-`RendererError` is exported as a TypeScript type, not a runtime constructor; catch
-startup errors at the host's initialization boundary and report their diagnostics.
+`RendererError` is a runtime export from `@arnilo/liveframe/react` that extends
+`LiveframeFailure`, so `instanceof` works and the host catches it with the same
+handler as every other install failure; report `error.errors`.
 
 `compileValidator({ catalog, capabilities, manifest })` validates those documents
 and compiles the arrival checks. Reuse it while the installed documents stay the

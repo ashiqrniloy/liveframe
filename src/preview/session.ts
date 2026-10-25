@@ -4,6 +4,7 @@ import type { Scenario, WidgetPackage } from "../formats/package.ts";
 import type { Intent, Json, UiTree } from "../formats/tree.ts";
 import { pack } from "../pack/pack.ts";
 import { checkValue } from "../schema.ts";
+import type { PreviewSession } from "./authoring.ts";
 import type { Runner, RunnerOptions } from "./runner.ts";
 
 let nextSession = 0;
@@ -13,7 +14,7 @@ export function createPreview({
   catalog,
   capabilities,
   runner,
-}: Pick<RunnerOptions, "catalog" | "capabilities"> & { runner: Runner }) {
+}: Pick<RunnerOptions, "catalog" | "capabilities"> & { runner: Runner }): PreviewSession {
   const surfaceId = `preview-${++nextSession}`;
   let revision = 0;
   let pkg: WidgetPackage | undefined;

@@ -7,6 +7,7 @@ import {
   compileValidator,
   type DesignSystem,
   type Intent,
+  LiveframeFailure,
   type Result,
   type Theme,
   validateCatalog,
@@ -22,7 +23,7 @@ export type PageOptions = CompileValidatorOptions & {
   fallback: ReactNode;
 };
 function value<T>(result: Result<T>): T {
-  if (!result.ok) throw new Error(JSON.stringify(result.errors));
+  if (!result.ok) throw new LiveframeFailure(result.errors);
   return result.value;
 }
 

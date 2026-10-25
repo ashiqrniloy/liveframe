@@ -1,3 +1,4 @@
+import { LiveframeFailure, type LiveframeError } from "../errors.ts";
 import type { Catalog } from "../formats/catalog.ts";
 import { isRecord } from "../formats/capabilities.ts";
 import { styleProps } from "../formats/fixed.ts";
@@ -85,6 +86,16 @@ const checks = new WeakMap<Catalog, ReturnType<typeof compileStyles>>();
 const responsiveVar = (prop: string, breakpoint: string, property: string) =>
   `--lf-r-${prop}__${breakpoint.replaceAll(".", "_")}__${property}`;
 
+/** Names the property and the expected rule; the check leaves its pointer at the value. */
+function reportedStyle(errors: readonly LiveframeError[], prop: string): readonly LiveframeError[] {
+  const pointer = `/style/${prop}`;
+  if (errors.length === 0)
+    return [
+      { kind: "invalid-prop", pointer, message: `Undeclared style prop: ${prop}`, expected: "a declared style prop" },
+    ];
+  return errors.map((error) => ({ ...error, pointer: pointer + error.pointer }));
+}
+
 /** Maps a validated node's style; invalid props or values throw before any output is returned. */
 export function styleDeclarations(
   input: Readonly<Record<string, unknown>>,
@@ -102,8 +113,9 @@ export function styleDeclarations(
     const key = prop as StyleProp;
     const check = validators.get(key);
     const value = input[prop];
-    if (!check || !check(value, "", { errors: [], maxErrors: 1 }))
-      throw new Error(`Invalid style prop or value: ${prop}`);
+    const errors: LiveframeError[] = [];
+    const valid = check ? check(value, "", { errors, maxErrors: 1 }) : false;
+    if (!valid) throw new LiveframeFailure(reportedStyle(errors, prop));
     const mapping: Mapping = mappings[key];
     if (prop === "fill") classes.push("lf_fill");
     if (isRecord(value)) {

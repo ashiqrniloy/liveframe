@@ -1,3 +1,4 @@
+import { LiveframeFailure } from "../errors.ts";
 import { at, type Capabilities, isRecord, validateCapabilities } from "../formats/capabilities.ts";
 import { type Catalog, validateCatalog } from "../formats/catalog.ts";
 import { type Manifest, validateManifest } from "../formats/manifest.ts";
@@ -39,21 +40,32 @@ export type CompiledInputs = {
 export type CompiledValidator = {
   readonly checkNode: SchemaCheck;
   readonly validateTree: TreeValidator;
-  /** @internal The same compiled facts, exposed for `render()`'s one-pass builder. */
-  readonly build: CompiledBuild;
 };
+
+const builds = new WeakMap<CompiledValidator, CompiledBuild>();
+
+/**
+ * The facts behind a validator, for `render()`'s one-pass builder. A `WeakMap`
+ * keeps them off the public type, so no consumer can read or replace them, and
+ * the lookup happens once per render rather than once per node.
+ */
+export function buildFacts(validator: CompiledValidator): CompiledBuild {
+  const facts = builds.get(validator);
+  if (!facts) throw new LiveframeFailure([{ kind: "invalid-document", pointer: "", message: "Unknown validator" }]);
+  return facts;
+}
 const fields = new Set(["id", "kind", "variant", "props", "style", "events", "children"]);
 
 /** Validate installed documents once, then compile specialised per-kind checks. */
 export function compileValidator(options: CompileValidatorOptions): CompiledValidator {
   const catalogResult = validateCatalog(options.catalog);
-  if (!catalogResult.ok) throw new Error(JSON.stringify(catalogResult.errors));
+  if (!catalogResult.ok) throw new LiveframeFailure(catalogResult.errors);
   const capabilitiesResult = validateCapabilities(options.capabilities);
-  if (!capabilitiesResult.ok) throw new Error(JSON.stringify(capabilitiesResult.errors));
+  if (!capabilitiesResult.ok) throw new LiveframeFailure(capabilitiesResult.errors);
   const { value: catalog } = catalogResult;
   const { value: capabilities } = capabilitiesResult;
   const manifestResult = validateManifest(options.manifest, { catalog, capabilities });
-  if (!manifestResult.ok) throw new Error(JSON.stringify(manifestResult.errors));
+  if (!manifestResult.ok) throw new LiveframeFailure(manifestResult.errors);
   return compile(catalog, capabilities, manifestResult.value);
 }
 
@@ -148,24 +160,22 @@ function compile(catalog: Catalog, capabilities: Capabilities, manifest: Manifes
     const source = declared ? capabilities.sources[declared.source] : undefined;
     if (source) dataProperties[key] = source.result;
   }
-  return {
-    checkNode,
-    validateTree: compileTree(catalog, checkNode, structure),
-    build: {
-      catalogId: catalog.catalogId,
-      kinds: facts,
-      structure,
-      inputs: {
-        params: compileSchema(manifest.params),
-        state: compileSchema(manifest.state),
-        context: compileSchema(manifest.context),
-        data: compileSchema({
-          type: "object",
-          properties: dataProperties,
-          required: Object.keys(dataProperties),
-          additionalProperties: false,
-        }),
-      },
+  const validator: CompiledValidator = { checkNode, validateTree: compileTree(catalog, checkNode, structure) };
+  builds.set(validator, {
+    catalogId: catalog.catalogId,
+    kinds: facts,
+    structure,
+    inputs: {
+      params: compileSchema(manifest.params),
+      state: compileSchema(manifest.state),
+      context: compileSchema(manifest.context),
+      data: compileSchema({
+        type: "object",
+        properties: dataProperties,
+        required: Object.keys(dataProperties),
+        additionalProperties: false,
+      }),
     },
-  };
+  });
+  return validator;
 }

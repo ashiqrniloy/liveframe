@@ -52,7 +52,7 @@ Save it as `widget.tsx` beside `ui.gen.ts` and run `bun widget.tsx`.
 
 ```tsx
 /** @jsxImportSource @arnilo/liveframe/sdk */
-import { compileValidator } from "@arnilo/liveframe";
+import { compileValidator, LiveframeFailure } from "@arnilo/liveframe";
 import { action, render, state, type WidgetProps } from "@arnilo/liveframe/sdk";
 import manifest from "./manifest.json" with { type: "json" };
 import capabilities from "./capabilities.json" with { type: "json" };
@@ -77,7 +77,7 @@ export const inputs = {
   context: { size: "small" },
 };
 export const result = render(Claim, inputs, { validator, surfaceId: "home", revision: 1 });
-if (!result.ok) throw new Error(JSON.stringify(result.errors));
+if (!result.ok) throw new LiveframeFailure(result.errors);
 // result.value is a validated UiTree containing primitives and intent data.
 ```
 
