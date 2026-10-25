@@ -1,4 +1,4 @@
-import type { LiveframeError } from "../errors.ts";
+import { LiveframeFailure } from "../errors.ts";
 import type { WidgetPackage } from "../formats/package.ts";
 import type { Placement, StyleRecord } from "../formats/records.ts";
 import type { Json } from "../formats/tree.ts";
@@ -20,12 +20,14 @@ export function memoryStore(): Store {
       const existing = packages.get(key);
       if (existing) {
         if (existing.hash === pkg.hash) return;
-        throw {
-          kind: "version-conflict",
-          pointer: "",
-          message: `${pkg.manifest.id}@${pkg.manifest.version} already stored with another hash`,
-          expected: "a new version for changed content",
-        } satisfies LiveframeError;
+        throw new LiveframeFailure([
+          {
+            kind: "version-conflict",
+            pointer: "",
+            message: `${pkg.manifest.id}@${pkg.manifest.version} already stored with another hash`,
+            expected: "a new version for changed content",
+          },
+        ]);
       }
       packages.set(key, copy(pkg));
     },
@@ -34,6 +36,9 @@ export function memoryStore(): Store {
     },
     async putPlacement(placement) {
       placements.set(placement.id, copy(placement));
+    },
+    async getPlacement(id) {
+      return copy(placements.get(id));
     },
     async deletePlacement(id) {
       placements.delete(id);

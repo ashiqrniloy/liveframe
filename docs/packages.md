@@ -146,9 +146,10 @@ Import `Store`, `Placement` and `StyleRecord` as types from
 
 | Method | Result | Contract |
 | --- | --- | --- |
-| `putPackage(pkg)` | `Promise<void>` | Preserve an existing same-hash package; reject a second hash for `(id, version)`. |
+| `putPackage(pkg)` | `Promise<void>` | Preserve an existing same-hash package; reject a second hash for `(id, version)` with a `LiveframeFailure` (`version-conflict`). |
 | `getPackage(id, version)` | `Promise<WidgetPackage \| undefined>` | Return the stored package, or `undefined` if absent. |
 | `putPlacement(placement)` | `Promise<void>` | Store `{ id, slot, widget: { id, version }, params }` by id. |
+| `getPlacement(id)` | `Promise<Placement \| undefined>` | Return one placement by key, or `undefined` if absent. Never lists. |
 | `deletePlacement(id)` | `Promise<void>` | Remove both placement and its state. |
 | `listPlacements()` | `Promise<Placement[]>` | Return placements sorted by id. |
 | `putState(placementId, state)` | `Promise<void>` | Store any JSON value, including `null`. |
@@ -164,8 +165,14 @@ ignored by listing. Record paths are `packages/<id>/<version>.json`,
 `placements/<id>.json`, `states/<id>.json` and
 `styles/<kind>/<id>/<version>.json`. Path segments encode every UTF-8 byte except
 lowercase ASCII letters, digits, `_` and `-` as `%XX`, preventing traversal and
-case collisions. It assumes one writing process; it is not a multi-process
-database or a transaction across records.
+case collisions. An id may be 128 code points, which can encode to more than the
+255-byte `NAME_MAX` (128 CJK code points is 384 bytes), so a segment whose
+encoded form exceeds 200 bytes is stored as `~` plus the lowercase SHA-256 hex of
+its UTF-8 bytes — 65 bytes, and it cannot collide with an escaped name because
+`~` is always escaped. Listing still takes each id from the record it reads, so
+no name is ever decoded. This layout is part of the 0.1.x compatibility promise:
+a store written by one release opens in the next. It assumes one writing process;
+it is not a multi-process database or a transaction across records.
 
 For your own database, implement `Store` with the same conflict, copy, missing
 record and deletion rules. Enforce the package hash rule atomically in your
@@ -188,8 +195,11 @@ check persistence. The suite returns runner-independent cases; failures are
 
 ## Loading and state resets
 
-`loadPlacement(store, id, { catalog, capabilities })` checks placement structure,
-package identity and integrity, manifest and scenarios, params, and stored state.
+`loadPlacement(store, id, { catalog, capabilities })` reads that one placement
+with `getPlacement()`, then checks its structure, package identity and integrity,
+manifest and scenarios, params, and stored state. It never lists placements, so a
+malformed sibling record cannot block a load; loading the malformed record itself
+reports `invalid-document`.
 It returns `{ package, params, state, reset? }` inside a successful result:
 
 - Missing state uses `manifest.initialState`, without `reset`.

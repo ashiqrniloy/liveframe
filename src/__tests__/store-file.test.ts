@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pack } from "@arnilo/liveframe/pack";
 import { loadPlacement } from "@arnilo/liveframe/store";
+import { sha256 } from "../pack/hash.ts";
 import { fileStore } from "../store/fs/index.ts";
 import { obj, validateCatalog, validateCapabilities } from "../index.ts";
 import catalogDoc from "./fixtures/proof/catalog.json" with { type: "json" };
@@ -76,6 +77,23 @@ test("file_store_paths_cannot_escape", async () => {
   expect((await readdir(dir)).sort()).toEqual(["packages", "placements", "states", "styles"]);
 });
 
+test("long_ids_are_hashed_into_a_file_name_that_fits", async () => {
+  const dir = await directory();
+  const store = fileStore(dir);
+  const long = "任".repeat(128);
+  await store.putPlacement({ ...placement, id: long });
+  const files = await readdir(join(dir, "placements"));
+  expect(files).toHaveLength(1);
+  const file = files[0] ?? "";
+  // Percent-encoding 128 CJK code points is 384 bytes; the hashed name is 65 plus ".json".
+  expect(file).toBe(`~${sha256(new TextEncoder().encode(long))}.json`);
+  expect(Buffer.byteLength(file, "utf8")).toBeLessThanOrEqual(255);
+  expect(await store.getPlacement(long)).toMatchObject({ id: long });
+  // An id that is escaped but still short keeps its readable, reversible name.
+  await store.putPlacement({ ...placement, id: "é😀" });
+  expect((await readdir(join(dir, "placements"))).sort()).toContain("%C3%A9%F0%9F%98%80.json");
+});
+
 test("corrupt_file_is_typed_error", async () => {
   const dir = await directory();
   const store = fileStore(dir);
@@ -95,9 +113,15 @@ test("corrupt_file_is_typed_error", async () => {
     await mkdir(join(file, ".."), { recursive: true });
     await writeFile(file, "{");
   }
-  await expect(store.getState("home")).rejects.toMatchObject({ kind: "invalid-document" });
-  await expect(store.getPackage("test", "1")).rejects.toMatchObject({ kind: "invalid-document" });
-  await expect(store.getStyle("theme", "test", "1")).rejects.toMatchObject({ kind: "invalid-document" });
+  for (const read of [
+    () => store.getState("home"),
+    () => store.getPackage("test", "1"),
+    () => store.getStyle("theme", "test", "1"),
+  ])
+    await expect(read()).rejects.toMatchObject({
+      name: "LiveframeFailure",
+      errors: [expect.objectContaining({ kind: "invalid-document" })],
+    });
   const options = { catalog: catalog.value, capabilities: capabilities.value };
   const packed = pack(
     {

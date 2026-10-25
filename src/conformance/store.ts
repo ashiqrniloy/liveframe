@@ -1,3 +1,4 @@
+import { LiveframeFailure } from "../errors.ts";
 import { loadPlacement, type Store } from "../store/index.ts";
 import { check, type ConformanceCase, ConformanceFailure } from "./case.ts";
 import { storeFixture } from "./fixture.ts";
@@ -54,6 +55,52 @@ export function storeSuite({
     await store.putPlacement(storeFixture().placement);
     equal(await (await create()).listPlacements(), [], "create must open an independent empty scope");
   });
+  add("gets_a_placement_by_id", async (store, equal) => {
+    const { placement } = storeFixture();
+    equal(await store.getPlacement(placement.id), undefined, "Missing placement must be undefined");
+    await store.putPlacement({ ...placement, id: "other" });
+    await store.putPlacement(placement);
+    equal(await store.getPlacement(placement.id), placement, "Placement must round trip by id");
+    equal(await store.getPlacement("other"), { ...placement, id: "other" }, "Reads must be keyed, not positional");
+    await store.putPlacement({ ...placement, slot: "other" });
+    equal(await store.getPlacement(placement.id), { ...placement, slot: "other" }, "A put must replace by id");
+    await store.deletePlacement(placement.id);
+    equal(await store.getPlacement(placement.id), undefined, "Deletion must remove the placement");
+  });
+  add("rejects_a_second_hash_with_a_typed_failure", async (store) => {
+    const { pkg } = storeFixture();
+    await store.putPackage(pkg);
+    let failure: unknown;
+    try {
+      await store.putPackage({ ...pkg, hash: `sha256-${"1".repeat(64)}` });
+    } catch (error) {
+      failure = error;
+    }
+    const name = "store_rejects_a_second_hash_with_a_typed_failure";
+    check(failure instanceof LiveframeFailure, name, "§7.4", ["putPackage must reject a conflicting hash"]);
+    check(failure.errors[0]?.kind === "version-conflict", name, "§7.4", [
+      `Expected version-conflict, received ${failure.errors[0]?.kind ?? "no error"}`,
+    ]);
+  });
+  add("keeps_every_valid_id", async (store, equal) => {
+    const { placement } = storeFixture();
+    // 128 code points is the longest record id the formats allow; the rest cover
+    // traversal, non-ASCII and case-only differences.
+    const ids = ["任".repeat(128), "é😀", "../escape", "Queue", "queue"];
+    for (const id of ids) {
+      await store.putPlacement({ ...placement, id });
+      await store.putState(id, { id });
+    }
+    for (const id of ids) {
+      equal(await store.getPlacement(id), { ...placement, id }, "Every valid id must round trip");
+      equal(await store.getState(id), { id }, "Every valid id must key state too");
+    }
+    equal((await store.listPlacements()).length, ids.length, "Every valid id must be listable");
+    await store.deletePlacement("../escape");
+    equal(await store.getPlacement("../escape"), undefined, "Escaped ids must delete by id");
+    equal(await store.getState("../escape"), undefined, "Deletion must take state with it");
+    equal((await store.listPlacements()).length, ids.length - 1, "Deletion must remove exactly one placement");
+  });
   add("rejects_a_second_hash_for_an_existing_version", async (store, equal) => {
     const { pkg } = storeFixture();
     await store.putPackage(pkg);
@@ -61,7 +108,8 @@ export function storeSuite({
     try {
       await store.putPackage({ ...pkg, hash: `sha256-${"0".repeat(64)}` });
     } catch (error) {
-      if (typeof error === "object" && error !== null && "kind" in error) kind = error.kind;
+      if (!(error instanceof LiveframeFailure)) throw error;
+      kind = error.errors[0]?.kind;
     }
     equal(kind, "version-conflict", "Changed hashes must reject with version-conflict");
     equal(await store.getPackage(pkg.manifest.id, pkg.manifest.version), pkg, "Conflict must preserve the original");
@@ -198,6 +246,27 @@ export function storeSuite({
       ["State reset must report the invalid field"],
     );
     equal(await store.getState(placement.id), { count: "outdated" }, "Loading must not persist the reset");
+  });
+  add("a_malformed_sibling_does_not_block_a_load", async (store, equal) => {
+    const { pkg, placement, options } = storeFixture();
+    await store.putPackage(pkg);
+    await store.putPlacement(placement);
+    // A store holds whatever a previous launch wrote, including records this release rejects.
+    await store.putPlacement({ id: "broken", slot: 1 } as unknown as typeof placement);
+    equal(
+      await loadPlacement(store, placement.id, options),
+      { ok: true, value: { package: pkg, params: placement.params, state: pkg.manifest.initialState } },
+      "A malformed sibling record must not block a load",
+    );
+    equal(await store.getPlacement("broken"), { id: "broken", slot: 1 }, "Reads must not hide the sibling");
+    const broken = await loadPlacement(store, "broken", options);
+    equal(broken.ok, false, "Loading the malformed record itself must fail");
+    check(
+      !broken.ok && broken.errors[0]?.kind === "invalid-document",
+      "store_a_malformed_sibling_does_not_block_a_load",
+      "§7.4",
+      ["A malformed record must report invalid-document when it is the one loaded"],
+    );
   });
   if (reopen)
     add("records_survive_reopen", async (store, equal) => {

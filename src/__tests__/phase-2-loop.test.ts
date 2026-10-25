@@ -126,7 +126,10 @@ test("done_list_typed_errors: version conflict", async () => {
   await store.putPackage(base);
   const changed = value(pack({ ...draft, scenarios: [{ ...scenario, name: "changed" }] }, options));
   expect(changed.hash).not.toBe(base.hash);
-  await expect(fileStore(dir).putPackage(changed)).rejects.toMatchObject({ kind: "version-conflict" });
+  await expect(fileStore(dir).putPackage(changed)).rejects.toMatchObject({
+    name: "LiveframeFailure",
+    errors: [expect.objectContaining({ kind: "version-conflict" })],
+  });
   expect(await store.getPackage(base.manifest.id, base.manifest.version)).toEqual(base);
 });
 

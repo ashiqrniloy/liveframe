@@ -14,6 +14,7 @@ export interface Store {
   putPackage(pkg: WidgetPackage): Promise<void>;
   getPackage(id: string, version: string): Promise<WidgetPackage | undefined>;
   putPlacement(placement: Placement): Promise<void>;
+  getPlacement(id: string): Promise<Placement | undefined>;
   deletePlacement(id: string): Promise<void>;
   listPlacements(): Promise<Placement[]>;
   putState(placementId: string, state: Json): Promise<void>;

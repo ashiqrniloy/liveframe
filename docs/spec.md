@@ -435,6 +435,7 @@ interface Store {
   putPackage(pkg: WidgetPackage): Promise<void>;          // rejects a second hash for an existing (id, version)
   getPackage(id: string, version: string): Promise<WidgetPackage | undefined>;
   putPlacement(placement: Placement): Promise<void>;
+  getPlacement(id: string): Promise<Placement | undefined>; // one read, whatever else is stored
   deletePlacement(id: string): Promise<void>;             // removes its state too
   listPlacements(): Promise<Placement[]>;
   putState(placementId: string, state: Json): Promise<void>;
@@ -447,13 +448,13 @@ interface Store {
 It also ships:
 
 - **`memoryStore()`**, for tests and ephemeral hosts.
-- **`fileStore(dir)`** (`@arnilo/liveframe/store/fs`), for a desktop or single-node app. It keeps one JSON file per record and writes each atomically: a temporary file, then a rename. It assumes one writing process.
+- **`fileStore(dir)`** (`@arnilo/liveframe/store/fs`), for a desktop or single-node app. It keeps one JSON file per record and writes each atomically: a temporary file, then a rename. It assumes one writing process. A key becomes a file name by percent-encoding every byte outside `a-z`, `0-9`, `_` and `-`; a key whose encoded form exceeds 200 bytes is named `~` plus the SHA-256 of its UTF-8 bytes instead, so every id the record formats allow is storable inside a 255-byte file-name limit. The layout is part of the 0.1.x compatibility promise.
 - **`loadPlacement(store, id, { catalog, capabilities })`**, which reads a placement, its package and its state, verifies all three, and returns `Result<{ package, params, state, reset? }>`. Failures carry bounded `LiveframeError[]` (§10); `reset`, when present, holds the validation errors that caused a state reset.
 
 Rules:
 
 - **A store is not trusted.** Like a tree arriving at the renderer (§10), every record read back is checked: the package by `verifyPackage`, the params against the package's params schema, and the state against its state schema. A state that no longer fits, typically after a placement moves to a new widget version, is reset to the manifest's initial state, and `loadPlacement` reports the reset. Any other failure is an error, never a silent fallback.
-- Missing placements or packages, conflicting package versions, malformed records and package integrity failures use the distinct typed errors in §10. `putPackage()` keeps its `Promise<void>` contract and rejects with the version-conflict error when an existing `(id, version)` has a different hash.
+- Missing placements or packages, conflicting package versions, malformed records and package integrity failures use the distinct typed errors in §10. `putPackage()` keeps its `Promise<void>` contract and rejects with a `LiveframeFailure` (§10) carrying the version-conflict error when an existing `(id, version)` has a different hash; a store rejects rather than returning a result, so the app catches it at the write boundary. `loadPlacement()` reads one placement by id and never lists, so a malformed sibling record cannot block a load.
 - **A store holds one scope.** A multi-tenant app opens one store per tenant, or implements the interface over its own database and scopes it itself.
 - **Approval is the app's.** A stored package is inert until the app puts a placement for it. Which theme and design system are active, per user or organisation, is also an app setting.
 - **The conformance kit has a store suite** (§13), so an app's own store, for example over Postgres, proves it keeps these rules.

@@ -72,7 +72,7 @@ test("load_placement_rejections", async () => {
   await good.putPlacement({ ...placement, params: { "a/~": 1 } });
   rejects(await loadPlacement(good, "home", options), "invalid-prop", "/params/a~1~0");
   for (const corrupt of [{ id: "home" }, null, { ...placement, params: { bad: undefined } }]) {
-    const untrusted: Store = { ...good, listPlacements: async () => [corrupt as Placement] };
+    const untrusted: Store = { ...good, getPlacement: async () => corrupt as Placement };
     rejects(await loadPlacement(untrusted, "home", options), "invalid-document");
   }
 });

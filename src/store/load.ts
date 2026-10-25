@@ -1,4 +1,4 @@
-import { DEFAULT_MAX_ERRORS, type LiveframeError, type Result } from "../errors.ts";
+import { DEFAULT_MAX_ERRORS, LiveframeFailure, type LiveframeError, type Result } from "../errors.ts";
 import type { WidgetPackage } from "../formats/package.ts";
 import { type Placement, validatePlacement, validateState } from "../formats/records.ts";
 import type { Json } from "../formats/tree.ts";
@@ -13,14 +13,17 @@ export async function loadPlacement(
   options: Parameters<typeof verifyPackage>[1],
 ): Promise<Result<{ package: WidgetPackage; params: Json; state: Json; reset?: readonly LiveframeError[] }>> {
   try {
-    let placement: Placement | undefined;
-    for (const record of await store.listPlacements()) {
-      const checked = validatePlacement(record);
-      if (!checked.ok) return checked;
-      if (checked.value.id === id) placement = checked.value;
-    }
-    if (!placement)
+    const stored = await store.getPlacement(id);
+    if (stored === undefined)
       return { ok: false, errors: [{ kind: "not-found", pointer: "", message: `Placement ${id} not found` }] };
+    const checked = validatePlacement(stored);
+    if (!checked.ok) return checked;
+    const placement = checked.value;
+    if (placement.id !== id)
+      return {
+        ok: false,
+        errors: [{ kind: "invalid-document", pointer: "/id", message: "Stored placement id does not match its key" }],
+      };
     const doc = await store.getPackage(placement.widget.id, placement.widget.version);
     if (doc === undefined)
       return {
@@ -63,6 +66,7 @@ export async function loadPlacement(
     compileSchema(manifest.state)(state, "/state", { errors, maxErrors: DEFAULT_MAX_ERRORS });
     return { ok: true, value: errors.length ? { ...loaded, reset: errors } : { ...loaded, state } };
   } catch (error) {
+    if (error instanceof LiveframeFailure) return { ok: false, errors: error.errors };
     if (
       typeof error === "object" &&
       error !== null &&

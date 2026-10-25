@@ -7,9 +7,9 @@ Spec §7.3 (packages), §7.4 (storage), §8 (state, re-run cache). Roadmap Phase
 - `pack({ files, entry, manifest, scenarios }, { catalog, capabilities })` checks the manifest and at least one scenario (params, state and context against the manifest's schemas, data keyed by declared sources), transpiles the TSX, bundles relative imports into one ES module (default export: the widget) and hashes the canonical manifest, code and scenarios with SHA-256. Only the SDK may stay an import.
 - `verifyPackage(pkg, { catalog, capabilities })` re-checks the format, the manifest and the hash. It never executes code.
 - Records: package `(id, version)`, placement `id` (`{ id, slot, widget: { id, version }, params }`), state per placement, style `(kind, id, version)`.
-- `Store` is async and dumb: it persists records and refuses a second hash under an existing `(id, version)`. `deletePlacement` removes the placement's state.
-- `loadPlacement(store, id, { catalog, capabilities })` reads and verifies the placement, package and state. A state that no longer fits its schema is reset to the manifest's initial state, and the reset is reported. Every other failure is a typed error.
-- `memoryStore()` lives in `/store`. `fileStore(dir)` lives in `/store/fs`: one JSON file per record, atomic writes (temp file, then rename), one writing process.
+- `Store` is async and dumb: it persists records and refuses a second hash under an existing `(id, version)` with a `LiveframeFailure` (`version-conflict`). `deletePlacement` removes the placement's state. Reads are keyed: `getPlacement(id)` returns one placement or `undefined`.
+- `loadPlacement(store, id, { catalog, capabilities })` reads one placement with `getPlacement()` — never `listPlacements()` — so a malformed sibling record cannot block a load (P6), then verifies the placement, package and state. A state that no longer fits its schema is reset to the manifest's initial state, and the reset is reported. Every other failure is a typed error.
+- `memoryStore()` lives in `/store`. `fileStore(dir)` lives in `/store/fs`: one JSON file per record, atomic writes (temp file, then rename), one writing process. Segments are percent-encoded; a segment encoding to more than 200 bytes is named `~` + the SHA-256 hex of its UTF-8 bytes, so every id the formats allow (128 code points) fits `NAME_MAX` (255 bytes) — the layout is a 0.1.x compatibility promise.
 
 Rules:
 - `pack()` never runs widget code. Liveframe ships no sandbox.
