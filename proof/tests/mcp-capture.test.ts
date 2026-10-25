@@ -95,6 +95,55 @@ test("capture_over_12_cells_is_an_error_naming_the_narrowing_arguments", async (
   expect(error).toContain("designSystems");
 }, 120000);
 
+test("capture_after_pack_sees_that_pack", async () => {
+  const [captured] = await withClient(proofConfig, async (client) => {
+    await call(client, "pack_draft", draftWith("PackedBeforeCapture"));
+    // Queue both: the capture must show the draft packed before it, not the one packed during it.
+    const capturing = call(client, "capture_preview", { scenarios: ["ready"], widths: [360] });
+    const packing = call(client, "pack_draft", draftWith("PackedAfterCapture"));
+    await packing;
+    return [await capturing];
+  });
+  const text = texts(captured.content as Content[]).join("\n");
+  expect(text).toContain("PackedBeforeCapture");
+  expect(text).not.toContain("PackedAfterCapture");
+}, 180000);
+
+test("concurrent_captures_bind_the_page_once", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "liveframe-mcp-test-"));
+  const log = join(dir, "preview.log");
+  try {
+    await withClient(
+      "proof/tests/fixtures/mcp-preview-close.config.ts",
+      async (client) => {
+        await call(client, "pack_draft", agentHome);
+        const results = await Promise.all([
+          call(client, "capture_preview", { scenarios: ["ready"], widths: [360] }),
+          call(client, "capture_preview", { scenarios: ["ready"], widths: [360] }),
+        ]);
+        for (const result of results) expect(result.isError).toBeFalsy();
+      },
+      { TMPDIR: dir, LF_MCP_PREVIEW_LOG: log },
+    );
+    const lines = (await Bun.file(log).text()).trim().split("\n");
+    expect(lines.filter((line) => line === "open")).toHaveLength(1);
+    expect(lines.filter((line) => line === "close")).toHaveLength(1);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}, 180000);
+
+test("unknown_axis_is_unknown_name", async () => {
+  const result = await withClient(proofConfig, async (client) => {
+    await call(client, "pack_draft", agentHome);
+    return call(client, "capture_preview", { scenarios: ["not-a-scenario"], widths: [360] });
+  });
+  expect(result.isError).toBe(true);
+  const [error] = JSON.parse(texts(result.content as Content[])[0] ?? "[]") as { kind: string; message: string }[];
+  expect(error?.kind).toBe("unknown-name");
+  expect(error?.message).toContain("not-a-scenario");
+}, 120000);
+
 test("capture_before_pack_and_without_preview_config_are_errors", async () => {
   const [before, unconfigured] = await withClient(plainConfig, async (client) => {
     const before = await call(client, "capture_preview", {});
@@ -125,25 +174,26 @@ test("capture_page_and_bundle_hold_no_draft_code", async () => {
   }
 }, 60000);
 
-test("capture_temp_directory_and_binding_are_freed_on_shutdown", async () => {
+test("each_capture_uses_a_fresh_directory_and_the_binding_closes_once", async () => {
   const dir = await mkdtemp(join(tmpdir(), "liveframe-mcp-test-"));
   const log = join(dir, "preview.log");
+  const capture = (client: Client) => call(client, "capture_preview", { scenarios: ["ready"], widths: [360] });
   try {
     await withClient(
       "proof/tests/fixtures/mcp-preview-close.config.ts",
       async (client) => {
         await call(client, "pack_draft", agentHome);
-        expect((await call(client, "capture_preview", { scenarios: ["ready"], widths: [360] })).isError).toBeFalsy();
-        expect((await readdir(dir)).some((name) => name.startsWith("liveframe-mcp-"))).toBe(true);
+        expect((await capture(client)).isError).toBeFalsy();
+        // Each capture's directory is removed once its files are read, not at shutdown, and cell
+        // names repeat across calls, so a shared directory would serve a stale snapshot.
+        expect((await readdir(dir)).filter((name) => name.startsWith("liveframe-mcp-"))).toEqual([]);
+        expect((await capture(client)).isError).toBeFalsy();
+        expect((await readdir(dir)).filter((name) => name.startsWith("liveframe-mcp-"))).toEqual([]);
       },
       { TMPDIR: dir, LF_MCP_PREVIEW_LOG: log },
     );
-    const deadline = Date.now() + 5000;
-    while (Date.now() < deadline && (await readdir(dir)).some((name) => name.startsWith("liveframe-mcp-")))
-      await Bun.sleep(100);
-    expect((await readdir(dir)).filter((name) => name.startsWith("liveframe-mcp-"))).toEqual([]);
     expect(await Bun.file(log).text()).toBe("open\nclose\n");
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
-}, 120000);
+}, 180000);

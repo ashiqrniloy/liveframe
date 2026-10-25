@@ -152,7 +152,12 @@ cell) and `<dir>/<cell>.aria.yml` (its accessibility snapshot), then
 Paths are relative to `<dir>`. `errors` holds the cell's render errors (`kind`,
 `pointer`, `message`, and `nodeId` when known), which is how an agent finds and
 fixes a mistake. The command exits 0 when every captured cell is clean, 1 when a
-cell has errors or Playwright is missing, and 2 on a usage error.
+cell has errors or capture could not run, and 2 on a usage error. A capture that
+could not run says why on stderr: an axis value the page does not declare (and
+what it does declare), an unreachable page or one that never became ready, or a
+missing Playwright or Chromium with the install command. Inside the library that
+failure is a `CaptureError` carrying a `kind`, so `liveframe mcp` maps it to a
+typed tool error instead of parsing the message.
 
 Cell filenames come from the coordinates with unsafe characters replaced; if two
 cells sanitise to the same name, later ones get a `-2`, `-3` suffix. Read the

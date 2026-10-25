@@ -356,6 +356,15 @@ test("pack_draft_schema_embeds_the_published_schemas", async () => {
   expect(schema.$defs.schema).toEqual(manifestDoc.$defs.schema);
 }, 30000);
 
+test("default_runner_warns_on_stderr", async () => {
+  const defaulted = cli([`${fixtures}/mcp-worker.config.ts`]);
+  expect(defaulted.stderr.toString()).toContain("workerRunner()");
+  expect(defaulted.stderr.toString()).toContain("permissions");
+  // A configured runner needs no warning: the app already chose the isolation it wants.
+  const configured = cli([config]);
+  expect(configured.stderr.toString()).not.toContain("workerRunner()");
+});
+
 test("mcp_server_initializes_over_stdio", async () => {
   const client = new Client({ name: "cli-mcp-test", version: "0" });
   await client.connect(

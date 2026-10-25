@@ -29,10 +29,25 @@ type Axes = {
   readonly designSystems: readonly string[];
 };
 
-export class PlaywrightMissing extends Error {
+/** The capture failure kinds a caller can map to a `LiveframeError` without reading the message. */
+export type CaptureErrorKind = "unknown-name" | "not-found" | "limit-exceeded";
+
+export class CaptureError extends Error {
+  override name = "CaptureError";
+  constructor(
+    readonly kind: CaptureErrorKind,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+const INSTALL = "run `bun add -d playwright && bunx playwright install chromium`";
+
+export class PlaywrightMissing extends CaptureError {
   override name = "PlaywrightMissing";
   constructor() {
-    super("Playwright is required: run `bun add -d playwright && bunx playwright install chromium`.");
+    super("not-found", `Playwright is required: ${INSTALL}.`);
   }
 }
 
@@ -42,7 +57,11 @@ const sanitise = (cell: Omit<CapturedCell, "png" | "snapshot" | "errors">) =>
 function narrow<T>(axis: string, declared: readonly T[], wanted: readonly T[] | undefined): readonly T[] {
   if (!wanted) return declared;
   const missing = wanted.filter((value) => !declared.includes(value));
-  if (missing.length) throw new Error(`The page declares no ${axis} ${missing.join(", ")}`);
+  if (missing.length)
+    throw new CaptureError(
+      "unknown-name",
+      `The page declares no ${axis} ${missing.join(", ")}; it declares ${declared.join(", ")}.`,
+    );
   return wanted;
 }
 
@@ -55,17 +74,22 @@ export async function capture(
   const playwright = await load().catch(() => {
     throw new PlaywrightMissing();
   });
-  const browser = await playwright.chromium.launch({ headless: true });
+  const browser = await playwright.chromium.launch({ headless: true }).catch((error: Error) => {
+    // Playwright reports a missing browser as a plain Error, and has no error class for it (1.64):
+    // tag it here so no caller has to parse a message. Any other launch failure keeps its own error.
+    if (!/Executable doesn't exist|playwright install/i.test(error.message)) throw error;
+    throw new CaptureError("not-found", `Chromium is not installed for Playwright: ${INSTALL}.\n${error.message}`);
+  });
   try {
     const page = await browser.newPage();
     const open = async (scenario?: string) => {
       const target = new URL(url);
       if (scenario) target.searchParams.set("scenario", scenario);
       await page.goto(target.href).catch((error: Error) => {
-        throw new Error(`Cannot open ${target.href}: ${error.message}`);
+        throw new CaptureError("not-found", `Cannot open ${target.href}: ${error.message}`);
       });
       await page.waitForSelector("[data-lf-ready]", { timeout: 30000 }).catch(() => {
-        throw new Error(`${target.href} never became ready: is it a <Preview> page?`);
+        throw new CaptureError("not-found", `${target.href} never became ready: is it a <Preview> page?`);
       });
       await page.evaluate(() => document.fonts.ready);
     };
@@ -79,7 +103,8 @@ export async function capture(
     const designSystems = narrow("design system", declared.designSystems, options.designSystems);
     const requested = scenarios.length * widths.length * themes.length * designSystems.length;
     if (options.maxCells !== undefined && requested > options.maxCells)
-      throw new Error(
+      throw new CaptureError(
+        "limit-exceeded",
         `Requested ${requested} cells; at most ${options.maxCells} per call. Narrow with scenarios (${declared.scenarios.join(", ")}), widths (${declared.widths.join(", ")}), themes (${declared.themes.join(", ")}) or designSystems (${declared.designSystems.join(", ")}) — leave an argument out to keep every declared value.`,
       );
     await mkdir(options.out, { recursive: true });

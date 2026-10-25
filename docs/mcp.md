@@ -51,8 +51,10 @@ export default config;
 - `runner` is the runner production uses. Omit it and the server uses
   `workerRunner()`, which needs the `Worker` global (Bun has it). Preview and
   production must agree, so pass your own if you have one.
-- `preview(binding)` is called once, after the first successful `pack_draft`, and
-  gets `{ session, package }`: `session` is the preview session, `package()` is
+- `preview(binding)` is called once, on the first capture (or never, if you never
+  capture) — one promise is shared, so concurrent callers cannot bind twice, and a
+  binding that fails is retried on the next call. It gets
+  `{ session, package }`: `session` is the preview session, `package()` is
   the draft that last packed. Start your `<Preview>` page there, attach the
   session to it, and return `{ url, close }`. The URL is what `capture_preview`
   opens. `close()` runs on shutdown.
@@ -60,6 +62,18 @@ export default config;
 **Neither reference runner is a sandbox.** `inProcessRunner()` and
 `workerRunner()` run trusted code on your backend. For untrusted drafts, pass
 your own isolated runner as `config.runner` — and use the same one in production.
+The import ban is syntactic: a draft can still reach the file system, the network
+and `Bun.spawn` through what it is allowed to import. When you omit `runner`, the
+server says so on stderr once at startup:
+
+```
+liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).
+```
+
+`pack_draft`, `render_scenarios` and `capture_preview` run one at a time, in the
+order they arrived, because they share the session and the bound page — so a
+capture always shows the draft that packed before it, even if another call is
+queued behind. The catalog reads stay concurrent.
 
 The config module runs as host code, in the server's process, before any tool is
 registered. Log to stderr only: stdout carries the protocol.
@@ -128,16 +142,24 @@ another tool call:
 ```
 
 `capture_preview` captures every declared cell unless an argument narrows an
-axis, at most 12 cells per call; more is `limit-exceeded`. The first block lists
-the cells, then each cell's accessibility snapshot and its PNG as an image block:
+axis, at most 12 cells per call. The first block lists the cells, then each
+cell's accessibility snapshot and its PNG as an image block:
 
 ```json
 [{ "scenario": "loading", "width": 360, "theme": "certified@1.0.0", "designSystem": "rack@1.0.0", "errors": [] }]
 ```
 
-Capturing before `pack_draft` is `not-found`, as is a missing Playwright. Laws 1
-and 4 hold on this path too: the page gets trees, never draft code, and nothing
-is dispatched.
+Its failures are typed too, so an agent can tell a typo from a limit:
+
+| Kind | When |
+|---|---|
+| `unknown-name` | An axis value the page does not declare; the message lists what it does |
+| `limit-exceeded` | More than 12 cells; the message names every axis you can narrow |
+| `not-found` | Capturing before `pack_draft`, no `preview()` in the config, an unreachable page or one that never became ready, Playwright or Chromium missing (with the install command) |
+| `render-failed` | Anything else, such as a file-system failure while writing cells |
+
+Laws 1 and 4 hold on this path too: the page gets trees, never draft code, and
+nothing is dispatched.
 
 ## Register the server
 

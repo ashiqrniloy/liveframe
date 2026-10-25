@@ -17,7 +17,7 @@ import type { Runner } from "../preview/runner.ts";
 import { createPreview } from "../preview/session.ts";
 import { workerRunner } from "../preview/worker/index.ts";
 import { generate } from "../sdk/gen.ts";
-import { capture, PlaywrightMissing } from "./capture.ts";
+import { capture, CaptureError } from "./capture.ts";
 
 export class McpSdkMissing extends Error {
   override name = "McpSdkMissing";
@@ -266,8 +266,7 @@ function createAuthoring({
 }) {
   const session: PreviewSession = createPreview({ catalog, capabilities, runner });
   let packed: WidgetPackage | undefined;
-  let bound: { readonly url: string; close(): Promise<void> } | undefined;
-  let dir: string | undefined;
+  let bound: Promise<{ readonly url: string; close(): Promise<void> }> | undefined;
   return {
     session,
     get package() {
@@ -284,16 +283,16 @@ function createAuthoring({
         throw new Error(
           "The config module names no preview(): add `preview: async (binding) => ({ url, close })` to serve the app's own page.",
         );
-      bound ??= await config.preview({ session, package: () => packed ?? unreachable() });
-      return bound.url;
-    },
-    async dir(): Promise<string> {
-      dir ??= await mkdtemp(join(tmpdir(), "liveframe-mcp-"));
-      return dir;
+      // One binding for the session, even if two captures race: the promise is what is memoized.
+      bound ??= config.preview({ session, package: () => packed ?? unreachable() });
+      const bridge = await bound.catch((error: unknown) => {
+        bound = undefined; // a binding that failed is not cached: the next capture tries again
+        throw error;
+      });
+      return bridge.url;
     },
     async close(): Promise<void> {
-      await bound?.close();
-      if (dir) await rm(dir, { recursive: true, force: true });
+      await (await bound?.catch(() => undefined))?.close();
     },
   };
 }
@@ -302,8 +301,27 @@ function unreachable(): never {
   throw new Error("No draft has been packed");
 }
 
+/**
+ * One queue for the tools that share the session and the bound page, so a capture
+ * always shows the draft packed before it. Catalog reads need no ordering and
+ * stay concurrent.
+ */
+function serialize(): <T>(work: () => Promise<T>) => Promise<T> {
+  let tail: Promise<unknown> = Promise.resolve();
+  return (work) => {
+    const run = tail.then(work, work);
+    tail = run.catch(() => {}); // a failed call must not break the queue
+    return run;
+  };
+}
+
 /** The draft tools: one preview session, rendered by the app's own runner. */
-function registerDraftTools(sdk: Sdk, server: Server, authoring: ReturnType<typeof createAuthoring>): void {
+function registerDraftTools(
+  sdk: Sdk,
+  server: Server,
+  authoring: ReturnType<typeof createAuthoring>,
+  exclusive: <T>(work: () => Promise<T>) => Promise<T>,
+): void {
   const { session } = authoring;
   const schema = (value: object) => value as Parameters<Sdk["fromJsonSchema"]>[0];
   server.registerTool(
@@ -313,14 +331,15 @@ function registerDraftTools(sdk: Sdk, server: Server, authoring: ReturnType<type
         "Packs a draft — files, entry, manifest and scenarios — through the same packer production uses, and returns its hash plus manifest id, version and scenario names. A failed pack returns its LiveframeErrors and keeps the previous draft current.",
       inputSchema: sdk.fromJsonSchema<unknown>(schema(packSchema)),
     },
-    (input) => {
-      const arguments_ = packArguments(input);
-      if (!arguments_.ok) return failure(arguments_.errors);
-      const result = authoring.update(arguments_.value);
-      if (!result.ok) return failure(result.errors);
-      const { manifest, scenarios, hash } = result.value;
-      return text({ hash, id: manifest.id, version: manifest.version, scenarios: scenarios.map(({ name }) => name) });
-    },
+    (input) =>
+      exclusive(async () => {
+        const arguments_ = packArguments(input);
+        if (!arguments_.ok) return failure(arguments_.errors);
+        const result = authoring.update(arguments_.value);
+        if (!result.ok) return failure(result.errors);
+        const { manifest, scenarios, hash } = result.value;
+        return text({ hash, id: manifest.id, version: manifest.version, scenarios: scenarios.map(({ name }) => name) });
+      }),
   );
   server.registerTool(
     "render_scenarios",
@@ -329,55 +348,56 @@ function registerDraftTools(sdk: Sdk, server: Server, authoring: ReturnType<type
         "Renders the packed draft through the app's runner. With `scenario`, returns that scenario's UI tree (at most 256 KiB) or its LiveframeErrors, optionally overridden by `state` and `context`. Without it, returns every scenario's status — ok with its node count — plus each distinct error once, listing the scenarios that share it.",
       inputSchema: sdk.fromJsonSchema<unknown>(schema(renderSchema)),
     },
-    async (input) => {
-      const arguments_ = renderArguments(input);
-      if (!arguments_.ok) return failure(arguments_.errors);
-      const { scenario, state, context } = arguments_.value;
-      if (!authoring.package)
-        return failure([{ kind: "not-found", pointer: "", message: "Call pack_draft before render_scenarios" }]);
-      if (scenario !== undefined) {
-        const result = await session.render({
-          scenario,
-          ...(state === undefined ? {} : { state }),
-          ...(context === undefined ? {} : { context }),
-        });
-        if (!result.ok) return failure(result.errors);
-        const body = JSON.stringify(result.value);
-        const size = Buffer.byteLength(body, "utf8");
-        if (size > MAX_TREE_BYTES)
-          return failure([
-            {
-              kind: "limit-exceeded",
-              pointer: "/scenario",
-              message: `Scenario "${scenario}" rendered ${size} bytes, over the ${MAX_TREE_BYTES}-byte limit`,
-              expected: `a tree of at most ${MAX_TREE_BYTES} bytes`,
-            },
-          ]);
-        return { content: [{ type: "text" as const, text: body }] };
-      }
-      const checked = await session.check();
-      if (!checked.ok) return failure(checked.errors);
-      const statuses: ScenarioStatus[] = [];
-      const shared = new Map<string, ScenarioStatus & { ok: false }>();
-      for (const { scenario: name, result } of checked.value) {
-        if (result.ok) {
-          statuses.push({ scenario: name, ok: true, nodes: nodes(result.value.root) });
-          continue;
+    (input) =>
+      exclusive(async () => {
+        const arguments_ = renderArguments(input);
+        if (!arguments_.ok) return failure(arguments_.errors);
+        const { scenario, state, context } = arguments_.value;
+        if (!authoring.package)
+          return failure([{ kind: "not-found", pointer: "", message: "Call pack_draft before render_scenarios" }]);
+        if (scenario !== undefined) {
+          const result = await session.render({
+            scenario,
+            ...(state === undefined ? {} : { state }),
+            ...(context === undefined ? {} : { context }),
+          });
+          if (!result.ok) return failure(result.errors);
+          const body = JSON.stringify(result.value);
+          const size = Buffer.byteLength(body, "utf8");
+          if (size > MAX_TREE_BYTES)
+            return failure([
+              {
+                kind: "limit-exceeded",
+                pointer: "/scenario",
+                message: `Scenario "${scenario}" rendered ${size} bytes, over the ${MAX_TREE_BYTES}-byte limit`,
+                expected: `a tree of at most ${MAX_TREE_BYTES} bytes`,
+              },
+            ]);
+          return { content: [{ type: "text" as const, text: body }] };
         }
-        for (const error of result.errors) {
-          const id = `${error.kind}\u0000${error.pointer}\u0000${error.message}`;
-          const existing = shared.get(id);
-          if (existing) {
-            if (!existing.scenarios.includes(name)) existing.scenarios.push(name);
+        const checked = await session.check();
+        if (!checked.ok) return failure(checked.errors);
+        const statuses: ScenarioStatus[] = [];
+        const shared = new Map<string, ScenarioStatus & { ok: false }>();
+        for (const { scenario: name, result } of checked.value) {
+          if (result.ok) {
+            statuses.push({ scenario: name, ok: true, nodes: nodes(result.value.root) });
             continue;
           }
-          const entry: ScenarioStatus & { ok: false } = { ...error, ok: false, scenarios: [name] };
-          shared.set(id, entry);
-          statuses.push(entry);
+          for (const error of result.errors) {
+            const id = `${error.kind}\u0000${error.pointer}\u0000${error.message}`;
+            const existing = shared.get(id);
+            if (existing) {
+              if (!existing.scenarios.includes(name)) existing.scenarios.push(name);
+              continue;
+            }
+            const entry: ScenarioStatus & { ok: false } = { ...error, ok: false, scenarios: [name] };
+            shared.set(id, entry);
+            statuses.push(entry);
+          }
         }
-      }
-      return text(statuses);
-    },
+        return text(statuses);
+      }),
   );
 }
 
@@ -395,7 +415,12 @@ const captureSchema = {
 type Content = { type: "text"; text: string } | { type: "image"; data: string; mimeType: "image/png" };
 
 /** `capture_preview`: the bound page's cells, captured by the same `capture()` the CLI uses. */
-function registerCaptureTool(sdk: Sdk, server: Server, authoring: ReturnType<typeof createAuthoring>): void {
+function registerCaptureTool(
+  sdk: Sdk,
+  server: Server,
+  authoring: ReturnType<typeof createAuthoring>,
+  exclusive: <T>(work: () => Promise<T>) => Promise<T>,
+): void {
   type Options = { scenarios?: string[]; widths?: number[]; themes?: string[]; designSystems?: string[] };
   server.registerTool(
     "capture_preview",
@@ -404,55 +429,58 @@ function registerCaptureTool(sdk: Sdk, server: Server, authoring: ReturnType<typ
         "Captures the bound preview page's cells — at most 12 per call — and returns each cell's coordinates, LiveframeErrors and accessibility snapshot as text with its PNG as an image. Omit an axis to keep every value the page declares.",
       inputSchema: sdk.fromJsonSchema<Options>(captureSchema as Parameters<Sdk["fromJsonSchema"]>[0]),
     },
-    async (options: Options) => {
-      if (!authoring.package)
-        return failure([{ kind: "not-found", pointer: "", message: "Call pack_draft before capture_preview" }]);
-      let url: string;
-      try {
-        url = await authoring.url();
-      } catch (error) {
-        return failure([
-          { kind: "not-found", pointer: "", message: String(error instanceof Error ? error.message : error) },
-        ]);
-      }
-      const out = await authoring.dir();
-      try {
-        const index = await capture(url, { out, ...options, maxCells: 12 });
-        const content: Content[] = [
-          text(
-            index.cells.map(({ scenario, width, theme, designSystem, errors }) => ({
-              scenario,
-              width,
-              theme,
-              designSystem,
-              errors,
-            })),
-          ).content[0] as Content,
-        ];
-        for (const cell of index.cells) {
-          content.push({
-            type: "text",
-            text: `${cell.scenario} @${cell.width}px
-${await Bun.file(join(out, cell.snapshot)).text()}`,
-          });
-          content.push({
-            type: "image",
-            data: Buffer.from(await Bun.file(join(out, cell.png)).arrayBuffer()).toString("base64"),
-            mimeType: "image/png",
-          });
+    (options: Options) =>
+      exclusive(async () => {
+        if (!authoring.package)
+          return failure([{ kind: "not-found", pointer: "", message: "Call pack_draft before capture_preview" }]);
+        let url: string;
+        try {
+          url = await authoring.url();
+        } catch (error) {
+          return failure([
+            { kind: "not-found", pointer: "", message: String(error instanceof Error ? error.message : error) },
+          ]);
         }
-        return { content };
-      } catch (error) {
-        const message = String(error instanceof Error ? error.message : error);
-        return failure([
-          {
-            kind: error instanceof PlaywrightMissing ? "not-found" : "limit-exceeded",
-            pointer: "",
-            message,
-          },
-        ]);
-      }
-    },
+        // A directory per capture, removed once its files are read: cell names repeat across calls.
+        const out = await mkdtemp(join(tmpdir(), "liveframe-mcp-"));
+        try {
+          const index = await capture(url, { out, ...options, maxCells: 12 });
+          const content: Content[] = [
+            text(
+              index.cells.map(({ scenario, width, theme, designSystem, errors }) => ({
+                scenario,
+                width,
+                theme,
+                designSystem,
+                errors,
+              })),
+            ).content[0] as Content,
+          ];
+          for (const cell of index.cells) {
+            content.push({
+              type: "text",
+              text: `${cell.scenario} @${cell.width}px
+${await Bun.file(join(out, cell.snapshot)).text()}`,
+            });
+            content.push({
+              type: "image",
+              data: Buffer.from(await Bun.file(join(out, cell.png)).arrayBuffer()).toString("base64"),
+              mimeType: "image/png",
+            });
+          }
+          return { content };
+        } catch (error) {
+          return failure([
+            {
+              kind: error instanceof CaptureError ? error.kind : "render-failed",
+              pointer: "",
+              message: String(error instanceof Error ? error.message : error),
+            },
+          ]);
+        } finally {
+          await rm(out, { recursive: true, force: true });
+        }
+      }),
   );
 }
 
@@ -469,11 +497,17 @@ export async function mcp(path: string, load: () => Promise<Sdk> = loadSdk): Pro
   const { config, catalog, capabilities } = loaded;
   const owned = config.runner === undefined;
   const runner: Runner & { close?(): void } = config.runner ?? workerRunner();
+  // Say plainly what the default runner means: agent-written code runs with this process's permissions.
+  if (owned)
+    console.error(
+      "liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).",
+    );
   const server = new sdk.McpServer({ name: "liveframe", version: pkg.version });
+  const exclusive = serialize();
   const authoring = createAuthoring({ config, catalog, capabilities, runner });
   registerCatalogTools(sdk, server, catalog, capabilities);
-  registerDraftTools(sdk, server, authoring);
-  registerCaptureTool(sdk, server, authoring);
+  registerDraftTools(sdk, server, authoring, exclusive);
+  registerCaptureTool(sdk, server, authoring, exclusive);
   await server.connect(new sdk.StdioServerTransport());
   await new Promise<void>((resolveStop) => {
     const stop = () => resolveStop();

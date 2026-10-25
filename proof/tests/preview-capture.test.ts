@@ -3,7 +3,7 @@ import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { drafts } from "../../src/__tests__/fixtures/widgets/drafts.ts";
-import { capture, PlaywrightMissing } from "../../src/cli/capture.ts";
+import { capture, CaptureError, PlaywrightMissing } from "../../src/cli/capture.ts";
 import { startHost } from "../host/server.ts";
 
 let server: Awaited<ReturnType<typeof startHost>>;
@@ -133,6 +133,44 @@ test("missing_playwright_reports_how_to_install", async () => {
   expect(cli.exitCode).toBe(2);
   expect(cli.stderr.toString()).toContain("Usage: liveframe preview capture");
 });
+
+test("capture_errors_carry_their_kind", async () => {
+  const missing = await capture("http://127.0.0.1:1/", { out: "unused" }, () => Promise.reject(new Error("no"))).catch(
+    (error) => error,
+  );
+  expect(missing).toBeInstanceOf(PlaywrightMissing);
+  expect(missing.kind).toBe("not-found");
+  expect(missing.message).toContain("playwright install chromium");
+
+  // Playwright has no error class for a missing browser, so the tag comes from the one launch site.
+  const launchFails = (message: string) =>
+    (async () => ({
+      chromium: {
+        launch: async () => {
+          throw new Error(message);
+        },
+      },
+    })) as never;
+  const noBrowser = await capture(
+    "http://127.0.0.1:1/",
+    { out: "unused" },
+    launchFails("browserType.launch: Executable doesn't exist at /browsers/chromium-1228/chrome"),
+  ).catch((error) => error);
+  expect(noBrowser).toBeInstanceOf(CaptureError);
+  expect(noBrowser.kind).toBe("not-found");
+  expect(noBrowser.message).toContain("playwright install chromium");
+
+  // An unreachable page is not-found too, and a launch failure that is not about installation stays as it was.
+  const unreachable = await capture("http://127.0.0.1:1/", { out: "unused" }).catch((error) => error);
+  expect(unreachable).toBeInstanceOf(CaptureError);
+  expect(unreachable.kind).toBe("not-found");
+  const sandbox = await capture(
+    "http://127.0.0.1:1/",
+    { out: "unused" },
+    launchFails("browserType.launch: sandbox is unavailable"),
+  ).catch((error) => error);
+  expect(sandbox).not.toBeInstanceOf(CaptureError);
+}, 120000);
 
 test("gen_runs_without_playwright", async () => {
   const dir = await temp();

@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { validateCatalog } from "../formats/catalog.ts";
 import { generate } from "../sdk/gen.ts";
+import { CaptureError } from "./capture.ts";
 
 const captureUsage =
   "Usage: liveframe preview capture <url> --out <dir> [--scenario <a,b>] [--width <n,m>] [--theme <id@v,…>] [--design-system <id@v,…>]";
@@ -37,7 +38,8 @@ async function previewCapture(args: string[]): Promise<number> {
     for (const cell of failed) console.error(`${cell.png}: ${cell.errors.length} render error(s)`);
     return failed.length > 0 ? 1 : 0;
   } catch (error) {
-    if (error instanceof Error && error.name === "PlaywrightMissing") {
+    // A capture that could not run reports its message and a status, whatever the kind.
+    if (error instanceof CaptureError) {
       console.error(error.message);
       return 1;
     }
