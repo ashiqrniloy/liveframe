@@ -1,4 +1,4 @@
-type LoadedModule = { readonly default?: unknown };
+export type LoadedModule = { readonly default?: unknown };
 
 const modules = new Map<string, Promise<LoadedModule>>();
 

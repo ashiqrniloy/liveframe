@@ -214,6 +214,14 @@ test("package_failures_are_bounded_and_fail_closed", () => {
   );
 });
 
+test("verify_rejects_linked_top_level_await", () => {
+  const pkg = value(pack(input, options));
+  // A hand-built package whose linked code carries a pending top-level await.
+  const code = `await new Promise(() => {});\nexport default () => null;`;
+  const tampered = { ...pkg, code } as WidgetPackage;
+  rejects(verifyPackage({ ...tampered, hash: packageHash(tampered) }, options), "invalid-document", "/code/1");
+});
+
 test("verify_rechecks_manifest_and_scenarios", () => {
   const pkg = value(pack(input, options));
   rejects(

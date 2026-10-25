@@ -38,14 +38,19 @@ function walk(node: AnyNode, visit: (node: AnyNode, insideFunction: boolean) => 
   }
 }
 
-/** One import rule for source modules and untrusted, already-linked packages. */
+const synchronous = "a synchronous module: no top-level await";
+
+/** One module rule for source modules and untrusted, already-linked packages. */
 export function checkModule(source: string, at: string, allowRelative = false): Result<ReturnType<typeof parse>> {
   const c = documentChecks();
   try {
     const ast = parse(source, { ecmaVersion: "latest", sourceType: "module", locations: true });
-    walk(ast, (node) => {
+    walk(ast, (node, insideFunction) => {
       if (c.errors.length >= 20) return;
       const location = `${at}/${node.loc?.start.line ?? 1}`;
+      // A widget evaluates synchronously (spec §7.1): top-level await would suspend the runner.
+      if (!insideFunction && (node.type === "AwaitExpression" || (node.type === "ForOfStatement" && node.await)))
+        c.reject(location, "Expected a synchronous module", "invalid-document", synchronous);
       if (
         node.type === "ImportExpression" ||
         (node.type === "MetaProperty" && node.meta.name === "import") ||
@@ -160,10 +165,7 @@ export function bundle({
     if (!checked.ok) throw new BundleFailure(checked.errors);
     ast = checked.value;
 
-    let asynchronous = false;
-    walk(ast, (node, insideFunction) => {
-      if (!insideFunction && (node.type === "AwaitExpression" || (node.type === "ForOfStatement" && node.await)))
-        asynchronous = true;
+    walk(ast, (node) => {
       const location = pointer(file, node.loc?.start.line ?? 1);
       if (node.type === "Identifier" && node.name.startsWith("__lf_")) {
         fail("invalid-document", location, "Identifiers starting with __lf_ are reserved for the linker");
@@ -240,7 +242,7 @@ export function bundle({
     );
     const assignments = [...exports].map(([key, value]) => `__lf_exports[${JSON.stringify(key)}] = ${value};`);
     output.push(
-      `const ${module.id} = ${asynchronous ? "await (async" : "("}() => {\n${imports.join("\n")}\n${source}\nconst __lf_exports = { __proto__: null };\n${[...starExports, ...assignments].join("\n")}\nreturn __lf_exports;\n})();`,
+      `const ${module.id} = (() => {\n${imports.join("\n")}\n${source}\nconst __lf_exports = { __proto__: null };\n${[...starExports, ...assignments].join("\n")}\nreturn __lf_exports;\n})();`,
     );
     active.pop();
     return module;

@@ -95,6 +95,19 @@ test("in_process_preserves_sdk_errors_and_limits", async () => {
   expect(thrown).toMatchObject({ ok: false, errors: [{ kind: "render-failed" }] });
 });
 
+test("in_process_load_is_bounded_by_timeout", async () => {
+  // P4: a hand-built package whose module evaluation never settles.
+  const pkg = withCode("await new Promise(() => {});\nexport default () => null;");
+  const start = performance.now();
+  const result = await inProcessRunner().render(pkg, inputs, { ...options, timeoutMs: 100 });
+  const elapsed = performance.now() - start;
+  expect(result).toMatchObject({
+    ok: false,
+    errors: [{ kind: "limit-exceeded", pointer: "", message: "Module evaluation exceeded 100 ms" }],
+  });
+  expect(elapsed).toBeLessThan(150);
+});
+
 test("forged_hash_cannot_reuse_a_loaded_module", async () => {
   const runner = inProcessRunner();
   const loaded = withCode(simpleCode);

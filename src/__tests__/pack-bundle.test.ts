@@ -159,10 +159,33 @@ test("supports_default_declarations_namespace_reexports_and_sdk_reexports", asyn
   expect(linked.default).toEqual([3, 3, { type: "action", name: "test", args: {} }]);
 });
 
-test("preserves_top_level_await_and_module_hashbangs", async () => {
+test("top_level_await_is_rejected", async () => {
+  for (const [source, line] of [
+    ["export default await Promise.resolve(3);", 1],
+    ["const rows = [];\nfor await (const row of rows) rows.push(row);\nexport default () => null;", 2],
+  ] as const) {
+    const bundled = bundle({ files: { "entry.ts": source }, entry: "entry.ts" });
+    expect(bundled.ok).toBe(false);
+    if (!bundled.ok)
+      expect(bundled.errors).toEqual([
+        expect.objectContaining({
+          kind: "invalid-document",
+          pointer: `/files/entry.ts/${line}`,
+          expected: "a synchronous module: no top-level await",
+        }),
+      ]);
+  }
+  // Inside a function it is ordinary async code.
   const linked = await load({
-    "entry.ts": '#!/usr/bin/env bun\nimport value from "./async"; export default () => value;',
-    "async.ts": "export default await Promise.resolve(3);",
+    "entry.ts": "export default async () => { for await (const row of []) row; return 3; };",
+  });
+  expect(await (linked.default as () => Promise<number>)()).toBe(3);
+});
+
+test("preserves_module_hashbangs", async () => {
+  const linked = await load({
+    "entry.ts": '#!/usr/bin/env bun\nimport value from "./value"; export default () => value;',
+    "value.ts": "export default 3;",
   });
   expect(linked.default()).toBe(3);
 });

@@ -347,7 +347,7 @@ A widget **manifest** declares:
 
 The widget function's rules:
 
-- It is **pure and synchronous**. All four inputs are frozen. Time and randomness come only through `context`.
+- It is **pure and synchronous**. All four inputs are frozen. Time and randomness come only through `context`. A module may not suspend while it evaluates: top-level `await` and `for await` are rejected (§7.3), because a module that never settles would hold the runner. Inside functions they are ordinary async code, which the renderer never waits for.
 - It returns **one root element**.
 - It uses only catalog primitives and composed components. **Host elements are errors** (`<div>`, `<span>`), and so are function props, promises, async functions, and string `className` or `style`.
 - Every element in a list needs a **`key`**. Node ids are key paths (`root/queue/row:4812/claim`), never positions, so the renderer keeps focus, scroll and local state across re-renders.
@@ -402,6 +402,7 @@ Packages carry 1…64 scenarios with unique, non-empty names of at most 128 Unic
 - checks the scenarios: at least one, unique names, params, state and context valid against the manifest's schemas, and data keyed by declared source names and valid against each named source's `result` schema;
 - transpiles the TSX and bundles the entry's relative imports into one module. A composed component is bundled into every package that imports it, so a package never depends on another;
 - rejects every other import except the SDK (`@arnilo/liveframe/sdk` and its JSX runtime), which the app's sandbox provides;
+- rejects top-level `await` and `for await`: widget modules evaluate synchronously, so a suspension at that level would be a way to hold a runner forever;
 - hashes the result.
 
 **Canonical form and hash.** Hash exactly `{ format, manifest, code, scenarios }`, excluding `hash`. Canonical JSON follows [RFC 8785 §3.2](https://www.rfc-editor.org/rfc/rfc8785.html#section-3.2): sort object keys recursively by their unescaped UTF-16 code units, preserve array order, emit no whitespace, and use ECMAScript serialisation for strings, numbers and literals. Preserve Unicode without normalisation; reject non-JSON values, non-finite numbers and lone surrogates. Encode the canonical string as UTF-8, compute SHA-256 ([FIPS 180-4 §6.2](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf)), and prefix its lowercase hexadecimal digest with `sha256-`. An internal pure-JavaScript SHA-256 implementation keeps `pack()` synchronous and host-API-free, without Web Crypto. The hash checks integrity, not origin or approval.
@@ -412,7 +413,7 @@ Rules:
 
 - **`pack()` never runs widget code.** Rendering a draft is the preview's job (§7.5), through the app's runner and under the app's policy.
 - **A package is immutable.** An `(id, version)` names exactly one hash, and storing different content under an existing pair is an error. A change is a new version, and rolling back means placing an older one.
-- **`verifyPackage(pkg, { catalog, capabilities })`** re-checks the format, the manifest, the scenarios and the hash without executing anything. It re-parses the code and re-applies the import rule: only SDK imports may remain in a linked package. The app runs it on every package it loads.
+- **`verifyPackage(pkg, { catalog, capabilities })`** re-checks the format, the manifest, the scenarios and the hash without executing anything. It re-parses the code and re-applies the module rules: only SDK imports may remain in a linked package, and no top-level `await` may remain in it. The app runs it on every package it loads.
 - The package hash is the widget part of the re-run cache key (§8).
 - `/pack` is host-API-free, so the app can pack wherever it installs widgets.
 

@@ -104,13 +104,19 @@ ES module. Only `@arnilo/liveframe/sdk`, `/sdk/jsx-runtime` and
 `/sdk/jsx-dev-runtime` may remain as imports. Non-SDK imports and re-exports,
 `require`, dynamic imports and `import.meta` fail with `forbidden-import`;
 syntax errors use `transpile-failed` with a file and line in the pointer.
+Widget modules evaluate synchronously, so top-level `await` and `for await`
+outside a function fail with `invalid-document` (`/files/entry.tsx/3`, expected
+"a synchronous module: no top-level await"). A module that suspended there could
+hold a runner forever, so the rule is checked at pack and again at verification
+(`/code/3` for a linked package). Inside functions, `async` code is ordinary and
+the renderer never waits for it.
 Unresolved relative imports and cycles are rejected. Import/export bindings
 are snapshots rather than live bindings; widgets must be pure. Linked code is
 bounded to 1 MiB of UTF-8.
 
 `validateScenario()` and `validateWidgetPackageShape()` check structure only.
 Use `pack()` or `verifyPackage()` for manifest, scenario, import and hash checks.
-Verification re-parses code and checks the import rule even when the hash matches.
+Verification re-parses code and checks both rules even when the hash matches.
 
 ## Integrity, versions and rollback
 
@@ -237,8 +243,11 @@ objects when their contracts change.
 
 `limits` supports the SDK's node (5,000), depth (64) and UTF-8 tree byte
 (1,048,576) defaults. Bad modules and non-function default exports are
-`render-failed`; SDK validation failures pass through. Reference runners use
-the SDK's default error bound; `maxErrors` is not a `RunnerOptions` field.
+`render-failed`; SDK validation failures pass through. Module evaluation is
+raced against `timeoutMs`, so a hand-built package whose top-level await never
+settles returns `limit-exceeded` (the worker runner terminates it instead). A
+synchronous loop still cannot be interrupted. Reference runners use the SDK's
+default error bound; `maxErrors` is not a `RunnerOptions` field.
 
 The reference loader uses dot-escaped `data:` URLs and resolves only canonical
 linker SDK headers from the library's own installation. Hand-written packages
