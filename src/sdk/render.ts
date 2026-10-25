@@ -96,47 +96,40 @@ export function render<P, S, D, C>(
     },
   };
 
-  /** Rejects a non-JSON input value (function, promise, class instance, NaN, cycle) at its pointer. */
-  function isJson(value: unknown, pointer: string, ancestors: Set<object>, depth = 0): boolean {
-    if (typeof value === "function") {
-      fail("invalid-prop", pointer + jsonPointer(), "JSON data, not a function");
+  /**
+   * Rejects a non-JSON value (function, promise, class instance, NaN, cycle) at its pointer, within
+   * the depth bound every input walk uses. `composed` is a composed component's node id: its props
+   * are data too, so a nested function or promise keeps its own kind (spec §7.1).
+   */
+  function isJson(value: unknown, pointer: string, ancestors: Set<object>, composed?: string, depth = 0): boolean {
+    const reject = (kind: LiveframeError["kind"], expected: string): false => {
+      fail(kind, pointer + jsonPointer(), expected, composed);
       return false;
-    }
-    if (isThenable(value)) {
-      fail("invalid-prop", pointer + jsonPointer(), "JSON data, not a promise");
-      return false;
-    }
+    };
+    if (typeof value === "function")
+      return reject(composed ? "function-prop" : "invalid-prop", "JSON data, not a function");
+    if (isThenable(value)) return reject(composed ? "async-render" : "invalid-prop", "JSON data, not a promise");
     if (value === null || typeof value === "string" || typeof value === "boolean") return true;
     if (typeof value === "number") {
       if (Number.isFinite(value)) return true;
-      fail("invalid-prop", pointer + jsonPointer(), "a finite number");
-      return false;
+      return reject("invalid-prop", "a finite number");
     }
-    if (!Array.isArray(value) && !isRecord(value)) {
-      fail("invalid-prop", pointer + jsonPointer(), "plain JSON data");
-      return false;
-    }
-    if (depth >= INPUT_DEPTH) {
-      fail("invalid-prop", pointer + jsonPointer(), `data nested at most ${INPUT_DEPTH} deep`);
-      return false;
-    }
-    if (ancestors.has(value)) {
-      fail("invalid-prop", pointer + jsonPointer(), "acyclic data");
-      return false;
-    }
+    if (!Array.isArray(value) && !isRecord(value)) return reject("invalid-prop", "plain JSON data");
+    if (depth >= INPUT_DEPTH) return reject("invalid-prop", `data nested at most ${INPUT_DEPTH} deep`);
+    if (ancestors.has(value)) return reject("invalid-prop", "acyclic data");
     ancestors.add(value);
     let valid = true;
     if (Array.isArray(value)) {
       for (let i = 0; i < value.length && valid; i++) {
         path.push(i);
-        valid = isJson(value[i], pointer, ancestors, depth + 1);
+        valid = isJson(value[i], pointer, ancestors, composed, depth + 1);
         path.pop();
       }
     } else {
       for (const key in value) {
         if (!Object.hasOwn(value, key)) continue;
         path.push(key);
-        const entryValid = isJson(value[key], pointer, ancestors, depth + 1);
+        const entryValid = isJson(value[key], pointer, ancestors, composed, depth + 1);
         path.pop();
         if (!entryValid) {
           valid = false;
@@ -272,13 +265,14 @@ export function render<P, S, D, C>(
         limit(`at most ${budget.depth} component expansions`, parentId ?? "root", parentPointer(parentId));
         return;
       }
+      // A composed component sees its props as data, so the whole value is checked: a callback
+      // nested in one it would discard is still not JSON (spec §7.1).
       for (const name in element.props) {
         if (name === "children" || !Object.hasOwn(element.props, name)) continue;
-        const kind = dataKind(element.props[name]);
-        if (!kind) continue;
-        const data = kind === "function-prop" ? "JSON data, not a function" : "JSON data, not a promise";
-        fail(kind, `${parentPointer(parentId)}/${name}`, data, parentId ?? "root");
-        if (stopped) return;
+        path.push(name);
+        const valid = isJson(element.props[name], parentPointer(parentId), ancestors, parentId ?? "root");
+        path.pop();
+        if (!valid && stopped) return;
       }
       let expanded: unknown;
       try {

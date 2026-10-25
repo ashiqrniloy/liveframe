@@ -181,15 +181,18 @@ shown here as inline examples: generated types reject many cases before runtime.
 | `duplicate-key` | Two sibling `<Text key="a" text="a" />` elements | Use distinct sibling keys. |
 | `undeclared-event` | A button with `onHover={action("tasks.claim", { id: "t" })}` | Use an event declared by the definition. |
 | `undeclared-action` | `<Button label="a" onPress={action("nope", {})} />` | Declare and allow the action, or use an allowed one. |
-| `function-prop` | `<Text text={() => "a"} />` | Pass JSON data. A function nested in a JSON prop currently reports `invalid-prop`. |
-| `async-render` | `async () => <Text text="a" />` | Resolve data in the host; return synchronously. Promise props also fail. |
+| `function-prop` | `<Text text={() => "a"} />` or a function nested in a composed component's props | Pass JSON data. A composed component's props are checked at every depth before it runs. |
+| `async-render` | `async () => <Text text="a" />` | Resolve data in the host; return synchronously. A promise prop, at any depth in a composed component's props, fails too. |
 | `render-failed` | `() => { throw new Error("boom"); }` | Fix the widget exception. The message retains `boom`, without a stack, capped at 500 characters plus an ellipsis. |
 | `limit-exceeded` | A stack with a text child rendered with `limits: { nodes: 1 }` | Reduce output or have the host choose an appropriate budget. |
 
-Composed components currently check non-JSON props only at the top level before
-expansion. A nested function or promise that the component discards can escape
-rejection. Keep composed props as JSON data (apart from JSX children); the
-remaining rejection gap is tracked in the [SDK backlog](../plans/backlog.md#reject-nested-non-json-composed-props-and-improve-sdk-diagnostics).
+Before a composed component runs, its props are walked as data — at every depth,
+within the same 128-level bound as widget inputs — so a function or promise the
+component would discard is still rejected, with `function-prop` or
+`async-render` at its escaped pointer and the component's node id. JSX
+`children` are exempt: they are elements, expanded afterwards. A primitive's own
+JSON props keep their classification: a nested function there is `invalid-prop`,
+because the prop's schema rejects the value first.
 
 ## Public exports and executable examples
 

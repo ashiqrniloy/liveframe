@@ -1,6 +1,6 @@
 /** @jsxImportSource @arnilo/liveframe/sdk */
 import { describe, expect, test } from "bun:test";
-import { action, primitive, render, state, type WidgetProps } from "@arnilo/liveframe/sdk";
+import { action, type Element, Fragment, jsx, primitive, render, state, type WidgetProps } from "@arnilo/liveframe/sdk";
 import { compileValidator, type LiveframeError, type UiNode } from "../index.ts";
 import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
@@ -282,4 +282,105 @@ test("keyed_fragments_preserve_component_paths", () => {
       </Stack>
     ))[0]?.kind,
   ).toBe("missing-key");
+});
+
+// A component that discards what it is given: its props are checked before it runs.
+const Label = (_props: { readonly children?: unknown; readonly [prop: string]: unknown }) => <Text text="a" />;
+const Throws = () => {
+  throw new Error("x".repeat(600));
+};
+// Both cast away their real return type: the renderer, not TypeScript, is the case under test.
+const Async = (async () => <Text text="a" />) as unknown as () => Element;
+const NotAnElement = (() => ({ type: "text" })) as unknown as () => Element;
+const Recursive = (): Element => <Recursive />;
+const nestedChildren = (levels: number) => {
+  let inner: unknown = <Text key="leaf" text="a" />;
+  for (let i = 0; i < levels; i++) inner = [inner];
+  return inner;
+};
+
+describe("composed components and fragments", () => {
+  test("nested_callback_in_composed_props_is_function_prop", () => {
+    const payload = { callback: () => 0 };
+    const errors = failures(() => <Label {...{ payload }} />);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatchObject({
+      kind: "function-prop",
+      pointer: "/payload/callback",
+      nodeId: "root",
+      expected: "JSON data, not a function",
+    });
+
+    const promise = { payload: { ready: Promise.resolve(1) } };
+    expect(failures(() => <Label {...promise} />)[0]).toMatchObject({
+      kind: "async-render",
+      pointer: "/payload/ready",
+      nodeId: "root",
+    });
+
+    // The input walker's depth bound applies here too, and an escaped name keeps the pointer exact.
+    let deep: unknown = () => 0;
+    for (let i = 0; i <= 128; i++) deep = { nested: deep };
+    expect(failures(() => <Label {...{ "pay/load": deep }} />)[0]).toMatchObject({
+      kind: "invalid-prop",
+      pointer: `/pay~1load${"/nested".repeat(128)}`,
+    });
+    expect(failures(() => <Label {...{ "pay/load": { callback: () => 0 } }} />)[0]?.pointer).toBe(
+      "/pay~1load/callback",
+    );
+  });
+
+  test("composed_component_error_paths", () => {
+    const cases: readonly {
+      readonly kind: LiveframeError["kind"];
+      readonly pointer: string;
+      readonly nodeId: string;
+      readonly widget: () => unknown;
+    }[] = [
+      // The expansion depth limit.
+      { kind: "limit-exceeded", pointer: "", nodeId: "root", widget: () => <Recursive /> },
+      // A top-level function prop.
+      {
+        kind: "function-prop",
+        pointer: "/onPress",
+        nodeId: "root",
+        widget: () => <Label {...{ onPress() {} }} />,
+      },
+      // A component that throws, its message truncated at 500 characters.
+      { kind: "render-failed", pointer: "", nodeId: "root", widget: () => <Throws /> },
+      // A promise return.
+      { kind: "async-render", pointer: "", nodeId: "root", widget: () => <Async /> },
+      // A non-element return.
+      { kind: "unknown-component", pointer: "", nodeId: "root", widget: () => <NotAnElement /> },
+      // Invalid keys: empty, more than 128 characters and NaN.
+      { kind: "invalid-prop", pointer: "", nodeId: "root", widget: () => <Label key="" /> },
+      { kind: "invalid-prop", pointer: "", nodeId: "root", widget: () => <Label key={"k".repeat(129)} /> },
+      { kind: "invalid-prop", pointer: "", nodeId: "root", widget: () => <Label key={Number.NaN} /> },
+      // A fragment with props.
+      {
+        kind: "invalid-prop",
+        pointer: "/style",
+        nodeId: "root",
+        widget: () => jsx(Fragment, { children: jsx(Text, { key: "a", text: "a" }), style: "raw css" }),
+      },
+      // The nested child-array depth limit.
+      {
+        kind: "limit-exceeded",
+        pointer: "/root",
+        nodeId: "root",
+        widget: () => <Stack>{nestedChildren(66) as never}</Stack>,
+      },
+    ];
+
+    for (const entry of cases) {
+      // A failure before the root exists also adds the "exactly one root element" error; the
+      // branch's own error is the first one.
+      expect(failures(entry.widget)[0]).toMatchObject({
+        kind: entry.kind,
+        pointer: entry.pointer,
+        nodeId: entry.nodeId,
+      });
+    }
+    expect(failures(cases[2]?.widget ?? (() => null))[0]?.message).toBe(`${"x".repeat(500)}…`);
+  });
 });

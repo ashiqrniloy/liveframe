@@ -182,10 +182,11 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: SDK diagnostics
 - Priority: P2
-- Status: scheduled 2026-10-25 in plan 012 Task 12.
+- Status: closed 2026-10-26 by plan 012 Task 12.
 - Source: plans/005-Phase-2-Part-A-SDK.md Task 10 (F3), plans/evidence/005-impact-analysis.md
 - What: add nested function/promise cases for primitive JSON props and composed-component props, including values discarded during expansion. Reject non-JSON composed props before invoking the component; preserve `function-prop` / `async-render` classifications and exact escaped pointers at the responsible check. Preserve bounded failures and all byte/depth checks, rerun the SDK budget, and update the guide's limitation when corrected.
 - Why: top-level function/promise props have dedicated kinds, while nested primitive values can report `invalid-prop` (or be rejected by schema first). Composed props check only top-level values before expansion: a component that discards `{ payload: { callback: () => 0 } }` currently renders successfully. The emitted tree is valid, but this misses §7.1's non-JSON prop restriction. These are distinct rejection and diagnostic gaps; this handoff changes no implementation or current error contract.
+- Done: composed props are walked as data at every depth before expansion (`isJson` in `src/sdk/render.ts`, reusing the input walker and its 128-level bound), so a discarded nested function or promise is `function-prop`/`async-render` at its escaped pointer. A primitive's own JSON props keep `invalid-prop` for nested non-JSON values, by design (its schema rejects first); the guide says so.
 
 ## Profile production browser selection costs before optimizing the renderer
 

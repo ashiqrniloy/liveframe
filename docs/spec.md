@@ -349,7 +349,7 @@ The widget function's rules:
 
 - It is **pure and synchronous**. All four inputs are frozen. Time and randomness come only through `context`. A module may not suspend while it evaluates: top-level `await` and `for await` are rejected (§7.3), because a module that never settles would hold the runner. Inside functions they are ordinary async code, which the renderer never waits for.
 - It returns **one root element**.
-- It uses only catalog primitives and composed components. **Host elements are errors** (`<div>`, `<span>`), and so are function props, promises, async functions, and string `className` or `style`.
+- It uses only catalog primitives and composed components. **Host elements are errors** (`<div>`, `<span>`), and so are function props, promises, async functions, and string `className` or `style`. Props are JSON at every depth: a composed component's props are walked before it runs, so a nested function or promise is rejected even if the component would discard it.
 - Every element in a list needs a **`key`**. Node ids are key paths (`root/queue/row:4812/claim`), never positions, so the renderer keeps focus, scroll and local state across re-renders.
 - **Long lists are paged or windowed.** A widget renders what a surface shows, and loads more through `setState`. Render cost grows with node count, and performance budgets are measured on these realistic sizes.
 - **Composed components are ordinary functions** in the same bundle or in shared modules. They are expanded when the widget runs, and the UI tree contains only primitives.
