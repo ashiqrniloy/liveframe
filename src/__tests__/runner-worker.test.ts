@@ -4,6 +4,7 @@ import { compileValidator, type Result, validateCapabilities, validateCatalog } 
 import { packageHash } from "../pack/hash.ts";
 import { pack, type WidgetPackage } from "../pack/index.ts";
 import { workerRunner } from "../preview/worker/index.ts";
+import type { WorkerMessage } from "../preview/worker/protocol.ts";
 import catalogDoc from "./fixtures/proof/catalog.json" with { type: "json" };
 import capabilitiesDoc from "./fixtures/widgets/capabilities.json" with { type: "json" };
 import { drafts } from "./fixtures/widgets/drafts.ts";
@@ -157,27 +158,27 @@ test("worker_preserves_validation_and_recovers_from_clone_failure", async () => 
 
 test("worker_reuses_cloned_configuration_until_identity_changes", async () => {
   const runner = workerRunner({ timeoutMs: 2000 });
-  let reads = 0;
-  const counted = {
-    ...catalog,
-    get definitions() {
-      reads++;
-      return catalog.definitions;
-    },
+  const sent: WorkerMessage[] = [];
+  const post = Worker.prototype.postMessage;
+  Worker.prototype.postMessage = function (message: WorkerMessage) {
+    sent.push(message);
+    return post.call(this, message);
   };
-  const current = { ...options, catalog: counted };
+  const configures = () => sent.filter((message) => message.type === "configure").length;
   try {
-    expect((await runner.render(withCode(simpleCode), inputs, current)).ok).toBe(true);
-    const coldReads = reads;
-    expect(coldReads).toBeGreaterThan(0);
-    expect((await runner.render(withCode(simpleCode), inputs, { ...current, revision: 2 })).ok).toBe(true);
-    expect((await runner.render(withCode(`${simpleCode}\n// new hash`), inputs, current)).ok).toBe(true);
-    expect(reads).toBe(coldReads);
+    expect((await runner.render(withCode(simpleCode), inputs, options)).ok).toBe(true);
+    expect(configures()).toBe(1);
+    expect((await runner.render(withCode(simpleCode), inputs, { ...options, revision: 2 })).ok).toBe(true);
+    expect((await runner.render(withCode(`${simpleCode}\n// new hash`), inputs, options)).ok).toBe(true);
+    expect(configures()).toBe(1);
     expect(
-      (await runner.render(withCode(simpleCode), inputs, { ...current, capabilities: { ...capabilities } })).ok,
+      (await runner.render(withCode(simpleCode), inputs, { ...options, capabilities: { ...capabilities } })).ok,
     ).toBe(true);
-    expect(reads).toBeGreaterThan(coldReads);
+    expect(configures()).toBe(2);
+    expect((await runner.render(withCode(simpleCode), inputs, { ...options, catalog: { ...catalog } })).ok).toBe(true);
+    expect(configures()).toBe(3);
   } finally {
+    Worker.prototype.postMessage = post;
     runner.close();
   }
 });
@@ -214,6 +215,93 @@ test("worker_warm_overhead_report", async () => {
     console.info(
       `worker warm overhead: ${((worker - direct) / 100).toFixed(4)} ms/render (direct ${(direct / 100).toFixed(4)}, worker ${(worker / 100).toFixed(4)})`,
     );
+  } finally {
+    runner.close();
+  }
+});
+
+test("forged_worker_result_is_revalidated_on_the_host", async () => {
+  const runner = workerRunner({ timeoutMs: 2000 });
+  // The widget shares the worker's realm, so it can answer with the pending id.
+  const forged = `import * as __lf_sdk0 from "@arnilo/liveframe/sdk";
+const forward = self.onmessage;
+self.onmessage = (event) => {
+  if (event.data?.type === "render")
+    self.postMessage({ type: "result", id: event.data.id, result: { ok: true, value: { forged: "<script>" } } });
+  return forward(event);
+};
+export default () => __lf_sdk0.jsx(__lf_sdk0.primitive("text"), { text: "ok" });`;
+  const pkg = withCode(forged);
+  try {
+    // The widget installs the wrapper while its own module loads, so its next render is forged.
+    expect((await runner.render(pkg, inputs, options)).ok).toBe(true);
+    const validator = compileValidator({ ...options, manifest: pkg.manifest });
+    const expected = validator.validateTree({ forged: "<script>" });
+    expect(expected.ok).toBe(false);
+    expect(await runner.render(withCode(simpleCode), inputs, options)).toEqual(expected);
+    expect((await runner.render(withCode(simpleCode), inputs, options)).ok).toBe(true);
+  } finally {
+    runner.close();
+  }
+});
+
+test("unsolicited_result_terminates_the_worker", async () => {
+  const runner = workerRunner({ timeoutMs: 2000 });
+  // A second answer to the next render, with an id the host never asked for.
+  const stray = `import * as __lf_sdk0 from "@arnilo/liveframe/sdk";
+const forward = self.onmessage;
+self.onmessage = (event) => {
+  if (event.data?.type === "render")
+    self.postMessage({ type: "result", id: event.data.id + 1000, result: { ok: true, value: { hijacked: true } } });
+  return forward(event);
+};
+export default () => __lf_sdk0.jsx(__lf_sdk0.primitive("text"), { text: "stray" });`;
+  // P2's probe: a timer that answers every later render of another package.
+  const spam = `import * as __lf_sdk0 from "@arnilo/liveframe/sdk";
+setInterval(() => self.postMessage({ type: "result", id: 0, result: { ok: true, value: { hijacked: true } } }), 0);
+export default () => __lf_sdk0.jsx(__lf_sdk0.primitive("text"), { text: "spam" });`;
+  try {
+    expect((await runner.render(withCode(stray), inputs, options)).ok).toBe(true);
+    const refused = await runner.render(withCode(simpleCode), inputs, options);
+    expect(refused).toMatchObject({ ok: false, errors: [{ kind: "render-failed" }] });
+    if (!refused.ok) expect(refused.errors[0]?.expected).toContain("pending render id");
+    // The worker was terminated, so the stray module answers nothing further.
+    for (let i = 0; i < 20; i++) {
+      const result = await runner.render(withCode(`${simpleCode}\n// victim ${i}`), inputs, options);
+      expect(result).toMatchObject({ ok: true });
+      if (result.ok) expect(result.value.root.props.text).toBe("ok");
+    }
+    await runner.render(withCode(spam), inputs, options);
+    let hijacked = 0;
+    for (let i = 0; i < 20; i++) {
+      const result = await runner.render(withCode(`${simpleCode}\n// spam victim ${i}`), inputs, options);
+      if (result.ok && (result.value as { hijacked?: boolean }).hijacked) hijacked++;
+      else if (result.ok) expect(result.value.root.props.text).toBe("ok");
+      else expect(result.errors[0]?.kind).toBe("render-failed");
+    }
+    expect(hijacked).toBe(0);
+    expect((await runner.render(withCode(simpleCode), inputs, options)).ok).toBe(true);
+  } finally {
+    runner.close();
+  }
+});
+
+test("worker_tree_failing_host_validation_is_rejected", async () => {
+  const runner = workerRunner({ timeoutMs: 2000 });
+  // The worker validates this tree before the widget's microtask spoils it, so
+  // only the clone the host receives carries the invalid prop.
+  const mutated = `import * as __lf_sdk0 from "@arnilo/liveframe/sdk";
+export default () => {
+  const options = [{ value: "a", label: "A" }];
+  const tree = __lf_sdk0.jsx(__lf_sdk0.primitive("select"), { label: "Pick", options });
+  queueMicrotask(() => { options[0].value = 42; });
+  return tree;
+};`;
+  try {
+    const result = await runner.render(withCode(mutated), inputs, options);
+    expect(result).toMatchObject({ ok: false, errors: [{ kind: "invalid-prop", nodeId: "root" }] });
+    if (!result.ok) expect(result.errors[0]?.pointer).toBe("/root/props/options/0/value");
+    expect((await runner.render(withCode(simpleCode), inputs, options)).ok).toBe(true);
   } finally {
     runner.close();
   }

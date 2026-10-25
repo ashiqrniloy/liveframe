@@ -219,6 +219,14 @@ Replace configuration objects when their contracts change.
   crashes return `render-failed`. The next request starts a fresh worker.
   Inputs and trees cross by structured clone. Call `close()` to release it;
   active, queued and future requests then settle as `render-failed`.
+  Every tree the worker returns is validated again on the host against the
+  request's manifest, and only that request's id is accepted: a result with no
+  pending render, the wrong id or a second answer for one id terminates the
+  worker and fails the pending render with `render-failed`. A tree the host
+  rejects returns the host validator's errors and starts a fresh worker. One
+  worker still serves every package, so a hostile widget can answer a later
+  render with a tree valid for that render's manifest: run hostile drafts in
+  your own isolated runner.
 
 `limits` supports the SDK's node (5,000), depth (64) and UTF-8 tree byte
 (1,048,576) defaults. Bad modules and non-function default exports are

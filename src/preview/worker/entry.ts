@@ -12,6 +12,6 @@ self.onmessage = async ({ data }: MessageEvent<WorkerMessage>) => {
     configuration = { catalog: data.catalog, capabilities: data.capabilities };
   } else if (data.type === "render") {
     const result = await runner.render(data.pkg, data.inputs, { ...configuration, ...data.options });
-    self.postMessage({ type: "result", result } satisfies WorkerMessage);
+    self.postMessage({ type: "result", id: data.id, result } satisfies WorkerMessage);
   }
 };

@@ -5,7 +5,7 @@
 Spec §7.5 (runners and preview), §7.3 (scenarios). Roadmap Phase 2 Part B (runners), Phase 4 Part B (preview). Decision: `decision-logs/2026-10-22-1600-preview-and-runners.md`.
 
 - `Runner.render(pkg, inputs, options)` returns a validated tree or a bounded `LiveframeError[]` in `Result<UiTree>`, and enforces a per-render time limit (default 100 ms → `limit-exceeded`).
-- `inProcessRunner()` (`/preview`) is for tests and trusted code. `workerRunner()` (`/preview/worker`) terminates a worker on a timeout or crash and continues on a fresh one.
+- `inProcessRunner()` (`/preview`) is for tests and trusted code. `workerRunner()` (`/preview/worker`) terminates a worker on a timeout or crash and continues on a fresh one. Each render carries an id, the host validates every returned tree again against the request's manifest, and a stray, wrong-id or duplicate result terminates the worker (spec §7.5).
 - `createPreview({ catalog, capabilities, runner })` returns a session (no styles: trees don't depend on them):
   - `update(draft)` packs the draft without storing it and returns `Result<WidgetPackage>`; publishing stores exactly that package. Success resets the current scenario, state and log; failure keeps the previous package and session state.
   - `render({ scenario, context?, state? })` selects the current scenario and returns `Promise<Result<UiTree>>`, with `LiveframeError`s carrying `nodeId` when attributable to a node. State comes from the argument, scenario or manifest `initialState`, in that order; context comes from the argument or scenario. The session has a fixed `surfaceId` and increases revision on every render.

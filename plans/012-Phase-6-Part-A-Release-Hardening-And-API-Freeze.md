@@ -120,6 +120,7 @@ This plan implements roadmap Phase 6's hardening and freeze half, under the deci
     - Evidence B4's row still lists `UNLICENSED`; plan 013's review fills the pre-release status, so it was not edited here.
     - Validation: `bun test src/__tests__/exports.test.ts` 10 pass; `bun run check` 591 tests, 0 failures; `git diff --check` clean.
 
+- [x] Task 3: Re-validate and correlate worker runner results on the host
   - Acceptance Criteria:
     - Functional:
       - `workerRunner()` sends each render with a request id, and resolves only a result carrying the pending id.
@@ -167,6 +168,17 @@ This plan implements roadmap Phase 6's hardening and freeze half, under the deci
     - `unsolicited_result_terminates_the_worker`: P2's `setInterval` widget. A following render of another package never resolves with the injected value, and the worker restarts (20 renders, zero hijacks).
     - `worker_tree_failing_host_validation_is_rejected`: a widget that mutates its own emitted props through a getter after validation (a value that differs on clone) yields the host validator's errors.
     - `worker_matches_render` (existing) still passes, proving no change for honest widgets.
+
+  - Notes (executed 2026-10-25):
+    - `protocol.ts` carries `id` on `render` and `result`; `entry.ts` echoes the request's id. `workerRunner()` keeps one `Pending` record with `{ id, validate, resolve }`, so a result is accepted only for the request it answers.
+    - `stop()` is the single failure path: it terminates the worker, drops the configuration and settles the pending render. A result with no pending render or a wrong id (which includes a second answer, since ids are unique) goes through it with `render-failed` and `expected: "one result for the pending render id"`; so do a timeout, a worker error and `close()`.
+    - Host re-validation compiles the validator from the request's `{ catalog, capabilities, manifest: pkg.manifest }` and calls `validateTree` with the request's `limits`. A tree the host rejects settles with those errors — not `render-failed` — and the worker is terminated so it is not reused. The same recycle happens when the worker itself returns `render-failed`. Compilation is wrapped so a bad manifest cannot leave a render unsettled.
+    - `worker_reuses_cloned_configuration_until_identity_changes` no longer counts getter reads: host re-validation reads the catalog on the host, so the old counter measured validation, not cloning. It now spies on `Worker.prototype.postMessage` and counts `configure` messages (one, then still one after a revision-only change and a new hash, then two on a new capabilities identity, three on a new catalog identity), which is what the criterion says.
+    - The three new tests carry the fixtures that make each path deterministic: the forged and stray widgets wrap `self.onmessage` while their own module loads, so the *following* render is the one they answer — which is also the realistic attack, since widget code shares the worker's realm. `worker_tree_failing_host_validation_is_rejected` mutates a shared `options` array in a microtask, after the worker's own validator ran and before the clone, so only the host can catch it (`invalid-prop` at `/root/props/options/0/value`).
+    - Evidence from the readiness appendix, unchanged: P1 now reports `{"ok":false,"errors":[{"kind":"render-failed","message":"Worker answered a render it was not asked for","expected":"one result for the pending render id"}]}`, and P2 reports `0 / 20` hijacked renders (previously 15 of 20).
+    - Performance: warm agent-home render through the worker, 100 iterations after 20 warm-ups — before this task 3.75 ms/render (direct 1.81, overhead 1.94), after 5.98–6.09 ms (direct 1.80–1.89, overhead 4.2). The extra ~2.2 ms is the per-render `compileValidator` plus the re-validation walk; Task 4's verified-hash validator cache is what brings it down. `bun run bench` is not on the worker path and was not touched.
+    - Docs: spec §7.5 now says both reference runners return only trees their own validator accepted, names the id rule and the host re-validation, and states the residual risk (one worker serves every package, so hostile code needs the app's isolated runner); `docs/packages.md` and `docs/preview.md` say the same, and the execution skill's preview reference records the rule.
+    - Validation: `bun test src/__tests__/runner-worker.test.ts` 11 pass; `bun run check` 594 tests, 0 failures (one earlier run failed a single browser test while an unrelated Rust build held the machine at load 19–53). Two other checks in this session show the same load sensitivity, which is Task 13's bench-verdict problem, not this change.
 
 - [ ] Task 4: Verify runner cache keys and bound the caches
   - Acceptance Criteria:

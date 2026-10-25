@@ -13,8 +13,11 @@ through your `Runner`, on your backend. The page receives validated UI trees.
 shown; nothing calls your operations.
 
 **The reference runners are not a sandbox.** Run only trusted drafts with
-`inProcessRunner()` or `workerRunner()`. For hostile drafts, plug your isolated
-runner into `createPreview`, and use that same runner in production.
+`inProcessRunner()` or `workerRunner()`. Both return only trees their own
+validator accepted, and `workerRunner()` also ignores answers it did not ask
+for: one worker serves every package, so a hostile draft can still answer a
+later render with a tree that is valid for it. For hostile drafts, plug your
+isolated runner into `createPreview`, and use that same runner in production.
 
 ## Run a session on the backend
 
