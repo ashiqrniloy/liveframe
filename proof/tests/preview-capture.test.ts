@@ -129,7 +129,9 @@ test("missing_playwright_reports_how_to_install", async () => {
   );
   expect(error).toBeInstanceOf(PlaywrightMissing);
   expect(error.message).toContain("playwright install chromium");
-  const cli = Bun.spawnSync(["bun", "src/cli/liveframe.ts", "preview", "capture"], { stderr: "pipe" });
+  const cli = Bun.spawnSync(["bun", "--conditions", "liveframe:source", "src/cli/liveframe.ts", "preview", "capture"], {
+    stderr: "pipe",
+  });
   expect(cli.exitCode).toBe(2);
   expect(cli.stderr.toString()).toContain("Usage: liveframe preview capture");
 });
@@ -180,6 +182,8 @@ test("capture_without_playwright_reports_install_hint", async () => {
     const run = Bun.spawnSync(
       [
         "bun",
+        "--conditions",
+        "liveframe:source",
         "--preload",
         "./src/__tests__/fixtures/no-playwright.ts",
         "src/cli/liveframe.ts",
@@ -205,6 +209,8 @@ test("gen_runs_without_playwright", async () => {
     const run = Bun.spawnSync(
       [
         "bun",
+        "--conditions",
+        "liveframe:source",
         "--preload",
         "./src/__tests__/fixtures/no-playwright.ts",
         "src/cli/liveframe.ts",

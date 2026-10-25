@@ -52,13 +52,14 @@ test("css_bundles_for_browser_without_host_apis", async () => {
   }
 });
 
-test("src_is_host_api_free", async () => {
-  const root = new URL("../", import.meta.url).pathname;
+async function scanHostApiFree(root: string): Promise<void> {
   const forbidden =
     /\b(?:require|eval|Function|Worker|fetch|XMLHttpRequest)\s*\(|\b(?:document|window|process|Bun|Buffer|navigator|localStorage|sessionStorage|globalThis|self)\s*[.[]/;
   const transpiler = new Bun.Transpiler({ loader: "tsx" });
   for await (const path of new Bun.Glob("**/*.{ts,tsx,js,jsx}").scan(root)) {
     if (path.split("/").includes("__tests__")) continue;
+    // Declarations hold types only, including `import("...")` type references.
+    if (path.endsWith(".d.ts")) continue;
     // Only the CLI reads catalogs and writes generated modules; the SDK emitter remains host-free.
     if (path.startsWith("cli/")) continue;
     // The file-store subpath is the explicit filesystem exception in spec §13.
@@ -76,7 +77,7 @@ test("src_is_host_api_free", async () => {
         : executable;
     expect(checked, path).not.toMatch(forbidden);
     // Spec §7.5 permits dynamic imports only in the backend package loader.
-    if (path !== "preview/load.ts") expect(source, path).not.toMatch(/\bimport\s*\(/);
+    if (!path.startsWith("preview/load.")) expect(source, path).not.toMatch(/\bimport\s*\(/);
     // Only the packer's syntax tools may be external; their browser bundle is checked below.
     for (const dependency of transpiler.scanImports(source)) {
       if (
@@ -91,16 +92,26 @@ test("src_is_host_api_free", async () => {
         ].includes(dependency.path)
       )
         continue;
-      if (path === "pack/bundle.ts" && ["sucrase", "acorn"].includes(dependency.path)) continue;
+      if (path.startsWith("pack/bundle.") && ["sucrase", "acorn"].includes(dependency.path)) continue;
       expect(dependency.path, path).toMatch(/^\.\.?\//);
       expect(dependency.path, path).not.toContain("proof/");
     }
   }
+}
+
+test("src_is_host_api_free", async () => {
+  await scanHostApiFree(new URL("../", import.meta.url).pathname);
   const bundle = await Bun.build({
     entrypoints: [new URL("../index.ts", import.meta.url).pathname],
     target: "browser",
   });
   expect(bundle.success).toBe(true);
+});
+
+test("compiled_output_is_host_api_free", async () => {
+  const root = new URL("../../dist/", import.meta.url).pathname;
+  if (!(await Bun.file(`${root}index.js`).exists())) throw new Error("dist/ is missing: run `bun run build`");
+  await scanHostApiFree(root);
 });
 
 test.each(subpaths.filter(({ host }) => host === "none"))(

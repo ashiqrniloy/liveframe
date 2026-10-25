@@ -68,7 +68,13 @@ async function agent(fn: (ask: Ask, pageLog: string, tools: () => Promise<string
   await client.connect(
     new StdioClientTransport({
       command: "bun",
-      args: ["src/cli/liveframe.ts", "mcp", "proof/tests/fixtures/mcp-loop.config.ts"],
+      args: [
+        "--conditions",
+        "liveframe:source",
+        "src/cli/liveframe.ts",
+        "mcp",
+        "proof/tests/fixtures/mcp-loop.config.ts",
+      ],
       env: { ...(process.env as Record<string, string>), LF_MCP_PAGE_LOG: pageLog },
     }),
   );

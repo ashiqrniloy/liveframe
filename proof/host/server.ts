@@ -12,6 +12,7 @@ export async function startHost(port = 3000) {
   const build = await Bun.build({
     entrypoints: ["client.tsx", "preview-client.tsx"].map((path) => new URL(path, import.meta.url).pathname),
     target: "browser",
+    conditions: ["liveframe:source"],
   });
   if (!build.success) throw new AggregateError(build.logs, "Proof client build failed");
   const bundle = build.outputs.find((output) => output.path.endsWith("/client.js"));

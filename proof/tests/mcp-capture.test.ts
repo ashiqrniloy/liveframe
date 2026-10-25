@@ -33,7 +33,7 @@ async function withClient<T>(
   await client.connect(
     new StdioClientTransport({
       command: "bun",
-      args: ["src/cli/liveframe.ts", "mcp", module],
+      args: ["--conditions", "liveframe:source", "src/cli/liveframe.ts", "mcp", module],
       env: { ...(process.env as Record<string, string>), ...env },
     }),
   );

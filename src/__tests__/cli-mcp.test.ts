@@ -22,11 +22,22 @@ const fixtures = "src/__tests__/fixtures";
 const config = `${fixtures}/mcp.config.ts`;
 
 function cli(args: string[], preload?: string, env: Record<string, string> = {}) {
-  return Bun.spawnSync(["bun", ...(preload ? ["--preload", preload] : []), "src/cli/liveframe.ts", "mcp", ...args], {
-    stdout: "pipe",
-    stderr: "pipe",
-    env: { ...process.env, ...env },
-  });
+  return Bun.spawnSync(
+    [
+      "bun",
+      "--conditions",
+      "liveframe:source",
+      ...(preload ? ["--preload", preload] : []),
+      "src/cli/liveframe.ts",
+      "mcp",
+      ...args,
+    ],
+    {
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env, ...env },
+    },
+  );
 }
 
 function valid<T>(result: Result<T>): T {
@@ -48,7 +59,7 @@ async function withClient<T>(
   await client.connect(
     new StdioClientTransport({
       command: "bun",
-      args: ["src/cli/liveframe.ts", "mcp", options.config ?? config],
+      args: ["--conditions", "liveframe:source", "src/cli/liveframe.ts", "mcp", options.config ?? config],
       stderr: "pipe",
       ...(environment ? { env: environment } : {}),
     }),
@@ -382,7 +393,11 @@ test("default_runner_warns_on_stderr", async () => {
 test("mcp_server_initializes_over_stdio", async () => {
   const client = new Client({ name: "cli-mcp-test", version: "0" });
   await client.connect(
-    new StdioClientTransport({ command: "bun", args: ["src/cli/liveframe.ts", "mcp", config], stderr: "pipe" }),
+    new StdioClientTransport({
+      command: "bun",
+      args: ["--conditions", "liveframe:source", "src/cli/liveframe.ts", "mcp", config],
+      stderr: "pipe",
+    }),
   );
   expect(client.getServerVersion()?.name).toBe("liveframe");
   expect(client.getServerCapabilities()).toBeDefined();
@@ -430,6 +445,8 @@ test("gen_runs_without_the_mcp_sdk", async () => {
     const run = Bun.spawnSync(
       [
         "bun",
+        "--conditions",
+        "liveframe:source",
         "--preload",
         `./${fixtures}/no-mcp-sdk.ts`,
         "src/cli/liveframe.ts",
@@ -451,12 +468,22 @@ test("default_worker_runner_is_closed_on_shutdown", async () => {
   const dir = await temp();
   try {
     const marker = join(dir, "closed");
-    const child = Bun.spawn(["bun", "src/cli/liveframe.ts", "mcp", `${fixtures}/mcp-runner-close.config.ts`], {
-      stdin: "pipe",
-      stdout: "pipe",
-      stderr: "pipe",
-      env: { ...process.env, LF_MCP_CLOSE_MARKER: marker },
-    });
+    const child = Bun.spawn(
+      [
+        "bun",
+        "--conditions",
+        "liveframe:source",
+        "src/cli/liveframe.ts",
+        "mcp",
+        `${fixtures}/mcp-runner-close.config.ts`,
+      ],
+      {
+        stdin: "pipe",
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...process.env, LF_MCP_CLOSE_MARKER: marker },
+      },
+    );
     // Let the server start and connect before ending its input.
     await Bun.sleep(500);
     child.stdin.end();
@@ -466,11 +493,14 @@ test("default_worker_runner_is_closed_on_shutdown", async () => {
     expect(await Bun.file(marker).exists()).toBe(false);
 
     // SIGTERM shuts the server down the same way stdin end does, with a clean exit.
-    const signalled = Bun.spawn(["bun", "src/cli/liveframe.ts", "mcp", `${fixtures}/mcp-worker.config.ts`], {
-      stdin: "pipe",
-      stdout: "pipe",
-      stderr: "pipe",
-    });
+    const signalled = Bun.spawn(
+      ["bun", "--conditions", "liveframe:source", "src/cli/liveframe.ts", "mcp", `${fixtures}/mcp-worker.config.ts`],
+      {
+        stdin: "pipe",
+        stdout: "pipe",
+        stderr: "pipe",
+      },
+    );
     await Bun.sleep(2000);
     signalled.kill("SIGTERM");
     expect(await Promise.race([signalled.exited, Bun.sleep(10000).then(() => "timeout" as const)])).toBe(0);

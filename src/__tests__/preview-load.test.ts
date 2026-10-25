@@ -97,7 +97,7 @@ const results = ${JSON.stringify(fixture.scenarios)}.map(inputs =>
 console.log(JSON.stringify(results));
 `,
     );
-    const child = Bun.spawn(["timeout", "10s", process.execPath, script], {
+    const child = Bun.spawn(["timeout", "10s", process.execPath, "--conditions", "liveframe:source", script], {
       cwd: directory,
       stdout: "pipe",
       stderr: "pipe",
@@ -123,7 +123,7 @@ test("loader_leaves_noncanonical_sdk_imports_bare", async () => {
       `import { loadModule } from ${JSON.stringify(new URL("../preview/load.ts", import.meta.url).href)};
 await loadModule('import { render } from "@arnilo/liveframe/sdk"; export default render;', "loader-bare-outside");`,
     );
-    const child = Bun.spawn(["timeout", "10s", process.execPath, script], {
+    const child = Bun.spawn(["timeout", "10s", process.execPath, "--conditions", "liveframe:source", script], {
       cwd: directory,
       stdout: "pipe",
       stderr: "pipe",

@@ -148,6 +148,7 @@ beforeAll(async () => {
   const build = await Bun.build({
     entrypoints: [new URL("./fixtures/renderer-client.tsx", import.meta.url).pathname],
     target: "browser",
+    conditions: ["liveframe:source"],
   });
   if (!build.success) throw new AggregateError(build.logs);
   const output = build.outputs[0];

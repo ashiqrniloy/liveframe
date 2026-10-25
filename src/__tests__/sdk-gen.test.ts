@@ -13,7 +13,10 @@ const cli = "src/cli/liveframe.ts";
 const input = "src/__tests__/fixtures/proof/catalog.json";
 
 async function run(args: string[]) {
-  const child = Bun.spawn([process.execPath, cli, ...args], { stdout: "pipe", stderr: "pipe" });
+  const child = Bun.spawn([process.execPath, "--conditions", "liveframe:source", cli, ...args], {
+    stdout: "pipe",
+    stderr: "pipe",
+  });
   const timer = setTimeout(() => child.kill(), 10_000);
   try {
     const [code, stderr] = await Promise.all([child.exited, new Response(child.stderr).text()]);

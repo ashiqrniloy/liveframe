@@ -12,7 +12,13 @@ test("mcp_guide_config_starts_and_lists_the_tools", async () => {
   await client.connect(
     new StdioClientTransport({
       command: "bun",
-      args: ["src/cli/liveframe.ts", "mcp", "src/__tests__/fixtures/mcp-guide.config.ts"],
+      args: [
+        "--conditions",
+        "liveframe:source",
+        "src/cli/liveframe.ts",
+        "mcp",
+        "src/__tests__/fixtures/mcp-guide.config.ts",
+      ],
     }),
   );
   try {

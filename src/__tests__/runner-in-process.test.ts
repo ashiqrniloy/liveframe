@@ -181,7 +181,7 @@ test("in_process_runner_resolves_sdk_from_other_cwd", async () => {
       `import { inProcessRunner } from ${JSON.stringify(new URL("../preview/index.ts", import.meta.url).href)};
 console.log(JSON.stringify(await inProcessRunner().render(${JSON.stringify(base)}, ${JSON.stringify(inputs)}, ${JSON.stringify(options)})));`,
     );
-    const child = Bun.spawn(["timeout", "10s", process.execPath, script], {
+    const child = Bun.spawn(["timeout", "10s", process.execPath, "--conditions", "liveframe:source", script], {
       cwd: directory,
       stdout: "pipe",
       stderr: "pipe",

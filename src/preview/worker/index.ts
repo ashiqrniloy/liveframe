@@ -13,6 +13,9 @@ type Pending = {
 
 const reason = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
+/** The repository's source sits beside `entry.ts`; the published build beside `entry.js`. */
+const entry = new URL(`./entry${import.meta.url.endsWith(".ts") ? ".ts" : ".js"}`, import.meta.url);
+
 /**
  * Backend runner that bounds time and crashes, not what code can reach.
  * Not an isolation boundary. Verify packages before rendering them.
@@ -107,7 +110,7 @@ export function workerRunner(defaults: { timeoutMs?: number; maxPackages?: numbe
     if (!loaded.has(pkg.hash) && loaded.size >= maxPackages) recycle();
     loaded.add(pkg.hash);
     if (!worker) {
-      const current = new Worker(new URL("./entry.ts", import.meta.url));
+      const current = new Worker(entry);
       worker = current;
       attach(current);
     }

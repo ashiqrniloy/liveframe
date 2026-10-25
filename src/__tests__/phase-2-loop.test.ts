@@ -239,6 +239,8 @@ test("package_guide_example_runs", async () => {
   const process = Bun.spawn(
     [
       "bun",
+      "--conditions",
+      "liveframe:source",
       "--eval",
       `const { draft, options, dir } = await Bun.file(${JSON.stringify(contextFile)}).json();\n${example}`,
     ],

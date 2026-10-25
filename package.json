@@ -2,47 +2,132 @@
   "name": "@arnilo/liveframe",
   "version": "0.0.0",
   "description": "Runtime-composable UI: primitives, design-system recipes and TSX widgets that change an app's UI without a deployment.",
-  "private": true,
   "type": "module",
   "license": "MIT",
   "packageManager": "bun@1.4.2",
   "engines": {
     "bun": ">=1.4.2"
   },
+  "author": "Niloy Rahman",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ashiqrniloy/liveframe.git"
+  },
+  "homepage": "https://github.com/ashiqrniloy/liveframe#readme",
+  "bugs": {
+    "url": "https://github.com/ashiqrniloy/liveframe/issues"
+  },
+  "keywords": [
+    "ui",
+    "widgets",
+    "tsx",
+    "design-system",
+    "runtime",
+    "validation",
+    "json-schema",
+    "mcp",
+    "bun"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "tag": "next"
+  },
+  "sideEffects": [
+    "./dist/preview/worker/entry.js"
+  ],
   "exports": {
-    ".": "./src/index.ts",
-    "./css": "./src/css/index.ts",
-    "./react": "./src/react/index.ts",
-    "./sdk": "./src/sdk/index.ts",
-    "./sdk/jsx-runtime": "./src/sdk/jsx-runtime.ts",
-    "./sdk/jsx-dev-runtime": "./src/sdk/jsx-dev-runtime.ts",
+    ".": {
+      "liveframe:source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./css": {
+      "liveframe:source": "./src/css/index.ts",
+      "types": "./dist/css/index.d.ts",
+      "default": "./dist/css/index.js"
+    },
+    "./react": {
+      "liveframe:source": "./src/react/index.ts",
+      "types": "./dist/react/index.d.ts",
+      "default": "./dist/react/index.js"
+    },
+    "./sdk": {
+      "liveframe:source": "./src/sdk/index.ts",
+      "types": "./dist/sdk/index.d.ts",
+      "default": "./dist/sdk/index.js"
+    },
+    "./sdk/jsx-runtime": {
+      "liveframe:source": "./src/sdk/jsx-runtime.ts",
+      "types": "./dist/sdk/jsx-runtime.d.ts",
+      "default": "./dist/sdk/jsx-runtime.js"
+    },
+    "./sdk/jsx-dev-runtime": {
+      "liveframe:source": "./src/sdk/jsx-dev-runtime.ts",
+      "types": "./dist/sdk/jsx-dev-runtime.d.ts",
+      "default": "./dist/sdk/jsx-dev-runtime.js"
+    },
     "./schemas/*": "./schemas/*",
-    "./pack": "./src/pack/index.ts",
-    "./store": "./src/store/index.ts",
-    "./store/fs": "./src/store/fs/index.ts",
-    "./preview": "./src/preview/index.ts",
-    "./preview/worker": "./src/preview/worker/index.ts",
-    "./preview/react": "./src/preview/react/index.ts",
-    "./conformance": "./src/conformance/index.ts",
-    "./conformance/react": "./src/conformance/react/index.ts"
+    "./pack": {
+      "liveframe:source": "./src/pack/index.ts",
+      "types": "./dist/pack/index.d.ts",
+      "default": "./dist/pack/index.js"
+    },
+    "./store": {
+      "liveframe:source": "./src/store/index.ts",
+      "types": "./dist/store/index.d.ts",
+      "default": "./dist/store/index.js"
+    },
+    "./store/fs": {
+      "liveframe:source": "./src/store/fs/index.ts",
+      "types": "./dist/store/fs/index.d.ts",
+      "default": "./dist/store/fs/index.js"
+    },
+    "./preview": {
+      "liveframe:source": "./src/preview/index.ts",
+      "types": "./dist/preview/index.d.ts",
+      "default": "./dist/preview/index.js"
+    },
+    "./preview/worker": {
+      "liveframe:source": "./src/preview/worker/index.ts",
+      "types": "./dist/preview/worker/index.d.ts",
+      "default": "./dist/preview/worker/index.js"
+    },
+    "./preview/react": {
+      "liveframe:source": "./src/preview/react/index.ts",
+      "types": "./dist/preview/react/index.d.ts",
+      "default": "./dist/preview/react/index.js"
+    },
+    "./conformance": {
+      "liveframe:source": "./src/conformance/index.ts",
+      "types": "./dist/conformance/index.d.ts",
+      "default": "./dist/conformance/index.js"
+    },
+    "./conformance/react": {
+      "liveframe:source": "./src/conformance/react/index.ts",
+      "types": "./dist/conformance/react/index.d.ts",
+      "default": "./dist/conformance/react/index.js"
+    }
   },
   "files": [
-    "src",
-    "schemas"
+    "dist",
+    "schemas",
+    "docs",
+    "CHANGELOG.md"
   ],
   "bin": {
-    "liveframe": "./src/cli/liveframe.ts"
+    "liveframe": "./dist/cli/liveframe.js"
   },
   "scripts": {
+    "build": "bun scripts/build.ts",
     "bench": "bun bench/validator.bench.ts && bun bench/render.bench.ts && bun bench/css.bench.ts",
     "proof": "bun proof/host/server.ts",
-    "test": "bun test",
+    "test": "bun test --conditions liveframe:source",
     "typecheck": "tsc --noEmit && tsc --noEmit -p proof",
     "lint": "biome lint .",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "gen:check": "bun src/cli/liveframe.ts gen src/__tests__/fixtures/proof/catalog.json --out src/__tests__/fixtures/widgets/ui.gen.ts --check",
-    "check": "bun run gen:check && bun run typecheck && bun run lint && bun run format:check && bun run test"
+    "check": "bun run build && bun run gen:check && bun run typecheck && bun run lint && bun run format:check && bun run test"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.2",

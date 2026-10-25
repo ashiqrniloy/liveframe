@@ -3,6 +3,7 @@ export async function browserHost(entrypoint: string, css = "", production = fal
   const build = await Bun.build({
     entrypoints: [entrypoint],
     target: "browser",
+    conditions: ["liveframe:source"],
     define: { "process.env.NODE_ENV": JSON.stringify(production ? "production" : "development") },
   });
   if (!build.success) throw new AggregateError(build.logs);
