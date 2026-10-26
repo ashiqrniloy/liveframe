@@ -1,0 +1,731 @@
+{
+  "format": "liveframe-theme/1",
+  "id": "demo",
+  "version": "1.0.0",
+  "colorScheme": "light",
+  "colours": {
+    "surface.base": {
+      "colorSpace": "oklch",
+      "components": [
+        0.966,
+        0.01,
+        172
+      ]
+    },
+    "surface.raised": {
+      "colorSpace": "oklch",
+      "components": [
+        0.994,
+        0.004,
+        172
+      ]
+    },
+    "surface.case": {
+      "colorSpace": "oklch",
+      "components": [
+        0.966,
+        0.01,
+        172
+      ]
+    },
+    "surface.module": {
+      "colorSpace": "oklch",
+      "components": [
+        0.994,
+        0.004,
+        172
+      ]
+    },
+    "surface.well": {
+      "colorSpace": "oklch",
+      "components": [
+        0.946,
+        0.013,
+        172
+      ]
+    },
+    "surface.hover": {
+      "colorSpace": "oklch",
+      "components": [
+        0.626,
+        0.12,
+        82
+      ],
+      "alpha": 0.08
+    },
+    "surface.active": {
+      "colorSpace": "oklch",
+      "components": [
+        0.918,
+        0.015,
+        172
+      ]
+    },
+    "surface.selected": {
+      "colorSpace": "oklch",
+      "components": [
+        0.626,
+        0.12,
+        82
+      ],
+      "alpha": 0.3
+    },
+    "surface.scrim": {
+      "colorSpace": "oklch",
+      "components": [
+        0.245,
+        0.05,
+        232
+      ]
+    },
+    "surface.kbd": {
+      "colorSpace": "oklch",
+      "components": [
+        0.994,
+        0.004,
+        172
+      ]
+    },
+    "surface.scrollbar": {
+      "colorSpace": "oklch",
+      "components": [
+        0.245,
+        0.05,
+        232
+      ],
+      "alpha": 0.24
+    },
+    "text.primary": {
+      "colorSpace": "oklch",
+      "components": [
+        0.245,
+        0.05,
+        232
+      ]
+    },
+    "text.muted": {
+      "colorSpace": "oklch",
+      "components": [
+        0.47,
+        0.032,
+        222
+      ]
+    },
+    "text.meta": {
+      "colorSpace": "oklch",
+      "components": [
+        0.47,
+        0.032,
+        222
+      ]
+    },
+    "text.foil": {
+      "colorSpace": "oklch",
+      "components": [
+        0.5,
+        0.1,
+        78
+      ]
+    },
+    "text.disabled": {
+      "colorSpace": "oklch",
+      "components": [
+        0.47,
+        0.032,
+        222
+      ]
+    },
+    "text.status": {
+      "colorSpace": "oklch",
+      "components": [
+        0.245,
+        0.05,
+        232
+      ]
+    },
+    "text.kbd": {
+      "colorSpace": "oklch",
+      "components": [
+        0.245,
+        0.05,
+        232
+      ]
+    },
+    "text.on-accent": {
+      "colorSpace": "oklch",
+      "components": [
+        0.985,
+        0.006,
+        90
+      ]
+    },
+    "border.hairline": {
+      "colorSpace": "oklch",
+      "components": [
+        0.245,
+        0.05,
+        232
+      ],
+      "alpha": 0.12
+    },
+    "border.subtle": {
+      "colorSpace": "oklch",
+      "components": [
+        0.245,
+        0.05,
+        232
+      ],
+      "alpha": 0.24
+    },
+    "border.strong": {
+      "colorSpace": "oklch",
+      "components": [
+        0.6226,
+        0.004,
+        232
+      ]
+    },
+    "border.focus": {
+      "colorSpace": "oklch",
+      "components": [
+        0.6259,
+        0.12,
+        82
+      ]
+    },
+    "border.kbd": {
+      "colorSpace": "oklch",
+      "components": [
+        0.6226,
+        0.004,
+        232
+      ]
+    },
+    "accent.primary": {
+      "colorSpace": "oklch",
+      "components": [
+        0.3,
+        0.075,
+        232
+      ]
+    },
+    "accent.muted": {
+      "colorSpace": "oklch",
+      "components": [
+        0.47,
+        0.095,
+        232
+      ]
+    },
+    "accent.soft": {
+      "colorSpace": "oklch",
+      "components": [
+        0.626,
+        0.12,
+        82
+      ],
+      "alpha": 0.08
+    },
+    "accent.fill": {
+      "colorSpace": "oklch",
+      "components": [
+        0.3,
+        0.075,
+        232
+      ]
+    },
+    "accent.fill.hover": {
+      "colorSpace": "oklch",
+      "components": [
+        0.2923,
+        0.07150000000000001,
+        232
+      ]
+    },
+    "focus.ring": {
+      "colorSpace": "oklch",
+      "components": [
+        0.6259,
+        0.12,
+        82
+      ]
+    },
+    "diagnostic.error": {
+      "colorSpace": "oklch",
+      "components": [
+        0.52,
+        0.18,
+        22
+      ]
+    },
+    "diagnostic.warning": {
+      "colorSpace": "oklch",
+      "components": [
+        0.5337,
+        0.15,
+        62
+      ]
+    },
+    "diagnostic.success": {
+      "colorSpace": "oklch",
+      "components": [
+        0.5,
+        0.11,
+        162
+      ]
+    },
+    "diagnostic.info": {
+      "colorSpace": "oklch",
+      "components": [
+        0.5,
+        0.12,
+        250
+      ]
+    },
+    "diagnostic.error.soft": {
+      "colorSpace": "oklch",
+      "components": [
+        0.626,
+        0.12,
+        82
+      ],
+      "alpha": 0.08
+    },
+    "diagnostic.warning.soft": {
+      "colorSpace": "oklch",
+      "components": [
+        0.626,
+        0.12,
+        82
+      ],
+      "alpha": 0.08
+    },
+    "status.critical": {
+      "colorSpace": "oklch",
+      "components": [
+        0.52,
+        0.18,
+        22
+      ]
+    },
+    "shadow.ambient": {
+      "colorSpace": "oklch",
+      "components": [
+        0.25,
+        0.05,
+        232
+      ]
+    },
+    "shadow.highlight": {
+      "colorSpace": "oklch",
+      "components": [
+        1,
+        0,
+        0
+      ]
+    },
+    "patch.1": {
+      "colorSpace": "oklch",
+      "components": [
+        0.52,
+        0.18,
+        22
+      ]
+    },
+    "patch.2": {
+      "colorSpace": "oklch",
+      "components": [
+        0.5,
+        0.12,
+        250
+      ]
+    },
+    "patch.3": {
+      "colorSpace": "oklch",
+      "components": [
+        0.5,
+        0.11,
+        162
+      ]
+    },
+    "patch.4": {
+      "colorSpace": "oklch",
+      "components": [
+        0.47,
+        0.095,
+        232
+      ]
+    },
+    "patch.5": {
+      "colorSpace": "oklch",
+      "components": [
+        0.6259,
+        0.12,
+        82
+      ]
+    },
+    "colour.transparent": {
+      "colorSpace": "srgb",
+      "components": [
+        0,
+        0,
+        0
+      ],
+      "alpha": 0
+    },
+    "shadow.ambient.alpha-0-14": {
+      "colorSpace": "oklch",
+      "components": [
+        0.25,
+        0.05,
+        232
+      ],
+      "alpha": 0.14
+    },
+    "shadow.ambient.alpha-0-45": {
+      "colorSpace": "oklch",
+      "components": [
+        0.25,
+        0.05,
+        232
+      ],
+      "alpha": 0.45
+    },
+    "shadow.highlight.alpha-0-9": {
+      "colorSpace": "oklch",
+      "components": [
+        1,
+        0,
+        0
+      ],
+      "alpha": 0.9
+    },
+    "shadow.ambient.alpha-0-1": {
+      "colorSpace": "oklch",
+      "components": [
+        0.25,
+        0.05,
+        232
+      ],
+      "alpha": 0.1
+    },
+    "shadow.ambient.alpha-0-22": {
+      "colorSpace": "oklch",
+      "components": [
+        0.25,
+        0.05,
+        232
+      ],
+      "alpha": 0.22
+    },
+    "border.hairline.alpha-1": {
+      "colorSpace": "oklch",
+      "components": [
+        0.245,
+        0.05,
+        232
+      ],
+      "alpha": 0.12
+    },
+    "border.subtle.alpha-1": {
+      "colorSpace": "oklch",
+      "components": [
+        0.245,
+        0.05,
+        232
+      ],
+      "alpha": 0.24
+    },
+    "text.primary.alpha-1": {
+      "colorSpace": "oklch",
+      "components": [
+        0.245,
+        0.05,
+        232
+      ],
+      "alpha": 1
+    },
+    "accent.soft.alpha-1": {
+      "colorSpace": "oklch",
+      "components": [
+        0.626,
+        0.12,
+        82
+      ],
+      "alpha": 0.08
+    },
+    "surface.scrim.alpha-0-55": {
+      "colorSpace": "oklch",
+      "components": [
+        0.245,
+        0.05,
+        232
+      ],
+      "alpha": 0.55
+    },
+    "surface.scrim.alpha-0-22": {
+      "colorSpace": "oklch",
+      "components": [
+        0.245,
+        0.05,
+        232
+      ],
+      "alpha": 0.22
+    },
+    "border.subtle.alpha-0-58": {
+      "colorSpace": "oklch",
+      "components": [
+        0.245,
+        0.05,
+        232
+      ],
+      "alpha": 0.1392
+    }
+  },
+  "typography": {
+    "body": {
+      "fontFamily": [
+        "Schibsted Grotesk",
+        "system-ui",
+        "-apple-system",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 14,
+        "unit": "px"
+      },
+      "fontWeight": 400,
+      "lineHeight": 1.55
+    },
+    "caption": {
+      "fontFamily": [
+        "Schibsted Grotesk",
+        "system-ui",
+        "-apple-system",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 12,
+        "unit": "px"
+      },
+      "fontWeight": 400,
+      "lineHeight": 1.55
+    },
+    "fine": {
+      "fontFamily": [
+        "Schibsted Grotesk",
+        "system-ui",
+        "-apple-system",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 13,
+        "unit": "px"
+      },
+      "fontWeight": 400,
+      "lineHeight": 1.5
+    },
+    "label": {
+      "fontFamily": [
+        "Schibsted Grotesk",
+        "system-ui",
+        "-apple-system",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 13,
+        "unit": "px"
+      },
+      "fontWeight": 500,
+      "lineHeight": 1.1
+    },
+    "label.small": {
+      "fontFamily": [
+        "Schibsted Grotesk",
+        "system-ui",
+        "-apple-system",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 12,
+        "unit": "px"
+      },
+      "fontWeight": 500,
+      "lineHeight": 1.1
+    },
+    "label.strong": {
+      "fontFamily": [
+        "Schibsted Grotesk",
+        "system-ui",
+        "-apple-system",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 13,
+        "unit": "px"
+      },
+      "fontWeight": 600,
+      "lineHeight": 1.55
+    },
+    "ui": {
+      "fontFamily": [
+        "Schibsted Grotesk",
+        "system-ui",
+        "-apple-system",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 13,
+        "unit": "px"
+      },
+      "fontWeight": 500,
+      "lineHeight": 1.55
+    },
+    "overline": {
+      "fontFamily": [
+        "Schibsted Grotesk",
+        "system-ui",
+        "-apple-system",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 12,
+        "unit": "px"
+      },
+      "fontWeight": 600,
+      "lineHeight": 1.55,
+      "textTransform": "uppercase",
+      "letterSpacing": {
+        "value": 0.06,
+        "unit": "em"
+      }
+    },
+    "heading.1": {
+      "fontFamily": [
+        "Schibsted Grotesk",
+        "system-ui",
+        "-apple-system",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 36,
+        "unit": "px"
+      },
+      "fontWeight": 600,
+      "lineHeight": 1.08
+    },
+    "heading.2": {
+      "fontFamily": [
+        "Schibsted Grotesk",
+        "system-ui",
+        "-apple-system",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 24.192,
+        "unit": "px"
+      },
+      "fontWeight": 700,
+      "lineHeight": 1.25,
+      "letterSpacing": {
+        "value": -0.01,
+        "unit": "em"
+      }
+    },
+    "heading.2.compact": {
+      "fontFamily": [
+        "Schibsted Grotesk",
+        "system-ui",
+        "-apple-system",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 20.16,
+        "unit": "px"
+      },
+      "fontWeight": 700,
+      "lineHeight": 1.25,
+      "letterSpacing": {
+        "value": -0.01,
+        "unit": "em"
+      }
+    },
+    "heading.3": {
+      "fontFamily": [
+        "Schibsted Grotesk",
+        "system-ui",
+        "-apple-system",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 20.16,
+        "unit": "px"
+      },
+      "fontWeight": 600,
+      "lineHeight": 1.3
+    },
+    "mono": {
+      "fontFamily": [
+        "Martian Mono",
+        "ui-monospace",
+        "SFMono-Regular",
+        "Menlo",
+        "Consolas",
+        "monospace"
+      ],
+      "fontSize": {
+        "value": 12,
+        "unit": "px"
+      },
+      "fontWeight": 400,
+      "lineHeight": 1.55,
+      "fontSizeAdjust": 0.52,
+      "fontStretch": 87.5
+    },
+    "mono.strong": {
+      "fontFamily": [
+        "Martian Mono",
+        "ui-monospace",
+        "SFMono-Regular",
+        "Menlo",
+        "Consolas",
+        "monospace"
+      ],
+      "fontSize": {
+        "value": 12,
+        "unit": "px"
+      },
+      "fontWeight": 500,
+      "lineHeight": 1.55,
+      "fontSizeAdjust": 0.52,
+      "fontStretch": 87.5
+    },
+    "meta": {
+      "fontFamily": [
+        "Schibsted Grotesk",
+        "system-ui",
+        "-apple-system",
+        "Segoe UI",
+        "sans-serif"
+      ],
+      "fontSize": {
+        "value": 13,
+        "unit": "px"
+      },
+      "fontWeight": 400,
+      "lineHeight": 1.55
+    }
+  }
+}

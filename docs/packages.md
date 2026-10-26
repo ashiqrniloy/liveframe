@@ -5,7 +5,7 @@ store it, place it, then load and render it on the app's backend. **Widget code
 never runs in the browser (law 1): send only the validated UI tree to the page.**
 `pack()`, `verifyPackage()` and `loadPlacement()` never execute widget code.
 
-**Neither reference runner is a sandbox.** In-process code can reach its host;
+**Neither reference runner is a sandbox** ([security model](security.md)). In-process code can reach its host;
 a worker bounds time and crashes without restricting what code can access. Run
 only trusted code with these runners. For hostile code, the app supplies an
 isolated `Runner` and uses it for both preview and production.

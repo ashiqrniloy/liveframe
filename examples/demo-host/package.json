@@ -1,0 +1,26 @@
+{
+  "name": "liveframe-demo-host",
+  "private": true,
+  "type": "module",
+  "description": "A small host that installs, places and persists Liveframe widgets, built on the installed package only.",
+  "scripts": {
+    "start": "bun server.ts",
+    "test": "bun test --timeout 60000",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@arnilo/liveframe": "file:.pack/arnilo-liveframe.tgz",
+    "react": "^19.3.1",
+    "react-aria-components": "^1.22.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "^2.4.0",
+    "@modelcontextprotocol/server": "^2.4.0",
+    "@types/bun": "^1.4.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "playwright": "^1.64.1",
+    "typescript": "^7.0.2"
+  }
+}

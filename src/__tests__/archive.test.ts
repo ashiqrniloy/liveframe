@@ -9,6 +9,7 @@ const allowed = [
   /^LICENSE$/,
   /^README\.md$/,
   /^CHANGELOG\.md$/,
+  /^SECURITY\.md$/,
   /^dist\/(?:[^/]+\/)*[^/]+\.(?:js|d\.ts)$/,
   /^schemas\/[^/]+\.json$/,
   /^docs\/[^/]+\.md$/,
@@ -57,6 +58,6 @@ test("package_metadata_is_publishable", () => {
   expect(Object.hasOwn(pkg, "private")).toBe(false);
   expect(pkg.publishConfig).toEqual({ access: "public", tag: "next" });
   expect(pkg.engines.bun).toBe(">=1.4.2");
-  expect(pkg.files).toEqual(["dist", "schemas", "docs", "CHANGELOG.md"]);
+  expect(pkg.files).toEqual(["dist", "schemas", "docs", "CHANGELOG.md", "SECURITY.md"]);
   expect(pkg.sideEffects).toEqual(["./dist/preview/worker/entry.js"]);
 });

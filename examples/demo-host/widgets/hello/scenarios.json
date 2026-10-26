@@ -1,0 +1,10 @@
+[
+  { "name": "ready", "params": { "name": "World" }, "context": {}, "data": {} },
+  {
+    "name": "help-open",
+    "params": { "name": "World" },
+    "state": { "count": 3, "help": true },
+    "context": {},
+    "data": {}
+  }
+]

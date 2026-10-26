@@ -1,0 +1,25 @@
+{
+  "format": "liveframe-manifest/1",
+  "id": "hello",
+  "version": "1.0.0",
+  "catalogId": "demo.ui@1",
+  "params": {
+    "type": "object",
+    "properties": { "name": { "type": "string", "maxLength": 40 } },
+    "required": ["name"],
+    "additionalProperties": false
+  },
+  "state": {
+    "type": "object",
+    "properties": {
+      "count": { "type": "integer", "minimum": 0, "maximum": 1000000 },
+      "help": { "type": "boolean" }
+    },
+    "required": ["count", "help"],
+    "additionalProperties": false
+  },
+  "context": { "type": "object", "properties": {}, "required": [], "additionalProperties": false },
+  "initialState": { "count": 0, "help": false },
+  "sources": {},
+  "actions": ["demo.notify"]
+}

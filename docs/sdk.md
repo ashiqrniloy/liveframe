@@ -20,14 +20,13 @@ compiling a validator; `compileValidator` expects validated documents.
 Generate the components next to your widget:
 
 ```bash
-bun ./node_modules/@arnilo/liveframe/src/cli/liveframe.ts gen catalog.json --out ui.gen.ts
-bun ./node_modules/@arnilo/liveframe/src/cli/liveframe.ts gen catalog.json --out ui.gen.ts --check
+bunx liveframe gen catalog.json --out ui.gen.ts
+bunx liveframe gen catalog.json --out ui.gen.ts --check
 ```
 
-The package also exposes this entry as the `liveframe` binary:
-`liveframe gen catalog.json --out ui.gen.ts [--check]`. In this repository the
-equivalent command is `bun src/cli/liveframe.ts gen …`. `--check` never writes:
-it exits 0 for matching output and 1 for missing or changed output, reporting the
+The package installs this as the `liveframe` binary, so a project that depends on
+it can run `liveframe gen catalog.json --out ui.gen.ts [--check]` directly.
+`--check` never writes: it exits 0 for matching output and 1 for missing or changed output, reporting the
 first differing line. Invalid catalogs, JSON, usage or file operations exit 2.
 Put the check command in your CI; this repo includes it in `bun run check`.
 

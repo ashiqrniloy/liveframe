@@ -59,7 +59,7 @@ export default config;
   session to it, and return `{ url, close }`. The URL is what `capture_preview`
   opens. `close()` runs on shutdown.
 
-**Neither reference runner is a sandbox.** `inProcessRunner()` and
+**Neither reference runner is a sandbox** ([security model](security.md)). `inProcessRunner()` and
 `workerRunner()` run trusted code on your backend. For untrusted drafts, pass
 your own isolated runner as `config.runner` — and use the same one in production.
 The import ban is syntactic: a draft can still reach the file system, the network

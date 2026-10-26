@@ -39,6 +39,11 @@ checkValue(Args, { id: "t-1", extra: 1 });
 // { ok: false, errors: [{ kind: "invalid-document", pointer: "/extra", ... }] }
 ```
 
+A prop that carries a URL is a string like any other: constrain it with
+`pattern` or sanitise it in the implementation that renders it. The library
+passes prop values through and never interprets one as a URL. See the
+[security model](security.md).
+
 `checkValue(schema, value, maxErrors = 20)` interprets the schema without running
 generated code. It returns the original value on success and collects failures
 up to the bound. `maxErrors` must be a positive integer; an invalid bound throws

@@ -1,0 +1,4 @@
+node_modules/
+.pack/
+.data/
+bun.lock

@@ -12,7 +12,7 @@ through your `Runner`, on your backend. The page receives validated UI trees.
 **Preview never dispatches an action (law 4).** An action is checked, logged and
 shown; nothing calls your operations.
 
-**The reference runners are not a sandbox.** Run only trusted drafts with
+**The reference runners are not a sandbox** ([security model](security.md)). Run only trusted drafts with
 `inProcessRunner()` or `workerRunner()`. Both return only trees their own
 validator accepted, and `workerRunner()` also ignores answers it did not ask
 for: one worker serves every package, so a hostile draft can still answer a

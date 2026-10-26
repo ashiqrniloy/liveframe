@@ -1,0 +1,23 @@
+{
+  "format": "liveframe-capabilities/1",
+  "sources": {},
+  "actions": {
+    "demo.notify": {
+      "description": "Log a message in the host's action log.",
+      "args": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "pattern": "^.+$",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

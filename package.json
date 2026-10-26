@@ -112,7 +112,8 @@
     "dist",
     "schemas",
     "docs",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "SECURITY.md"
   ],
   "bin": {
     "liveframe": "./dist/cli/liveframe.js"
@@ -121,14 +122,15 @@
     "build": "bun scripts/build.ts",
     "bench": "bun bench/validator.bench.ts && bun bench/render.bench.ts && bun bench/css.bench.ts",
     "proof": "bun proof/host/server.ts",
-    "test": "bun test --conditions liveframe:source",
+    "test": "bun test --conditions liveframe:source src proof",
     "typecheck": "tsc --noEmit && tsc --noEmit -p proof",
     "lint": "biome lint .",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "gen:check": "bun src/cli/liveframe.ts gen src/__tests__/fixtures/proof/catalog.json --out src/__tests__/fixtures/widgets/ui.gen.ts --check",
     "check": "bun run build && bun run gen:check && bun run typecheck && bun run lint && bun run format:check && bun run test",
-    "release:gate": "bun scripts/release/archive-gate.ts"
+    "release:gate": "bun scripts/release/archive-gate.ts",
+    "demo:test": "bun scripts/demo-test.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.2",

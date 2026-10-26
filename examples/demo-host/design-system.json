@@ -1,0 +1,1863 @@
+{
+  "format": "liveframe-design-system/1",
+  "id": "demo",
+  "version": "1.0.0",
+  "values": {
+    "radius.control": {
+      "kind": "radius",
+      "value": {
+        "value": 3,
+        "unit": "px"
+      }
+    },
+    "radius.plate": {
+      "kind": "radius",
+      "value": {
+        "value": 2,
+        "unit": "px"
+      }
+    },
+    "radius.pill": {
+      "kind": "radius",
+      "value": {
+        "value": 999,
+        "unit": "px"
+      }
+    },
+    "border.hairline": {
+      "kind": "border-width",
+      "value": {
+        "value": 1,
+        "unit": "px"
+      }
+    },
+    "space.0": {
+      "kind": "spacing",
+      "value": {
+        "value": 0,
+        "unit": "px"
+      }
+    },
+    "space.1": {
+      "kind": "spacing",
+      "value": {
+        "value": 4,
+        "unit": "px"
+      }
+    },
+    "space.2": {
+      "kind": "spacing",
+      "value": {
+        "value": 8,
+        "unit": "px"
+      }
+    },
+    "space.3": {
+      "kind": "spacing",
+      "value": {
+        "value": 12,
+        "unit": "px"
+      }
+    },
+    "space.4": {
+      "kind": "spacing",
+      "value": {
+        "value": 16,
+        "unit": "px"
+      }
+    },
+    "space.5": {
+      "kind": "spacing",
+      "value": {
+        "value": 24,
+        "unit": "px"
+      }
+    },
+    "space.6": {
+      "kind": "spacing",
+      "value": {
+        "value": 32,
+        "unit": "px"
+      }
+    },
+    "space.7": {
+      "kind": "spacing",
+      "value": {
+        "value": 48,
+        "unit": "px"
+      }
+    },
+    "size.rail": {
+      "kind": "size",
+      "value": {
+        "value": 352,
+        "unit": "px"
+      }
+    },
+    "size.glyph": {
+      "kind": "size",
+      "value": {
+        "value": 15,
+        "unit": "px"
+      }
+    },
+    "bp.sm": {
+      "kind": "breakpoint",
+      "value": {
+        "value": 384,
+        "unit": "px"
+      }
+    },
+    "bp.md": {
+      "kind": "breakpoint",
+      "value": {
+        "value": 720,
+        "unit": "px"
+      }
+    },
+    "motion.fast": {
+      "kind": "motion-duration",
+      "value": {
+        "value": 150,
+        "unit": "ms"
+      }
+    },
+    "opacity.disabled": {
+      "kind": "opacity",
+      "value": 0.5
+    },
+    "expo-out": {
+      "kind": "easing",
+      "value": [
+        0.16,
+        1,
+        0.3,
+        1
+      ]
+    },
+    "shadow.pop": {
+      "kind": "shadow",
+      "value": [
+        {
+          "color": "shadow.ambient.alpha-0-14",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 2,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 6,
+            "unit": "px"
+          },
+          "spread": {
+            "value": 0,
+            "unit": "px"
+          }
+        },
+        {
+          "color": "shadow.ambient.alpha-0-45",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 24,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 48,
+            "unit": "px"
+          },
+          "spread": {
+            "value": -20,
+            "unit": "px"
+          }
+        }
+      ]
+    },
+    "shadow.mount": {
+      "kind": "shadow",
+      "value": [
+        {
+          "color": "shadow.highlight.alpha-0-9",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 1,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 0,
+            "unit": "px"
+          },
+          "spread": {
+            "value": 0,
+            "unit": "px"
+          },
+          "inset": true
+        },
+        {
+          "color": "shadow.ambient.alpha-0-1",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 1,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 2,
+            "unit": "px"
+          },
+          "spread": {
+            "value": 0,
+            "unit": "px"
+          }
+        },
+        {
+          "color": "shadow.ambient.alpha-0-22",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 6,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 14,
+            "unit": "px"
+          },
+          "spread": {
+            "value": -8,
+            "unit": "px"
+          }
+        }
+      ]
+    }
+  },
+  "recipes": {
+    "box.default.root.rest": {},
+    "box.default.root.hover": {},
+    "box.default.root.active": {},
+    "box.default.root.focus": {},
+    "box.default.root.disabled": {},
+    "box.default.root.selected": {},
+    "box.default.root.invalid": {},
+    "box.default.root.open": {},
+    "box.default.rail.rest": {},
+    "box.default.rail.hover": {},
+    "box.default.rail.active": {},
+    "box.default.rail.focus": {},
+    "box.default.rail.disabled": {},
+    "box.default.rail.selected": {},
+    "box.default.rail.invalid": {},
+    "box.default.rail.open": {},
+    "box.plate.root.rest": {
+      "backgroundColor": "surface.raised",
+      "borderRadius": "radius.plate",
+      "padding": "space.5",
+      "gap": "space.3",
+      "shadow": [
+        {
+          "color": "border.hairline.alpha-1",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 0,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 0,
+            "unit": "px"
+          },
+          "spread": {
+            "value": 1,
+            "unit": "px"
+          },
+          "inset": true
+        }
+      ]
+    },
+    "box.plate.root.hover": {
+      "backgroundColor": "surface.raised",
+      "borderRadius": "radius.plate",
+      "padding": "space.5",
+      "gap": "space.3",
+      "shadow": [
+        {
+          "color": "border.hairline.alpha-1",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 0,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 0,
+            "unit": "px"
+          },
+          "spread": {
+            "value": 1,
+            "unit": "px"
+          },
+          "inset": true
+        }
+      ]
+    },
+    "box.plate.root.active": {
+      "backgroundColor": "surface.raised",
+      "borderRadius": "radius.plate",
+      "padding": "space.5",
+      "gap": "space.3",
+      "shadow": [
+        {
+          "color": "border.hairline.alpha-1",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 0,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 0,
+            "unit": "px"
+          },
+          "spread": {
+            "value": 1,
+            "unit": "px"
+          },
+          "inset": true
+        }
+      ]
+    },
+    "box.plate.root.focus": {
+      "backgroundColor": "surface.raised",
+      "borderRadius": "radius.plate",
+      "padding": "space.5",
+      "gap": "space.3",
+      "shadow": [
+        {
+          "color": "border.hairline.alpha-1",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 0,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 0,
+            "unit": "px"
+          },
+          "spread": {
+            "value": 1,
+            "unit": "px"
+          },
+          "inset": true
+        }
+      ]
+    },
+    "box.plate.root.disabled": {
+      "backgroundColor": "surface.raised",
+      "borderRadius": "radius.plate",
+      "padding": "space.5",
+      "gap": "space.3",
+      "shadow": [
+        {
+          "color": "border.hairline.alpha-1",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 0,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 0,
+            "unit": "px"
+          },
+          "spread": {
+            "value": 1,
+            "unit": "px"
+          },
+          "inset": true
+        }
+      ]
+    },
+    "box.plate.root.selected": {
+      "backgroundColor": "surface.raised",
+      "borderRadius": "radius.plate",
+      "padding": "space.5",
+      "gap": "space.3",
+      "shadow": [
+        {
+          "color": "border.hairline.alpha-1",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 0,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 0,
+            "unit": "px"
+          },
+          "spread": {
+            "value": 1,
+            "unit": "px"
+          },
+          "inset": true
+        }
+      ]
+    },
+    "box.plate.root.invalid": {
+      "backgroundColor": "surface.raised",
+      "borderRadius": "radius.plate",
+      "padding": "space.5",
+      "gap": "space.3",
+      "shadow": [
+        {
+          "color": "border.hairline.alpha-1",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 0,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 0,
+            "unit": "px"
+          },
+          "spread": {
+            "value": 1,
+            "unit": "px"
+          },
+          "inset": true
+        }
+      ]
+    },
+    "box.plate.root.open": {
+      "backgroundColor": "surface.raised",
+      "borderRadius": "radius.plate",
+      "padding": "space.5",
+      "gap": "space.3",
+      "shadow": [
+        {
+          "color": "border.hairline.alpha-1",
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 0,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 0,
+            "unit": "px"
+          },
+          "spread": {
+            "value": 1,
+            "unit": "px"
+          },
+          "inset": true
+        }
+      ]
+    },
+    "box.plate.rail.rest": {},
+    "box.plate.rail.hover": {},
+    "box.plate.rail.active": {},
+    "box.plate.rail.focus": {},
+    "box.plate.rail.disabled": {},
+    "box.plate.rail.selected": {},
+    "box.plate.rail.invalid": {},
+    "box.plate.rail.open": {},
+    "box.rule.root.rest": {
+      "backgroundColor": "colour.transparent",
+      "borderColor": "border.subtle",
+      "borderTopWidth": "border.hairline",
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      },
+      "paddingX": "space.2",
+      "paddingY": "space.3",
+      "gap": "space.1"
+    },
+    "box.rule.root.hover": {
+      "backgroundColor": "colour.transparent",
+      "borderColor": "border.subtle",
+      "borderTopWidth": "border.hairline",
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      },
+      "paddingX": "space.2",
+      "paddingY": "space.3",
+      "gap": "space.1"
+    },
+    "box.rule.root.active": {
+      "backgroundColor": "colour.transparent",
+      "borderColor": "border.subtle",
+      "borderTopWidth": "border.hairline",
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      },
+      "paddingX": "space.2",
+      "paddingY": "space.3",
+      "gap": "space.1"
+    },
+    "box.rule.root.focus": {
+      "backgroundColor": "colour.transparent",
+      "borderColor": "border.subtle",
+      "borderTopWidth": "border.hairline",
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      },
+      "paddingX": "space.2",
+      "paddingY": "space.3",
+      "gap": "space.1"
+    },
+    "box.rule.root.disabled": {
+      "backgroundColor": "colour.transparent",
+      "borderColor": "border.subtle",
+      "borderTopWidth": "border.hairline",
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      },
+      "paddingX": "space.2",
+      "paddingY": "space.3",
+      "gap": "space.1"
+    },
+    "box.rule.root.selected": {
+      "backgroundColor": "colour.transparent",
+      "borderColor": "border.subtle",
+      "borderTopWidth": "border.hairline",
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      },
+      "paddingX": "space.2",
+      "paddingY": "space.3",
+      "gap": "space.1"
+    },
+    "box.rule.root.invalid": {
+      "backgroundColor": "colour.transparent",
+      "borderColor": "border.subtle",
+      "borderTopWidth": "border.hairline",
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      },
+      "paddingX": "space.2",
+      "paddingY": "space.3",
+      "gap": "space.1"
+    },
+    "box.rule.root.open": {
+      "backgroundColor": "colour.transparent",
+      "borderColor": "border.subtle",
+      "borderTopWidth": "border.hairline",
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      },
+      "paddingX": "space.2",
+      "paddingY": "space.3",
+      "gap": "space.1"
+    },
+    "box.rule.rail.rest": {},
+    "box.rule.rail.hover": {},
+    "box.rule.rail.active": {},
+    "box.rule.rail.focus": {},
+    "box.rule.rail.disabled": {},
+    "box.rule.rail.selected": {},
+    "box.rule.rail.invalid": {},
+    "box.rule.rail.open": {},
+    "box.callout.root.rest": {
+      "backgroundColor": "colour.transparent",
+      "gap": "space.3",
+      "paddingY": "space.1"
+    },
+    "box.callout.root.hover": {
+      "backgroundColor": "colour.transparent",
+      "gap": "space.3",
+      "paddingY": "space.1"
+    },
+    "box.callout.root.active": {
+      "backgroundColor": "colour.transparent",
+      "gap": "space.3",
+      "paddingY": "space.1"
+    },
+    "box.callout.root.focus": {
+      "backgroundColor": "colour.transparent",
+      "gap": "space.3",
+      "paddingY": "space.1"
+    },
+    "box.callout.root.disabled": {
+      "backgroundColor": "colour.transparent",
+      "gap": "space.3",
+      "paddingY": "space.1"
+    },
+    "box.callout.root.selected": {
+      "backgroundColor": "colour.transparent",
+      "gap": "space.3",
+      "paddingY": "space.1"
+    },
+    "box.callout.root.invalid": {
+      "backgroundColor": "colour.transparent",
+      "gap": "space.3",
+      "paddingY": "space.1"
+    },
+    "box.callout.root.open": {
+      "backgroundColor": "colour.transparent",
+      "gap": "space.3",
+      "paddingY": "space.1"
+    },
+    "box.callout.rail.rest": {
+      "backgroundColor": "border.subtle",
+      "borderRadius": "radius.pill"
+    },
+    "box.callout.rail.hover": {
+      "backgroundColor": "border.subtle",
+      "borderRadius": "radius.pill"
+    },
+    "box.callout.rail.active": {
+      "backgroundColor": "border.subtle",
+      "borderRadius": "radius.pill"
+    },
+    "box.callout.rail.focus": {
+      "backgroundColor": "border.subtle",
+      "borderRadius": "radius.pill"
+    },
+    "box.callout.rail.disabled": {
+      "backgroundColor": "border.subtle",
+      "borderRadius": "radius.pill"
+    },
+    "box.callout.rail.selected": {
+      "backgroundColor": "border.subtle",
+      "borderRadius": "radius.pill"
+    },
+    "box.callout.rail.invalid": {
+      "backgroundColor": "border.subtle",
+      "borderRadius": "radius.pill"
+    },
+    "box.callout.rail.open": {
+      "backgroundColor": "border.subtle",
+      "borderRadius": "radius.pill"
+    },
+    "stack.default.root.rest": {},
+    "stack.default.root.hover": {},
+    "stack.default.root.active": {},
+    "stack.default.root.focus": {},
+    "stack.default.root.disabled": {},
+    "stack.default.root.selected": {},
+    "stack.default.root.invalid": {},
+    "stack.default.root.open": {},
+    "inline.default.root.rest": {},
+    "inline.default.root.hover": {},
+    "inline.default.root.active": {},
+    "inline.default.root.focus": {},
+    "inline.default.root.disabled": {},
+    "inline.default.root.selected": {},
+    "inline.default.root.invalid": {},
+    "inline.default.root.open": {},
+    "text.default.root.rest": {
+      "textColor": "text.primary",
+      "typography": "body"
+    },
+    "text.default.root.hover": {
+      "textColor": "text.primary",
+      "typography": "body"
+    },
+    "text.default.root.active": {
+      "textColor": "text.primary",
+      "typography": "body"
+    },
+    "text.default.root.focus": {
+      "textColor": "text.primary",
+      "typography": "body"
+    },
+    "text.default.root.disabled": {
+      "textColor": "text.primary",
+      "typography": "body"
+    },
+    "text.default.root.selected": {
+      "textColor": "text.primary",
+      "typography": "body"
+    },
+    "text.default.root.invalid": {
+      "textColor": "text.primary",
+      "typography": "body"
+    },
+    "text.default.root.open": {
+      "textColor": "text.primary",
+      "typography": "body"
+    },
+    "heading.default.root.rest": {
+      "textColor": "text.primary",
+      "typography": "heading.2"
+    },
+    "heading.default.root.hover": {
+      "textColor": "text.primary",
+      "typography": "heading.2"
+    },
+    "heading.default.root.active": {
+      "textColor": "text.primary",
+      "typography": "heading.2"
+    },
+    "heading.default.root.focus": {
+      "textColor": "text.primary",
+      "typography": "heading.2"
+    },
+    "heading.default.root.disabled": {
+      "textColor": "text.primary",
+      "typography": "heading.2"
+    },
+    "heading.default.root.selected": {
+      "textColor": "text.primary",
+      "typography": "heading.2"
+    },
+    "heading.default.root.invalid": {
+      "textColor": "text.primary",
+      "typography": "heading.2"
+    },
+    "heading.default.root.open": {
+      "textColor": "text.primary",
+      "typography": "heading.2"
+    },
+    "button.default.root.rest": {
+      "backgroundColor": "surface.module",
+      "textColor": "text.primary",
+      "borderColor": "border.strong",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.3",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label.small",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "button.default.root.hover": {
+      "backgroundColor": "surface.module",
+      "textColor": "text.primary",
+      "borderColor": "text.primary",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.3",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label.small",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "button.default.root.active": {
+      "backgroundColor": "surface.module",
+      "textColor": "text.primary",
+      "borderColor": "border.strong",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.3",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label.small",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out",
+      "translateY": {
+        "value": 1,
+        "unit": "px"
+      }
+    },
+    "button.default.root.focus": {
+      "backgroundColor": "surface.module",
+      "textColor": "text.primary",
+      "borderColor": "border.strong",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.3",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label.small",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out",
+      "outlineColor": "focus.ring",
+      "outlineWidth": {
+        "value": 2,
+        "unit": "px"
+      },
+      "outlineOffset": {
+        "value": 2,
+        "unit": "px"
+      },
+      "outlineStyle": "solid"
+    },
+    "button.default.root.disabled": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "text.disabled",
+      "borderColor": "border.strong",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.3",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label.small",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "button.default.root.selected": {
+      "backgroundColor": "surface.module",
+      "textColor": "text.primary",
+      "borderColor": "border.strong",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.3",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label.small",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "button.default.root.invalid": {
+      "backgroundColor": "surface.module",
+      "textColor": "text.primary",
+      "borderColor": "border.strong",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.3",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label.small",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "button.default.root.open": {
+      "backgroundColor": "surface.module",
+      "textColor": "text.primary",
+      "borderColor": "border.strong",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.3",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label.small",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "button.default.label.rest": {
+      "typography": "label.small"
+    },
+    "button.default.label.hover": {
+      "typography": "label.small"
+    },
+    "button.default.label.active": {
+      "typography": "label.small"
+    },
+    "button.default.label.focus": {
+      "typography": "label.small"
+    },
+    "button.default.label.disabled": {
+      "typography": "label.small"
+    },
+    "button.default.label.selected": {
+      "typography": "label.small"
+    },
+    "button.default.label.invalid": {
+      "typography": "label.small"
+    },
+    "button.default.label.open": {
+      "typography": "label.small"
+    },
+    "button.default.icon.rest": {
+      "opacity": 0.9
+    },
+    "button.default.icon.hover": {
+      "opacity": 0.9
+    },
+    "button.default.icon.active": {
+      "opacity": 0.9
+    },
+    "button.default.icon.focus": {
+      "opacity": 0.9
+    },
+    "button.default.icon.disabled": {
+      "opacity": 0.9
+    },
+    "button.default.icon.selected": {
+      "opacity": 0.9
+    },
+    "button.default.icon.invalid": {
+      "opacity": 0.9
+    },
+    "button.default.icon.open": {
+      "opacity": 0.9
+    },
+    "button.primary.root.rest": {
+      "backgroundColor": "accent.fill",
+      "textColor": "text.on-accent",
+      "borderColor": "accent.fill",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "button.primary.root.hover": {
+      "backgroundColor": "accent.fill.hover",
+      "textColor": "text.on-accent",
+      "borderColor": "accent.fill.hover",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "button.primary.root.active": {
+      "backgroundColor": "accent.fill",
+      "textColor": "text.on-accent",
+      "borderColor": "accent.fill",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out",
+      "translateY": {
+        "value": 1,
+        "unit": "px"
+      }
+    },
+    "button.primary.root.focus": {
+      "backgroundColor": "accent.fill",
+      "textColor": "text.on-accent",
+      "borderColor": "accent.fill",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out",
+      "outlineColor": "focus.ring",
+      "outlineWidth": {
+        "value": 2,
+        "unit": "px"
+      },
+      "outlineOffset": {
+        "value": 2,
+        "unit": "px"
+      },
+      "outlineStyle": "solid"
+    },
+    "button.primary.root.disabled": {
+      "backgroundColor": "surface.active",
+      "textColor": "text.disabled",
+      "borderColor": "surface.active",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "button.primary.root.selected": {
+      "backgroundColor": "accent.fill",
+      "textColor": "text.on-accent",
+      "borderColor": "accent.fill",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "button.primary.root.invalid": {
+      "backgroundColor": "accent.fill",
+      "textColor": "text.on-accent",
+      "borderColor": "accent.fill",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "button.primary.root.open": {
+      "backgroundColor": "accent.fill",
+      "textColor": "text.on-accent",
+      "borderColor": "accent.fill",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "button.primary.label.rest": {
+      "typography": "label"
+    },
+    "button.primary.label.hover": {
+      "typography": "label"
+    },
+    "button.primary.label.active": {
+      "typography": "label"
+    },
+    "button.primary.label.focus": {
+      "typography": "label"
+    },
+    "button.primary.label.disabled": {
+      "typography": "label"
+    },
+    "button.primary.label.selected": {
+      "typography": "label"
+    },
+    "button.primary.label.invalid": {
+      "typography": "label"
+    },
+    "button.primary.label.open": {
+      "typography": "label"
+    },
+    "button.primary.icon.rest": {
+      "opacity": 0.9
+    },
+    "button.primary.icon.hover": {
+      "opacity": 0.9
+    },
+    "button.primary.icon.active": {
+      "opacity": 0.9
+    },
+    "button.primary.icon.focus": {
+      "opacity": 0.9
+    },
+    "button.primary.icon.disabled": {
+      "opacity": 0.9
+    },
+    "button.primary.icon.selected": {
+      "opacity": 0.9
+    },
+    "button.primary.icon.invalid": {
+      "opacity": 0.9
+    },
+    "button.primary.icon.open": {
+      "opacity": 0.9
+    },
+    "button.danger.root.rest": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "diagnostic.error",
+      "borderColor": "colour.transparent",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "button.danger.root.hover": {
+      "backgroundColor": "surface.hover",
+      "textColor": "diagnostic.error",
+      "borderColor": "colour.transparent",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "button.danger.root.active": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "diagnostic.error",
+      "borderColor": "colour.transparent",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out",
+      "translateY": {
+        "value": 1,
+        "unit": "px"
+      }
+    },
+    "button.danger.root.focus": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "diagnostic.error",
+      "borderColor": "colour.transparent",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out",
+      "outlineColor": "focus.ring",
+      "outlineWidth": {
+        "value": 2,
+        "unit": "px"
+      },
+      "outlineOffset": {
+        "value": 2,
+        "unit": "px"
+      },
+      "outlineStyle": "solid"
+    },
+    "button.danger.root.disabled": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "text.disabled",
+      "borderColor": "colour.transparent",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "button.danger.root.selected": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "diagnostic.error",
+      "borderColor": "colour.transparent",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "button.danger.root.invalid": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "diagnostic.error",
+      "borderColor": "colour.transparent",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "button.danger.root.open": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "diagnostic.error",
+      "borderColor": "colour.transparent",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "button.danger.label.rest": {
+      "typography": "label"
+    },
+    "button.danger.label.hover": {
+      "typography": "label"
+    },
+    "button.danger.label.active": {
+      "typography": "label"
+    },
+    "button.danger.label.focus": {
+      "typography": "label"
+    },
+    "button.danger.label.disabled": {
+      "typography": "label"
+    },
+    "button.danger.label.selected": {
+      "typography": "label"
+    },
+    "button.danger.label.invalid": {
+      "typography": "label"
+    },
+    "button.danger.label.open": {
+      "typography": "label"
+    },
+    "button.danger.icon.rest": {
+      "opacity": 0.9
+    },
+    "button.danger.icon.hover": {
+      "opacity": 0.9
+    },
+    "button.danger.icon.active": {
+      "opacity": 0.9
+    },
+    "button.danger.icon.focus": {
+      "opacity": 0.9
+    },
+    "button.danger.icon.disabled": {
+      "opacity": 0.9
+    },
+    "button.danger.icon.selected": {
+      "opacity": 0.9
+    },
+    "button.danger.icon.invalid": {
+      "opacity": 0.9
+    },
+    "button.danger.icon.open": {
+      "opacity": 0.9
+    },
+    "button.ghost.root.rest": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "text.primary",
+      "borderWidth": {
+        "value": 0,
+        "unit": "px"
+      },
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      },
+      "paddingX": "space.0",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label.strong"
+    },
+    "button.ghost.root.hover": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "text.primary",
+      "borderWidth": {
+        "value": 0,
+        "unit": "px"
+      },
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      },
+      "paddingX": "space.0",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label.strong"
+    },
+    "button.ghost.root.active": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "text.primary",
+      "borderWidth": {
+        "value": 0,
+        "unit": "px"
+      },
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      },
+      "paddingX": "space.0",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label.strong",
+      "translateY": {
+        "value": 1,
+        "unit": "px"
+      }
+    },
+    "button.ghost.root.focus": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "text.primary",
+      "borderWidth": {
+        "value": 0,
+        "unit": "px"
+      },
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      },
+      "paddingX": "space.0",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label.strong",
+      "outlineColor": "focus.ring",
+      "outlineWidth": {
+        "value": 2,
+        "unit": "px"
+      },
+      "outlineOffset": {
+        "value": 2,
+        "unit": "px"
+      },
+      "outlineStyle": "solid"
+    },
+    "button.ghost.root.disabled": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "text.disabled",
+      "borderWidth": {
+        "value": 0,
+        "unit": "px"
+      },
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      },
+      "paddingX": "space.0",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label.strong"
+    },
+    "button.ghost.root.selected": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "text.primary",
+      "borderWidth": {
+        "value": 0,
+        "unit": "px"
+      },
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      },
+      "paddingX": "space.0",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label.strong"
+    },
+    "button.ghost.root.invalid": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "text.primary",
+      "borderWidth": {
+        "value": 0,
+        "unit": "px"
+      },
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      },
+      "paddingX": "space.0",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label.strong"
+    },
+    "button.ghost.root.open": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "text.primary",
+      "borderWidth": {
+        "value": 0,
+        "unit": "px"
+      },
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      },
+      "paddingX": "space.0",
+      "paddingY": "space.0",
+      "gap": "space.2",
+      "typography": "label.strong"
+    },
+    "button.ghost.label.rest": {
+      "typography": "label.strong"
+    },
+    "button.ghost.label.hover": {
+      "typography": "label.strong"
+    },
+    "button.ghost.label.active": {
+      "typography": "label.strong"
+    },
+    "button.ghost.label.focus": {
+      "typography": "label.strong"
+    },
+    "button.ghost.label.disabled": {
+      "typography": "label.strong"
+    },
+    "button.ghost.label.selected": {
+      "typography": "label.strong"
+    },
+    "button.ghost.label.invalid": {
+      "typography": "label.strong"
+    },
+    "button.ghost.label.open": {
+      "typography": "label.strong"
+    },
+    "button.ghost.icon.rest": {
+      "opacity": 0.9
+    },
+    "button.ghost.icon.hover": {
+      "opacity": 0.9
+    },
+    "button.ghost.icon.active": {
+      "opacity": 0.9
+    },
+    "button.ghost.icon.focus": {
+      "opacity": 0.9
+    },
+    "button.ghost.icon.disabled": {
+      "opacity": 0.9
+    },
+    "button.ghost.icon.selected": {
+      "opacity": 0.9
+    },
+    "button.ghost.icon.invalid": {
+      "opacity": 0.9
+    },
+    "button.ghost.icon.open": {
+      "opacity": 0.9
+    },
+    "textField.default.root.rest": {
+      "gap": "space.2"
+    },
+    "textField.default.root.hover": {
+      "gap": "space.2"
+    },
+    "textField.default.root.active": {
+      "gap": "space.2"
+    },
+    "textField.default.root.focus": {
+      "gap": "space.2"
+    },
+    "textField.default.root.disabled": {
+      "gap": "space.2"
+    },
+    "textField.default.root.selected": {
+      "gap": "space.2"
+    },
+    "textField.default.root.invalid": {
+      "gap": "space.2"
+    },
+    "textField.default.root.open": {
+      "gap": "space.2"
+    },
+    "textField.default.label.rest": {
+      "typography": "label"
+    },
+    "textField.default.label.hover": {
+      "typography": "label"
+    },
+    "textField.default.label.active": {
+      "typography": "label"
+    },
+    "textField.default.label.focus": {
+      "typography": "label"
+    },
+    "textField.default.label.disabled": {
+      "typography": "label"
+    },
+    "textField.default.label.selected": {
+      "typography": "label"
+    },
+    "textField.default.label.invalid": {
+      "typography": "label"
+    },
+    "textField.default.label.open": {
+      "typography": "label"
+    },
+    "textField.default.input.rest": {
+      "backgroundColor": "surface.module",
+      "textColor": "text.primary",
+      "borderColor": "border.strong",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.3",
+      "paddingY": "space.2",
+      "typography": "body",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "textField.default.input.hover": {
+      "backgroundColor": "surface.module",
+      "textColor": "text.primary",
+      "borderColor": "text.primary",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.3",
+      "paddingY": "space.2",
+      "typography": "body",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "textField.default.input.active": {
+      "backgroundColor": "surface.module",
+      "textColor": "text.primary",
+      "borderColor": "border.strong",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.3",
+      "paddingY": "space.2",
+      "typography": "body",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "textField.default.input.focus": {
+      "backgroundColor": "surface.module",
+      "textColor": "text.primary",
+      "borderColor": "text.primary",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.3",
+      "paddingY": "space.2",
+      "typography": "body",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out",
+      "outlineColor": "focus.ring",
+      "outlineWidth": {
+        "value": 2,
+        "unit": "px"
+      },
+      "outlineOffset": {
+        "value": 1,
+        "unit": "px"
+      },
+      "outlineStyle": "solid"
+    },
+    "textField.default.input.disabled": {
+      "backgroundColor": "surface.well",
+      "textColor": "text.disabled",
+      "borderColor": "border.subtle",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.3",
+      "paddingY": "space.2",
+      "typography": "body",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "textField.default.input.selected": {
+      "backgroundColor": "surface.module",
+      "textColor": "text.primary",
+      "borderColor": "border.strong",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.3",
+      "paddingY": "space.2",
+      "typography": "body",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "textField.default.input.invalid": {
+      "backgroundColor": "surface.module",
+      "textColor": "text.primary",
+      "borderColor": "border.strong",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.3",
+      "paddingY": "space.2",
+      "typography": "body",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "textField.default.input.open": {
+      "backgroundColor": "surface.module",
+      "textColor": "text.primary",
+      "borderColor": "border.strong",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.3",
+      "paddingY": "space.2",
+      "typography": "body",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "dialog.default.root.rest": {},
+    "dialog.default.root.hover": {},
+    "dialog.default.root.active": {},
+    "dialog.default.root.focus": {},
+    "dialog.default.root.disabled": {},
+    "dialog.default.root.selected": {},
+    "dialog.default.root.invalid": {},
+    "dialog.default.root.open": {},
+    "dialog.default.backdrop.rest": {
+      "backgroundColor": "surface.base",
+      "backgroundOpacity": 0.78
+    },
+    "dialog.default.backdrop.hover": {
+      "backgroundColor": "surface.base",
+      "backgroundOpacity": 0.78
+    },
+    "dialog.default.backdrop.active": {
+      "backgroundColor": "surface.base",
+      "backgroundOpacity": 0.78
+    },
+    "dialog.default.backdrop.focus": {
+      "backgroundColor": "surface.base",
+      "backgroundOpacity": 0.78
+    },
+    "dialog.default.backdrop.disabled": {
+      "backgroundColor": "surface.base",
+      "backgroundOpacity": 0.78
+    },
+    "dialog.default.backdrop.selected": {
+      "backgroundColor": "surface.base",
+      "backgroundOpacity": 0.78
+    },
+    "dialog.default.backdrop.invalid": {
+      "backgroundColor": "surface.base",
+      "backgroundOpacity": 0.78
+    },
+    "dialog.default.backdrop.open": {
+      "backgroundColor": "surface.base",
+      "backgroundOpacity": 0.78
+    },
+    "dialog.default.content.rest": {
+      "backgroundColor": "surface.module",
+      "textColor": "text.primary",
+      "borderColor": "border.subtle",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.plate",
+      "padding": "space.5",
+      "shadow": "shadow.pop",
+      "gap": "space.4"
+    },
+    "dialog.default.content.hover": {
+      "backgroundColor": "surface.module",
+      "textColor": "text.primary",
+      "borderColor": "border.subtle",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.plate",
+      "padding": "space.5",
+      "shadow": "shadow.pop",
+      "gap": "space.4"
+    },
+    "dialog.default.content.active": {
+      "backgroundColor": "surface.module",
+      "textColor": "text.primary",
+      "borderColor": "border.subtle",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.plate",
+      "padding": "space.5",
+      "shadow": "shadow.pop",
+      "gap": "space.4"
+    },
+    "dialog.default.content.focus": {
+      "backgroundColor": "surface.module",
+      "textColor": "text.primary",
+      "borderColor": "border.subtle",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.plate",
+      "padding": "space.5",
+      "shadow": "shadow.pop",
+      "gap": "space.4"
+    },
+    "dialog.default.content.disabled": {
+      "backgroundColor": "surface.module",
+      "textColor": "text.primary",
+      "borderColor": "border.subtle",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.plate",
+      "padding": "space.5",
+      "shadow": "shadow.pop",
+      "gap": "space.4"
+    },
+    "dialog.default.content.selected": {
+      "backgroundColor": "surface.module",
+      "textColor": "text.primary",
+      "borderColor": "border.subtle",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.plate",
+      "padding": "space.5",
+      "shadow": "shadow.pop",
+      "gap": "space.4"
+    },
+    "dialog.default.content.invalid": {
+      "backgroundColor": "surface.module",
+      "textColor": "text.primary",
+      "borderColor": "border.subtle",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.plate",
+      "padding": "space.5",
+      "shadow": "shadow.pop",
+      "gap": "space.4"
+    },
+    "dialog.default.content.open": {
+      "backgroundColor": "surface.module",
+      "textColor": "text.primary",
+      "borderColor": "border.subtle",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.plate",
+      "padding": "space.5",
+      "shadow": "shadow.pop",
+      "gap": "space.4"
+    },
+    "dialog.default.title.rest": {
+      "typography": "heading.3",
+      "textColor": "text.primary"
+    },
+    "dialog.default.title.hover": {
+      "typography": "heading.3",
+      "textColor": "text.primary"
+    },
+    "dialog.default.title.active": {
+      "typography": "heading.3",
+      "textColor": "text.primary"
+    },
+    "dialog.default.title.focus": {
+      "typography": "heading.3",
+      "textColor": "text.primary"
+    },
+    "dialog.default.title.disabled": {
+      "typography": "heading.3",
+      "textColor": "text.primary"
+    },
+    "dialog.default.title.selected": {
+      "typography": "heading.3",
+      "textColor": "text.primary"
+    },
+    "dialog.default.title.invalid": {
+      "typography": "heading.3",
+      "textColor": "text.primary"
+    },
+    "dialog.default.title.open": {
+      "typography": "heading.3",
+      "textColor": "text.primary"
+    },
+    "dialog.default.close.rest": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "text.primary",
+      "borderColor": "colour.transparent",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.2",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "dialog.default.close.hover": {
+      "backgroundColor": "surface.hover",
+      "textColor": "text.primary",
+      "borderColor": "colour.transparent",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.2",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "dialog.default.close.active": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "text.primary",
+      "borderColor": "colour.transparent",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.2",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out",
+      "translateY": {
+        "value": 1,
+        "unit": "px"
+      }
+    },
+    "dialog.default.close.focus": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "text.primary",
+      "borderColor": "colour.transparent",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.2",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out",
+      "outlineColor": "focus.ring",
+      "outlineWidth": {
+        "value": 2,
+        "unit": "px"
+      },
+      "outlineOffset": {
+        "value": 2,
+        "unit": "px"
+      },
+      "outlineStyle": "solid"
+    },
+    "dialog.default.close.disabled": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "text.primary",
+      "borderColor": "colour.transparent",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.2",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "dialog.default.close.selected": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "text.primary",
+      "borderColor": "colour.transparent",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.2",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "dialog.default.close.invalid": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "text.primary",
+      "borderColor": "colour.transparent",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.2",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    },
+    "dialog.default.close.open": {
+      "backgroundColor": "colour.transparent",
+      "textColor": "text.primary",
+      "borderColor": "colour.transparent",
+      "borderWidth": "border.hairline",
+      "borderRadius": "radius.control",
+      "paddingX": "space.4",
+      "paddingY": "space.2",
+      "gap": "space.2",
+      "typography": "label",
+      "transitionDuration": "motion.fast",
+      "transitionTiming": "expo-out"
+    }
+  }
+}
