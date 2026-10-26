@@ -2,6 +2,10 @@
 
 All notable changes to `@arnilo/liveframe` are recorded here. The project follows the compatibility policy in [`docs/compatibility.md`](docs/compatibility.md).
 
+## 0.1.0-rc.2 — 2026-10-27
+
+Second release candidate, the first published from CI through npm trusted publishing, with provenance. No code changes from rc.1.
+
 ## 0.1.0-rc.1 — 2026-10-27
 
 First release candidate, published under the `next` tag to verify the package from the registry. It carries the 0.1.0 content below.
