@@ -2,7 +2,7 @@
 
 - Write simple, elegant code: clarity over cleverness, and the fewest moving parts that do the job.
 - Always use timeouts when running shell commands.
-- Bun is the only runtime and tool runner: install, build, test and scripts all use Bun. Never add a Node-only tool.
+- Bun is the only runtime and tool runner: install, build, test and scripts all use Bun. Never add a Node-only tool. The one exception: npm runs only in the publish job, for trusted publishing and provenance; Bun remains the only tool everywhere else.
 
 ## Start here
 

@@ -25,3 +25,7 @@ What a version bump of `@arnilo/liveframe` may change. The policy is [decision R
 ## Deprecation practice
 
 A deprecated export or catalog field is marked (`@deprecated` in its declaration, `deprecated` on a catalog definition) and keeps working for at least one release before removal, which then follows the rule above. Deprecation text names the replacement.
+
+## Release process
+
+A `v*` tag runs `.github/workflows/publish.yml`. It repeats CI's checks, asserts the tag equals `package.json`'s `version`, builds, and publishes with `npm publish` through npm trusted publishing (OIDC, no stored token), which also attaches provenance. A version with a prerelease part (`0.1.0-rc.1`) publishes under `next`; any other version publishes under `latest`.

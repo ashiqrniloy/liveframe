@@ -458,7 +458,7 @@ This plan implements the remainder of roadmap Phase 6 (the first release), under
     - First run failed at peer floors: the playwright 1.49 floor needs its own browser build (`chromium_headless_shell-1148`), which the current Playwright install does not provide. Fixed with a `bunx playwright@1.49.0 install --with-deps chromium chromium-headless-shell` step before the floors.
     - Green run: https://github.com/ashiqrniloy/liveframe/actions/runs/40342860365, duration about 10 min (the failed first run took about 20 min, mostly the floors' capture timeouts).
 
-- [ ] Task 9: Add the trusted-publishing workflow
+- [x] Task 9: Add the trusted-publishing workflow
   - Acceptance Criteria:
     - Functional:
       - `.github/workflows/publish.yml` runs on tags `v*`:
@@ -496,6 +496,11 @@ This plan implements the remainder of roadmap Phase 6 (the first release), under
       - `.github/workflows/publish.yml` (new), `AGENTS.md`, `docs/compatibility.md` (release process paragraph).
   - Test Cases to Write:
     - Run the workflow in a dry-run mode (`npm publish --dry-run` behind an input flag) on a `v0.0.0-dry.1` tag on a branch, and link the run in the Notes.
+  - Notes (executed 2026-10-26):
+    - `.github/workflows/publish.yml`: runs on `v*` tags and on `workflow_dispatch` (input `dry_run`, default true, which adds `--dry-run`). Permissions are `contents: read` and `id-token: write`; no `NPM_TOKEN`. Actions pinned by SHA (checkout and setup-bun as in CI; `actions/setup-node` v7.1.0). It repeats CI's checks, asserts the tag equals `package.json` `version` (tag runs only), runs `bun run build`, then `setup-node` (Node 24, which satisfies ≥ 22.14; the step fails unless npm ≥ 11.5.1) and `npm publish --access public --tag next|latest`, the tag chosen by whether the version has a `-` prerelease part.
+    - Deviation: the dry run is a manual dispatch against a branch rather than a `v0.0.0-dry.1` tag, because the tag assertion would otherwise fail against `package.json` `0.0.0`. **Not yet run:** the workflow must be on GitHub first; the owner pushes, then dispatches it with `dry_run` true and the run link goes here.
+    - AGENTS.md records the npm exception; `docs/compatibility.md` has a Release process section.
+    - **Owner** still configures the trusted publisher on npmjs.com (user/org `ashiqrniloy`, repository `liveframe`, workflow `publish.yml`), or, if npm cannot before the package exists, publishes the first rc once with a short-lived granular token and then revokes it (R17).
 
 - [ ] Task 10: Publish a release candidate under `next` and verify it from the registry
   - Acceptance Criteria:
