@@ -533,6 +533,12 @@ This plan implements the remainder of roadmap Phase 6 (the first release), under
       - `package.json`, `CHANGELOG.md`, `examples/demo-host/package.json`, `examples/demo-host/bun.lock`.
   - Test Cases to Write:
     - The registry gate and demo tests are the evidence; record the commands and outputs in the Notes.
+  - Notes (partial, 2026-10-27; unticked until provenance is shown):
+    - Owner published `0.1.0-rc.1` by hand from a local machine (`npm publish --access public --tag next`, approved with a passkey): npm would not take a first publish from CI, and the package did not exist yet for a trusted publisher (R17). `dist-tags`: `latest` and `next` both `0.1.0-rc.1`; 189 files. Because it was published locally, it has **no provenance**.
+    - Owner then configured the trusted publisher on npmjs.com (`ashiqrniloy/liveframe`, `publish.yml`, publish only).
+    - `bun scripts/release/archive-gate.ts --package @arnilo/liveframe@0.1.0-rc.1`: passed all 7 steps (earlier attempts failed only on 100 ms limits while the host load average was above 100).
+    - `examples/demo-host` now depends on `0.1.0-rc.1`; its typecheck and 48 tests pass from the registry install. `bun.lock` there is git-ignored, so only `package.json` changes. `scripts/demo-test.ts` still packs and installs a `file:` tarball and no longer matches the dependency; revisit it in Task 13.
+    - Still open: provenance. Needs `0.1.0-rc.2` published through the `v0.1.0-rc.2` tag, which also proves the trusted publisher.
 
 - [ ] Task 11: Run the agent acceptance test from the published docs
   - Acceptance Criteria:
