@@ -5,7 +5,7 @@ over stdio. Point a coding agent at it and the agent can read your catalog, writ
 a draft widget, render it, and look at screenshots — all without shell access to
 your repo, your database or your preview page.
 
-**It authoring only.** The server holds one preview session, so it can pack and
+**It is authoring only.** The server holds one preview session, so it can pack and
 render drafts, but no tool installs, places or approves a widget, resolves real
 data or runs an action (law 4). Draft code runs only inside your runner, on your
 backend; the browser receives validated trees (law 1). The normative contract for

@@ -145,6 +145,20 @@ Widgets are authored separately with the [SDK](docs/sdk.md), which exports `rend
 
 The [spec](docs/spec.md#13-tech-stack-and-packages) defines each subpath's contract.
 
+## Use it with a coding agent
+
+`liveframe mcp` is an [MCP](https://modelcontextprotocol.io) server over stdio that lets a coding agent read your catalog, write a draft widget and look at its renders. It is authoring only: no tool installs, places or approves a widget, or runs an action.
+
+1. Install the optional peers: `bun add -d @modelcontextprotocol/server`, and `bunx playwright install chromium` if the agent should capture screenshots.
+2. Write a config module that default-exports an `AuthoringConfig` (your `catalog`, `capabilities`, `runner` and, for captures, a `preview(binding)` that starts your `<Preview>` page). [`examples/demo-host/mcp.config.ts`](examples/demo-host/mcp.config.ts) is a working one.
+3. Register it with the agent. For Claude Code, put this in `.mcp.json` in your app; Claude Desktop and other clients use the same `mcpServers` shape in their own config file:
+
+```json
+{ "mcpServers": { "liveframe": { "command": "bunx", "args": ["liveframe", "mcp", "./mcp.config.ts"] } } }
+```
+
+The client starts the server itself. The [MCP guide](docs/mcp.md) covers the seven tools, captures and errors.
+
 ## Guides
 
 - [The model](docs/model.md) — what runs where, and who owns each step
