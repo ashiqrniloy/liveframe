@@ -412,7 +412,7 @@ This plan implements the remainder of roadmap Phase 6 (the first release), under
     - Proof tests that read the snapshots skip when absent (4 skips); the proof host declares no fonts without them; `parity.ts` needs a local restore. `bun run check` with the snapshots absent: 635 pass, 4 skip, 0 fail on one run; other runs on this loaded host timed out in browser, MCP and conformance cases that pass alone (same record as Tasks 4 to 6).
     - Deviation: removing all of `synapta-core` also removed the OFL texts the criterion asked to keep; nothing shipped contains the fonts. Open item: `labels.ts` in the `src` git-status fixture is derived from Clay source.
 
-- [ ] Task 8: Run CI on GitHub Actions
+- [x] Task 8: Run CI on GitHub Actions
   - Acceptance Criteria:
     - Functional:
       - **Owner** creates the public GitHub repository and pushes the audited history. The `repository`, `homepage` and `bugs` fields match it.
@@ -452,6 +452,11 @@ This plan implements the remainder of roadmap Phase 6 (the first release), under
       - `.github/workflows/ci.yml` (new), `README.md` (badge), `package.json` (repository fields).
   - Test Cases to Write:
     - CI's first green run on `main` is the evidence; link it in the Notes.
+  - Notes (executed 2026-10-26):
+    - Owner's public repository `github.com/ashiqrniloy/liveframe` matches the `repository`, `homepage` and `bugs` fields; the history was pushed to `main` (the local `origin` is HTTPS, so the push used the SSH URL).
+    - `.github/workflows/ci.yml`: `permissions: contents: read`, no secrets, `actions/checkout` v7.0.1 and `oven-sh/setup-bun` v2.2.0 pinned by SHA, Bun 1.4.2. Steps: frozen install, Playwright chromium, `bun run check`, archive gate, peer floors, `bun run demo:test` (the demo host tests), and `bun run bench` with `continue-on-error`. README has the CI badge.
+    - First run failed at peer floors: the playwright 1.49 floor needs its own browser build (`chromium_headless_shell-1148`), which the current Playwright install does not provide. Fixed with a `bunx playwright@1.49.0 install --with-deps chromium chromium-headless-shell` step before the floors.
+    - Green run: https://github.com/ashiqrniloy/liveframe/actions/runs/40342860365, duration about 10 min (the failed first run took about 20 min, mostly the floors' capture timeouts).
 
 - [ ] Task 9: Add the trusted-publishing workflow
   - Acceptance Criteria:
