@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { expect, test } from "bun:test";
 import type { Definition } from "../catalog/define.ts";
 import { definitions } from "../catalog/definitions.ts";
@@ -116,7 +117,10 @@ test("definitions_admit_no_colour_or_raw_style_props", () => {
   }
 });
 
-test("references_are_all_attributed", async () => {
+// The snapshots are kept out of the public repository (plans/evidence/013-repository-audit.md); SOURCES.md keeps their SHAs.
+const hasReferences = existsSync(new URL("../references/synapta-core", import.meta.url));
+
+test.skipIf(!hasReferences)("references_are_all_attributed", async () => {
   const root = new URL("../references/", import.meta.url);
   const sources = await Bun.file(new URL("SOURCES.md", root)).text();
   const rows = [...sources.matchAll(/\| `([^`]+)` \| `([^`]+)` \| `([a-f0-9]{40})` \| (\d+)–(\d+) \|/g)];

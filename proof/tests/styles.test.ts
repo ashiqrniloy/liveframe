@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { expect, test } from "bun:test";
 import { definitions } from "../catalog/definitions.ts";
 import { certifiedDesignSystem } from "../styles/certified/design-system.ts";
@@ -182,7 +183,10 @@ test("style_checks_reject_unknown_roles_literals_and_wrong_value_domains", () =>
   }
 });
 
-test("rack_preserves_all_247_source_recipes_and_values", async () => {
+// The snapshots are kept out of the public repository (plans/evidence/013-repository-audit.md).
+const hasReferences = existsSync(new URL("../references/clay", import.meta.url));
+
+test.skipIf(!hasReferences)("rack_preserves_all_247_source_recipes_and_values", async () => {
   const source = (
     await Bun.file(new URL("../references/clay/packages/design-rack/package.json", import.meta.url)).json()
   ).clay.contributions.uiDesignSystem;
@@ -205,7 +209,7 @@ test("translated_rack_source_also_resolves_against_both_themes", () => {
   for (const theme of themes) checkStyleData({ ...rackDesignSystem, recipes: rackSourceRecipes }, theme);
 });
 
-test("themes_keep_reference_colour_authority", async () => {
+test.skipIf(!hasReferences)("themes_keep_reference_colour_authority", async () => {
   const source = (
     await Bun.file(new URL("../references/clay/packages/theme-modus-operandi/package.json", import.meta.url)).json()
   ).clay.contributions;

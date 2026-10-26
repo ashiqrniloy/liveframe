@@ -14,6 +14,10 @@ assert(out.startsWith(`${resolve("evidence")}${sep}`), "Output must be below evi
 await mkdir(out, { recursive: true });
 
 const artifactPath = "proof/references/synapta-core/design-artifacts/approved/agent-home-certified.html";
+assert(
+  await Bun.file(artifactPath).exists(),
+  "Needs the local-only snapshots in proof/references/ (kept out of the public repository; see proof/references/SOURCES.md)",
+);
 const artifact = await Bun.file(artifactPath).text();
 const fontRoot = resolve("proof/references/synapta-core/design-artifacts/fonts");
 const snapshotFont = (pathname: string) => {

@@ -1,5 +1,10 @@
 /** @jsxImportSource ../../runtime */
-import { dirtyLabel, headLabel, refreshLabel, rootLabel } from "../../references/clay/packages/git/src/status.ts";
+import {
+  dirtyLabel,
+  headLabel,
+  refreshLabel,
+  rootLabel,
+} from "../../../src/__tests__/fixtures/widgets/git-status/labels.ts";
 import { Heading, Icon, Inline, Stack, Text, type WidgetProps } from "../../runtime/index.ts";
 import type { GitEntry } from "./manifest.ts";
 

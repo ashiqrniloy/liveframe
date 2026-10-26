@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { resolve, sep } from "node:path";
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";
@@ -26,11 +27,15 @@ export async function startHost(port = 3000) {
     ...Object.entries(systemSheets).map(([name, css]) => [`/styles/${name}.css`, css] as const),
   ]);
   const fontRoot = resolve("proof/references/synapta-core/design-artifacts/fonts");
-  const snapshotFont = (pathname: string) => {
+  // The snapshots are local-only (plans/evidence/013-repository-audit.md); without them the page declares no fonts.
+  const snapshotFont = async (pathname: string) => {
     const file = resolve(fontRoot, `.${pathname.slice("/fonts".length)}`);
-    return file.startsWith(`${fontRoot}${sep}`) ? Bun.file(file) : null;
+    const font = file.startsWith(`${fontRoot}${sep}`) ? Bun.file(file) : null;
+    return font && (await font.exists()) ? font : null;
   };
-  const fontFaces = `<link rel="preload" href="/fonts/schibsted-grotesk/latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/fonts/martian-mono/latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin><style>
+  const fontFaces = !existsSync(fontRoot)
+    ? ""
+    : `<link rel="preload" href="/fonts/schibsted-grotesk/latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/fonts/martian-mono/latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin><style>
 @font-face { font-family: "Schibsted Grotesk"; font-style: normal; font-weight: 400 900; font-display: swap; src: url("/fonts/schibsted-grotesk/latin-wght-normal.woff2") format("woff2"); }
 @font-face { font-family: "Martian Mono"; font-style: normal; font-weight: 100 800; font-stretch: 75% 112.5%; font-display: swap; src: url("/fonts/martian-mono/latin-wdth-normal.woff2") format("woff2"); }
 </style><style>
@@ -94,7 +99,7 @@ body { margin: 0; -webkit-font-smoothing: antialiased; }
       const css = sheets.get(url.pathname);
       if (css) return new Response(css, { headers: { "Content-Type": "text/css" } });
       if (url.pathname.startsWith("/fonts/")) {
-        const font = snapshotFont(url.pathname);
+        const font = await snapshotFont(url.pathname);
         return font ? new Response(font, { headers: { "Content-Type": "font/woff2" } }) : error("Not found", 404);
       }
       if (url.pathname === "/")

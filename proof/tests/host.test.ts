@@ -1,9 +1,17 @@
+import { existsSync } from "node:fs";
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { pack } from "@arnilo/liveframe/pack";
 import { type Browser, chromium } from "playwright";
 import { drafts, packageOptions, value } from "../../src/__tests__/fixtures/widgets/drafts.ts";
 import { createSession, openPage, packages } from "../host/pages.ts";
 import { startHost } from "../host/server.ts";
+
+// The font snapshots are kept out of the public repository (plans/evidence/013-repository-audit.md).
+const hasFonts = existsSync(new URL("../references/synapta-core/design-artifacts/fonts", import.meta.url));
+const fonts = [
+  ["/fonts/schibsted-grotesk/latin-wght-normal.woff2", 46752],
+  ["/fonts/martian-mono/latin-wdth-normal.woff2", 38492],
+] as const;
 
 const surface = () => openPage("full", "harness");
 
@@ -108,10 +116,7 @@ test("host_serves_reference_pages_and_rejects_invalid_requests", async () => {
     expect((await fetch(new URL(`/ui/core-queue?scenario=${scenario}`, server.url))).status).toBe(400);
   const small = await openSurface("core-queue?scenario=small");
   expect(small.tree.root).toEqual((await openPage("small", "core-queue", "small")).snapshot().tree.root);
-  for (const [path, bytes] of [
-    ["/fonts/schibsted-grotesk/latin-wght-normal.woff2", 46752],
-    ["/fonts/martian-mono/latin-wdth-normal.woff2", 38492],
-  ] as const) {
+  for (const [path, bytes] of hasFonts ? fonts : []) {
     const response = await fetch(new URL(path, server.url));
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("font/woff2");
@@ -119,8 +124,10 @@ test("host_serves_reference_pages_and_rejects_invalid_requests", async () => {
   }
   expect((await fetch(new URL("/fonts/../SOURCES.md", server.url))).status).toBe(404);
   const page = await (await fetch(new URL("/ui/agent-home", server.url))).text();
-  expect(page).toContain('font-family: "Schibsted Grotesk"');
-  expect(page).toContain("font-stretch: 75% 112.5%");
+  if (hasFonts) {
+    expect(page).toContain('font-family: "Schibsted Grotesk"');
+    expect(page).toContain("font-stretch: 75% 112.5%");
+  }
   const first = await openSurface();
   const second = await openSurface();
   const body = {

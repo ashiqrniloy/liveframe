@@ -1,10 +1,10 @@
+import { existsSync } from "node:fs";
 import { expect, test } from "bun:test";
 import type { UiNode } from "@arnilo/liveframe";
 import { definitions } from "../catalog/definitions.ts";
 import { styleProps } from "../css/project.ts";
 import { gitFixture, rackFixture } from "../host/fixtures/clay.ts";
 import { createSession, openPage, packages } from "../host/pages.ts";
-import { buildGitStatusTree } from "../references/clay/packages/git/src/status.ts";
 import { render, WidgetError } from "../runtime/index.ts";
 import { fillableRoles } from "../styles/types.ts";
 import { GitStatus } from "../widgets/clay/git-status.tsx";
@@ -27,7 +27,12 @@ const moduleSession = () =>
     context: { size: "full" },
   });
 
-test("git_status_matches_builder_output_structure", () => {
+// The snapshot is kept out of the public repository (plans/evidence/013-repository-audit.md).
+const hasReferences = existsSync(new URL("../references/clay", import.meta.url));
+
+test.skipIf(!hasReferences)("git_status_matches_builder_output_structure", async () => {
+  const snapshot = "../references/clay/packages/git/src/status.ts"; // absent in the public repository, so not a typed import
+  const { buildGitStatusTree } = await import(snapshot);
   const expected: { text: string; icon?: string | null }[] = [];
   buildGitStatusTree(
     {

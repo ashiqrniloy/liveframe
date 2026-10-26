@@ -1,5 +1,7 @@
 # Phase 0 reference snapshots
 
+> **Not in the public repository.** Per the Plan 013 T7 audit the snapshot files are removed from the tree and history; only this attribution table (paths, commit SHAs, line ranges, SHA-256s) remains. The proof tests that read them skip, and `proof/scripts/parity.ts` needs them restored locally from the origin commits below.
+
 Captured 2026-10-21 for Plan 001 Task 1, plus 2026-10-22 for Plan 002 Task 2. These 25 files are verbatim, whole-file
 copies of committed Git blobs, not the sibling repositories' working trees.
 Paths below are relative to this directory; after the repository prefix they
