@@ -21,6 +21,8 @@ jobs:
       - run: bunx playwright install --with-deps chromium
       - run: bun run check
       - run: bun scripts/release/archive-gate.ts
+      - name: Browsers for the playwright floor
+        run: bunx playwright@1.49.0 install --with-deps chromium chromium-headless-shell
       - run: bun scripts/release/peer-floors.ts
       - run: bun run demo:test
       - name: Bench (informational)
