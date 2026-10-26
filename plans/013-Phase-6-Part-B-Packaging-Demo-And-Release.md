@@ -502,7 +502,7 @@ This plan implements the remainder of roadmap Phase 6 (the first release), under
     - AGENTS.md records the npm exception; `docs/compatibility.md` has a Release process section.
     - **Owner** still configures the trusted publisher on npmjs.com (user/org `ashiqrniloy`, repository `liveframe`, workflow `publish.yml`), or, if npm cannot before the package exists, publishes the first rc once with a short-lived granular token and then revokes it (R17).
 
-- [ ] Task 10: Publish a release candidate under `next` and verify it from the registry
+- [x] Task 10: Publish a release candidate under `next` and verify it from the registry
   - Acceptance Criteria:
     - Functional:
       - `version` becomes `0.1.0-rc.1` and `CHANGELOG.md` gains its entry. A `v0.1.0-rc.1` tag publishes through Task 9.
@@ -533,12 +533,14 @@ This plan implements the remainder of roadmap Phase 6 (the first release), under
       - `package.json`, `CHANGELOG.md`, `examples/demo-host/package.json`, `examples/demo-host/bun.lock`.
   - Test Cases to Write:
     - The registry gate and demo tests are the evidence; record the commands and outputs in the Notes.
-  - Notes (partial, 2026-10-27; unticked until provenance is shown):
+  - Notes (executed 2026-10-27):
     - Owner published `0.1.0-rc.1` by hand from a local machine (`npm publish --access public --tag next`, approved with a passkey): npm would not take a first publish from CI, and the package did not exist yet for a trusted publisher (R17). `dist-tags`: `latest` and `next` both `0.1.0-rc.1`; 189 files. Because it was published locally, it has **no provenance**.
     - Owner then configured the trusted publisher on npmjs.com (`ashiqrniloy/liveframe`, `publish.yml`, publish only).
     - `bun scripts/release/archive-gate.ts --package @arnilo/liveframe@0.1.0-rc.1`: passed all 7 steps (earlier attempts failed only on 100 ms limits while the host load average was above 100).
     - `examples/demo-host` now depends on `0.1.0-rc.1`; its typecheck and 48 tests pass from the registry install. `bun.lock` there is git-ignored, so only `package.json` changes. `scripts/demo-test.ts` still packs and installs a `file:` tarball and no longer matches the dependency; revisit it in Task 13.
-    - Still open: provenance. Needs `0.1.0-rc.2` published through the `v0.1.0-rc.2` tag, which also proves the trusted publisher.
+    - The npmjs.com form for the trusted publisher hung after the passkey step, so the owner ran `npm trust github @arnilo/liveframe --file publish.yml --repo ashiqrniloy/liveframe --allow-publish` instead. The first `v0.1.0-rc.2` run failed `ENEEDAUTH` (no trusted publisher yet); re-running it after the trust existed published `0.1.0-rc.2` through OIDC with no token.
+    - rc.2 evidence: `dist-tags` `next: 0.1.0-rc.2`, `latest: 0.1.0-rc.1` (Task 13 moves `latest`); `dist.fileCount` 189; `dist.attestations` present (`https://slsa.dev/provenance/v1`); `bin.liveframe` is `dist/cli/liveframe.js` (npm 11 only trims the `./`, hence its "removed" warning). `archive-gate.ts --package @arnilo/liveframe@0.1.0-rc.2` passed all 7 steps; `examples/demo-host` is on `0.1.0-rc.2` and its typecheck and 48 tests pass from the registry install. Both were re-run until they passed because the host was loaded by unrelated processes (load average above 40).
+    - rc.2 has the same code as rc.1; the README's MCP section (`0a6d4b1`) lands in the next tag.
 
 - [ ] Task 11: Run the agent acceptance test from the published docs
   - Acceptance Criteria:
