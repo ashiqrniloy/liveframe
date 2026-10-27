@@ -104,6 +104,8 @@ export function compileStyles(vocabulary: Vocabulary): ReadonlyMap<StyleProp, Sc
     height: dimension,
     minWidth: dimension,
     maxWidth: dimension,
+    minHeight: dimension,
+    maxHeight: dimension,
     grow: number,
     shrink: number,
     basis: number,

@@ -1,7 +1,7 @@
 /** @jsxImportSource @arnilo/liveframe/sdk */
 import { expect, test } from "bun:test";
 import { action, state } from "@arnilo/liveframe/sdk";
-import { Button, Checkbox, Grid, Select, Stack, Text, TextField } from "./fixtures/widgets/ui.gen.ts";
+import { Button, Checkbox, Grid, Scroll, Select, Stack, Text, TextField } from "./fixtures/widgets/ui.gen.ts";
 
 test("generated_types_reject_wrong_props", () => {
   const valid = [
@@ -15,8 +15,9 @@ test("generated_types_reject_wrong_props", () => {
     <Checkbox key="case-5" label="Active" checked onChange={state.set("active")} />,
     <Grid key="case-6" columns={["1fr", "size.rail"]} width="56ch" />,
     <Select key="case-7" label="Pick" value="a" options={[{ value: "a", label: "A" }]} />,
+    <Scroll key="case-8" label="List" minHeight="size.rail" maxHeight={{ base: "50%", "bp.sm": "24ch" }} />,
   ];
-  expect(valid).toHaveLength(8);
+  expect(valid).toHaveLength(9);
 
   // @ts-expect-error: non-nullable generated props reject null
   const nullable = <Text text={null} />;
@@ -47,5 +48,10 @@ test("generated_types_reject_wrong_props", () => {
   const fill = <Stack fill="text.primary" />;
   // @ts-expect-error: nested schema fields are typed
   const nested = <Select label="Pick" value="a" options={[{ value: 1, label: "A" }]} />;
+  // @ts-expect-error: max_height_rejects_undeclared: button does not declare maxHeight
+  const maxHeight = <Button label="A" maxHeight="fill" />;
+  // @ts-expect-error: heights stay inside the dimension domain
+  const rawHeight = <Scroll label="List" maxHeight="13px" />;
   expect([gap, variant, callback, implicit, bound, children, missing, breakpoint, base, fill, nested]).toHaveLength(11);
+  expect([maxHeight, rawHeight]).toHaveLength(2);
 });

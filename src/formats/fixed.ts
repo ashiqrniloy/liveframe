@@ -44,6 +44,8 @@ export const styleProps = [
   "height",
   "minWidth",
   "maxWidth",
+  "minHeight",
+  "maxHeight",
   "grow",
   "shrink",
   "basis",

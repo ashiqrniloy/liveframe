@@ -201,6 +201,8 @@ describe("compiled node validator", () => {
       height: "fill",
       minWidth: "0ch",
       maxWidth: "12fr",
+      minHeight: "size.rail",
+      maxHeight: "50%",
       grow: 0,
       shrink: 100,
       basis: 1,

@@ -215,6 +215,29 @@ async function mountResponsive(page: Page, systems: DesignSystem[], input: Recor
 const columnCount = (page: Page) =>
   page.locator("#grid").evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(" ").length);
 
+test("scroll_max_height_scrolls", async () => {
+  const page = await browser.newPage();
+  try {
+    const { style } = styleDeclarations({ maxHeight: "12ch" }, catalog);
+    await page.setContent('<div id="scroll" style="overflow:auto"><div style="height:2000px">Tall</div></div>');
+    await page.locator("#scroll").evaluate((el, declarations) => {
+      Object.assign((el as HTMLElement).style, declarations);
+    }, style);
+    const box = await page.locator("#scroll").evaluate((el) => ({
+      client: el.clientHeight,
+      scroll: el.scrollHeight,
+    }));
+    expect(box.client).toBeLessThan(box.scroll);
+    expect(box.client).toBeGreaterThan(0);
+    await page.locator("#scroll").evaluate((el) => {
+      el.scrollTop = 40;
+    });
+    expect(await page.locator("#scroll").evaluate((el) => el.scrollTop)).toBe(40);
+  } finally {
+    await page.close();
+  }
+});
+
 test("responsive_value_holds_at_wider_breakpoints", async () => {
   const page = await browser.newPage();
   try {

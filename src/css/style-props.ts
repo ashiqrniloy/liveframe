@@ -62,6 +62,8 @@ const mappings = {
   height: single("height", dimension),
   minWidth: single("minWidth", dimension),
   maxWidth: single("maxWidth", dimension),
+  minHeight: single("minHeight", dimension),
+  maxHeight: single("maxHeight", dimension),
   grow: single("flexGrow"),
   shrink: single("flexShrink"),
   basis: single("flexBasis", (value) => `${value}px`),

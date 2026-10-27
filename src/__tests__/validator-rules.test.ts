@@ -573,6 +573,23 @@ function errors(row: Row): readonly LiveframeError[] {
   return result.errors;
 }
 
+describe("min and max height", () => {
+  test("min_max_height_validate_and_project", () => {
+    const scroll = (style: Record<string, unknown>) =>
+      validator.validateTree(tree(node("scroll", { label: "List" }, { style })));
+    expect(scroll({ minHeight: "size.rail", maxHeight: { base: "50%", "bp.sm": "24ch" } }).ok).toBe(true);
+    for (const style of [{ maxHeight: "13px" }, { minHeight: "101%" }, { maxHeight: { "bp.sm": "fill" } }]) {
+      expect(scroll(style).ok, JSON.stringify(style)).toBe(false);
+    }
+  });
+
+  test("max_height_rejects_undeclared", () => {
+    const result = validator.validateTree(tree(node("button", { label: "Test" }, { style: { maxHeight: "fill" } })));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.errors[0]).toMatchObject({ kind: "invalid-prop", pointer: "/root/style/maxHeight" });
+  });
+});
+
 describe("shared structure pieces", () => {
   test("structure_pieces_match_tree_walk", async () => {
     // Captured from `validateTree` before the walk's rules moved into `validate/structure.ts` (2026-10-22),

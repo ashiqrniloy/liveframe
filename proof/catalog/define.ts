@@ -40,6 +40,8 @@ export type StyleProp =
   | "height"
   | "minWidth"
   | "maxWidth"
+  | "minHeight"
+  | "maxHeight"
   | "grow"
   | "shrink"
   | "basis"

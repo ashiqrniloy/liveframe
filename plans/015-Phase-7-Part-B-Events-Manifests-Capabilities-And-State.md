@@ -131,7 +131,7 @@ This plan implements spec §5 (definitions and events), §6.3 (style props), §7
     - The demo host keeps its own catalog and primitives; it does not need the new values until a demo widget uses them.
     - Docs: spec §5, `docs/formats.md`, and a new `docs/renderer.md` section on mapping semantics, which says that live regions must stay mounted and that id-keyed reconciliation keeps them mounted.
 
-- [ ] Task 3: Add `minHeight` and `maxHeight` style props (CL-07)
+- [x] Task 3: Add `minHeight` and `maxHeight` style props (CL-07)
   - Acceptance Criteria:
     - Functional:
       - `minHeight` and `maxHeight` take the same domain as `minWidth`/`maxWidth`, including responsive values.
@@ -167,6 +167,12 @@ This plan implements spec §5 (definitions and events), §6.3 (style props), §7
     - `min_max_height_validate_and_project` (`css-style-props.test.ts`, `validator-rules.test.ts`): covers responsive values and undeclared names.
     - `max_height_rejects_undeclared` (type-level, `sdk-types.test.tsx`).
     - `scroll_max_height_scrolls` (`css-browser.test.ts`).
+  - Notes (executed 2026-10-28):
+    - `minHeight` and `maxHeight` join `styleProps` in `src/formats/fixed.ts` and take the `dimension` domain in the validator, so responsive values work. They project to `min-height`/`max-height`, because `height` projects to `height`, not `block-size`. `liveframe gen` types them as `_Dimension`.
+    - Only `scroll` declares them in the proof catalog (`proof/catalog/definitions.ts`), so the other kinds' declared sets and the validator baseline are unchanged. Regenerated `src/__tests__/fixtures/proof/catalog.json`, `ui.gen.ts` and `schemas/catalog.json`. The proof code keeps its own copies of the style-prop lists.
+    - `min_max_height_validate_and_project` and `max_height_rejects_undeclared` are standalone tests in `validator-rules.test.ts`, not rows: a new row would change the captured `validator-baseline.json`. Projection and out-of-domain rejection extend `css-style-props.test.ts`; the type-level cases extend `sdk-gen-types.test.tsx`; `scroll_max_height_scrolls` is in `css-browser.test.ts` and uses the projected `max-height` on a plain scrolling element, not a `<Surface>`.
+    - Docs: spec §6.3 row and a `docs/styling.md` paragraph on the projection and on percentage heights needing a definite parent height.
+    - `bun run check`: one full run reported a single failing test that I did not capture; two further full `bun test` runs passed (675 pass, 4 skip, 0 fail). Treat it as an unidentified flake until it recurs.
 
 - [ ] Task 4: Add manifest `description` and `meta`, and capability `meta` (LF-07)
   - Acceptance Criteria:

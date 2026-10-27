@@ -529,7 +529,9 @@
         "basis",
         "position",
         "insetTop",
-        "insetBottom"
+        "insetBottom",
+        "minHeight",
+        "maxHeight"
       ],
       "a11y": {
         "role": "region",

@@ -113,7 +113,7 @@ export const definitions = [
     events: {},
     variants: ["default"],
     slots: ["root", "viewport", "scrollbar"],
-    styleProps: layout,
+    styleProps: [...layout, "minHeight", "maxHeight"],
     a11y: { role: "region", name: "label" },
   },
   {

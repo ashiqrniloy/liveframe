@@ -102,6 +102,8 @@ export function generate(catalog: Catalog): string {
     height: "_Dimension",
     minWidth: "_Dimension",
     maxWidth: "_Dimension",
+    minHeight: "_Dimension",
+    maxHeight: "_Dimension",
     grow: "number",
     shrink: "number",
     basis: "number",

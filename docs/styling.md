@@ -100,6 +100,10 @@ than the viewport, with breakpoint widths from the selected design system.
 A value holds at wider breakpoints until another value replaces it. Left/right
 padding, margin and border widths project to logical inline start/end and mirror
 under `dir="rtl"`; top and bottom remain physical.
+`minHeight` and `maxHeight` take the same values as `minWidth` and `maxWidth` and
+project to `min-height` and `max-height`, as `height` projects to `height`. A
+percentage height resolves only against a parent with a definite height; with an
+auto-height parent it behaves as `auto`, so prefer a `size.*` value there.
 When a system mixes `px` and `rem` breakpoint units, ordering currently assumes
 a 16px root font size; use one unit for consistent ordering at other root sizes.
 

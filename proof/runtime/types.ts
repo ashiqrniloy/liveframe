@@ -79,6 +79,8 @@ export interface StyleValues {
   readonly height: Dimension;
   readonly minWidth: Dimension;
   readonly maxWidth: Dimension;
+  readonly minHeight: Dimension;
+  readonly maxHeight: Dimension;
   readonly grow: number;
   readonly shrink: number;
   readonly basis: number;

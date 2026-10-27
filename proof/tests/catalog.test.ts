@@ -79,6 +79,8 @@ test("definitions_admit_no_colour_or_raw_style_props", () => {
     "height",
     "minWidth",
     "maxWidth",
+    "minHeight",
+    "maxHeight",
     "grow",
     "shrink",
     "basis",

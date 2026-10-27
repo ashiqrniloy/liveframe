@@ -208,7 +208,7 @@ Widget authors never touch colour or recipes. They choose a primitive's **varian
 |---|---|
 | `padding`, `gap`, `margin` (per side or axis) | `space.*` |
 | `direction`, `align`, `justify`, `wrap`, `textAlign` | Enums (`align` on `button` places its content) |
-| `width`, `height`, `minWidth`, `maxWidth` | `space.*`, `size.*`, `fill`, `fit`, fractions, or bounded `ch` / `%` |
+| `width`, `height`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight` | `space.*`, `size.*`, `fill`, `fit`, fractions, or bounded `ch` / `%` |
 | `grow`, `shrink`, `basis` | Bounded numbers |
 | `columns`, `rows`, `area` (grid) | Bounded track lists, or area names; each track a fraction, `space.*` or `size.*` |
 | `position`, `inset*` | `static` or `sticky`; `space.*` |

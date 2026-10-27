@@ -105,7 +105,8 @@ function checkStyle(key: string, value: unknown, path: string): void {
   let valid = false;
   if (/^(padding|margin|gap|insetTop|insetBottom)/.test(key)) valid = declared(valueNames.space, value);
   else if (Object.hasOwn(enums, key)) valid = declared(enums[key] ?? [], value);
-  else if (["width", "height", "minWidth", "maxWidth"].includes(key)) valid = dimension(value);
+  else if (["width", "height", "minWidth", "maxWidth", "minHeight", "maxHeight"].includes(key))
+    valid = dimension(value);
   else if (["grow", "shrink", "basis"].includes(key))
     valid = typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100;
   else if (key === "fill") valid = declared(fillableRoles, value);

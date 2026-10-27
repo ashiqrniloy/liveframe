@@ -330,6 +330,8 @@ export const Scroll = primitive<{
   readonly position?: _Responsive<"static" | "sticky">;
   readonly insetTop?: _Responsive<_Space>;
   readonly insetBottom?: _Responsive<_Space>;
+  readonly minHeight?: _Responsive<_Dimension>;
+  readonly maxHeight?: _Responsive<_Dimension>;
   readonly children?: _Child;
 }>("scroll");
 
