@@ -3,7 +3,7 @@ import {
   bool,
   checkValue,
   type Infer,
-  isLanguageSchema,
+  checkLanguageSchema,
   isRecord,
   type LanguageSchema,
   obj,
@@ -91,8 +91,15 @@ export function documentChecks() {
     }
   }
   function schema(value: unknown, pointer: string, object = true): LanguageSchema | undefined {
-    if (!isLanguageSchema(value) || (object && value.type !== "object")) {
-      reject(pointer, object ? "Expected a language object schema" : "Expected a language schema");
+    const start = errors.length;
+    if (
+      !checkLanguageSchema(value, (path, expected) =>
+        reject(pointer + path, `Expected ${expected}`, "invalid-document", expected),
+      ) ||
+      (object && value.type !== "object")
+    ) {
+      if (errors.length === start)
+        reject(pointer, object ? "Expected a language object schema" : "Expected a language schema");
       return undefined;
     }
     return value;

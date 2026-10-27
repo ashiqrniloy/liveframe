@@ -72,6 +72,11 @@ test("meta_schema_agrees_with_language_forms", () => {
     ajv.getSchema(schemaDocument("schema-language").$id) ?? ajv.compile(schemaDocument("schema-language"));
   for (const schema of [
     str({ maxLength: 3, pattern: "^.$", enum: ["a", "👍"] }),
+    str({ minLength: 1, maxLength: 3 }),
+    arr(str({ minLength: 0, maxLength: 3 }), { minItems: 1, maxItems: 2 }),
+    { type: "string", minLength: -1, maxLength: 3 },
+    { type: "string", minLength: 0.5, maxLength: 3 },
+    { type: "array", items: bool(), minItems: "1", maxItems: 2 },
     num({ minimum: -1 }),
     int(),
     bool(),

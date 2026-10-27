@@ -1,10 +1,48 @@
 import { expect, spyOn, test } from "bun:test";
+import { Ajv2020 } from "ajv/dist/2020.js";
 import { arr, bool, checkValue, int, type LanguageSchema, num, obj, str } from "../schema.ts";
 import { compileSchema, type SchemaSink } from "../validate/schema.ts";
 
 function sink(maxErrors = 20): SchemaSink {
   return { errors: [], maxErrors, nodeId: "root/example" };
 }
+
+test("compiled_and_interpreted_agree_on_minimums", () => {
+  const ajv = new Ajv2020({ strict: true });
+  for (const schema of [
+    str({ minLength: 1, maxLength: 2 }),
+    str({ minLength: 2, maxLength: 2 }),
+    arr(str({ minLength: 1, maxLength: 2 }), { minItems: 1, maxItems: 2 }),
+    arr(bool(), { minItems: 0, maxItems: 0 }),
+    obj({ "a/~": arr(str({ minLength: 1, maxLength: 2 }), { minItems: 1, maxItems: 2 }) }),
+  ]) {
+    const check = compileSchema(schema);
+    const published = ajv.compile(schema);
+    for (const value of [
+      null,
+      "",
+      "😀",
+      "😀a",
+      "😀ab",
+      [],
+      [""],
+      ["😀"],
+      ["a", "b", "c"],
+      { "a/~": [] },
+      { "a/~": [""] },
+    ]) {
+      for (const maxErrors of [1, 20]) {
+        const errors = sink(maxErrors);
+        const baseline = checkValue(schema, value, maxErrors);
+        expect(published(value)).toBe(baseline.ok);
+        expect(check(value, "/props", errors)).toBe(baseline.ok);
+        expect(errors.errors.map((error) => error.pointer)).toEqual(
+          baseline.ok ? [] : baseline.errors.map((error) => `/props${error.pointer}`),
+        );
+      }
+    }
+  }
+});
 
 test("compiled_matches_interpreter", () => {
   let seed = 42;
@@ -92,6 +130,8 @@ test("errors_are_bounded_without_changing_the_boolean_result", () => {
 test("expected_names_the_failed_rule", () => {
   for (const [schema, value, expected] of [
     [str({ maxLength: 2 }), "abc", "string of at most 2 characters"],
+    [str({ minLength: 1, maxLength: 500 }), "", "a string of 1–500 characters"],
+    [arr(bool(), { minItems: 1, maxItems: 5 }), [], "an array of 1–5 items"],
     [str({ maxLength: 8, enum: ["all", "mine"] }), "other", "one of: all, mine"],
     [str({ maxLength: 8, pattern: "^[a-z]+$" }), "1", "a string matching ^[a-z]+$"],
     [int({ minimum: 0 }), -1, "a number >= 0"],

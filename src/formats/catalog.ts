@@ -1,17 +1,5 @@
 import type { LiveframeError, Result } from "../errors.ts";
-import {
-  arr,
-  bool,
-  checkValue,
-  type Infer,
-  int,
-  isLanguageSchema,
-  type LanguageSchema,
-  literal,
-  obj,
-  record,
-  str,
-} from "../schema.ts";
+import { arr, bool, checkValue, type Infer, int, type LanguageSchema, literal, obj, record, str } from "../schema.ts";
 import { at, documentChecks, isRecord, shell } from "./capabilities.ts";
 import { styleProps } from "./fixed.ts";
 import { type Vocabulary, validateVocabulary, vocabularySchema } from "./vocabulary.ts";
@@ -119,8 +107,7 @@ function checkDefinition(definition: unknown, pointer: string, c: Checks): void 
     return;
   }
   c.collect(checkValue(definitionFields, shell(definition, ["props", "events", "children"])), pointer);
-  if (!isLanguageSchema(definition.props) || definition.props.type !== "object")
-    c.reject(`${pointer}/props`, "Expected a closed object schema in the language");
+  c.schema(definition.props, `${pointer}/props`);
   if (definition.children !== "none" && definition.children !== "any")
     c.collect(checkValue(childRules, definition.children), `${pointer}/children`);
   checkEvents(definition.events, pointer, c);
@@ -214,6 +201,8 @@ function compareStringSchema(
   change: Change,
 ): void {
   if (before.maxLength !== after.maxLength) change(after.maxLength < before.maxLength, `${path} maxLength changed`);
+  if ((before.minLength ?? 0) !== (after.minLength ?? 0))
+    change((after.minLength ?? 0) > (before.minLength ?? 0), `${path} minLength changed`);
   if (before.pattern !== after.pattern) change(after.pattern !== undefined, `${path} pattern changed`);
   if (before.enum && after.enum) compareNames(before.enum, after.enum, `${path} enum value`, change);
   else if (before.enum || after.enum) change(after.enum !== undefined, `${path} enum changed`);
@@ -226,6 +215,8 @@ function compareArraySchema(
   change: Change,
 ): void {
   if (before.maxItems !== after.maxItems) change(after.maxItems < before.maxItems, `${path} maxItems changed`);
+  if ((before.minItems ?? 0) !== (after.minItems ?? 0))
+    change((after.minItems ?? 0) > (before.minItems ?? 0), `${path} minItems changed`);
   compareSchemas(before.items, after.items, `${path} items`, change);
 }
 

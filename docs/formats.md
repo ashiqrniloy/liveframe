@@ -11,11 +11,11 @@ closed subset of JSON Schema 2020-12:
 
 | Builder | Value | Constraints |
 | --- | --- | --- |
-| `str({ maxLength, pattern?, enum? })` | string | Required nonnegative integer length; optional Unicode regular expression and nonempty, unique string enum |
+| `str({ maxLength, minLength?, pattern?, enum? })` | string | Required maximum and optional minimum in code points; optional Unicode regular expression and nonempty, unique string enum |
 | `num({ minimum?, maximum? })` | finite number | Inclusive numeric bounds |
 | `int({ minimum?, maximum? })` | finite integer | Inclusive numeric bounds |
 | `bool()` | boolean | No coercion |
-| `arr(items, { maxItems })` | readonly array | Required nonnegative integer item limit |
+| `arr(items, { maxItems, minItems? })` | readonly array | Required maximum and optional minimum item count |
 | `obj(required, optional?, annotations?)` | readonly object | Only declared properties; required names come from the first argument |
 
 `num()` and `int()` also work without options. Every form accepts `description`
@@ -29,7 +29,7 @@ import { checkValue, type Infer, obj, str } from "@arnilo/liveframe";
 
 const Args = obj(
   { id: str({ maxLength: 128, description: "Task identifier." }) },
-  { reason: str({ maxLength: 500 }) },
+  { reason: str({ minLength: 1, maxLength: 500 }) },
 );
 type ArgsValue = Infer<typeof Args>;
 // { readonly id: string; readonly reason?: string }
@@ -48,7 +48,12 @@ passes prop values through and never interprets one as a URL. See the
 generated code. It returns the original value on success and collects failures
 up to the bound. `maxErrors` must be a positive integer; an invalid bound throws
 `RangeError`. Strings are measured in Unicode code points: `"👍👍"` has length
-two. The interpreter skips counting when the UTF-16 length already fits.
+two. Length bounds use one pass without allocating a character array. With no
+minimum, counting is skipped when the UTF-16 length already fits the maximum.
+Length and item bounds are nonnegative integers; minimums default to zero and
+must not exceed their maximums. Install validators reject malformed minimums
+at the keyword's JSON pointer. Widget params, state and context may use both
+minimum keywords to require nonempty values without `pattern`.
 Patterns use the Unicode `u` flag and must compile and contain at most 256 code
 points. Unknown properties, coercion and undeclared keywords are rejected.
 
@@ -228,7 +233,9 @@ The language's structural meta-schema is available at
 and a stable `$id`. Configure your validator to check the standard `regex`
 format if you need pattern syntax validation. Install-time validation also
 checks semantic relationships such as required names referring to declared
-properties; the structural meta-schema alone does not check that relationship.
+properties and minimums not exceeding maximums; the structural meta-schema
+alone does not check those relationships. The builders produce standard JSON
+Schemas whose minimums are enforced by JSON Schema validators on values.
 
 Schemas come from `src/formats/registry.ts`. To regenerate or verify them:
 

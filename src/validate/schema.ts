@@ -84,17 +84,20 @@ function objectCheck(spec: ObjectCheck): SchemaCheck {
 export function compileSchema(schema: LanguageSchema): SchemaCheck {
   switch (schema.type) {
     case "string": {
-      const { maxLength } = schema;
+      const { maxLength, minLength } = schema;
       const choices = schema.enum ? new Set(schema.enum) : undefined;
       const pattern = schema.pattern ? new RegExp(schema.pattern, "u") : undefined;
-      const lengthExpected = `string of at most ${maxLength} characters`;
+      const lengthExpected =
+        minLength === undefined
+          ? `string of at most ${maxLength} characters`
+          : `a string of ${minLength}–${maxLength} characters`;
       const enumExpected = `one of: ${schema.enum?.join(", ")}`;
       const patternExpected = `a string matching ${schema.pattern}`;
       const typeExpected = `${lengthExpected}${choices ? `; ${enumExpected}` : ""}${pattern ? `; ${patternExpected}` : ""}`;
       return (value, at, sink) => {
         if (typeof value !== "string") return reject(at, sink, typeExpected);
         let valid = true;
-        if (!codePointsWithin(value, maxLength)) valid = reject(at, sink, lengthExpected);
+        if (!codePointsWithin(value, maxLength, minLength)) valid = reject(at, sink, lengthExpected);
         if (choices && !choices.has(value)) valid = reject(at, sink, enumExpected);
         if (pattern && !pattern.test(value)) valid = reject(at, sink, patternExpected);
         return valid;
@@ -119,12 +122,15 @@ export function compileSchema(schema: LanguageSchema): SchemaCheck {
     case "boolean":
       return (value, at, sink) => typeof value === "boolean" || reject(at, sink, "a boolean");
     case "array": {
-      const { maxItems } = schema;
+      const { maxItems, minItems = 0 } = schema;
       const item = compileSchema(schema.items);
-      const expected = `an array of at most ${maxItems} items`;
+      const expected =
+        schema.minItems === undefined
+          ? `an array of at most ${maxItems} items`
+          : `an array of ${minItems}–${maxItems} items`;
       return (value, at, sink) => {
         if (!Array.isArray(value)) return reject(at, sink, expected);
-        let valid = value.length <= maxItems || reject(at, sink, expected);
+        let valid = (value.length >= minItems && value.length <= maxItems) || reject(at, sink, expected);
         for (let i = 0; i < value.length; i++) {
           if (!valid && sink.errors.length >= sink.maxErrors) return false;
           const start = sink.errors.length;

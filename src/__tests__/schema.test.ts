@@ -15,6 +15,27 @@ import {
 
 const ajv = new Ajv2020({ strict: true, unicodeRegExp: true, ownProperties: true });
 
+test("min_length_counts_code_points", () => {
+  for (const [minLength, value, valid] of [
+    [1, "😀", true],
+    [2, "😀", false],
+    [2, "😀a", true],
+    [0, "", true],
+    [1, "", false],
+  ] as const) {
+    const schema = str({ minLength, maxLength: 2 });
+    expect(checkValue(schema, value).ok).toBe(valid);
+    expect(ajv.compile(schema)(value)).toBe(valid);
+  }
+});
+
+test("minimum_keywords_are_bounded_integers", () => {
+  for (const minimum of [-1, 0.5, "1", null, undefined, Number.NaN, Number.POSITIVE_INFINITY, 3]) {
+    expect(isLanguageSchema({ type: "string", minLength: minimum, maxLength: 2 })).toBe(false);
+    expect(isLanguageSchema({ type: "array", items: bool(), minItems: minimum, maxItems: 2 })).toBe(false);
+  }
+});
+
 test("boolean_schema_annotations_have_public_types", () => {
   const schema: LanguageSchema = { type: "boolean", description: "Enabled", deprecated: false };
   const annotations = (value: LanguageSchema) => [value.description, value.deprecated];

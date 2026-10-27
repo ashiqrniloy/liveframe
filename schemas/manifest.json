@@ -148,6 +148,10 @@
               "type": "integer",
               "minimum": 0
             },
+            "minLength": {
+              "type": "integer",
+              "minimum": 0
+            },
             "enum": {
               "type": "array",
               "items": {
@@ -245,6 +249,10 @@
               "$ref": "#/$defs/schema"
             },
             "maxItems": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minItems": {
               "type": "integer",
               "minimum": 0
             }

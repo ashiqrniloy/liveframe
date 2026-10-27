@@ -21,6 +21,10 @@
               "type": "integer",
               "minimum": 0
             },
+            "minLength": {
+              "type": "integer",
+              "minimum": 0
+            },
             "pattern": {
               "type": "string",
               "maxLength": 256,
@@ -123,6 +127,10 @@
               "$ref": "#/$defs/schema"
             },
             "maxItems": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minItems": {
               "type": "integer",
               "minimum": 0
             }

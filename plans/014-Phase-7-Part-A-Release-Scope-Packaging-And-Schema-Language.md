@@ -180,7 +180,7 @@ This plan implements roadmap Phase 7 ("collects the gaps they report and fixes t
     - Verification: focused wording and doc-link tests passed. Final `bun run check` passed on project-pinned Bun 1.4.2 (642 passed, 4 skipped, 0 failed); the wording guard took 2.42 ms, below 200 ms. `git diff --check` passed.
     - Earlier full runs encountered existing MCP render-budget failures: the Bun 1.4.4 run failed the agent loop, and the first pinned run failed two capture cases with “Render exceeded 100 ms” under heavy machine load. All nine capture tests passed in isolation, then the complete pinned check passed without changing runtime code, tests or timing limits. Used the existing temporary Bun 1.4.2 binary; the installed runtime was not replaced.
 
-- [ ] Task 4: Add `minLength` and `minItems` to the schema language (LF-04)
+- [x] Task 4: Add `minLength` and `minItems` to the schema language (LF-04)
   - Acceptance Criteria:
     - Functional:
       - `string` takes an optional `minLength` (code points, integer, 0 ≤ `minLength` ≤ `maxLength`). `array` takes an optional `minItems` (0 ≤ `minItems` ≤ `maxItems`).
@@ -188,6 +188,7 @@ This plan implements roadmap Phase 7 ("collects the gaps they report and fixes t
       - Both keywords are allowed in widget schemas (`params`, `state`, `context`). `pattern` is still rejected there.
       - A value that is too short or too few fails, with an `expected` that names the bound ("a string of 1–500 characters").
       - `checkValue`, the compiled validator, `liveframe gen` and the published JSON Schemas agree.
+      - Published structural schemas check minimum keyword types; install validators additionally compare minimums with maximums, a sibling-field relationship standard JSON Schema cannot express.
       - Catalog change classification treats raising a minimum as narrowing (a major change) and lowering it as widening.
     - Performance:
       - `bun run bench` keeps the validator at ≤ 1.5 µs/node on the 679-node tree and `render()` at ≤ 3 µs/node.
@@ -202,6 +203,7 @@ This plan implements roadmap Phase 7 ("collects the gaps they report and fixes t
       - JSON Schema 2020-12 validation vocabulary (`minLength` counts code points; `minItems`); RFC 8927 has no length keywords. Record both.
     - Documentation Reviewed:
       - Spec §5 "The schema language".
+      - [JSON Schema 2020-12 validation §§6.3.2 and 6.4.2](https://json-schema.org/draft/2020-12/json-schema-validation): nonnegative integer minimums, omitted as zero; string lengths count Unicode code points. Confirmed through Context7 and the versioned specification. [RFC 8927 §2.2](https://www.rfc-editor.org/rfc/rfc8927.html#section-2.2) defines no length keywords; these remain JSON Schema vocabulary.
       - `src/schema.ts:4-24` (types), `:100-105` (`codePointsWithin`), `:147-203` (keyword well-formedness), `:226-242` (`checkString`/`checkArray`).
       - `src/validate/schema.ts:84-151` (`compileSchema`).
       - `src/formats/catalog.ts:210-230` (`compareStringSchema`/`compareArraySchema`).
@@ -216,9 +218,10 @@ This plan implements roadmap Phase 7 ("collects the gaps they report and fixes t
       str({ minLength: 1, maxLength: 500 }); arr(item, { minItems: 1, maxItems: 50 });
       ```
     - Files to Create/Edit:
-      - `src/schema.ts`; `src/validate/schema.ts`; `src/formats/catalog.ts` (compare)
-      - `scripts/schemas.ts`; `schemas/*.json` (regenerated)
-      - `src/sdk/gen.ts` (only if generated docs comments print bounds)
+      - `src/schema.ts`; `src/validate/schema.ts`; `src/formats/catalog.ts` (install and compare); `src/formats/capabilities.ts` (shared install diagnostics)
+      - `src/formats/registry.ts`; `schemas/*.json` (regenerated through the unchanged `scripts/schemas.ts`)
+      - `src/__tests__/{schema,compiled-schema,manifest,catalog,schemas,sdk-gen}.test.ts`
+      - `src/sdk/gen.ts` and generated fixtures need no change: value types do not encode bounds; a regression test proves generation stays identical.
       - `docs/spec.md` §5; `docs/formats.md`
   - Test Cases to Write:
     - `min_length_counts_code_points` (`schema.test.ts`): `"😀"` meets `minLength: 1` and fails `minLength: 2`. Fails if UTF-16 units are counted.
@@ -227,6 +230,14 @@ This plan implements roadmap Phase 7 ("collects the gaps they report and fixes t
     - `widget_schema_accepts_min_length_rejects_pattern` (`manifest.test.ts`).
     - `published_schema_accepts_min_keywords` (`schemas.test.ts`, Ajv).
     - `raising_min_length_is_major` (`catalog.test.ts`).
+    - `gen_accepts_minimums_without_changing_value_types` (`sdk-gen.test.ts`).
+  - Notes (executed 2026-10-27):
+    - Added optional nonnegative integer `minLength`/`minItems`, defaulting to zero and bounded by their required maximums. The existing code-point helper checks both string bounds in one pass without allocating a character array or using a regex; omitted minimums retain its UTF-16 fast path. Both interpreted and compiled checks enforce the bounds and name the failing range.
+    - Install diagnostics share the existing recursive language walk through an internal check, preserving the public `isLanguageSchema(value)` signature. Catalog, capability and manifest installation reject malformed minimums at escaped keyword pointers. Widget params/state/context accept both keywords and continue rejecting `pattern`.
+    - Catalog classification treats raised minimums as major and lowered/removed minimums as minor; explicit zero and omission are equivalent. `Infer` and generated value types remain unchanged, proved by the typecheck and generator regression. Regenerated the four schemas embedding the language through the existing registry/publisher. Updated spec §5 and the format guide; no format id, export or dependency change.
+    - Published meta-schemas enforce keyword structure, while install validation checks minimum ≤ maximum. Standard JSON Schema cannot compare those sibling fields; this is documented beside the existing required-name semantic checks. Ajv, compiled checks and `checkValue` agree on the shared bounded-value corpus.
+    - Verification: regressions failed before implementation; all 52 focused tests passed afterward. Final `bun run check` passed on project-pinned Bun 1.4.2 (648 passed, 4 skipped, 0 failed). `git diff --check` passed.
+    - Performance: the required 679-node validator measured 1.202 µs/node (≤ 1.5), and standalone `bench/render.bench.ts` passed all render gates, with 2.559 µs/node on that tree (≤ 3). Full `bun run bench` attempts remained non-green because different fixtures exceeded the unchanged validator timing gate; an isolated, unchanged HEAD checkout also failed it (including 1.721 µs/node on the 679-node tree). A CPU-affinity run reproduced the variability. No benchmark, threshold or runtime setting was changed; a fully green benchmark suite still needs a stable timing environment.
 
 - [ ] Task 5: Add `nullable` to every schema form (LF-04)
   - Acceptance Criteria:

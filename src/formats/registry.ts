@@ -42,6 +42,7 @@ function languageForms(pattern: boolean) {
           "string",
           {
             maxLength: bound,
+            minLength: bound,
             ...(pattern ? { pattern: { type: "string", maxLength: 256, format: "regex" } } : {}),
             enum: { type: "array", items: { type: "string" }, minItems: 1, uniqueItems: true },
           },
@@ -50,7 +51,7 @@ function languageForms(pattern: boolean) {
         form("number", { minimum: { type: "number" }, maximum: { type: "number" } }, []),
         form("integer", { minimum: { type: "number" }, maximum: { type: "number" } }, []),
         form("boolean", {}, []),
-        form("array", { items: schemaRef, maxItems: bound }, ["items", "maxItems"]),
+        form("array", { items: schemaRef, maxItems: bound, minItems: bound }, ["items", "maxItems"]),
         objectSchema,
       ],
     },

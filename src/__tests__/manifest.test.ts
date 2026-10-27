@@ -47,6 +47,55 @@ function binding(params: unknown) {
   return { ...manifest, sources: { queue: { source: "tasks.queue", params } } };
 }
 
+test("widget_schema_accepts_min_length_rejects_pattern", () => {
+  const bounded = obj({
+    reason: str({ minLength: 1, maxLength: 500 }),
+    flags: arr(bool(), { minItems: 1, maxItems: 2 }),
+  });
+  const doc = {
+    ...manifest,
+    params: bounded,
+    state: bounded,
+    context: bounded,
+    initialState: { reason: "😀", flags: [true] },
+    sources: {},
+  };
+  expect(validateManifest(doc, context).ok).toBe(true);
+  expect(new Ajv2020({ strict: true }).compile(schemaDocument("manifest"))(doc)).toBe(true);
+  rejects(
+    { ...doc, state: obj({ reason: str({ minLength: 1, maxLength: 500, pattern: "." }) }) },
+    "/state/properties/reason/pattern",
+  );
+});
+
+test("min_above_max_is_rejected", () => {
+  for (const [schema, keyword] of [
+    [str({ minLength: 3, maxLength: 2 }), "minLength"],
+    [arr(bool(), { minItems: 3, maxItems: 2 }), "minItems"],
+  ] as const) {
+    const nested = obj({ "a/~": arr(schema, { maxItems: 2 }) });
+    rejects({ ...manifest, state: nested }, `/state/properties/a~1~0/items/${keyword}`);
+    const result = validateCatalog({ ...catalog, definitions: [{ ...catalog.definitions[0], props: nested }] });
+    expect(result.ok).toBe(false);
+    if (!result.ok)
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({
+          kind: "invalid-document",
+          pointer: `/definitions/0/props/properties/a~1~0/items/${keyword}`,
+        }),
+      );
+    const capability = validateCapabilities({
+      ...capabilities,
+      sources: { test: { description: "Test", params: obj({}), result: schema } },
+    });
+    expect(capability.ok).toBe(false);
+    if (!capability.ok)
+      expect(capability.errors).toContainEqual(
+        expect.objectContaining({ kind: "invalid-document", pointer: `/sources/test/result/${keyword}` }),
+      );
+  }
+});
+
 test("manifest_names_only_declared_capabilities", () => {
   rejects({ ...manifest, actions: ["tasks.delete"] }, "/actions/0", "unknown-name");
   rejects(

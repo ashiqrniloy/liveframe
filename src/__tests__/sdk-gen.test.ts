@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { validateCatalog } from "../formats/catalog.ts";
 import { generate } from "../sdk/gen.ts";
+import { arr, bool, obj, str } from "../schema.ts";
 import proof from "./fixtures/proof/catalog.json" with { type: "json" };
 
 const catalog = validateCatalog(proof);
@@ -11,6 +12,19 @@ if (!catalog.ok) throw new Error(JSON.stringify(catalog.errors));
 const fixture = "src/__tests__/fixtures/widgets/ui.gen.ts";
 const cli = "src/cli/liveframe.ts";
 const input = "src/__tests__/fixtures/proof/catalog.json";
+
+test("gen_accepts_minimums_without_changing_value_types", () => {
+  const definition = catalog.value.definitions[0];
+  if (!definition) throw new Error("Missing definition");
+  const withProps = (props: typeof definition.props) => ({ ...catalog.value, definitions: [{ ...definition, props }] });
+  const bounded = withProps(
+    obj({ label: str({ minLength: 1, maxLength: 80 }), flags: arr(bool(), { minItems: 1, maxItems: 4 }) }),
+  );
+  expect(validateCatalog(bounded).ok).toBe(true);
+  expect(generate(bounded)).toBe(
+    generate(withProps(obj({ label: str({ maxLength: 80 }), flags: arr(bool(), { maxItems: 4 }) }))),
+  );
+});
 
 async function run(args: string[]) {
   const child = Bun.spawn([process.execPath, "--conditions", "liveframe:source", cli, ...args], {
