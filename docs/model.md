@@ -39,7 +39,7 @@ Liveframe never renders a page. It renders **surfaces**. A surface is one widget
 
 **A1. Host: define the catalog** (spec §5). One definition per primitive (`box`, `text`, `button`, `menu`…): props schema, children, events, variants, slots, style props and accessibility. Together they form a versioned catalog such as `acme.ui@1`. Liveframe supplies the definition format; the host decides which primitives exist.
 
-**A2. Host: implement each primitive in React** (spec §11). Liveframe's planned `implement(definition, Component)` binds it. The implementation receives validated `props`, `slot(name)` (one stable class for the slot in its current variant), `emit(event)`, and already-rendered children. The primitive exposes state through native semantics or state attributes and supplies its own structural CSS. This is the only app code that runs in the browser, and it ships compiled with the app.
+**A2. Host: implement each primitive in React** (spec §11). Liveframe's `implement(definition, Component)` binds the primitive. The implementation receives validated `props`, `slot(name)` (one stable class for the slot in its current variant), `emit(event)`, and already-rendered children. The primitive exposes state through native semantics or state attributes and supplies its own structural CSS. This is the only app code that runs in the browser, and it ships compiled with the app.
 
 **A3. LF: generate typed SDK components** (spec §7.2). `liveframe gen catalog.json --out src/widgets/ui.gen.ts` emits a typed component module — `<Button>`, `<Stack>`… — that widgets import by relative path, so `gap="13px"` fails to compile.
 

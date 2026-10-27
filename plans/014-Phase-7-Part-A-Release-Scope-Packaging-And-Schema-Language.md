@@ -143,7 +143,7 @@ This plan implements roadmap Phase 7 ("collects the gaps they report and fixes t
     - Verification: `bun run check` passed on project-pinned Bun 1.4.2 (640 passed, 4 skipped, 0 failed); `bun run release:gate` passed all 8 installed-package steps in 6.9 seconds, with the new tarball export check under 0.1 seconds. `bun run demo:test` passed all 48 tests on locally installed Bun 1.4.4. Focused archive tests passed, including the real-tarball negative case. `git diff --check` passed. No publication was attempted; real OIDC/provenance issuance remains CI-only.
     - Environment findings: Bun 1.4.4's archive run exceeded the existing MCP 100 ms render budget; the unmodified HEAD archive-gate script reproduced the same failure. Downloaded a temporary Bun 1.4.2 binary without replacing the installed runtime and validated against the CI-pinned version. Earlier full-check attempts also hit the unchanged five-second `missing_browser_fixtures_fail_with_the_named_rule` watchdog or the unchanged runner-overhead threshold; both passed in isolation and the final full run passed without changing tests, thresholds or runtime code.
 
-- [ ] Task 3: Describe shipped APIs as shipped (LF-03)
+- [x] Task 3: Describe shipped APIs as shipped (LF-03)
   - Acceptance Criteria:
     - Functional:
       - `docs/model.md` A2 says `implement(definition, Component)` binds the primitive.
@@ -163,7 +163,7 @@ This plan implements roadmap Phase 7 ("collects the gaps they report and fixes t
     - Options Considered:
       - A CI grep — rejected: the existing docs tests run inside `bun run check`, and a TypeScript test can read the export names.
     - Chosen Approach:
-      - Add a `shipped_docs_never_call_exports_planned` case beside `docs-links`.
+      - Add a `shipped_docs_never_call_exports_planned` case beside `docs-links`. Discover public modules through `package.json` exports and read their actual export names; scan `README.md` and `docs/*.md`, excluding the normative `docs/spec.md` as surveyed above. Match complete identifiers within the same sentence and assert the 200 ms budget.
     - API Notes and Examples:
       ```ts
       for (const sentence of sentences(doc)) if (/\bplanned\b/i.test(sentence) && exported.some((name) => sentence.includes(name))) fail(doc, sentence);
@@ -173,6 +173,12 @@ This plan implements roadmap Phase 7 ("collects the gaps they report and fixes t
       - `src/__tests__/docs-wording.test.ts` (new)
   - Test Cases to Write:
     - `shipped_docs_never_call_exports_planned`: fails on the current `model.md:42` before the fix.
+    - `wording_check_matches_export_names_in_the_same_sentence`: catches both wording orders without matching identifier substrings or a separate sentence.
+  - Notes (executed 2026-10-27):
+    - Updated `docs/model.md` A2 to say the shipped `implement(definition, Component)` binds the primitive. Swept `README.md` and every `docs/*.md` for “planned”, “will” and “not yet”; the Clay-quoted styling sentence is already gone. Other hits describe future releases, host behavior or historical proof work, not unshipped exported APIs. No normative spec or runtime API change.
+    - Added the docs wording guard, deriving public module paths from the actual package exports and names from those modules. It covers README and guides, excluding the normative spec as planned. A small matcher test proves both wording orders, complete identifiers and sentence boundaries. The guard failed on the original model sentence before the fix.
+    - Verification: focused wording and doc-link tests passed. Final `bun run check` passed on project-pinned Bun 1.4.2 (642 passed, 4 skipped, 0 failed); the wording guard took 2.42 ms, below 200 ms. `git diff --check` passed.
+    - Earlier full runs encountered existing MCP render-budget failures: the Bun 1.4.4 run failed the agent loop, and the first pinned run failed two capture cases with “Render exceeded 100 ms” under heavy machine load. All nine capture tests passed in isolation, then the complete pinned check passed without changing runtime code, tests or timing limits. Used the existing temporary Bun 1.4.2 binary; the installed runtime was not replaced.
 
 - [ ] Task 4: Add `minLength` and `minItems` to the schema language (LF-04)
   - Acceptance Criteria:
