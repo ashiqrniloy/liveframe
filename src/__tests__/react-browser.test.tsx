@@ -468,3 +468,45 @@ test("host_fallback_recovers_on_client_after_ssr_throw", async () => {
     await page.close();
   }
 });
+
+test("status_region_survives_text_change", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    const show = (text: string, revision: number) =>
+      page.evaluate(
+        ([text, revision]) => {
+          const base = window.surfaceTest.tree(revision as number);
+          window.surfaceTest.update({
+            ...base,
+            root: {
+              ...base.root,
+              children: [
+                {
+                  id: "root/status",
+                  kind: "stack",
+                  props: { semantics: "status", label: "Save status" },
+                  children: [{ id: "root/status/text", kind: "text", props: { text } }],
+                },
+              ],
+            },
+          });
+        },
+        [text, revision],
+      );
+    await show("Saving", 2);
+    const region = page.getByRole("status", { name: "Save status" });
+    await region.evaluate((el) => {
+      (window as unknown as { region: Element }).region = el;
+    });
+    await show("Saved", 3);
+    expect(await region.evaluate((el) => el === (window as unknown as { region: Element }).region)).toBe(true);
+    const snapshot = await region.ariaSnapshot();
+    expect(snapshot).toContain("Saved");
+    expect(snapshot.match(/Saved/g)).toHaveLength(1);
+    expect(snapshot).not.toContain("Saving");
+  } finally {
+    await page.close();
+  }
+});

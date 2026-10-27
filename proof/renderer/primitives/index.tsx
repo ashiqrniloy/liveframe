@@ -35,7 +35,13 @@ const tags = {
   terms: "dl",
   term: "dt",
   detail: "dd",
+  form: "form",
+  group: "div",
+  figure: "figure",
+  status: "div",
+  alert: "div",
 } as const;
+const roles = { group: "group", status: "status", alert: "alert" } as const;
 type Semantics = keyof typeof tags;
 // Layout semantics pick the element; without one a layout primitive stays a plain div.
 function element(
@@ -47,7 +53,13 @@ function element(
 ) {
   return createElement(
     semantics ? tags[semantics] : "div",
-    { className, style, ...(label ? { "aria-label": label } : {}) },
+    {
+      className,
+      style,
+      ...(semantics && semantics in roles ? { role: roles[semantics as keyof typeof roles] } : {}),
+      ...(label ? { "aria-label": label } : {}),
+      ...(semantics === "form" ? { onSubmit: (event: React.FormEvent) => event.preventDefault() } : {}),
+    },
     children,
   );
 }

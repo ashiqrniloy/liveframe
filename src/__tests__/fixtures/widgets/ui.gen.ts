@@ -95,7 +95,12 @@ export const Box = primitive<{
     | "listItem"
     | "terms"
     | "term"
-    | "detail";
+    | "detail"
+    | "form"
+    | "group"
+    | "figure"
+    | "status"
+    | "alert";
   readonly label?: string;
   readonly variant?: "default" | "plate" | "rule" | "callout";
   readonly padding?: _Responsive<_Space>;
@@ -143,7 +148,12 @@ export const Stack = primitive<{
     | "listItem"
     | "terms"
     | "term"
-    | "detail";
+    | "detail"
+    | "form"
+    | "group"
+    | "figure"
+    | "status"
+    | "alert";
   readonly label?: string;
   readonly variant?: "default";
   readonly padding?: _Responsive<_Space>;
@@ -193,7 +203,12 @@ export const Inline = primitive<{
     | "listItem"
     | "terms"
     | "term"
-    | "detail";
+    | "detail"
+    | "form"
+    | "group"
+    | "figure"
+    | "status"
+    | "alert";
   readonly label?: string;
   readonly variant?: "default";
   readonly padding?: _Responsive<_Space>;
@@ -243,7 +258,12 @@ export const Grid = primitive<{
     | "listItem"
     | "terms"
     | "term"
-    | "detail";
+    | "detail"
+    | "form"
+    | "group"
+    | "figure"
+    | "status"
+    | "alert";
   readonly label?: string;
   readonly variant?: "default";
   readonly padding?: _Responsive<_Space>;

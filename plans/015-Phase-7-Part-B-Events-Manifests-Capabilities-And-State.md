@@ -84,7 +84,7 @@ This plan implements spec §5 (definitions and events), §6.3 (style props), §7
     - Handoffs: plan 017's `checkOffered` implements the same fit rule and must understand `bindAll`, numeric and object carries. Task 6 adds `bindAll` to the action intent's closed field set in `src/validate/intent.ts` (`actionFields`).
     - No runtime, spec or format change in this task, so `bun run check` was not re-run; verification is that the log and plan links resolve.
 
-- [ ] Task 2: Add form, group, figure and live-region semantics (LF-09)
+- [x] Task 2: Add form, group, figure and live-region semantics (LF-09)
   - Acceptance Criteria:
     - Functional:
       - `semantics` gains `form`, `group`, `figure`, `status` and `alert`. The format, the published schema, generated types and `liveframe gen` output all list them.
@@ -123,6 +123,13 @@ This plan implements spec §5 (definitions and events), §6.3 (style props), §7
     - `semantics_lists_live_regions` (`vocabulary.test.ts` or `catalog.test.ts`).
     - `status_region_survives_text_change` (`react-browser.test.tsx`): asserts element identity and an aria snapshot containing `status`. Fails if the node remounts.
     - `conformance_semantics_fixtures_render` (`conformance-renderer.test.tsx`).
+  - Notes (executed 2026-10-28):
+    - `form`, `group`, `figure`, `status` and `alert` join `semantics` in `src/formats/fixed.ts`, the only library list. The published schemas do not embed the list (a catalog declares its own `semantics` enum), so they are unchanged. The proof catalog, `proof/runtime/validate.ts` and `proof/renderer/primitives/index.tsx` keep their own copies, because proof code imports nothing from `src/`. `semantics_lists_live_regions` fails if the proof catalog's enum drifts from the fixed list.
+    - Regenerated `src/__tests__/fixtures/proof/catalog.json` and `ui.gen.ts` (`liveframe gen`). The proof implementations map the values as Task 1 decided; `form` also prevents native submit.
+    - The browser test uses the shared `react-surface.tsx` fixture renderer, which now maps the five values. It shows that a `status` node whose text changes keeps its element and that the accessibility snapshot holds the new text once.
+    - `conformance_semantics_fixtures_render` runs `rendererSuite` over an example with all five values. No new suite case: the suite stays catalog-independent, so the element mapping is a reference implementation, not a conformance rule.
+    - The demo host keeps its own catalog and primitives; it does not need the new values until a demo widget uses them.
+    - Docs: spec §5, `docs/formats.md`, and a new `docs/renderer.md` section on mapping semantics, which says that live regions must stay mounted and that id-keyed reconciliation keeps them mounted.
 
 - [ ] Task 3: Add `minHeight` and `maxHeight` style props (CL-07)
   - Acceptance Criteria:

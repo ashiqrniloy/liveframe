@@ -33,7 +33,24 @@ const identifier = { type: "string", maxLength: 128, pattern: "^[a-zA-Z0-9][a-zA
 const disabled = { type: "boolean" } as const;
 const semantics = {
   type: "string",
-  enum: ["section", "article", "aside", "header", "footer", "nav", "list", "listItem", "terms", "term", "detail"],
+  enum: [
+    "section",
+    "article",
+    "aside",
+    "header",
+    "footer",
+    "nav",
+    "list",
+    "listItem",
+    "terms",
+    "term",
+    "detail",
+    "form",
+    "group",
+    "figure",
+    "status",
+    "alert",
+  ],
 } as const;
 const layoutProps = (properties: Record<string, PropSchema> = {}) => ({
   type: "object" as const,

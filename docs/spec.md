@@ -144,7 +144,7 @@ The **primitive set is per app**: a catalog is the app's contract, and portabili
 
 Additions the proof found necessary:
 
-- **Semantics on layout primitives.** `box`, `stack`, `inline` and `grid` take an optional closed `semantics` prop (`section`, `article`, `aside`, `header`, `footer`, `nav`, `list`, `listItem`, `terms`, `term`, `detail`) and an optional accessible `label`. Landmarks and description lists are structure, not styling.
+- **Semantics on layout primitives.** `box`, `stack`, `inline` and `grid` take an optional closed `semantics` prop (`section`, `article`, `aside`, `header`, `footer`, `nav`, `list`, `listItem`, `terms`, `term`, `detail`, `form`, `group`, `figure`, `status`, `alert`) and an optional accessible `label`. Landmarks, description lists, forms, groups, figures and live regions (`status`, `alert`) are structure, not styling. A live region must stay mounted for its text changes to be announced.
 - **Selection state on `button`.** `current` and `pressed` expose a selected row or toggle to assistive technology.
 
 The icon glyph set is the app's: status marks and brand marks are icons, not primitives.

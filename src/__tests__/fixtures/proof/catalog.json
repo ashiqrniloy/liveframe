@@ -166,7 +166,12 @@
               "listItem",
               "terms",
               "term",
-              "detail"
+              "detail",
+              "form",
+              "group",
+              "figure",
+              "status",
+              "alert"
             ],
             "maxLength": 8
           },
@@ -243,7 +248,12 @@
               "listItem",
               "terms",
               "term",
-              "detail"
+              "detail",
+              "form",
+              "group",
+              "figure",
+              "status",
+              "alert"
             ],
             "maxLength": 8
           },
@@ -318,7 +328,12 @@
               "listItem",
               "terms",
               "term",
-              "detail"
+              "detail",
+              "form",
+              "group",
+              "figure",
+              "status",
+              "alert"
             ],
             "maxLength": 8
           },
@@ -393,7 +408,12 @@
               "listItem",
               "terms",
               "term",
-              "detail"
+              "detail",
+              "form",
+              "group",
+              "figure",
+              "status",
+              "alert"
             ],
             "maxLength": 8
           },

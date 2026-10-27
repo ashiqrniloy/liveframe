@@ -244,6 +244,21 @@ widget output stay the same; no widget code runs. Keep the tree, validator,
 callback and fallback identities stable for style-only updates. The host still
 owns theme selection and loading the corresponding sheets.
 
+## Map layout semantics to elements
+
+A layout primitive's `semantics` value picks its element or role. The reference
+mapping is `form` → `<form aria-label={label}>` with native submit prevented,
+`group` → `role="group"`, `figure` → `<figure>`, `status` → `role="status"` and
+`alert` → `role="alert"`. A `form` is exposed as a landmark only with a `label`;
+the validator does not require one.
+
+Live regions must stay mounted: a screen reader announces a change inside an
+existing `status` or `alert`, not a region that appears with its text.
+Id-keyed reconciliation keeps a node mounted while its `id` and ancestry are
+stable, so change the text of the same node rather than replacing it with one
+that has a new id. Do not wrap such an implementation in a conditional that
+unmounts the region.
+
 ## Keep overlays scoped and accessible
 
 An overlay may use the browser's top layer while retaining DOM ancestry, or

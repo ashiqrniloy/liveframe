@@ -139,7 +139,10 @@ the catalog schema; subset, tone and surface typography reference checks run on 
 
 The root export also provides the library-fixed `states`, `styleProps`,
 `semantics` and `recipeProperties` arrays. These are format vocabulary, with no
-app roles or design values. Recipe motion uses `translateY`; the proof's
+app roles or design values. `semantics` holds `section`, `article`, `aside`,
+`header`, `footer`, `nav`, `list`, `listItem`, `terms`, `term`, `detail`,
+`form`, `group`, `figure`, `status` and `alert`. A `form` needs a `label` to be
+exposed as a landmark; no rule requires it. Recipe motion uses `translateY`; the proof's
 `transformPreset` shorthand is not part of the format.
 
 ## Definitions and catalogs

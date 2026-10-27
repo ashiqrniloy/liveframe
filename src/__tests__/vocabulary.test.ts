@@ -2,7 +2,8 @@ import { expect, test } from "bun:test";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import proofVocabulary from "./fixtures/vocabulary.json" with { type: "json" };
 import { vocabularySchema } from "../formats/vocabulary.ts";
-import { type Vocabulary, validateVocabulary } from "../index.ts";
+import { type Vocabulary, semantics, validateVocabulary } from "../index.ts";
+import proofCatalog from "./fixtures/proof/catalog.json" with { type: "json" };
 
 const vocabulary = {
   colourRoles: ["surface.base", "text.muted"],
@@ -132,4 +133,11 @@ test("proof_vocabulary_validates_under_one_millisecond", () => {
   expect(result.ok).toBe(true);
   expect(elapsed).toBeLessThan(1);
   expect(new Ajv2020({ strict: true }).compile(vocabularySchema)(proofVocabulary)).toBe(true);
+});
+
+test("semantics_lists_live_regions", () => {
+  expect(semantics).toEqual(expect.arrayContaining(["form", "group", "figure", "status", "alert"]));
+  // The proof catalog declares its own copy, so it must stay equal to the library's fixed list.
+  const layout = proofCatalog.definitions.find((d) => d.kind === "stack");
+  expect(layout?.props).toMatchObject({ properties: { semantics: { enum: [...semantics] } } });
 });

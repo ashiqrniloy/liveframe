@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { createElement, useState } from "react";
 import { createPortal } from "react-dom";
 import { type Catalog, compileValidator, type UiNode, type UiTree } from "../../index.ts";
 import { createRenderer, type ImplementationProps, implement } from "../../react/index.ts";
@@ -74,11 +74,18 @@ export function renderer(observe: (kind: string, props: ImplementationProps) => 
                 input.portal,
               )
             : null;
-        return (
-          <div className={className} style={input.style} data-portal={input.portal ? "mounted" : "absent"}>
-            {input.props.text as string | undefined}
-            {definition.kind === "menu" ? input.items.map((item) => item.render()) : input.children}
-          </div>
+        const semantics = input.props.semantics;
+        return createElement(
+          semantics === "form" || semantics === "figure" ? semantics : "div",
+          {
+            className,
+            style: input.style,
+            "data-portal": input.portal ? "mounted" : "absent",
+            ...(semantics === "group" || semantics === "status" || semantics === "alert" ? { role: semantics } : {}),
+            ...(typeof input.props.label === "string" ? { "aria-label": input.props.label } : {}),
+          },
+          input.props.text as string | undefined,
+          definition.kind === "menu" ? input.items.map((item) => item.render()) : input.children,
         );
       }),
     ),

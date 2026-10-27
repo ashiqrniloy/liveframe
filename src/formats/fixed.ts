@@ -13,6 +13,11 @@ export const semantics = [
   "terms",
   "term",
   "detail",
+  "form",
+  "group",
+  "figure",
+  "status",
+  "alert",
 ] as const;
 
 export const styleProps = [

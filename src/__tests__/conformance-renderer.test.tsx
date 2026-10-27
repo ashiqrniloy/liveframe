@@ -111,3 +111,15 @@ test("invalid_arrivals_never_call_even_throwing_implementations", async () => {
   if (!c) throw new Error("Missing invalid-arrival case");
   await c.run();
 });
+
+test("conformance_semantics_fixtures_render", async () => {
+  const children = ["form", "group", "figure", "status", "alert"].map((semantics) => ({
+    id: `root/${semantics}`,
+    kind: "stack",
+    props: { semantics, label: semantics },
+    children: [{ id: `root/${semantics}/text`, kind: "text", props: { text: semantics } }],
+  }));
+  const examples = [{ ...base, root: { ...base.root, children } }];
+  const cases = rendererSuite({ ...options, examples, implementations: implementations() });
+  await Promise.all(cases.map((c) => c.run()));
+});
