@@ -82,6 +82,11 @@ function objectCheck(spec: ObjectCheck): SchemaCheck {
 }
 
 export function compileSchema(schema: LanguageSchema): SchemaCheck {
+  const check = compileForm(schema);
+  return schema.nullable === true ? (value, at, sink) => value === null || check(value, at, sink) : check;
+}
+
+function compileForm(schema: LanguageSchema): SchemaCheck {
   switch (schema.type) {
     case "string": {
       const { maxLength, minLength } = schema;

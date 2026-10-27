@@ -11,6 +11,11 @@ function wrapUnion(type: string, indent: string): string {
 }
 
 function schemaType(schema: LanguageSchema, indent: string): string {
+  const type = formType(schema, indent);
+  return schema.nullable === true ? `${type} | null` : type;
+}
+
+function formType(schema: LanguageSchema, indent: string): string {
   switch (schema.type) {
     case "string":
       return schema.enum ? union(schema.enum) : "string";

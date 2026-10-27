@@ -10,7 +10,11 @@ import { treeSchema } from "./tree.ts";
 import { widgetPackageSchema } from "./package.ts";
 import { placementSchema, styleRecordSchema } from "./records.ts";
 
-const annotations = { description: { type: "string" }, deprecated: { type: "boolean" } } as const;
+const annotations = {
+  description: { type: "string" },
+  deprecated: { type: "boolean" },
+  nullable: { type: "boolean" },
+} as const;
 const bound = { type: "integer", minimum: 0 } as const;
 const schemaRef = { $ref: "#/$defs/schema" } as const;
 

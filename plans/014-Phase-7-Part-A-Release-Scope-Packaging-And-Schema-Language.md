@@ -239,14 +239,14 @@ This plan implements roadmap Phase 7 ("collects the gaps they report and fixes t
     - Verification: regressions failed before implementation; all 52 focused tests passed afterward. Final `bun run check` passed on project-pinned Bun 1.4.2 (648 passed, 4 skipped, 0 failed). `git diff --check` passed.
     - Performance: the required 679-node validator measured 1.202 µs/node (≤ 1.5), and standalone `bench/render.bench.ts` passed all render gates, with 2.559 µs/node on that tree (≤ 3). Full `bun run bench` attempts remained non-green because different fixtures exceeded the unchanged validator timing gate; an isolated, unchanged HEAD checkout also failed it (including 1.721 µs/node on the 679-node tree). A CPU-affinity run reproduced the variability. No benchmark, threshold or runtime setting was changed; a fully green benchmark suite still needs a stable timing environment.
 
-- [ ] Task 5: Add `nullable` to every schema form (LF-04)
+- [x] Task 5: Add `nullable` to every schema form (LF-04)
   - Acceptance Criteria:
     - Functional:
       - Any form may carry `nullable: true`. `null` then passes, and every other value is checked by the form.
       - `nullable` that is not a boolean is rejected. `nullable: false` is the same as omitting it.
       - `Infer<S>` gives `T | null`.
       - `liveframe gen` prints `| null`.
-      - The published JSON Schema expresses it as `anyOf: [<form>, { type: "null" }]` or a type array. The task notes record which, and why Ajv strict mode accepts it.
+      - The published meta-schemas accept the boolean keyword on every form. The equivalent JSON Schema for values expresses it as `anyOf: [<form>, { type: "null" }]` or a type array, checked against the Liveframe validators. The task notes record which, and why Ajv strict mode accepts it.
       - Making a prop nullable is a minor catalog change; removing `nullable` is major.
     - Performance: one extra `=== null` branch per nullable check. The benches hold their budgets.
     - Code Quality: no separate "nullable form". It is an annotation-like keyword handled in one place in each checker.
@@ -270,8 +270,9 @@ This plan implements roadmap Phase 7 ("collects the gaps they report and fixes t
       ```
     - Files to Create/Edit:
       - `src/schema.ts`; `src/validate/schema.ts`; `src/formats/catalog.ts`
-      - `src/sdk/gen.ts`; `src/__tests__/fixtures/widgets/ui.gen.ts` (regenerated)
-      - `scripts/schemas.ts`; `schemas/*.json`
+      - `src/sdk/gen.ts`; `src/__tests__/fixtures/widgets/ui.gen.ts` (regenerated; unchanged because its catalog has no nullable schemas)
+      - `src/formats/registry.ts`; `schemas/*.json` (regenerated through the unchanged `scripts/schemas.ts`)
+      - `src/__tests__/{nullable,catalog,manifest,sdk-gen}.test.ts`; `src/__tests__/sdk-gen-types.test.tsx`
       - `docs/spec.md` §5; `docs/formats.md`; `docs/sdk.md`
   - Test Cases to Write:
     - `nullable_accepts_null_only_when_declared`.
@@ -279,6 +280,14 @@ This plan implements roadmap Phase 7 ("collects the gaps they report and fixes t
     - `infer_nullable_is_union` (type-level, `sdk-types.test.tsx`): assigning `null` to a non-nullable prop fails to compile.
     - `gen_prints_nullable`.
     - `published_schema_nullable_roundtrip` (Ajv).
+
+  - Notes (executed 2026-10-27):
+    - Added the boolean `nullable` keyword to all six forms and their builder options. Literal `true` adds `null` in `Infer`; false and omission preserve the original type. The interpreter handles null in its shared visit, and the compiler wraps only nullable checks with a null short circuit, leaving non-nullable hot checks unchanged. Non-null values still obey enums, bounds, patterns, closed objects and required fields.
+    - Builder options preserve literal nullability, including arrays and object annotations. Object annotation inference is restricted to shared annotation keys so contextual catalog typing retains its exact prop map. Generated types add `| null` recursively; regenerated the existing UI fixture with no diff because its catalog has no nullable fields. Catalog classification treats added nullability as minor and removed nullability as major; false and omission compare equally.
+    - Regenerated the four published meta-schemas through the existing registry and unchanged publisher. Clarified the acceptance criterion: these documents validate schema documents, so they declare a boolean nullable field; they are not catalog-specific value-schema exporters. The equivalent value-schema oracle uses `anyOf: [<form without nullable>, { type: "null" }]`, recursively. Ajv 8 strict mode accepts the separately typed branches without `allowUnionTypes`, and this admits null even for enums. A type array alone would still require extending an enum; no new public converter or general union form was added.
+    - Documentation checked: [RFC 8927](https://www.rfc-editor.org/rfc/rfc8927.html) shared nullable syntax and semantics; [Ajv strict types](https://ajv.js.org/strict-mode.html#strict-types-stricttypes-option) and [nullable/enum behavior](https://ajv.js.org/json-schema.html#nullable), fetched through Context7. Updated spec §5, the format guide and SDK guide. No format id, dependency or export change.
+    - Regressions failed before implementation. Tests cover every form, false/omitted/malformed keywords, nested nulls and escaped bounded errors, required properties, precise nullable enum inference, generated props, catalog compatibility, manifest initial state and published-schema roundtrips with Ajv agreement. Final `bun run check` passed on project-pinned Bun 1.4.2 (654 passed, 4 skipped, 0 failed). `git diff --check` passed; refreshed the local graft graph.
+    - Performance limitation: CSS benchmarks passed (0.480 µs/node for declarations). The combined benchmark stopped at existing validator timing failures: the 679-node case measured 1.909 µs/node against ≤ 1.5. A separate, unchanged Task 4 checkout at `5dda4a7` also failed (1.808 µs/node). Standalone render measured 2.655 µs/node on that fixture (≤ 3), but other render fixtures exceeded their limits; the unchanged checkout also failed render budgets. Machine load and run-to-run variability prevent a fully green benchmark claim, as already recorded in Task 4. No benchmark, threshold or runtime setting was changed; stable-environment performance verification remains outstanding.
 
 - [ ] Task 6: Add discriminated unions to the schema language (LF-04)
   - Acceptance Criteria:

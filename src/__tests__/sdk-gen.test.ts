@@ -13,6 +13,28 @@ const fixture = "src/__tests__/fixtures/widgets/ui.gen.ts";
 const cli = "src/cli/liveframe.ts";
 const input = "src/__tests__/fixtures/proof/catalog.json";
 
+test("gen_prints_nullable", () => {
+  const definition = catalog.value.definitions[0];
+  if (!definition) throw new Error("Missing definition");
+  const output = generate({
+    ...catalog.value,
+    definitions: [
+      {
+        ...definition,
+        props: obj({
+          label: str({ maxLength: 2, enum: ["ok"], nullable: true }),
+          flags: arr(bool({ nullable: true }), { maxItems: 2, nullable: true }),
+          nested: obj({ flag: bool({ nullable: true }) }, {}, { nullable: true }),
+        }),
+      },
+    ],
+  });
+  expect(output).toContain('readonly label: "ok" | null;');
+  expect(output).toContain("readonly flags: ReadonlyArray<boolean | null> | null;");
+  expect(output).toContain("readonly flag: boolean | null;");
+  expect(output).toContain("} | null;");
+});
+
 test("gen_accepts_minimums_without_changing_value_types", () => {
   const definition = catalog.value.definitions[0];
   if (!definition) throw new Error("Missing definition");

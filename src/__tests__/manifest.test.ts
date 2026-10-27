@@ -124,6 +124,15 @@ test("bindings_resolve_and_match_types", () => {
   }
 });
 
+test("nullable_manifest_state_requires_a_declaration", () => {
+  const state = obj({ flag: bool({ nullable: true }) });
+  expect(validateManifest({ ...manifest, state, initialState: { flag: null }, sources: {} }, context).ok).toBe(true);
+  rejects(
+    { ...manifest, state: obj({ flag: bool() }), initialState: { flag: null }, sources: {} },
+    "/initialState/flag",
+  );
+});
+
 test("initial_state_matches_schema", () => {
   rejects({ ...manifest, initialState: { cursors: { tasks: true }, flag: false } }, "/initialState/cursors/tasks");
 });

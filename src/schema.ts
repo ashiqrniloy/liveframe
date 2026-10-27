@@ -1,6 +1,6 @@
 import type { LiveframeError, Result } from "./errors.ts";
 
-type Annotations = { readonly description?: string; readonly deprecated?: boolean };
+type Annotations = { readonly description?: string; readonly deprecated?: boolean; readonly nullable?: boolean };
 type StringOptions = Annotations & {
   readonly maxLength: number;
   readonly minLength?: number;
@@ -27,7 +27,9 @@ type ObjectSchema = Annotations & {
 
 export type LanguageSchema = StringSchema | NumericSchema | BooleanSchema | ArraySchema | ObjectSchema;
 
-export type Infer<S> = S extends { readonly type: "string"; readonly enum: readonly (infer E)[] }
+export type Infer<S> = S extends { readonly nullable: true } ? InferForm<S> | null : InferForm<S>;
+
+type InferForm<S> = S extends { readonly type: "string"; readonly enum: readonly (infer E)[] }
   ? E
   : S extends { readonly type: "string" }
     ? string
@@ -47,31 +49,32 @@ export function str<const O extends StringOptions>(options: O) {
   return { ...options, type: "string" } as const;
 }
 
-export function num(options: NumberOptions = {}) {
+export function num<const O extends NumberOptions = Record<never, never>>(options: O = {} as O) {
   return { ...options, type: "number" } as const;
 }
 
-export function int(options: NumberOptions = {}) {
+export function int<const O extends NumberOptions = Record<never, never>>(options: O = {} as O) {
   return { ...options, type: "integer" } as const;
 }
 
-export function bool(options: Annotations = {}) {
+export function bool<const O extends Annotations = Record<never, never>>(options: O = {} as O) {
   return { ...options, type: "boolean" } as const;
 }
 
-export function arr<const S extends LanguageSchema>(
-  items: S,
-  options: Annotations & { readonly maxItems: number; readonly minItems?: number },
-) {
+export function arr<
+  const S extends LanguageSchema,
+  const O extends Annotations & { readonly maxItems: number; readonly minItems?: number },
+>(items: S, options: O) {
   return { ...options, type: "array", items } as const;
 }
 
 export function obj<
   const R extends Readonly<Record<string, LanguageSchema>>,
   const O extends Readonly<Record<string, LanguageSchema>> = Record<never, never>,
->(required: R, optional?: O, annotations: Annotations = {}) {
+  const A extends Annotations = Record<never, never>,
+>(required: R, optional?: O, annotations: A = {} as A) {
   return {
-    ...annotations,
+    ...(annotations as Pick<A, keyof A & keyof Annotations>),
     type: "object",
     properties: { ...optional, ...required } as R & Omit<O, keyof R>,
     required: Object.keys(required) as (keyof R & string)[],
@@ -153,17 +156,19 @@ export function checkLanguageSchema(
   return visit(value);
 }
 
-/** Only the keywords a form declares, plus the two annotations every form shares. */
+/** Only the keywords a form declares, plus the shared annotations and nullable keyword. */
 function hasOnlyAllowedKeys(schema: Record<string, unknown>, allowed: readonly string[]): boolean {
   return Object.keys(schema).every(
-    (key) => key === "type" || key === "description" || key === "deprecated" || allowed.includes(key),
+    (key) =>
+      key === "type" || key === "description" || key === "deprecated" || key === "nullable" || allowed.includes(key),
   );
 }
 
 function hasValidAnnotations(schema: Record<string, unknown>): boolean {
   return (
     (!Object.hasOwn(schema, "description") || typeof schema.description === "string") &&
-    (!Object.hasOwn(schema, "deprecated") || typeof schema.deprecated === "boolean")
+    (!Object.hasOwn(schema, "deprecated") || typeof schema.deprecated === "boolean") &&
+    (!Object.hasOwn(schema, "nullable") || typeof schema.nullable === "boolean")
   );
 }
 
@@ -294,7 +299,7 @@ export function checkValue<const S extends LanguageSchema>(
     }
   }
   function visit(s: LanguageSchema, input: unknown, pointer: string): void {
-    if (full()) return;
+    if (full() || (s.nullable === true && input === null)) return;
     switch (s.type) {
       case "string":
         checkString(s, input, pointer);

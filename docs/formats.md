@@ -19,10 +19,23 @@ closed subset of JSON Schema 2020-12:
 | `obj(required, optional?, annotations?)` | readonly object | Only declared properties; required names come from the first argument |
 
 `num()` and `int()` also work without options. Every form accepts `description`
-and `deprecated` annotations in its options; `obj` takes them in its third
-argument. The builders return ordinary JSON Schema objects, without wrappers or
-hidden metadata. `Infer<typeof schema>` derives a readonly TypeScript value type,
-including literal string enums and optional object properties.
+and `deprecated` annotations, plus a boolean `nullable`, in its options; `obj`
+takes them in its third argument. The builders return ordinary schema objects,
+without wrappers or hidden metadata. With `nullable: true`, a value may be `null` or satisfy the
+form. `nullable: false` is the same as omitting it. Nullability does not make a
+required property optional. For example, `str({ maxLength: 128, nullable: true })`
+infers `string | null`; `bool({ nullable: true })`, array options and object
+annotations support the same keyword.
+
+The published JSON Schemas validate these schema documents, including the boolean
+`nullable` field. For an equivalent JSON Schema value validator, remove `nullable`
+and, when it is `true`, wrap the form in `anyOf: [<form>, { type: "null" }]`, recursively for nested
+schemas. This works in Ajv strict mode and admits null even for string enums;
+[Ajv’s nullable keyword](https://ajv.js.org/json-schema.html#nullable) alone does
+not extend an enum.
+
+`Infer<typeof schema>` derives a readonly TypeScript value type, including literal
+string enums, optional object properties and nullable unions.
 
 ```ts
 import { checkValue, type Infer, obj, str } from "@arnilo/liveframe";

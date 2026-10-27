@@ -144,6 +144,9 @@
             "deprecated": {
               "type": "boolean"
             },
+            "nullable": {
+              "type": "boolean"
+            },
             "maxLength": {
               "type": "integer",
               "minimum": 0
@@ -179,6 +182,9 @@
             "deprecated": {
               "type": "boolean"
             },
+            "nullable": {
+              "type": "boolean"
+            },
             "minimum": {
               "type": "number"
             },
@@ -201,6 +207,9 @@
               "type": "string"
             },
             "deprecated": {
+              "type": "boolean"
+            },
+            "nullable": {
               "type": "boolean"
             },
             "minimum": {
@@ -226,6 +235,9 @@
             },
             "deprecated": {
               "type": "boolean"
+            },
+            "nullable": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -243,6 +255,9 @@
               "type": "string"
             },
             "deprecated": {
+              "type": "boolean"
+            },
+            "nullable": {
               "type": "boolean"
             },
             "items": {
@@ -274,6 +289,9 @@
               "type": "string"
             },
             "deprecated": {
+              "type": "boolean"
+            },
+            "nullable": {
               "type": "boolean"
             },
             "properties": {
@@ -313,6 +331,9 @@
           "type": "string"
         },
         "deprecated": {
+          "type": "boolean"
+        },
+        "nullable": {
           "type": "boolean"
         },
         "properties": {

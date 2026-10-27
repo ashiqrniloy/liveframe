@@ -175,6 +175,11 @@ test("nested_schema_changes_are_classified", () => {
     ).level;
   }
   for (const [before, after, expected] of [
+    [bool(), bool({ nullable: true }), "minor"],
+    [bool({ nullable: true }), bool(), "major"],
+    [bool({ nullable: true }), bool({ nullable: false }), "major"],
+    [bool({ nullable: false }), bool(), "none"],
+    [bool(), bool({ nullable: false }), "none"],
     [num(), int(), "major"],
     [int(), num(), "minor"],
     [num({ minimum: 0 }), num({ minimum: 1 }), "major"],

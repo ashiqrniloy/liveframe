@@ -30,6 +30,10 @@ it can run `liveframe gen catalog.json --out ui.gen.ts [--check]` directly.
 first differing line. Invalid catalogs, JSON, usage or file operations exit 2.
 Put the check command in your CI; this repo includes it in `bun run check`.
 
+`liveframe gen` emits `| null` for schemas declaring `nullable: true`, including
+nested object properties and array items. Required nullable props still have to
+be supplied; omitting `nullable` or setting it to `false` keeps the original type.
+
 `ui.gen.ts` is executable TypeScript source. It imports `primitive` from the SDK
 and exports one component per catalog definition, with a PascalCase name and
 the definition's description. Import it by relative path. Props are readonly;

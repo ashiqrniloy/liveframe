@@ -235,6 +235,8 @@ function compareNumericSchema(before: NumericSchema, after: NumericSchema, path:
 
 /** One language schema against another: a narrowing is major, a widening is minor. */
 function compareSchemas(before: LanguageSchema, after: LanguageSchema, path: string, change: Change): void {
+  if ((before.nullable === true) !== (after.nullable === true))
+    change(before.nullable === true, `${path} nullable changed`);
   const numeric = (type: string) => type === "number" || type === "integer";
   if (before.type !== after.type) {
     change(!(before.type === "integer" && after.type === "number"), `${path} type changed`);

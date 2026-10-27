@@ -18,6 +18,9 @@ test("generated_types_reject_wrong_props", () => {
   ];
   expect(valid).toHaveLength(8);
 
+  // @ts-expect-error: non-nullable generated props reject null
+  const nullable = <Text text={null} />;
+  void nullable;
   // @ts-expect-error: raw CSS is outside the vocabulary
   const gap = <Stack gap="13px" />;
   // @ts-expect-error: variants are closed
