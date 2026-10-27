@@ -128,6 +128,7 @@ Two plans: Part A (release hardening and API freeze), then Part B (packaging, de
 ### Phase 7 — Reference hosts
 
 - **Goal:** Synapta and Clay adopt Liveframe. The migrations run in their own repos; this phase collects the gaps they report and fixes them here.
+- **0.2.0 adopter-gap release:** the [approved scope](decision-logs/2026-10-27-2028-release-0-2-0-scope-and-breaking-changes.md) includes LF-01–LF-17, CL-01–CL-09 and every backlog item the request documents raise, with LF-05 option A. Execute plans [014](plans/014-Phase-7-Part-A-Release-Scope-Packaging-And-Schema-Language.md) (scope, packaging, schema language), [015](plans/015-Phase-7-Part-B-Events-Manifests-Capabilities-And-State.md) (events, manifests, scoped state), [016](plans/016-Phase-7-Part-C-Styling-Paint-Alpha-Contrast-And-Native-Parts.md) (styling), [017](plans/017-Phase-7-Part-D-Renderer-And-Preview-Host-Integration.md) (renderer and Preview), [018](plans/018-Phase-7-Part-E-Runner-Kit-Capture-And-Authoring-Library.md) (runner kit, capture and authoring), [019](plans/019-Phase-7-Part-F-Agent-Surfaces-Conformance-Corpus-And-Engines.md) (agent surfaces, corpus and engines), then [020](plans/020-Phase-7-Part-G-Release-0-2-0.md) (audit, acceptance and release). The minor release carries the Store scope, Preview result-labeling and capture-home breaks with their migrations; custom stores must isolate scopes and fail closed.
 - **Done:** both apps render at least one production surface through Liveframe.
 
 ## 3. Execution state
@@ -152,3 +153,4 @@ One line per plan. Detail lives in the plan file, never here.
 | [011](plans/011-Phase-8-Authoring-MCP-Server.md) | 8 | complete (Tasks 1–9; findings disposed in the impact analysis and backlog) |
 | [012](plans/012-Phase-6-Part-A-Release-Hardening-And-API-Freeze.md) | 6 | complete (Tasks 1–15 and Task 14.1; findings disposed in the impact analysis and backlog) |
 | [013](plans/013-Phase-6-Part-B-Packaging-Demo-And-Release.md) | 6 | complete (Tasks 1–14; 0.1.0 published and verified; impact findings disposed) |
+| [014](plans/014-Phase-7-Part-A-Release-Scope-Packaging-And-Schema-Language.md) | 7 | in progress (0.2.0; Task 1 complete: approved scope and breaking changes) |

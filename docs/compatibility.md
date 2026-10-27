@@ -8,6 +8,20 @@ What a version bump of `@arnilo/liveframe` may change. The policy is [decision R
 - **Minor (`0.x`)** may break the public API. Every breaking change in `0.x` comes at a minor version, with a deprecation in an earlier release where that is feasible.
 - **`1.0.0`** changes the rule above: from then on a breaking change needs a major version.
 
+## 0.2.0
+
+The next planned release is 0.2.0, covering all Synapta LF-01–LF-17 and Clay CL-01–CL-09 requests and the backlog items they raise. The [scope decision and breaking-change register](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-10-27-2028-release-0-2-0-scope-and-breaking-changes.md) records the owner's approval, plan map and rationale for proceeding without an intervening 0.1.x deprecation release.
+
+The planned migrations are:
+
+- **Store:** replace `putState(placementId, state)` / `getState(placementId)` with `putState(placementId, scope, state)` / `getState(placementId, scope)`. Use `""` for shared state or an opaque host-selected scope for isolated state; pass `{ scope }` to `loadPlacement`. Update custom stores and run the scope-isolation conformance case. Unsupported scopes must fail closed, never silently share state. Placement deletion removes every scope.
+- **Preview:** supply `resultScenario` alongside each `result`, naming the scenario actually rendered. Inference from the URL is removed because it can label a tree as the wrong scenario. The optional controlled `selection`/`onSelect` mode and per-preview `urlKey` support hosts that own navigation or mount multiple previews.
+- **Capture:** use `capture` from `@arnilo/liveframe/preview/capture` with an injected backend and consume its returned `{ index, files }`. This reopens the CLI-only decision D3; 0.1.0 has no supported capture function export to deprecate. Existing CLI and MCP capture behavior is retained.
+
+Only 0.1.0 has shipped. The Store break avoids an unsafe unscoped fallback, and the Preview break removes incorrect scenario inference; the scope decision explains why each proceeds at this minor boundary. Later plans must add any further break and migration to the register and this section. Other planned additions preserve existing `/1` document meanings. These changes are not shipped yet.
+
+0.2.0 will read a 0.1.0 `fileStore` directory without export/import: `states/<id>.json` remains shared scope `""`, and non-empty scopes use `states/<id>/<scope>.json` with safe filename encoding. This does not promise that 0.1.0 can read new scoped state.
+
 ## Formats
 
 - A format's meaning never changes within its `/N` version. `liveframe/manifest/1`, `liveframe-catalog/1` and the rest keep their fields, their required keys and their validation rules for as long as they are `/1`.
