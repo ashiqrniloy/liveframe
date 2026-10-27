@@ -441,7 +441,7 @@ This plan implements spec §5 (definitions and events), §6.3 (style props), §7
     - Added the three scope conformance cases, named-scope reopen coverage and broken-adapter tests. Updated all state callers (including the demo host and integration tests), pinned exports/case counts, spec §7.4/§8, package/conformance/compatibility guides and changelog. No proof-host state caller or dependency change was needed.
     - Verification: regression tests first failed against unscoped storage and the missing helper export. Final `bun run check` passed (720 pass, 4 skip, 0 fail), including build, generation, typechecks, lint, formatting and browser tests. `bun run demo:test` passed (51 pass, 0 fail) against the packaged build. The first full check stopped at a new lint violation, which was fixed before the successful rerun. Task 9's impact sweep, benchmarks and release gate remain whole-plan work.
 
-- [ ] Task 9: Analyze architectural impact and dispose of every finding
+- [x] Task 9: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional:
       - `plans/evidence/015-impact-analysis.md` records all 12 areas.
@@ -449,7 +449,7 @@ This plan implements spec §5 (definitions and events), §6.3 (style props), §7
       - Plan 017's `checkOffered` inputs (`bindAll`, numeric and object carries) are listed as a handoff.
     - Performance: record the bench numbers.
     - Code Quality: n/a.
-    - Security: confirm that `meta` is never read by library code: `graft grep "meta"`.
+    - Security: confirm that library code never interprets `meta` to grant authority or select behaviour: `graft grep "meta"`. Validation, hashing, transport and opt-in MCP exposure inspect/copy it as Task 1 requires.
   - Approach:
     - Skills to Use:
       - `create-plan`; `liveframe-execution`.
@@ -464,9 +464,15 @@ This plan implements spec §5 (definitions and events), §6.3 (style props), §7
     - API Notes and Examples:
       - n/a.
     - Files to Create/Edit:
-      - `plans/evidence/015-impact-analysis.md` (new); `plans/backlog.md`; this plan.
+      - `plans/evidence/015-impact-analysis.md` (new); `plans/evidence/015-task-9/bench.log` (new); `plans/backlog.md`; `roadmap.md` §3; this plan.
   - Test Cases to Write:
     - None.
+  - Notes (executed 2026-10-28):
+    - Completed [the twelve-area impact analysis](evidence/015-impact-analysis.md) against Tasks 1–8 and the accepted decisions. No new implementation gap or normative decision was found. Clarified the audit's metadata wording: the library validates, hashes and transports annotations, but never interprets them as authority or behaviour.
+    - Presented the disposition table to the owner. F1 retains the already owner-approved P1 performance backlog: render's separate validation diagnostic exceeds its reservation on some trees despite passing standalone-validator and total-render gates. Added measurements and this plan's source to the existing backlog entry; no new exception, threshold change or deferral was requested.
+    - Recorded the existing approved handoffs: plan 017 Tasks 1–2 must check numeric/object carries, `bindAll`, completed target bounds and exact literals under the structural-fit rule; plan 019 Task 4 supplies corpus coverage; plan 020 owns consolidated release/migration notes and native accessibility audit. These remain scheduled release work, not delivery claims from this plan.
+    - Whole-plan verification passed sequentially on Bun 1.4.4: `bun run check` (720 pass, 4 skip, 0 fail), `bun run bench`, `bun run release:gate` (8 steps) and `bun run demo:test` (51 pass). Complete bench output and regeneration command are linked in the analysis. Standalone validation was 0.864–1.366 µs/node; render 1.581–2.346 µs/node; agent-home 1.3131 ms; CSS declarations 0.369 µs/node. No benchmark retry or threshold change.
+    - Updated roadmap §3 for this plan only. Existing unrelated index, roadmap and later-plan edits were preserved.
 
 ## Verification (whole plan)
 - `bun run check`
@@ -475,7 +481,8 @@ This plan implements spec §5 (definitions and events), §6.3 (style props), §7
 - `bun run demo:test`
 
 ## Compromises Made
-- To be filled after tasks are completed and tests pass.
+- No new compromise accepted during close-out. Object carries deliberately remain scalar-only and at most 32 properties under Task 1's approved scope. Proof vocabulary copies remain independent of `src/`, with drift tests; catalog-independent renderer suites use supplied fixtures rather than prescribing app primitive mappings.
+- Passing benchmark gates do not establish the render diagnostic's reserved validation split or resolve historical timing variance (F1). Native platform/AT behaviour and production adopter integration remain unproved by these library tests.
 
 ## Further Actions
-- To be filled after task completion with improvements, rationale, and priority.
+- **P1 — retain the existing performance investigation (F1).** Profile/compare under controlled conditions before claiming the reserved validation split or closing historical variance. Updated the existing “Phase 1 performance gate: 3 µs per node” entry in [the backlog](backlog.md); budgets are unchanged. Existing approved release-integration handoffs are listed in [the analysis](evidence/015-impact-analysis.md#existing-handoffs).
