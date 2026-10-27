@@ -203,11 +203,11 @@ because the prop's schema rejects the value first.
 generator implementation and element branding helpers are internal.
 
 The complete example is checked verbatim and rendered by
-[`sdk-guide.test.ts`](../src/__tests__/sdk-guide.test.ts). Error examples and ids
-are exercised by [`sdk-render.test.tsx`](../src/__tests__/sdk-render.test.tsx).
-[`sdk-inputs.test.tsx`](../src/__tests__/sdk-inputs.test.tsx) covers frozen inputs,
+[`sdk-guide.test.ts`](https://github.com/ashiqrniloy/liveframe/blob/main/src/__tests__/sdk-guide.test.ts). Error examples and ids
+are exercised by [`sdk-render.test.tsx`](https://github.com/ashiqrniloy/liveframe/blob/main/src/__tests__/sdk-render.test.tsx).
+[`sdk-inputs.test.tsx`](https://github.com/ashiqrniloy/liveframe/blob/main/src/__tests__/sdk-inputs.test.tsx) covers frozen inputs,
 identity caching, schema errors and determinism;
-[`sdk-gen-types.test.tsx`](../src/__tests__/sdk-gen-types.test.tsx) checks generated
+[`sdk-gen-types.test.tsx`](https://github.com/ashiqrniloy/liveframe/blob/main/src/__tests__/sdk-gen-types.test.tsx) checks generated
 props and carried-value intents. CLI and drift behavior are covered by
-[`sdk-gen.test.ts`](../src/__tests__/sdk-gen.test.ts). These tests use local
+[`sdk-gen.test.ts`](https://github.com/ashiqrniloy/liveframe/blob/main/src/__tests__/sdk-gen.test.ts). These tests use local
 fixtures; no screenshot or browser renderer is needed.

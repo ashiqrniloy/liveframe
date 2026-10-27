@@ -1,8 +1,27 @@
 import { expect, test } from "bun:test";
 import { Ajv2020 } from "ajv/dist/2020.js";
-import { arr, bool, checkValue, type Infer, int, isLanguageSchema, num, obj, str } from "../index.ts";
+import {
+  arr,
+  bool,
+  checkValue,
+  type Infer,
+  int,
+  isLanguageSchema,
+  type LanguageSchema,
+  num,
+  obj,
+  str,
+} from "../index.ts";
 
 const ajv = new Ajv2020({ strict: true, unicodeRegExp: true, ownProperties: true });
+
+test("boolean_schema_annotations_have_public_types", () => {
+  const schema: LanguageSchema = { type: "boolean", description: "Enabled", deprecated: false };
+  const annotations = (value: LanguageSchema) => [value.description, value.deprecated];
+  expect(annotations(schema)).toEqual(["Enabled", false]);
+  expect(isLanguageSchema(schema)).toBe(true);
+  expect(checkValue(schema, true).ok).toBe(true);
+});
 
 test("language_rejects_unbounded_and_open_schemas", () => {
   for (const schema of [

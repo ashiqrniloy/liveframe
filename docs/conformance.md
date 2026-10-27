@@ -192,7 +192,7 @@ and bounded `details` (strings or `LiveframeError` entries). Report all three;
 validation diagnostics include JSON pointers. Fix the named implementation or
 missing fixture instead of filtering out a case to get a pass.
 
-[`conformance-guide.test.ts`](../src/__tests__/conformance-guide.test.ts) compiles
+[`conformance-guide.test.ts`](https://github.com/ashiqrniloy/liveframe/blob/main/src/__tests__/conformance-guide.test.ts) compiles
 and registers the data examples against the memory store and shared proof data,
 checks the documented snippets against their executable sources, runs the
 server cases and hydrates the documented page entry in Chromium. The dedicated

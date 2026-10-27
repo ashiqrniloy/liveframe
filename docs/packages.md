@@ -237,7 +237,8 @@ objects when their contracts change.
 - `workerRunner({ timeoutMs?, maxPackages? })` serializes requests in one lazy
   worker, with a
   default 100 ms deadline including startup. Per-render `timeoutMs` overrides
-  that default. Timeout terminates the worker and returns `limit-exceeded`;
+  that default. The effective timeout also applies to module evaluation and rendering inside the worker.
+  Timeout terminates the worker and returns `limit-exceeded`;
   crashes return `render-failed`. The next request starts a fresh worker.
   Inputs and trees cross by structured clone. Call `close()` to release it;
   active, queued and future requests then settle as `render-failed`.
@@ -269,7 +270,7 @@ not permission to run widgets in a browser.
 
 ## Executable proof
 
-[`phase-2-loop.test.ts`](../src/__tests__/phase-2-loop.test.ts) runs this guide's
+[`phase-2-loop.test.ts`](https://github.com/ashiqrniloy/liveframe/blob/main/src/__tests__/phase-2-loop.test.ts) runs this guide's
 code block verbatim with the agent-home fixture, then independently proves
 reproducible packing, persistence through a fresh file store and parity with
 direct SDK rendering through both runners. It covers every proof scenario,

@@ -150,7 +150,7 @@ The [spec](docs/spec.md#13-tech-stack-and-packages) defines each subpath's contr
 `liveframe mcp` is an [MCP](https://modelcontextprotocol.io) server over stdio that lets a coding agent read your catalog, write a draft widget and look at its renders. It is authoring only: no tool installs, places or approves a widget, or runs an action.
 
 1. Install the optional peers: `bun add -d @modelcontextprotocol/server`, and `bunx playwright install chromium` if the agent should capture screenshots.
-2. Write a config module that default-exports an `AuthoringConfig` (your `catalog`, `capabilities`, `runner` and, for captures, a `preview(binding)` that starts your `<Preview>` page). [`examples/demo-host/mcp.config.ts`](examples/demo-host/mcp.config.ts) is a working one.
+2. Write a config module that default-exports an `AuthoringConfig` (your `catalog`, `capabilities`, `runner` and, for captures, a `preview(binding)` that starts your `<Preview>` page). [`examples/demo-host/mcp.config.ts`](https://github.com/ashiqrniloy/liveframe/blob/main/examples/demo-host/mcp.config.ts) is a working one.
 3. Register it with the agent. For Claude Code, put this in `.mcp.json` in your app; Claude Desktop and other clients use the same `mcpServers` shape in their own config file:
 
 ```json
@@ -185,7 +185,7 @@ bun install
 bun run check   # build, generated output, typecheck, lint, format, tests
 ```
 
-Repository layout, roadmap and plans: [`roadmap.md`](roadmap.md), [`plans/`](plans/README.md). Contributing with agents: [`AGENTS.md`](AGENTS.md). Security reports: [`SECURITY.md`](SECURITY.md).
+Repository layout, roadmap and plans: [`roadmap.md`](https://github.com/ashiqrniloy/liveframe/blob/main/roadmap.md), [`plans/`](https://github.com/ashiqrniloy/liveframe/blob/main/plans/README.md). Contributing with agents: [`AGENTS.md`](https://github.com/ashiqrniloy/liveframe/blob/main/AGENTS.md). Security reports: [`SECURITY.md`](SECURITY.md).
 
 ## License
 

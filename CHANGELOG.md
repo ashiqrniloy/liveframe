@@ -2,6 +2,13 @@
 
 All notable changes to `@arnilo/liveframe` are recorded here. The project follows the compatibility policy in [`docs/compatibility.md`](docs/compatibility.md).
 
+## 0.1.0-rc.4 — 2026-10-27
+
+Restore boolean schema annotation types, apply a worker's configured timeout to
+its inner evaluation and render, and repair links to repository-only files in
+the installed guides. Check links against the packed file list. Run repository
+benchmarks with the source module condition so they share one validator graph.
+
 ## 0.1.0-rc.3 — 2026-10-27
 
 Add a shipped agent walkthrough for the demo's independent CLI preview binding,

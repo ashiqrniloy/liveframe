@@ -144,7 +144,7 @@ export function workerRunner(defaults: { timeoutMs?: number; maxPackages?: numbe
               validate: (result) => validateResult(result, pkg, options),
             };
             try {
-              send(pkg, inputs, options, id);
+              send(pkg, inputs, { ...options, timeoutMs }, id);
             } catch (error) {
               stop("render-failed", reason(error));
             }

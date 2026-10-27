@@ -29,6 +29,25 @@ function withCode(code: string): WidgetPackage {
   return { ...pkg, hash: packageHash(pkg) };
 }
 
+test("worker_constructor_timeout_reaches_render", async () => {
+  const runner = workerRunner({ timeoutMs: 10000 });
+  const slow = withCode(
+    simpleCode.replace(
+      'text: "ok"',
+      'text: String((() => { const start = Date.now(); while (Date.now() - start < 150) {} return "ok"; })())',
+    ),
+  );
+  try {
+    expect((await runner.render(slow, inputs, options)).ok).toBe(true);
+    expect(await runner.render(slow, inputs, { ...options, timeoutMs: 50 })).toMatchObject({
+      ok: false,
+      errors: [{ kind: "limit-exceeded" }],
+    });
+  } finally {
+    runner.close();
+  }
+}, 30000);
+
 test("worker_matches_render", async () => {
   const runner = workerRunner({ timeoutMs: 2000 });
   try {

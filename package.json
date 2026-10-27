@@ -1,6 +1,6 @@
 {
   "name": "@arnilo/liveframe",
-  "version": "0.1.0-rc.3",
+  "version": "0.1.0-rc.4",
   "description": "Runtime-composable UI: primitives, design-system recipes and TSX widgets that change an app's UI without a deployment.",
   "type": "module",
   "license": "MIT",
@@ -120,7 +120,7 @@
   },
   "scripts": {
     "build": "bun scripts/build.ts",
-    "bench": "bun bench/validator.bench.ts && bun bench/render.bench.ts && bun bench/css.bench.ts",
+    "bench": "bun --conditions liveframe:source bench/validator.bench.ts && bun --conditions liveframe:source bench/render.bench.ts && bun --conditions liveframe:source bench/css.bench.ts",
     "proof": "bun proof/host/server.ts",
     "test": "bun test --conditions liveframe:source src proof",
     "typecheck": "tsc --noEmit && tsc --noEmit -p proof",

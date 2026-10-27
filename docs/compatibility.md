@@ -1,10 +1,10 @@
 # Compatibility
 
-What a version bump of `@arnilo/liveframe` may change. The policy is [decision R15](../decision-logs/2026-10-25-0231-release-0-1-0-hardening-and-api-freeze.md); the formats themselves are normative in the [spec](spec.md).
+What a version bump of `@arnilo/liveframe` may change. The policy is [decision R15](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-10-25-0231-release-0-1-0-hardening-and-api-freeze.md); the formats themselves are normative in the [spec](spec.md).
 
 ## Versions
 
-- **Patch (`0.1.x`)** never breaks the public API, the formats or the on-disk `fileStore` layout. Bug fixes, documentation and widening a peer range (only with the proof the [release task](../plans/013-Phase-6-Part-B-Packaging-Demo-And-Release.md) describes) can ship here.
+- **Patch (`0.1.x`)** never breaks the public API, the formats or the on-disk `fileStore` layout. Bug fixes, documentation and widening a peer range (only with the proof the [release task](https://github.com/ashiqrniloy/liveframe/blob/main/plans/013-Phase-6-Part-B-Packaging-Demo-And-Release.md) describes) can ship here.
 - **Minor (`0.x`)** may break the public API. Every breaking change in `0.x` comes at a minor version, with a deprecation in an earlier release where that is feasible.
 - **`1.0.0`** changes the rule above: from then on a breaking change needs a major version.
 

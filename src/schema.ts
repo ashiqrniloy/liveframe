@@ -10,6 +10,7 @@ type NumberOptions = Annotations & { readonly minimum?: number; readonly maximum
 
 type StringSchema = Annotations & { readonly type: "string" } & StringOptions;
 type NumericSchema = Annotations & { readonly type: "number" | "integer" } & NumberOptions;
+type BooleanSchema = Annotations & { readonly type: "boolean" };
 type ArraySchema = Annotations & {
   readonly type: "array";
   readonly items: LanguageSchema;
@@ -22,7 +23,7 @@ type ObjectSchema = Annotations & {
   readonly additionalProperties: false;
 };
 
-export type LanguageSchema = StringSchema | NumericSchema | { readonly type: "boolean" } | ArraySchema | ObjectSchema;
+export type LanguageSchema = StringSchema | NumericSchema | BooleanSchema | ArraySchema | ObjectSchema;
 
 export type Infer<S> = S extends { readonly type: "string"; readonly enum: readonly (infer E)[] }
   ? E

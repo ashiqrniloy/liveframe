@@ -603,19 +603,33 @@ This plan implements the remainder of roadmap Phase 6 (the first release), under
     - Skills to Use:
       - `verify-and-stop`, `code-review`, `security-review`, `graft`.
     - Library Documentation to Check Before Implementation:
-      - none.
+      - Bun 1.4.2 runtime custom export conditions (`--conditions`), for N4's split source/build benchmark graph.
     - Documentation Reviewed:
       - `plans/evidence/012-release-readiness-review.md`, `plans/evidence/012-impact-analysis.md`, every plan 013 task's Notes.
+      - Context7 `/oven-sh/bun/bun-v1.4.2`, runtime module-resolution docs: `bun --conditions="name" ./file.ts` selects the matching package export condition. [Official source](https://github.com/oven-sh/bun/blob/bun-v1.4.2/docs/runtime/module-resolution.mdx); local lookup logs under `evidence/013-task-12/`.
     - Options Considered:
       - Rely on the two impact analyses — rejected (owner instruction): a dedicated review just before release must check every item.
     - Chosen Approach:
       - The original review's checklist, completed row by row, plus a fresh sweep.
+      - Fix fresh findings at their owning layer with focused regressions before replacement-candidate verification: preserve annotations on boolean schema types, check documentation links against the packed file list and link unshipped source material to GitHub, forward the effective worker timeout to its inner render, and apply the repository's source condition to benchmark commands. These restore existing contracts; they do not change the spec's meaning.
     - API Notes and Examples:
       - n/a.
     - Files to Create/Edit:
       - `plans/evidence/012-release-readiness-review.md` (fill the status column; append a "Pre-release review" section with commands, outputs and the owner's answer).
+      - Fresh-finding fixes: `src/schema.ts`, `src/preview/worker/index.ts`; `src/__tests__/schema.test.ts`, `src/__tests__/docs-links.test.ts`, `src/__tests__/runner-worker.test.ts`; `README.md`, `docs/sdk.md`, `docs/renderer.md`, `docs/packages.md`, `docs/conformance.md`, `docs/compatibility.md`.
+      - Execution state: this plan and `roadmap.md`; replacement-candidate metadata (`package.json`, `CHANGELOG.md`, demo dependency) only after the fixes are verified.
   - Test Cases to Write:
-    - None. The review re-runs every existing gate.
+    - Re-run every existing gate; add only regressions for fresh findings.
+    - `boolean_schema_annotations_have_public_types`: an annotated boolean literal is a `LanguageSchema`, both annotation properties are readable on the union, and runtime validation accepts it. Typecheck must fail before N1's fix.
+    - `docs_links_resolve`: extend the existing test to require every relative target in shipped Markdown to exist in the packed file list, not only the checkout. It must reject the 14 missing archive targets before N2's fix.
+    - `worker_constructor_timeout_reaches_render`: a 150 ms widget succeeds under the constructor's longer default; a shorter per-render override still times out. The first assertion fails with the current hidden 100 ms inner default (N3).
+  - Notes (review executed 2026-10-27; completion pending):
+    - Reviewed registry candidate `0.1.0-rc.3` at `a62c70a`; local `8735b8d` has identical `src/`, schemas, shipped docs and root package metadata. The approved history rewrite maps original review baseline `f253c21` to `a487973` (`.git/filter-repo/commit-map`), so the fresh source sweep covers the correct 73 changed source/test/fixture paths. The frozen public-surface baseline is plan 012 completion `700fe68`.
+    - Filled all 38 original `Pre-release status` cells in [the readiness review](evidence/012-release-readiness-review.md): 36 fixed with concrete tests/docs/evidence and two existing owner-approved deferrals (T3, G29). Historical CI proof is explicitly distinguished from fresh local failures; no failed gate is waived by a row's fixed status.
+    - Fixed four new findings: N1 restores boolean schema annotation types (the rc.3 consumer failed TS2353/TS2339); N2 replaces 14 links to unshipped files with public repository links and extends the link test to the packed file list; N3 forwards the effective worker timeout to module evaluation/render; N4 adds the source condition to benchmark commands, which otherwise crash with `Unknown validator` across the split source/build graph. These restore existing contracts; spec meaning and runtime authority are unchanged.
+    - Focused schema/docs/worker tests: 24 pass, zero fail, 741 assertions; `tsc --noEmit` passes. All six readiness probes pass on a bounded replay; an independent rc.3 install passes the browser bundle, strict consumer and six Node entry points. Before fixes, all 81 declaration files and 15 export paths matched the freeze; N1 deliberately restores the omitted annotation type and requires a separately reviewed declaration delta.
+    - `bun audit`: no vulnerabilities in 94 packages. Initial full check and coverage hit their 900 s deadlines under load (both logs retained); initial benchmark runs failed with worst validator 80.722 / 20.023 / 4.849 µs/node against ≤ 1.5, and were not idle-machine proofs. The fixed benchmark reaches all render workloads without the module-graph crash, but timing gates remain red on this host. A fresh full check against the fixes is running. Complete command results are in the review; local scripts/logs stay ignored under `evidence/013-task-12/`.
+    - Prepared `0.1.0-rc.4` and its changelog for replacement-candidate verification. The demo dependency stays on the published rc.3 until rc.4 exists; it must then be installed and tested from the registry. Task 12 remains unchecked until replacement-candidate verification, all required gates (or the specifically permitted owner exceptions) and the owner's verbatim go/no-go are recorded. Reviewer recommendation remains no-go pending those items; Task 13's final release has not been performed.
 
 - [ ] Task 13: Publish 0.1.0
   - Acceptance Criteria:

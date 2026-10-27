@@ -319,7 +319,7 @@ render failure shows `fallback` at that node; healthy siblings remain visible.
 
 React documents [error-boundary limitations](https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary)
 and [matching hydration output](https://react.dev/reference/react-dom/client/hydrateRoot#caveats).
-The executable example is [renderer-guide.tsx](../src/__tests__/fixtures/renderer-guide.tsx);
+The executable example is [renderer-guide.tsx](https://github.com/ashiqrniloy/liveframe/blob/main/src/__tests__/fixtures/renderer-guide.tsx);
 its test checks that this page includes it verbatim, validates its tree and checks
 server markup and invalid-tree fallback. Existing renderer browser tests exercise
 hydration, state retention, overlays and switching.
