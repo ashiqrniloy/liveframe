@@ -396,6 +396,8 @@ type Scenario = {
 
 Packages carry 1…64 scenarios with unique, non-empty names of at most 128 Unicode code points. Code is bounded to 1 MiB (1,048,576 UTF-8 bytes). The published JSON Schema also caps code at 1,048,576 code points; the structural validator enforces the byte bound and unique scenario names, which standard JSON Schema cannot express.
 
+Optionally, the root `sourceOutcome(result)` helper declares the generic `ok` (required `value`, optional `checkedAt` bounded to 128 code points) and `unauthorized|unavailable|stale|failed` (optional `reason` bounded to 500 code points and optional `value`) union on `status`; `/pack`'s `outcomeScenarios(scenario, { source, manifest, capabilities })` returns `Result<readonly Scenario[]>`, expanding a declared source alias into `<name>.<status>` fixtures using the seed envelope's valid `value` for `ok` and status-only failure envelopes, with typed errors for unknown sources, schemas outside this convention, invalid seeds or generated names, while `pack()` retains all scenario checks.
+
 `pack()`:
 
 - checks the manifest: its `catalogId` is the catalog's, its schemas are well formed, and its initial state matches its state schema;

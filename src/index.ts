@@ -21,6 +21,7 @@ export {
   type LanguageSchema,
   num,
   obj,
+  sourceOutcome,
   str,
   union,
 } from "./schema.ts";

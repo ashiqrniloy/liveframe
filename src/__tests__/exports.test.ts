@@ -232,6 +232,7 @@ test("root_export_surface", () => {
       "union",
       "num",
       "obj",
+      "sourceOutcome",
       "recipeProperties",
       "resolveRecipes",
       "semantics",
@@ -297,7 +298,13 @@ test("subpath_export_surfaces", () => {
   expect(Object.keys(fileStore).sort()).toEqual(["fileStore"]);
   expect(Object.keys(preview).sort()).toEqual(["createPreview", "inProcessRunner"]);
   expect(Object.keys(worker).sort()).toEqual(["workerRunner"]);
-  expect(Object.keys(pack).sort()).toEqual(["pack", "validateScenario", "validateWidgetPackageShape", "verifyPackage"]);
+  expect(Object.keys(pack).sort()).toEqual([
+    "outcomeScenarios",
+    "pack",
+    "validateScenario",
+    "validateWidgetPackageShape",
+    "verifyPackage",
+  ]);
   expect(Object.keys(store).sort()).toEqual([
     "loadPlacement",
     "memoryStore",

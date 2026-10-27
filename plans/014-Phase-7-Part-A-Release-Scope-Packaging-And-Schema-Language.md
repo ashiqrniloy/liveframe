@@ -346,12 +346,12 @@ This plan implements roadmap Phase 7 ("collects the gaps they report and fixes t
     - Verification: the new tests failed before the union export existed. All 10 focused regressions pass; a separate TypeScript compile of generated output proves narrowing, tag/payload agreement and readonly tags. Final `bun run check` passed on pinned Bun 1.4.2 (664 passed, 4 skipped, 0 failed). The final type-only numeric-key regression additionally passed the focused tests, build, typecheck, lint, format check and generated-fixture check. `git diff --check` passed; refreshed the local graft graph. The first full check had 662 passes, 4 skips and one existing CSS blur-switch timing failure (34.5 ms against 16.67 ms); that unchanged test passed in isolation (maximum 15.9 ms). No timing limit or test was relaxed.
     - Performance limitation: isolated validator runs on pinned Bun 1.4.2 still exceed the existing budget: the 679-node case measured 2.558 µs/node (≤ 1.5 required), while an isolated unchanged HEAD (`24f31d3`) also failed at 2.111 µs/node. Other fixture results vary in both directions. The new 500-element mixed-feed case measured 0.0444 ms total (0.089 µs/element), compiling outside timing and asserting rejection of an unknown tag. As in Tasks 4–5, a green validator benchmark and stable-environment performance verification remain outstanding; no benchmark threshold or runtime setting was changed.
 
-- [ ] Task 7: Ship the source-outcome envelope (LF-12)
+- [x] Task 7: Ship the source-outcome envelope (LF-12)
   - Acceptance Criteria:
     - Functional:
       - `sourceOutcome(result)` returns a discriminated-union schema: `ok` → `{ value, checkedAt? }`, and `unauthorized|unavailable|stale|failed` → `{ reason?, value? }`. `reason` is bounded (≤ 500 code points). `checkedAt` is a bounded string.
       - Its output passes `isLanguageSchema` and the published capabilities schema.
-      - `outcomeScenarios(scenario, { source })` returns one scenario per status, named `<scenario>.<status>`, with that source's data replaced by a minimal valid envelope. It returns typed errors if the source is undeclared or not built by `sourceOutcome`.
+      - `outcomeScenarios(scenario, { source, manifest, capabilities })` returns one scenario per status, named `<scenario>.<status>`, with that source's data replaced by a minimal valid envelope. It resolves the manifest's source alias to its capability and returns typed errors if the source is undeclared or its schema does not match `sourceOutcome`. The seed envelope must contain a valid `value` for `ok`; failures contain only their status.
       - A preview-session test renders the generated scenarios through `check()`.
       - `docs/formats.md` documents the envelope as an optional convention.
     - Performance: n/a — install-time helpers. They are pure and deterministic.
@@ -369,22 +369,30 @@ This plan implements roadmap Phase 7 ("collects the gaps they report and fixes t
       - A format change that adds an envelope to capabilities — rejected: LF-12 says no format change is needed once LF-04 lands.
       - MCP auto-expansion — deferred to the authoring library (plan 018), which calls `outcomeScenarios`. Recorded there.
     - Chosen Approach:
-      - Two pure helpers and docs.
+      - Two pure helpers and docs. Scenario data alone carries neither declarations nor schemas, so expansion takes the manifest's source declarations and capabilities. Recognize the ordinary schema shape structurally (including after JSON serialization), reuse a validated seed payload rather than inventing arbitrary values, and validate generated scenario structure; packing still checks the complete inputs.
     - API Notes and Examples:
       ```ts
       sources: { queue: { params, result: sourceOutcome(arr(row, { maxItems: 50 })) } }
-      outcomeScenarios(scenarios[0], { source: "queue" }) // → [..."full.unauthorized", "full.stale", …]
+      outcomeScenarios(scenarios[0], { source: "queue", manifest, capabilities }) // Result<readonly Scenario[]>
       ```
     - Files to Create/Edit:
       - `src/schema.ts` or `src/formats/outcome.ts` (new; tentative — keep it beside `union` if it is under 30 lines)
       - `src/index.ts`; `src/pack/index.ts`; `src/pack/outcome.ts` (new)
       - `src/__tests__/exports.test.ts`
+      - `src/__tests__/outcome.test.ts` (new); `src/__tests__/preview-session.test.ts`
       - `docs/formats.md`; `docs/packages.md`; `docs/spec.md` §7.3 (one sentence on optional expansion)
   - Test Cases to Write:
     - `source_outcome_is_language_schema`.
     - `outcome_scenarios_one_per_status`.
     - `outcome_scenarios_reject_unknown_source`.
     - `preview_checks_generated_outcomes` (`preview-session.test.ts`).
+
+  - Notes (executed 2026-10-28):
+    - Added root-exported `sourceOutcome(result)` beside `union()`: `ok` requires the original payload and permits `checkedAt` up to 128 code points; the four generic failure statuses permit the payload and a reason up to 500 code points. The helper preserves payload inference and emits ordinary closed union schemas accepted by install validation and the published capabilities meta-schema. No format id, generated schema, dependency or export-map change was needed.
+    - Added `/pack`'s `outcomeScenarios`, returning bounded typed errors and five deterministic named scenarios. Clarified the plan's incomplete example: expansion needs manifest source declarations and capabilities to resolve an alias and inspect its schema. Recognition uses the existing canonical JSON helper and survives serialization without hidden metadata. A valid seed envelope must contain a payload for `ok`; failures use minimal status-only envelopes. Other sources, params, context and optional state are preserved. Invalid seeds, unknown declarations, non-envelope schemas and overlong generated names fail closed; `pack()` retains complete input validation.
+    - Updated the formats and packages guides and spec §7.3 to document the optional convention and concrete expansion contract. LF-12 closes without adding host authority, automatic data resolution or product-specific statuses. MCP auto-expansion remains in plan 018 as planned; Task 8's whole-plan impact review remains outstanding.
+    - Verification: the new regression initially failed because the helper export did not exist. All 28 focused outcome, preview-session and export tests passed after implementation; the real preview session packs all five generated scenarios and renders their statuses through `check()`. Final `bun run check` passed on project-pinned Bun 1.4.2 (669 passed, 4 skipped, 0 failed), including build, generated-fixture check, typecheck, lint, formatting and the full browser suite. `git diff --check` passed.
+    - Earlier full checks encountered existing timing instability: one run had 668 passes and the unchanged five-second `missing_browser_fixtures_fail_with_the_named_rule` timeout; that case passed in isolation at 4.81 seconds. Another run had 667 passes and two unchanged CSS switch timing failures under concurrent machine load. Both CSS gates and the browser-fixture case passed in the final full check without changing code, test limits or runtime settings. Whole-plan benchmarks and the release gate were not rerun for this install-time-helper task; their earlier recorded performance limitations remain for Task 8.
 
 - [ ] Task 8: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:

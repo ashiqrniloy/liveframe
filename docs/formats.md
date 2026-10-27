@@ -454,6 +454,29 @@ validateCapabilities(capabilities);
 
 Each map holds at most 512 entries. Names start with a lowercase letter and contain letters or digits, optionally separated into dot segments (`tasks.queue`); names are at most 128 characters. Descriptions are at most 500 code points. `confirm` is optional descriptive metadata. Capabilities carry no authority: the host authorises every read and action as the viewer and re-checks action arguments on dispatch.
 
+### Optional source outcomes
+
+`sourceOutcome(result)` from `@arnilo/liveframe` wraps any result schema in a
+discriminated union on `status`. This is an optional convention, with no new
+format fields or authority: the host still resolves each source as the viewer.
+
+```ts
+import { arr, obj, sourceOutcome, str } from "@arnilo/liveframe";
+
+const result = sourceOutcome(arr(obj({ title: str({ maxLength: 200 }) }), { maxItems: 50 }));
+const sources = { queue: { description: "Queue", params: obj({}), result } };
+```
+
+| Status | Payload |
+| --- | --- |
+| `ok` | Required `value` matching `result`; optional `checkedAt`, a string of at most 128 code points |
+| `unauthorized`, `unavailable`, `stale`, `failed` | Optional `reason` (at most 500 code points) and optional `value` matching `result` |
+
+All branches are closed objects. `checkedAt` is host-provided text; the helper
+does not parse dates. `Infer` retains the result's value type and narrows by
+status. Existing source schemas can keep their own shapes. Use
+[`outcomeScenarios`](packages.md#scenarios-and-import-rules) to preview each status.
+
 ## Manifest
 
 `validateManifest(doc, { catalog, capabilities })` takes an installed, validated catalog and capabilities. It checks the catalog identity, declared operations, initial state and source parameter bindings. The result preserves the original document on success and reports up to 20 errors with JSON pointers on failure.

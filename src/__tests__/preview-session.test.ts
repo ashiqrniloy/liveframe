@@ -1,6 +1,14 @@
 import { expect, test } from "bun:test";
-import type { Intent, Result, UiTree } from "@arnilo/liveframe";
-import { pack } from "@arnilo/liveframe/pack";
+import {
+  type Intent,
+  type Result,
+  type UiTree,
+  arr,
+  obj,
+  sourceOutcome,
+  validateCapabilities,
+} from "@arnilo/liveframe";
+import { outcomeScenarios, pack } from "@arnilo/liveframe/pack";
 import { createPreview, inProcessRunner, type Runner } from "@arnilo/liveframe/preview";
 import { workerRunner } from "@arnilo/liveframe/preview/worker";
 import type { WidgetProps } from "@arnilo/liveframe/sdk";
@@ -156,6 +164,45 @@ test("check_renders_every_scenario_without_changing_current_state", async () => 
   value(await session.intent({ type: "setState", key: "selected", value: "next" }));
   expect(calls.at(-1)?.inputs.state).toEqual({ selected: "next", query: "kept" });
   expect(calls.at(-1)?.inputs.context).toEqual({ size: "full" });
+});
+
+test("preview_checks_generated_outcomes", async () => {
+  const capabilities = value(
+    validateCapabilities({
+      ...packageOptions.capabilities,
+      sources: {
+        ...packageOptions.capabilities.sources,
+        "queue.items": { description: "Items", params: obj({}), result: sourceOutcome(arr(obj({}), { maxItems: 10 })) },
+      },
+    }),
+  );
+  const manifest = { ...base.manifest, sources: { items: { source: "queue.items", params: {} } } };
+  const scenarios = value(
+    outcomeScenarios(
+      {
+        ...draft.scenarios[0]!,
+        data: { items: { status: "ok", value: [] } },
+      },
+      { source: "items", manifest, capabilities },
+    ),
+  );
+  const session = createPreview({ ...packageOptions, capabilities, runner: inProcessRunner() });
+  value(
+    session.update({
+      ...draft,
+      manifest,
+      scenarios,
+      files: {
+        "entry.ts":
+          'import { primitive } from "@arnilo/liveframe/sdk"; import { jsx } from "@arnilo/liveframe/sdk/jsx-runtime"; const Text = primitive("text"); export default ({data}) => jsx(Text, {text: data.items.status});',
+      },
+    }),
+  );
+  const checked = value(await session.check());
+  expect(checked.map((entry) => entry.scenario)).toEqual(scenarios.map((entry) => entry.name));
+  for (const entry of checked) {
+    expect(value(entry.result).root.props.text).toBe(entry.scenario.slice("first.".length));
+  }
 });
 
 test("every_proof_scenario_passes_check", async () => {

@@ -99,6 +99,35 @@ must fit their manifest schemas; data must contain exactly the manifest's source
 keys and fit the capabilities' source result schemas. Packing checks scenarios
 without rendering them. Render each scenario separately to check its UI.
 
+For a source using the optional [`sourceOutcome`](formats.md#optional-source-outcomes)
+convention, expand a seed scenario before packing:
+
+```ts
+import { outcomeScenarios } from "@arnilo/liveframe/pack";
+
+const expanded = outcomeScenarios(
+  { name: "full", params: {}, context: {}, data: { queue: { status: "ok", value: [] } } },
+  { source: "queue", manifest, capabilities },
+);
+if (!expanded.ok) throw new Error(JSON.stringify(expanded.errors));
+// Pass expanded.value as the draft's scenarios to pack() or preview.update().
+```
+
+`source` is the manifest's local alias; `manifest` supplies its `sources` map,
+and `capabilities` supplies the result schema. The helper returns
+`Result<readonly Scenario[]>` in the order `ok`, `unauthorized`, `unavailable`,
+`stale`, `failed`, named `full.ok`, `full.unauthorized`, and so on. It preserves
+params, context, optional state and every other source. It reuses the seed's
+validated `value` for `ok` and emits only `status` for each failure. The seed
+must be a valid envelope containing a `value`, including when its status is a
+failure; the helper does not invent a payload for arbitrary schemas.
+
+Unknown aliases or capabilities return `unknown-name` at `/source`. A result
+schema outside the helper's exact shape returns `invalid-document` there;
+recognition survives JSON serialization. Invalid seed data and generated names
+also return typed errors. Nothing is resolved or authorized, and expansion does
+not replace `pack()`'s complete scenario checks or its 64-scenario limit.
+
 Packing transpiles reachable TS/TSX files and links relative imports into one
 ES module. Only `@arnilo/liveframe/sdk`, `/sdk/jsx-runtime` and
 `/sdk/jsx-dev-runtime` may remain as imports. Non-SDK imports and re-exports,

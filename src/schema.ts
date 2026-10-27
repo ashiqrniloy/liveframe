@@ -100,6 +100,18 @@ export function union<
   return { ...(annotations as Pick<A, keyof A & keyof Annotations>), discriminator, mapping } as const;
 }
 
+/** Optional convention for outcomes resolved by the host, without granting authority. */
+export function sourceOutcome<const S extends LanguageSchema>(result: S) {
+  const failure = obj({}, { reason: str({ maxLength: 500 }), value: result });
+  return union("status", {
+    ok: obj({ value: result }, { checkedAt: str({ maxLength: 128 }) }),
+    unauthorized: failure,
+    unavailable: failure,
+    stale: failure,
+    failed: failure,
+  });
+}
+
 // Publishing-only forms; these are deliberately outside the author schema language.
 export function literal<const T extends string | number | boolean | null>(value: T) {
   return { const: value } as const;
