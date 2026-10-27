@@ -22,6 +22,17 @@ Only 0.1.0 has shipped. The Store break avoids an unsafe unscoped fallback, and 
 
 0.2.0 will read a 0.1.0 `fileStore` directory without export/import: `states/<id>.json` remains shared scope `""`, and non-empty scopes use `states/<id>/<scope>.json` with safe filename encoding. This does not promise that 0.1.0 can read new scoped state.
 
+The Store migration is implemented for the upcoming release. Scope is required
+on both state methods and must be a string of at most 128 Unicode code points;
+invalid scopes reject with `invalid-document` at `/scope`. The optional fourth
+argument to `loadPlacement` accepts `{ scope, state }`; supplying state skips the
+state read. Hosts without stored state can use `verifyPlacementInputs` after
+verifying the package. Explicit state follows the same reset rules as stored
+state. The committed 0.1.0 directory is regenerated with
+`bun scripts/fixtures/store-0.1.0.ts` using the `v0.1.0` code. No files are
+rewritten during upgrade. A rollback to 0.1.0 retains shared state but cannot
+access named scopes; stop scoped writes before rolling back.
+
 ## Formats
 
 - A format's meaning never changes within its `/N` version. `liveframe/manifest/1`, `liveframe-catalog/1` and the rest keep their fields, their required keys and their validation rules for as long as they are `/1`.

@@ -61,7 +61,7 @@ await store.putPlacement({
   widget: { id: pkg.manifest.id, version: pkg.manifest.version },
   params: scenario.params,
 });
-await store.putState("home", scenario.state ?? pkg.manifest.initialState);
+await store.putState("home", "", scenario.state ?? pkg.manifest.initialState);
 
 const loaded = value(await loadPlacement(fileStore(dir), "home", options));
 const inputs = {
@@ -179,10 +179,10 @@ Import `Store`, `Placement` and `StyleRecord` as types from
 | `getPackage(id, version)` | `Promise<WidgetPackage \| undefined>` | Return the stored package, or `undefined` if absent. |
 | `putPlacement(placement)` | `Promise<void>` | Store `{ id, slot, widget: { id, version }, params }` by id. |
 | `getPlacement(id)` | `Promise<Placement \| undefined>` | Return one placement by key, or `undefined` if absent. Never lists. |
-| `deletePlacement(id)` | `Promise<void>` | Remove both placement and its state. |
+| `deletePlacement(id)` | `Promise<void>` | Remove the placement and its state in every scope. |
 | `listPlacements()` | `Promise<Placement[]>` | Return placements sorted by id. |
-| `putState(placementId, state)` | `Promise<void>` | Store any JSON value, including `null`. |
-| `getState(placementId)` | `Promise<Json \| undefined>` | Distinguish absent state from JSON `null`. |
+| `putState(placementId, scope, state)` | `Promise<void>` | Store any JSON value, including `null`, for this placement and scope. |
+| `getState(placementId, scope)` | `Promise<Json \| undefined>` | Read only this scope; distinguish absent state from JSON `null`. |
 | `putStyle(style)` | `Promise<void>` | Store `{ kind, id, version, body }`; kind is `theme` or `designSystem`. |
 | `getStyle(kind, id, version)` | `Promise<StyleRecord \| undefined>` | Return a style record, or `undefined` if absent. |
 
@@ -191,7 +191,7 @@ tests. Both reference stores isolate stored records from caller mutation.
 `fileStore(dir)` from `/store/fs` keeps one JSON file per record, writing a
 same-directory temporary file and renaming it atomically. Temporary files are
 ignored by listing. Record paths are `packages/<id>/<version>.json`,
-`placements/<id>.json`, `states/<id>.json` and
+`placements/<id>.json`, `states/<id>.json` (shared scope), `states/<id>/<scope>.json` (named scope) and
 `styles/<kind>/<id>/<version>.json`. Path segments encode every UTF-8 byte except
 lowercase ASCII letters, digits, `_` and `-` as `%XX`, preventing traversal and
 case collisions. An id may be 128 code points, which can encode to more than the
@@ -209,6 +209,13 @@ backend. Keep tenant scoping, authorization and active style selection in the
 app. Stores persist records without validating their semantics; treat every
 read as untrusted. `validatePlacement`, `validateState` and `validateStyleRecord`
 are structural checks; validate installed themes/design systems separately.
+
+State scopes are host-selected strings of at most 128 Unicode code points, with
+no pattern; `""` means shared state. Invalid scopes reject with `LiveframeFailure`
+carrying `invalid-document` at `/scope`. A custom store that cannot isolate a
+scope must reject it rather than read or overwrite shared state. Scope strings
+grant no authority. Deletion removes every scope, including orphan state.
+
 Run the public store suite against a fresh, empty scope for each case:
 
 ```ts
@@ -224,11 +231,26 @@ check persistence. The suite returns runner-independent cases; failures are
 
 ## Loading and state resets
 
-`loadPlacement(store, id, { catalog, capabilities })` reads that one placement
+`loadPlacement(store, id, { catalog, capabilities }, { scope?, state? })` reads that one placement
 with `getPlacement()`, then checks its structure, package identity and integrity,
 manifest and scenarios, params, and stored state. It never lists placements, so a
 malformed sibling record cannot block a load; loading the malformed record itself
 reports `invalid-document`.
+The fourth argument is optional. The scope defaults to `""`; pass a host-selected
+scope for viewer-specific state:
+
+```ts
+await store.putState("home", "viewer:42", { count: 4 });
+const loaded = await loadPlacement(store, "home", options, { scope: "viewer:42" });
+```
+
+An own `state` property bypasses `getState` and uses the same validation and reset
+rules. `{ state: undefined }` explicitly selects initial state without reading
+stored state. For hosts that do not store state, import `verifyPlacementInputs`
+from `/store` and call `verifyPlacementInputs(verifiedPackage, { params, state })`.
+It returns `Result<{ params, state, reset? }>`; first verify the package with
+`verifyPackage`. Invalid params reject; neither helper writes a reset back.
+
 It returns `{ package, params, state, reset? }` inside a successful result:
 
 - Missing state uses `manifest.initialState`, without `reset`.

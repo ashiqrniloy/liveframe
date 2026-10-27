@@ -46,10 +46,69 @@ export function storeSuite({
       },
     });
   }
+  add("scoped_state_is_isolated", async (store, equal) => {
+    const scopes = [
+      "",
+      "viewer:42",
+      "viewer:43",
+      "../escape",
+      "任".repeat(128),
+      "😀".repeat(128),
+      "Queue",
+      "queue",
+      "a/b",
+      "a\\b",
+    ];
+    for (const [index, scope] of scopes.entries()) {
+      equal(await store.getState("home", scope), undefined, "A new scope must start empty");
+      await store.putState("home", scope, { index });
+      await store.putState("other", scope, false);
+    }
+    for (const [index, scope] of scopes.entries()) {
+      equal(await store.getState("home", scope), { index }, "State must be keyed by placement and scope");
+      equal(await store.getState("other", scope), false, "Placements must remain independent");
+    }
+  });
+  add("delete_placement_removes_all_scopes", async (store, equal) => {
+    const { placement } = storeFixture();
+    await store.putPlacement(placement);
+    for (const id of [placement.id, "orphan", "other"])
+      for (const scope of ["", "viewer:42", "../escape", "任".repeat(128)]) await store.putState(id, scope, { scope });
+    for (const id of [placement.id, "orphan"]) {
+      await store.deletePlacement(id);
+      await store.deletePlacement(id);
+      for (const scope of ["", "viewer:42", "../escape", "任".repeat(128)]) {
+        equal(await store.getState(id, scope), undefined, "Deletion must remove every scope, including orphan state");
+        equal(await store.getState("other", scope), { scope }, "Deletion must preserve other placements");
+      }
+    }
+  });
+  add("scope_bound_enforced", async (store, equal) => {
+    await store.putState("home", "", false);
+    for (const scope of ["a".repeat(129), "😀".repeat(129), undefined, null, 42]) {
+      for (const operation of [
+        () => store.getState("home", scope as string),
+        () => store.putState("home", scope as string, true),
+      ]) {
+        let failure: unknown;
+        try {
+          await operation();
+        } catch (error) {
+          failure = error;
+        }
+        check(failure instanceof LiveframeFailure, "store_scope_bound_enforced", "§7.4", [
+          "Invalid scopes must reject, never fall back to shared state",
+        ]);
+        equal(failure.errors[0]?.kind, "invalid-document", "Scope failure must be typed");
+        equal(failure.errors[0]?.pointer, "/scope", "Scope failure must identify /scope");
+      }
+    }
+    equal(await store.getState("home", ""), false, "Invalid scopes must not overwrite shared state");
+  });
   add("opens_empty_and_returns_undefined_for_missing_records", async (store, equal) => {
     equal(await store.listPlacements(), [], "A new scope must have no placements");
     equal(await store.getPackage("missing", "1"), undefined, "Missing package must be undefined");
-    equal(await store.getState("missing"), undefined, "Missing state must be undefined");
+    equal(await store.getState("missing", ""), undefined, "Missing state must be undefined");
     for (const kind of ["theme", "designSystem"] as const)
       equal(await store.getStyle(kind, "missing", "1"), undefined, "Missing style must be undefined");
     await store.putPlacement(storeFixture().placement);
@@ -89,16 +148,16 @@ export function storeSuite({
     const ids = ["任".repeat(128), "é😀", "../escape", "Queue", "queue"];
     for (const id of ids) {
       await store.putPlacement({ ...placement, id });
-      await store.putState(id, { id });
+      await store.putState(id, "", { id });
     }
     for (const id of ids) {
       equal(await store.getPlacement(id), { ...placement, id }, "Every valid id must round trip");
-      equal(await store.getState(id), { id }, "Every valid id must key state too");
+      equal(await store.getState(id, ""), { id }, "Every valid id must key state too");
     }
     equal((await store.listPlacements()).length, ids.length, "Every valid id must be listable");
     await store.deletePlacement("../escape");
     equal(await store.getPlacement("../escape"), undefined, "Escaped ids must delete by id");
-    equal(await store.getState("../escape"), undefined, "Deletion must take state with it");
+    equal(await store.getState("../escape", ""), undefined, "Deletion must take state with it");
     equal((await store.listPlacements()).length, ids.length - 1, "Deletion must remove exactly one placement");
   });
   add("rejects_a_second_hash_for_an_existing_version", async (store, equal) => {
@@ -145,12 +204,12 @@ export function storeSuite({
     if (listed[0]) (listed[0].params as { nested: number[] }).nested.push(3);
     equal((await store.listPlacements())[0]?.params, { nested: [1] }, "Placement list must copy nested params");
     const state = { nested: [1] };
-    await store.putState(placement.id, state);
+    await store.putState(placement.id, "", state);
     state.nested.push(2);
-    const saved = await store.getState(placement.id);
+    const saved = await store.getState(placement.id, "");
     equal(saved, { nested: [1] }, "State put must copy nested values");
     (saved as typeof state).nested.push(3);
-    equal(await store.getState(placement.id), { nested: [1] }, "State get must copy nested values");
+    equal(await store.getState(placement.id, ""), { nested: [1] }, "State get must copy nested values");
     await store.putStyle(style);
     style.body.nested.push(2);
     const styled = await store.getStyle(style.kind, style.id, style.version);
@@ -178,9 +237,9 @@ export function storeSuite({
   });
   add("keeps_null_and_false_state_distinct_from_missing", async (store, equal) => {
     for (const state of [null, false]) {
-      await store.putState("home", state);
-      equal(await store.getState("home"), state, "Null and false are stored values");
-      equal(await store.getState("missing"), undefined, "Missing state must remain undefined");
+      await store.putState("home", "", state);
+      equal(await store.getState("home", ""), state, "Null and false are stored values");
+      equal(await store.getState("missing", ""), undefined, "Missing state must remain undefined");
     }
   });
   add("keys_styles_by_kind_id_and_version", async (store, equal) => {
@@ -204,11 +263,11 @@ export function storeSuite({
     await store.putPackage(pkg);
     await store.putPlacement(placement);
     await store.putPlacement({ ...placement, id: "other" });
-    await store.putState("other", false);
+    await store.putState("other", "", false);
     for (const id of [placement.id, "orphan"]) {
-      await store.putState(id, 1);
+      await store.putState(id, "", 1);
       await store.deletePlacement(id);
-      equal(await store.getState(id), undefined, "Deletion must remove state including orphan state");
+      equal(await store.getState(id, ""), undefined, "Deletion must remove state including orphan state");
     }
     await store.deletePlacement(placement.id);
     equal(
@@ -216,7 +275,7 @@ export function storeSuite({
       [{ ...placement, id: "other" }],
       "Deletion must remove only the named placement",
     );
-    equal(await store.getState("other"), false, "Deletion must preserve unrelated state");
+    equal(await store.getState("other", ""), false, "Deletion must preserve unrelated state");
     equal(await store.getPackage(pkg.manifest.id, pkg.manifest.version), pkg, "Deletion must preserve packages");
   });
   add("records_load_through_load_placement", async (store, equal) => {
@@ -229,13 +288,13 @@ export function storeSuite({
       { ok: true, value: expected },
       "Stored records must verify and load",
     );
-    await store.putState(placement.id, { count: 4 });
+    await store.putState(placement.id, "", { count: 4 });
     equal(
       await loadPlacement(store, placement.id, options),
       { ok: true, value: { ...expected, state: { count: 4 } } },
       "Valid stored state must load",
     );
-    await store.putState(placement.id, { count: "outdated" });
+    await store.putState(placement.id, "", { count: "outdated" });
     const reset = await loadPlacement(store, placement.id, options);
     check(reset.ok, "store_records_load_through_load_placement", "§7.4", reset.ok ? [] : reset.errors);
     equal({ ...reset.value, reset: undefined }, expected, "Invalid state must reset to initial state");
@@ -245,7 +304,7 @@ export function storeSuite({
       "§7.4",
       ["State reset must report the invalid field"],
     );
-    equal(await store.getState(placement.id), { count: "outdated" }, "Loading must not persist the reset");
+    equal(await store.getState(placement.id, ""), { count: "outdated" }, "Loading must not persist the reset");
   });
   add("a_malformed_sibling_does_not_block_a_load", async (store, equal) => {
     const { pkg, placement, options } = storeFixture();
@@ -273,12 +332,14 @@ export function storeSuite({
       const { pkg, placement, style } = storeFixture();
       await store.putPackage(pkg);
       await store.putPlacement(placement);
-      await store.putState(placement.id, { count: 3 });
+      await store.putState(placement.id, "", { count: 3 });
+      await store.putState(placement.id, "viewer:42", { count: 42 });
       await store.putStyle(style);
       const opened = await reopen(store);
       equal(await opened.getPackage(pkg.manifest.id, pkg.manifest.version), pkg, "Package must survive reopen");
       equal(await opened.listPlacements(), [placement], "Placement must survive reopen");
-      equal(await opened.getState(placement.id), { count: 3 }, "State must survive reopen");
+      equal(await opened.getState(placement.id, ""), { count: 3 }, "State must survive reopen");
+      equal(await opened.getState(placement.id, "viewer:42"), { count: 42 }, "Scoped state must survive reopen");
       equal(await opened.getStyle(style.kind, style.id, style.version), style, "Style must survive reopen");
     });
   return cases;

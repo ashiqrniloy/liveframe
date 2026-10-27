@@ -4,6 +4,14 @@ All notable changes to `@arnilo/liveframe` are recorded here. The project follow
 
 ## Unreleased
 
+Changed:
+
+- **Breaking (0.2.0):** state storage now requires `(placementId, scope)`; pass `""` for shared state. Both reference stores isolate scopes and reject invalid scope strings. Placement deletion removes every scope. Existing 0.1.0 shared state files load without migration (LF-06).
+
+Added:
+
+- `loadPlacement` accepts optional `{ scope, state }`; explicit state bypasses the state read and follows the same reported-reset rules. `/store` exports `verifyPlacementInputs` for hosts keeping state elsewhere. Store conformance covers scope isolation, bounds and deletion.
+
 Fixed:
 
 - Strip development-only source export conditions from the published manifest and reject missing export targets in the archive gate (CL-03).

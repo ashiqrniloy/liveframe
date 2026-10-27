@@ -63,7 +63,7 @@ test("packs_stores_reloads_and_renders", async () => {
   await store.putPackage(pkg);
   await store.putPlacement(placement);
   expect(scenario.state).not.toEqual(pkg.manifest.initialState);
-  await store.putState(placement.id, scenario.state);
+  await store.putState(placement.id, "", scenario.state);
 
   const loaded = value(await loadPlacement(fileStore(dir), placement.id, options));
   expect(loaded).toEqual({ package: pkg, params: scenario.params, state: scenario.state });
@@ -159,7 +159,7 @@ test("done_list_typed_errors: state reset after version change", async () => {
   const store = fileStore(dir);
   await store.putPackage(base);
   await store.putPlacement(placement);
-  await store.putState(placement.id, scenario.state);
+  await store.putState(placement.id, "", scenario.state);
   const upgraded = value(
     pack(
       {
@@ -181,7 +181,7 @@ test("done_list_typed_errors: state reset after version change", async () => {
   expect(loaded.package).toEqual(upgraded);
   expect(loaded.state).toEqual({});
   expect(loaded.reset).toContainEqual(expect.objectContaining({ kind: "invalid-prop", pointer: "/state/filter" }));
-  expect(await store.getState(placement.id)).toEqual(scenario.state);
+  expect(await store.getState(placement.id, "")).toEqual(scenario.state);
 });
 
 test("pack_store_and_reload_never_execute_widget_code", async () => {

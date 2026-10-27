@@ -382,7 +382,7 @@ This plan implements spec §5 (definitions and events), §6.3 (style props), §7
     - Updated spec §10 and the format and renderer guides, including pruning before browser transfer. No format/schema, dependency, or reference-host change was needed.
     - Verification: tests first failed on the missing export; all 57 focused tests passed after implementation. Final `bun run check` passed (706 pass, 4 skip, 0 fail), including build, generated-code checks, typechecks, lint, formatting and browser tests. Bench, release and demo gates remain whole-plan verification.
 
-- [ ] Task 8: Key widget state by placement and scope (LF-06)
+- [x] Task 8: Key widget state by placement and scope (LF-06)
   - Acceptance Criteria:
     - Functional:
       - `Store.putState(placementId, scope, state)` and `getState(placementId, scope)` replace the two-argument forms. `deletePlacement` removes every scope.
@@ -421,15 +421,25 @@ This plan implements spec §5 (definitions and events), §6.3 (style props), §7
       ```
     - Files to Create/Edit:
       - `src/store/index.ts`; `src/store/load.ts`; `src/store/memory.ts`; `src/store/fs/index.ts`
+      - `src/store/scope.ts` (shared runtime scope check); `src/formats/records.ts` (state-key documentation)
       - `src/conformance/store.ts`
       - `src/__tests__/fixtures/store-0.1.0/` (new) and `scripts/fixtures/store-0.1.0.ts` (new, regenerates it)
-      - `examples/demo-host/*` (callers); `proof/host/*` (callers, if any)
+      - `src/__tests__/store-load.test.ts`; `store-file.test.ts`; `conformance-store.test.ts`; `exports.test.ts`; `phase-2-loop.test.ts`; `preview-session.test.ts`
+      - `examples/demo-host/server.ts` (shared-state callers); no proof-host state calls need changes
       - `docs/spec.md` §7.4; `docs/packages.md`; `docs/compatibility.md`; `docs/conformance.md`; `CHANGELOG.md`
   - Test Cases to Write:
     - `scoped_state_is_isolated`, `delete_placement_removes_all_scopes`, `scope_bound_enforced` (store suite, run by `conformance-store.test.ts` for both stores).
     - `file_store_reads_0_1_0_directory` (`store-file.test.ts`).
     - `load_placement_explicit_state_resets_like_stored` (`store-load.test.ts`).
     - `verify_placement_inputs_matches_load_placement`.
+    - `load_placement_selects_scope_and_rejects_invalid_scope_before_reads`; `store_suite_catches_scope_leaks_and_incomplete_deletion`.
+
+  - Notes (executed 2026-10-28):
+    - State methods now require `(placementId, scope)`. Both reference stores isolate shared and named scopes, reject non-string/over-128-code-point scopes with `LiveframeFailure` (`invalid-document`, `/scope`), and delete every scope including orphan state. The internal `assertScope` check is shared with `loadPlacement`; scope grants no authority and tenant isolation remains the host's responsibility.
+    - `loadPlacement` accepts an optional fourth `{ scope?, state? }` argument. Scope defaults to `""`; an own `state` property skips `getState`, including `{ state: undefined }`, which selects initial state. Exported `verifyPlacementInputs` checks params and state against a verified package, and the loader delegates those checks to it. Invalid params reject; incompatible/non-JSON state reports a bounded reset without persisting it.
+    - `fileStore` keeps `states/<encoded-id>.json` for shared state and uses `states/<encoded-id>/<encoded-scope>.json` for named scopes, reusing the existing encoding and long-key hashing. Committed a real 0.1.0 fixture (package, placement, state and style), regenerated with `bun scripts/fixtures/store-0.1.0.ts` from the tagged `v0.1.0` source. Its test proves loading, independent named-state writes, reopen, shared-file writes and complete deletion without a migration rewrite.
+    - Added the three scope conformance cases, named-scope reopen coverage and broken-adapter tests. Updated all state callers (including the demo host and integration tests), pinned exports/case counts, spec §7.4/§8, package/conformance/compatibility guides and changelog. No proof-host state caller or dependency change was needed.
+    - Verification: regression tests first failed against unscoped storage and the missing helper export. Final `bun run check` passed (720 pass, 4 skip, 0 fail), including build, generation, typechecks, lint, formatting and browser tests. `bun run demo:test` passed (51 pass, 0 fail) against the packaged build. The first full check stopped at a new lint violation, which was fixed before the successful rerun. Task 9's impact sweep, benchmarks and release gate remain whole-plan work.
 
 - [ ] Task 9: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:

@@ -8,6 +8,7 @@ import type { Placement, StyleRecord } from "../../formats/records.ts";
 import type { Json } from "../../formats/tree.ts";
 import { sha256 } from "../../pack/hash.ts";
 import type { Store } from "../index.ts";
+import { assertScope } from "../scope.ts";
 
 // Serialize package checks and writes across store instances in this writing process.
 let packages = Promise.resolve();
@@ -70,6 +71,10 @@ async function write(file: string, source: string): Promise<void> {
 /** One JSON file per record, replaced atomically. Assumes one writing process. */
 export function fileStore(dir: string): Store {
   const path = (kind: string, ...keys: string[]) => join(dir, kind, `${keys.map(fileName).join("/")}.json`);
+  const statePath = (id: string, scope: string) => {
+    assertScope(scope);
+    return scope === "" ? path("states", id) : path("states", id, scope);
+  };
   return {
     putPackage(pkg) {
       const source = JSON.stringify(pkg);
@@ -100,6 +105,7 @@ export function fileStore(dir: string): Store {
     async deletePlacement(id) {
       await rm(path("placements", id), { force: true });
       await rm(path("states", id), { force: true });
+      await rm(join(dir, "states", fileName(id)), { recursive: true, force: true });
     },
     async listPlacements() {
       const directory = join(dir, "placements");
@@ -117,8 +123,12 @@ export function fileStore(dir: string): Store {
       }
       return records.sort((a, b) => (a?.id < b?.id ? -1 : a?.id > b?.id ? 1 : 0));
     },
-    putState: (id, state) => write(path("states", id), JSON.stringify(state)),
-    getState: (id) => read<Json>(path("states", id)),
+    async putState(id, scope, state) {
+      await write(statePath(id, scope), JSON.stringify(state));
+    },
+    async getState(id, scope) {
+      return read<Json>(statePath(id, scope));
+    },
     putStyle: (style) => write(path("styles", style.kind, style.id, style.version), JSON.stringify(style)),
     getStyle: (kind, id, version) => read<StyleRecord>(path("styles", kind, id, version)),
   };

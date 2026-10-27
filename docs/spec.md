@@ -429,7 +429,7 @@ A runtime change never edits the app's code. Everything that changes is a record
 |---|---|---|
 | Package | §7.3 | `(id, version)` |
 | Placement | `{ id, slot, widget: { id, version }, params }`; `slot` is the app's own name for where the surface goes | `id` |
-| State | The placement's widget state | placement `id` |
+| State | The placement's widget state in a host-selected scope | `(placementId, scope)` |
 | Style | An installed theme or design system: `{ kind: "theme" \| "designSystem", id, version, body }` | `(kind, id, version)` |
 
 `@arnilo/liveframe/store` defines the records and the interface every store implements:
@@ -440,10 +440,10 @@ interface Store {
   getPackage(id: string, version: string): Promise<WidgetPackage | undefined>;
   putPlacement(placement: Placement): Promise<void>;
   getPlacement(id: string): Promise<Placement | undefined>; // one read, whatever else is stored
-  deletePlacement(id: string): Promise<void>;             // removes its state too
+  deletePlacement(id: string): Promise<void>;             // removes state in every scope too
   listPlacements(): Promise<Placement[]>;
-  putState(placementId: string, state: Json): Promise<void>;
-  getState(placementId: string): Promise<Json | undefined>;
+  putState(placementId: string, scope: string, state: Json): Promise<void>;
+  getState(placementId: string, scope: string): Promise<Json | undefined>;
   putStyle(style: StyleRecord): Promise<void>;
   getStyle(kind: StyleRecord["kind"], id: string, version: string): Promise<StyleRecord | undefined>;
 }
@@ -453,13 +453,16 @@ It also ships:
 
 - **`memoryStore()`**, for tests and ephemeral hosts.
 - **`fileStore(dir)`** (`@arnilo/liveframe/store/fs`), for a desktop or single-node app. It keeps one JSON file per record and writes each atomically: a temporary file, then a rename. It assumes one writing process. A key becomes a file name by percent-encoding every byte outside `a-z`, `0-9`, `_` and `-`; a key whose encoded form exceeds 200 bytes is named `~` plus the SHA-256 of its UTF-8 bytes instead, so every id the record formats allow is storable inside a 255-byte file-name limit. The layout is part of the 0.1.x compatibility promise.
-- **`loadPlacement(store, id, { catalog, capabilities })`**, which reads a placement, its package and its state, verifies all three, and returns `Result<{ package, params, state, reset? }>`. Failures carry bounded `LiveframeError[]` (§10); `reset`, when present, holds the validation errors that caused a state reset.
+- **`loadPlacement(store, id, { catalog, capabilities }, { scope?, state? })`**, which reads a placement, its package and its state, verifies all three, and returns `Result<{ package, params, state, reset? }>`. The fourth argument is optional; scope defaults to `""`. An own `state` property bypasses `getState`, including when its value is `undefined`. Explicit state follows the same check-and-reset rules as stored state. Failures carry bounded `LiveframeError[]` (§10); `reset`, when present, holds the validation errors that caused a state reset.
+- **`verifyPlacementInputs(pkg, { params, state? })`**, for hosts that already verified the package and keep state outside a store. Returns `Result<{ params, state, reset? }>` using the same checks as `loadPlacement`: invalid params reject, missing state uses initial state, and invalid state resets with reported errors. Neither helper executes code or persists resets.
 
 Rules:
 
 - **A store is not trusted.** Like a tree arriving at the renderer (§10), every record read back is checked: the package by `verifyPackage`, the params against the package's params schema, and the state against its state schema. A state that no longer fits, typically after a placement moves to a new widget version, is reset to the manifest's initial state, and `loadPlacement` reports the reset. Any other failure is an error, never a silent fallback.
 - Missing placements or packages, conflicting package versions, malformed records and package integrity failures use the distinct typed errors in §10. `putPackage()` keeps its `Promise<void>` contract and rejects with a `LiveframeFailure` (§10) carrying the version-conflict error when an existing `(id, version)` has a different hash; a store rejects rather than returning a result, so the app catches it at the write boundary. `loadPlacement()` reads one placement by id and never lists, so a malformed sibling record cannot block a load.
-- **A store holds one scope.** A multi-tenant app opens one store per tenant, or implements the interface over its own database and scopes it itself.
+- **The app owns tenant isolation.** A multi-tenant app opens one store per tenant, or implements the interface over its own database and scopes it itself.
+- **State scopes are host data.** Within that store, state is keyed by placement and a scope string of at most 128 Unicode code points, with no pattern; `""` is shared state. Invalid scopes reject with `LiveframeFailure` carrying `invalid-document` at `/scope`. Unsupported scopes must reject, never fall back to shared state. This grants no authority and does not replace tenant isolation or authorization. Deleting a placement removes all its state scopes, even if the placement record is absent.
+- **Existing state files keep their meaning.** `fileStore` reads and writes shared state at `states/<encoded-id>.json`, including directories written by 0.1.0. Named scopes use `states/<encoded-id>/<encoded-scope>.json`, applying the existing filename encoding and long-key hashing to both segments. No data rewrite is needed.
 - **Approval is the app's.** A stored package is inert until the app puts a placement for it. Which theme and design system are active, per user or organisation, is also an app setting.
 - **The conformance kit has a store suite** (§13), so an app's own store, for example over Postgres, proves it keeps these rules.
 
@@ -537,7 +540,7 @@ Rules:
 - **Several values can commit together.** `action("escalate", { id }, { bindAll: true })` merges an object event into the literal args and removes `bindAll`. `bind` and `bindAll` are mutually exclusive; `bind` requires a scalar event, `bindAll` an object event. Literal/event key overlap is `invalid-prop` at the literal arg. The event schema must structurally fit the action's argument schema minus literal args: every event property exists in the target, every remaining required target property is required by the event, and scalar types match (except `integer` fits `number`). Nullable event properties require nullable targets. Bounds and enums are checked on the filled value by Preview and the host, not compared at build time. Implicit object `setState` replaces the entire object key under the same fit rule.
 - **Inputs are local until they commit.** A `textField` keeps its value locally (tier 1). Its `onCommit` (Enter, blur, or a debounce the definition declares) carries the value as `setState`. To act on a typed value directly, an action intent names the argument the event's value fills: `action("tasks.escalate", { id }, { bind: "reason" })`. The validator checks that the event's `carries` type matches that argument's schema, and the app re-checks the filled arguments on dispatch. Numeric `bind` and implicit `setState` values use the same compatibility rule: `number` fills only `number`, while `integer` fills `integer` or `number`. The host checks `minimum` and `maximum` on the filled value.
 - **The app re-checks every intent.** The intent must be declared by the widget's manifest, and its args must match the action's schema in the app's capabilities. The validator checks this on every render; the app checks it again on dispatch. Intents carry no authority.
-- **State is owned by the app.** Widget state is persisted per placement, in the app's store (§7.4). The widget only ever receives it as input.
+- **State is owned by the app.** Widget state is persisted per placement and host scope, in the app's store (§7.4), or supplied explicitly by the host. The widget only ever receives it as input.
 - **Re-runs are cacheable.** A widget is pure, so the same widget version and the same inputs always produce the same tree. A host may skip a re-run, and the transfer, when the hash of the package (§7.3), `catalogId`, params, state, data and context is unchanged.
 
 ## 9. The UI tree (wire format)

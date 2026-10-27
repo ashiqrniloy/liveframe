@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pack } from "@arnilo/liveframe/pack";
@@ -12,6 +12,7 @@ import capabilitiesDoc from "./fixtures/proof/capabilities.json" with { type: "j
 import { storeSuite } from "@arnilo/liveframe/conformance";
 import type { WidgetPackage } from "@arnilo/liveframe/pack";
 import type { Store } from "@arnilo/liveframe/store";
+import { storeFixture } from "../conformance/fixture.ts";
 import manifestDoc from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 
 const manifest = manifestDoc as WidgetPackage["manifest"];
@@ -40,6 +41,25 @@ afterEach(async () => {
   await Promise.all(dirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
 });
 const scopes = new WeakMap<Store, string>();
+
+test("file_store_reads_0_1_0_directory", async () => {
+  const dir = await directory();
+  await cp(new URL("./fixtures/store-0.1.0/", import.meta.url), dir, { recursive: true });
+  const store = fileStore(dir);
+  const { options, style } = storeFixture();
+  const loaded = await loadPlacement(store, "home", options);
+  expect(loaded).toMatchObject({ ok: true, value: { params: {}, state: { count: 7 } } });
+  expect(await store.getStyle(style.kind, style.id, style.version)).toEqual(style);
+  expect(await store.getState("home", "viewer:42")).toBeUndefined();
+  await store.putState("home", "viewer:42", { count: 42 });
+  expect(await Bun.file(join(dir, "states/home/viewer%3A42.json")).json()).toEqual({ count: 42 });
+  expect(await fileStore(dir).getState("home", "")).toEqual({ count: 7 });
+  expect(await fileStore(dir).getState("home", "viewer:42")).toEqual({ count: 42 });
+  await store.putState("home", "", { count: 8 });
+  expect(await Bun.file(join(dir, "states/home.json")).json()).toEqual({ count: 8 });
+  await store.deletePlacement("home");
+  expect(await readdir(join(dir, "states"))).toEqual([]);
+});
 for (const c of storeSuite({
   async create() {
     const dir = join(await directory(), "new", "store");
@@ -63,14 +83,14 @@ test("file_store_paths_cannot_escape", async () => {
   for (const id of ids) {
     await store.putPackage({ ...pkg, manifest: { ...pkg.manifest, id, version: id } });
     await store.putPlacement({ ...placement, id });
-    await store.putState(id, id);
+    await store.putState(id, "", id);
     await store.putStyle({ kind: "theme", id, version: id, body: id });
   }
   expect((await readdir(join(dir, "placements"))).sort()).toEqual(encoded.map((id) => `${id}.json`).sort());
   expect(new Set(encoded.map((id) => id.toLowerCase())).size).toBe(ids.length);
   for (const [i, id] of ids.entries()) {
     expect(await store.getPackage(id, id)).toMatchObject({ manifest: { id, version: id } });
-    expect(await store.getState(id)).toBe(id);
+    expect(await store.getState(id, "")).toBe(id);
     expect(await store.getStyle("theme", id, id)).toMatchObject({ body: id });
     expect(await Bun.file(join(dir, "packages", encoded[i]!, `${encoded[i]}.json`)).exists()).toBe(true);
   }
@@ -114,7 +134,7 @@ test("corrupt_file_is_typed_error", async () => {
     await writeFile(file, "{");
   }
   for (const read of [
-    () => store.getState("home"),
+    () => store.getState("home", ""),
     () => store.getPackage("test", "1"),
     () => store.getStyle("theme", "test", "1"),
   ])
@@ -162,8 +182,10 @@ test("file_store_ignores_leftover_temps_and_replaces_complete_records", async ()
   await store.putPlacement(placement);
   await writeFile(join(dir, "placements", "home.json.leftover.tmp"), "{");
   expect(await store.listPlacements()).toEqual([placement]);
-  await Promise.all(Array.from({ length: 20 }, (_, n) => store.putState("home", { n, payload: "x".repeat(10000) })));
-  expect(await store.getState("home")).toMatchObject({ payload: "x".repeat(10000) });
+  await Promise.all(
+    Array.from({ length: 20 }, (_, n) => store.putState("home", "", { n, payload: "x".repeat(10000) })),
+  );
+  expect(await store.getState("home", "")).toMatchObject({ payload: "x".repeat(10000) });
   expect(await readdir(join(dir, "states"))).toEqual(["home.json"]);
   const results = await Promise.allSettled([
     store.putPackage(pkg),
@@ -178,15 +200,15 @@ test("file_store_readers_only_see_complete_replacements", async () => {
   const store = fileStore(dir);
   const old = { payload: "old".repeat(100000) };
   const next = { payload: "new".repeat(100000) };
-  await store.putState("home", old);
-  const replacing = store.putState("home", next);
+  await store.putState("home", "", old);
+  const replacing = store.putState("home", "", next);
   for (let i = 0; i < 20; i++) {
-    expect<unknown[]>([old, next]).toContainEqual(await fileStore(dir).getState("home"));
+    expect<unknown[]>([old, next]).toContainEqual(await fileStore(dir).getState("home", ""));
   }
   await replacing;
-  expect(await store.getState("home")).toEqual(next);
+  expect(await store.getState("home", "")).toEqual(next);
   // A failed rename must leave no partial record or temporary file behind.
   await mkdir(join(dir, "states", "blocked.json"));
-  await expect(store.putState("blocked", next)).rejects.toBeDefined();
+  await expect(store.putState("blocked", "", next)).rejects.toBeDefined();
   expect((await readdir(join(dir, "states"))).sort()).toEqual(["blocked.json", "home.json"]);
 });

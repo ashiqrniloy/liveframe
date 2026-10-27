@@ -139,8 +139,8 @@ export async function startHost({ dataDir = dataDirectory, port = 3300 }: { data
           if (!checked.ok) return Response.json({ errors: checked.errors }, { status: 422 });
           await store.putPlacement(placement.value);
           // A new placement starts from the widget's initial state; an existing one keeps its state.
-          if ((await store.getState(placement.value.id)) === undefined)
-            await store.putState(placement.value.id, pkg.manifest.initialState);
+          if ((await store.getState(placement.value.id, "")) === undefined)
+            await store.putState(placement.value.id, "", pkg.manifest.initialState);
           return Response.json({ id: placement.value.id });
         }),
       },
@@ -160,7 +160,7 @@ export async function startHost({ dataDir = dataDirectory, port = 3300 }: { data
               return error("Unknown state key", 400);
             const next = { ...(state as Record<string, Json>), [intent.key]: intent.value as Json };
             if (!checkValue(manifest.state, next).ok) return error("State value does not fit the schema", 400);
-            await store.putState(id, next);
+            await store.putState(id, "", next);
           } else if (intent.type === "action") {
             const name = intent.name;
             const operation = typeof name === "string" ? operations[name] : undefined;

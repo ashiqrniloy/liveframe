@@ -48,7 +48,7 @@ export function validateStyleRecord(doc: unknown): Result<StyleRecord> {
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: doc as StyleRecord };
 }
 
-/** State has no record envelope; the placement id is its storage key. */
+/** State has no record envelope; placement id and host scope form its storage key. */
 export function validateState(doc: unknown): Result<Json> {
   return validateJson(doc);
 }

@@ -293,7 +293,7 @@ test("published_package_matches_the_last_preview", async () => {
     widget: { id: pkg.manifest.id, version: pkg.manifest.version },
     params: {},
   });
-  await store.putState("preview", { selected: "second", query: "scenario" });
+  await store.putState("preview", "", { selected: "second", query: "scenario" });
   const loaded = value(await loadPlacement(store, "preview", packageOptions));
   expect(loaded.package.hash).toBe(pkg.hash);
   const call = calls[0];

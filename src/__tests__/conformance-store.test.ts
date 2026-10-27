@@ -21,10 +21,10 @@ async function fails(create: () => Store, suffix: string, reopen?: (store: Store
 test("store_suite_catches_broken_stores", async () => {
   await fails(() => {
     const store = memoryStore();
-    let saved: Parameters<Store["putState"]>[1];
+    let saved: Parameters<Store["putState"]>[2];
     return {
       ...store,
-      putState: async (_, state) => {
+      putState: async (_, _scope, state) => {
         saved = state;
       },
       getState: async () => saved,
@@ -45,9 +45,9 @@ test("store_suite_catches_broken_stores", async () => {
     return {
       ...store,
       async deletePlacement(id) {
-        const state = await store.getState(id);
+        const state = await store.getState(id, "");
         await store.deletePlacement(id);
-        if (state !== undefined) await store.putState(id, state);
+        if (state !== undefined) await store.putState(id, "", state);
       },
     };
   }, "deletes_state_with_its_placement");
@@ -60,12 +60,41 @@ test("store_suite_catches_broken_stores", async () => {
 
 test("store_suite_cases_are_independent_and_runner_agnostic", async () => {
   const cases: ConformanceCase[] = storeSuite({ create: async () => memoryStore() });
-  expect(cases).toHaveLength(13);
-  expect(new Set(cases.map((c) => c.name)).size).toBe(13);
+  expect(cases).toHaveLength(16);
+  expect(new Set(cases.map((c) => c.name)).size).toBe(16);
   await Promise.all(cases.map((c) => c.run()));
   const reopened = storeSuite({ create: memoryStore, reopen: async (store) => store });
-  expect(reopened).toHaveLength(14);
+  expect(reopened).toHaveLength(17);
   await Promise.all(reopened.map((c) => c.run()));
+});
+
+test("store_suite_catches_scope_leaks_and_incomplete_deletion", async () => {
+  await fails(() => {
+    const store = memoryStore();
+    return {
+      ...store,
+      putState: (id, _scope, state) => store.putState(id, "", state),
+      getState: (id, _scope) => store.getState(id, ""),
+    };
+  }, "scoped_state_is_isolated");
+  await fails(() => {
+    const store = memoryStore();
+    return {
+      ...store,
+      async deletePlacement(id) {
+        const saved = await store.getState(id, "viewer:42");
+        await store.deletePlacement(id);
+        if (saved !== undefined) await store.putState(id, "viewer:42", saved);
+      },
+    };
+  }, "delete_placement_removes_all_scopes");
+  await fails(() => {
+    const store = memoryStore();
+    return {
+      ...store,
+      getState: (id, scope) => store.getState(id, typeof scope === "string" ? scope.slice(0, 128) : ""),
+    };
+  }, "scope_bound_enforced");
 });
 
 test("store_suite_wraps_adapter_errors_and_bounds_details", async () => {

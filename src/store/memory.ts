@@ -3,6 +3,7 @@ import type { WidgetPackage } from "../formats/package.ts";
 import type { Placement, StyleRecord } from "../formats/records.ts";
 import type { Json } from "../formats/tree.ts";
 import type { Store } from "./index.ts";
+import { assertScope } from "./scope.ts";
 
 function copy<T>(value: T): T {
   return value === undefined ? value : JSON.parse(JSON.stringify(value));
@@ -12,7 +13,7 @@ function copy<T>(value: T): T {
 export function memoryStore(): Store {
   const packages = new Map<string, WidgetPackage>();
   const placements = new Map<string, Placement>();
-  const states = new Map<string, Json>();
+  const states = new Map<string, Map<string, Json>>();
   const styles = new Map<string, StyleRecord>();
   return {
     async putPackage(pkg) {
@@ -47,11 +48,18 @@ export function memoryStore(): Store {
     async listPlacements() {
       return copy([...placements.values()].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)));
     },
-    async putState(id, state) {
-      states.set(id, copy(state));
+    async putState(id, scope, state) {
+      assertScope(scope);
+      let scoped = states.get(id);
+      if (!scoped) {
+        scoped = new Map();
+        states.set(id, scoped);
+      }
+      scoped.set(scope, copy(state));
     },
-    async getState(id) {
-      return copy(states.get(id));
+    async getState(id, scope) {
+      assertScope(scope);
+      return copy(states.get(id)?.get(scope));
     },
     async putStyle(style) {
       styles.set(JSON.stringify([style.kind, style.id, style.version]), copy(style));

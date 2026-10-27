@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { pack, type WidgetPackage, verifyPackage } from "@arnilo/liveframe/pack";
-import { loadPlacement, memoryStore, type Placement, type Store } from "@arnilo/liveframe/store";
+import { loadPlacement, memoryStore, verifyPlacementInputs, type Placement, type Store } from "@arnilo/liveframe/store";
 import { int, obj, str, type Result, validateCatalog, validateCapabilities } from "../index.ts";
 import catalogDoc from "./fixtures/proof/catalog.json" with { type: "json" };
 import capabilitiesDoc from "./fixtures/proof/capabilities.json" with { type: "json" };
@@ -58,6 +58,53 @@ async function installed() {
   return store;
 }
 
+test("load_placement_explicit_state_resets_like_stored", async () => {
+  const store = await installed();
+  const noRead: Store = {
+    ...store,
+    getState: async () => {
+      throw new Error("State must not be read");
+    },
+  };
+  for (const state of [{ count: 4 }, { count: "old" }, null, false, { count: Infinity }, undefined]) {
+    const stored = await loadPlacement({ ...store, getState: async () => state as never }, "home", options);
+    expect(await loadPlacement(noRead, "home", options, { state })).toEqual(stored);
+  }
+});
+
+test("verify_placement_inputs_matches_load_placement", async () => {
+  const store = await installed();
+  for (const params of [placement.params, {}, { "a/~": 1 }]) {
+    await store.putPlacement({ ...placement, params });
+    for (const state of [{ count: 4 }, { count: "old" }, null, false, { count: Infinity }, undefined]) {
+      const loaded = await loadPlacement(store, "home", options, { state });
+      const expected = loaded.ok ? { ok: true, value: { ...loaded.value, package: undefined } } : loaded;
+      const verified = verifyPlacementInputs(pkg, { params, state });
+      expect(verified.ok ? { ok: true, value: { ...verified.value, package: undefined } } : verified).toEqual(expected);
+    }
+  }
+});
+
+test("load_placement_selects_scope_and_rejects_invalid_scope_before_reads", async () => {
+  const store = await installed();
+  await store.putState("home", "", { count: 1 });
+  await store.putState("home", "viewer:42", { count: 42 });
+  expect(value(await loadPlacement(store, "home", options)).state).toEqual({ count: 1 });
+  expect(value(await loadPlacement(store, "home", options, { scope: "viewer:42" })).state).toEqual({ count: 42 });
+  expect(value(await loadPlacement(store, "home", options, { scope: "absent" })).state).toEqual({ count: 0 });
+  const noRead: Store = {
+    ...store,
+    getPlacement: async () => {
+      throw new Error("Invalid scope must fail before I/O");
+    },
+  };
+  rejects(
+    await loadPlacement(noRead, "home", options, { scope: "x".repeat(129), state: { count: 1 } }),
+    "invalid-document",
+    "/scope",
+  );
+});
+
 test("load_placement_rejections", async () => {
   const store = memoryStore();
   rejects(await loadPlacement(store, "home", options), "not-found");
@@ -96,7 +143,7 @@ test("load_placement_resets_state", async () => {
   const store = await installed();
   const expected = { package: pkg, params: placement.params, state: { count: 0 } };
   expect(value(await loadPlacement(store, "home", options))).toEqual(expected);
-  await store.putState("home", { count: 4 });
+  await store.putState("home", "", { count: 4 });
   expect(value(await loadPlacement(store, "home", options))).toEqual({ ...expected, state: { count: 4 } });
   const next = value(
     pack(
@@ -113,7 +160,7 @@ test("load_placement_resets_state", async () => {
   await store.putPlacement({ ...placement, widget: { id: manifest.id, version: "2" } });
   const reset = value(await loadPlacement(store, "home", options));
   expect(reset).toMatchObject({ package: next, state: {}, reset: [{ kind: "invalid-prop", pointer: "/state/count" }] });
-  expect(await store.getState("home")).toEqual({ count: 4 });
+  expect(await store.getState("home", "")).toEqual({ count: 4 });
   for (const state of [null, false, { count: Infinity }]) {
     const bad: Store = { ...store, getState: async () => state };
     const loaded = value(await loadPlacement(bad, "home", options));
