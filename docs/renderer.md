@@ -210,6 +210,11 @@ intent. `implement()` requires a TypeScript `number` for either numeric event.
 A mismatch throws and raises nothing. Event-handler exceptions are implementation
 bugs and are not caught by React render error boundaries.
 
+For `carries: { object: schema }`, `emit` checks the whole payload against a
+schema compiled once per definition event in the renderer factory. `implement()`
+infers the payload type from that schema. Keep drafts local and collect all current
+field values on submit; no earlier `setState` is needed.
+
 `onIntent` receives a fresh, frozen, complete intent:
 
 - `{ type: "setState", key: "reason" }` emitted with `"Ready"` becomes
@@ -218,6 +223,11 @@ bugs and are not caught by React render error boundaries.
   emitted with `"Ready"` becomes
   `{ type: "action", name: "tasks.escalate", args: { id: "t1", reason: "Ready" } }`.
   `bind` is removed.
+- An action with `bindAll: true` merges the emitted object into its literal
+  `args` and removes `bindAll`. The validator rejects literal/event key overlap
+  and incompatible property types or required fields before the tree renders.
+  Object `setState` replaces the whole key. Delivered objects are copied before
+  freezing, so the primitive's local payload remains editable.
 
 Your transport should associate the intent with the authenticated placement,
 surface and accepted revision. **The host re-checks every intent on dispatch**:

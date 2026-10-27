@@ -194,12 +194,15 @@ counts, where `min <= max`.
 
 An event map has at most 256 entries. Names match `^on[A-Z][A-Za-z]*$` and have
 at most 64 characters. Each event requires `carries` (`none`, `string`,
-`boolean`, `number` or `integer`) and a description. Unknown fields and invalid
-schemas fail closed.
+`boolean`, `number`, `integer` or `{ object: ObjectSchema }`) and a description.
+Unknown fields and invalid schemas fail closed.
 Numeric events carry finite values only; `integer` also requires an integer.
 For `bind` and implicit `setState`, `number` fills only a `number` schema, while
 `integer` fills an `integer` or `number` schema. Bounds are checked on the filled
 value by the host (and by Preview).
+Object events have at most 32 scalar properties, with bounded strings, no nested
+objects or arrays, and no top-level `nullable: true`. Individual scalar fields
+may be nullable. Their schemas are closed like every object schema.
 Malformed structure returns `invalid-document`; unresolved references return
 `unknown-name`. Errors are bounded to 20 and point into the catalog, including
 its vocabulary. Success preserves the input object.
@@ -319,9 +322,15 @@ JSON values. Each event carries one intent:
 
 - `{ type: "setState", key, value? }`: an absent `value` uses the event's
   value; an explicit `null` sets null.
-- `{ type: "action", name, args, bind? }`: `args` is required, even when empty.
+- `{ type: "action", name, args, bind?, bindAll? }`: `args` is required, even when empty.
   `bind` names the argument filled by the event's value; it carries no value
   or authority. The host checks and authorises the completed arguments.
+  `bindAll: true` instead merges an object event into `args`; no other value is
+  accepted and it cannot accompany `bind`. Literal/event key overlap is rejected.
+  Event properties must exist in the remaining argument schema, cover its required
+  fields and match scalar types (`integer` also fits `number`); nullable fields
+  need nullable targets. Bounds and enums are checked on the completed value.
+  Implicit object `setState` uses the same structural fit rule and replaces a whole key.
 
 The catalog-independent schema is published at
 `@arnilo/liveframe/schemas/ui-tree.json`. It rejects unknown tree, node and

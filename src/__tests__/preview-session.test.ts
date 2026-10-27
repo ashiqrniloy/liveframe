@@ -14,6 +14,7 @@ import { workerRunner } from "@arnilo/liveframe/preview/worker";
 import type { WidgetProps } from "@arnilo/liveframe/sdk";
 import { loadPlacement, memoryStore } from "@arnilo/liveframe/store";
 import * as numeric from "./fixtures/numeric-events.ts";
+import * as form from "./fixtures/object-events.ts";
 import { drafts, packageOptions, value } from "./fixtures/widgets/drafts.ts";
 
 test("preview_intent_rejects_out_of_range_number", async () => {
@@ -59,6 +60,37 @@ const draft = {
     },
   ],
 };
+
+test("preview_rechecks_bind_all_args", async () => {
+  const session = createPreview({
+    catalog: form.catalog,
+    capabilities: {
+      ...packageOptions.capabilities,
+      actions: { ...packageOptions.capabilities.actions, ...form.capabilities.actions },
+    },
+    runner: inProcessRunner(),
+  });
+  value(
+    session.update({ ...draft, manifest: { ...base.manifest, actions: [...base.manifest.actions, "form.submit"] } }),
+  );
+  value(await session.render({ scenario: "first" }));
+  for (const reason of ["", "x".repeat(101)]) {
+    rejects(
+      await session.intent({ type: "action", name: "form.submit", args: { id: "row", reason, confirm: true } }),
+      "invalid-prop",
+      "/args/reason",
+    );
+    expect(session.intents()).toEqual([]);
+  }
+  rejects(
+    await session.intent({ type: "action", name: "form.submit", args: { id: "row" }, bindAll: true }),
+    "invalid-prop",
+  );
+  value(
+    await session.intent({ type: "action", name: "form.submit", args: { id: "row", reason: "valid", confirm: true } }),
+  );
+  expect(session.intents()).toHaveLength(1);
+});
 
 function rejects(result: Result<unknown>, kind: string, pointer?: string) {
   expect(result.ok).toBe(false);

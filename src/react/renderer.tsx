@@ -2,7 +2,8 @@ import { Component, Fragment, type ReactNode, useLayoutEffect, useMemo, useRef, 
 import { slotClass, styleDeclarations, surfaceAttributes } from "../css/index.ts";
 import { type LiveframeError, LiveframeFailure } from "../errors.ts";
 import { carriesValue } from "../formats/events.ts";
-import { type CompiledValidator, type Intent, type UiNode, type UiTree, validateCatalog } from "../index.ts";
+import { type CompiledValidator, type Intent, type Json, type UiNode, type UiTree, validateCatalog } from "../index.ts";
+import { compileSchema } from "../validate/schema.ts";
 import { binding, type Implementation, type Item } from "./implement.ts";
 
 /** The registry check's failures, with the diagnostics the other install-time APIs throw. */
@@ -60,14 +61,24 @@ function sameDefinition(left: unknown, right: unknown): boolean {
   );
 }
 
-function complete(intent: Intent, value?: string | boolean | number): Intent {
-  let result = structuredClone(intent);
+function complete(intent: Intent, value?: Json): Intent {
+  let result = intent;
   if (result.type === "setState" && !Object.hasOwn(result, "value") && value !== undefined)
     result = { ...result, value };
   else if (result.type === "action" && result.bind !== undefined && value !== undefined) {
     const { bind, ...action } = result;
     result = { ...action, args: { ...action.args, [bind]: value } };
+  } else if (
+    result.type === "action" &&
+    result.bindAll &&
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value)
+  ) {
+    const { bindAll, ...action } = result;
+    result = { ...action, args: { ...action.args, ...(value as Readonly<Record<string, Json>>) } };
   }
+  result = structuredClone(result);
   function freeze(value: unknown) {
     if (value !== null && typeof value === "object") {
       for (const entry of Object.values(value)) freeze(entry);
@@ -89,6 +100,17 @@ export function createRenderer({
   if (!checked.ok) throw new RendererError([...checked.errors]);
   const validatedCatalog = checked.value;
   const definitions = validatedCatalog.definitions;
+  const eventChecks = new Map(
+    definitions.map((definition) => [
+      definition.kind,
+      new Map(
+        Object.entries(definition.events).map(([event, { carries }]) => [
+          event,
+          typeof carries === "object" ? compileSchema(carries.object) : undefined,
+        ]),
+      ),
+    ]),
+  );
   const registry = new Map<string, Implementation>();
   const errors: LiveframeError[] = [];
   function reject(pointer: string, message: string) {
@@ -190,7 +212,9 @@ export function createRenderer({
             const intent = node.events[event];
             if (!intent) return;
             const carries = definition.events[event]?.carries;
-            if (!carriesValue(carries, value)) throw new Error(`Invalid event value: ${node.kind}.${event}`);
+            const check = eventChecks.get(node.kind)?.get(event);
+            if (!(check ? check(value, "", { errors: [], maxErrors: 1 }) : carriesValue(carries, value)))
+              throw new Error(`Invalid event value: ${node.kind}.${event}`);
             onIntent(complete(intent, value));
           },
           children: items.map((child) => child.render()),

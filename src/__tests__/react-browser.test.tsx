@@ -19,6 +19,23 @@ for (const name of ["certified", "rack"]) {
 }
 
 const { Surface } = renderer();
+test("form_submit_carries_all_fields", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForFunction(() => !!window.surfaceTest);
+    await page.evaluate(() => window.surfaceTest.mountForm());
+    await page.getByRole("textbox", { name: "Reason" }).fill("edited local draft");
+    await page.getByRole("checkbox", { name: "Confirm" }).check();
+    expect(await page.evaluate(() => window.surfaceTest.intents())).toEqual([]);
+    await page.getByRole("button", { name: "Submit fields" }).click();
+    expect(await page.evaluate(() => window.surfaceTest.intents())).toEqual([
+      { type: "action", name: "form.submit", args: { id: "row", reason: "edited local draft", confirm: true } },
+    ]);
+  } finally {
+    await page.close();
+  }
+});
 let server: ReturnType<typeof Bun.serve>;
 let browser: Browser;
 beforeAll(async () => {

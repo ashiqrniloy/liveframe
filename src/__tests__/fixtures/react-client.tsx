@@ -3,6 +3,8 @@ import { createRoot, hydrateRoot } from "react-dom/client";
 import type { Intent, UiTree } from "../../index.ts";
 import type { ImplementationProps } from "../../react/index.ts";
 import { createRenderer, implement } from "../../react/index.ts";
+import * as form from "./object-events.ts";
+import { ObjectForm } from "./object-form.tsx";
 import agentHome from "./proof/agent-home.tree.json" with { type: "json" };
 import { catalog, hydrationTree, renderer, surfaceProps, tree, validator } from "./react-surface.tsx";
 
@@ -126,6 +128,7 @@ declare global {
       replaceIntentHandler(): void;
       tree(revision?: number, surfaceId?: string): UiTree;
       mountSwitching(): void;
+      mountForm(): void;
       switchStyles(index: number, theme: string, designSystem?: string, version?: string): void;
       renders(): number;
       unmount(): void;
@@ -134,6 +137,17 @@ declare global {
   }
 }
 window.surfaceTest = {
+  mountForm() {
+    const { Surface: FormSurface } = createRenderer({
+      catalog: form.catalog,
+      implementations: form.catalog.definitions.map((definition) => implement(definition, ObjectForm)),
+    });
+    flushSync(() =>
+      root.render(
+        <FormSurface {...surfaceProps} validator={form.validator} tree={form.formTree()} onIntent={onIntent} />,
+      ),
+    );
+  },
   setScope(system) {
     normalStyle = { theme: { id: system, version: "1.0.0" }, designSystem: { id: system, version: "1.0.0" } };
     draw();

@@ -8,7 +8,7 @@ const token = str({ maxLength: 64, pattern: "^[a-z][A-Za-z0-9-]*$" });
 const description = str({ maxLength: 500 });
 const eventName = str({ maxLength: 64, pattern: "^on[A-Z][A-Za-z]*$" });
 const event = obj({
-  carries: str({ maxLength: 7, enum: ["none", "string", "boolean", "number", "integer"] }),
+  carries: bool(),
   description,
 });
 const child = obj({ kind: token, min: int({ minimum: 0 }), max: int({ minimum: 0 }) });
@@ -39,7 +39,20 @@ const catalogFields = obj({
 export type Definition = Omit<Infer<typeof definitionFields>, "props" | "children" | "events"> & {
   readonly props: Extract<LanguageSchema, { readonly type: "object" }>;
   readonly children: "none" | "any" | Infer<typeof childRules>;
-  readonly events: Readonly<Record<string, Infer<typeof event>>>;
+  readonly events: Readonly<
+    Record<
+      string,
+      Omit<Infer<typeof event>, "carries"> & {
+        readonly carries:
+          | "none"
+          | "string"
+          | "boolean"
+          | "number"
+          | "integer"
+          | { readonly object: Definition["props"] };
+      }
+    >
+  >;
 };
 export type Catalog = Omit<Infer<typeof catalogFields>, "vocabulary" | "definitions"> & {
   readonly vocabulary: Vocabulary;
@@ -60,7 +73,51 @@ export const definitionSchema = {
     ...definitionFields.properties,
     props: { $ref: "#/$defs/objectSchema" },
     children: { oneOf: [str({ maxLength: 4, enum: ["none", "any"] }), childRules] },
-    events: { ...record(eventName.pattern, event, 256), propertyNames: eventName },
+    events: {
+      ...record(
+        eventName.pattern,
+        {
+          ...event,
+          properties: {
+            ...event.properties,
+            carries: {
+              oneOf: [
+                str({ maxLength: 7, enum: ["none", "string", "boolean", "number", "integer"] }),
+                {
+                  type: "object",
+                  required: ["object"],
+                  additionalProperties: false,
+                  properties: {
+                    object: {
+                      allOf: [
+                        { $ref: "#/$defs/objectSchema" },
+                        {
+                          type: "object",
+                          properties: {
+                            nullable: { const: false },
+                            properties: {
+                              type: "object",
+                              maxProperties: 32,
+                              additionalProperties: {
+                                type: "object",
+                                properties: { type: { enum: ["string", "number", "integer", "boolean"] } },
+                                required: ["type"],
+                              },
+                            },
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+        256,
+      ),
+      propertyNames: eventName,
+    },
     variants: unique(definitionFields.properties.variants),
     slots: { ...unique(definitionFields.properties.slots), contains: literal("root") },
     styleProps: unique(definitionFields.properties.styleProps),
@@ -89,6 +146,28 @@ function checkUniqueNames(list: unknown, pointer: string, c: Checks): void {
   }
 }
 
+function checkCarries(carries: unknown, pointer: string, c: Checks): void {
+  if (!isRecord(carries)) {
+    c.collect(
+      checkValue(str({ maxLength: 7, enum: ["none", "string", "boolean", "number", "integer"] }), carries),
+      pointer,
+    );
+    return;
+  }
+  c.collect(checkValue(obj({ object: bool() }), shell(carries, ["object"])), pointer);
+  const schema = carries.object;
+  c.schema(schema, `${pointer}/object`);
+  if (!isRecord(schema) || schema.type !== "object" || schema.nullable === true)
+    c.reject(`${pointer}/object`, "Expected a non-nullable object schema");
+  if (isRecord(schema) && isRecord(schema.properties)) {
+    if (Object.keys(schema.properties).length > 32)
+      c.reject(`${pointer}/object/properties`, "Expected at most 32 properties");
+    for (const [name, property] of Object.entries(schema.properties))
+      if (!isRecord(property) || !["string", "number", "integer", "boolean"].includes(String(property.type)))
+        c.reject(at(`${pointer}/object/properties`, name), "Expected a scalar property schema");
+  }
+}
+
 function checkEvents(events: unknown, pointer: string, c: Checks): void {
   if (!isRecord(events)) {
     c.reject(`${pointer}/events`, "Expected an event map");
@@ -99,7 +178,9 @@ function checkEvents(events: unknown, pointer: string, c: Checks): void {
     if (c.errors.length >= 20) break;
     const eventPointer = at(`${pointer}/events`, key);
     if (!checkValue(eventName, key).ok) c.reject(eventPointer, "Expected an onCapitalised event name");
-    c.collect(checkValue(event, value), eventPointer);
+    c.collect(checkValue(event, isRecord(value) ? shell(value, ["carries"]) : value), eventPointer);
+    if (!isRecord(value)) continue;
+    checkCarries(value.carries, `${eventPointer}/carries`, c);
   }
 }
 
@@ -299,9 +380,14 @@ function compareDefinition(before: Definition, after: Definition, change: Change
   for (const key of ["variants", "slots", "styleProps"] as const)
     compareNames(before[key], after[key], `${path} ${key}`, change);
   compareNames(Object.keys(before.events), Object.keys(after.events), `${path} event`, change);
-  for (const [key, event] of Object.entries(before.events))
-    if (Object.hasOwn(after.events, key) && event.carries !== after.events[key]?.carries)
-      change(true, `${path} event ${key} carries changed`);
+  for (const [key, event] of Object.entries(before.events)) {
+    const next = after.events[key];
+    if (!next) continue;
+    const changed = () => change(true, `${path} event ${key} carries changed`);
+    if (typeof event.carries === "object" && typeof next.carries === "object")
+      compareSchemas(event.carries.object, next.carries.object, `${path} event ${key}`, changed);
+    else if (event.carries !== next.carries) changed();
+  }
   if (before.defaultVariant !== after.defaultVariant) change(true, `${path} defaultVariant changed`);
   if (before.a11y.role !== after.a11y.role || before.a11y.name !== after.a11y.name)
     change(true, `${path} a11y changed`);

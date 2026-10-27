@@ -187,15 +187,63 @@
                 "type": "object",
                 "properties": {
                   "carries": {
-                    "maxLength": 7,
-                    "enum": [
-                      "none",
-                      "string",
-                      "boolean",
-                      "number",
-                      "integer"
-                    ],
-                    "type": "string"
+                    "oneOf": [
+                      {
+                        "maxLength": 7,
+                        "enum": [
+                          "none",
+                          "string",
+                          "boolean",
+                          "number",
+                          "integer"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "object"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "object": {
+                            "allOf": [
+                              {
+                                "$ref": "#/$defs/objectSchema"
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "nullable": {
+                                    "const": false
+                                  },
+                                  "properties": {
+                                    "type": "object",
+                                    "maxProperties": 32,
+                                    "additionalProperties": {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "enum": [
+                                            "string",
+                                            "number",
+                                            "integer",
+                                            "boolean"
+                                          ]
+                                        }
+                                      },
+                                      "required": [
+                                        "type"
+                                      ]
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    ]
                   },
                   "description": {
                     "maxLength": 500,

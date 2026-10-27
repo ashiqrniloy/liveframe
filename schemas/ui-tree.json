@@ -100,6 +100,9 @@
               "pattern": "^.+$",
               "type": "string"
             },
+            "bindAll": {
+              "const": true
+            },
             "type": {
               "maxLength": 6,
               "enum": [
@@ -124,7 +127,17 @@
             "name",
             "args"
           ],
-          "additionalProperties": false
+          "additionalProperties": false,
+          "not": {
+            "properties": {
+              "bind": {},
+              "bindAll": {}
+            },
+            "required": [
+              "bind",
+              "bindAll"
+            ]
+          }
         }
       ]
     },

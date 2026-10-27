@@ -107,7 +107,7 @@ A definition declares:
 - **`description`**: what the primitive is for, in one or two sentences. Agents and generated docs read it.
 - **`props`**: a closed schema per prop, in the schema language below. Data only: no functions, no React nodes.
 - **`children`**: `none`, `any`, or a list of allowed kinds with min/max counts.
-- **`events`**: the events the primitive can raise, what value each carries (`none`, `string`, `boolean`, `number` or `integer`) and a description. Each event takes exactly one intent.
+- **`events`**: the events the primitive can raise, what value each carries (`none`, `string`, `boolean`, `number`, `integer` or `{ object: ObjectSchema }`) and a description. Each event takes exactly one intent. An object carry is closed, not top-level nullable, and has at most 32 scalar properties (`string`, `boolean`, `number` or `integer`, each optionally nullable); strings require `maxLength`. Nested objects and arrays are rejected.
 - **`variants`** and **`defaultVariant`**: the closed variant axis that recipes key on, and the variant a node without one gets. The app chooses each kind's variants; a `box` may declare look variants such as `plate` or `rule` so that borders and rules stay recipe data.
 - **`slots`**: the named parts of the primitive that recipes style.
 - **`styleProps`**: which token-constrained layout props an author may set (see §6.3).
@@ -364,7 +364,7 @@ The widget function's rules:
   ```
 
   A widget imports it by relative path (`./ui.gen`, §7.1). It is source, not a `.d.ts`, so an unpacked widget still runs, and `pack()` bundles it like a composed component (§7.3). Props are readonly, each declared event becomes a typed event prop, docs come from the definition, and `liveframe gen --check` fails CI on drift.
-- `state.set(key, value?)` and `action(name, args, { bind }?)` return frozen intent data. Without a value, `state.set(key)` sends the value the event produced.
+- `state.set(key, value?)` and `action(name, args, { bind?, bindAll? }?)` return frozen intent data. Without a value, `state.set(key)` sends the value the event produced. `bind` fills a scalar argument; `bindAll: true` fills several arguments from one object event (§8).
 - **`render(widget, inputs, { validator, surfaceId, revision, limits?, maxErrors? })`** runs the function, builds the tree with key-path ids, and validates each node as it is emitted, so building and validating are one pass (§10). `validator` is a `CompiledValidator` from `compileValidator`; `limits` bounds nodes, depth and bytes (§10); `maxErrors` is the error bound below.
   - It returns `Result<UiTree>`: `{ ok: true, value }` or `{ ok: false, errors }`, where `errors` is every error found, up to `maxErrors` (default 20, the bound §10 uses). Each is a `LiveframeError` (§10) whose `kind` is one of `host-element`, `unknown-component`, `invalid-prop`, `invalid-children`, `missing-key`, `duplicate-key`, `undeclared-event`, `undeclared-action`, `function-prop`, `async-render`, `render-failed`, `limit-exceeded`.
   - An input that fails its manifest schema is `invalid-prop`, with a pointer into the inputs (`/state/filter`) and no `nodeId`.
@@ -534,6 +534,7 @@ Playwright is an optional peer dependency, used only by this command. The author
 Rules:
 
 - **One intent per event.** If a primitive needs two behaviours, it gets two events.
+- **Several values can commit together.** `action("escalate", { id }, { bindAll: true })` merges an object event into the literal args and removes `bindAll`. `bind` and `bindAll` are mutually exclusive; `bind` requires a scalar event, `bindAll` an object event. Literal/event key overlap is `invalid-prop` at the literal arg. The event schema must structurally fit the action's argument schema minus literal args: every event property exists in the target, every remaining required target property is required by the event, and scalar types match (except `integer` fits `number`). Nullable event properties require nullable targets. Bounds and enums are checked on the filled value by Preview and the host, not compared at build time. Implicit object `setState` replaces the entire object key under the same fit rule.
 - **Inputs are local until they commit.** A `textField` keeps its value locally (tier 1). Its `onCommit` (Enter, blur, or a debounce the definition declares) carries the value as `setState`. To act on a typed value directly, an action intent names the argument the event's value fills: `action("tasks.escalate", { id }, { bind: "reason" })`. The validator checks that the event's `carries` type matches that argument's schema, and the app re-checks the filled arguments on dispatch. Numeric `bind` and implicit `setState` values use the same compatibility rule: `number` fills only `number`, while `integer` fills `integer` or `number`. The host checks `minimum` and `maximum` on the filled value.
 - **The app re-checks every intent.** The intent must be declared by the widget's manifest, and its args must match the action's schema in the app's capabilities. The validator checks this on every render; the app checks it again on dispatch. Intents carry no authority.
 - **State is owned by the app.** Widget state is persisted per placement, in the app's store (§7.4). The widget only ever receives it as input.
@@ -562,7 +563,7 @@ type UiNode = {
 };
 type Intent =
   | { type: "setState"; key: string; value?: Json }   // value absent ⇒ the event's value
-  | { type: "action"; name: string; args: Record<string, Json>; bind?: string }; // bind: the arg the event's value fills
+  | { type: "action"; name: string; args: Record<string, Json>; bind?: string; bindAll?: true }; // bind and bindAll are exclusive
 ```
 
 - Each render sends the **whole tree**. The renderer reconciles by `id`, so unchanged nodes keep their DOM and local state.
@@ -580,7 +581,7 @@ It checks:
 - props match their schemas, and strings and arrays are bounded
 - children match the definition, and style props are declared and in range; a dimension that names a design value (`space.*`, `radius.*`, `size.*`, a breakpoint) fails when the app did not declare that name
 - variants exist
-- event names are declared, `setState` keys exist in the state schema and their values match it, action names are in the manifest, action args match the action's schema in the app's capabilities, and a `bind` names an argument whose type matches the event's `carries`
+- event names are declared, `setState` keys exist in the state schema and their values match it, action names are in the manifest, action args match the action's schema in the app's capabilities, a scalar `bind` names a compatible argument, and object `bindAll` and implicit object `setState` satisfy the structural fit rule (§8)
 - ids are unique and key-derived
 - limits hold: node count (default 5,000), depth (default 64), and tree size in bytes (default 1 MiB), all configurable. Tree size is the UTF-8 length of the tree's `JSON.stringify` output, counted during the walk without serialising. String bounds count code points. The runner adds a time limit (§7.5)
 
@@ -643,7 +644,7 @@ const validator = compileValidator({ catalog, capabilities, manifest });
 - Server-side rendering is supported. React error boundaries do not catch server rendering errors: if an implementation throws during `renderToString`, the host catches the error and supplies fallback markup. Hydrating that replacement markup can recover through client rendering; successful server renders and invalid-tree fallbacks hydrate without mismatch. The scoped `portal` container is supplied to implementations only after mounting, so it is undefined during SSR and the first client render.
 - `<Surface>` renders its own wrapper element around the tree and a sibling `portal` container. Both carry `surfaceAttributes({ theme, designSystem, tree })`: §6.4's theme/design-system scope attributes, `lf_surface` and, when the tree uses responsive values, `lf_container`. Node slots do not carry these scope classes, and parents of responsive nodes do not gain containers. Surfaces never nest. Changing `theme` or `designSystem` runs §6.4's switching sequence on the wrapper and portal container together; it preserves node identities and slot classes and runs no widget code.
 - Overlays stay within their surface's scope: use the top layer while retaining DOM ancestry, or the `portal` container. A backdrop slot and its overlay content are siblings. No backdrop ancestor may set opacity below 1 or a filter that creates a backdrop root; the backdrop must be able to sample the page behind it. Exit motion, scroll locking and making the background inert are part of the renderer contract: the renderer supplies the scoped container, and the app's implementations deliver the lifecycle (for example through React Aria). Browser tests and the renderer conformance suite (§13) prove it.
-- `emit(event, value?)` checks the event value against the definition's `carries` (`none`: no value; `string`; `boolean`; `number`: a finite number; `integer`: a finite integer). A mismatch is an implementation bug: it throws and raises no intent. `onIntent` receives complete intents: a `setState` without `value` gets the event's value; an action with `bind` gets `args[bind]` set to that value and `bind` removed. Explicit `setState` values are preserved. The app re-checks the filled intent (§8), re-runs the widget or dispatches the action, then passes the new tree back in.
+- `emit(event, value?)` checks the event value against the definition's `carries` (`none`: no value; `string`; `boolean`; `number`: a finite number; `integer`: a finite integer; `{ object: ObjectSchema }`: the declared schema, compiled once per definition event in the renderer factory). A mismatch is an implementation bug: it throws and raises no intent. `onIntent` receives fresh, deeply frozen complete intents: a `setState` without `value` gets the event's value; an action with `bind` gets `args[bind]` set to that value and `bind` removed; `bindAll: true` merges the emitted object into `args` and is removed. Explicit `setState` values are preserved, and the emitted object is copied before freezing. The app re-checks the filled intent (§8), re-runs the widget or dispatches the action, then passes the new tree back in.
 - Recommended, not required: build interactive primitives on a behaviour library such as React Aria, for accessibility.
 
 ## 12. First task: prove the primitive set on two real UIs

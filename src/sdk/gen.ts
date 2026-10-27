@@ -145,6 +145,7 @@ export function generate(catalog: Catalog): string {
     "      readonly name: string;",
     "      readonly args: Readonly<Record<string, _Json>>;",
     "      readonly bind?: never;",
+    "      readonly bindAll?: never;",
     "    };",
   ];
   const components = catalog.definitions.map((d) => {

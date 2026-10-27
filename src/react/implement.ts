@@ -1,12 +1,12 @@
 import type { ComponentType, CSSProperties, ReactNode } from "react";
-import type { Definition, Infer, Json } from "../index.ts";
+import type { Definition, Infer, Json, LanguageSchema } from "../index.ts";
 
 type Props<D extends Definition> = string extends keyof D["props"]["properties"]
   ? Record<string, Json>
   : Infer<D["props"]>;
 
 type Emit<D extends Definition> = string extends keyof D["events"]
-  ? (event: string, value?: string | boolean | number) => void
+  ? (event: string, value?: Json) => void
   : (
       ...args: {
         [E in keyof D["events"] & string]: D["events"][E]["carries"] extends "string"
@@ -15,7 +15,9 @@ type Emit<D extends Definition> = string extends keyof D["events"]
             ? [event: E, value: boolean]
             : D["events"][E]["carries"] extends "number" | "integer"
               ? [event: E, value: number]
-              : [event: E];
+              : D["events"][E]["carries"] extends { readonly object: infer S extends LanguageSchema }
+                ? [event: E, value: Infer<S>]
+                : [event: E];
       }[keyof D["events"] & string]
     ) => void;
 

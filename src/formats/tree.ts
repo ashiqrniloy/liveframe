@@ -8,11 +8,14 @@ const token = str({ maxLength: 64, pattern: "^[a-z][A-Za-z0-9-]*$" });
 const stateFields = obj({ type: str({ maxLength: 8, enum: ["setState"] }), key: name }, { value: bool() });
 const actionFields = obj(
   { type: str({ maxLength: 6, enum: ["action"] }), name: capabilityName, args: bool() },
-  { bind: name },
+  { bind: name, bindAll: bool() },
 );
 export type Intent =
   | (Omit<Infer<typeof stateFields>, "value"> & { readonly value?: Json })
-  | (Omit<Infer<typeof actionFields>, "args"> & { readonly args: Readonly<Record<string, Json>> });
+  | (Omit<Infer<typeof actionFields>, "args" | "bindAll"> & {
+      readonly args: Readonly<Record<string, Json>>;
+      readonly bindAll?: true;
+    });
 
 const nodeFields = obj(
   { id: name, kind: token, props: bool() },
@@ -55,7 +58,11 @@ export const treeSchema = {
     intent: {
       oneOf: [
         { ...stateFields, properties: { ...stateFields.properties, value: json } },
-        { ...actionFields, properties: { ...actionFields.properties, args: jsonMap } },
+        {
+          ...actionFields,
+          properties: { ...actionFields.properties, args: jsonMap, bindAll: { const: true } },
+          not: { properties: { bind: {}, bindAll: {} }, required: ["bind", "bindAll"] },
+        },
       ],
     },
     node: {

@@ -49,7 +49,7 @@ const rules = {
     "children match the definition, and style props are declared and in range; a dimension that names a design value (`space.*`, `radius.*`, `size.*`, a breakpoint) fails when the app did not declare that name",
   variant: "variants exist",
   intent:
-    "event names are declared, `setState` keys exist in the state schema and their values match it, action names are in the manifest, action args match the action's schema in the app's capabilities, and a `bind` names an argument whose type matches the event's `carries`",
+    "event names are declared, `setState` keys exist in the state schema and their values match it, action names are in the manifest, action args match the action's schema in the app's capabilities, a scalar `bind` names a compatible argument, and object `bindAll` and implicit object `setState` satisfy the structural fit rule (§8)",
   id: "ids are unique and key-derived",
   limits:
     "limits hold: node count (default 5,000), depth (default 64), and tree size in bytes (default 1 MiB), all configurable. Tree size is the UTF-8 length of the tree's `JSON.stringify` output, counted during the walk without serialising. String bounds count code points. The runner adds a time limit (§7.5)",

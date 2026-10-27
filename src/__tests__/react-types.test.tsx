@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { Component } from "react";
-import { type Definition, defineComponent, type Json, obj, str } from "../index.ts";
+import { bool, type Definition, defineComponent, type Json, obj, str } from "../index.ts";
 import { type Implementation, type ImplementationProps, implement } from "../react/index.ts";
 
 const field = defineComponent({
@@ -17,6 +17,10 @@ const field = defineComponent({
     onToggle: { carries: "boolean", description: "Toggled." },
     onNumber: { carries: "number", description: "Number." },
     onInteger: { carries: "integer", description: "Integer." },
+    onSubmit: {
+      carries: { object: obj({ reason: str({ maxLength: 500 }), confirm: bool() }) },
+      description: "Submit.",
+    },
   },
   styleProps: [],
   a11y: { role: "textbox", name: "label" },
@@ -39,6 +43,15 @@ test("implement_types_follow_const_definitions", () => {
     emit("onToggle", true);
     emit("onNumber", 1.5);
     emit("onInteger", 2);
+    emit("onSubmit", { reason: "draft", confirm: true });
+    // @ts-expect-error object event requires all required properties
+    emit("onSubmit", { reason: "draft" });
+    // @ts-expect-error object event checks property types
+    emit("onSubmit", { reason: true, confirm: true });
+    // @ts-expect-error object event requires a payload
+    emit("onSubmit");
+    // @ts-expect-error object event rejects undeclared properties
+    emit("onSubmit", { reason: "draft", confirm: true, extra: 1 });
     // @ts-expect-error numeric event requires a number
     emit("onNumber", "2");
     // @ts-expect-error numeric event requires its value

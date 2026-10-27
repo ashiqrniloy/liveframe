@@ -1,21 +1,21 @@
 import type { Page } from "playwright";
 import { createContext, useContext, useEffect, useState } from "react";
 import { Dialog, Modal, ModalOverlay } from "react-aria-components";
-import { type Result, type UiTree, validateDesignSystem, validateTheme } from "../../index.ts";
+import { type Definition, type Result, type UiTree, validateDesignSystem, validateTheme } from "../../index.ts";
 import { implement } from "../../react/index.ts";
-import manifest from "./proof/agent-home.manifest.json" with { type: "json" };
-import capabilities from "./proof/capabilities.json" with { type: "json" };
+import { catalog, capabilities, manifest, formTree } from "./object-events.ts";
+import { ObjectForm } from "./object-form.tsx";
 import certifiedSystem from "./proof/certified.design-system.json" with { type: "json" };
 import certifiedTheme from "./proof/certified.theme.json" with { type: "json" };
 import rackSystem from "./proof/rack.design-system.json" with { type: "json" };
 import rackTheme from "./proof/rack.theme.json" with { type: "json" };
-import { catalog, tree } from "./react-surface.tsx";
+import { tree } from "./react-surface.tsx";
 
 const ThemeContext = createContext("");
 export function implementations(mode = "") {
   return catalog.definitions.map((definition) =>
     // biome-ignore lint/correctness/noComponentHookFactories: Test bindings are created once before mounting.
-    implement(definition, function Primitive(input) {
+    implement<Definition>(definition, function Primitive(input) {
       const [draft, setDraft] = useState(String(input.props.value ?? ""));
       const [open, setOpen] = useState(Boolean(input.props.open));
       useEffect(() => setOpen(Boolean(input.props.open)), [input.props.open]);
@@ -33,6 +33,7 @@ export function implementations(mode = "") {
         });
         return () => observer.disconnect();
       }, []);
+      if (definition.kind === "stack" && input.props.semantics === "form") return <ObjectForm {...input} />;
       if (definition.kind === "textField")
         return (
           <input
@@ -224,6 +225,15 @@ export const textFixtures = [
 ] satisfies { kind: string; tree: UiTree; field: (p: Page) => import("playwright").Locator; maxLength: number }[];
 export const fixtures = {
   interactions: [
+    {
+      tree: formTree(),
+      act: async (p: Page) => {
+        await p.getByRole("textbox", { name: "Reason" }).fill("current fields");
+        await p.getByRole("checkbox", { name: "Confirm" }).check();
+        await p.getByRole("button", { name: "Submit fields" }).click();
+      },
+      intents: [{ type: "action", name: "form.submit", args: { id: "row", reason: "current fields", confirm: true } }],
+    },
     {
       tree: current,
       act: (p: Page) => p.getByRole("button", { name: "Save", exact: true }).click(),

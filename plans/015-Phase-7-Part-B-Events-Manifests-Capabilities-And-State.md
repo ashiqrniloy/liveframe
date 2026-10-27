@@ -278,7 +278,7 @@ This plan implements spec §5 (definitions and events), §6.3 (style props), §7
     - Added a shared numeric test catalog and a `conformance_numeric_fixture` that runs `rendererSuite` over numeric bound actions; the catalog-independent suite needed no new case. Type-level coverage extends `implement_types_follow_const_definitions` and the loaded-definition case in `react-types.test.tsx`. No proof primitive, SDK generator change or dependency was needed.
     - Verification: the new tests first failed because numeric carries were rejected. All 54 focused tests then passed. `bun run check` passed (689 pass, 4 skip, 0 fail). `bun --conditions liveframe:source bench/render.bench.ts` passed all eight workloads: 1.834–2.361 µs/node against the 3 µs/node gate; agent-home rendered in 1.3322 ms and the medium/full queues remained below 2 ms. Release and demo gates remain whole-plan verification.
 
-- [ ] Task 6: Commit several values in one intent with object-carrying events (LF-05, option A)
+- [x] Task 6: Commit several values in one intent with object-carrying events (LF-05, option A)
   - Acceptance Criteria:
     - Functional:
       - `carries: { object: ObjectSchema }` is accepted when the schema is closed and bounded, and rejected otherwise.
@@ -302,7 +302,7 @@ This plan implements spec §5 (definitions and events), §6.3 (style props), §7
       - `typescript-advanced-types`: infer the object type from `carries.object` through `Infer`.
       - `liveframe-execution`.
     - Library Documentation to Check Before Implementation:
-      - React Aria `Form` (proof form implementation, if used) for collecting field values on submit.
+      - None: the app-owned browser fixture uses native form controls and `FormData`; no React Aria form API is used.
     - Documentation Reviewed:
       - Task 1's decision log.
       - The files in Task 5.
@@ -316,11 +316,12 @@ This plan implements spec §5 (definitions and events), §6.3 (style props), §7
       action("escalate", { id: row.id }, { bindAll: true }) // intent.args = { id, reason, confirm } after emit
       ```
     - Files to Create/Edit:
-      - `src/formats/catalog.ts`; `src/validate/intent.ts`; `src/sdk/intents.ts`; `src/sdk/types.ts`
-      - `src/react/renderer.tsx`; `src/react/implement.ts`; `src/preview/session.ts`
-      - The proof form primitive implementation and catalog entry (tentative; the proof catalog may need a generic `form` container kind; confirm it is a primitive, not product-shaped)
-      - `src/conformance/react/*`; `schemas/*.json`
-      - `docs/spec.md` §5, §8, §11; `docs/sdk.md`; `docs/renderer.md`
+      - `src/formats/catalog.ts`; `src/formats/tree.ts`; `src/validate/intent.ts`; `src/sdk/intents.ts`; `src/sdk/gen.ts`
+      - `src/react/renderer.tsx`; `src/react/implement.ts`. Preview's existing completed-argument checks need tests, not a new path.
+      - `src/__tests__/fixtures/object-events.ts`; `object-form.tsx`; `react-client.tsx`; `conformance-browser.tsx`; regenerated `fixtures/widgets/ui.gen.ts`
+      - `src/__tests__/object-events.test.tsx`; `schemas.test.ts`; `preview-session.test.ts`; `react-types.test.tsx`; `sdk-gen-types.test.tsx`; `react-browser.test.tsx`; `conformance-renderer-browser.test.tsx`; `validator-rules.test.ts` (spec-bullet sync)
+      - `schemas/catalog.json`; `schemas/ui-tree.json`
+      - `docs/spec.md` §5, §7.2, §8–§11; `docs/formats.md`; `docs/sdk.md`; `docs/renderer.md`
   - Test Cases to Write:
     - `object_carries_must_be_closed_and_bounded`.
     - `bind_all_schema_mismatch_fails_with_pointer`.
@@ -330,6 +331,14 @@ This plan implements spec §5 (definitions and events), §6.3 (style props), §7
     - `preview_rechecks_bind_all_args`.
     - `conformance_form_fixture`.
     - `emit_object_type_inferred` (type-level).
+
+  - Notes (executed 2026-10-28):
+    - Added closed, non-nullable object carries with at most 32 scalar properties, reusing the language-schema validator and `compileSchema`. Scalar fields may be nullable; nested objects, arrays, unbounded strings and extra fields fail install validation. Regenerated `schemas/catalog.json` and `schemas/ui-tree.json`; schema-agreement tests cover object carries, `bindAll: true` and binding exclusivity.
+    - `action(name, args, { bindAll: true })` produces the new wire field. The SDK throws on combined bindings; the compiled validator rejects non-object `bindAll`, object `bind`, conflicting literal keys, incompatible types/nullability and missing required event properties. Object `setState` uses the same structural fit rule and replaces the whole key. Numeric widening accepts `integer` into `number`; bounds and enums remain completed-value checks, as Task 1 decided.
+    - The renderer compiles object checks once per definition event in its factory. Completion merges the payload, removes `bindAll`, and clones before freezing so that emitted local data stays editable. `implement_types_follow_const_definitions` supplies the planned `emit_object_type_inferred` assertions. Generated no-value event types now exclude `bindAll`; regenerated `ui.gen.ts`.
+    - `form_submit_carries_all_fields` proves one native submit captures the current text and checkbox values with no earlier intent. An app-owned test fixture uses the existing container's form semantics; no proof primitive or dependency was needed. `conformance_form_fixture` runs the same behaviour through the existing browser interaction case. Preview's existing completed-action validation already rejects `bindAll` and re-checks filled arguments; `preview_rechecks_bind_all_args` proves narrower capability bounds still apply, so no Preview implementation change was needed.
+    - Updated spec §5, §7.2 and §8–§11, the spec-bullet matrix, and the format, SDK and renderer guides. Plan 017's `checkOffered` handoff remains: check object carries and completed `bindAll` arguments under Task 1's rule; hosts must still validate and authorise before dispatch.
+    - Verification: the new tests first failed at object-carry catalog installation. Final `bun run check` passed (699 pass, 4 skip, 0 fail); a preceding full attempt needed the spec-bullet expectation updated and exceeded its 240-second shell timeout, so the successful rerun used 600 seconds. `bun --conditions liveframe:source bench/render.bench.ts` passed all eight workloads at 1.696–2.487 µs/node against the 3 µs/node gate; agent-home took 1.3485 ms and medium/full queues stayed below 2 ms. Release and demo gates remain whole-plan verification.
 
 - [ ] Task 7: Prune capabilities to what a manifest uses (LF-14)
   - Acceptance Criteria:

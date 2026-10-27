@@ -122,6 +122,12 @@ An event prop carries one frozen intent, never a callback:
   supply. The event must carry a compatible value, `query` must be declared by
   that action's argument schema, and `args` must omit the bound key. The app must
   declare and allow `search` before this intent can render.
+- `action("escalate", { id }, { bindAll: true })` fills several arguments from
+  one object event, such as a form's current local fields. Literal and event keys
+  must not overlap, and `bind` cannot accompany `bindAll`. The validator checks
+  property names, required fields and scalar types; `integer` can fill `number`.
+  The host and Preview check bounds and enums after completion. An object event
+  can also replace a whole object state key with `state.set("draft")`.
 
 The helpers produce data; they do not update state or dispatch actions. They
 reject functions, promises, class instances, cycles and non-finite numbers with

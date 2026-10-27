@@ -64,29 +64,39 @@ function setState(key: string, value?: Json): SetStateIntent {
   return freeze(intent);
 }
 
-/** `action(name, args, { bind }?)`; `bind` names the argument the event's value fills (spec §8). */
+/** `bind` fills one scalar argument; `bindAll: true` merges an object event (spec §8). */
 export function action(
   actionName: string,
   args?: Readonly<Record<string, Json>>,
-  options?: { readonly bind?: never },
-): ActionIntent & { readonly bind?: never };
+  options?: { readonly bind?: never; readonly bindAll?: never },
+): ActionIntent & { readonly bind?: never; readonly bindAll?: never };
 export function action(
   actionName: string,
   args: Readonly<Record<string, Json>>,
-  options: { readonly bind: string },
-): ActionIntent & { readonly bind: string };
+  options: { readonly bind: string; readonly bindAll?: never },
+): ActionIntent & { readonly bind: string; readonly bindAll?: never };
+export function action(
+  actionName: string,
+  args: Readonly<Record<string, Json>>,
+  options: { readonly bindAll: true; readonly bind?: never },
+): ActionIntent & { readonly bindAll: true; readonly bind?: never };
 export function action(
   actionName: string,
   args?: Readonly<Record<string, Json>>,
-  options?: { readonly bind?: string },
+  options?: { readonly bind?: string; readonly bindAll?: true },
 ): ActionIntent;
 export function action(
   actionName: string,
   args: Readonly<Record<string, Json>> = {},
-  options: { readonly bind?: string } = {},
+  options: { readonly bind?: string; readonly bindAll?: true } = {},
 ): ActionIntent {
   const action_ = name(actionName, "action name");
   assertJson(args, "args");
+  if (options.bindAll !== undefined) {
+    if (options.bindAll !== true || options.bind !== undefined)
+      throw new TypeError("Expected bindAll: true without bind");
+    return freeze({ type: "action" as const, name: action_, args, bindAll: true });
+  }
   if (options.bind !== undefined) {
     const bind = name(options.bind, "bind argument name");
     return freeze({ type: "action" as const, name: action_, args, bind });

@@ -6,6 +6,7 @@ import { Ajv2020 } from "ajv/dist/2020.js";
 import { formats, schemaDocument } from "../formats/registry.ts";
 import { arr, bool, int, isLanguageSchema, num, obj, str, validateCatalog } from "../index.ts";
 import { catalog as numericCatalog } from "./fixtures/numeric-events.ts";
+import * as form from "./fixtures/object-events.ts";
 
 const ajv = new Ajv2020({ strict: true, unicodeRegExp: true });
 ajv.addFormat("regex", {
@@ -38,6 +39,30 @@ test("published_catalog_schema_accepts_numeric_events", () => {
   const validate = ajv.getSchema("urn:liveframe:catalog:1") ?? ajv.compile(schemaDocument("catalog"));
   expect(validate(numericCatalog)).toBe(true);
   expect(validateCatalog(numericCatalog).ok).toBe(true);
+});
+
+test("published_schemas_accept_object_events_and_bind_all", () => {
+  const validate = ajv.getSchema("urn:liveframe:catalog:1") ?? ajv.compile(schemaDocument("catalog"));
+  expect(validate(form.catalog)).toBe(true);
+  for (const object of [
+    { ...form.fields, nullable: true },
+    { ...form.fields, additionalProperties: true },
+    obj({ nested: obj({}) }),
+    obj(Object.fromEntries(Array.from({ length: 33 }, (_, i) => [`p${i}`, bool()]))),
+  ]) {
+    const catalog = structuredClone(form.catalog);
+    const definition = catalog.definitions.find((d) => d.kind === "stack");
+    Object.assign(definition ?? {}, { events: { onSubmit: { carries: { object }, description: "Submit." } } });
+    expect(validate(catalog)).toBe(false);
+    expect(validateCatalog(catalog).ok).toBe(false);
+  }
+  const tree = ajv.getSchema("urn:liveframe:ui-tree:1") ?? ajv.compile(schemaDocument("ui-tree"));
+  expect(tree(form.formTree())).toBe(true);
+  for (const event of [
+    { type: "action", name: "form.submit", args: {}, bindAll: false },
+    { type: "action", name: "form.submit", args: {}, bindAll: true, bind: "reason" },
+  ])
+    expect(tree(form.formTree(event as import("../index.ts").Intent))).toBe(false);
 });
 
 test("schema_ids_are_format_urns", async () => {

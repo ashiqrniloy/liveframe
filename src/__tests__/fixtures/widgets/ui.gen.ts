@@ -78,6 +78,7 @@ type _ExplicitIntent =
       readonly name: string;
       readonly args: Readonly<Record<string, _Json>>;
       readonly bind?: never;
+      readonly bindAll?: never;
     };
 
 /**

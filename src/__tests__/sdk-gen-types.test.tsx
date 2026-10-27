@@ -32,6 +32,9 @@ test("generated_types_reject_wrong_props", () => {
   const implicit = <Button label="A" onPress={state.set("query")} />;
   // @ts-expect-error: a no-value event cannot bind an action argument
   const bound = <Button label="A" onPress={action("save", {}, { bind: "query" })} />;
+  // @ts-expect-error: a no-value event cannot bind an object payload
+  const boundAll = <Button label="A" onPress={action("save", {}, { bindAll: true })} />;
+  void boundAll;
   const children = (
     // @ts-expect-error: text has no children
     <Text text="A">

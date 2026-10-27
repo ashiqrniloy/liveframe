@@ -27,6 +27,12 @@ const suite = (mode = "") =>
     url: `${server.url.href}?mutant=${mode}`,
   });
 
+test("conformance_form_fixture", async () => {
+  await suite()
+    .find((c) => c.name === "interactions_raise_one_complete_intent")
+    ?.run();
+}, 120000);
+
 test("reference_fixture_passes_arrival_and_interaction_browser_cases", async () => {
   for (const c of suite().filter((c) => c.name !== "every_styled_state_is_reachable")) await c.run();
 }, 120000);
