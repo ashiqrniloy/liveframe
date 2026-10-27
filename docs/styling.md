@@ -5,8 +5,8 @@ and gives renderers plain attributes, classes and style declarations. It has no
 DOM dependency and inserts nothing into the page. The host loads the sheets and
 draws validated trees with its own primitive implementations.
 
-The package is pre-release. The CSS projection is implemented; the public React
-renderer remains planned work. See the [format guide](formats.md#theme) for theme,
+The package is pre-1.0. The CSS projection is implemented, and the public
+React renderer ships in `@arnilo/liveframe/react`. See the [format guide](formats.md#theme) for theme,
 design-system and vocabulary formats, and [spec §6.4](spec.md#64-how-styling-reaches-the-screen)
 for the normative projection contract.
 

@@ -672,7 +672,7 @@ This plan implements the remainder of roadmap Phase 6 (the first release), under
     - `examples/demo-host` now depends on `0.1.0`; from the registry install its typecheck is clean and all 48 tests pass. `bun run demo:test` was revisited as Task 10 asked: it now installs the packed candidate with `bun add --no-save file:<pack>/.pack/arnilo-liveframe.tgz` instead of resolving the registry version, and passes 48/0. Only `examples/demo-host/package.json` and `scripts/demo-test.ts` changed; the demo lockfile stays git-ignored.
     - [GitHub release `v0.1.0`](https://github.com/ashiqrniloy/liveframe/releases/tag/v0.1.0) carries the changelog notes and known limitations (G29 deferred, runners not sandboxes, Bun-only backend, URL props guidance). `roadmap.md` §3 marks Phase 6 complete and `plans/backlog.md` records G29 as shipped-without-it past 0.1.0 by R20. Task 14's impact analysis is the remaining follow-up.
 
-- [ ] Task 14: Analyze architectural impact and dispose of every finding
+- [x] Task 14: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional:
       - `plans/evidence/013-impact-analysis.md` sweeps all twelve impact areas against what shipped, recording each one or `None — <reason>`.
@@ -698,6 +698,13 @@ This plan implements the remainder of roadmap Phase 6 (the first release), under
       - `plans/evidence/013-impact-analysis.md` (new), `plans/backlog.md`, `roadmap.md` §3.
   - Test Cases to Write:
     - None.
+  - Notes (executed 2026-10-27):
+    - [The impact analysis](evidence/013-impact-analysis.md) sweeps all twelve areas against the shipped candidate and records each one; findings F1–F5 name files and spans. Five findings were presented in one table: F1 spec §13 omitted `SECURITY.md`; F2 the release and changelog notes omitted the URL-valued-props guidance; F3 four guides still said "pre-release" and one called the React renderer "planned work"; F4 the audit's Clay-derived labels fixture had no owner ruling; F5 the archive gate's Node probe skipped `/preview`. The owner answered **approve as recommended**.
+    - F1–F3 executed as docs/metadata only: `SECURITY.md` added to spec §13; the URL-props bullet added to `CHANGELOG.md` and to the [GitHub release notes](https://github.com/ashiqrniloy/liveframe/releases/tag/v0.1.0); `docs/{conformance,packages,sdk,styling}.md` and README's status line corrected. No code, export, format or runtime behaviour changed. The corrections reach adopters in the next publish; the installed `0.1.0` tarball keeps its wording.
+    - F4 (P2) and F5 (P3) were appended to `plans/backlog.md` with the owner's approval, so no finding is left untracked.
+    - Performance: every task recorded its numbers (T1 0.24 s build; T2 3.1/8.4 s; T3 61/57/9 s; T5 452 ms/43–47 ms/5–8 ms; T6 110–123 ms per cell; T8 about 10 min; T9 about 10 min; T11 322 + 40 s of 560 s; T12 three quiet bench runs all within 1.5/3/2 and coverage 511 pass in 102.93 s; T13 publish 7 m 22 s, registry gate 5.7 s, demo 35 s). No threshold changed.
+    - Laws 1, 2 and 4 were re-proved from the installed package (archive-gate steps 1, 4, 5; the demo's draft/preview/action-log tests; the agent acceptance). Two post-release local `bun run check` runs hit the known loaded-host timing failures (29 and 8 of 641; load 11–32, with unrelated builds at 100–170 earlier); the affected suites (`runner-in-process`, `conformance-renderer`, `react-browser`, `proof/conformance`) pass 41/0 in isolation with the source condition. The release commit's CI check passed 637/0 and is the recorded gate.
+    - Closed 2026-10-27. `plans/backlog.md` holds F4 and F5; `roadmap.md` §3 marks plan 013 complete.
 
 ## Verification (whole plan)
 
@@ -713,8 +720,14 @@ This plan implements the remainder of roadmap Phase 6 (the first release), under
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- `next` remains `0.1.0-rc.4`: this machine has no npm auth for `npm dist-tag add`, and trusted publishing covers only the workflow's publish. Task 13's acceptance allowed leaving it at the rc with a note.
+- The F1–F3 doc corrections are in the repository but not in the published tarball; they reach adopters at the next release. No runtime defect is involved, so no release was cut for them.
+- The post-release local `bun run check` could not be reproduced as a clean pass while the host stayed loaded (two runs: 29 and 8 timing failures of 641; load 11–32, with unrelated builds at 100–170 earlier). The affected timing suites pass in isolation (41/0), and the exact release commit's CI run (637 pass, 0 fail) is the recorded gate; the local failures belong to the environmental class already documented in plans 012 and 013.
+- F4 (Clay-derived fixture) is deferred to the backlog because it needs an owner ruling, not an agent edit; the audit record and the agent-acceptance material already disclose the derivation.
+- F5 (`/preview` in the Node probe) is deferred to the backlog: a manual Node 26.11.1 import passes, so the gap is verification coverage, not a shipped defect.
 
 ## Further Actions
 
-- To be filled after task completion with improvements, rationale, and priority.
+- P2 — Decide the Clay-derived `git-status` labels fixture (keep, replace or attribute); `plans/backlog.md`.
+- P3 — Import `/preview` in `scripts/release/fixtures/node-probe.mjs` and assert its exports; `plans/backlog.md`.
+- P2 — Publish the next patch (0.1.1) when changes warrant it, carrying the corrected docs; move `next` off `0.1.0-rc.4` once npm auth is available.

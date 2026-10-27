@@ -10,7 +10,7 @@ a worker bounds time and crashes without restricting what code can access. Run
 only trusted code with these runners. For hostile code, the app supplies an
 isolated `Runner` and uses it for both preview and production.
 
-The package is pre-release. To preview drafts before publishing, see the
+The package is pre-1.0. To preview drafts before publishing, see the
 [preview guide](preview.md). Start with the
 [SDK guide](sdk.md) for authoring and the [format guide](formats.md) for the
 catalog, capabilities and manifest contracts.

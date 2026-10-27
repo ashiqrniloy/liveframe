@@ -3,7 +3,7 @@
 The conformance kit checks what your app supplies to Liveframe: its catalog,
 themes, design systems, primitive implementations and store. Run it in CI when
 any of those change. It ships no primitives, visual style, server or test runner.
-The package is pre-release; use the subpaths exposed by your checkout.
+The package is pre-1.0; install it and use the subpaths it exports.
 
 | Suite | What it proves | What it leaves to your app or the library's tests |
 | --- | --- | --- |

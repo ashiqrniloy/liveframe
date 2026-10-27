@@ -372,3 +372,21 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Source: plans/evidence/012-impact-analysis.md F7, plan 012 Task 3 notes
 - What: re-validating every worker result on the host costs ~2 ms/render against 1.8 ms of render (4.19 ms overhead, plan 012 Task 3), above that task's 1 ms target. The cost is the price of law 2 for code outside the host's realm, and it stays inside the 100 ms default timeout. Either state the overhead as the runner's budget in `docs/packages.md`/spec §7.5, or cache the validator per `(catalog, capabilities, manifest)` so repeat renders of one package stop recompiling — the validator cache exists but is keyed for the in-process path.
 - Why: a security control with an unrecorded price gets removed the first time someone measures it, and the same package re-rendered in a loop currently compiles its validator on every call.
+
+## Decide the Clay-derived git-status labels fixture
+
+- Disposition: added 2026-10-27 with the owner's approval after plan 013 Task 14 (`plans/evidence/013-impact-analysis.md` F4). The repository audit left the item open; the agent-acceptance record already exposes the derivation to the owner.
+- Section: Repository (tests and fixtures)
+- Priority: P2
+- Source: plans/evidence/013-repository-audit.md:75
+- What: `src/__tests__/fixtures/widgets/git-status/labels.ts` is a near-verbatim copy of Clay's `packages/git/src/status.ts`, and the owner has not ruled on it. Choose one: keep it as the owner's own code, replace it with a neutral fixture, or attribute the source in-repo.
+- Why: the public repository should not carry unexplained third-party-derived code; the proof widgets already record their derivation, so the fixture is the one unclear case.
+
+## Cover /preview in the archive gate's Node probe
+
+- Disposition: added 2026-10-27 with the owner's approval after plan 013 Task 14 (`plans/evidence/013-impact-analysis.md` F5).
+- Section: Release gates (spec §13)
+- Priority: P3
+- Source: plans/evidence/013-impact-analysis.md F5
+- What: spec §13 declares `@arnilo/liveframe/preview` host-API-free, but `scripts/release/fixtures/node-probe.mjs` imports only `.`, `/sdk`, `/css`, `/pack`, `/store` and `/conformance`. Import `/preview` there and assert its exports under plain Node.
+- Why: the probe is the published-package portability proof; the one host-API-free subpath it skips is the one an adopter would notice. A manual Node 26.11.1 import already succeeds, so this is coverage, not a defect.

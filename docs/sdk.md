@@ -5,7 +5,7 @@ the app's backend or in the app's sandbox. The browser receives the tree and
 draws it with the app's primitive implementations. The SDK supplies no visual
 components or design system.
 
-The package is pre-release. This guide covers the implemented SDK and `gen`
+The package is pre-1.0. This guide covers the implemented SDK and `gen`
 command; see the [package guide](packages.md) for packing, storage and runners. See the
 [format guide](formats.md) for catalogs, capabilities, manifests and validation,
 and [spec §7](spec.md#7-authoring-and-installing-synaptas-model) for the contract.

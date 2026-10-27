@@ -45,4 +45,5 @@ Known limitations:
 - **Every backend subpath needs Bun ≥ 1.4.2.** `/store/fs`, `/preview/worker`, the in-process loader and the CLI have no Node implementation; the host-API-free and browser subpaths do run elsewhere.
 - **No native Windows forced-colours and assistive-technology audit.** The roadmap item (G29) is deferred past this release; the conformance kit covers the renderer's semantics, not that audit.
 - **Widget-authored schemas cannot use `pattern`**, by design; use `enum` or an app capability instead.
+- **URL-valued props are the catalog's problem.** The library passes prop values through and never parses one as a URL; constrain `link.href`, `image.src` and the like with a catalog `pattern` or sanitise them in the implementation that renders them. See [`docs/security.md`](docs/security.md).
 - **No authorisation, approval flow, storage backend or layout shell ships.** Those stay the app's.
