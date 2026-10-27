@@ -57,6 +57,25 @@ function languageForms(pattern: boolean) {
         form("boolean", {}, []),
         form("array", { items: schemaRef, maxItems: bound, minItems: bound }, ["items", "maxItems"]),
         objectSchema,
+        {
+          type: "object",
+          properties: {
+            ...annotations,
+            discriminator: { type: "string" },
+            mapping: {
+              type: "object",
+              minProperties: 1,
+              maxProperties: 64,
+              propertyNames: { maxLength: 64 },
+              additionalProperties: {
+                ...objectSchema,
+                properties: { ...objectSchema.properties, nullable: literal(false) },
+              },
+            },
+          },
+          required: ["discriminator", "mapping"],
+          additionalProperties: false,
+        },
       ],
     },
   };

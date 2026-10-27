@@ -25,7 +25,13 @@ type ObjectSchema = Annotations & {
   readonly additionalProperties: false;
 };
 
-export type LanguageSchema = StringSchema | NumericSchema | BooleanSchema | ArraySchema | ObjectSchema;
+type UnionSchema = Annotations & {
+  readonly type?: never;
+  readonly discriminator: string;
+  readonly mapping: Readonly<Record<string, ObjectSchema>>;
+};
+
+export type LanguageSchema = StringSchema | NumericSchema | BooleanSchema | ArraySchema | ObjectSchema | UnionSchema;
 
 export type Infer<S> = S extends { readonly nullable: true } ? InferForm<S> | null : InferForm<S>;
 
@@ -43,7 +49,11 @@ type InferForm<S> = S extends { readonly type: "string"; readonly enum: readonly
             ? { readonly [K in keyof P as K extends R ? K : never]: Infer<P[K]> } & {
                 readonly [K in keyof P as K extends R ? never : K]?: Infer<P[K]>;
               }
-            : never;
+            : S extends { readonly discriminator: infer D extends string; readonly mapping: infer M }
+              ? {
+                  [K in keyof M]: { readonly [P in D]: K extends string | number ? `${K}` : never } & InferForm<M[K]>;
+                }[keyof M]
+              : never;
 
 export function str<const O extends StringOptions>(options: O) {
   return { ...options, type: "string" } as const;
@@ -80,6 +90,14 @@ export function obj<
     required: Object.keys(required) as (keyof R & string)[],
     additionalProperties: false,
   } as const;
+}
+
+export function union<
+  const D extends string,
+  const M extends Readonly<Record<string, ObjectSchema>>,
+  const A extends Annotations = Record<never, never>,
+>(discriminator: D, mapping: M, annotations: A = {} as A) {
+  return { ...(annotations as Pick<A, keyof A & keyof Annotations>), discriminator, mapping } as const;
 }
 
 // Publishing-only forms; these are deliberately outside the author schema language.
@@ -135,6 +153,12 @@ export function checkLanguageSchema(
   const ancestors = new Set<unknown>();
   function visit(schema: unknown, pointer = ""): boolean {
     if (!isRecord(schema) || ancestors.has(schema)) return false;
+    if (Object.hasOwn(schema, "discriminator")) {
+      ancestors.add(schema);
+      const valid = isUnionKeywordsValid(schema, visit, pointer);
+      ancestors.delete(schema);
+      return valid;
+    }
     if (typeof schema.type !== "string" || !Object.hasOwn(keywords, schema.type)) return false;
     const allowed = keywords[schema.type];
     if (!allowed || !hasOnlyAllowedKeys(schema, allowed) || !hasValidAnnotations(schema)) return false;
@@ -154,6 +178,36 @@ export function checkLanguageSchema(
     return valid;
   }
   return visit(value);
+}
+
+function isUnionKeywordsValid(
+  schema: Record<string, unknown>,
+  visit: (schema: unknown, pointer: string) => boolean,
+  pointer: string,
+): boolean {
+  if (
+    Object.hasOwn(schema, "type") ||
+    !hasOnlyAllowedKeys(schema, ["discriminator", "mapping"]) ||
+    !hasValidAnnotations(schema)
+  )
+    return false;
+  const { discriminator, mapping } = schema;
+  if (typeof discriminator !== "string" || !isRecord(mapping)) return false;
+  const entries = Object.entries(mapping);
+  return (
+    entries.length >= 1 &&
+    entries.length <= 64 &&
+    entries.every(
+      ([tag, entry]) =>
+        codePointsWithin(tag, 64) &&
+        isRecord(entry) &&
+        entry.type === "object" &&
+        entry.nullable !== true &&
+        visit(entry, pointerAt(pointerAt(pointer, "mapping"), tag)) &&
+        isRecord(entry.properties) &&
+        !Object.hasOwn(entry.properties, discriminator),
+    )
+  );
 }
 
 /** Only the keywords a form declares, plus the shared annotations and nullable keyword. */
@@ -285,7 +339,7 @@ export function checkValue<const S extends LanguageSchema>(
     if (input.length < (s.minItems ?? 0)) reject(pointer, `an array of ${s.minItems}–${s.maxItems} items`);
     for (let i = 0; i < input.length && !full(); i++) visit(s.items, input[i], pointerAt(pointer, i));
   }
-  function checkObject(s: ObjectSchema, input: unknown, pointer: string) {
+  function checkObject(s: ObjectSchema, input: unknown, pointer: string, discriminator?: string) {
     if (!isRecord(input)) return reject(pointer, "an object");
     for (const key of s.required) {
       if (full()) return;
@@ -293,6 +347,7 @@ export function checkValue<const S extends LanguageSchema>(
     }
     for (const key of Object.keys(input)) {
       if (full()) return;
+      if (key === discriminator) continue;
       const property = Object.hasOwn(s.properties, key) ? s.properties[key] : undefined;
       if (!property) reject(pointerAt(pointer, key), "a declared property");
       else visit(property, input[key], pointerAt(pointer, key));
@@ -300,6 +355,19 @@ export function checkValue<const S extends LanguageSchema>(
   }
   function visit(s: LanguageSchema, input: unknown, pointer: string): void {
     if (full() || (s.nullable === true && input === null)) return;
+    if ("discriminator" in s) {
+      if (!isRecord(input)) {
+        reject(pointer, "an object");
+        return;
+      }
+      const tag = Object.hasOwn(input, s.discriminator) ? input[s.discriminator] : undefined;
+      if (typeof tag !== "string" || !Object.hasOwn(s.mapping, tag)) {
+        reject(pointerAt(pointer, s.discriminator), `one of: ${Object.keys(s.mapping).join(", ")}`);
+        return;
+      }
+      checkObject(s.mapping[tag] as ObjectSchema, input, pointer, s.discriminator);
+      return;
+    }
     switch (s.type) {
       case "string":
         checkString(s, input, pointer);

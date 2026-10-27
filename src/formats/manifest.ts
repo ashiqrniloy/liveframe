@@ -91,6 +91,11 @@ function rejectPatterns(
   pointer: string,
   reject: (pointer: string, message: string, kind?: "invalid-document", expected?: string) => void,
 ): void {
+  if ("discriminator" in schema) {
+    for (const [tag, entry] of Object.entries(schema.mapping))
+      rejectPatterns(entry, at(at(pointer, "mapping"), tag), reject);
+    return;
+  }
   if (schema.type === "string") {
     if (Object.hasOwn(schema, "pattern"))
       reject(`${pointer}/pattern`, "Expected no pattern in widget schemas", "invalid-document", noPattern);
@@ -146,7 +151,8 @@ function checkSourceParam(
   if (!checked.ok) return;
   const resolved = resolveBindingPath(checked.value.from, checked.value.path, manifest);
   if (!resolved) c.reject(`${pointer}/path`, "Binding path does not resolve");
-  else if (resolved.type !== target.type) c.reject(pointer, "Binding type does not match source parameter");
+  else if ((resolved.type ?? "object") !== (target.type ?? "object"))
+    c.reject(pointer, "Binding type does not match source parameter");
 }
 
 function checkSource(entry: unknown, pointer: string, manifest: Manifest, capabilities: Capabilities, c: Checks): void {

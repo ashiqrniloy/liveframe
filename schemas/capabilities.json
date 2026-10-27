@@ -276,6 +276,76 @@
             "additionalProperties"
           ],
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "deprecated": {
+              "type": "boolean"
+            },
+            "nullable": {
+              "type": "boolean"
+            },
+            "discriminator": {
+              "type": "string"
+            },
+            "mapping": {
+              "type": "object",
+              "minProperties": 1,
+              "maxProperties": 64,
+              "propertyNames": {
+                "maxLength": 64
+              },
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "object"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "deprecated": {
+                    "type": "boolean"
+                  },
+                  "nullable": {
+                    "const": false
+                  },
+                  "properties": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "#/$defs/schema"
+                    }
+                  },
+                  "required": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "uniqueItems": true
+                  },
+                  "additionalProperties": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "type",
+                  "properties",
+                  "required",
+                  "additionalProperties"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "discriminator",
+            "mapping"
+          ],
+          "additionalProperties": false
         }
       ]
     },

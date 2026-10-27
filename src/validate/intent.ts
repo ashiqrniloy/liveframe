@@ -12,7 +12,7 @@ export function compileIntents(capabilities: Capabilities, manifest: Manifest): 
   const states = new Map(
     Object.entries(manifest.state.properties).map(([name, schema]) => [
       name,
-      { type: schema.type, check: compileSchema(schema) },
+      { type: schema.type ?? "object", check: compileSchema(schema) },
     ]),
   );
   const actions = new Map(
@@ -23,7 +23,7 @@ export function compileIntents(capabilities: Capabilities, manifest: Manifest): 
         Object.entries(schema.properties).map(([key, property]) => [
           key,
           {
-            type: property.type,
+            type: property.type ?? "object",
             // The event supplies this property later; validate every other argument now.
             check: compileSchema({ ...schema, required: schema.required.filter((name) => name !== key) }),
           },

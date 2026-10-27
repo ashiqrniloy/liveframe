@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { cpus, loadavg, platform, release } from "node:os";
 import { validatorCatalog, validatorFixtures } from "../src/__tests__/fixtures/validator.ts";
-import { checkValue, type UiNode } from "../src/index.ts";
+import { arr, checkValue, obj, str, union, type UiNode } from "../src/index.ts";
 import { compileSchema, type SchemaSink } from "../src/validate/schema.ts";
 
 const fixtures = await validatorFixtures();
@@ -61,4 +61,21 @@ for (const { name, nodes, tree, validateTree } of fixtures) {
   }
 }
 console.log(`Load average at end: ${loadavg().join(", ")}`);
+const feedSchema = arr(
+  union("kind", {
+    task: obj({ title: str({ maxLength: 200 }) }),
+    alert: obj({ level: str({ maxLength: 8, enum: ["info", "error"] }) }),
+  }),
+  { maxItems: 500 },
+);
+const feed = Array.from({ length: 500 }, (_, i) =>
+  i % 2 ? { kind: "task", title: "Task" } : { kind: "alert", level: "info" },
+);
+const checkFeed = compileSchema(feedSchema);
+assert(!checkFeed([{ kind: "unknown" }], "", sink));
+sink.errors.length = 0;
+const feedMs = measure(() => checkFeed(feed, "", sink));
+console.log(
+  `mixed-feed: 500 elements; compiled ${feedMs.toFixed(4)} ms, ${((feedMs * 1000) / 500).toFixed(3)} µs/element`,
+);
 if (failed) process.exitCode = 1;

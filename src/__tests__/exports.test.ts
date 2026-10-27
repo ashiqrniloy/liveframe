@@ -229,6 +229,7 @@ test("root_export_surface", () => {
       "defineComponent",
       "int",
       "isLanguageSchema",
+      "union",
       "num",
       "obj",
       "recipeProperties",

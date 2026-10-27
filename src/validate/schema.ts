@@ -87,6 +87,25 @@ export function compileSchema(schema: LanguageSchema): SchemaCheck {
 }
 
 function compileForm(schema: LanguageSchema): SchemaCheck {
+  if ("discriminator" in schema) {
+    const { discriminator } = schema;
+    const entries = new Map(
+      Object.entries(schema.mapping).map(([tag, entry]) => [
+        tag,
+        compileForm({
+          ...entry,
+          properties: { ...entry.properties, [discriminator]: { type: "string", maxLength: 64, enum: [tag] } as const },
+        }),
+      ]),
+    );
+    const expected = `one of: ${[...entries.keys()].join(", ")}`;
+    return (value, at, sink) => {
+      if (value === null || typeof value !== "object" || Array.isArray(value)) return reject(at, sink, "an object");
+      const tag = Object.hasOwn(value, discriminator) ? (value as Record<string, unknown>)[discriminator] : undefined;
+      const check = typeof tag === "string" ? entries.get(tag) : undefined;
+      return check ? check(value, at, sink) : missing(sink, at, discriminator, expected);
+    };
+  }
   switch (schema.type) {
     case "string": {
       const { maxLength, minLength } = schema;

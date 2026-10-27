@@ -12,10 +12,29 @@ function wrapUnion(type: string, indent: string): string {
 
 function schemaType(schema: LanguageSchema, indent: string): string {
   const type = formType(schema, indent);
-  return schema.nullable === true ? `${type} | null` : type;
+  return schema.nullable === true ? `${type}${type.startsWith("\n") ? `\n${indent}  | null` : " | null"}` : type;
 }
 
 function formType(schema: LanguageSchema, indent: string): string {
+  if ("discriminator" in schema) {
+    const entries = Object.entries(schema.mapping);
+    return entries
+      .map(([tag, entry]) =>
+        formType(
+          {
+            ...entry,
+            properties: {
+              ...entry.properties,
+              [schema.discriminator]: { type: "string", maxLength: 64, enum: [tag] } as const,
+            },
+            required: [schema.discriminator, ...entry.required],
+          },
+          entries.length > 1 ? `${indent}    ` : indent,
+        ),
+      )
+      .map((entry) => (entries.length > 1 ? `\n${indent}  | ${entry}` : entry))
+      .join("");
+  }
   switch (schema.type) {
     case "string":
       return schema.enum ? union(schema.enum) : "string";
@@ -24,8 +43,10 @@ function formType(schema: LanguageSchema, indent: string): string {
       return "number";
     case "boolean":
       return "boolean";
-    case "array":
-      return `ReadonlyArray<${schemaType(schema.items, indent)}>`;
+    case "array": {
+      const item = schemaType(schema.items, indent);
+      return `ReadonlyArray<${item}${item.startsWith("\n") ? `\n${indent}` : ""}>`;
+    }
     case "object": {
       const entries = Object.entries(schema.properties);
       if (!entries.length) return "Record<string, never>";
@@ -36,6 +57,7 @@ function formType(schema: LanguageSchema, indent: string): string {
 
 function member(key: string, optional: boolean, type: string, indent = "  "): string {
   const prefix = `${indent}readonly ${property(key)}${optional ? "?" : ""}:`;
+  if (type.startsWith("\n")) return `${prefix}${type};`;
   if (!type.includes("\n") && `${prefix} ${type};`.length > 120 && type.includes(" | "))
     return `${prefix}\n${wrapUnion(type, `${indent}  `)};`;
   return `${prefix} ${type};`;

@@ -237,6 +237,17 @@ function compareNumericSchema(before: NumericSchema, after: NumericSchema, path:
 function compareSchemas(before: LanguageSchema, after: LanguageSchema, path: string, change: Change): void {
   if ((before.nullable === true) !== (after.nullable === true))
     change(before.nullable === true, `${path} nullable changed`);
+  if ("discriminator" in before || "discriminator" in after) {
+    if (!("discriminator" in before) || !("discriminator" in after) || before.discriminator !== after.discriminator) {
+      change(true, `${path} discriminator changed`);
+      return;
+    }
+    compareNames(Object.keys(before.mapping), Object.keys(after.mapping), `${path} tag`, change);
+    for (const [tag, entry] of Object.entries(before.mapping))
+      if (Object.hasOwn(after.mapping, tag))
+        compareObjectSchema(entry, after.mapping[tag] as typeof entry, `${path}.${tag}`, change);
+    return;
+  }
   const numeric = (type: string) => type === "number" || type === "integer";
   if (before.type !== after.type) {
     change(!(before.type === "integer" && after.type === "number"), `${path} type changed`);

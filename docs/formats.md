@@ -7,7 +7,7 @@ validation. It has no runtime dependencies or host API requirements.
 ## The schema language
 
 Props, params, state, context, action arguments and data-source values share a
-closed subset of JSON Schema 2020-12:
+closed schema language based on JSON Schema 2020-12 with an RFC 8927 discriminator form:
 
 | Builder | Value | Constraints |
 | --- | --- | --- |
@@ -17,15 +17,29 @@ closed subset of JSON Schema 2020-12:
 | `bool()` | boolean | No coercion |
 | `arr(items, { maxItems, minItems? })` | readonly array | Required maximum and optional minimum item count |
 | `obj(required, optional?, annotations?)` | readonly object | Only declared properties; required names come from the first argument |
+| `union(discriminator, mapping, annotations?)` | readonly tagged union | 1–64 tags, each at most 64 code points; closed object entries omit the tag property |
 
 `num()` and `int()` also work without options. Every form accepts `description`
 and `deprecated` annotations, plus a boolean `nullable`, in its options; `obj`
-takes them in its third argument. The builders return ordinary schema objects,
+and `union` take them in their third argument. The builders return ordinary schema objects,
 without wrappers or hidden metadata. With `nullable: true`, a value may be `null` or satisfy the
 form. `nullable: false` is the same as omitting it. Nullability does not make a
 required property optional. For example, `str({ maxLength: 128, nullable: true })`
 infers `string | null`; `bool({ nullable: true })`, array options and object
 annotations support the same keyword.
+
+A discriminated union selects exactly one mapping entry from an own string tag property. Missing, non-string or unknown tags fail at the tag pointer, with the allowed tags in `expected`. A known tag checks only its entry; payload errors stay rooted at the value. Entries must be closed object schemas without the discriminator property and without `nullable: true`; put nullability on the union. Nested properties may themselves be unions. Adding a tag is a minor catalog change; removing a tag, changing the discriminator or narrowing a payload is major.
+
+```ts
+const item = union("kind", {
+  task: obj({ title: str({ maxLength: 200 }) }),
+  alert: obj({ level: str({ maxLength: 8, enum: ["info", "error"] }) }),
+});
+// Infer<typeof item>: { readonly kind: "task"; readonly title: string }
+//                  | { readonly kind: "alert"; readonly level: "info" | "error" }
+```
+
+Published meta-schemas describe the discriminator/mapping structure. Install validation additionally checks that entries do not declare the discriminator, a relationship standard JSON Schema cannot express dynamically. An equivalent value schema uses `oneOf` with a required `const` tag in each closed object branch; it needs no Ajv discriminator option.
 
 The published JSON Schemas validate these schema documents, including the boolean
 `nullable` field. For an equivalent JSON Schema value validator, remove `nullable`

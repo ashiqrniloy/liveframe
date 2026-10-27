@@ -22,6 +22,7 @@ export {
   num,
   obj,
   str,
+  union,
 } from "./schema.ts";
 
 export { type Capabilities, validateCapabilities } from "./formats/capabilities.ts";

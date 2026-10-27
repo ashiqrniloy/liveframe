@@ -30,6 +30,8 @@ it can run `liveframe gen catalog.json --out ui.gen.ts [--check]` directly.
 first differing line. Invalid catalogs, JSON, usage or file operations exit 2.
 Put the check command in your CI; this repo includes it in `bun run check`.
 
+`liveframe gen` emits readonly tagged unions for `union(discriminator, mapping)`, including nested properties and array items. Narrow on the tag before reading a branch-specific field.
+
 `liveframe gen` emits `| null` for schemas declaring `nullable: true`, including
 nested object properties and array items. Required nullable props still have to
 be supplied; omitting `nullable` or setting it to `false` keeps the original type.

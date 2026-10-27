@@ -289,15 +289,15 @@ This plan implements roadmap Phase 7 ("collects the gaps they report and fixes t
     - Regressions failed before implementation. Tests cover every form, false/omitted/malformed keywords, nested nulls and escaped bounded errors, required properties, precise nullable enum inference, generated props, catalog compatibility, manifest initial state and published-schema roundtrips with Ajv agreement. Final `bun run check` passed on project-pinned Bun 1.4.2 (654 passed, 4 skipped, 0 failed). `git diff --check` passed; refreshed the local graft graph.
     - Performance limitation: CSS benchmarks passed (0.480 µs/node for declarations). The combined benchmark stopped at existing validator timing failures: the 679-node case measured 1.909 µs/node against ≤ 1.5. A separate, unchanged Task 4 checkout at `5dda4a7` also failed (1.808 µs/node). Standalone render measured 2.655 µs/node on that fixture (≤ 3), but other render fixtures exceeded their limits; the unchanged checkout also failed render budgets. Machine load and run-to-run variability prevent a fully green benchmark claim, as already recorded in Task 4. No benchmark, threshold or runtime setting was changed; stable-environment performance verification remains outstanding.
 
-- [ ] Task 6: Add discriminated unions to the schema language (LF-04)
+- [x] Task 6: Add discriminated unions to the schema language (LF-04)
   - Acceptance Criteria:
     - Functional:
       - `{ discriminator: "<prop>", mapping: { "<tag>": ObjectSchema, … } }` is a schema form.
-      - Each mapping entry is a closed object that does not declare the tag property. Tags are bounded strings (≤ 64 code points) with 1–64 entries.
+      - Each mapping entry is a closed object that does not declare the tag property or set `nullable: true` (RFC 8927 §2.2.8); nullability belongs on the union. Tags are bounded strings (≤ 64 code points) with 1–64 entries.
       - Install rejects: a mapping entry that declares the tag property, a non-object entry, an empty mapping, and a non-string tag.
       - A value with a missing or unknown tag fails at `<pointer>/<prop>`, with `expected` listing the tags. A value with a known tag is checked against that entry only, with errors rooted at the value.
       - `Infer` gives a tagged union. `liveframe gen` prints it.
-      - The published JSON Schema uses `oneOf` with a `const` per tag. Ajv validates the same documents as the compiled validator on a shared fixture set.
+      - The published meta-schemas describe the discriminator/mapping structure. Equivalent value schemas use `oneOf` with a required `const` per tag; Ajv and the compiled validator agree on shared fixtures. The install validator enforces the dynamic relationship that mapping entries omit the discriminator property, which standard JSON Schema cannot express.
       - Catalog classification: adding a tag is minor; removing or narrowing one is major.
     - Performance: the tag lookup is O(1) through a precompiled `Map`. The 679-node bench holds ≤ 1.5 µs/node. A new micro-bench case records a 500-element mixed feed.
     - Code Quality: the union compiles to a `Map<tag, ObjectCheck>`, reusing `objectCheck` (`src/validate/schema.ts:65-82`), with no new interpreter.
@@ -324,18 +324,27 @@ This plan implements roadmap Phase 7 ("collects the gaps they report and fixes t
       ```
     - Files to Create/Edit:
       - `src/schema.ts` (form, `union()` builder, `Infer`, `checkValue`); `src/validate/schema.ts`; `src/formats/catalog.ts`
-      - `src/index.ts` (export `union`); `src/sdk/gen.ts`
-      - `scripts/schemas.ts`; `schemas/*.json`
+      - `src/index.ts` (export `union`); `src/sdk/gen.ts`; `src/validate/intent.ts` (union values are objects); `src/formats/manifest.ts` (recurse pattern rejection into mappings)
+      - `src/formats/registry.ts`; `schemas/*.json` (regenerated through unchanged `scripts/schemas.ts`)
       - `bench/validator.bench.ts` (feed case)
       - `docs/spec.md` §5; `docs/formats.md`; `docs/sdk.md`
-      - `src/__tests__/exports.test.ts`
+      - `src/__tests__/exports.test.ts`; `src/__tests__/union.test.ts` (new)
   - Test Cases to Write:
-    - `union_rejects_tag_in_mapping`, `union_rejects_empty_mapping`.
+    - `union_rejects_malformed_mapping` (`src/__tests__/union.test.ts`): includes tag declarations, empty/non-object mappings, nullable entries, bounds, cycles and install rejection.
     - `union_unknown_tag_fails_at_tag_pointer`.
     - `union_checks_only_selected_entry`.
     - `infer_union_is_tagged` (type-level): accessing `level` without narrowing fails to compile.
     - `published_union_matches_compiled` (Ajv, shared fixtures).
-    - `adding_tag_is_minor_removing_is_major`.
+    - `adding_tag_is_minor_removing_or_narrowing_is_major`; generated tagged types parse.
+    - `union_state_and_action_arguments_require_explicit_valid_values`; `source_bindings_treat_union_values_as_objects`; `manifest_rejects_patterns_in_union_branches`; `gen_prints_formatted_tagged_unions`.
+
+  - Notes (executed 2026-10-27):
+    - Added the discriminator/mapping form and root-exported `union()` builder, with shared annotations and union-level nullability. Install validation enforces 1–64 entries, tags bounded to 64 Unicode code points, closed object entries, tag-property exclusion, cycle rejection and non-nullable entries. The interpreter selects an own string tag; the compiler uses a precompiled Map and the existing closed-object checker. Unknown tags fail at the escaped tag pointer with the allowed tags; selected payload failures retain their original paths and bounded error sink.
+    - `Infer` produces readonly tagged unions, normalizing numeric object keys to JSON string tags. Generation preserves required/optional payload fields, synthesizes literal tags and formats unions in properties, arrays and nested objects without a formatter dependency. Existing UI fixtures regenerate unchanged. Catalog classification handles added/removed tags, discriminator changes and recursive payload narrowing. Intent and source-binding type checks recognize union values as objects; explicit state/action values still pass the union validator, and implicit scalar bindings remain incompatible.
+    - Regenerated the four published meta-schemas through `src/formats/registry.ts` and the unchanged publisher. As in Task 5, these validate schema documents, not catalog-specific values: the test oracle converts unions to standard `oneOf` branches with a required `const` tag and closed payload. Ajv 8 strict mode agrees with both Liveframe checkers on shared nested/nullable fixtures, without its optional discriminator extension. Standard JSON Schema cannot enforce the dynamic exclusion of a property named by another field; install validation owns that relationship. Manifest pattern rejection now descends into mapping entries, with both install and published-schema regressions.
+    - Documentation checked: [RFC 8927 §2.2.8](https://www.rfc-editor.org/rfc/rfc8927.html#section-2.2.8) requires mapping entries to omit the tag and forbids nullable entries; [JSON Schema 2020-12 const](https://json-schema.org/draft/2020-12/json-schema-validation#name-const) supplies the equivalent value constraint; [Ajv discriminator requirements](https://github.com/ajv-validator/ajv/blob/master/docs/json-schema.md#discriminator), fetched through Context7, explain why no optional extension is needed. Updated spec §5, formats and SDK guides. No dependency, format-id or package-export-map change.
+    - Verification: the new tests failed before the union export existed. All 10 focused regressions pass; a separate TypeScript compile of generated output proves narrowing, tag/payload agreement and readonly tags. Final `bun run check` passed on pinned Bun 1.4.2 (664 passed, 4 skipped, 0 failed). The final type-only numeric-key regression additionally passed the focused tests, build, typecheck, lint, format check and generated-fixture check. `git diff --check` passed; refreshed the local graft graph. The first full check had 662 passes, 4 skips and one existing CSS blur-switch timing failure (34.5 ms against 16.67 ms); that unchanged test passed in isolation (maximum 15.9 ms). No timing limit or test was relaxed.
+    - Performance limitation: isolated validator runs on pinned Bun 1.4.2 still exceed the existing budget: the 679-node case measured 2.558 µs/node (≤ 1.5 required), while an isolated unchanged HEAD (`24f31d3`) also failed at 2.111 µs/node. Other fixture results vary in both directions. The new 500-element mixed-feed case measured 0.0444 ms total (0.089 µs/element), compiling outside timing and asserting rejection of an unknown tag. As in Tasks 4–5, a green validator benchmark and stable-environment performance verification remain outstanding; no benchmark threshold or runtime setting was changed.
 
 - [ ] Task 7: Ship the source-outcome envelope (LF-12)
   - Acceptance Criteria:
