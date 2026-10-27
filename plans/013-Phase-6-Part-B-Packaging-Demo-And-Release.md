@@ -632,7 +632,7 @@ This plan implements the remainder of roadmap Phase 6 (the first release), under
     - Prepared `0.1.0-rc.4` and its changelog for replacement-candidate verification. The demo dependency stays on the published rc.3 until rc.4 exists; it must then be installed and tested from the registry.
     - Closed 2026-10-27. rc.4 was published through trusted publishing at `fc213f8`; the exact-commit CI and Publish runs passed (637 tests, 0 fail), the registry tarball has 190 files and provenance, the seven-step registry archive gate and all 48 demo tests passed, and `bun audit` is clean. A fresh independent re-verification (recorded in the review) repeated the registry, CI, archive-gate and demo checks; a local full check on this loaded host left one load-sensitive 50 ms host round-trip flake, which passed at 7.16 ms alone. All 42 review rows carry a disposition (40 fixed, T3 and P4/G29 deferred by prior owner approval). The owner saw the completed table and answered go: “As far as I can tell, all gates pass and its a go. Verify it and close Task 12 if my understanding is correct”. Recorded verbatim in [the readiness review](evidence/012-release-readiness-review.md). Task 13's final release has not been performed.
 
-- [ ] Task 13: Publish 0.1.0
+- [x] Task 13: Publish 0.1.0
   - Acceptance Criteria:
     - Functional:
       - Only after Task 12's recorded **go**:
@@ -665,6 +665,12 @@ This plan implements the remainder of roadmap Phase 6 (the first release), under
       - `package.json`, `CHANGELOG.md`, `examples/demo-host/package.json`, `examples/demo-host/bun.lock`, `roadmap.md` §3, `plans/backlog.md`.
   - Test Cases to Write:
     - The registry gate on `0.1.0` is the evidence.
+  - Notes (executed 2026-10-27):
+    - `version` became `0.1.0`, `CHANGELOG.md` dates the entry, and commit `9c08789` ("Plan 013 T13: release 0.1.0") touches only those two files. `v0.1.0` was tagged on it and pushed; the [Publish run](https://github.com/ashiqrniloy/liveframe/actions/runs/40484529746) passed in 7 m 22 s through trusted publishing (check, both archive gates, peer floors, demo gate, then `npm publish --tag latest`).
+    - Registry: `latest: 0.1.0`, `gitHead` `9c0878958e1ed6fbf256b39be59e7a0d39d80df4`, 190 files, `dist.attestations.provenance` `https://slsa.dev/provenance/v1`. `next` remains `0.1.0-rc.4`: this machine has no npm auth for `npm dist-tag add`, and trusted publishing covers only the workflow's publish; left at the rc as the acceptance allows, with this note.
+    - `bun scripts/release/archive-gate.ts --package @arnilo/liveframe@0.1.0`: all seven steps passed in 5.7 s. Two earlier attempts failed step 1 with `Render exceeded 100 ms` while unrelated local builds held the host at load 100–170; they are not counted as passes.
+    - `examples/demo-host` now depends on `0.1.0`; from the registry install its typecheck is clean and all 48 tests pass. `bun run demo:test` was revisited as Task 10 asked: it now installs the packed candidate with `bun add --no-save file:<pack>/.pack/arnilo-liveframe.tgz` instead of resolving the registry version, and passes 48/0. Only `examples/demo-host/package.json` and `scripts/demo-test.ts` changed; the demo lockfile stays git-ignored.
+    - [GitHub release `v0.1.0`](https://github.com/ashiqrniloy/liveframe/releases/tag/v0.1.0) carries the changelog notes and known limitations (G29 deferred, runners not sandboxes, Bun-only backend, URL props guidance). `roadmap.md` §3 marks Phase 6 complete and `plans/backlog.md` records G29 as shipped-without-it past 0.1.0 by R20. Task 14's impact analysis is the remaining follow-up.
 
 - [ ] Task 14: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:

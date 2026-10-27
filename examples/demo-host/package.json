@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@arnilo/liveframe": "0.1.0-rc.4",
+    "@arnilo/liveframe": "0.1.0",
     "react": "^19.3.1",
     "react-aria-components": "^1.22.1",
     "react-dom": "^19.3.1"

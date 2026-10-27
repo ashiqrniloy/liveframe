@@ -25,8 +25,9 @@ const [tarball] = (await readdir(pack)).filter((file) => file.endsWith(".tgz"));
 if (!tarball) throw new Error("bun pm pack produced no tarball");
 await rename(join(pack, tarball), join(pack, "arnilo-liveframe.tgz"));
 // A repacked tarball keeps its path, so drop the lockfile and the installed copy to avoid a stale install.
+// --no-save installs the packed archive itself; the demo's dependency stays the registry version.
 await rm(join(demo, "bun.lock"), { force: true });
 await rm(join(demo, "node_modules/@arnilo"), { recursive: true, force: true });
-run(["bun", "install"], demo);
+run(["bun", "add", "--no-save", `file:${join(pack, "arnilo-liveframe.tgz")}`], demo);
 run(["bun", "run", "typecheck"], demo);
 run(["bun", "run", "test", ...process.argv.slice(2)], demo);
