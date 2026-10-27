@@ -12,6 +12,10 @@ backend; the browser receives validated trees (law 1). The normative contract fo
 `liveframe mcp` is spec §13; sessions and pages are described in
 [the preview guide](preview.md).
 
+For a running demo host, the [demo agent walkthrough](demo-agent.md) supplies
+the CLI preview binding and HTTP install/place steps. MCP tools never perform
+those host mutations.
+
 ## Install the optional peers
 
 ```sh

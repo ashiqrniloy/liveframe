@@ -571,6 +571,12 @@ This plan implements the remainder of roadmap Phase 6 (the first release), under
       - `plans/evidence/013-agent-acceptance.md` (new); docs files as findings require.
   - Test Cases to Write:
     - None. The evidence file is the record.
+  - Notes (run 2026-10-27; completion pending):
+    - A fresh agent with no inherited conversation authored `outsider.departure@1.0.0` against the installed registry package `0.1.0-rc.2`, with `checklist` and `ready` scenarios. Separate CLI and MCP loops each captured a missing-key error, corrected it from the tool result, then captured eight clean cells (two iterations per path; 206 seconds total authoring).
+    - `POST /widgets` returned 201, `PUT /placements/outsider-departure` and `GET /surfaces/outsider-departure` returned 200. Both last-preview hashes and the published hash are `sha256-3e91a20c5f59175a8988bdaff174855d7389b7ed7aca35092eae577b245e53c1`. The placed surface draws in Chromium with no page errors; its root matches preview and its action log is empty. No intent endpoint was called.
+    - The strict published-doc-only gate is **not closed**: the agent needed the unpublished demo README for HTTP install/place instructions and an opaque `AuthoringConfig.preview(binding)` workaround because the running demo preview does not expose the proof-host session/upload flow described in the published guide. These extra inputs were explicitly recorded, not treated as an unqualified pass. Owner: “Fix docs; require a new release candidate.” Task 11 and readiness P5 remain open pending that registry acceptance.
+    - Source fixes for rc.3: new shipped `docs/demo-agent.md` documents the actual CLI binding, MCP workflow and exact install/place bodies; README, preview and MCP guides link it. The SDK guide clarifies keys on repeated static siblings. `package.json` and `CHANGELOG.md` prepare `0.1.0-rc.3`; no runtime changes.
+    - Full commands, hashes, input restrictions, findings and local-only image/regeneration paths: [agent acceptance evidence](evidence/013-agent-acceptance.md). Repository-check results are recorded there.
 
 - [ ] Task 12: Review every readiness item before release
   - Acceptance Criteria:

@@ -170,6 +170,7 @@ The client starts the server itself. The [MCP guide](docs/mcp.md) covers the sev
 - [Preview and capture](docs/preview.md) — preview sessions, `<Preview>` and `liveframe preview capture`
 - [Conformance](docs/conformance.md) — the test kit for an app's catalog, styling, renderer and store
 - [Agent authoring over MCP](docs/mcp.md) — `liveframe mcp` and its seven tools
+- [Agent walkthrough for the demo](docs/demo-agent.md) — author, capture, install and place a draft
 - [Security model](docs/security.md) — what is validated where, and what is not a sandbox
 - [Compatibility](docs/compatibility.md) — what a version bump may change
 

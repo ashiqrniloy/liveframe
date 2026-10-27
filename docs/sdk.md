@@ -176,7 +176,7 @@ shown here as inline examples: generated types reject many cases before runtime.
 | `unknown-component` | `primitive("nope")` used as a tag | Use a kind in the catalog; composed functions must return SDK elements. |
 | `invalid-prop` | `<Text />` | Supply required `text`; also check input schemas, style names and prop types. |
 | `invalid-children` | `<Text text="a"><Text text="b" /></Text>` | Follow the primitive's child rules; return one root. |
-| `missing-key` | `<Stack>{[<Text text="a" />, <Text text="b" />]}</Stack>` | Key every list item. |
+| `missing-key` | `<Stack><Text text="a" /><Text text="b" /></Stack>` | Give repeated same-kind siblings distinct keys, including static siblings and array items. |
 | `duplicate-key` | Two sibling `<Text key="a" text="a" />` elements | Use distinct sibling keys. |
 | `undeclared-event` | A button with `onHover={action("tasks.claim", { id: "t" })}` | Use an event declared by the definition. |
 | `undeclared-action` | `<Button label="a" onPress={action("nope", {})} />` | Declare and allow the action, or use an allowed one. |

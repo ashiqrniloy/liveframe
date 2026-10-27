@@ -2,6 +2,12 @@
 
 All notable changes to `@arnilo/liveframe` are recorded here. The project follows the compatibility policy in [`docs/compatibility.md`](docs/compatibility.md).
 
+## 0.1.0-rc.3 — 2026-10-27
+
+Add a shipped agent walkthrough for the demo's independent CLI preview binding,
+MCP authoring and HTTP install/place workflow. Clarify host-owned preview
+transport and keys on repeated static siblings. No runtime changes.
+
 ## 0.1.0-rc.2 — 2026-10-27
 
 Second release candidate, the first published from CI through npm trusted publishing, with provenance. No code changes from rc.1.

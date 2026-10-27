@@ -165,7 +165,10 @@ paths from `index.json`, not from the coordinates. Capture is a command today;
 the library does not export it as a function. A coding agent reaches the same
 capture through the `capture_preview` tool ([agent guide](mcp.md)).
 
-The capture URL must reach a session that holds the draft. In the proof host,
+The capture URL must reach a session that holds the draft. Transport and draft
+upload routes belong to the host; Liveframe defines no HTTP session API. For
+the demo's separate bound preview and exact install/place requests, follow the
+[demo agent walkthrough](demo-agent.md). In the repository's proof host only,
 `GET /preview` creates a session and returns its id in the page, and
 `?session=<id>` selects it. Post the draft to the same session, capture, read
 `index.json`, post a fixed draft, and capture again.
