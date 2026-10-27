@@ -7,6 +7,7 @@
  */
 import { mkdir, readdir, rename, rm } from "node:fs/promises";
 import { join } from "node:path";
+import { stagePackage } from "./release/publish-manifest.ts";
 
 const root = new URL("../", import.meta.url).pathname;
 const demo = join(root, "examples/demo-host");
@@ -20,7 +21,10 @@ function run(args: string[], cwd: string) {
 await rm(pack, { recursive: true, force: true });
 await mkdir(pack, { recursive: true });
 run(["bun", "run", "build"], root);
-run(["bun", "pm", "pack", "--destination", pack], root);
+const staging = join(pack, "staging");
+await stagePackage(staging);
+run(["bun", "pm", "pack", "--destination", pack], staging);
+await rm(staging, { recursive: true, force: true });
 const [tarball] = (await readdir(pack)).filter((file) => file.endsWith(".tgz"));
 if (!tarball) throw new Error("bun pm pack produced no tarball");
 await rename(join(pack, tarball), join(pack, "arnilo-liveframe.tgz"));

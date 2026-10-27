@@ -90,7 +90,7 @@ This plan implements roadmap Phase 7 ("collects the gaps they report and fixes t
     - Updated compatibility and Phase 7 scope, added both request documents with one-line release-target overrides, and marked this plan in progress in the execution ledger. Preserved the 0.1.0 fileStore read promise; no runtime or normative spec change in this task. Later area tasks update the spec as they implement the additions and must extend the break register if they introduce another break.
     - Verification: `bun run check` passed on retry with a 900-second command limit; existing `docs_links_resolve` passed. Manually resolved all task-document links, including GitHub repository targets, and ran `git diff --check`. The initial 300-second run hit timing budgets and was interrupted by the command timeout; no test or threshold was changed.
 
-- [ ] Task 2: Ship no `exports` condition that names a missing file (CL-03)
+- [x] Task 2: Ship no `exports` condition that names a missing file (CL-03)
   - Acceptance Criteria:
     - Functional:
       - The packed archive's `package.json` carries no `liveframe:source` condition. Every `exports` target (`types`, `default`, wildcard `./schemas/*`) resolves to a packed file.
@@ -117,7 +117,7 @@ This plan implements roadmap Phase 7 ("collects the gaps they report and fixes t
       - A `prepack`/`postpack` pair that rewrites and restores `package.json` — viable if both packers run it. It leaves a dirty tree if packing crashes.
       - Pack from a staging directory that holds a stripped `package.json` — viable, and never mutates the checkout.
     - Chosen Approach:
-      - Use the staging directory if `npm publish <dir>` keeps provenance, otherwise the lifecycle pair. Record the documentation evidence in the task notes. Either way, the gate's new check is the guarantee.
+      - Pack and publish from a staging directory with a stripped manifest. npm's folder publishing supports the existing trusted-publishing/provenance flow; preserve repository metadata and OIDC settings. The archive gate checks every condition against the tarball file list before installation, and checks installed exports for registry inputs too.
     - API Notes and Examples:
       ```ts
       // scripts/release/archive-gate.ts — new step
@@ -126,12 +126,22 @@ This plan implements roadmap Phase 7 ("collects the gaps they report and fixes t
     - Files to Create/Edit:
       - `scripts/release/publish-manifest.ts` (new): writes the stripped manifest.
       - `scripts/release/archive-gate.ts`
-      - `.github/workflows/publish.yml` (only if the staging directory is chosen)
+      - `scripts/demo-test.ts` (use the same staged package)
+      - `src/__tests__/archive.test.ts` (inspect a real staged tarball; reject missing conditional and wildcard targets)
+      - `.github/workflows/publish.yml` (publish the staged directory)
       - `package.json` (scripts only)
       - `CHANGELOG.md` (Unreleased: Fixed)
   - Test Cases to Write:
     - `exports_targets_are_packed` (archive gate step): fails if a deliberately added bogus condition survives packing.
     - `published_manifest_has_no_source_condition` (`src/__tests__/archive.test.ts`): runs the strip function on the real `package.json`. Fails if any condition still names `./src/`.
+    - `archive_gate_rejects_a_packed_missing_condition`: feed the gate a tarball with a bogus condition and require a failure that names the condition and missing file, before dependency installation.
+  - Notes (executed 2026-10-27):
+    - Used the plan's staging-directory option. One recursive transform strips `liveframe:source` from a copied manifest; the shared staging helper copies the release inputs without writing the checkout's `package.json`. The archive gate, demo packer and publish job use it. Source conditions remain in checkout exports, test/bench scripts and `tsconfig.json`.
+    - Documentation: [Bun 1.4.2 pack options](https://github.com/oven-sh/bun/blob/bun-v1.4.2/docs/pm/cli/pm.mdx) confirms `prepack`/`postpack` and `--ignore-scripts`; [npm lifecycle order](https://docs.npmjs.com/cli/v11/using-npm/scripts) documents publish's `prepack`, `prepare`, `postpack` sequence. Neither hook is needed with staging. [npm folder publishing](https://docs.npmjs.com/cli/v11/commands/npm-publish/) and [trusted-publishing provenance](https://docs.npmjs.com/trusted-publishers/#automatic-provenance-generation) support publishing the staged folder through the same public GitHub OIDC workflow; repository metadata, permissions, npm version floor and tag selection are preserved. No npm command was run locally.
+    - The gate checks all nested export conditions, arrays and wildcard targets against the tarball listing before installation; registry inputs also get an installed-file check. Regression tests inspect an actual staged tarball and feed the gate a deliberately broken tarball, requiring the diagnostic to name `exports["."]["bogus"]` and `./missing.js`.
+    - CL-03 closes through packaging only; no runtime API, normative spec meaning, dependency or format change.
+    - Verification: `bun run check` passed on project-pinned Bun 1.4.2 (640 passed, 4 skipped, 0 failed); `bun run release:gate` passed all 8 installed-package steps in 6.9 seconds, with the new tarball export check under 0.1 seconds. `bun run demo:test` passed all 48 tests on locally installed Bun 1.4.4. Focused archive tests passed, including the real-tarball negative case. `git diff --check` passed. No publication was attempted; real OIDC/provenance issuance remains CI-only.
+    - Environment findings: Bun 1.4.4's archive run exceeded the existing MCP 100 ms render budget; the unmodified HEAD archive-gate script reproduced the same failure. Downloaded a temporary Bun 1.4.2 binary without replacing the installed runtime and validated against the CI-pinned version. Earlier full-check attempts also hit the unchanged five-second `missing_browser_fixtures_fail_with_the_named_rule` watchdog or the unchanged runner-overhead threshold; both passed in isolation and the final full run passed without changing tests, thresholds or runtime code.
 
 - [ ] Task 3: Describe shipped APIs as shipped (LF-03)
   - Acceptance Criteria:

@@ -130,6 +130,7 @@
     "gen:check": "bun src/cli/liveframe.ts gen src/__tests__/fixtures/proof/catalog.json --out src/__tests__/fixtures/widgets/ui.gen.ts --check",
     "check": "bun run build && bun run gen:check && bun run typecheck && bun run lint && bun run format:check && bun run test",
     "release:gate": "bun scripts/release/archive-gate.ts",
+    "release:stage": "bun scripts/release/publish-manifest.ts",
     "demo:test": "bun scripts/demo-test.ts"
   },
   "devDependencies": {

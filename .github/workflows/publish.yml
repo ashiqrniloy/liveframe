@@ -35,6 +35,7 @@ jobs:
       - run: bun scripts/release/peer-floors.ts
       - run: bun run demo:test
       - run: bun run build
+      - run: bun run release:stage "$RUNNER_TEMP/liveframe-publish"
       # npm runs only here, for trusted publishing and provenance.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -46,4 +47,4 @@ jobs:
           version=$(bun -p 'require("./package.json").version')
           case "$version" in *-*) tag=next ;; *) tag=latest ;; esac
           dry=; if [ "${{ inputs.dry_run }}" = true ]; then dry=--dry-run; fi
-          npm publish --access public --tag "$tag" $dry
+          npm publish "$RUNNER_TEMP/liveframe-publish" --access public --tag "$tag" $dry

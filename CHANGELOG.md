@@ -2,6 +2,12 @@
 
 All notable changes to `@arnilo/liveframe` are recorded here. The project follows the compatibility policy in [`docs/compatibility.md`](docs/compatibility.md).
 
+## Unreleased
+
+Fixed:
+
+- Strip development-only source export conditions from the published manifest and reject missing export targets in the archive gate (CL-03).
+
 ## 0.1.0-rc.4 — 2026-10-27
 
 Restore boolean schema annotation types, apply a worker's configured timeout to

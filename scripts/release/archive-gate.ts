@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 /**
  * Installed-archive gate: install the packed package outside the checkout and prove it works.
- * The seven steps are the release test; nothing here ships.
+ * The archive checks and installed steps are the release test; nothing here ships.
  *
  *   timeout 900s bun scripts/release/archive-gate.ts
  *   timeout 900s bun scripts/release/archive-gate.ts --tarball /tmp/arnilo-liveframe-0.0.0.tgz
@@ -10,6 +10,7 @@
 import { cp, mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { assertExportsPacked, stagePackage } from "./publish-manifest.ts";
 
 const root = new URL("../../", import.meta.url).pathname;
 const pkg = (await Bun.file(join(root, "package.json")).json()) as {
@@ -67,10 +68,24 @@ try {
     run(["bun", "run", "build"], root);
     const destination = join(dir, "pack");
     await mkdir(destination);
-    run(["bun", "pm", "pack", "--destination", destination], root);
+    const staging = join(dir, "staging");
+    await stagePackage(staging);
+    run(["bun", "pm", "pack", "--destination", destination], staging);
     const [packed] = (await readdir(destination)).filter((file) => file.endsWith(".tgz"));
     if (!packed) throw new Error("bun pm pack produced no tarball");
     target = join(destination, packed);
+  }
+  if (target) {
+    const at = performance.now();
+    const manifest = JSON.parse(run(["tar", "-xOf", target, "package/package.json"], root));
+    const files = new Set(
+      run(["tar", "-tzf", target], root)
+        .trim()
+        .split("\n")
+        .map((file) => file.replace(/^package\//, "")),
+    );
+    assertExportsPacked(manifest.exports, files);
+    console.log(`ok every exports target is packed (${time(at)})`);
   }
   const peers = Object.keys(pkg.peerDependencies).map((name) => `${name}@${pkg.peerDependencies[name]}`);
   const types = ["@types/react", "@types/react-dom", "@types/node"].map((name) =>
@@ -89,6 +104,7 @@ try {
   );
   const installed = (await Bun.file(join(dir, "node_modules/@arnilo/liveframe/package.json")).json()) as {
     version: string;
+    exports: unknown;
   };
   console.log(`installed @arnilo/liveframe@${installed.version} in ${dir} (${time(started)})`);
 
@@ -108,6 +124,16 @@ try {
   };
 
   const steps: Array<[string, () => void]> = [
+    [
+      "every installed exports target exists",
+      () => {
+        const directory = join(dir, "node_modules/@arnilo/liveframe");
+        assertExportsPacked(
+          installed.exports,
+          new Set(new Bun.Glob("**/*").scanSync({ cwd: directory, onlyFiles: true })),
+        );
+      },
+    ],
     ["pack, store, reload and render through both runners", () => run(["bun", join(fixtures, "step1-runner.ts")], dir)],
     ["worker timeout, then recovery", () => run(["bun", join(fixtures, "step2-timeout.ts")], dir)],
     [
