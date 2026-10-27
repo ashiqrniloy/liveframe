@@ -33,6 +33,8 @@ export type AuthoringConfig = {
   readonly capabilities: unknown;
   /** The app's runner. Defaults to `workerRunner()`. */
   readonly runner?: Runner;
+  /** Show host `meta` (capability and manifest) to the agent. Default false: `meta` is the host's, not the agent's. */
+  readonly exposeMeta?: boolean;
   /** Binds the app's preview page to the server's session; called once, after the first successful pack. */
   readonly preview?: (binding: PreviewBinding) => Promise<{ readonly url: string; close(): Promise<void> }>;
 };

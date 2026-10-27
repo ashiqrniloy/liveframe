@@ -19,6 +19,9 @@
             "confirm": {
               "type": "boolean"
             },
+            "meta": {
+              "$ref": "#/$defs/json"
+            },
             "description": {
               "maxLength": 500,
               "type": "string"
@@ -48,6 +51,9 @@
         "^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)*$": {
           "type": "object",
           "properties": {
+            "meta": {
+              "$ref": "#/$defs/json"
+            },
             "description": {
               "maxLength": 500,
               "type": "string"
@@ -388,6 +394,34 @@
         "additionalProperties"
       ],
       "additionalProperties": false
+    },
+    "json": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/json"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/json"
+          }
+        }
+      ]
     }
   }
 }

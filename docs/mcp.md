@@ -55,6 +55,10 @@ export default config;
 - `runner` is the runner production uses. Omit it and the server uses
   `workerRunner()`, which needs the `Worker` global (Bun has it). Preview and
   production must agree, so pass your own if you have one.
+- `exposeMeta` (default `false`) shows host `meta` to the agent: capability `meta`
+  in `list_capabilities` and the manifest's `meta` in the `pack_draft` result.
+  `meta` is the host's annotation, so an agent sees it only when you opt in; the
+  manifest `description` is always shown.
 - `preview(binding)` is called once, on the first capture (or never, if you never
   capture) — one promise is shared, so concurrent callers cannot bind twice, and a
   binding that fails is retried on the next call. It gets
@@ -91,9 +95,9 @@ registered. Log to stderr only: stdout carries the protocol.
 |---|---|---|
 | `list_primitives` | `{ kinds? }` | Every definition in full, or the named kinds |
 | `list_vocabulary` | — | `{ catalogId, vocabulary }`: the id a manifest must name, then colours, surfaces, typography, tones and the `space`/`radius`/`size`/`bp` names |
-| `list_capabilities` | — | Each source's params and result schema and each action's args schema |
+| `list_capabilities` | — | Each source's params and result schema and each action's args schema (capability `meta` only with `exposeMeta`) |
 | `generated_types` | — | The `liveframe gen` output, byte-identical |
-| `pack_draft` | `{ files, entry, manifest, scenarios }` | `{ hash, id, version, scenarios }` |
+| `pack_draft` | `{ files, entry, manifest, scenarios }` | `{ hash, id, version, description?, scenarios }` (plus `meta` with `exposeMeta`) |
 | `render_scenarios` | `{ scenario?, state?, context? }` | One scenario's tree (at most 256 KiB), or every scenario's status and each distinct error once |
 | `capture_preview` | `{ scenarios?, widths?, themes?, designSystems? }` | Each cell's coordinates, errors, accessibility snapshot and PNG |
 

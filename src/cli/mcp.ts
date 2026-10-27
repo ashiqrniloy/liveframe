@@ -87,8 +87,21 @@ const kindsSchema = {
   additionalProperties: false,
 } as const;
 
+/** Host `meta` is the host's own annotation; an agent sees it only when the config opts in. */
+function withoutMeta(capabilities: Capabilities): Capabilities {
+  const dropMeta = <T extends Record<string, { meta?: unknown }>>(entries: T): T =>
+    Object.fromEntries(Object.entries(entries).map(([name, { meta: _, ...rest }]) => [name, rest])) as T;
+  return { ...capabilities, actions: dropMeta(capabilities.actions), sources: dropMeta(capabilities.sources) };
+}
+
 /** The four read-only catalog tools. Their values are fixed for the server's lifetime. */
-function registerCatalogTools(sdk: Sdk, server: Server, catalog: Catalog, capabilities: Capabilities): void {
+function registerCatalogTools(
+  sdk: Sdk,
+  server: Server,
+  catalog: Catalog,
+  capabilities: Capabilities,
+  exposeMeta: boolean,
+): void {
   const known = catalog.definitions.map((definition) => definition.kind);
   server.registerTool(
     "list_primitives",
@@ -127,7 +140,7 @@ function registerCatalogTools(sdk: Sdk, server: Server, catalog: Catalog, capabi
       description:
         "Every declared source's params and result schemas and every action's args schema, so a draft reads and dispatches only declared capabilities. Declarations only: nothing is resolved or called.",
     },
-    () => text(capabilities),
+    () => text(exposeMeta ? capabilities : withoutMeta(capabilities)),
   );
   server.registerTool(
     "generated_types",
@@ -292,10 +305,12 @@ function createAuthoring({
   runner: Runner;
 }) {
   const session: PreviewSession = createPreview({ catalog, capabilities, runner });
+  const exposeMeta = config.exposeMeta === true;
   let packed: WidgetPackage | undefined;
   let bound: Promise<{ readonly url: string; close(): Promise<void> }> | undefined;
   return {
     session,
+    exposeMeta,
     get package() {
       return packed;
     },
@@ -381,7 +396,7 @@ function registerDraftTools(
     "pack_draft",
     {
       description:
-        "Packs a draft — files, entry, manifest and scenarios — through the same packer production uses, and returns its hash plus manifest id, version and scenario names. A failed pack returns its LiveframeErrors and keeps the previous draft current.",
+        "Packs a draft — files, entry, manifest and scenarios — through the same packer production uses, and returns its hash plus manifest id, version, description and scenario names. A failed pack returns its LiveframeErrors and keeps the previous draft current.",
       inputSchema: sdk.fromJsonSchema<unknown>(schema(packSchema)),
     },
     (input) =>
@@ -391,7 +406,14 @@ function registerDraftTools(
         const result = authoring.update(arguments_.value);
         if (!result.ok) return failure(result.errors);
         const { manifest, scenarios, hash } = result.value;
-        return text({ hash, id: manifest.id, version: manifest.version, scenarios: scenarios.map(({ name }) => name) });
+        return text({
+          hash,
+          id: manifest.id,
+          version: manifest.version,
+          ...(manifest.description === undefined ? {} : { description: manifest.description }),
+          ...(authoring.exposeMeta && manifest.meta !== undefined ? { meta: manifest.meta } : {}),
+          scenarios: scenarios.map(({ name }) => name),
+        });
       }),
   );
   server.registerTool(
@@ -519,7 +541,7 @@ export async function mcp(path: string, load: () => Promise<Sdk> = loadSdk): Pro
   const server = new sdk.McpServer({ name: "liveframe", version: pkg.version });
   const exclusive = serialize();
   const authoring = createAuthoring({ config, catalog, capabilities, runner });
-  registerCatalogTools(sdk, server, catalog, capabilities);
+  registerCatalogTools(sdk, server, catalog, capabilities, authoring.exposeMeta);
   registerDraftTools(sdk, server, authoring, exclusive);
   registerCaptureTool(sdk, server, authoring, exclusive);
   await server.connect(new sdk.StdioServerTransport());

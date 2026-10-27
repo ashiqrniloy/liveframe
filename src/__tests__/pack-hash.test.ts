@@ -101,6 +101,16 @@ test("canonical_json_rejects_non_json_and_lone_surrogates", () => {
   expect(() => utf8("\ud800")).toThrow(TypeError);
 });
 
+test("meta_changes_hash", () => {
+  const base = packageHash(pkg);
+  const described = packageHash({ ...pkg, manifest: { ...manifest, description: "Pending decisions." } });
+  const withMeta = packageHash({ ...pkg, manifest: { ...manifest, meta: { sizes: ["m"] } } });
+  const changed = packageHash({ ...pkg, manifest: { ...manifest, meta: { sizes: ["l"] } } });
+  expect(new Set([base, described, withMeta, changed]).size).toBe(4);
+  const reordered = packageHash({ ...pkg, manifest: { ...manifest, meta: { b: 1, a: 2 } } });
+  expect(packageHash({ ...pkg, manifest: { ...manifest, meta: { a: 2, b: 1 } } })).toBe(reordered);
+});
+
 test("package_hash_1_mib_under_50_ms", () => {
   const large = { ...pkg, code: "a".repeat(1048576) };
   packageHash(large);

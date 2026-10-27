@@ -136,6 +136,80 @@ test("nullable_manifest_state_requires_a_declaration", () => {
 test("initial_state_matches_schema", () => {
   rejects({ ...manifest, initialState: { cursors: { tasks: true }, flag: false } }, "/initialState/cursors/tasks");
 });
+test("manifest_description_bounded", () => {
+  expect(validateManifest({ ...manifest, description: "d".repeat(500) }, context).ok).toBe(true);
+  expect(validateManifest({ ...manifest, description: "😀".repeat(500) }, context).ok).toBe(true);
+  rejects({ ...manifest, description: "d".repeat(501) }, "/description");
+  rejects({ ...manifest, description: 1 }, "/description");
+  expect(validateManifestShape({ ...manifest, description: "d".repeat(501) }).ok).toBe(false);
+});
+const nest = (levels: number): unknown => (levels === 0 ? 1 : { a: nest(levels - 1) });
+test("meta_depth_and_bytes_bounded", () => {
+  const meta = { sizes: ["m", "l"], provenance: { scope: "org" }, ok: [null, true, 1.5] };
+  expect(validateManifest({ ...manifest, meta }, context).ok).toBe(true);
+  expect(validateManifestShape({ ...manifest, meta }).ok).toBe(true);
+  expect(validateManifest({ ...manifest, meta: nest(8) }, context).ok).toBe(true);
+  rejects({ ...manifest, meta: nest(9) }, "/meta/a/a/a/a/a/a/a/a", "limit-exceeded");
+  // 4096 compact bytes: {"k":"<4088 chars>"} is 8 + 4088 = 4096.
+  const exact = { k: "x".repeat(4088) };
+  expect(validateManifest({ ...manifest, meta: exact }, context).ok).toBe(true);
+  rejects({ ...manifest, meta: { k: "x".repeat(4089) } }, "/meta", "limit-exceeded");
+  rejects({ ...manifest, meta: { k: "é".repeat(2045) } }, "/meta", "limit-exceeded");
+  rejects({ ...manifest, meta: Array.from({ length: 5000 }, () => 0) }, "/meta", "limit-exceeded");
+  const shape = validateManifestShape({ ...manifest, meta: { k: "x".repeat(4089) } });
+  expect(shape.ok).toBe(false);
+  if (!shape.ok)
+    expect(shape.errors).toContainEqual(expect.objectContaining({ pointer: "/meta", kind: "limit-exceeded" }));
+  const cycle: Record<string, unknown> = {};
+  cycle.self = cycle;
+  rejects({ ...manifest, meta: cycle }, "/meta/self/self/self/self/self/self/self/self", "limit-exceeded");
+  rejects({ ...manifest, meta: { n: Number.NaN } }, "/meta/n");
+  rejects({ ...manifest, meta: { u: undefined } }, "/meta/u");
+  rejects({ ...manifest, meta: undefined }, "/meta");
+  rejects({ ...manifest, meta: { d: new Date(0) } }, "/meta/d");
+});
+test("capability_meta_bounded", () => {
+  const meta = { tier: "gold", nested: { ok: [1, 2] } };
+  const ok = validateCapabilities({
+    ...capabilities,
+    actions: { "tasks.claim": { ...capabilities.actions["tasks.claim"], meta } },
+    sources: { "tasks.queue": { ...capabilities.sources["tasks.queue"], meta } },
+  });
+  expect(ok.ok).toBe(true);
+  for (const [bad, pointer, kind] of [
+    [nest(9), "/meta/a/a/a/a/a/a/a/a", "limit-exceeded"],
+    [{ k: "x".repeat(4089) }, "/meta", "limit-exceeded"],
+    [{ n: Infinity }, "/meta/n", "invalid-document"],
+  ] as const) {
+    for (const key of ["actions", "sources"] as const) {
+      const name = key === "actions" ? "tasks.claim" : "tasks.queue";
+      const result = validateCapabilities({
+        ...capabilities,
+        [key]: { [name]: { ...capabilities[key][name], meta: bad } },
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok)
+        expect(result.errors).toContainEqual(expect.objectContaining({ pointer: `/${key}/${name}${pointer}`, kind }));
+    }
+  }
+});
+test("published_manifest_schema_accepts_meta", () => {
+  const meta = { sizes: ["m"], provenance: { scope: "org" } };
+  const ajv = new Ajv2020({ strict: true });
+  const validate = ajv.compile(schemaDocument("manifest"));
+  expect(validate({ ...manifest, description: "Pending.", meta })).toBe(true);
+  expect(validate({ ...manifest, description: "d".repeat(501) })).toBe(false);
+  const capabilitiesValidate = new Ajv2020({ strict: true, formats: { regex: true } }).compile(
+    schemaDocument("capabilities"),
+  );
+  expect(
+    capabilitiesValidate({
+      ...capabilities,
+      actions: { "tasks.claim": { ...capabilities.actions["tasks.claim"], meta } },
+      sources: { "tasks.queue": { ...capabilities.sources["tasks.queue"], meta } },
+    }),
+  ).toBe(true);
+});
 test("manifest_catalog_must_match", () => {
   rejects({ ...manifest, catalogId: "other.ui@1" }, "/catalogId", "catalog-mismatch");
 });

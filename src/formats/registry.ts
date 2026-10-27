@@ -92,7 +92,10 @@ export const formats = {
   "design-system": designSystemSchema,
   theme: themeSchema,
   "schema-language": schemaLanguage,
-  capabilities: { ...capabilitiesSchema, $defs: { ...schemaLanguage.$defs, objectSchema } },
+  capabilities: {
+    ...capabilitiesSchema,
+    $defs: { ...schemaLanguage.$defs, objectSchema, json: treeSchema.$defs.json },
+  },
   manifest: { ...manifestSchema, $defs: { ...languageForms(false), objectSchema, ...manifestSchema.$defs } },
   "widget-package": {
     ...widgetPackageSchema,

@@ -174,7 +174,7 @@ This plan implements spec §5 (definitions and events), §6.3 (style props), §7
     - Docs: spec §6.3 row and a `docs/styling.md` paragraph on the projection and on percentage heights needing a definite parent height.
     - `bun run check`: one full run reported a single failing test that I did not capture; two further full `bun test` runs passed (675 pass, 4 skip, 0 fail). Treat it as an unidentified flake until it recurs.
 
-- [ ] Task 4: Add manifest `description` and `meta`, and capability `meta` (LF-07)
+- [x] Task 4: Add manifest `description` and `meta`, and capability `meta` (LF-07)
   - Acceptance Criteria:
     - Functional:
       - The manifest takes an optional `description` (≤ 500 code points) and an optional `meta` (bounded JSON, per Task 1).
@@ -217,6 +217,15 @@ This plan implements spec §5 (definitions and events), §6.3 (style props), §7
     - `meta_changes_hash` (`pack-hash.test.ts`).
     - `list_capabilities_hides_meta_by_default` (`cli-mcp.test.ts`).
     - `published_manifest_schema_accepts_meta` (`schemas.test.ts`).
+  - Notes (executed 2026-10-28):
+    - `description` (≤ 500 code points) and `meta` are optional manifest fields. `meta` is also optional on capability actions and sources. The Task 1 bounds hold: 8 levels of nesting (the top-level container is level 1) and 4096 compact UTF-8 bytes. An over-bound value is `limit-exceeded` at `/meta` (bytes) or at the level that is too deep. A non-JSON value (`NaN`, `undefined`, a class instance) is `invalid-document` at its own pointer. A cyclic value stops at the depth bound.
+    - One `checkMeta(value, pointer, checks)` in `src/formats/capabilities.ts`, beside the other shared document checks, serves `validateManifest`, `validateManifestShape` and `validateCapabilities`. It counts bytes while walking with `stringBytes` and never serialises. I placed it there, not in `src/formats/json.ts` as the plan guessed, because `json.ts` already imports `capabilities.ts`.
+    - `pack()` and `verifyPackage()` carry both fields through `validateManifestShape`. The canonical hash needed no change, since it covers every manifest field. `meta_changes_hash` also shows that key order in `meta` does not change the hash.
+    - `AuthoringConfig.exposeMeta` (default false) gates `meta` in the MCP tools. `list_capabilities` drops capability `meta` unless it is true. `pack_draft` always returns the manifest `description`, and returns the manifest `meta` only when it is true, per the Task 1 log.
+    - The published `manifest.json` and `capabilities.json` schemas gain `meta` as a `json` value (capabilities gains a `$defs.json`). The published schemas cannot express the depth and byte bounds; the validators do.
+    - Tests added: `manifest_description_bounded`, `meta_depth_and_bytes_bounded`, `capability_meta_bounded`, `published_manifest_schema_accepts_meta` (`manifest.test.ts`), `meta_changes_hash` (`pack-hash.test.ts`), `list_capabilities_hides_meta_by_default` and `pack_draft_shows_description_and_hides_meta_unless_exposed` (`cli-mcp.test.ts`, with two `mcp-meta*.config.ts` fixtures). The `schema_publisher_detects_drift` test copies `src/validate/bytes.ts` now, because `capabilities.ts` imports it.
+    - Docs: spec §7.3 and §13 (`list_capabilities`, `pack_draft`), `docs/formats.md`, `docs/mcp.md`, `docs/security.md`.
+    - `bun run check`: 682 pass, 0 fail.
 
 - [ ] Task 5: Carry numbers on events (CL-08)
   - Acceptance Criteria:

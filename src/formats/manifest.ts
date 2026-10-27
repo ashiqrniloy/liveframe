@@ -4,6 +4,7 @@ import {
   at,
   type Capabilities,
   capabilityName,
+  checkMeta,
   documentChecks,
   isRecord,
   namedMap,
@@ -18,20 +19,27 @@ const binding = obj({
   from: str({ maxLength: 7, enum: ["params", "state", "context"] }),
   path: str({ maxLength: 512, pattern: "^[a-zA-Z_$][a-zA-Z0-9_$]*(\\.[a-zA-Z_$][a-zA-Z0-9_$]*){0,7}$" }),
 });
-const fields = obj({
-  format: str({ maxLength: 32, enum: ["liveframe-manifest/1"] }),
-  id: str({ maxLength: 128, pattern: "^[a-z][a-zA-Z0-9.-]*$" }),
-  version: str({ maxLength: 128, pattern: "^.+$" }),
-  catalogId: str({ maxLength: 128, pattern: "^[a-z][a-z0-9.-]*@[1-9][0-9]*$" }),
-  params: bool(),
-  state: bool(),
-  context: bool(),
-  initialState: bool(),
-  sources: bool(),
-  actions: arr(capabilityName, { maxItems: 512 }),
-});
+const fields = obj(
+  {
+    format: str({ maxLength: 32, enum: ["liveframe-manifest/1"] }),
+    id: str({ maxLength: 128, pattern: "^[a-z][a-zA-Z0-9.-]*$" }),
+    version: str({ maxLength: 128, pattern: "^.+$" }),
+    catalogId: str({ maxLength: 128, pattern: "^[a-z][a-z0-9.-]*@[1-9][0-9]*$" }),
+    params: bool(),
+    state: bool(),
+    context: bool(),
+    initialState: bool(),
+    sources: bool(),
+    actions: arr(capabilityName, { maxItems: 512 }),
+  },
+  { description: str({ maxLength: 500 }), meta: bool() },
+);
 const sourceFields = obj({ source: capabilityName, params: bool() });
-export type Manifest = Omit<Infer<typeof fields>, "params" | "state" | "context" | "initialState" | "sources"> & {
+export type Manifest = Omit<
+  Infer<typeof fields>,
+  "params" | "state" | "context" | "initialState" | "sources" | "meta"
+> & {
+  readonly meta?: Json;
   readonly params: ObjectSchema;
   readonly state: ObjectSchema;
   readonly context: ObjectSchema;
@@ -49,6 +57,7 @@ export const manifestSchema = {
     state: { $ref: "#/$defs/objectSchema" },
     context: { $ref: "#/$defs/objectSchema" },
     initialState: json,
+    meta: json,
     actions: { ...fields.properties.actions, uniqueItems: true },
     sources: namedMap({
       ...sourceFields,
@@ -191,11 +200,12 @@ export function validateManifest(
   const c = documentChecks();
   if (!isRecord(doc)) c.reject("", "Expected a manifest object");
   else {
-    c.collect(checkValue(fields, shell(doc, ["params", "state", "context", "initialState", "sources"])), "");
+    c.collect(checkValue(fields, shell(doc, ["params", "state", "context", "initialState", "sources", "meta"])), "");
     for (const key of ["params", "state", "context"] as const) {
       const schema = c.schema(doc[key], `/${key}`);
       if (schema) rejectPatterns(schema, `/${key}`, c.reject);
     }
+    if (Object.hasOwn(doc, "meta")) checkMeta(doc.meta, "/meta", c);
     // Schema checks must pass before traversing author-supplied schemas.
     if (c.errors.length) return { ok: false, errors: c.errors };
     const value = doc as Manifest;
@@ -213,11 +223,12 @@ export function validateManifestShape(doc: unknown): Result<Manifest> {
   c.collect(validateJson(doc), "");
   if (!isRecord(doc)) c.reject("", "Expected a manifest object");
   else {
-    c.collect(checkValue(fields, shell(doc, ["params", "state", "context", "initialState", "sources"])), "");
+    c.collect(checkValue(fields, shell(doc, ["params", "state", "context", "initialState", "sources", "meta"])), "");
     for (const key of ["params", "state", "context"] as const) {
       const schema = c.schema(doc[key], `/${key}`);
       if (schema) rejectPatterns(schema, `/${key}`, c.reject);
     }
+    if (Object.hasOwn(doc, "meta")) checkMeta(doc.meta, "/meta", c);
     if (Array.isArray(doc.actions)) {
       const seen = new Set<unknown>();
       for (const [i, name] of doc.actions.entries()) {

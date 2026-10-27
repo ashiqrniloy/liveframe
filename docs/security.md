@@ -11,6 +11,8 @@ A widget is untrusted input. It runs on your backend, produces data, and never h
 
 Widget-authored schemas may not use `pattern` (`params`, `state` and `context` in a manifest), so an agent cannot ship a regular expression that stalls the host or the browser. Catalogs and capabilities belong to the app and keep the full schema language, including `pattern`.
 
+`meta` on a manifest, capability action or capability source is the host's annotation. The library bounds it (8 levels, 4096 bytes), validates it on install and on every load, and never reads it: it grants nothing, so a host must not treat a `meta` value as authorisation. `liveframe mcp` hides it from the agent unless the config sets `exposeMeta`.
+
 ## What is not protected
 
 - **The reference runners are not sandboxes.** `inProcessRunner()` shares the host's realm, so widget code can reach anything the process can, and a synchronous loop cannot be interrupted (its timeout covers the return, not the loop). `workerRunner()` bounds time and crashes, but it does not restrict what code can access, and one worker serves every package: a draft that keeps running can answer a later render of a package it did not author. The host re-validates that tree against the later widget's manifest, and a worker that answers out of turn is terminated — but the answer still came from code you did not run. Verify packages, run only code you trust, and plug your own isolated runner into both preview and production for anything hostile. The preview, package and MCP guides repeat this where it applies.

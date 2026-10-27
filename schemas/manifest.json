@@ -3,6 +3,13 @@
   "$id": "urn:liveframe:manifest:1",
   "type": "object",
   "properties": {
+    "description": {
+      "maxLength": 500,
+      "type": "string"
+    },
+    "meta": {
+      "$ref": "#/$defs/json"
+    },
     "format": {
       "maxLength": 32,
       "enum": [

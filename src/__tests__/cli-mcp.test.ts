@@ -154,6 +154,19 @@ test("list_capabilities_lists_sources_and_actions_with_schemas", async () => {
   for (const action of Object.values(declared.actions)) expect(action.args.type).toBe("object");
 }, 30000);
 
+test("list_capabilities_hides_meta_by_default", async () => {
+  const hidden = await withClient((client) => call(client, "list_capabilities"), {
+    config: `${fixtures}/mcp-meta.config.ts`,
+  });
+  expect(hidden.text).not.toContain("tier");
+  expect(hidden.json()).toEqual(proofCapabilities);
+  const shown = await withClient((client) => call(client, "list_capabilities"), {
+    config: `${fixtures}/mcp-meta-exposed.config.ts`,
+  });
+  expect(shown.text).toContain('"meta":{"tier":"gold"}');
+  expect(shown.text).toContain('"meta":{"tier":"silver"}');
+}, 30000);
+
 test("generated_types_equals_liveframe_gen_output", async () => {
   const result = await withClient((client) => call(client, "generated_types"));
   const { note, types } = result.json() as { note: string; types: string };
@@ -182,6 +195,21 @@ test("pack_draft_returns_the_hash_session_update_returns", async () => {
     version: expected.manifest.version,
     scenarios: expected.scenarios.map(({ name }) => name),
   });
+}, 30000);
+
+test("pack_draft_shows_description_and_hides_meta_unless_exposed", async () => {
+  const described = {
+    ...agentHome,
+    manifest: { ...agentManifest, description: "Pending decisions.", meta: { sizes: ["m"] } },
+  };
+  const hidden = await withClient((client) => call(client, "pack_draft", described));
+  expect(hidden.isError).toBe(false);
+  expect(hidden.json()).toMatchObject({ description: "Pending decisions." });
+  expect(hidden.text).not.toContain("tier");
+  const shown = await withClient((client) => call(client, "pack_draft", described), {
+    config: `${fixtures}/mcp-meta-exposed.config.ts`,
+  });
+  expect(shown.json()).toMatchObject({ description: "Pending decisions.", meta: { sizes: ["m"] } });
 }, 30000);
 
 test("pack_errors_keep_the_previous_package", async () => {

@@ -10,12 +10,15 @@ import {
   record,
   str,
 } from "../schema.ts";
+import { stringBytes } from "../validate/bytes.ts";
+import type { Json } from "./tree.ts";
 
 export type ObjectSchema = Extract<LanguageSchema, { readonly type: "object" }>;
 export const capabilityName = str({ maxLength: 128, pattern: "^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)*$" });
 const description = str({ maxLength: 500 });
-const actionFields = obj({ description, args: bool() }, { confirm: bool() });
-const sourceFields = obj({ description, params: bool(), result: bool() });
+const actionFields = obj({ description, args: bool() }, { confirm: bool(), meta: bool() });
+const sourceFields = obj({ description, params: bool(), result: bool() }, { meta: bool() });
+const json = { $ref: "#/$defs/json" };
 const fields = obj({
   format: str({ maxLength: 32, enum: ["liveframe-capabilities/1"] }),
   actions: bool(),
@@ -24,14 +27,18 @@ const fields = obj({
 export type Capabilities = {
   readonly format: "liveframe-capabilities/1";
   readonly actions: Readonly<
-    Record<string, Omit<Infer<typeof actionFields>, "args"> & { readonly args: ObjectSchema }>
+    Record<
+      string,
+      Omit<Infer<typeof actionFields>, "args" | "meta"> & { readonly args: ObjectSchema; readonly meta?: Json }
+    >
   >;
   readonly sources: Readonly<
     Record<
       string,
-      Omit<Infer<typeof sourceFields>, "params" | "result"> & {
+      Omit<Infer<typeof sourceFields>, "params" | "result" | "meta"> & {
         readonly params: ObjectSchema;
         readonly result: LanguageSchema;
+        readonly meta?: Json;
       }
     >
   >;
@@ -45,7 +52,7 @@ export const capabilitiesSchema = {
     ...fields.properties,
     actions: namedMap({
       ...actionFields,
-      properties: { ...actionFields.properties, args: { $ref: "#/$defs/objectSchema" } },
+      properties: { ...actionFields.properties, args: { $ref: "#/$defs/objectSchema" }, meta: json },
     }),
     sources: namedMap({
       ...sourceFields,
@@ -53,6 +60,7 @@ export const capabilitiesSchema = {
         ...sourceFields.properties,
         params: { $ref: "#/$defs/objectSchema" },
         result: { $ref: "#/$defs/schema" },
+        meta: json,
       },
     }),
   },
@@ -107,6 +115,58 @@ export function documentChecks() {
   return { errors, reject, collect, map, schema };
 }
 export { isRecord };
+
+const metaDepth = 8;
+const metaBytes = 4096;
+/** Compact JSON bytes of a scalar, or undefined when the value is not a JSON scalar. */
+function scalarBytes(value: unknown, remaining: number): number | undefined {
+  if (value === null || typeof value === "boolean") return value === false ? 5 : 4;
+  if (typeof value === "number") return Number.isFinite(value) ? String(value).length : undefined;
+  return typeof value === "string" ? stringBytes(value, remaining) : undefined;
+}
+const isContainer = (value: unknown): value is object =>
+  typeof value === "object" &&
+  value !== null &&
+  (Array.isArray(value) || [Object.prototype, null].includes(Object.getPrototypeOf(value)));
+
+/** A container's members in document order; an array longer than the byte bound is refused (each element costs a byte). */
+function membersOf(value: object): [string | number, unknown][] | undefined {
+  if (!Array.isArray(value)) return Object.entries(value);
+  return value.length > metaBytes ? undefined : Array.from(value, (child, i) => [i, child]);
+}
+
+/**
+ * Host `meta` is JSON the library never reads (law 4). Bounded by nesting depth and compact UTF-8
+ * bytes, counted while walking so an oversized or cyclic value stops early without serialising.
+ */
+export function checkMeta(meta: unknown, pointer: string, c: ReturnType<typeof documentChecks>): void {
+  let bytes = 0;
+  const fail = (path: string, message: string, expected?: string) => {
+    c.reject(path, message, expected ? "limit-exceeded" : "invalid-document", expected);
+    return false;
+  };
+  const tooLarge = () => fail(pointer, `Expected at most ${metaBytes} bytes of JSON`, `at most ${metaBytes} bytes`);
+  const walk = (value: unknown, path: string, depth: number): boolean => {
+    if (!isContainer(value)) {
+      const size = scalarBytes(value, metaBytes - bytes);
+      if (size === undefined) return fail(path, "Expected a JSON value without cycles or non-finite numbers");
+      bytes += size;
+      return bytes <= metaBytes || tooLarge();
+    }
+    if (depth > metaDepth)
+      return fail(path, `Expected at most ${metaDepth} levels of nesting`, `at most ${metaDepth} levels`);
+    bytes += 2;
+    const members = membersOf(value);
+    if (!members) return tooLarge();
+    for (const [i, [key, child]] of members.entries()) {
+      bytes += (i > 0 ? 1 : 0) + (typeof key === "string" ? stringBytes(key, metaBytes - bytes) + 1 : 0);
+      if (bytes > metaBytes) return tooLarge();
+      if (!walk(child, at(path, key), depth + 1)) return false;
+    }
+    return bytes <= metaBytes || tooLarge();
+  };
+  walk(meta, pointer, 1);
+}
 export function at(pointer: string, key: string | number) {
   return `${pointer}/${String(key).replaceAll("~", "~0").replaceAll("/", "~1")}`;
 }
@@ -126,9 +186,13 @@ export function validateCapabilities(doc: unknown): Result<Capabilities> {
           return;
         }
         c.collect(
-          checkValue(key === "actions" ? actionFields : sourceFields, shell(entry, ["args", "params", "result"])),
+          checkValue(
+            key === "actions" ? actionFields : sourceFields,
+            shell(entry, ["args", "params", "result", "meta"]),
+          ),
           pointer,
         );
+        if (Object.hasOwn(entry, "meta")) checkMeta(entry.meta, `${pointer}/meta`, c);
         if (key === "actions") c.schema(entry.args, `${pointer}/args`);
         else {
           c.schema(entry.params, `${pointer}/params`);

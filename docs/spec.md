@@ -379,7 +379,7 @@ pack({ files, entry, manifest, scenarios }, { catalog, capabilities }) → Resul
 
 type WidgetPackage = {
   format: "liveframe-package/1";
-  manifest: Manifest;           // id, version, catalogId, schemas, initial state (§7.1)
+  manifest: Manifest;           // id, version, catalogId, schemas, initial state, optional description and meta (§7.1)
   code: string;                 // one ES module; its default export is the widget function
   scenarios: Scenario[];        // 1…64, with unique names
   hash: string;                 // "sha256-" + 64 lowercase hex digits; see canonical form below
@@ -408,6 +408,8 @@ Optionally, the root `sourceOutcome(result)` helper declares the generic `ok` (r
 - hashes the result.
 
 **Canonical form and hash.** Hash exactly `{ format, manifest, code, scenarios }`, excluding `hash`. Canonical JSON follows [RFC 8785 §3.2](https://www.rfc-editor.org/rfc/rfc8785.html#section-3.2): sort object keys recursively by their unescaped UTF-16 code units, preserve array order, emit no whitespace, and use ECMAScript serialisation for strings, numbers and literals. Preserve Unicode without normalisation; reject non-JSON values, non-finite numbers and lone surrogates. Encode the canonical string as UTF-8, compute SHA-256 ([FIPS 180-4 §6.2](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf)), and prefix its lowercase hexadecimal digest with `sha256-`. An internal pure-JavaScript SHA-256 implementation keeps `pack()` synchronous and host-API-free, without Web Crypto. The hash checks integrity, not origin or approval.
+
+**Manifest `description` and `meta`.** A manifest may carry an optional `description` (at most 500 code points) and an optional `meta`, a JSON value of at most 8 levels of nesting and 4096 bytes of compact UTF-8 JSON, counted while walking. Capability actions and sources take the same optional `meta`. The library never reads `meta` (law 4): it is the host's annotation, untrusted on load, and it grants nothing. An over-bound value is `limit-exceeded` at the pointer; a non-JSON value is `invalid-document`. The package hash covers the manifest's `description` and `meta`, because the canonical form covers every manifest field; capabilities are the host's own document and are not packaged, so capability `meta` is outside the hash.
 
 `pack()` and `verifyPackage()` return `Result<WidgetPackage>` with bounded `LiveframeError[]` on failure (§10). A malformed manifest or scenario uses `invalid-document`; no scenarios points at `/scenarios`. Import and syntax failures use the distinct kinds in §10, with a file and line in `pointer` (a JSON Pointer such as `/files/queue.tsx/12`).
 
@@ -726,9 +728,9 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
 
   - `list_primitives({ kinds? })` — every definition in full, or the named kinds: props schema, children, events with `carries`, variants, slots, style props, `description` and `deprecated`.
   - `list_vocabulary()` — `{ catalogId, vocabulary }`: the id a manifest must name, then the catalog's color, surface, fillable and typography roles, tones, `surfaceTypography`, and the `space`, `radius`, `size` and `bp` names.
-  - `list_capabilities()` — each source's params and result schemas and each action's args schema. It never calls a resolver.
+  - `list_capabilities()` — each source's params and result schemas and each action's args schema. It never calls a resolver. Capability `meta` is omitted unless the config sets `exposeMeta: true`.
   - `generated_types()` — the `liveframe gen` output, byte-identical.
-  - `pack_draft({ files, entry, manifest, scenarios })` — `session.update()`'s input, returning `{ hash, id, version, scenarios }` or the pack errors; a failed pack keeps the previous package.
+  - `pack_draft({ files, entry, manifest, scenarios })` — `session.update()`'s input, returning `{ hash, id, version, description?, scenarios }` (and the manifest `meta` only when `exposeMeta` is true) or the pack errors; a failed pack keeps the previous package.
   - `render_scenarios({ scenario?, state?, context? })` — one scenario's tree of at most 256 KiB (262144 bytes of JSON; past that, `limit-exceeded` at `/scenario`, naming the size and the limit) or its `LiveframeError`s, or every scenario's status — `{ scenario, ok: true, nodes }` for each renderable scenario, plus each distinct error once as `{ ok: false, kind, pointer, message, expected?, scenarios }` — distinct by `kind`, `pointer`, `message` and `expected` — where `scenarios` names the scenarios that share it.
 
   `pack_draft` and `render_scenarios` declare only a permissive top-level object — required keys, a description per argument, and the published schemas in `$defs` for reference — and validate inside the handler with the same format validators the library uses. An argument error is therefore always a `LiveframeError[]` rooted at the document an agent edits (`/manifest/id`, `/scenarios/0/params`), never the MCP layer's own validation string; only a missing required key or a non-object argument still fails before the handler.
