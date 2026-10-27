@@ -6,14 +6,16 @@ type Props<D extends Definition> = string extends keyof D["props"]["properties"]
   : Infer<D["props"]>;
 
 type Emit<D extends Definition> = string extends keyof D["events"]
-  ? (event: string, value?: string | boolean) => void
+  ? (event: string, value?: string | boolean | number) => void
   : (
       ...args: {
         [E in keyof D["events"] & string]: D["events"][E]["carries"] extends "string"
           ? [event: E, value: string]
           : D["events"][E]["carries"] extends "boolean"
             ? [event: E, value: boolean]
-            : [event: E];
+            : D["events"][E]["carries"] extends "number" | "integer"
+              ? [event: E, value: number]
+              : [event: E];
       }[keyof D["events"] & string]
     ) => void;
 

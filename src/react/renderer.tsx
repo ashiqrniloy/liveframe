@@ -1,6 +1,7 @@
 import { Component, Fragment, type ReactNode, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { slotClass, styleDeclarations, surfaceAttributes } from "../css/index.ts";
-import { LiveframeFailure, type LiveframeError } from "../errors.ts";
+import { type LiveframeError, LiveframeFailure } from "../errors.ts";
+import { carriesValue } from "../formats/events.ts";
 import { type CompiledValidator, type Intent, type UiNode, type UiTree, validateCatalog } from "../index.ts";
 import { binding, type Implementation, type Item } from "./implement.ts";
 
@@ -59,7 +60,7 @@ function sameDefinition(left: unknown, right: unknown): boolean {
   );
 }
 
-function complete(intent: Intent, value?: string | boolean): Intent {
+function complete(intent: Intent, value?: string | boolean | number): Intent {
   let result = structuredClone(intent);
   if (result.type === "setState" && !Object.hasOwn(result, "value") && value !== undefined)
     result = { ...result, value };
@@ -189,8 +190,7 @@ export function createRenderer({
             const intent = node.events[event];
             if (!intent) return;
             const carries = definition.events[event]?.carries;
-            if (carries === "none" ? value !== undefined : typeof value !== carries)
-              throw new Error(`Invalid event value: ${node.kind}.${event}`);
+            if (!carriesValue(carries, value)) throw new Error(`Invalid event value: ${node.kind}.${event}`);
             onIntent(complete(intent, value));
           },
           children: items.map((child) => child.render()),

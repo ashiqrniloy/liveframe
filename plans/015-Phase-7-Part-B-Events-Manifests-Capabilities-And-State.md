@@ -227,7 +227,7 @@ This plan implements spec §5 (definitions and events), §6.3 (style props), §7
     - Docs: spec §7.3 and §13 (`list_capabilities`, `pack_draft`), `docs/formats.md`, `docs/mcp.md`, `docs/security.md`.
     - `bun run check`: 682 pass, 0 fail.
 
-- [ ] Task 5: Carry numbers on events (CL-08)
+- [x] Task 5: Carry numbers on events (CL-08)
   - Acceptance Criteria:
     - Functional:
       - `carries` accepts `"number"` and `"integer"`.
@@ -238,7 +238,7 @@ This plan implements spec §5 (definitions and events), §6.3 (style props), §7
       - Changing `carries` stays a major catalog change.
       - The conformance renderer suite gains a numeric fixture.
     - Performance: n/a — one more case on the emit path. The render bench holds.
-    - Code Quality: one `carriesValue(carries, value)` predicate, shared by `/react` and the preview session.
+    - Code Quality: one `carriesValue(carries, value)` predicate, shared by `/react` and the preview session through `checkValue`.
     - Security: law 2 — non-finite numbers never reach `onIntent` or the JSON transport.
   - Approach:
     - Skills to Use:
@@ -259,9 +259,9 @@ This plan implements spec §5 (definitions and events), §6.3 (style props), §7
       events: { onChange: { carries: "integer", description: "Page size." } }
       ```
     - Files to Create/Edit:
-      - `src/formats/catalog.ts`; `src/validate/intent.ts`; `src/validate/checks.ts` (shared predicate, tentative)
-      - `src/react/renderer.tsx`; `src/react/implement.ts`; `src/preview/session.ts`
-      - `schemas/*.json`; `src/conformance/react/*`
+      - `src/formats/catalog.ts`; `src/validate/intent.ts`; `src/formats/events.ts` (shared predicate); `src/schema.ts` (`checkValue` shares the numeric check)
+      - `src/react/renderer.tsx`; `src/react/implement.ts`; Preview retains its existing `checkValue` validation
+      - `schemas/catalog.json`; numeric fixtures and tests in `src/__tests__/` (including `rendererSuite`)
       - `docs/spec.md` §5, §8, §11; `docs/renderer.md`; `docs/formats.md`
   - Test Cases to Write:
     - `emit_rejects_nan_infinity_and_fraction_for_integer` (`react-intents.test.tsx`).
@@ -269,6 +269,14 @@ This plan implements spec §5 (definitions and events), §6.3 (style props), §7
     - `preview_intent_rejects_out_of_range_number` (`preview-session.test.ts`).
     - `emit_type_requires_number` (`react-types.test.tsx`).
     - `conformance_numeric_fixture` (`conformance-renderer.test.tsx`).
+
+
+  - Notes (executed 2026-10-28):
+    - Added `number` and `integer` to the catalog event contract and regenerated `schemas/catalog.json`. Changing a carried type remains a major catalog change. Spec §5, §8 and §11, `docs/formats.md` and `docs/renderer.md` now document the numeric values, compatibility and emit-time checks.
+    - `carriesFits` applies Task 1's rule consistently to implicit `setState`, action `bind` and compatible-argument diagnostics: `number` fills only `number`; `integer` fills `integer` or `number`. Incompatible bindings fail with `invalid-prop` at the event's `/bind` or `/value` pointer.
+    - `carriesValue` lives in `src/formats/events.ts`, with no public export. The renderer calls it directly; Preview shares it through the numeric branch of `checkValue`. Preview's existing argument-schema check already enforces `minimum`/`maximum`, so `src/preview/session.ts` needed no change. `Emit` and intent completion accept numeric values; tests cover zero, negative values, fractions, missing/wrong types, `NaN` and both infinities.
+    - Added a shared numeric test catalog and a `conformance_numeric_fixture` that runs `rendererSuite` over numeric bound actions; the catalog-independent suite needed no new case. Type-level coverage extends `implement_types_follow_const_definitions` and the loaded-definition case in `react-types.test.tsx`. No proof primitive, SDK generator change or dependency was needed.
+    - Verification: the new tests first failed because numeric carries were rejected. All 54 focused tests then passed. `bun run check` passed (689 pass, 4 skip, 0 fail). `bun --conditions liveframe:source bench/render.bench.ts` passed all eight workloads: 1.834–2.361 µs/node against the 3 µs/node gate; agent-home rendered in 1.3322 ms and the medium/full queues remained below 2 ms. Release and demo gates remain whole-plan verification.
 
 - [ ] Task 6: Commit several values in one intent with object-carrying events (LF-05, option A)
   - Acceptance Criteria:

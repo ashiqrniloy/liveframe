@@ -2,7 +2,64 @@ import { expect, test } from "bun:test";
 import { renderToString } from "react-dom/server";
 import type { Intent, UiNode } from "../index.ts";
 import type { ImplementationProps } from "../react/index.ts";
+import { createRenderer, implement } from "../react/index.ts";
+import * as numeric from "./fixtures/numeric-events.ts";
 import { renderer, surfaceProps, withRoot } from "./fixtures/react-surface.tsx";
+
+test("emit_rejects_nan_infinity_and_fraction_for_integer", () => {
+  for (const event of ["onNumber", "onInteger"]) {
+    let context: ImplementationProps | undefined;
+    const intents: Intent[] = [];
+    const { Surface } = createRenderer({
+      catalog: numeric.catalog,
+      implementations: numeric.catalog.definitions.map((definition) =>
+        implement(definition, (input) => {
+          context = input;
+          return null;
+        }),
+      ),
+    });
+    const tree = numeric.numericTree(event, { type: "action", name: "numbers.commit", args: {}, bind: "value" });
+    renderToString(
+      <Surface
+        {...surfaceProps}
+        validator={numeric.validator}
+        tree={tree}
+        onIntent={(intent) => intents.push(intent)}
+      />,
+    );
+    if (!context) throw new Error("Missing numeric context");
+    for (const invalid of [undefined, "2", true, NaN, Infinity, -Infinity, ...(event === "onInteger" ? [1.5] : [])]) {
+      expect(() => context?.emit(event, invalid)).toThrow("Invalid event value");
+      expect(intents).toEqual([]);
+    }
+    for (const value of [0, -2, 3, ...(event === "onNumber" ? [1.5] : [])]) {
+      context.emit(event, value);
+      expect(intents.at(-1)).toEqual({ type: "action", name: "numbers.commit", args: { value } });
+    }
+  }
+});
+
+test("numeric_set_state_takes_the_event_value", () => {
+  let context: ImplementationProps | undefined;
+  const intents: Intent[] = [];
+  const { Surface } = createRenderer({
+    catalog: numeric.catalog,
+    implementations: numeric.catalog.definitions.map((definition) =>
+      implement(definition, (input) => {
+        context = input;
+        return null;
+      }),
+    ),
+  });
+  const tree = numeric.numericTree("onInteger", { type: "setState", key: "number" });
+  renderToString(
+    <Surface {...surfaceProps} validator={numeric.validator} tree={tree} onIntent={(intent) => intents.push(intent)} />,
+  );
+  if (!context) throw new Error("Missing numeric context");
+  context.emit("onInteger", 0);
+  expect(intents).toEqual([{ type: "setState", key: "number", value: 0 }]);
+});
 
 function mount(node: UiNode) {
   const contexts = new Map<string, ImplementationProps>();

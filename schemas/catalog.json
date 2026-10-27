@@ -191,7 +191,9 @@
                     "enum": [
                       "none",
                       "string",
-                      "boolean"
+                      "boolean",
+                      "number",
+                      "integer"
                     ],
                     "type": "string"
                   },

@@ -1,7 +1,5 @@
 import { expect, test } from "bun:test";
 import { Ajv2020 } from "ajv/dist/2020.js";
-import vocabulary from "./fixtures/vocabulary.json" with { type: "json" };
-import proofCatalog from "./fixtures/catalog.json" with { type: "json" };
 import { schemaDocument } from "../formats/registry.ts";
 import {
   arr,
@@ -15,6 +13,8 @@ import {
   str,
   validateCatalog,
 } from "../index.ts";
+import proofCatalog from "./fixtures/catalog.json" with { type: "json" };
+import vocabulary from "./fixtures/vocabulary.json" with { type: "json" };
 
 const button = defineComponent({
   kind: "button",
@@ -56,7 +56,7 @@ test("catalog_rejects_each_malformed_definition", () => {
     [{ children: [{ kind: "button", min: 2, max: 1 }] }, "children/0/max"],
     [{ defaultVariant: "missing" }, "defaultVariant", "unknown-name"],
     [{ events: { onpress: { carries: "none", description: "Bad." } } }, "events/onpress"],
-    [{ events: { onPress: { carries: "number", description: "Bad." } } }, "events/onPress/carries"],
+    [{ events: { onPress: { carries: "object", description: "Bad." } } }, "events/onPress/carries"],
     [{ styleProps: ["color"] }, "styleProps/0"],
     [{ slots: ["label"] }, "slots"],
     [{ variants: ["default", "default"] }, "variants/1"],
@@ -88,6 +88,8 @@ test("catalog_change_classification", () => {
     [{ slots: ["root"] }, "major"],
     [{ events: {} }, "major"],
     [{ events: { onPress: { carries: "string", description: "Changed." } } }, "major"],
+    [{ events: { onPress: { carries: "number", description: "Changed." } } }, "major"],
+    [{ events: { onPress: { carries: "integer", description: "Changed." } } }, "major"],
     [{ props: obj({ label: str({ maxLength: 80 }) }, { extra: str({ maxLength: 2 }) }) }, "minor"],
     [{ props: obj({ label: str({ maxLength: 100 }) }) }, "minor"],
     [{ variants: ["default", "primary", "danger"] }, "minor"],

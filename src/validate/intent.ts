@@ -8,6 +8,10 @@ const stateFields = new Set(["type", "key", "value"]);
 const actionFields = new Set(["type", "name", "args", "bind"]);
 type Carries = Definition["events"][string]["carries"];
 
+function carriesFits(carries: Carries, type: string): boolean {
+  return carries !== "none" && (carries === type || (carries === "integer" && type === "number"));
+}
+
 export function compileIntents(capabilities: Capabilities, manifest: Manifest): (carries: Carries) => SchemaCheck {
   const states = new Map(
     Object.entries(manifest.state.properties).map(([name, schema]) => [
@@ -41,14 +45,14 @@ export function compileIntents(capabilities: Capabilities, manifest: Manifest): 
     if (!state) return reject(sink, "/key", stateExpected);
     if (Object.hasOwn(value, "value")) {
       if (!field(state.check, value.value, sink, "value")) valid = false;
-    } else if (carries === "none" || carries !== state.type)
+    } else if (!carriesFits(carries, state.type))
       valid = reject(sink, "/value", `an explicit ${state.type} value, or an event carrying ${state.type}`);
     return valid;
   }
 
   const bindExpected = (action: { bindings: Map<string, { type: string }> }, carries: Carries) => {
     const compatible = [...action.bindings]
-      .filter(([, argument]) => carries !== "none" && argument.type === carries)
+      .filter(([, argument]) => carriesFits(carries, argument.type))
       .map(([key]) => key);
     return compatible.length
       ? `one of: ${compatible.join(", ")} (event carries ${carries})`
@@ -65,8 +69,7 @@ export function compileIntents(capabilities: Capabilities, manifest: Manifest): 
     if (Object.hasOwn(value, "bind")) {
       const bound = typeof value.bind === "string" ? value.bind : "";
       const binding = action.bindings.get(bound);
-      if (!binding || carries === "none" || binding.type !== carries)
-        return reject(sink, "/bind", bindExpected(action, carries));
+      if (!binding || !carriesFits(carries, binding.type)) return reject(sink, "/bind", bindExpected(action, carries));
       if (Object.hasOwn(value.args, bound))
         valid = reject(sink, at("/args", bound), "the bound argument omitted from args");
       check = binding.check;

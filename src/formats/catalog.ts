@@ -7,7 +7,10 @@ import { type Vocabulary, validateVocabulary, vocabularySchema } from "./vocabul
 const token = str({ maxLength: 64, pattern: "^[a-z][A-Za-z0-9-]*$" });
 const description = str({ maxLength: 500 });
 const eventName = str({ maxLength: 64, pattern: "^on[A-Z][A-Za-z]*$" });
-const event = obj({ carries: str({ maxLength: 7, enum: ["none", "string", "boolean"] }), description });
+const event = obj({
+  carries: str({ maxLength: 7, enum: ["none", "string", "boolean", "number", "integer"] }),
+  description,
+});
 const child = obj({ kind: token, min: int({ minimum: 0 }), max: int({ minimum: 0 }) });
 const childRules = arr(child, { maxItems: 256 });
 const definitionFields = obj(

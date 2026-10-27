@@ -193,8 +193,13 @@ must include `root`. `styleProps` is a unique subset of the exported fixed list.
 counts, where `min <= max`.
 
 An event map has at most 256 entries. Names match `^on[A-Z][A-Za-z]*$` and have
-at most 64 characters. Each event requires `carries` (`none`, `string` or
-`boolean`) and a description. Unknown fields and invalid schemas fail closed.
+at most 64 characters. Each event requires `carries` (`none`, `string`,
+`boolean`, `number` or `integer`) and a description. Unknown fields and invalid
+schemas fail closed.
+Numeric events carry finite values only; `integer` also requires an integer.
+For `bind` and implicit `setState`, `number` fills only a `number` schema, while
+`integer` fills an `integer` or `number` schema. Bounds are checked on the filled
+value by the host (and by Preview).
 Malformed structure returns `invalid-document`; unresolved references return
 `unknown-name`. Errors are bounded to 20 and point into the catalog, including
 its vocabulary. Success preserves the input object.

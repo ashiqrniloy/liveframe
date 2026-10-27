@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { formats, schemaDocument } from "../formats/registry.ts";
-import { arr, bool, int, isLanguageSchema, num, obj, str } from "../index.ts";
+import { arr, bool, int, isLanguageSchema, num, obj, str, validateCatalog } from "../index.ts";
+import { catalog as numericCatalog } from "./fixtures/numeric-events.ts";
 
 const ajv = new Ajv2020({ strict: true, unicodeRegExp: true });
 ajv.addFormat("regex", {
@@ -31,6 +32,12 @@ test("published_schemas_match_sources", async () => {
     expect(published).toBe(`${JSON.stringify(schemaDocument(name), null, 2)}\n`);
     expect(() => ajv.compile(JSON.parse(published))).not.toThrow();
   }
+});
+
+test("published_catalog_schema_accepts_numeric_events", () => {
+  const validate = ajv.getSchema("urn:liveframe:catalog:1") ?? ajv.compile(schemaDocument("catalog"));
+  expect(validate(numericCatalog)).toBe(true);
+  expect(validateCatalog(numericCatalog).ok).toBe(true);
 });
 
 test("schema_ids_are_format_urns", async () => {
@@ -116,6 +123,7 @@ test("schema_publisher_detects_drift", async () => {
       "src/formats/json.ts",
       "src/formats/tree.ts",
       "src/formats/catalog.ts",
+      "src/formats/events.ts",
       "src/formats/capabilities.ts",
       "src/formats/manifest.ts",
       "src/formats/theme.ts",

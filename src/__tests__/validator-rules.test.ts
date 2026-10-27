@@ -1,5 +1,41 @@
 import { describe, expect, test } from "bun:test";
 import { compileValidator, type LiveframeError, type ValidateTreeOptions } from "../index.ts";
+import * as numeric from "./fixtures/numeric-events.ts";
+
+test("numeric_bind_and_set_state_compatibility", () => {
+  for (const event of ["onNumber", "onInteger"]) {
+    for (const [key, valid] of [
+      ["number", true],
+      ["integer", event === "onInteger"],
+      ["reason", false],
+    ] as const) {
+      const result = numeric.validator.validateTree(numeric.numericTree(event, { type: "setState", key }));
+      expect(result.ok).toBe(valid);
+      if (!result.ok)
+        expect(result.errors).toContainEqual(
+          expect.objectContaining({ kind: "invalid-prop", pointer: `/root/events/${event}/value` }),
+        );
+    }
+    for (const name of ["numbers.commit", "integers.commit"]) {
+      expect(
+        numeric.validator.validateTree(numeric.numericTree(event, { type: "action", name, args: {}, bind: "value" }))
+          .ok,
+      ).toBe(name === "numbers.commit" || event === "onInteger");
+    }
+  }
+});
+
+test("bind_number_into_string_fails", () => {
+  const result = numeric.validator.validateTree(
+    numeric.numericTree("onNumber", { type: "action", name: "tasks.escalate", args: { id: "task" }, bind: "reason" }),
+  );
+  expect(result.ok).toBe(false);
+  if (!result.ok)
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ kind: "invalid-prop", pointer: "/root/events/onNumber/bind" }),
+    );
+});
+
 import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 import proof from "./fixtures/proof/agent-home.tree.json" with { type: "json" };
 import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };

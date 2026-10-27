@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { Component } from "react";
-import { type Definition, type Json, defineComponent, obj, str } from "../index.ts";
-import { implement, type Implementation, type ImplementationProps } from "../react/index.ts";
+import { type Definition, defineComponent, type Json, obj, str } from "../index.ts";
+import { type Implementation, type ImplementationProps, implement } from "../react/index.ts";
 
 const field = defineComponent({
   kind: "field",
@@ -15,6 +15,8 @@ const field = defineComponent({
     onPress: { carries: "none", description: "Pressed." },
     onChange: { carries: "string", description: "Changed." },
     onToggle: { carries: "boolean", description: "Toggled." },
+    onNumber: { carries: "number", description: "Number." },
+    onInteger: { carries: "integer", description: "Integer." },
   },
   styleProps: [],
   a11y: { role: "textbox", name: "label" },
@@ -35,6 +37,16 @@ test("implement_types_follow_const_definitions", () => {
     emit("onPress");
     emit("onChange", "value");
     emit("onToggle", true);
+    emit("onNumber", 1.5);
+    emit("onInteger", 2);
+    // @ts-expect-error numeric event requires a number
+    emit("onNumber", "2");
+    // @ts-expect-error numeric event requires its value
+    emit("onNumber");
+    // @ts-expect-error integer event requires a number
+    emit("onInteger", true);
+    // @ts-expect-error integer event requires its value
+    emit("onInteger");
     // @ts-expect-error label is a string
     const wrong: boolean = props.label;
     // @ts-expect-error no undeclared props
@@ -74,6 +86,7 @@ test("json_definitions_use_json_props_and_allow_explicit_narrowing", () => {
     slot("anySlot");
     emit("onAnyEvent", "value");
     emit("onAnyEvent", true);
+    emit("onAnyEvent", 2);
     emit("onAnyEvent");
     // @ts-expect-error loaded props do not guarantee a string
     const label: string = props.label;

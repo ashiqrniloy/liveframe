@@ -204,9 +204,11 @@ carries at most one intent.
 
 `emit` only raises an intent present on that node's event map; an absent event is
 a no-op. For an offered event, its value must match `carries`: no value for `none`,
-a string for `string`, or a boolean for `boolean`. A mismatch throws and raises
-nothing. Event-handler exceptions are implementation bugs and are not caught by
-React render error boundaries.
+a string for `string`, a boolean for `boolean`, a finite number for `number`,
+or a finite integer for `integer`. `NaN` and infinities throw and raise no
+intent. `implement()` requires a TypeScript `number` for either numeric event.
+A mismatch throws and raises nothing. Event-handler exceptions are implementation
+bugs and are not caught by React render error boundaries.
 
 `onIntent` receives a fresh, frozen, complete intent:
 

@@ -1,4 +1,5 @@
 import type { LiveframeError, Result } from "./errors.ts";
+import { carriesValue } from "./formats/events.ts";
 
 type Annotations = { readonly description?: string; readonly deprecated?: boolean; readonly nullable?: boolean };
 type StringOptions = Annotations & {
@@ -340,8 +341,7 @@ export function checkValue<const S extends LanguageSchema>(
     if (s.pattern && !new RegExp(s.pattern, "u").test(input)) reject(pointer, `a string matching ${s.pattern}`);
   }
   function checkNumeric(s: NumericSchema, input: unknown, pointer: string) {
-    if (typeof input !== "number" || !Number.isFinite(input) || (s.type === "integer" && !Number.isInteger(input)))
-      return reject(pointer, `a finite ${s.type}`);
+    if (!carriesValue(s.type, input)) return reject(pointer, `a finite ${s.type}`);
     if (s.minimum !== undefined && input < s.minimum) reject(pointer, `a number >= ${s.minimum}`);
     if (s.maximum !== undefined && input > s.maximum) reject(pointer, `a number <= ${s.maximum}`);
   }

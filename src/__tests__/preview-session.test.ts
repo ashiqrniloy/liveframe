@@ -1,11 +1,11 @@
 import { expect, test } from "bun:test";
 import {
-  type Intent,
-  type Result,
-  type UiTree,
   arr,
+  type Intent,
   obj,
+  type Result,
   sourceOutcome,
+  type UiTree,
   validateCapabilities,
 } from "@arnilo/liveframe";
 import { outcomeScenarios, pack } from "@arnilo/liveframe/pack";
@@ -13,7 +13,35 @@ import { createPreview, inProcessRunner, type Runner } from "@arnilo/liveframe/p
 import { workerRunner } from "@arnilo/liveframe/preview/worker";
 import type { WidgetProps } from "@arnilo/liveframe/sdk";
 import { loadPlacement, memoryStore } from "@arnilo/liveframe/store";
+import * as numeric from "./fixtures/numeric-events.ts";
 import { drafts, packageOptions, value } from "./fixtures/widgets/drafts.ts";
+
+test("preview_intent_rejects_out_of_range_number", async () => {
+  const session = createPreview({
+    catalog: numeric.catalog,
+    capabilities: {
+      ...packageOptions.capabilities,
+      actions: { ...packageOptions.capabilities.actions, ...numeric.capabilities.actions },
+    },
+    runner: inProcessRunner(),
+  });
+  value(
+    session.update({
+      ...draft,
+      manifest: { ...base.manifest, actions: [...base.manifest.actions, "numbers.commit", "integers.commit"] },
+    }),
+  );
+  value(await session.render({ scenario: "first" }));
+  for (const name of ["numbers.commit", "integers.commit"]) {
+    for (const invalid of [0, 11, NaN, Infinity, -Infinity, ...(name === "integers.commit" ? [1.5] : [])]) {
+      rejects(await session.intent({ type: "action", name, args: { value: invalid } }), "invalid-prop", "/args/value");
+      expect(session.intents()).toEqual([]);
+    }
+  }
+  for (const value of [1, 1.5, 10])
+    expect((await session.intent({ type: "action", name: "numbers.commit", args: { value } })).ok).toBe(true);
+  expect(session.intents()).toHaveLength(3);
+});
 
 const harness = drafts[4];
 if (!harness) throw new Error("Missing harness draft");

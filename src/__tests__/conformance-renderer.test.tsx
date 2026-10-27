@@ -2,10 +2,31 @@ import { expect, test } from "bun:test";
 import { ConformanceFailure } from "@arnilo/liveframe/conformance";
 import { rendererSuite } from "@arnilo/liveframe/conformance/react";
 import type { UiTree } from "../index.ts";
-import { implement, type Implementation } from "../react/index.ts";
-import { catalog, identity, surfaceProps, tree } from "./fixtures/react-surface.tsx";
-import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
+import { type Implementation, implement } from "../react/index.ts";
+import * as numeric from "./fixtures/numeric-events.ts";
 import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
+import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
+import { catalog, identity, surfaceProps, tree } from "./fixtures/react-surface.tsx";
+
+test("conformance_numeric_fixture", async () => {
+  const cases = rendererSuite({
+    ...options,
+    catalog: numeric.catalog,
+    capabilities: numeric.capabilities,
+    manifest: numeric.manifest,
+    implementations: numeric.catalog.definitions.map((definition) =>
+      implement(definition, (input) => (
+        <div className={input.slot("root")} style={input.style}>
+          {input.children}
+        </div>
+      )),
+    ),
+    examples: ["onNumber", "onInteger"].map((event) =>
+      numeric.numericTree(event, { type: "action", name: "numbers.commit", args: {}, bind: "value" }),
+    ),
+  });
+  await Promise.all(cases.map((c) => c.run()));
+});
 
 function implementations(broken = ""): Implementation[] {
   return catalog.definitions.map((definition) =>
