@@ -471,6 +471,25 @@ validateCapabilities(capabilities);
 
 Each map holds at most 512 entries. Names start with a lowercase letter and contain letters or digits, optionally separated into dot segments (`tasks.queue`); names are at most 128 characters. Descriptions are at most 500 code points. `confirm` is optional descriptive metadata. Capabilities carry no authority: the host authorises every read and action as the viewer and re-checks action arguments on dispatch.
 
+`capabilitiesFor(capabilities, manifest)` from `@arnilo/liveframe` takes installed,
+validated documents and returns `Result<Capabilities>` containing exactly the
+manifest's action names and referenced source names (not its local source aliases).
+It preserves input map order and complete entries, including `meta`, without
+mutating either input. Repeated source references produce one entry; an empty
+manifest produces empty maps. Unknown names return `unknown-name` at
+`/actions/<index>` or `/sources/<alias>/source`, with at most 20 errors and no
+partial document. Work is linear in the input and manifest names.
+
+```ts
+const shipped = capabilitiesFor(capabilities, manifest);
+if (!shipped.ok) throw new LiveframeFailure(shipped.errors);
+// Transfer shipped.value with the catalog and manifest for browser validation.
+```
+
+This removes unused operation descriptions before transfer. It preserves
+`compileValidator` behaviour and grants no authority; the host still authorises
+every operation. Retained metadata is included, so hosts control what they send.
+
 ### Optional source outcomes
 
 `sourceOutcome(result)` from `@arnilo/liveframe` wraps any result schema in a

@@ -619,6 +619,8 @@ The validator is **compiled per catalog**: when the catalog, vocabulary, capabil
 
 It validates every other format on install: a catalog's definitions and schema language, the vocabulary, the capabilities, a manifest against its catalog and capabilities, a theme against the vocabulary (every role present), and a design system against the catalog and vocabulary (values typed, every declared name defined, recipes complete after the cascade, and no colour outside the theme). The library publishes a JSON Schema for every format (§13).
 
+The root export `capabilitiesFor(capabilities, manifest): Result<Capabilities>` selects exactly the manifest's actions and referenced sources from installed documents in linear time, preserving input map order and complete entries without mutation; unknown names return bounded `unknown-name` errors at manifest pointers, and compiling with the successful subset preserves validation behaviour while allowing hosts to prune before browser transfer.
+
 ## 11. Renderer
 
 `@arnilo/liveframe/react`:

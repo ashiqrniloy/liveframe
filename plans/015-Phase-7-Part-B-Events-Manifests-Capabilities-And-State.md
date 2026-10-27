@@ -340,7 +340,7 @@ This plan implements spec §5 (definitions and events), §6.3 (style props), §7
     - Updated spec §5, §7.2 and §8–§11, the spec-bullet matrix, and the format, SDK and renderer guides. Plan 017's `checkOffered` handoff remains: check object carries and completed `bindAll` arguments under Task 1's rule; hosts must still validate and authorise before dispatch.
     - Verification: the new tests first failed at object-carry catalog installation. Final `bun run check` passed (699 pass, 4 skip, 0 fail); a preceding full attempt needed the spec-bullet expectation updated and exceeded its 240-second shell timeout, so the successful rerun used 600 seconds. `bun --conditions liveframe:source bench/render.bench.ts` passed all eight workloads at 1.696–2.487 µs/node against the 3 µs/node gate; agent-home took 1.3485 ms and medium/full queues stayed below 2 ms. Release and demo gates remain whole-plan verification.
 
-- [ ] Task 7: Prune capabilities to what a manifest uses (LF-14)
+- [x] Task 7: Prune capabilities to what a manifest uses (LF-14)
   - Acceptance Criteria:
     - Functional:
       - `capabilitiesFor(capabilities, manifest)` returns a capabilities document holding exactly the actions and sources the manifest names.
@@ -368,11 +368,19 @@ This plan implements spec §5 (definitions and events), §6.3 (style props), §7
       ```
     - Files to Create/Edit:
       - `src/formats/capabilities.ts`; `src/index.ts`; `src/__tests__/exports.test.ts`
+      - `src/__tests__/capabilities-for.test.ts`; `src/__tests__/sdk-proof-widgets.test.ts` (reuse all five proof widgets and their scenarios)
       - `docs/renderer.md`; `docs/formats.md`; `docs/spec.md` §10 (one sentence)
   - Test Cases to Write:
     - `capabilities_for_equivalence_on_proof_manifests`.
     - `capabilities_for_rejects_unknown_name`.
     - `capabilities_for_is_deterministic`.
+
+  - Notes (executed 2026-10-28):
+    - Added root-exported `capabilitiesFor(capabilities, manifest): Result<Capabilities>` beside `validateCapabilities`. It takes installed documents, selects action names and referenced source names (not aliases), preserves input map order and complete entries including `meta`, and leaves both inputs unchanged. Sets deduplicate source references; filtering visits each input capability once, so work is linear in capability and manifest names. Empty manifests produce empty maps.
+    - Unknown names fail with `unknown-name` at `/actions/<index>` or `/sources/<escaped-alias>/source`, bounded to 20 errors by the existing document checks. Inherited object properties do not count as capabilities. Failure returns no partial document.
+    - Tests cover ordering against a differently ordered manifest, determinism, metadata retention, non-mutation, empty maps, repeated sources, missing names, inherited properties, pointer escaping and error bounds. All five proof manifests and their 22 scenarios render identically with full and pruned capabilities; arrival validation agrees on both valid trees and invalid-kind trees. `compileValidator` is unchanged.
+    - Updated spec §10 and the format and renderer guides, including pruning before browser transfer. No format/schema, dependency, or reference-host change was needed.
+    - Verification: tests first failed on the missing export; all 57 focused tests passed after implementation. Final `bun run check` passed (706 pass, 4 skip, 0 fail), including build, generated-code checks, typechecks, lint, formatting and browser tests. Bench, release and demo gates remain whole-plan verification.
 
 - [ ] Task 8: Key widget state by placement and scope (LF-06)
   - Acceptance Criteria:

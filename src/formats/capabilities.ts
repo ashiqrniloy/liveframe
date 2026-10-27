@@ -12,6 +12,7 @@ import {
 } from "../schema.ts";
 import { stringBytes } from "../validate/bytes.ts";
 import type { Json } from "./tree.ts";
+import type { Manifest } from "./manifest.ts";
 
 export type ObjectSchema = Extract<LanguageSchema, { readonly type: "object" }>;
 export const capabilityName = str({ maxLength: 128, pattern: "^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)*$" });
@@ -201,4 +202,25 @@ export function validateCapabilities(doc: unknown): Result<Capabilities> {
       });
   }
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: doc as Capabilities };
+}
+
+/** Selects from installed documents, preserving capability entry order and metadata. */
+export function capabilitiesFor(capabilities: Capabilities, manifest: Manifest): Result<Capabilities> {
+  const c = documentChecks();
+  const actions = new Set(manifest.actions);
+  const sources = new Set(Object.values(manifest.sources).map((entry) => entry.source));
+  for (const [i, name] of manifest.actions.entries())
+    if (!Object.hasOwn(capabilities.actions, name)) c.reject(`/actions/${i}`, "Undeclared action", "unknown-name");
+  for (const [alias, entry] of Object.entries(manifest.sources))
+    if (!Object.hasOwn(capabilities.sources, entry.source))
+      c.reject(`${at("/sources", alias)}/source`, "Undeclared source", "unknown-name");
+  if (c.errors.length) return { ok: false, errors: c.errors };
+  return {
+    ok: true,
+    value: {
+      format: capabilities.format,
+      actions: Object.fromEntries(Object.entries(capabilities.actions).filter(([name]) => actions.has(name))),
+      sources: Object.fromEntries(Object.entries(capabilities.sources).filter(([name]) => sources.has(name))),
+    },
+  };
 }

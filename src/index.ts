@@ -26,7 +26,7 @@ export {
   union,
 } from "./schema.ts";
 
-export { type Capabilities, validateCapabilities } from "./formats/capabilities.ts";
+export { type Capabilities, capabilitiesFor, validateCapabilities } from "./formats/capabilities.ts";
 export { type Manifest, validateManifest } from "./formats/manifest.ts";
 export { type Theme, validateTheme } from "./formats/theme.ts";
 export {

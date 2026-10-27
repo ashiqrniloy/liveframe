@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { render } from "@arnilo/liveframe/sdk";
 import {
+  capabilitiesFor,
   compileValidator,
   type UiNode,
   type UiTree,
@@ -29,6 +30,26 @@ for (const fixture of proofWidgets) {
   });
 
   const validator = compileValidator({ catalog, capabilities, manifest: fixture.manifest });
+  test(`capabilities_for_equivalence_on_proof_manifests: ${fixture.name}`, () => {
+    const installed = validateManifest(fixture.manifest, { catalog, capabilities });
+    if (!installed.ok) throw new Error(JSON.stringify(installed.errors));
+    const pruned = capabilitiesFor(capabilities, installed.value);
+    if (!pruned.ok) throw new Error(JSON.stringify(pruned.errors));
+    const narrowed = compileValidator({ catalog, capabilities: pruned.value, manifest: installed.value });
+    expect(Object.keys(pruned.value.actions).sort()).toEqual([...installed.value.actions].sort());
+    expect(Object.keys(pruned.value.sources).sort()).toEqual(
+      [...new Set(Object.values(installed.value.sources).map((entry) => entry.source))].sort(),
+    );
+    for (const scenario of fixture.scenarios) {
+      const options = { surfaceId: "proof", revision: 0 };
+      const full = render(fixture.widget, scenario, { ...options, validator });
+      expect(render(fixture.widget, scenario, { ...options, validator: narrowed })).toEqual(full);
+      if (!full.ok) throw new Error(JSON.stringify(full.errors));
+      expect(narrowed.validateTree(full.value)).toEqual(validator.validateTree(full.value));
+      const invalid = { ...full.value, root: { ...full.value.root, kind: "unknown" } };
+      expect(narrowed.validateTree(invalid)).toEqual(validator.validateTree(invalid));
+    }
+  });
   for (const scenario of fixture.scenarios) {
     test(`proof_scenarios_render: ${fixture.name}/${scenario.name}`, () => {
       const result = render(fixture.widget, scenario, { validator, surfaceId: "proof", revision: 0 });

@@ -113,6 +113,10 @@ and compiles the arrival checks. Reuse it while the installed documents stay the
 same. Use the same catalog as the renderer and replace the validator when the
 widget's manifest or capabilities change. **Send the manifest to the browser**
 alongside the catalog and capabilities so it can independently re-check arrivals.
+Before transfer, use `capabilitiesFor(capabilities, manifest)` from the root
+export and send its successful `value` as the capabilities document. It removes
+operations the manifest does not name while preserving validator behaviour;
+handle its typed errors before sending. See [capability pruning](formats.md#capabilities).
 Backend validation does not replace browser validation: the transport is untrusted.
 
 Mount `<GuideSurface tree={tree} onIntent={sendIntent} />` in your app's React root;

@@ -240,6 +240,7 @@ test("root_export_surface", () => {
       "str",
       "styleProps",
       "validateCapabilities",
+      "capabilitiesFor",
       "validateCatalog",
       "validateDesignSystem",
       "validateManifest",
