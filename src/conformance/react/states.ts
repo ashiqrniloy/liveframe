@@ -1,7 +1,7 @@
 import type { Locator, Page } from "playwright";
 import { stateDeclarations, stateSelectors } from "../../css/design-system.ts";
 import { slotClass } from "../../css/names.ts";
-import { recipeDeclarations } from "../../css/recipe.ts";
+import { placeholderDeclarations, recipeDeclarations } from "../../css/recipe.ts";
 import type { Catalog } from "../../formats/catalog.ts";
 import type { DesignSystem } from "../../formats/design-system.ts";
 import { type UiTree, validateCatalog } from "../../index.ts";
@@ -33,9 +33,13 @@ function recordState(
 ): void {
   const slots = definition.slots.filter((slot) => {
     const prefix = `${definition.kind}.${variant}.${slot}` as const;
+    const recipe = recipes[`${prefix}.${state}`] ?? {};
+    const rest = recipes[`${prefix}.rest`] ?? {};
+    // The placeholder is its own rule, so a state that changes only it is still a styled state.
+    const placeholder = placeholderDeclarations(recipe);
     return (
-      stateDeclarations(recipes[`${prefix}.${state}`] ?? {}, recipeDeclarations(recipes[`${prefix}.rest`] ?? {})) !==
-      undefined
+      stateDeclarations(recipe, recipeDeclarations(rest)) !== undefined ||
+      (placeholder !== "" && placeholder !== placeholderDeclarations(rest))
     );
   });
   if (!slots.length) return;

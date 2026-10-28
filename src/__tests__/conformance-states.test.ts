@@ -48,3 +48,27 @@ test("rest_equivalent_states_require_no_browser_fixtures", async () => {
   }));
   await styledStates({ ...pageOptions, designSystems }, undefined, noPage, rule, unused, unused);
 });
+
+test("placeholder_only_state_requires_a_fixture", async () => {
+  const withPlaceholder = (focus: Record<string, unknown>) =>
+    pageOptions.designSystems.map((system) => ({
+      ...system,
+      recipes: Object.fromEntries(
+        Object.entries(system.recipes)
+          .filter(([key]) => key.endsWith(".rest"))
+          .flatMap(([key, recipe]) => [
+            [key, recipe],
+            [key.replace(/rest$/, "focus"), key === "textField.default.input.rest" ? focus : {}],
+          ]),
+      ),
+    })) as typeof pageOptions.designSystems;
+  // A different placeholder colour in a state is a styled state, though it adds no main-rule declaration.
+  const differing = withPlaceholder({ placeholderColor: "text.muted" });
+  try {
+    await styledStates({ ...pageOptions, designSystems: differing }, undefined, noPage, rule, unused, unused);
+    throw new Error("A placeholder-only state needed no fixture");
+  } catch (error) {
+    expect(error).toBeInstanceOf(ConformanceFailure);
+    expect((error as ConformanceFailure).details.join("\n")).toContain("textField.default.focus");
+  }
+});
