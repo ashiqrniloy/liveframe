@@ -56,6 +56,12 @@ const switchTree: UiTree = {
         props: { label: "Scope proof", open: true },
         children: [
           { id: "root/scope-dialog/button", kind: "button", variant: "primary", props: { label: "Overlay focus" } },
+          {
+            id: "root/scope-dialog/responsive",
+            kind: "stack",
+            props: {},
+            style: { gap: { base: "space.1", "bp.md": "space.4" } },
+          },
         ],
       },
     ],
@@ -112,7 +118,13 @@ function draw() {
       root.render(
         styles.map((style, i) => (
           <section key={i ? "b" : "a"} id={i ? "b" : "a"}>
-            <SwitchSurface {...surfaceProps} {...style} tree={switchTree} />
+            <SwitchSurface
+              {...surfaceProps}
+              {...style}
+              tree={switchTree}
+              wrapperProps={{ className: "host-scope", style: { minHeight: 0 } }}
+              portalProps={{ className: "host-scope" }}
+            />
           </section>
         )),
       ),

@@ -1,4 +1,13 @@
-import { Component, Fragment, type ReactNode, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  Component,
+  type CSSProperties,
+  Fragment,
+  type ReactNode,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { slotClass, styleDeclarations, surfaceAttributes } from "../css/index.ts";
 import { type LiveframeError, LiveframeFailure } from "../errors.ts";
 import { carriesValue } from "../formats/events.ts";
@@ -23,6 +32,12 @@ export class RendererError extends LiveframeFailure {
   }
 }
 
+type HostProps = { readonly className?: string; readonly style?: CSSProperties };
+
+function mergeHostProps({ class: className, ...scope }: ReturnType<typeof surfaceAttributes>, host?: HostProps) {
+  return { ...scope, className: host?.className ? `${className} ${host.className}` : className, style: host?.style };
+}
+
 type SurfaceProps = {
   readonly tree: unknown;
   readonly validator: CompiledValidator;
@@ -31,6 +46,8 @@ type SurfaceProps = {
   readonly onIntent: (intent: Intent, origin: IntentOrigin) => void;
   readonly fallback: ReactNode;
   readonly diagnostics?: readonly LiveframeError[];
+  readonly wrapperProps?: HostProps;
+  readonly portalProps?: HostProps;
   readonly confirm?: (intent: Intent, meta: Readonly<{ confirm: boolean; irreversible: boolean }>) => Promise<boolean>;
 };
 
@@ -124,7 +141,18 @@ export function createRenderer({
   };
 
   // biome-ignore lint/correctness/noComponentHookFactories: The startup factory creates Surface once; renders reuse it.
-  function Surface({ tree, validator, theme, designSystem, onIntent, fallback, diagnostics, confirm }: SurfaceProps) {
+  function Surface({
+    tree,
+    validator,
+    theme,
+    designSystem,
+    onIntent,
+    fallback,
+    diagnostics,
+    confirm,
+    wrapperProps,
+    portalProps,
+  }: SurfaceProps) {
     const mounted = useRef(false);
     const confirming = useRef(false);
     useLayoutEffect(() => {
@@ -280,13 +308,13 @@ export function createRenderer({
       }
       return context(tree.root).render();
     }, [accepted.tree, accepted.validator, portal, fallback, onIntent, diagnostics, confirm]);
-    const { class: className, ...scope } = surfaceAttributes({ ...appliedScope, tree: accepted.tree ?? emptyTree });
+    const scope = surfaceAttributes({ ...appliedScope, tree: accepted.tree ?? emptyTree });
     return (
       <>
-        <div {...scope} className={className} ref={wrapper}>
+        <div {...mergeHostProps(scope, wrapperProps)} ref={wrapper}>
           {arrival.ok ? <Fragment key={accepted.tree?.surfaceId}>{root}</Fragment> : fallback}
         </div>
-        <div {...scope} className={className} data-lf-portal="" ref={setPortal} />
+        <div {...mergeHostProps(scope, portalProps)} data-lf-portal="" ref={setPortal} />
       </>
     );
   }

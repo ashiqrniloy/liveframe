@@ -27,6 +27,8 @@ export function baseCss(catalog: Catalog): Result<string> {
       ":where([data-lf-ds]) :where(button,input,select,textarea){font:inherit}",
       `:where([data-lf-ds]).lf_surface{${typography}}`,
       ":where([data-lf-ds]).lf_container{container-name:lf;container-type:inline-size}",
+      ":where([data-lf-portal]){position:fixed;inset:0;pointer-events:none}",
+      ":where([data-lf-portal])>*{pointer-events:auto}",
       "@media (forced-colors:active){:where([data-lf-ds]) .lf_fill{outline:1px solid CanvasText;outline-offset:-1px}}",
       "@media (prefers-reduced-motion:reduce){:where([data-lf-ds]) *{transition-duration:0s !important;translate:none !important}}",
       "@media (prefers-reduced-transparency:reduce){:where([data-lf-ds]) *{--lf-alpha:1 !important;backdrop-filter:none !important}}",

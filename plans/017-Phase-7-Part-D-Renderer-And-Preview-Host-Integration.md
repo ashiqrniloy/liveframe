@@ -202,7 +202,7 @@ This plan implements spec §6.4 (preferences, switching), §7.5 (`<Preview>`, se
     - The proof button exposes `data-irreversible` and a visible “(irreversible)” label, covered by its server test. Synced spec §§7.3/11 and format/renderer docs, including the host's continued responsibility for offered-intent checks, argument validation, confirmation policy and authorisation. Conformance records no metadata, so its public fixture shape stays unchanged; existing conformance and Preview rejection tests pass.
     - Verification: `bun run check` passed (774 pass, 4 existing skips, 0 fail); `bun --conditions liveframe:source bench/render.bench.ts` passed at 1.837–2.363 µs/node, with agent-home at 1.454 ms. Final switch gates passed at 7.1 ms (agent-home) and 6.0 ms (git-status). An earlier run saw an 18.5 ms switch spike; no timing limit was changed. The benchmark's validation split still exceeds its reserved 1.5 µs/node on some workloads, matching the existing validator-performance backlog; this task does not change validation hot-path checks. Whole-plan demo/release gates remain for Task 8.
 
-- [ ] Task 4: Give the host a hook on the wrapper and portal container (CL-02)
+- [x] Task 4: Give the host a hook on the wrapper and portal container (CL-02)
   - Acceptance Criteria:
     - Functional:
       - `wrapperProps` and `portalProps` (`{ className?, style? }`) apply as Task 1 decided:
@@ -222,6 +222,7 @@ This plan implements spec §6.4 (preferences, switching), §7.5 (`<Preview>`, se
       - MDN `display: contents`, or `position: fixed`, per Task 1.
     - Documentation Reviewed:
       - `src/react/renderer.tsx:219-227`; `src/css/base.ts`; `src/__tests__/react-browser.test.tsx`; `src/__tests__/css-scope-browser.test.ts`.
+      - MDN via Context7 `/mdn/content`: fixed containing blocks, `container-type: inline-size` containment and descendant `pointer-events: auto` under a `none` ancestor.
     - Options Considered:
       - See Task 1.
     - Chosen Approach:
@@ -233,6 +234,7 @@ This plan implements spec §6.4 (preferences, switching), §7.5 (`<Preview>`, se
     - Files to Create/Edit:
       - `src/react/renderer.tsx`; `src/css/base.ts`
       - `src/__tests__/react-surface.test.tsx`, `react-browser.test.tsx`
+      - `src/__tests__/fixtures/react-client.tsx` (host-class switching and responsive overlay fixture); `src/__tests__/css-theme.test.ts` (base rules emitted once)
       - `docs/spec.md` §11; `docs/renderer.md`
   - Test Cases to Write:
     - `host_class_appended_scope_survives` (`react-surface.test.tsx`).
@@ -240,6 +242,11 @@ This plan implements spec §6.4 (preferences, switching), §7.5 (`<Preview>`, se
     - `overlay_resolves_scope_variables_with_host_classes`.
     - `switching_with_host_classes`.
     - `overlay_responsive_value_tracks_viewport` and `overlay_content_receives_pointer_events` (`react-browser.test.tsx`).
+  - Notes (executed 2026-10-29):
+    - Added host-only `wrapperProps` and `portalProps` accepting `className` and React `style`, applied by one `mergeHostProps` helper. Classes append to the library classes; other host fields are ignored, so scope attributes, children and the portal marker remain library-owned. Widget trees cannot supply the hooks.
+    - The base sheet emits the approved fixed/inset/pointer-events portal rules once. Browser coverage proves the portal takes no grid track, stays viewport-sized inside a 300 px host, keeps responsive containment and scope variables, receives overlay clicks and lets clicks through when empty. A host class can override the defaults. Existing overlay, switching, focus and hydration tests now exercise host classes.
+    - Updated spec §11 and the renderer guide with the hooks, viewport-width responsive overlay behavior, transformed/filtered/contained ancestor caveat and the backdrop opacity/filter rule. No new decision or dependency was needed; Task 1's approved contract is unchanged.
+    - Verification: the new merge and base-sheet assertions failed before implementation; focused surface/browser tests then passed (28 pass). `bun run check` passed (778 pass, 4 existing skips, 0 fail), including build, generated-file drift, typecheck, lint, formatting and all tests. The first full run hit the five-minute command timeout without a test failure; the completed rerun used a ten-minute limit. Whole-plan bench, demo and release gates remain for Task 8.
 
 - [ ] Task 5: Let the host reduce transparency for a scope (CL-09)
   - Acceptance Criteria:

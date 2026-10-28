@@ -322,6 +322,7 @@ test("portal_overlay_keeps_surface_scope", async () => {
       }),
     );
     expect(values.map((value) => value.sibling)).toEqual([true, true]);
+    expect(await page.locator("#a > .host-scope, #b > .host-scope").count()).toBe(4);
     expect(values.map((value) => value.theme)).toEqual(["certified@1.0.0", "rack@1.0.0"]);
     expect(values[0]?.font).not.toBe(values[1]?.font);
     expect(values[1]?.blur).toBe("blur(2px) saturate(1)");
@@ -333,6 +334,68 @@ test("portal_overlay_keeps_surface_scope", async () => {
       }),
     );
     expect(switched[0]).toEqual(switched[1]);
+  } finally {
+    await page.close();
+  }
+});
+
+test("portal_takes_no_grid_track_and_overlay_responsive_value_tracks_viewport", async () => {
+  const page = await mountSwitching();
+  try {
+    await page.addStyleTag({ content: "#a{display:grid;width:300px;gap:20px}#b{display:none}" });
+    const layout = await page.locator("#a").evaluate((el) => {
+      const portal = el.querySelector<HTMLElement>("[data-lf-portal]")!;
+      const style = getComputedStyle(portal);
+      return {
+        rows: getComputedStyle(el).gridTemplateRows.split(" ").length,
+        width: portal.getBoundingClientRect().width,
+        position: style.position,
+        pointerEvents: style.pointerEvents,
+        opacity: style.opacity,
+        filter: style.filter,
+        container: style.containerType,
+      };
+    });
+    expect(layout).toEqual({
+      rows: 1,
+      width: 1700,
+      position: "fixed",
+      pointerEvents: "none",
+      opacity: "1",
+      filter: "none",
+      container: "inline-size",
+    });
+    const responsive = page.locator("#a [role=dialog] > div");
+    const wideGap = await responsive.evaluate((el) => getComputedStyle(el).gap);
+    expect(wideGap).toBe("16px");
+    await page.setViewportSize({ width: 500, height: 1000 });
+    expect(await responsive.evaluate((el) => getComputedStyle(el).gap)).toBe("4px");
+    await page.setViewportSize({ width: 1700, height: 1000 });
+    expect(await responsive.evaluate((el) => getComputedStyle(el).gap)).toBe(wideGap);
+    await page.addStyleTag({ content: ".host-scope[data-lf-portal]{position:absolute}" });
+    expect(await page.locator("#a [data-lf-portal]").evaluate((el) => getComputedStyle(el).position)).toBe("absolute");
+  } finally {
+    await page.close();
+  }
+});
+
+test("overlay_content_receives_pointer_events", async () => {
+  const page = await mountSwitching();
+  page.setDefaultTimeout(1500);
+  try {
+    await page.addStyleTag({ content: "#b{display:none}" });
+    const button = page.locator("#a [data-lf-portal]").getByRole("button", { name: "Overlay focus" });
+    await button.evaluate((el) => el.addEventListener("click", () => el.setAttribute("data-clicked", "true")));
+    await button.click();
+    expect(await button.getAttribute("data-clicked")).toBe("true");
+    await page.locator("#a [data-lf-portal]").evaluate((el) => el.replaceChildren());
+    const host = page.locator("#a > :not([data-lf-portal])").getByRole("button").first();
+    await host.evaluate((el) => {
+      el.setAttribute("style", "position:fixed;top:900px;left:10px");
+      el.addEventListener("click", () => el.setAttribute("data-clicked", "true"));
+    });
+    await host.click();
+    expect(await host.getAttribute("data-clicked")).toBe("true");
   } finally {
     await page.close();
   }

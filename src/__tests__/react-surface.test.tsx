@@ -35,6 +35,39 @@ test("responsive_tree_gains_container_on_wrapper_only", () => {
   expect(received?.slot("root")).toBe([slotClass("text", "default", "root"), ...projected.classes].join(" "));
 });
 
+test("host_class_appended_scope_survives", () => {
+  const { Surface } = renderer();
+  const input = withRoot({
+    id: "root",
+    kind: "text",
+    props: { text: "Host hooks" },
+    style: { position: { base: "static", "bp.md": "sticky" } },
+  });
+  const host = {
+    className: "host-scope",
+    style: { minHeight: 0 },
+    "data-lf-theme": "forged",
+    "data-lf-portal": "forged",
+    children: "forged",
+  };
+  const html = renderToString(<Surface {...surfaceProps} tree={input} wrapperProps={host} portalProps={host} />);
+  expect(html.match(/class="lf_surface lf_container host-scope"/g)).toHaveLength(2);
+  expect(html.match(/style="min-height:0"/g)).toHaveLength(2);
+  expect(html.match(/data-lf-theme="certified@1.0.0"/g)).toHaveLength(2);
+  expect(html.match(/data-lf-ds="certified@1.0.0"/g)).toHaveLength(2);
+  expect(html.match(/data-lf-portal=""/g)).toHaveLength(1);
+  expect(html).not.toContain("forged");
+});
+
+test("tree_cannot_supply_host_props", () => {
+  const { Surface } = renderer();
+  for (const key of ["wrapperProps", "portalProps"]) {
+    const html = renderToString(<Surface {...surfaceProps} tree={{ ...tree(), [key]: { className: "forged" } }} />);
+    expect(html).toContain("Unavailable");
+    expect(html).not.toContain("forged");
+  }
+});
+
 test("invalid_tree_renders_only_the_fallback", () => {
   let calls = 0;
   const { Surface } = renderer(() => {

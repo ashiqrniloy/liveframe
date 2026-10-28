@@ -149,6 +149,19 @@ Responsive trees add `lf_container` to both scope containers. Node slots and
 parents of responsive nodes do not gain container classes. Mount multiple surfaces
 as siblings; surfaces must not nest.
 
+Use `wrapperProps` and `portalProps` to fit the two containers into your host:
+
+```tsx
+<Surface {...surfaceProps} tree={tree}
+  wrapperProps={{ className: "widget-body", style: { blockSize: "100%", minBlockSize: 0 } }}
+  portalProps={{ className: "widget-overlays" }} />
+```
+
+Each prop accepts only `className` and React `style`. Host classes append to the
+library classes; inline styles apply to that container. Other fields are ignored,
+so scope attributes and `data-lf-portal` remain the library's. These are trusted
+host props; widget trees cannot supply them.
+
 Preview surfaces pass an optional `diagnostics` array of `LiveframeError`s. This
 adds a `display: contents` wrapper per node with `data-lf-node`, and
 `data-lf-error` when an error names that node. Ordinary surfaces omit this prop.
@@ -348,9 +361,23 @@ it loses the surface's theme, typography and responsive scope. For portals,
 return no overlay until `portal` exists; pass it to your app's behaviour library
 or React's `createPortal(content, portal)`. The container exists only after mount.
 
+The base sheet gives the portal `position: fixed; inset: 0; pointer-events: none`
+and its direct children `pointer-events: auto`. It takes no grid track or flex
+gap, leaves clicks through an empty container, and lets overlay content receive
+clicks. These defaults use zero-specificity selectors, so a host class can
+override them. Load the base sheet for this behavior.
+
+The portal retains a viewport-sized box and responsive containment. Responsive
+values inside overlays therefore use **viewport width**, including in a narrow
+preview cell. This changes the old block portal's host-dependent width. An
+ancestor with `transform`, `filter` or layout/paint `contain` can instead make
+itself the fixed portal's containing block; host layout must account for that.
+
 Keep backdrop and overlay content as siblings. No backdrop ancestor may set
 opacity below 1 or a filter that creates a backdrop root and prevents the
 backdrop sampling the page behind it.
+This also applies to classes and styles supplied through the host hooks; the
+portal defaults set neither opacity nor a filter.
 
 Your implementation owes the complete lifecycle: accessible naming, keyboard
 operation, focus management and restoration, scroll locking, an inert background

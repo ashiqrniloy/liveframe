@@ -190,6 +190,8 @@ test("surface_typography_comes_from_the_vocabulary", () => {
   expect(sheet).toContain("font-family:var(--lf-t-reading__fontFamily)");
   expect(sheet).toContain("font-size:var(--lf-t-reading__fontSize)");
   expect(sheet).toContain("container-name:lf;container-type:inline-size");
+  expect(sheet.split(":where([data-lf-portal]){position:fixed;inset:0;pointer-events:none}")).toHaveLength(2);
+  expect(sheet.split(":where([data-lf-portal])>*{pointer-events:auto}")).toHaveLength(2);
   expect(sheet).not.toContain("body");
   expect(sheet).not.toContain("surface.scrollbar");
   expect(sheet).not.toContain(":root");
