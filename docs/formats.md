@@ -471,7 +471,7 @@ const capabilities = {
 validateCapabilities(capabilities);
 ```
 
-Each map holds at most 512 entries. Names start with a lowercase letter and contain letters or digits, optionally separated into dot segments (`tasks.queue`); names are at most 128 characters. Descriptions are at most 500 code points. `confirm` is optional descriptive metadata. Capabilities carry no authority: the host authorises every read and action as the viewer and re-checks action arguments on dispatch.
+Each map holds at most 512 entries. Names start with a lowercase letter and contain letters or digits, optionally separated into dot segments (`tasks.queue`); names are at most 128 characters. Descriptions are at most 500 code points. Actions accept independent optional booleans `confirm` and `irreversible`, defaulting to false. `irreversible` marks the control; it does not force the renderer's optional confirmation hook. See [renderer confirmation](renderer.md#handle-intents-at-the-host-boundary). Capabilities carry no authority: the host authorises every read and action as the viewer and re-checks action arguments and confirmation policy on dispatch.
 
 `capabilitiesFor(capabilities, manifest)` from `@arnilo/liveframe` takes installed,
 validated documents and returns `Result<Capabilities>` containing exactly the

@@ -33,6 +33,13 @@ export type ImplementationProps<D extends Definition = Definition, P = Props<D>>
   slot(name: D["slots"][number]): string;
   readonly style: CSSProperties;
   readonly emit: Emit<D>;
+  readonly events: {
+    readonly [E in keyof D["events"]]?: Readonly<{
+      type: "action" | "setState";
+      confirm: boolean;
+      irreversible: boolean;
+    }>;
+  };
   readonly children: ReactNode;
   readonly items: readonly Item[];
   readonly portal: HTMLElement | undefined;

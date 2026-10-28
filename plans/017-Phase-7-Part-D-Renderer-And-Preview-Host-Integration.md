@@ -150,7 +150,7 @@ This plan implements spec §6.4 (preferences, switching), §7.5 (`<Preview>`, se
     - Verification: `bun run check` passed (768 pass, 4 existing skips, 0 fail); `bun run demo:test` passed against the packed archive (52 pass); the render bench passed at 1.81–2.51 µs/node (agent-home 1.64 ms). The unchanged switch timing gate passed at 8.5 ms. Earlier full runs hit the 100 ms runner limit and isolated 17.6/17.8 ms switch spikes; the unchanged final run passed, and no limits were relaxed.
     - The broader `bun run bench` stopped at standalone validator timing gates. An isolated archive of pre-task commit `0a2144f` also failed those gates (core-queue large/full 1.551/1.536 µs/node against 1.5). No validator hot-path or timing-budget change was made for this task; the task's render bench passed. Whole-plan release verification remains for Task 8.
 
-- [ ] Task 3: Mark irreversible actions and expose confirmation metadata to primitives (LF-08)
+- [x] Task 3: Mark irreversible actions and expose confirmation metadata to primitives (LF-08)
   - Acceptance Criteria:
     - Functional:
       - Capability actions accept optional `irreversible: boolean`, covered by the format and JSON Schema tests.
@@ -171,6 +171,7 @@ This plan implements spec §6.4 (preferences, switching), §7.5 (`<Preview>`, se
       - React 19 (async handlers in event callbacks; no Suspense needed).
     - Documentation Reviewed:
       - `src/formats/capabilities.ts:17`; `src/validate/compile.ts` (`CompiledValidator`); `src/react/implement.ts:27-35`.
+      - React 19 cleanup guidance, fetched through Context7 `/reactjs/react.dev`: [ignoring stale asynchronous results](https://react.dev/learn/synchronizing-with-effects), including Strict Mode setup/cleanup.
     - Options Considered:
       - See Task 1.
     - Chosen Approach:
@@ -183,13 +184,23 @@ This plan implements spec §6.4 (preferences, switching), §7.5 (`<Preview>`, se
       - `src/formats/capabilities.ts`; `schemas/capabilities.json`
       - `src/validate/compile.ts` (internal WeakMap accessor beside `buildFacts`, per Task 1; not on the public `CompiledValidator` type); `src/react/renderer.tsx`; `src/react/implement.ts`
       - The proof `button` implementation (demonstrates the label); `src/conformance/react/*` (if the suite records metadata)
+      - `src/__tests__/schemas.test.ts`; `react-intents.test.tsx`; `react-types.test.tsx`; `react-browser.test.tsx`; `fixtures/confirmation.tsx` (new); `fixtures/react-client.tsx`; `proof/tests/renderer.test.tsx`; `proof/tests/fixtures/renderer-client.tsx` (instrument the compiled validator without copying away its identity)
       - `docs/spec.md` §7.3/§11; `docs/renderer.md`; `docs/formats.md`
   - Test Cases to Write:
     - `events_metadata_reaches_nested_and_collection_nodes`.
-    - `unconfirmed_action_never_reaches_on_intent`.
-    - `confirm_throw_raises_nothing`.
+    - `unconfirmed_action_never_reaches_on_intent_and_confirm_throw_raises_nothing` (browser): false, rejection, throw, lock release and no-hook compatibility.
+    - `confirmation_is_single_flight_preserves_origin_and_drops_after_unmount` (browser, Strict Mode): further confirmation emits are dropped across revisions, unrelated actions and state emit immediately, approval retains the original origin, and unmount discards approval.
     - `irreversible_in_capabilities_schema` (`schemas.test.ts`).
     - `events_type_keyed_by_definition` (type-level).
+    - `proof_button_labels_irreversible_actions`: visible label and presence attribute match the action metadata.
+    - Existing `retained_tree_still_passes_surface_arrival_validation`: metadata uses the validator paired with the accepted tree during validator replacement, so a rejected arrival still renders fallback.
+
+  - Notes (executed 2026-10-29):
+    - Added optional boolean `irreversible` to capabilities and regenerated the published schema. Format/schema tests accept both booleans independently of `confirm` and reject non-booleans with the field pointer.
+    - Added the internal WeakMap-backed action metadata accessor beside `buildFacts`; no public validator property or export was added. The renderer builds frozen, definition-keyed `events` metadata inside its existing tree memo for every node and collection item. Only `type`, `confirm` and `irreversible` reach implementations; state events report both flags false. Metadata is read from the validator paired with the accepted tree, preserving Preview's fallback during validator replacement. The two instrumentation fixtures now wrap the compiled validator in place instead of copying away its identity.
+    - Added optional `<Surface confirm>` with single-flight confirmation per surface. False, rejection and throw cancel emission; unrelated actions and state still emit. Approval retains the completed frozen intent and original origin across revisions, and approval after unmount is discarded. Browser tests exercise Strict Mode, cancellation, failure, lock release, concurrent emits, stale origins and no-hook compatibility. Type tests reject undeclared event keys and metadata mutation/access to private fields.
+    - The proof button exposes `data-irreversible` and a visible “(irreversible)” label, covered by its server test. Synced spec §§7.3/11 and format/renderer docs, including the host's continued responsibility for offered-intent checks, argument validation, confirmation policy and authorisation. Conformance records no metadata, so its public fixture shape stays unchanged; existing conformance and Preview rejection tests pass.
+    - Verification: `bun run check` passed (774 pass, 4 existing skips, 0 fail); `bun --conditions liveframe:source bench/render.bench.ts` passed at 1.837–2.363 µs/node, with agent-home at 1.454 ms. Final switch gates passed at 7.1 ms (agent-home) and 6.0 ms (git-status). An earlier run saw an 18.5 ms switch spike; no timing limit was changed. The benchmark's validation split still exceeds its reserved 1.5 µs/node on some workloads, matching the existing validator-performance backlog; this task does not change validation hot-path checks. Whole-plan demo/release gates remain for Task 8.
 
 - [ ] Task 4: Give the host a hook on the wrapper and portal container (CL-02)
   - Acceptance Criteria:

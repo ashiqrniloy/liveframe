@@ -156,4 +156,4 @@ One line per plan. Detail lives in the plan file, never here.
 | [014](plans/014-Phase-7-Part-A-Release-Scope-Packaging-And-Schema-Language.md) | 7 | in progress (0.2.0; Task 1 complete: approved scope and breaking changes) |
 | [015](plans/015-Phase-7-Part-B-Events-Manifests-Capabilities-And-State.md) | 7 | complete (0.2.0; Tasks 1–9; impact finding retains the existing approved P1 performance backlog; integration handoffs recorded) |
 | [016](plans/016-Phase-7-Part-C-Styling-Paint-Alpha-Contrast-And-Native-Parts.md) | 7 | in progress (0.2.0; Tasks 1–5 complete: styling decisions, no-paint, alpha recipe colours, contrast pairs and native-part recipe properties) |
-| [017](plans/017-Phase-7-Part-D-Renderer-And-Preview-Host-Integration.md) | 7 | in progress (0.2.0; Tasks 1–2 complete: renderer/preview contracts and intent origin/offered checks) |
+| [017](plans/017-Phase-7-Part-D-Renderer-And-Preview-Host-Integration.md) | 7 | in progress (0.2.0; Tasks 1–3 complete: renderer/preview contracts, intent origin/offered checks and action confirmation metadata) |

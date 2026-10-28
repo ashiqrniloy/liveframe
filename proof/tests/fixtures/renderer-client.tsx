@@ -53,16 +53,16 @@ window.measureSelection = (before, after) => {
   const validation: number[] = [];
   const render: number[] = [];
   const commit: number[] = [];
-  const validator = {
-    ...compiled,
+  const validateTree = compiled.validateTree;
+  const validator = Object.assign(compiled, {
     validateTree: (...args: Parameters<typeof compiled.validateTree>) => {
       const start = performance.now();
-      const result = compiled.validateTree(...args);
+      const result = validateTree(...args);
       validation.push(performance.now() - start);
       if (!result.ok) throw new Error(JSON.stringify(result.errors));
       return result;
     },
-  };
+  });
   const measured = (snapshot: Snapshot) => (
     <Profiler
       id="selection"

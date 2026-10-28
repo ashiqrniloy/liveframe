@@ -32,6 +32,31 @@ class Field extends Component<ImplementationProps<typeof field>> {
   }
 }
 
+test("events_type_keyed_by_definition", () => {
+  expect(
+    implement(field, ({ events }) => {
+      const event:
+        | { readonly type: "action" | "setState"; readonly confirm: boolean; readonly irreversible: boolean }
+        | undefined = events.onPress;
+      // @ts-expect-error undeclared event
+      events.onMissing;
+      // @ts-expect-error event map is readonly
+      events.onPress = undefined;
+      if (event) {
+        // @ts-expect-error metadata is readonly
+        event.confirm = false;
+        // @ts-expect-error action names are private
+        event.name;
+        // @ts-expect-error argument values are private
+        event.args;
+        // @ts-expect-error host annotations are private
+        event.meta;
+      }
+      return null;
+    }),
+  ).toBeDefined();
+});
+
 test("implement_types_follow_const_definitions", () => {
   const binding: Implementation = implement(field, ({ props, slot, emit, style, children, items, portal }) => {
     const label: string = props.label;

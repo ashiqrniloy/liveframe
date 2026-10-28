@@ -198,7 +198,7 @@ export const implementations = [
       <span className={slot("label")}>{props.label}</span>
     </Aria.Link>
   )),
-  bind("button", ({ props, slot, style, emit }) => (
+  bind("button", ({ props, slot, style, emit, events }) => (
     <Aria.Button
       isDisabled={props.disabled ?? false}
       {...(props.current ? { "aria-current": "true" as const } : {})}
@@ -206,9 +206,13 @@ export const implementations = [
       className={slot("root")}
       style={style}
       onPress={() => emit("onPress")}
+      data-irreversible={events.onPress?.irreversible || undefined}
     >
       {icon(props.icon, slot("icon"))}
-      <span className={slot("label")}>{props.label}</span>
+      <span className={slot("label")}>
+        {props.label}
+        {events.onPress?.irreversible ? " (irreversible)" : ""}
+      </span>
     </Aria.Button>
   )),
   bind("textField", function TextField({ props, slot, style, emit }) {

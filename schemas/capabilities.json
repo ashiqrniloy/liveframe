@@ -19,6 +19,9 @@
             "confirm": {
               "type": "boolean"
             },
+            "irreversible": {
+              "type": "boolean"
+            },
             "meta": {
               "$ref": "#/$defs/json"
             },

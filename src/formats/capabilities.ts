@@ -17,7 +17,7 @@ import type { Manifest } from "./manifest.ts";
 export type ObjectSchema = Extract<LanguageSchema, { readonly type: "object" }>;
 export const capabilityName = str({ maxLength: 128, pattern: "^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)*$" });
 const description = str({ maxLength: 500 });
-const actionFields = obj({ description, args: bool() }, { confirm: bool(), meta: bool() });
+const actionFields = obj({ description, args: bool() }, { confirm: bool(), irreversible: bool(), meta: bool() });
 const sourceFields = obj({ description, params: bool(), result: bool() }, { meta: bool() });
 const json = { $ref: "#/$defs/json" };
 const fields = obj({

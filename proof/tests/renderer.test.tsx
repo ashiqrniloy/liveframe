@@ -1,9 +1,43 @@
 import { expect, test } from "bun:test";
-import type { UiTree } from "@arnilo/liveframe";
+import { compileValidator, type UiTree } from "@arnilo/liveframe";
 import { createRenderer } from "@arnilo/liveframe/react";
 import { renderToString } from "react-dom/server";
 import { implementations } from "../renderer/primitives/index.tsx";
-import { catalog, Surface, scope } from "./fixtures/renderer.ts";
+import { catalog, Surface, scope, conformanceOptions } from "./fixtures/renderer.ts";
+
+test("proof_button_labels_irreversible_actions", () => {
+  for (const irreversible of [true, false]) {
+    const validator = compileValidator({
+      ...conformanceOptions,
+      capabilities: {
+        ...conformanceOptions.capabilities,
+        actions: {
+          ...conformanceOptions.capabilities.actions,
+          save: { ...conformanceOptions.capabilities.actions.save, irreversible },
+        },
+      },
+    });
+    const html = renderToString(
+      <Surface
+        {...scope}
+        validator={validator}
+        fallback={null}
+        onIntent={() => {}}
+        tree={{
+          ...tree,
+          root: {
+            id: "root",
+            kind: "button",
+            props: { label: "Save" },
+            events: { onPress: { type: "action", name: "save", args: {} } },
+          },
+        }}
+      />,
+    );
+    expect(html.includes('data-irreversible="true"')).toBe(irreversible);
+    expect(html.includes("(irreversible)")).toBe(irreversible);
+  }
+});
 
 export const tree: UiTree = {
   format: "liveframe/1",

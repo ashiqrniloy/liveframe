@@ -340,12 +340,14 @@ The app publishes its **capabilities**: what a widget may read and ask for.
 ```ts
 type Capabilities = {
   format: "liveframe-capabilities/1";
-  actions: Record<string, { description: string; args: ObjectSchema; confirm?: boolean }>;
+  actions: Record<string, { description: string; args: ObjectSchema; confirm?: boolean; irreversible?: boolean }>;
   sources: Record<string, { description: string; params: ObjectSchema; result: Schema }>;
 };
 ```
 
 A capability carries no authority. The app still authorises every read and every action as the viewer. Capabilities are how an author, person or agent, learns what exists, and what lets the validator check action arguments before they reach the dispatcher.
+
+`confirm` and `irreversible` are independent optional booleans, defaulting to false. `irreversible` marks an action for the control's presentation; it does not force the renderer's confirmation hook. The host still owns confirmation and authorisation on dispatch.
 
 A widget **manifest** declares:
 
@@ -654,8 +656,9 @@ const validator = compileValidator({ catalog, capabilities, manifest });
   - `slot(name)`: the single stable recipe class for that slot in its current variant (§6.4). The root slot also carries the node's style-prop classes; surface and container classes belong to the surface wrapper. Implementations expose state through the normative selector table there
   - `style`: the root's inline declarations from the node's style props (`styleDeclarations`, §6.4)
   - `emit(event, value?)`: raises the declared intent
+  - `events`: a readonly map keyed by the definition's events, populated only for events offered by this node. Each entry is `{ type: "action" | "setState", confirm: boolean, irreversible: boolean }`, resolved from the validator's compiled capabilities; `setState` reports both flags false. No action names, argument values or host `meta` reach implementations. The renderer builds this metadata inside its existing tree memo.
   - `children`: already rendered
-  - `items`: a node context for each child, with `id`, `kind`, `variant`, `props`, `slot(name)`, `style`, `children` (already rendered), `render()` (the child drawn through its own implementation) and `emit(event, value?)`. Slots, styles and intents belong to that child, so collection primitives can draw its parts themselves
+  - `items`: a node context for each child, with `id`, `kind`, `variant`, `props`, `slot(name)`, `style`, `events`, `children` (already rendered), `render()` (the child drawn through its own implementation) and `emit(event, value?)`. Slots, styles, metadata and intents belong to that child, so collection primitives can draw its parts themselves
   - `portal`: the surface's scoped overlay container, or undefined when overlays use the top layer
 - **The renderer never trusts its transport.** It re-checks every arriving tree with the `validator`, compiled from the catalog, the capabilities and the widget's manifest (§10), before reading any tree field, including `surfaceId` or `revision`. A tree that fails renders the app's `fallback` for the whole surface, never part of an invalid tree and never nothing. After validation, a tree for the same `surfaceId` whose `revision` is lower than the current one is ignored; a different `surfaceId` replaces the current tree.
 - Nodes render keyed by `id`, so focus, scroll and local state survive re-renders. An implementation that throws renders the `fallback` at that node, through an error boundary.
@@ -664,6 +667,7 @@ const validator = compileValidator({ catalog, capabilities, manifest });
 - Overlays stay within their surface's scope: use the top layer while retaining DOM ancestry, or the `portal` container. A backdrop slot and its overlay content are siblings. No backdrop ancestor may set opacity below 1 or a filter that creates a backdrop root; the backdrop must be able to sample the page behind it. Exit motion, scroll locking and making the background inert are part of the renderer contract: the renderer supplies the scoped container, and the app's implementations deliver the lifecycle (for example through React Aria). Browser tests and the renderer conformance suite (§13) prove it.
 - `emit(event, value?)` checks the event value against the definition's `carries` (`none`: no value; `string`; `boolean`; `number`: a finite number; `integer`: a finite integer; `{ object: ObjectSchema }`: the declared schema, compiled once per definition event in the renderer factory). A mismatch is an implementation bug: it throws and raises no intent. `onIntent(intent, origin)` receives a frozen origin identifying the accepted tree's `surfaceId` and `revision`, the emitting `nodeId` and event name, including collection and portal nodes. Existing one-argument callbacks keep working. It receives fresh, deeply frozen complete intents: a `setState` without `value` gets the event's value; an action with `bind` gets `args[bind]` set to that value and `bind` removed; `bindAll: true` merges the emitted object into `args` and is removed. Explicit `setState` values are preserved, and the emitted object is copied before freezing. The app re-checks the filled intent (§8), re-runs the widget or dispatches the action, then passes the new tree back in.
 - Recommended, not required: build interactive primitives on a behaviour library such as React Aria, for accessibility.
+- Optional `<Surface confirm={(intent, meta) => Promise<boolean>}>` awaits approval before `onIntent` for actions whose resolved `confirm` is true. It receives the completed frozen intent and readonly `{ confirm, irreversible }`. False, rejection or a throw emits nothing. Confirmation is single-flight per mounted surface: further confirmation-requiring emits are dropped while pending; other emits continue. Approval after unmount is dropped; otherwise the original origin is retained even if the tree changed. Without the hook, emission is unchanged. `irreversible` alone never gates emission. This is UI convenience: the host still re-checks the offered intent, schema, confirmation policy and authorisation on dispatch (§8).
 
 ## 12. First task: prove the primitive set on two real UIs
 

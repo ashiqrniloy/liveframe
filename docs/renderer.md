@@ -178,8 +178,9 @@ Runtime arrival validation still establishes the contract.
 | `slot(name)` | Attach its stable recipe class to that slot. An undeclared name throws. The root slot also includes style-prop classes. |
 | `style` | Forward the projected inline declarations to the primitive root. These contain token-constrained layout, not arbitrary widget CSS. |
 | `emit(event, value?)` | Report the declared event with its carried value; do not invent or dispatch an action yourself. |
+| `events` | Read offered event metadata: `{ type, confirm, irreversible }`. Keys follow the definition's events; absent offers have no entry. Both flags are false for `setState`. No action names, arguments or host `meta` are exposed. |
 | `children` | Render the already rendered child nodes once for an ordinary container. |
-| `items` | For collections, use each child's context: `id`, `kind`, `variant`, `props`, `slot`, `style`, `children`, `emit` and `render()`. |
+| `items` | For collections, use each child's context: `id`, `kind`, `variant`, `props`, `slot`, `style`, `events`, `children`, `emit` and `render()`. Metadata belongs to that child. |
 | `portal` | Use this surface's scoped overlay container after mount; it is initially `undefined`. |
 
 A collection can call `item.render()` to draw the child's implementation, or use
@@ -220,6 +221,27 @@ There are three interaction tiers. Typing drafts, opening menus and other local
 primitive state stay inside the implementation without calling `emit`. A committed
 `setState` requests a widget re-run. An action requests an app operation. One event
 carries at most one intent.
+
+To centralise UI confirmation, pass `confirm` to `Surface`:
+
+```tsx
+<Surface {...surfaceProps} tree={tree} onIntent={sendIntent}
+  confirm={(intent, meta) => showConfirmation(intent, meta.irreversible)} />
+```
+
+The hook returns `Promise<boolean>` and receives the completed frozen intent and
+readonly `{ confirm, irreversible }`. It runs only for actions whose capability
+sets `confirm: true`. False, a throw or a rejected promise raises nothing. While
+it is pending, further confirmation-requiring emits on that surface are dropped;
+other actions and `setState` still emit. Approval after unmount is discarded.
+Otherwise `onIntent` receives the origin captured at emit time, even if a newer
+tree arrived meanwhile. The host must reject a stale origin with `checkOffered`.
+Without the hook, emission is unchanged. `irreversible: true` alone does not gate
+emission: primitives can use `events.onPress?.irreversible` to label their control,
+as the proof button does with an “(irreversible)” suffix.
+
+Confirmation in the renderer is UI convenience. The host still re-checks the
+offered intent, argument schema, confirmation policy and authorisation on dispatch.
 
 `emit` only raises an intent present on that node's event map; an absent event is
 a no-op. For an offered event, its value must match `carries`: no value for `none`,

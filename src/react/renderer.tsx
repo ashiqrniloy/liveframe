@@ -11,6 +11,7 @@ import {
   validateCatalog,
 } from "../index.ts";
 import { complete } from "../validate/complete.ts";
+import { actionFacts } from "../validate/compile.ts";
 import { compileSchema } from "../validate/schema.ts";
 import { binding, type Implementation, type Item } from "./implement.ts";
 
@@ -30,6 +31,7 @@ type SurfaceProps = {
   readonly onIntent: (intent: Intent, origin: IntentOrigin) => void;
   readonly fallback: ReactNode;
   readonly diagnostics?: readonly LiveframeError[];
+  readonly confirm?: (intent: Intent, meta: Readonly<{ confirm: boolean; irreversible: boolean }>) => Promise<boolean>;
 };
 
 class Boundary extends Component<{ node: UiNode; fallback: ReactNode; children: ReactNode }> {
@@ -122,7 +124,15 @@ export function createRenderer({
   };
 
   // biome-ignore lint/correctness/noComponentHookFactories: The startup factory creates Surface once; renders reuse it.
-  function Surface({ tree, validator, theme, designSystem, onIntent, fallback, diagnostics }: SurfaceProps) {
+  function Surface({ tree, validator, theme, designSystem, onIntent, fallback, diagnostics, confirm }: SurfaceProps) {
+    const mounted = useRef(false);
+    const confirming = useRef(false);
+    useLayoutEffect(() => {
+      mounted.current = true;
+      return () => {
+        mounted.current = false;
+      };
+    }, []);
     const arrival = useMemo(() => validator.validateTree(tree), [tree, validator]);
     const [accepted, setAccepted] = useState({ arrival, validator, tree: arrival.ok ? arrival.value : undefined });
     if (arrival !== accepted.arrival || validator !== accepted.validator) {
@@ -172,17 +182,58 @@ export function createRenderer({
       const tree = accepted.tree;
       if (!tree) return null;
       const { surfaceId, revision } = tree;
+      const actions = actionFacts(accepted.validator);
+      function raiseIntent(
+        intent: Intent,
+        origin: IntentOrigin,
+        meta: { confirm: boolean; irreversible: boolean } | undefined,
+      ) {
+        if (!confirm || !meta?.confirm) {
+          onIntent(intent, origin);
+          return;
+        }
+        if (confirming.current) return;
+        confirming.current = true;
+        const confirmationMeta = Object.freeze({ confirm: meta.confirm, irreversible: meta.irreversible });
+        void (async () => {
+          let approved = false;
+          try {
+            approved = await confirm(intent, confirmationMeta);
+          } catch {
+            // A failed confirmation is a cancellation.
+          } finally {
+            confirming.current = false;
+          }
+          if (approved && mounted.current) onIntent(intent, origin);
+        })();
+      }
       function context(node: UiNode): Item {
         const implementation = registry.get(node.kind);
         if (!implementation) throw new Error(`Missing implementation: ${node.kind}`);
         const { definition } = implementation[binding];
         const projected = styleDeclarations(node.style ?? {}, validatedCatalog);
         const items = (node.children ?? []).map(context);
+        const events = Object.freeze(
+          Object.fromEntries(
+            Object.entries(node.events ?? {}).map(([event, intent]) => {
+              const action = intent.type === "action" ? actions.get(intent.name) : undefined;
+              return [
+                event,
+                Object.freeze({
+                  type: intent.type,
+                  confirm: action?.confirm ?? false,
+                  irreversible: action?.irreversible ?? false,
+                }),
+              ];
+            }),
+          ),
+        );
         const item: Item = {
           id: node.id,
           kind: node.kind,
           variant: node.variant,
           props: node.props,
+          events,
           slot(name) {
             if (!definition.slots.includes(name)) throw new Error(`Undeclared slot: ${node.kind}.${name}`);
             const recipe = slotClass(node.kind, node.variant ?? definition.defaultVariant, name);
@@ -197,15 +248,14 @@ export function createRenderer({
             const check = eventChecks.get(node.kind)?.get(event);
             if (!(check ? check(value, "", { errors: [], maxErrors: 1 }) : carriesValue(carries, value)))
               throw new Error(`Invalid event value: ${node.kind}.${event}`);
-            onIntent(
-              complete(intent, value),
-              Object.freeze({
-                surfaceId,
-                revision,
-                nodeId: node.id,
-                event,
-              }),
-            );
+            const completed = complete(intent, value);
+            const origin = Object.freeze({
+              surfaceId,
+              revision,
+              nodeId: node.id,
+              event,
+            });
+            raiseIntent(completed, origin, events[event]);
           },
           children: items.map((child) => child.render()),
           items,
@@ -229,7 +279,7 @@ export function createRenderer({
         return item;
       }
       return context(tree.root).render();
-    }, [accepted.tree, portal, fallback, onIntent, diagnostics]);
+    }, [accepted.tree, accepted.validator, portal, fallback, onIntent, diagnostics, confirm]);
     const { class: className, ...scope } = surfaceAttributes({ ...appliedScope, tree: accepted.tree ?? emptyTree });
     return (
       <>

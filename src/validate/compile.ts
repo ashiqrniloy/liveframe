@@ -44,6 +44,17 @@ export type CompiledValidator = {
 };
 
 const builds = new WeakMap<CompiledValidator, CompiledBuild>();
+const actions = new WeakMap<
+  CompiledValidator,
+  ReadonlyMap<string, Readonly<{ confirm: boolean; irreversible: boolean }>>
+>();
+
+/** @internal Renderer metadata from the capabilities this validator was compiled with. */
+export function actionFacts(validator: CompiledValidator) {
+  const facts = actions.get(validator);
+  if (!facts) throw new LiveframeFailure([{ kind: "invalid-document", pointer: "", message: "Unknown validator" }]);
+  return facts;
+}
 
 /**
  * The facts behind a validator, for `render()`'s one-pass builder. A `WeakMap`
@@ -189,6 +200,18 @@ function compile(catalog: Catalog, capabilities: Capabilities, manifest: Manifes
     if (source) dataProperties[key] = source.result;
   }
   const validator: CompiledValidator = { checkNode, validateTree: compileTree(catalog, checkNode, structure) };
+  actions.set(
+    validator,
+    new Map(
+      manifest.actions.map((name) => {
+        const action = capabilities.actions[name];
+        return [
+          name,
+          Object.freeze({ confirm: action?.confirm === true, irreversible: action?.irreversible === true }),
+        ];
+      }),
+    ),
+  );
   offeredChecks.set(validator, {
     intent: intent("none"),
     events: new Map(

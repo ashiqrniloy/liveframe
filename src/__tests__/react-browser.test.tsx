@@ -19,6 +19,71 @@ for (const name of ["certified", "rack"]) {
 }
 
 const { Surface } = renderer();
+
+test("confirmation_is_single_flight_preserves_origin_and_drops_after_unmount", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForFunction(() => !!window.confirmationTest);
+    await page.evaluate(() => window.confirmationTest.mount());
+    await page.getByRole("button", { name: /^Confirm / }).click();
+    await page.evaluate(() => window.confirmationTest.advance());
+    await page.getByRole("button", { name: /^Confirm / }).click();
+    expect(await page.evaluate(() => window.confirmationTest.requests())).toEqual([
+      {
+        intent: { type: "action", name: "tasks.escalate", args: { id: "t1", reason: "review" } },
+        meta: { confirm: true, irreversible: true },
+      },
+    ]);
+    expect(await page.evaluate(() => window.confirmationTest.emissions())).toEqual([]);
+    await page.getByRole("button", { name: /^Direct / }).click();
+    await page.getByRole("button", { name: /^State / }).click();
+    await page.evaluate(() => window.confirmationTest.approve(true));
+    await page.waitForFunction(() => window.confirmationTest.emissions().length === 3);
+    expect(await page.evaluate(() => window.confirmationTest.emissions().map(({ origin }) => origin.revision))).toEqual(
+      [2, 2, 1],
+    );
+    await page.getByRole("button", { name: /^Confirm / }).click();
+    await page.evaluate(() => {
+      window.confirmationTest.unmount();
+      window.confirmationTest.approve(true);
+    });
+    expect(await page.evaluate(() => window.confirmationTest.emissions().length)).toBe(3);
+  } finally {
+    await page.close();
+  }
+});
+
+test("unconfirmed_action_never_reaches_on_intent_and_confirm_throw_raises_nothing", async () => {
+  for (const outcome of ["false", "reject", "throw", "disabled"]) {
+    const page = await browser.newPage();
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(String(error)));
+    try {
+      await page.goto(server.url.href);
+      await page.waitForFunction(() => !!window.confirmationTest);
+      await page.evaluate((outcome) => {
+        window.confirmationTest.mount(outcome !== "disabled");
+        if (outcome === "throw") window.confirmationTest.throwNext();
+      }, outcome);
+      await page.getByRole("button", { name: /^Confirm / }).click();
+      await page.evaluate((outcome) => {
+        if (outcome === "false") window.confirmationTest.approve(false);
+        if (outcome === "reject") window.confirmationTest.reject();
+      }, outcome);
+      expect(await page.evaluate(() => window.confirmationTest.emissions().length)).toBe(
+        outcome === "disabled" ? 1 : 0,
+      );
+      expect(errors).toEqual([]);
+      if (outcome !== "disabled") {
+        await page.getByRole("button", { name: /^Confirm / }).click();
+        expect(await page.evaluate(() => window.confirmationTest.requests().length)).toBe(2);
+      }
+    } finally {
+      await page.close();
+    }
+  }
+});
 test("form_submit_carries_all_fields", async () => {
   const page = await browser.newPage();
   try {

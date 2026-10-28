@@ -4,11 +4,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { formats, schemaDocument } from "../formats/registry.ts";
-import { arr, bool, int, isLanguageSchema, num, obj, str, validateCatalog } from "../index.ts";
+import { arr, bool, int, isLanguageSchema, num, obj, str, validateCatalog, validateCapabilities } from "../index.ts";
 import { catalog as numericCatalog } from "./fixtures/numeric-events.ts";
 import * as form from "./fixtures/object-events.ts";
 
 const ajv = new Ajv2020({ strict: true, unicodeRegExp: true });
+
 ajv.addFormat("regex", {
   type: "string",
   validate: (pattern: string) => {
@@ -32,6 +33,22 @@ test("published_schemas_match_sources", async () => {
     const published = await Bun.file(new URL(`../../schemas/${name}.json`, import.meta.url)).text();
     expect(published).toBe(`${JSON.stringify(schemaDocument(name), null, 2)}\n`);
     expect(() => ajv.compile(JSON.parse(published))).not.toThrow();
+  }
+});
+
+test("irreversible_in_capabilities_schema", () => {
+  const validate = ajv.getSchema("urn:liveframe:capabilities:1") ?? ajv.compile(schemaDocument("capabilities"));
+  for (const irreversible of [true, false, "true", 1, null]) {
+    const doc = {
+      format: "liveframe-capabilities/1",
+      actions: { remove: { description: "Remove", args: obj({}), irreversible } },
+      sources: {},
+    };
+    const valid = typeof irreversible === "boolean";
+    expect(validate(doc)).toBe(valid);
+    const checked = validateCapabilities(doc);
+    expect(checked.ok).toBe(valid);
+    if (!checked.ok) expect(checked.errors[0]?.pointer).toBe("/actions/remove/irreversible");
   }
 });
 

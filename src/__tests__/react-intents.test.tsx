@@ -5,6 +5,61 @@ import type { ImplementationProps } from "../react/index.ts";
 import { createRenderer, implement } from "../react/index.ts";
 import * as numeric from "./fixtures/numeric-events.ts";
 import { renderer, surfaceProps, withRoot } from "./fixtures/react-surface.tsx";
+import { confirmationValidator } from "./fixtures/confirmation.tsx";
+
+test("events_metadata_reaches_nested_and_collection_nodes", () => {
+  const contexts = new Map<string, ImplementationProps>();
+  const { Surface } = renderer((kind, props) => contexts.set(kind, props));
+  renderToString(
+    <Surface
+      {...surfaceProps}
+      validator={confirmationValidator}
+      tree={withRoot({
+        id: "root",
+        kind: "stack",
+        props: {},
+        children: [
+          {
+            id: "root/menu",
+            kind: "menu",
+            props: { label: "Menu" },
+            children: [
+              {
+                id: "root/menu/item",
+                kind: "menuItem",
+                props: { label: "Escalate" },
+                events: { onPress: { type: "action", name: "tasks.escalate", args: { id: "t1", reason: "review" } } },
+              },
+            ],
+          },
+          {
+            id: "root/button",
+            kind: "button",
+            props: { label: "Claim" },
+            events: { onPress: { type: "action", name: "tasks.claim", args: { id: "t1" } } },
+          },
+          {
+            id: "root/field",
+            kind: "textField",
+            props: { label: "Reason" },
+            events: { onCommit: { type: "setState", key: "reason" } },
+          },
+        ],
+      })}
+    />,
+  );
+  const root = contexts.get("stack");
+  expect(root?.events).toEqual({});
+  const item = root?.items[0]?.items[0];
+  expect(item?.events).toEqual({ onPress: { type: "action", confirm: true, irreversible: true } });
+  expect(contexts.get("menuItem")?.events).toBe(item?.events);
+  expect(contexts.get("button")?.events).toEqual({ onPress: { type: "action", confirm: false, irreversible: true } });
+  expect(contexts.get("textField")?.events).toEqual({
+    onCommit: { type: "setState", confirm: false, irreversible: false },
+  });
+  expect(Object.isFrozen(item?.events)).toBe(true);
+  expect(Object.isFrozen(item?.events.onPress)).toBe(true);
+});
 
 test("emit_rejects_nan_infinity_and_fraction_for_integer", () => {
   for (const event of ["onNumber", "onInteger"]) {

@@ -1,11 +1,14 @@
 import { createPortal, flushSync } from "react-dom";
 import { createRoot, hydrateRoot } from "react-dom/client";
-import type { Intent, UiTree } from "../../index.ts";
+import { compileValidator, type Intent, type UiTree } from "../../index.ts";
 import type { ImplementationProps } from "../../react/index.ts";
 import { createRenderer, implement } from "../../react/index.ts";
 import * as form from "./object-events.ts";
 import { ObjectForm } from "./object-form.tsx";
+import { installConfirmation } from "./confirmation.tsx";
 import agentHome from "./proof/agent-home.tree.json" with { type: "json" };
+import capabilities from "./proof/capabilities.json" with { type: "json" };
+import manifest from "./proof/agent-home.manifest.json" with { type: "json" };
 import { catalog, hydrationTree, renderer, surfaceProps, tree, validator } from "./react-surface.tsx";
 
 let renders = 0;
@@ -83,13 +86,16 @@ const mode = new URL(location.href).searchParams.get("ssr");
 const hydrationErrors: string[] = [];
 const serverNodes = [...container.querySelectorAll("*")];
 let checks = 0;
-const checkedValidator = {
-  ...validator,
-  validateTree: (...args: Parameters<typeof validator.validateTree>) => {
-    checks++;
-    return validator.validateTree(...args);
-  },
-};
+function countingValidator() {
+  const compiled = compileValidator({ catalog, capabilities, manifest });
+  return Object.assign(compiled, {
+    validateTree: (...args: Parameters<typeof validator.validateTree>) => {
+      checks++;
+      return validator.validateTree(...args);
+    },
+  });
+}
+const checkedValidator = countingValidator();
 let input: unknown = mode ? hydrationTree(mode) : tree();
 let currentValidator = checkedValidator;
 const root = mode
@@ -163,7 +169,7 @@ window.surfaceTest = {
   },
   redraw: draw,
   replaceValidator() {
-    currentValidator = { ...checkedValidator };
+    currentValidator = countingValidator();
     draw();
   },
   checks: () => checks,
@@ -197,4 +203,5 @@ window.surfaceTest = {
     flushSync(() => root.unmount());
   },
 };
+installConfirmation(root);
 if (!mode) draw();
