@@ -177,16 +177,27 @@ removing a sheet still used by another surface would unstyle that surface.
 Recipe `backgroundColor`, `borderColor` and `outlineColor` accept `"none"` to
 clear paint inherited through the recipe cascade. They emit `transparent`,
 including when `backgroundOpacity` is set. Omitting a property inherits it.
-`textColor` and shadow colours still require theme roles; an empty shadow array
+`textColor` and shadow colours exclude `none`; an empty shadow array
 clears shadows. The exact colour-role name `none` is reserved in vocabularies.
 In forced colours, an explicit rest background of `none` with no positive border
 width retains the inward 1px OS-colour outline; an absent background adds no edge.
 
+Recipe colours and shadow layer colours also accept `{ role, alpha }`, for
+example `{ "role": "border.hairline", "alpha": "opacity.subtle" }`. Alpha is
+a number in [0, 1] with at most four decimal places, or an `opacity` design
+value name with the same precision. The projection emits
+`color-mix(in oklab, var(--lf-c-border_hairline) N%, transparent)`; intrinsic
+theme alpha is multiplied. On backgrounds this composes with `backgroundOpacity`,
+so neither modifier replaces or doubles the other. Plain roles keep their direct
+variable references.
+
 ## Preferences and platform
 
 The projection handles reduced motion by setting transition durations to zero
-and removing the pressed offset. Reduced transparency forces background alpha
-to 1 and removes backdrop filters; support for that query is a progressive
+and removing the pressed offset. Reduced transparency forces the background-opacity
+multiplier to 1, removes backdrop filters and restores unmodified theme-role references
+for colour and shadow modifiers, even alpha 0. Theme-intrinsic alpha and explicit
+no-paint stay unchanged; support for that query is a progressive
 enhancement. Forced-colours mode keeps `forced-color-adjust: auto` and adds OS
 system-colour state cues and outlines for background-only edges and fill shapes.
 Real Windows and assistive-technology auditing remains an open manual gate.

@@ -2,6 +2,41 @@ import { expect, test } from "bun:test";
 import { resolveRecipes } from "../index.ts";
 import { catalog, context, system } from "./design-system.test.ts";
 
+test("alpha_references_resolve_in_inherited_recipes_and_shadow_values", () => {
+  const px = { value: 1, unit: "px" } as const;
+  const parent = {
+    ...system,
+    values: {
+      ...system.values,
+      "opacity.subtle": { kind: "opacity", value: 0.25 },
+      "shadow.soft": {
+        kind: "shadow",
+        value: [{ color: { role: "ink", alpha: "opacity.subtle" }, offsetX: px, offsetY: px, blur: px, spread: px }],
+      },
+    },
+    recipes: {
+      ...system.recipes,
+      "button.*.root.rest": { textColor: { role: "ink", alpha: "opacity.subtle" }, shadow: "shadow.soft" },
+    },
+  } as const;
+  const child = {
+    ...system,
+    id: "child",
+    extends: "test",
+    values: { "opacity.subtle": { kind: "opacity", value: 0.5 } },
+    recipes: {},
+  } as const;
+  const before = JSON.stringify([parent, child]);
+  const recipe = resolveRecipes(child, { catalog, registry: { test: parent } })["button.default.root.rest"];
+  expect(recipe?.textColor).toEqual({ role: "ink", alpha: 0.5 });
+  expect(recipe?.shadow).toEqual([
+    { color: { role: "ink", alpha: 0.5 }, offsetX: px, offsetY: px, blur: px, spread: px },
+  ]);
+  expect(JSON.stringify([parent, child])).toBe(before);
+  const broken = { ...child, values: { "opacity.subtle": { kind: "spacing", value: px } } } as const;
+  expect(() => resolveRecipes(broken, { catalog, registry: { test: parent } })).toThrow();
+});
+
 test("cascade_order", () => {
   const ds = {
     ...system,

@@ -44,10 +44,7 @@
     "patch.3",
     "patch.4",
     "patch.5",
-    "colour.transparent",
-    "surface.scrim.alpha-0-55",
-    "surface.scrim.alpha-0-22",
-    "border.subtle.alpha-0-58"
+    "colour.transparent"
   ],
   "surfaceRoles": [
     "surface.base",

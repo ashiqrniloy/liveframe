@@ -148,7 +148,7 @@ This plan implements spec §6.1 (theme), §6.2 (recipes), §6.4 (projection, for
     - Fixed two older theme fixture mirrors found by the full gate. Earlier verification attempts hit a command timeout, a suspended-browser network error and one 16.8 ms switch sample; the final full run passed unchanged assertions, with the two-surface blur switch at 8.3 ms maximum. Native Windows/AT auditing and pixel parity were not run for this task; the existing native audit gate remains open.
     - CSS non-regression: `bun bench/css.bench.ts`, run after the full gate without concurrent tests, reports Certified 10.559 ms/sheet / 142,761 bytes and Rack 16.085 ms/sheet / 148,733 bytes, versus pre-change 11.476 ms / 143,977 bytes and 17.244 ms / 149,721 bytes. Style declarations improved from 0.434 to 0.390 µs/node. `git diff --check` is clean.
 
-- [ ] Task 3: Add an alpha modifier to recipe colours (LF-11)
+- [x] Task 3: Add an alpha modifier to recipe colours (LF-11)
   - Acceptance Criteria:
     - Functional:
       - Colour-typed properties accept `{ role, alpha }` per Task 1.
@@ -168,23 +168,28 @@ This plan implements spec §6.1 (theme), §6.2 (recipes), §6.4 (projection, for
     - Skills to Use:
       - `liveframe-execution`.
     - Library Documentation to Check Before Implementation:
-      - MDN `color-mix()` percentage semantics with `transparent` in oklab.
+      - MDN `color-mix()` percentage semantics with `transparent` in oklab (Context7 `/mdn/content`, checked 2026-10-28).
+      - AJV decimal `multipleOfPrecision` (`/ajv-validator/ajv`, checked 2026-10-28); schema tests use 8 to tolerate binary floating-point division.
     - Documentation Reviewed:
       - Task 1's log; `src/css/recipe.ts:21` (the existing `color-mix` for `backgroundOpacity`).
       - `src/__tests__/fixtures/proof/vocabulary.json`; `proof/styles/certified/`, `proof/styles/rack/`; `proof/scripts/parity.ts`.
     - Options Considered:
       - See Task 1.
     - Chosen Approach:
-      - As decided in Task 1.
+      - As decided in Task 1. Reuse the prepared validated design-system data for CSS cascading, avoiding a duplicate install pass.
+      - Migrate the proof exporter boundary from generated alpha roles to role-alpha objects; retain the historical proof source DSL (`colorRole` + `opacity`).
+      - The existing approved-artifact parity script covers Certified; add before/after comparisons against pre-task commit `71e1c8b` for both systems, across agent-home, Rack module and the design-system specimen at three widths.
     - API Notes and Examples:
       ```css
       border-color: color-mix(in oklab, var(--lf-c-border_hairline) 100%, transparent);
       ```
     - Files to Create/Edit:
-      - `src/formats/design-system.ts`; `src/css/recipe.ts`; `src/css/forced-colours.ts`; `src/css/base.ts` (if reduced transparency must reach it)
+      - `src/formats/design-system.ts`; `src/css/recipe.ts`; `src/css/forced-colours.ts`; `src/css/base.ts` (if reduced transparency must reach it); `src/css/design-system.ts` for state-scoped reduced-transparency reprojection
       - `src/formats/dtcg.ts`; `src/resolve.ts`: shadow colour grammar and opacity-name resolution, including shadow layers.
       - `schemas/design-system.json`
-      - `src/__tests__/fixtures/proof/vocabulary.json`; the proof theme and design-system fixtures; `proof/styles/*`
+      - `src/__tests__/fixtures/proof/vocabulary.json`; proof catalog, theme, design-system and resolved-recipe fixtures; older `src/__tests__/fixtures/rack.design-system{,-vocabulary}.json` mirrors; `proof/scripts/export-formats.ts`; `proof/GAPS.md`
+      - `src/__tests__/design-system.test.ts`, `resolve.test.ts`, `css-design-system.test.ts`, `css-browser.test.ts`, `proof-formats.test.ts`
+      - `plans/evidence/016-task-3-alpha-parity.ts` (new): reproducible both-system migration parity; images/results under local-only `evidence/`
       - `docs/spec.md` §6.2/§6.4; `docs/styling.md`; `docs/formats.md`
   - Test Cases to Write:
     - `alpha_modifier_validates`: covers the four rejections.
@@ -192,6 +197,22 @@ This plan implements spec §6.1 (theme), §6.2 (recipes), §6.4 (projection, for
     - `alpha_reduced_transparency_and_forced_colours` (`css-browser.test.ts`).
     - `proof_vocabulary_has_no_alpha_roles`.
     - Parity run, recorded in the task notes with its command.
+
+
+  - Notes (executed 2026-10-28):
+    - Added the accepted closed `{ role, alpha }` grammar to all four recipe colours and inline/named shadow layers. The install validator rejects literal/unknown roles, `none` modifiers, extra/missing fields, non-colour placement, unknown/wrong-kind opacity references, nonfinite/out-of-range numbers and more than four decimal places. Named modifiers alone impose the precision constraint; unrelated opacity values retain their existing contract.
+    - Resolved opacity references through merged inherited values, including inherited/named shadow layers, without mutating input. Recipe input types accept names; resolved colour/shadow types accept numeric alpha only. `colourValue` centralizes direct role, no-paint and deterministic oklab-mix projection (including 0% and 100%), nested into the existing background-opacity mix exactly once.
+    - Added state-scoped reduced-transparency declarations, including native hover and open starting styles: alpha 0 recovers its original role, plain state overrides retain precedence, intrinsic theme alpha stays unchanged and `none` stays transparent. Existing base preference rules and forced-colours substitution already implement the remaining contract; no edits to `base.ts` or `forced-colours.ts` were required. Browser coverage proves 0.8 × 0.5 × 0.5 = 0.2 background alpha, shadow multiplication/recovery, state precedence, OS text recovery from alpha 0 and shadow suppression with `forced-color-adjust: auto`.
+    - Migrated the proof exporter to role-alpha objects and removed every generated alpha role from both exported themes, the shared proof vocabulary/catalog and recipe/resolved fixtures. The historical proof source DSL already carries `colorRole` plus `opacity`, so it remains the independent source for the export round-trip assertion. Also migrated the older Rack design-system/vocabulary test mirrors; no fixture retains `.alpha-` roles. Updated spec §6.2/§6.4, format/styling docs and the proof gap record. Regenerate with `bun proof/scripts/export-formats.ts --out src/__tests__/fixtures/proof` and `bun scripts/schemas.ts`.
+    - Wrote the initial validator/projection regressions first and observed both fail; the added old-mirror regression also failed before migration. Tests cover each colour property, single/array/named shadows, numeric boundaries/precision, referenced precision, inherited child overrides, input immutability, JSON Schema agreement, no-paint preservation and theme-only hue authority. The JSON Schema uses `multipleOf: 0.0001`; AJV tests and docs specify its documented `multipleOfPrecision: 8` option for decimal division. Documentation checked through Context7 (`/mdn/content`, `/ajv-validator/ajv`).
+    - Both-system migration parity: `bun plans/evidence/016-task-3-alpha-parity.ts /tmp/liveframe-lf11-baseline`, with the baseline from `git worktree add --detach /tmp/liveframe-lf11-baseline 71e1c8b`. All 18 captures (Certified/Rack × agent-home/Rack module/design-system specimen × 1440/1024/390px) have **0% changed pixels**, against a 1% threshold and per-channel tolerance 16. Regenerating script: `plans/evidence/016-task-3-alpha-parity.ts`; local images/diffs/results: `evidence/016-task-3-alpha-parity/` (never committed).
+    - Approved-artifact check: `bun proof/scripts/parity.ts --out evidence/016-task-3-approved-parity`. Restored the 25 local-only references from the exact origin commits in `proof/references/SOURCES.md`, then removed only those restored files after capture. Certified pixel ratios are 0.721691%, 0.754942% and 0.966723%; the pre-task checkout produces identical JSON results. The script's aggregate `parity` remains `false` because the existing 281 DOM and 32 computed-style differences are unchanged; this task proves unchanged pixels, not closure of those historical gaps. Both-system screenshots above were also captured with the restored fonts. Native Windows/AT auditing remains the existing open gate.
+    - Task 5 now explicitly includes the resolver's new colour fields and reduced-transparency recovery tests for native parts, so its later properties receive the same named-alpha and alpha-0 treatment.
+    - Isolated CSS benchmark (`bun bench/css.bench.ts`, after the unrelated Rust builds finished): Certified 8.236 ms/sheet / 146,529 bytes and Rack 11.622 ms/sheet / 155,378 bytes, versus pre-task 10.054 ms / 142,761 bytes and 16.553 ms / 148,733 bytes. Generation is faster after reusing the already validated preparation instead of repeating the install pass; sheet growth supplies the alpha mixes and reduced-transparency recovery rules. Theme sheets shrink from 7,706/9,128 to 6,999/8,242 bytes after removing alpha roles. Style declarations remain 0.378 µs/node versus 0.373 µs/node before.
+
+    - Final verification: `bun run check` passed (build, generated-file check, typecheck, lint, format and tests): **729 pass, 4 existing reference-dependent skips, 0 fail**, 733 tests across 96 files. Warm two-surface blur switches peak at 9.5 ms in `css-browser.test.ts` (956 nodes), and 9.0 ms through `<Surface>` (685 nodes), both below 16.67 ms. `git diff --check` and the evidence script's Biome check pass; graft was refreshed.
+    - An earlier full run exposed an outdated assertion that counted ordinary and reduced-transparency starting-style rules together; it now checks ordinary rules separately, with a regression for alpha-free reduced starting styles. Another full attempt overlapped unrelated Rust builds (load 40–59) and suffered broad timing/browser failures; no assertions were weakened. The final full run and benchmark above passed after CPU pressure returned below 1%.
+
 
 - [ ] Task 4: Check declared contrast pairs when a theme is installed (LF-10)
   - Acceptance Criteria:
@@ -255,6 +276,7 @@ This plan implements spec §6.1 (theme), §6.2 (recipes), §6.4 (projection, for
       - `placeholderColor`, `scrollbarThumbColor` and `scrollbarTrackColor` are recipe properties that accept theme roles, `none` and the alpha modifier.
       - The projection follows Task 1. States are honoured only where Task 1 says, and unsupported states are rejected at install with a message naming the property.
       - Placeholder colour honours all existing states and emits `opacity: 1`; scrollbar colours are rest-only and must resolve as a thumb/track pair. Safari before 26.2 and WebKitGTK before 2.52.3 keep native scrollbars; no prefixed fallback is emitted.
+      - Extend Task 3's colour-field handling in `src/resolve.ts` and reduced-transparency reprojection to all three properties. Named alpha resolves before projection, and reduced transparency recovers the role even from alpha 0 while preserving intrinsic theme alpha and `none`.
       - The completeness check (spec §6.2) covers them.
       - Forced colours leave native parts to the OS, with no system colour emitted outside the forced-colours block.
       - Browser tests in Chromium, and in WebKit if plan 019 Task 6's harness exists by then (otherwise recorded for that task), show the computed `scrollbar-color` and `::placeholder` colour.
@@ -280,12 +302,13 @@ This plan implements spec §6.1 (theme), §6.2 (recipes), §6.4 (projection, for
       { "scroll.default.root.rest": { "scrollbarThumbColor": "surface.scrollbar", "scrollbarTrackColor": "none" } }
       ```
     - Files to Create/Edit:
-      - `src/formats/fixed.ts`; `src/formats/design-system.ts`; `src/css/recipe.ts`; `src/css/design-system.ts`; `src/css/forced-colours.ts`
+      - `src/formats/fixed.ts`; `src/formats/design-system.ts`; `src/resolve.ts`; `src/css/recipe.ts`; `src/css/design-system.ts`; `src/css/forced-colours.ts`
       - `schemas/design-system.json`
       - `proof/styles/rack/*`; proof catalog and fixture mirrors if obsolete native-part slots are removed (map rest thumb/track colours onto the actual scrolling slot; remove unsupported thumb hover/active recipes and document native interaction).
       - `docs/spec.md` §6.2/§6.4; `docs/styling.md`; `plans/backlog.md`
   - Test Cases to Write:
     - `native_part_properties_validate`.
+    - `native_parts_resolve_alpha_and_recover_reduced_transparency`.
     - `scrollbar_rejects_nonrest_declarations_and_incomplete_pairs`.
     - `scrollbar_projection_byte_stable`.
     - `placeholder_and_scrollbar_computed` (`css-browser.test.ts`).

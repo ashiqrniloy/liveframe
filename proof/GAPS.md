@@ -169,7 +169,7 @@ The findings from the parity re-proof, numbered so the report, the decision log 
 ## Plan 003 Task 8 — format fixtures (G19)
 
 - The exported catalog and tree fixtures use `textField.onCommit` in place of the proof-only `onSubmit` name, closing G19 for the new-format fixture. The historical proof renderer and widgets retain their original event names. Regenerate with `timeout 30s bun proof/scripts/export-formats.ts --out src/__tests__/fixtures/proof`.
-- Both design systems resolve to the proof's 616 recipes after unit conversion. Shadow opacity becomes declared theme roles; their alpha multiplies the original role alpha, including translucent borders and fills. No colour literal enters a catalog or design system.
+- Both design systems resolve to the proof's 616 recipes after unit conversion. Shadow opacity uses role-alpha modifiers; their alpha multiplies the original theme role alpha, including translucent borders and fills. The exported vocabulary has no per-alpha roles. No colour literal enters a catalog or design system.
 - The export also preserves the benchmark shapes: the 679-node, 50-task agent-home selection tree, all four core.queue sizes, the 52-label git status and the Rack module with 50 files. These fixtures establish format sufficiency; they do not change the proof's render budget (G32).
 
 ## Plan 007 Task 10 — proof host uses the library projection

@@ -38,7 +38,7 @@ test("proof_formats_validate", async () => {
   expect(catalog.definitions.find((d) => d.kind === "textField")?.events).not.toHaveProperty("onSubmit");
   expect(validateCapabilities(capabilities).ok).toBe(true);
   expect(validateManifest(await read("agent-home.manifest"), { catalog, capabilities }).ok).toBe(true);
-  const ajv = new Ajv2020({ strict: true });
+  const ajv = new Ajv2020({ strict: true, multipleOfPrecision: 8 });
   ajv.addFormat("regex", {
     type: "string",
     validate: (pattern: string) => {
@@ -76,17 +76,26 @@ test("proof_recipes_round_trip", async () => {
   }
 });
 
-test("shadow_alpha_preserves_the_theme_colour", async () => {
+test("proof_vocabulary_has_no_alpha_roles", async () => {
+  expect(catalog.vocabulary.colourRoles.some((role) => role.includes(".alpha-"))).toBe(false);
   for (const name of ["certified", "rack"]) {
     const theme: Theme = await read(`${name}.theme`);
-    for (const role of catalog.vocabulary.colourRoles) {
-      const match = /^(.*)\.alpha-(\d+(?:-\d+)?)$/.exec(role);
-      if (!match) continue;
-      const base = theme.colours[match[1] ?? ""];
-      const alpha = theme.colours[role];
-      if (!base) throw new Error(`Missing base colour for ${role}`);
-      expect(alpha).toEqual({ ...base, alpha: (base.alpha ?? 1) * Number(match[2]?.replace("-", ".")) });
+    const ds: DesignSystem = await read(`${name}.design-system`);
+    const table = resolveRecipes(ds, { catalog, registry: {} });
+    let count = 0;
+    for (const recipe of Object.values(table)) {
+      if (!recipe) continue;
+      const layers = Array.isArray(recipe.shadow) ? recipe.shadow : recipe.shadow ? [recipe.shadow] : [];
+      for (const layer of layers) {
+        expect(typeof layer.color).toBe("object");
+        if (typeof layer.color === "object") {
+          expect(theme.colours[layer.color.role]).toBeDefined();
+          expect(typeof layer.color.alpha).toBe("number");
+          count++;
+        }
+      }
     }
+    expect(count).toBeGreaterThan(0);
   }
 });
 
@@ -103,7 +112,7 @@ test("no_colour_literals_outside_themes", async () => {
 });
 
 test("proof_trees_match_benchmark_shapes_and_catalog", async () => {
-  const validate = new Ajv2020({ strict: true }).compile(schemaDocument("ui-tree"));
+  const validate = new Ajv2020({ strict: true, multipleOfPrecision: 8 }).compile(schemaDocument("ui-tree"));
   for (const name of treeNames) {
     const tree = await read(`${name}.tree`);
     expect(validate(tree)).toBe(true);

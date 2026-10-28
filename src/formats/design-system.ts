@@ -4,16 +4,19 @@ import { bool, checkValue, type Infer, type LanguageSchema, num, obj, record, st
 import { at, documentChecks, isRecord, shell } from "./capabilities.ts";
 import type { Catalog } from "./catalog.ts";
 import {
+  alphaModifier,
   bezierCoordinate,
+  type ColourValue,
+  type CubicBezier,
+  colourReference,
   cubicBezier,
   designDimension,
   duration,
   roleName,
+  type ShadowLayer,
   shadow,
   shadowLayer,
-  type shadowLayers,
   signedDimension,
-  type CubicBezier,
 } from "./dtcg.ts";
 import { noPaint, states } from "./fixed.ts";
 
@@ -36,7 +39,7 @@ export type DesignValue = {
     readonly value: K extends "easing"
       ? CubicBezier
       : K extends "shadow"
-        ? Infer<typeof shadowLayer> | Infer<typeof shadowLayers>
+        ? ShadowLayer | readonly ShadowLayer[]
         : Infer<(typeof literalSchemas)[K]>;
   };
 }[keyof typeof literalSchemas];
@@ -71,15 +74,19 @@ const propertyKinds = {
 } as const;
 const lineStyle = str({ maxLength: 6, enum: ["solid", "dashed", "none"] });
 type Property = keyof typeof propertyKinds;
-type PropertyValue<P extends Property> = (typeof propertyKinds)[P] extends "colour" | "typography"
-  ? string
-  : (typeof propertyKinds)[P] extends "style"
-    ? Infer<typeof lineStyle>
-    : Extract<DesignValue, { kind: (typeof propertyKinds)[P] }>["value"];
+type PropertyValue<P extends Property, Alpha = number | string> = (typeof propertyKinds)[P] extends "colour"
+  ? ColourValue<Alpha>
+  : (typeof propertyKinds)[P] extends "typography"
+    ? string
+    : (typeof propertyKinds)[P] extends "style"
+      ? Infer<typeof lineStyle>
+      : (typeof propertyKinds)[P] extends "shadow"
+        ? ShadowLayer<Alpha> | readonly ShadowLayer<Alpha>[]
+        : Extract<DesignValue, { kind: (typeof propertyKinds)[P] }>["value"];
 export type Recipe = {
   readonly [P in Property]?: PropertyValue<P> | ((typeof propertyKinds)[P] extends "style" ? never : string);
 };
-export type ResolvedRecipe = { readonly [P in Property]?: PropertyValue<P> };
+export type ResolvedRecipe = { readonly [P in Property]?: PropertyValue<P, number> };
 export type RecipeKey = `${string}.${string}.${string}.${(typeof states)[number]}`;
 const keyName = str({
   maxLength: 203,
@@ -105,7 +112,8 @@ export type DesignSystemContext = {
 };
 function propertySchema(property: Property) {
   const kind = propertyKinds[property];
-  if (kind === "colour" || kind === "typography") return roleName;
+  if (kind === "colour") return colourReference;
+  if (kind === "typography") return roleName;
   if (kind === "style") return lineStyle;
   const schema = property === "translateY" || property === "outlineOffset" ? signedDimension : literalSchemas[kind];
   return { oneOf: [roleName, schema] };
@@ -170,10 +178,37 @@ function checkShadowLayer(layer: unknown, path: string, c: Checks, colours: Read
     c.reject(path, "Expected a shadow layer");
     return;
   }
-  c.collect(checkValue(shadowLayer, { ...layer, ...(Object.hasOwn(layer, "color") ? { color: "role" } : {}) }), path);
+  c.collect(checkValue(shadowLayer, { ...layer, ...(Object.hasOwn(layer, "color") ? { color: true } : {}) }), path);
   // Check colour authority separately to report the specific trust-boundary error.
-  if (typeof layer.color !== "string" || !colours.has(layer.color))
-    c.reject(`${path}/color`, "Shadow colour must name a theme role", "colour-outside-theme");
+  checkColour(layer.color, `${path}/color`, c, colours);
+}
+
+function checkAlpha(value: unknown, pointer: string, c: Checks): void {
+  if (typeof value === "string") c.collect(checkValue(roleName, value), pointer);
+  else if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    value < 0 ||
+    value > 1 ||
+    Number(value.toFixed(4)) !== value
+  )
+    c.reject(pointer, "Expected alpha in [0, 1] with at most four decimal places");
+}
+function checkColour(value: unknown, pointer: string, c: Checks, colours: ReadonlySet<string>): void {
+  if (isRecord(value)) {
+    c.collect(
+      checkValue(alphaModifier, { ...value, ...(Object.hasOwn(value, "alpha") ? { alpha: true } : {}) }),
+      pointer,
+    );
+    if (typeof value.role !== "string" || !colours.has(value.role))
+      c.reject(
+        Object.hasOwn(value, "role") ? `${pointer}/role` : pointer,
+        "Colour must name a theme role",
+        "colour-outside-theme",
+      );
+    checkAlpha(value.alpha, `${pointer}/alpha`, c);
+  } else if (typeof value !== "string" || !colours.has(value))
+    c.reject(pointer, "Colour must name a theme role", "colour-outside-theme");
 }
 
 function checkEasing(value: unknown, pointer: string, c: Checks): void {
@@ -284,12 +319,7 @@ function checkRecipeProperty(
   }
   const kind = propertyKinds[property as Property];
   if (kind === "colour") {
-    if (typeof value !== "string" || (value === noPaint ? property === "textColor" : !colours.has(value)))
-      c.reject(
-        pointer,
-        "Colour must name a theme role or use no-paint on background, border or outline",
-        "colour-outside-theme",
-      );
+    if (!(value === noPaint && property !== "textColor")) checkColour(value, pointer, c, colours);
   } else if (kind === "typography") {
     if (typeof value !== "string" || !context.catalog.vocabulary.typographyRoles.includes(value))
       c.reject(pointer, "Unknown typography role", "unknown-name");
@@ -325,12 +355,40 @@ function checkDeclaredVocabulary(
       if (values[name]?.kind !== kind) c.reject(at("/values", name), `Expected declared ${kind} value`, "unknown-name");
 }
 
+function checkAlphaReferences(
+  chain: readonly DesignSystem[],
+  values: Readonly<Record<string, DesignValue>>,
+  c: Checks,
+): void {
+  function colourReference(value: unknown, pointer: string): void {
+    if (!isRecord(value) || typeof value.alpha !== "string") return;
+    const token = values[value.alpha];
+    if (token?.kind !== "opacity") c.reject(`${pointer}/alpha`, "Expected an opacity value reference", "unknown-name");
+    else checkAlpha(token.value, `${pointer}/alpha`, c);
+  }
+  function shadowReferences(value: unknown, pointer: string): void {
+    for (const [i, layer] of (Array.isArray(value) ? value : [value]).entries())
+      if (isRecord(layer)) colourReference(layer.color, `${Array.isArray(value) ? at(pointer, i) : pointer}/color`);
+  }
+  for (const ds of chain) {
+    for (const [name, entry] of Object.entries(ds.values))
+      if (entry.kind === "shadow") shadowReferences(entry.value, `${at("/values", name)}/value`);
+    for (const [key, recipe] of Object.entries(ds.recipes))
+      for (const [property, value] of Object.entries(recipe ?? {})) {
+        const pointer = at(at("/recipes", key), property);
+        if (propertyKinds[property as Property] === "colour") colourReference(value, pointer);
+        if (property === "shadow" && typeof value !== "string") shadowReferences(value, pointer);
+      }
+  }
+}
+
 /** Validates every reference, including inherited recipes hidden by a variant/state overlay. */
 function checkReferences(
   chain: readonly DesignSystem[],
   values: Readonly<Record<string, DesignValue>>,
   c: Checks,
 ): void {
+  checkAlphaReferences(chain, values, c);
   for (const ds of chain)
     for (const [key, recipe] of Object.entries(ds.recipes))
       for (const [property, value] of Object.entries(recipe ?? {})) {

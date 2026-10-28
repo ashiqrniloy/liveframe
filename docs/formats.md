@@ -662,10 +662,9 @@ A named value is `{ kind, value }`. Its value follows the corresponding
 | `saturation` | Number in 0–10 (1 means unchanged) |
 | `shadow` | One layer or at most 16 layers; each has `color`, `offsetX`, `offsetY`, `blur`, `spread`, optional `inset` |
 
-Shadow `color` names a declared theme role; literal colours and `"none"` are rejected. An empty shadow array clears shadows.
+Shadow `color` accepts a declared theme role or a `{ role, alpha }` modifier; literal colours and `"none"` are rejected. An empty shadow array clears shadows.
 Offsets and spread are dimensions in −16384–16384; blur is nonnegative.
-To vary shadow alpha, define theme roles with the desired alpha and reference
-those roles. Names have at most 64 characters and use lowercase dotted segments.
+To vary shadow alpha, use `{ "role": "shadow.ambient", "alpha": 0.14 }`. Names have at most 64 characters and use lowercase dotted segments.
 Maps hold at most 1024 design values and 16384 recipes. All numbers must be finite.
 The system must supply every declared `space`, `radius`, `size` and breakpoint
 name with its matching kind.
@@ -676,8 +675,8 @@ Liveframe state. Recipes accept only the exported `recipeProperties` list:
 
 | Properties | Accepted value |
 | --- | --- |
-| `backgroundColor`, `borderColor`, `outlineColor` | Declared theme colour role or `"none"` (no paint) |
-| `textColor` | Declared theme colour role only |
+| `backgroundColor`, `borderColor`, `outlineColor` | Declared theme colour role, `{ role, alpha }`, or `"none"` (no paint) |
+| `textColor` | Declared theme colour role or `{ role, alpha }` |
 | `typography` | Declared typography role only |
 | `borderWidth`, per-side border widths, `outlineWidth` | `border-width` reference or dimension |
 | `borderRadius` | `radius` reference or dimension |
@@ -686,6 +685,17 @@ Liveframe state. Recipes accept only the exported `recipeProperties` list:
 | `borderStyle`, `outlineStyle` | `solid`, `dashed` or `none` |
 | `opacity`, `backgroundOpacity` | `opacity` reference or number |
 | `shadow`, `backdropBlur`, `backdropSaturate`, `transitionDuration`, `transitionTiming` | Respectively `shadow`, `backdrop-blur`, `saturation`, `motion-duration`, `easing` reference or literal |
+
+A colour modifier is a closed object with both `role` and `alpha` required.
+The role must be declared and cannot be `none`. Alpha is a finite number in
+[0, 1] with at most four decimal places, or a design-system value name of kind
+`opacity` whose resolved number meets those same constraints. Other opacity
+values keep their existing bounds. Modifiers are rejected on non-colour fields.
+The resolver retains the role and replaces named alpha with its numeric value,
+including in named shadow values and inherited recipes. The JSON Schema uses
+`multipleOf: 0.0001`; with AJV, set `multipleOfPrecision: 8` to accommodate
+[floating-point decimal division](https://ajv.js.org/options.html#multipleofprecision).
+Use the install validator for role/name/type checks against the catalog.
 
 A reference is a plain design-value name, such as `radius.control`; inline
 literals follow the shapes above. No property accepts raw CSS or selectors.

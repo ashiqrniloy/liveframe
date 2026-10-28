@@ -509,6 +509,67 @@ test("reduced_transparency_makes_backdrops_opaque", async () => {
   }
 });
 
+test("alpha_reduced_transparency_and_forced_colours", async () => {
+  const page = await browser.newPage();
+  try {
+    const px = { value: 1, unit: "px" } as const;
+    await mount(page, {
+      "button.default.root.rest": {
+        backgroundColor: { role: "surface.base", alpha: 0.5 },
+        backgroundOpacity: 0.5,
+        textColor: { role: "surface.base", alpha: 0 },
+        borderColor: { role: "surface.base", alpha: 1 },
+        borderWidth: px,
+        shadow: [{ color: { role: "surface.base", alpha: 0.25 }, offsetX: px, offsetY: px, blur: px, spread: px }],
+      },
+      "button.default.root.hover": { textColor: "surface.hover" },
+      "button.default.label.rest": { backgroundColor: "none" },
+    });
+    await page.locator("section").evaluate((el) => el.style.setProperty("--lf-c-surface_base", "rgb(10 20 30 / 0.8)"));
+    const alphas = () =>
+      page.locator("#root").evaluate((el) => {
+        const s = getComputedStyle(el);
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 1;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("Canvas unavailable");
+        return [s.backgroundColor, s.color, s.borderTopColor].map((color) => {
+          ctx.clearRect(0, 0, 1, 1);
+          ctx.fillStyle = color;
+          ctx.fillRect(0, 0, 1, 1);
+          return ctx.getImageData(0, 0, 1, 1).data[3];
+        });
+      });
+    expect(await alphas()).toEqual([51, 0, 204]);
+    expect(await page.locator("#root").evaluate((el) => getComputedStyle(el).boxShadow)).toContain("0.2");
+    const session = await page.context().newCDPSession(page);
+    await session.send("Emulation.setEmulatedMedia", {
+      features: [{ name: "prefers-reduced-transparency", value: "reduce" }],
+    });
+    expect(await alphas()).toEqual([204, 204, 204]);
+    expect(await page.locator("#root").evaluate((el) => getComputedStyle(el).boxShadow)).toContain("0.8");
+    expect(await page.locator("#label").evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(
+      "rgba(0, 0, 0, 0)",
+    );
+    await page.locator("#root").evaluate((el) => el.setAttribute("data-hovered", ""));
+    expect(await colour(page)).toBe(await expectedColour(page, 1));
+    await page.emulateMedia({ forcedColors: "active" });
+    expect(
+      await page
+        .locator("#root")
+        .evaluate((el) => [getComputedStyle(el).forcedColorAdjust, getComputedStyle(el).boxShadow]),
+    ).toEqual(["auto", "none"]);
+    await page.locator("#root").evaluate((el) => el.removeAttribute("data-hovered"));
+    await session.send("Emulation.setEmulatedMedia", {
+      features: [{ name: "forced-colors", value: "active" }],
+    });
+    expect(await page.evaluate(() => matchMedia("(prefers-reduced-transparency: reduce)").matches)).toBe(false);
+    expect((await alphas())[1]).toBe(255);
+  } finally {
+    await page.close();
+  }
+});
+
 test("switching_suppresses_transitions", async () => {
   const page = await browser.newPage();
   try {

@@ -107,9 +107,23 @@ export const cubicBezier = {
   items: false,
 } as const;
 export const roleName = str({ maxLength: 64, pattern: "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$" });
+export type ColourValue<Alpha = number | string> = string | { readonly role: string; readonly alpha: Alpha };
+export const alphaModifier = obj({ role: roleName, alpha: bool() });
+export const colourReference = {
+  oneOf: [
+    roleName,
+    {
+      ...alphaModifier,
+      properties: {
+        role: roleName,
+        alpha: { oneOf: [roleName, { type: "number", minimum: 0, maximum: 1, multipleOf: 0.0001 }] },
+      },
+    },
+  ],
+};
 export const shadowLayer = obj(
   {
-    color: roleName,
+    color: bool(),
     offsetX: signedDimension,
     offsetY: signedDimension,
     blur: designDimension,
@@ -118,5 +132,9 @@ export const shadowLayer = obj(
   { inset: bool() },
 );
 export const shadowLayers = arr(shadowLayer, { maxItems: 16 });
-export const shadow = { oneOf: [shadowLayer, shadowLayers] };
+export type ShadowLayer<Alpha = number | string> = Omit<Infer<typeof shadowLayer>, "color"> & {
+  readonly color: ColourValue<Alpha>;
+};
+const shadowLayerSchema = { ...shadowLayer, properties: { ...shadowLayer.properties, color: colourReference } };
+export const shadow = { oneOf: [shadowLayerSchema, { ...shadowLayers, items: shadowLayerSchema }] };
 export type CubicBezier = readonly [number, number, number, number];

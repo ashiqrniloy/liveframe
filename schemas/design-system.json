@@ -374,9 +374,43 @@
                           "type": "boolean"
                         },
                         "color": {
-                          "maxLength": 64,
-                          "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
-                          "type": "string"
+                          "oneOf": [
+                            {
+                              "maxLength": 64,
+                              "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                              "type": "string"
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "role": {
+                                  "maxLength": 64,
+                                  "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                                  "type": "string"
+                                },
+                                "alpha": {
+                                  "oneOf": [
+                                    {
+                                      "maxLength": 64,
+                                      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "number",
+                                      "minimum": 0,
+                                      "maximum": 1,
+                                      "multipleOf": 0.0001
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "role",
+                                "alpha"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
                         },
                         "offsetX": {
                           "type": "object",
@@ -490,9 +524,43 @@
                             "type": "boolean"
                           },
                           "color": {
-                            "maxLength": 64,
-                            "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
-                            "type": "string"
+                            "oneOf": [
+                              {
+                                "maxLength": 64,
+                                "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                                "type": "string"
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "role": {
+                                    "maxLength": 64,
+                                    "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                                    "type": "string"
+                                  },
+                                  "alpha": {
+                                    "oneOf": [
+                                      {
+                                        "maxLength": 64,
+                                        "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1,
+                                        "multipleOf": 0.0001
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "role",
+                                  "alpha"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ]
                           },
                           "offsetX": {
                             "type": "object",
@@ -624,24 +692,160 @@
           "type": "object",
           "properties": {
             "backgroundColor": {
-              "maxLength": 64,
-              "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
-              "type": "string"
+              "oneOf": [
+                {
+                  "maxLength": 64,
+                  "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "maxLength": 64,
+                      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                      "type": "string"
+                    },
+                    "alpha": {
+                      "oneOf": [
+                        {
+                          "maxLength": 64,
+                          "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                          "type": "string"
+                        },
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1,
+                          "multipleOf": 0.0001
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "role",
+                    "alpha"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
             },
             "textColor": {
-              "maxLength": 64,
-              "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
-              "type": "string"
+              "oneOf": [
+                {
+                  "maxLength": 64,
+                  "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "maxLength": 64,
+                      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                      "type": "string"
+                    },
+                    "alpha": {
+                      "oneOf": [
+                        {
+                          "maxLength": 64,
+                          "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                          "type": "string"
+                        },
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1,
+                          "multipleOf": 0.0001
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "role",
+                    "alpha"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
             },
             "borderColor": {
-              "maxLength": 64,
-              "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
-              "type": "string"
+              "oneOf": [
+                {
+                  "maxLength": 64,
+                  "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "maxLength": 64,
+                      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                      "type": "string"
+                    },
+                    "alpha": {
+                      "oneOf": [
+                        {
+                          "maxLength": 64,
+                          "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                          "type": "string"
+                        },
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1,
+                          "multipleOf": 0.0001
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "role",
+                    "alpha"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
             },
             "outlineColor": {
-              "maxLength": 64,
-              "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
-              "type": "string"
+              "oneOf": [
+                {
+                  "maxLength": 64,
+                  "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "maxLength": 64,
+                      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                      "type": "string"
+                    },
+                    "alpha": {
+                      "oneOf": [
+                        {
+                          "maxLength": 64,
+                          "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                          "type": "string"
+                        },
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1,
+                          "multipleOf": 0.0001
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "role",
+                    "alpha"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
             },
             "borderWidth": {
               "oneOf": [
@@ -1021,9 +1225,43 @@
                           "type": "boolean"
                         },
                         "color": {
-                          "maxLength": 64,
-                          "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
-                          "type": "string"
+                          "oneOf": [
+                            {
+                              "maxLength": 64,
+                              "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                              "type": "string"
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "role": {
+                                  "maxLength": 64,
+                                  "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                                  "type": "string"
+                                },
+                                "alpha": {
+                                  "oneOf": [
+                                    {
+                                      "maxLength": 64,
+                                      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "number",
+                                      "minimum": 0,
+                                      "maximum": 1,
+                                      "multipleOf": 0.0001
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "role",
+                                "alpha"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
                         },
                         "offsetX": {
                           "type": "object",
@@ -1137,9 +1375,43 @@
                             "type": "boolean"
                           },
                           "color": {
-                            "maxLength": 64,
-                            "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
-                            "type": "string"
+                            "oneOf": [
+                              {
+                                "maxLength": 64,
+                                "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                                "type": "string"
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "role": {
+                                    "maxLength": 64,
+                                    "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                                    "type": "string"
+                                  },
+                                  "alpha": {
+                                    "oneOf": [
+                                      {
+                                        "maxLength": 64,
+                                        "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1,
+                                        "multipleOf": 0.0001
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "role",
+                                  "alpha"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ]
                           },
                           "offsetX": {
                             "type": "object",

@@ -3273,7 +3273,10 @@
       "typography": "body",
       "shadow": [
         {
-          "color": "accent.soft.alpha-1",
+          "color": {
+            "role": "accent.soft",
+            "alpha": 1
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -3757,7 +3760,10 @@
       "padding": "spacing.xxs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -3776,7 +3782,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -3815,7 +3824,10 @@
       "padding": "spacing.xxs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -3834,7 +3846,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -3873,7 +3888,10 @@
       "padding": "spacing.xxs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -3892,7 +3910,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -3931,7 +3952,10 @@
       "padding": "spacing.xxs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -3950,7 +3974,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -3989,7 +4016,10 @@
       "padding": "spacing.xxs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -4008,7 +4038,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -4047,7 +4080,10 @@
       "padding": "spacing.xxs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -4066,7 +4102,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -4105,7 +4144,10 @@
       "padding": "spacing.xxs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -4124,7 +4166,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -4163,7 +4208,10 @@
       "padding": "spacing.xxs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -4182,7 +4230,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -4948,7 +4999,10 @@
       "padding": "spacing.xxs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -4967,7 +5021,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -5006,7 +5063,10 @@
       "padding": "spacing.xxs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -5025,7 +5085,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -5064,7 +5127,10 @@
       "padding": "spacing.xxs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -5083,7 +5149,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -5122,7 +5191,10 @@
       "padding": "spacing.xxs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -5141,7 +5213,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -5180,7 +5255,10 @@
       "padding": "spacing.xxs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -5199,7 +5277,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -5238,7 +5319,10 @@
       "padding": "spacing.xxs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -5257,7 +5341,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -5296,7 +5383,10 @@
       "padding": "spacing.xxs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -5315,7 +5405,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -5354,7 +5447,10 @@
       "padding": "spacing.xxs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -5373,7 +5469,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6053,7 +6152,10 @@
       "padding": "spacing.sm",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6072,7 +6174,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6112,7 +6217,10 @@
       "padding": "spacing.sm",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6131,7 +6239,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6171,7 +6282,10 @@
       "padding": "spacing.sm",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6190,7 +6304,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6230,7 +6347,10 @@
       "padding": "spacing.sm",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6249,7 +6369,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6289,7 +6412,10 @@
       "padding": "spacing.sm",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6308,7 +6434,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6348,7 +6477,10 @@
       "padding": "spacing.sm",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6367,7 +6499,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6407,7 +6542,10 @@
       "padding": "spacing.sm",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6426,7 +6564,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6466,7 +6607,10 @@
       "padding": "spacing.sm",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6485,7 +6629,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6782,7 +6929,10 @@
       "gap": "spacing.sm",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6801,7 +6951,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6842,7 +6995,10 @@
       "gap": "spacing.sm",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6861,7 +7017,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6902,7 +7061,10 @@
       "gap": "spacing.sm",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6921,7 +7083,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6962,7 +7127,10 @@
       "gap": "spacing.sm",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -6981,7 +7149,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -7022,7 +7193,10 @@
       "gap": "spacing.sm",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -7041,7 +7215,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -7082,7 +7259,10 @@
       "gap": "spacing.sm",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -7101,7 +7281,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -7142,7 +7325,10 @@
       "gap": "spacing.sm",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -7161,7 +7347,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -7202,7 +7391,10 @@
       "gap": "spacing.sm",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -7221,7 +7413,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -7716,7 +7911,10 @@
       "gap": "spacing.xs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -7735,7 +7933,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -7777,7 +7978,10 @@
       "gap": "spacing.xs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -7796,7 +8000,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -7838,7 +8045,10 @@
       "gap": "spacing.xs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -7857,7 +8067,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -7899,7 +8112,10 @@
       "gap": "spacing.xs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -7918,7 +8134,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -7960,7 +8179,10 @@
       "gap": "spacing.xs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -7979,7 +8201,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -8021,7 +8246,10 @@
       "gap": "spacing.xs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -8040,7 +8268,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -8082,7 +8313,10 @@
       "gap": "spacing.xs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -8101,7 +8335,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -8143,7 +8380,10 @@
       "gap": "spacing.xs",
       "shadow": [
         {
-          "color": "surface.scrim.alpha-0-55",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.55
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -8162,7 +8402,10 @@
           }
         },
         {
-          "color": "surface.scrim.alpha-0-22",
+          "color": {
+            "role": "surface.scrim",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -8291,7 +8534,10 @@
       "gap": "spacing.none",
       "shadow": [
         {
-          "color": "border.hairline.alpha-1",
+          "color": {
+            "role": "border.hairline",
+            "alpha": 1
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -8327,7 +8573,10 @@
       "gap": "spacing.none",
       "shadow": [
         {
-          "color": "border.hairline.alpha-1",
+          "color": {
+            "role": "border.hairline",
+            "alpha": 1
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -8363,7 +8612,10 @@
       "gap": "spacing.none",
       "shadow": [
         {
-          "color": "border.hairline.alpha-1",
+          "color": {
+            "role": "border.hairline",
+            "alpha": 1
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -8399,7 +8651,10 @@
       "gap": "spacing.none",
       "shadow": [
         {
-          "color": "border.hairline.alpha-1",
+          "color": {
+            "role": "border.hairline",
+            "alpha": 1
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -8435,7 +8690,10 @@
       "gap": "spacing.none",
       "shadow": [
         {
-          "color": "border.hairline.alpha-1",
+          "color": {
+            "role": "border.hairline",
+            "alpha": 1
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -8471,7 +8729,10 @@
       "gap": "spacing.none",
       "shadow": [
         {
-          "color": "border.hairline.alpha-1",
+          "color": {
+            "role": "border.hairline",
+            "alpha": 1
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -8507,7 +8768,10 @@
       "gap": "spacing.none",
       "shadow": [
         {
-          "color": "border.hairline.alpha-1",
+          "color": {
+            "role": "border.hairline",
+            "alpha": 1
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -8543,7 +8807,10 @@
       "gap": "spacing.none",
       "shadow": [
         {
-          "color": "border.hairline.alpha-1",
+          "color": {
+            "role": "border.hairline",
+            "alpha": 1
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -9187,7 +9454,10 @@
       "borderColor": "border.subtle",
       "shadow": [
         {
-          "color": "border.subtle.alpha-0-58",
+          "color": {
+            "role": "border.subtle",
+            "alpha": 0.58
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"

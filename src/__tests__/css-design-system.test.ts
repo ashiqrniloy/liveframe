@@ -15,6 +15,33 @@ function sheet(system: DesignSystem, input = catalog, registry: Record<string, D
   return result.value;
 }
 
+test("alpha_projection_byte_stable", () => {
+  const declarations = recipeDeclarations({
+    backgroundColor: { role: "surface.base", alpha: 0.1234 },
+    backgroundOpacity: 0.5,
+    textColor: { role: "text.primary", alpha: 0 },
+    borderColor: { role: "border.hairline", alpha: 1 },
+  });
+  expect(declarations).toBe(
+    "background-color:color-mix(in srgb, color-mix(in oklab, var(--lf-c-surface_base) 12.34%, transparent) calc(var(--lf-alpha) * 100%), transparent);color:color-mix(in oklab, var(--lf-c-text_primary) 0%, transparent);border-color:color-mix(in oklab, var(--lf-c-border_hairline) 100%, transparent);--lf-alpha:0.5",
+  );
+  const base = systems[0];
+  if (!base) throw new Error("Missing fixture");
+  const css = sheet({
+    ...base,
+    recipes: {
+      ...base.recipes,
+      "button.default.root.rest": { backgroundColor: { role: "surface.base", alpha: 0 } },
+      "button.default.root.open": { backgroundColor: { role: "surface.hover", alpha: 0.5 } },
+    },
+  });
+  const reduced = css
+    .split("@media (prefers-reduced-transparency:reduce){")[1]
+    ?.split("@media (forced-colors:active){")[0];
+  expect(reduced).toContain("@starting-style{");
+  expect(reduced).not.toContain("color-mix(in oklab");
+});
+
 test("every_recipe_property_projects", () => {
   const px = { value: 2, unit: "px" } as const;
   const recipe: Required<ResolvedRecipe> = {
@@ -128,7 +155,9 @@ test("states_equal_to_rest_emit_no_rule", () => {
     // Hover has a separate native-hover media rule and a data-attribute rule.
     const hover = different.filter(([key]) => key.endsWith(".hover")).length;
     const open = different.filter(([key]) => key.endsWith(".open")).length;
-    const css = sheet(system).split("@media (forced-colors:active){")[0]!;
+    const css = sheet(system).split(
+      /@media \(prefers-reduced-transparency:reduce\)|@media \(forced-colors:active\)/,
+    )[0]!;
     expect([...css.matchAll(/\{[^{}]*\}/g)].filter((rule) => !rule[0].includes("--lf-r-")).length).toBe(
       1 + different.length + hover + open,
     );
@@ -201,7 +230,7 @@ test("entry_rules_only_where_open_differs", () => {
         recipeDeclarations(recipe ?? {}) !==
           recipeDeclarations(resolved[key.replace(/\.open$/, ".rest") as RecipeKey] ?? {}),
     );
-    const css = sheet(system);
+    const css = sheet(system).split("@media (prefers-reduced-transparency:reduce){")[0] ?? "";
     expect(css.match(/@starting-style\{/g)?.length ?? 0).toBe(entries.length);
     for (const [key] of entries) {
       const cls = slotClass(...(key.split(".").slice(0, 3) as [string, string, string]));

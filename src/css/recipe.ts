@@ -1,7 +1,13 @@
+import type { ColourValue } from "../formats/dtcg.ts";
 import type { ResolvedRecipe } from "../formats/design-system.ts";
 import { noPaint, recipeProperties } from "../formats/fixed.ts";
 import { colourVar, typographyVar } from "./names.ts";
 
+function colourValue(value: ColourValue<number>): string {
+  if (value === noPaint) return "transparent";
+  if (typeof value === "string") return `var(${colourVar(value)})`;
+  return `color-mix(in oklab, var(${colourVar(value.role)}) ${Number((value.alpha * 100).toFixed(2))}%, transparent)`;
+}
 const dimension = (value: { readonly value: number; readonly unit: string }): string => `${value.value}${value.unit}`;
 const transitionProperties =
   "background-color,color,border-color,outline-color,opacity,translate,box-shadow,backdrop-filter";
@@ -18,10 +24,10 @@ const typeFields = {
 type Property = (typeof recipeProperties)[number];
 const properties: { [P in Property]: (value: NonNullable<ResolvedRecipe[P]>, recipe: ResolvedRecipe) => string } = {
   backgroundColor: (value, recipe) =>
-    `background-color:${value === noPaint ? "transparent" : recipe.backgroundOpacity === undefined ? `var(${colourVar(value)})` : `color-mix(in srgb, var(${colourVar(value)}) calc(var(--lf-alpha) * 100%), transparent)`}`,
-  textColor: (value) => `color:var(${colourVar(value)})`,
-  borderColor: (value) => `border-color:${value === noPaint ? "transparent" : `var(${colourVar(value)})`}`,
-  outlineColor: (value) => `outline-color:${value === noPaint ? "transparent" : `var(${colourVar(value)})`}`,
+    `background-color:${value === noPaint || recipe.backgroundOpacity === undefined ? colourValue(value) : `color-mix(in srgb, ${colourValue(value)} calc(var(--lf-alpha) * 100%), transparent)`}`,
+  textColor: (value) => `color:${colourValue(value)}`,
+  borderColor: (value) => `border-color:${colourValue(value)}`,
+  outlineColor: (value) => `outline-color:${colourValue(value)}`,
   borderWidth: (value, recipe) =>
     `border-width:${dimension(value)}${recipe.borderStyle === undefined ? ";border-style:solid" : ""}`,
   borderTopWidth: (value, recipe) =>
@@ -46,7 +52,7 @@ const properties: { [P in Property]: (value: NonNullable<ResolvedRecipe[P]>, rec
   backgroundOpacity: (value) => `--lf-alpha:${value}`,
   shadow: (value) => {
     const layers = Array.isArray(value) ? value : [value];
-    return `box-shadow:${layers.length ? layers.map((layer) => `${layer.inset ? "inset " : ""}${[layer.offsetX, layer.offsetY, layer.blur, layer.spread].map(dimension).join(" ")} var(${colourVar(layer.color)})`).join(",") : "none"}`;
+    return `box-shadow:${layers.length ? layers.map((layer) => `${layer.inset ? "inset " : ""}${[layer.offsetX, layer.offsetY, layer.blur, layer.spread].map(dimension).join(" ")} ${colourValue(layer.color)}`).join(",") : "none"}`;
   },
   backdropBlur: (value, recipe) =>
     `backdrop-filter:blur(${dimension(value)}) saturate(${recipe.backdropSaturate ?? 1})`,

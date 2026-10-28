@@ -86,13 +86,10 @@ function colour(value: string): Theme["colours"][string] {
   };
 }
 
-const alphaRoles = new Map<string, { role: string; opacity: number }>();
 function shadows(layers: readonly ShadowLayer[]) {
   return layers.map((layer) => {
-    const name = `${layer.colorRole}.alpha-${String(layer.opacity).replace(".", "-")}`;
-    alphaRoles.set(name, { role: layer.colorRole, opacity: layer.opacity });
     return {
-      color: name,
+      color: { role: layer.colorRole, alpha: layer.opacity },
       offsetX: px(layer.x),
       offsetY: px(layer.y),
       blur: px(layer.blur),
@@ -149,7 +146,7 @@ const catalog: Catalog = checked(
     vocabulary: {
       ...baseCatalog.vocabulary,
       surfaceTypography: "body",
-      colourRoles: [...baseCatalog.vocabulary.colourRoles, ...alphaRoles.keys()],
+      colourRoles: baseCatalog.vocabulary.colourRoles,
     },
   }),
 );
@@ -158,11 +155,6 @@ documents.vocabulary = catalog.vocabulary;
 
 function theme(input: ProofTheme): Theme {
   const colours = Object.fromEntries(Object.entries(input.colours).map(([name, value]) => [name, colour(value)]));
-  for (const [name, { role, opacity }] of alphaRoles) {
-    const base = colours[role];
-    ok(base, "Missing proof shadow role");
-    colours[name] = { ...base, alpha: (base.alpha ?? 1) * opacity };
-  }
   return {
     format: "liveframe-theme/1",
     id: input.id,
@@ -194,7 +186,7 @@ for (const [i, source] of ([certifiedDesignSystem, rackDesignSystem] as ProofSys
   const table = resolveRecipes(ds, { catalog, registry: {} });
   const expected = recipes(source, true);
   deepStrictEqual(table, Object.assign(Object.create(null), expected), `${source.id} recipe conversion drift`);
-  // Expand alpha roles back to source role + opacity before comparing the proof's shadow layers.
+  // Compare role modifiers against the original proof shadow colour and opacity.
   for (const [key, recipe] of Object.entries(source.recipes)) {
     const value = typeof recipe.shadow === "string" ? source.values[recipe.shadow]?.value : recipe.shadow;
     if (!Array.isArray(value)) continue;
@@ -202,18 +194,16 @@ for (const [i, source] of ([certifiedDesignSystem, rackDesignSystem] as ProofSys
     ok(Array.isArray(converted));
     deepStrictEqual(
       converted.map((layer) => {
-        const alpha = alphaRoles.get(layer.color);
-        ok(alpha);
-        const base = convertedTheme.colours[alpha.role];
-        ok(base);
-        deepStrictEqual(convertedTheme.colours[layer.color], { ...base, alpha: (base.alpha ?? 1) * alpha.opacity });
+        ok(typeof layer.color === "object");
+        const alpha = layer.color;
+        ok(convertedTheme.colours[alpha.role]);
         return {
           x: layer.offsetX.value,
           y: layer.offsetY.value,
           blur: layer.blur.value,
           spread: layer.spread.value,
           colorRole: alpha.role,
-          opacity: alpha.opacity,
+          opacity: alpha.alpha,
           ...(layer.inset === undefined ? {} : { inset: layer.inset }),
         };
       }),

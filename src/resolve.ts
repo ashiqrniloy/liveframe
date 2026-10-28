@@ -7,6 +7,7 @@ import {
   type RecipeKey,
   type ResolvedRecipe,
 } from "./formats/design-system.ts";
+import type { ColourValue, ShadowLayer } from "./formats/dtcg.ts";
 import { states } from "./formats/fixed.ts";
 import { LiveframeFailure, type LiveframeError } from "./errors.ts";
 
@@ -17,6 +18,16 @@ export function cascadeRecipes(
   catalog: Catalog,
   reject: (pointer: string, message: string, kind: LiveframeError["kind"]) => void = () => {},
 ): ResolvedRecipes {
+  function colour(value: ColourValue): ColourValue {
+    return !value || typeof value !== "object" || typeof value.alpha !== "string"
+      ? value
+      : { role: value.role, alpha: ds.values[value.alpha]?.value as number };
+  }
+  function shadow(value: ShadowLayer | readonly ShadowLayer[]) {
+    const layer = (entry: ShadowLayer): ShadowLayer =>
+      entry && typeof entry === "object" ? { ...entry, color: colour(entry.color) } : entry;
+    return Array.isArray(value) ? value.map(layer) : layer(value as ShadowLayer);
+  }
   const table: Partial<Record<RecipeKey, ResolvedRecipe>> = Object.create(null);
   for (const definition of catalog.definitions) {
     const { kind } = definition;
@@ -36,22 +47,30 @@ export function cascadeRecipes(
             ...ds.recipes[`${specific}.${state}` as RecipeKey],
           };
           table[`${specific}.${state}` as RecipeKey] = Object.fromEntries(
-            Object.entries(merged).map(([property, value]) => [
-              property,
-              typeof value === "string" &&
-              Object.hasOwn(ds.values, value) &&
-              ![
-                "backgroundColor",
-                "textColor",
-                "borderColor",
-                "outlineColor",
-                "typography",
-                "borderStyle",
-                "outlineStyle",
-              ].includes(property)
-                ? ds.values[value]?.value
-                : value,
-            ]),
+            Object.entries(merged).map(([property, input]) => {
+              const value =
+                typeof input === "string" &&
+                Object.hasOwn(ds.values, input) &&
+                ![
+                  "backgroundColor",
+                  "textColor",
+                  "borderColor",
+                  "outlineColor",
+                  "typography",
+                  "borderStyle",
+                  "outlineStyle",
+                ].includes(property)
+                  ? ds.values[input]?.value
+                  : input;
+              return [
+                property,
+                property === "shadow"
+                  ? shadow(value as ShadowLayer | readonly ShadowLayer[])
+                  : ["backgroundColor", "textColor", "borderColor", "outlineColor"].includes(property)
+                    ? colour(value as ColourValue)
+                    : value,
+              ];
+            }),
           );
         }
       }

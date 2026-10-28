@@ -60,6 +60,79 @@ const recipe = (properties: unknown) => ({
   recipes: { ...system.recipes, "button.*.root.rest": properties },
 });
 
+test("alpha_modifier_validates", () => {
+  const validate = new Ajv2020({ strict: true, multipleOfPrecision: 8 }).compile(schemaDocument("design-system"));
+  for (const alpha of [0, 1, 0.1234, "opacity.subtle"]) {
+    const doc = {
+      ...recipe({ backgroundColor: { role: "ink", alpha } }),
+      values: { ...system.values, "opacity.subtle": { kind: "opacity", value: 0.1234 } },
+    };
+    expect(validateDesignSystem(doc, context).ok).toBe(true);
+    expect(validate(doc)).toBe(true);
+  }
+  for (const value of [
+    { role: "ink", alpha: -0.1 },
+    { role: "ink", alpha: 1.1 },
+    { role: "ink", alpha: 0.12345 },
+    { role: "ink", alpha: Infinity },
+    { role: "ink", alpha: "missing" },
+    { role: "ink", alpha: "space.1" },
+    { role: "none", alpha: 1 },
+    { role: "#fff", alpha: 1 },
+    { role: "ink", alpha: 1, extra: true },
+    { role: "ink" },
+  ])
+    expect(validateDesignSystem(recipe({ borderColor: value }), context).ok).toBe(false);
+  expect(validateDesignSystem(recipe({ padding: { role: "ink", alpha: 1 } }), context).ok).toBe(false);
+  const doc = {
+    ...recipe({ textColor: { role: "ink", alpha: "opacity.fine" } }),
+    values: { ...system.values, "opacity.fine": { kind: "opacity", value: 0.12345 } },
+  };
+  expect(validateDesignSystem(doc, context).ok).toBe(false);
+  expect(validateDesignSystem({ ...doc, recipes: system.recipes }, context).ok).toBe(true);
+});
+
+test("alpha_modifiers_cover_every_colour_and_shadow_layer", () => {
+  const validate = new Ajv2020({ strict: true, multipleOfPrecision: 8 }).compile(schemaDocument("design-system"));
+  const px = { value: 1, unit: "px" };
+  const layer = (color: unknown) => ({ color, offsetX: px, offsetY: px, blur: px, spread: px });
+  for (const alpha of [0, 0.0001, 0.57, 0.9999, 1, "opacity.subtle"]) {
+    const color = { role: "ink", alpha };
+    for (const properties of [
+      { backgroundColor: color, textColor: color, borderColor: color, outlineColor: color },
+      { shadow: layer(color) },
+      { shadow: [layer(color)] },
+      { shadow: "shadow.soft" },
+    ]) {
+      const doc = {
+        ...recipe(properties),
+        values: {
+          ...system.values,
+          "opacity.subtle": { kind: "opacity", value: 0.57 },
+          "shadow.soft": { kind: "shadow", value: [layer(color)] },
+        },
+      };
+      expect(validateDesignSystem(doc, context).ok).toBe(true);
+      expect(validate(doc)).toBe(true);
+    }
+  }
+  for (const alpha of ["missing", "space.1", -1, 2, 0.12345]) {
+    const color = { role: "ink", alpha };
+    expect(validateDesignSystem(recipe({ shadow: [layer(color)] }), context).ok).toBe(false);
+    expect(
+      validateDesignSystem(
+        { ...system, values: { ...system.values, "shadow.soft": { kind: "shadow", value: layer(color) } } },
+        context,
+      ).ok,
+    ).toBe(false);
+  }
+  rejects(
+    recipe({ outlineColor: { role: "ink", alpha: "missing" } }),
+    "unknown-name",
+    "/recipes/button.*.root.rest/outlineColor/alpha",
+  );
+});
+
 test("colour_only_from_theme_roles", () => {
   for (const colour of ["#fff", "rgb(0 0 0)", "missing", { colorSpace: "srgb", components: [0, 0, 0] }]) {
     rejects(recipe({ backgroundColor: colour }), "colour-outside-theme", "/recipes/button.*.root.rest/backgroundColor");
@@ -111,7 +184,7 @@ test("recipe_keys_and_properties_are_closed", () => {
     expect(validateDesignSystem(recipe(properties), context).ok).toBe(false);
 });
 test("design_system_structure_agrees_with_schema", () => {
-  const validate = new Ajv2020({ strict: true }).compile(schemaDocument("design-system"));
+  const validate = new Ajv2020({ strict: true, multipleOfPrecision: 8 }).compile(schemaDocument("design-system"));
   for (const doc of [
     system,
     null,
@@ -195,9 +268,13 @@ test("rack_validates_and_resolves_under_50ms", async () => {
     new URL("./fixtures/rack.design-system-vocabulary.json", import.meta.url),
   ).json();
   const options = { catalog: proofCatalog, registry: {} };
+  expect(proofCatalog.vocabulary.colourRoles.some((role: string) => role.includes(".alpha-"))).toBe(false);
+  expect(JSON.stringify(doc)).not.toContain(".alpha-");
   expect(Object.keys(doc.recipes)).toHaveLength(616);
   expect(validateDesignSystem(doc, options).ok).toBe(true);
-  expect(new Ajv2020({ strict: true }).compile(schemaDocument("design-system"))(doc)).toBe(true);
+  expect(new Ajv2020({ strict: true, multipleOfPrecision: 8 }).compile(schemaDocument("design-system"))(doc)).toBe(
+    true,
+  );
   const table = resolveRecipes(doc, options);
   expect(Object.keys(table)).toHaveLength(616);
   expect(table["button.default.root.rest"]?.transitionTiming).toEqual([0.16, 1, 0.3, 1]);
@@ -246,7 +323,7 @@ test("inheritance_and_completeness_fail_closed", () => {
 });
 
 test("none_accepted_on_colour_properties_only", () => {
-  const schema = new Ajv2020({ strict: true }).compile(schemaDocument("design-system"));
+  const schema = new Ajv2020({ strict: true, multipleOfPrecision: 8 }).compile(schemaDocument("design-system"));
   for (const property of ["backgroundColor", "borderColor", "outlineColor"]) {
     const doc = recipe({ [property]: "none" });
     expect(validateDesignSystem(doc, context).ok).toBe(true);

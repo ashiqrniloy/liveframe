@@ -43,19 +43,7 @@
     "patch.2",
     "patch.3",
     "patch.4",
-    "patch.5",
-    "shadow.ambient.alpha-0-14",
-    "shadow.ambient.alpha-0-45",
-    "shadow.highlight.alpha-0-9",
-    "shadow.ambient.alpha-0-1",
-    "shadow.ambient.alpha-0-22",
-    "border.hairline.alpha-1",
-    "border.subtle.alpha-1",
-    "text.primary.alpha-1",
-    "accent.soft.alpha-1",
-    "surface.scrim.alpha-0-55",
-    "surface.scrim.alpha-0-22",
-    "border.subtle.alpha-0-58"
+    "patch.5"
   ],
   "surfaceRoles": [
     "surface.base",

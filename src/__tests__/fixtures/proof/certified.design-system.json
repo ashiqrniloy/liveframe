@@ -139,7 +139,10 @@
       "kind": "shadow",
       "value": [
         {
-          "color": "shadow.ambient.alpha-0-14",
+          "color": {
+            "role": "shadow.ambient",
+            "alpha": 0.14
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -158,7 +161,10 @@
           }
         },
         {
-          "color": "shadow.ambient.alpha-0-45",
+          "color": {
+            "role": "shadow.ambient",
+            "alpha": 0.45
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -182,7 +188,10 @@
       "kind": "shadow",
       "value": [
         {
-          "color": "shadow.highlight.alpha-0-9",
+          "color": {
+            "role": "shadow.highlight",
+            "alpha": 0.9
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -202,7 +211,10 @@
           "inset": true
         },
         {
-          "color": "shadow.ambient.alpha-0-1",
+          "color": {
+            "role": "shadow.ambient",
+            "alpha": 0.1
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -221,7 +233,10 @@
           }
         },
         {
-          "color": "shadow.ambient.alpha-0-22",
+          "color": {
+            "role": "shadow.ambient",
+            "alpha": 0.22
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -266,7 +281,10 @@
       "gap": "space.3",
       "shadow": [
         {
-          "color": "border.hairline.alpha-1",
+          "color": {
+            "role": "border.hairline",
+            "alpha": 1
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -294,7 +312,10 @@
       "gap": "space.3",
       "shadow": [
         {
-          "color": "border.hairline.alpha-1",
+          "color": {
+            "role": "border.hairline",
+            "alpha": 1
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -322,7 +343,10 @@
       "gap": "space.3",
       "shadow": [
         {
-          "color": "border.hairline.alpha-1",
+          "color": {
+            "role": "border.hairline",
+            "alpha": 1
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -350,7 +374,10 @@
       "gap": "space.3",
       "shadow": [
         {
-          "color": "border.hairline.alpha-1",
+          "color": {
+            "role": "border.hairline",
+            "alpha": 1
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -378,7 +405,10 @@
       "gap": "space.3",
       "shadow": [
         {
-          "color": "border.hairline.alpha-1",
+          "color": {
+            "role": "border.hairline",
+            "alpha": 1
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -406,7 +436,10 @@
       "gap": "space.3",
       "shadow": [
         {
-          "color": "border.hairline.alpha-1",
+          "color": {
+            "role": "border.hairline",
+            "alpha": 1
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -434,7 +467,10 @@
       "gap": "space.3",
       "shadow": [
         {
-          "color": "border.hairline.alpha-1",
+          "color": {
+            "role": "border.hairline",
+            "alpha": 1
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -462,7 +498,10 @@
       "gap": "space.3",
       "shadow": [
         {
-          "color": "border.hairline.alpha-1",
+          "color": {
+            "role": "border.hairline",
+            "alpha": 1
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -3701,7 +3740,10 @@
       "transitionTiming": "expo-out",
       "shadow": [
         {
-          "color": "border.subtle.alpha-1",
+          "color": {
+            "role": "border.subtle",
+            "alpha": 1
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
@@ -3809,7 +3851,10 @@
       "transitionTiming": "expo-out",
       "shadow": [
         {
-          "color": "text.primary.alpha-1",
+          "color": {
+            "role": "text.primary",
+            "alpha": 1
+          },
           "offsetX": {
             "value": 0,
             "unit": "px"
