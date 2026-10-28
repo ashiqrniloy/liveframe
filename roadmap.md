@@ -155,3 +155,4 @@ One line per plan. Detail lives in the plan file, never here.
 | [013](plans/013-Phase-6-Part-B-Packaging-Demo-And-Release.md) | 6 | complete (Tasks 1–14; 0.1.0 published and verified; impact findings disposed) |
 | [014](plans/014-Phase-7-Part-A-Release-Scope-Packaging-And-Schema-Language.md) | 7 | in progress (0.2.0; Task 1 complete: approved scope and breaking changes) |
 | [015](plans/015-Phase-7-Part-B-Events-Manifests-Capabilities-And-State.md) | 7 | complete (0.2.0; Tasks 1–9; impact finding retains the existing approved P1 performance backlog; integration handoffs recorded) |
+| [016](plans/016-Phase-7-Part-C-Styling-Paint-Alpha-Contrast-And-Native-Parts.md) | 7 | in progress (0.2.0; Task 1 complete: styling format decisions recorded) |
