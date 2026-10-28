@@ -217,7 +217,9 @@ test("colour_authority_holds", async () => {
       if (property === "color" || property?.endsWith("-color")) {
         const responsive =
           /^(?:var\(--lf-r-(?:surface|fill|tone)__[\w]+__(?:backgroundColor|color),)*var\(--lf-r-(?:surface|fill|tone)__[\w]+__(?:backgroundColor|color)\)\)*$/;
-        const oneColour = String.raw`(?:var\(--lf-c-[\w-]+\)|transparent|currentColor|color-mix\(in srgb, var\(--lf-c-[\w-]+\) calc\(var\(--lf-alpha\) \* 100%\), transparent\))`;
+        // A role, or a role under an alpha modifier; `none` is `transparent`.
+        const role = String.raw`(?:var\(--lf-c-[\w-]+\)|color-mix\(in oklab, var\(--lf-c-[\w-]+\) [\d.]+%, transparent\))`;
+        const oneColour = String.raw`(?:${role}|transparent|currentColor|color-mix\(in srgb, ${role} calc\(var\(--lf-alpha\) \* 100%\), transparent\))`;
         const themeColour = new RegExp(`^${property === "scrollbar-color" ? `${oneColour} ${oneColour}` : oneColour}$`);
         expect(
           themeColour.test(value ?? "") ||
@@ -236,9 +238,43 @@ test("colour_authority_holds", async () => {
       expect(catalog.vocabulary.colourRoles.map((role) => role.replaceAll(".", "_"))).toContain(name ?? "");
     }
   }
-  for (const name of ["certified", "rack"]) {
-    const system: DesignSystem = await read(`${name}.design-system`);
-    const projected = css(designSystemCss(system, { catalog, registry: {} }));
+  // No shipped recipe puts an alpha modifier on a colour property, so Rack carries one of every value form.
+  const rack: DesignSystem = await read("rack.design-system");
+  const opacity = Object.keys(rack.values ?? {}).find((name) => name.startsWith("opacity."));
+  if (!opacity) throw new Error("Missing proof opacity value");
+  const viewport = "scroll.default.viewport.rest";
+  const everyForm: DesignSystem = {
+    ...rack,
+    recipes: {
+      ...rack.recipes,
+      [viewport]: {
+        ...rack.recipes?.[viewport],
+        backgroundColor: { role: "surface.raised", alpha: 0.25 },
+        backgroundOpacity: 0.5,
+        textColor: { role: "text.primary", alpha: opacity },
+        borderColor: { role: "border.hairline", alpha: 0 },
+        outlineColor: "none",
+        placeholderColor: { role: "text.muted", alpha: 0.5 },
+        scrollbarThumbColor: { role: "surface.scrollbar", alpha: 1 },
+        scrollbarTrackColor: "none",
+      },
+    },
+  };
+  const projectedForms = css(designSystemCss(everyForm, { catalog, registry: {} }));
+  for (const form of [
+    "border-color:color-mix(in oklab, var(--lf-c-border_hairline) 0%, transparent)",
+    "color:color-mix(in oklab, var(--lf-c-text_primary)",
+    "outline-color:transparent",
+    "background-color:color-mix(in srgb, color-mix(in oklab, var(--lf-c-surface_raised) 25%, transparent)",
+    "scrollbar-color:color-mix(in oklab, var(--lf-c-surface_scrollbar) 100%, transparent) transparent",
+  ])
+    expect(projectedForms).toContain(form);
+  for (const [name, system] of [
+    ["certified", await read("certified.design-system")],
+    ["rack", rack],
+    ["every form", everyForm],
+  ] as const) {
+    const projected = name === "every form" ? projectedForms : css(designSystemCss(system, { catalog, registry: {} }));
     check(projected);
     for (const [, role] of projected.matchAll(/--lf-c-([\w-]+)/g))
       expect(catalog.vocabulary.colourRoles.map((role) => role.replaceAll(".", "_"))).toContain(role ?? "");
@@ -250,6 +286,9 @@ test("colour_authority_holds", async () => {
   expect(() => check(".leak{outline:1px solid CanvasText}")).toThrow();
   expect(() => check("@media (forced-colors:active){.ok{color:GrayText}}.leak{color:Highlight}")).toThrow();
   expect(() => check(".leak{box-shadow:0 0 1px rgb(0 0 0)}")).toThrow();
+  expect(() => check(".leak{border-color:color-mix(in oklab, red 50%, transparent)}")).toThrow();
+  expect(() => check(".leak{border-color:color-mix(in oklab, var(--lf-c-ink) 50%, red)}")).toThrow();
+  expect(() => check(".leak{color:color-mix(in oklab, #fff 50%, transparent)}")).toThrow();
 });
 
 test("projection_is_deterministic", () => {
