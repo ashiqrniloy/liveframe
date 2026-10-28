@@ -2190,7 +2190,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "jack.p1.root.rest": {
-    backgroundColor: "patch.1",
+    backgroundColor: "identity.1",
     borderWidth: 0,
     borderRadius: 9999,
     shadow: [
@@ -2209,7 +2209,7 @@ export const rackSourceRecipes = {
         y: 0,
         blur: 0,
         spread: 3,
-        colorRole: "patch.1",
+        colorRole: "identity.1",
         opacity: 0.45,
       },
     ],
@@ -2217,10 +2217,10 @@ export const rackSourceRecipes = {
   "jack.p1.cable.rest": {
     borderWidth: 0,
     borderRadius: 0,
-    textColor: "patch.1",
+    textColor: "identity.1",
   },
   "jack.p2.root.rest": {
-    backgroundColor: "patch.2",
+    backgroundColor: "identity.2",
     borderWidth: 0,
     borderRadius: 9999,
     shadow: [
@@ -2239,7 +2239,7 @@ export const rackSourceRecipes = {
         y: 0,
         blur: 0,
         spread: 3,
-        colorRole: "patch.2",
+        colorRole: "identity.2",
         opacity: 0.45,
       },
     ],
@@ -2247,10 +2247,10 @@ export const rackSourceRecipes = {
   "jack.p2.cable.rest": {
     borderWidth: 0,
     borderRadius: 0,
-    textColor: "patch.2",
+    textColor: "identity.2",
   },
   "jack.p3.root.rest": {
-    backgroundColor: "patch.3",
+    backgroundColor: "identity.3",
     borderWidth: 0,
     borderRadius: 9999,
     shadow: [
@@ -2269,7 +2269,7 @@ export const rackSourceRecipes = {
         y: 0,
         blur: 0,
         spread: 3,
-        colorRole: "patch.3",
+        colorRole: "identity.3",
         opacity: 0.45,
       },
     ],
@@ -2277,10 +2277,10 @@ export const rackSourceRecipes = {
   "jack.p3.cable.rest": {
     borderWidth: 0,
     borderRadius: 0,
-    textColor: "patch.3",
+    textColor: "identity.3",
   },
   "jack.p4.root.rest": {
-    backgroundColor: "patch.4",
+    backgroundColor: "identity.4",
     borderWidth: 0,
     borderRadius: 9999,
     shadow: [
@@ -2299,7 +2299,7 @@ export const rackSourceRecipes = {
         y: 0,
         blur: 0,
         spread: 3,
-        colorRole: "patch.4",
+        colorRole: "identity.4",
         opacity: 0.45,
       },
     ],
@@ -2307,10 +2307,10 @@ export const rackSourceRecipes = {
   "jack.p4.cable.rest": {
     borderWidth: 0,
     borderRadius: 0,
-    textColor: "patch.4",
+    textColor: "identity.4",
   },
   "jack.p5.root.rest": {
-    backgroundColor: "patch.5",
+    backgroundColor: "identity.5",
     borderWidth: 0,
     borderRadius: 9999,
     shadow: [
@@ -2329,7 +2329,7 @@ export const rackSourceRecipes = {
         y: 0,
         blur: 0,
         spread: 3,
-        colorRole: "patch.5",
+        colorRole: "identity.5",
         opacity: 0.45,
       },
     ],
@@ -2337,7 +2337,7 @@ export const rackSourceRecipes = {
   "jack.p5.cable.rest": {
     borderWidth: 0,
     borderRadius: 0,
-    textColor: "patch.5",
+    textColor: "identity.5",
   },
   "jack.none.root.rest": {
     backgroundColor: "none",
@@ -2651,6 +2651,7 @@ for (const prefix of [
   "menuItem.danger.label",
   "menuItem.danger.icon",
   "tab.default.label",
+  "tab.default.count",
 ])
   seeds[`${prefix}.rest`] = {};
 
@@ -2708,6 +2709,7 @@ const textRoles = {
   "menu.default.trigger": "label",
   "popover.default.trigger": "label",
   "tab.default.label": "label",
+  "tab.default.count": "mono",
   "dialog.default.title": "heading.3",
   "tooltip.default.content": "label",
   "button.default.root": "label",

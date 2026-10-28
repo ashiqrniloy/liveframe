@@ -107,7 +107,8 @@
                     "kind": "tab",
                     "props": {
                       "value": "all",
-                      "label": "All 50"
+                      "label": "All",
+                      "count": "50"
                     }
                   },
                   {
@@ -115,7 +116,8 @@
                     "kind": "tab",
                     "props": {
                       "value": "decisions",
-                      "label": "Decisions 50"
+                      "label": "Decisions",
+                      "count": "50"
                     }
                   },
                   {
@@ -123,7 +125,8 @@
                     "kind": "tab",
                     "props": {
                       "value": "tasks",
-                      "label": "Tasks 0"
+                      "label": "Tasks",
+                      "count": "0"
                     }
                   },
                   {
@@ -131,7 +134,8 @@
                     "kind": "tab",
                     "props": {
                       "value": "alerts",
-                      "label": "Alerts 0"
+                      "label": "Alerts",
+                      "count": "0"
                     }
                   }
                 ]
@@ -186,6 +190,7 @@
                                   "name": "seal-brand"
                                 },
                                 "style": {
+                                  "tone": "foil",
                                   "width": "size.glyph",
                                   "height": "size.glyph"
                                 }
@@ -247,6 +252,9 @@
                                         "kind": "icon",
                                         "props": {
                                           "name": "mk-dashed"
+                                        },
+                                        "style": {
+                                          "tone": "warning"
                                         }
                                       },
                                       {
@@ -587,6 +595,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -683,6 +692,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -779,6 +789,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -875,6 +886,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -971,6 +983,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -1067,6 +1080,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -1163,6 +1177,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -1259,6 +1274,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -1355,6 +1371,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -1451,6 +1468,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -1547,6 +1565,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -1643,6 +1662,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -1739,6 +1759,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -1835,6 +1856,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -1931,6 +1953,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -2027,6 +2050,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -2123,6 +2147,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -2219,6 +2244,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -2315,6 +2341,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -2411,6 +2438,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -2507,6 +2535,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -2603,6 +2632,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -2699,6 +2729,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -2795,6 +2826,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -2891,6 +2923,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -2987,6 +3020,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -3083,6 +3117,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -3179,6 +3214,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -3275,6 +3311,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -3371,6 +3408,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -3467,6 +3505,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -3563,6 +3602,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -3659,6 +3699,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -3755,6 +3796,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -3851,6 +3893,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -3947,6 +3990,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -4043,6 +4087,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -4139,6 +4184,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -4235,6 +4281,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -4331,6 +4378,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -4427,6 +4475,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -4523,6 +4572,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -4619,6 +4669,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -4715,6 +4766,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -4811,6 +4863,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -4907,6 +4960,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -5003,6 +5057,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -5099,6 +5154,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -5195,6 +5251,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }
@@ -5291,6 +5348,7 @@
                                           "name": "mk-dashed"
                                         },
                                         "style": {
+                                          "tone": "warning",
                                           "width": "space.4",
                                           "shrink": 0
                                         }

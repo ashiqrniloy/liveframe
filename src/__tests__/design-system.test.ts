@@ -270,13 +270,13 @@ test("rack_validates_and_resolves_under_50ms", async () => {
   const options = { catalog: proofCatalog, registry: {} };
   expect(proofCatalog.vocabulary.colourRoles.some((role: string) => role.includes(".alpha-"))).toBe(false);
   expect(JSON.stringify(doc)).not.toContain(".alpha-");
-  expect(Object.keys(doc.recipes)).toHaveLength(616);
+  expect(Object.keys(doc.recipes)).toHaveLength(624);
   expect(validateDesignSystem(doc, options).ok).toBe(true);
   expect(new Ajv2020({ strict: true, multipleOfPrecision: 8 }).compile(schemaDocument("design-system"))(doc)).toBe(
     true,
   );
   const table = resolveRecipes(doc, options);
-  expect(Object.keys(table)).toHaveLength(616);
+  expect(Object.keys(table)).toHaveLength(624);
   expect(table["button.default.root.rest"]?.transitionTiming).toEqual([0.16, 1, 0.3, 1]);
   expect(table["button.default.root.rest"]?.gap).toEqual({ value: 8, unit: "px" });
   for (let i = 0; i < 5; i++) {

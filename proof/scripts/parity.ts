@@ -125,9 +125,12 @@ async function capture(page: Page, approved: boolean, width: number, align?: { x
     (root, { approved, properties }) => {
       const text = (element: Element) => (element.textContent ?? "").replace(/\s+/g, " ").trim();
       const elements = [root, ...root.querySelectorAll("*")];
-      const exact = (value: string) =>
+      const exact = (value: string, outside?: string) =>
         elements.find(
-          (element) => text(element) === value && ![...element.children].some((child) => text(child) === value),
+          (element) =>
+            text(element) === value &&
+            ![...element.children].some((child) => text(child) === value) &&
+            !(outside && element.closest(outside)),
         );
       const heading = elements.find(
         (element) => /^H[1-6]$/.test(element.tagName) && text(element).startsWith("Apply the vendor"),
@@ -152,7 +155,7 @@ async function capture(page: Page, approved: boolean, width: number, align?: { x
         rows: root.querySelector("aside"),
         row: firstRow,
         rowTitle: approved ? firstRow?.querySelector(".line__title") : firstRow?.querySelector("span"),
-        category: exact("Decisions"),
+        category: exact("Decisions", '[role="tab"]'),
         pager: approved ? root.querySelector(".cursor-nav") : root.querySelector("nav"),
         next: exact("Next")?.closest("button"),
       };

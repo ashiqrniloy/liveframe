@@ -9545,6 +9545,30 @@
     "tab.default.label.open": {
       "typography": "label"
     },
+    "tab.default.count.rest": {
+      "typography": "mono"
+    },
+    "tab.default.count.hover": {
+      "typography": "mono"
+    },
+    "tab.default.count.active": {
+      "typography": "mono"
+    },
+    "tab.default.count.focus": {
+      "typography": "mono"
+    },
+    "tab.default.count.disabled": {
+      "typography": "mono"
+    },
+    "tab.default.count.selected": {
+      "typography": "mono"
+    },
+    "tab.default.count.invalid": {
+      "typography": "mono"
+    },
+    "tab.default.count.open": {
+      "typography": "mono"
+    },
     "tab.default.panel.rest": {
       "backgroundColor": "none",
       "borderWidth": {

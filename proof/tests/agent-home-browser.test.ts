@@ -139,3 +139,30 @@ test("agent_home_scenarios_are_reachable_and_readonly_hides_actions", async () =
     await page.close();
   }
 }, 20000);
+
+for (const system of ["certified", "rack"])
+  test(`tab_count_renders_in_own_slot_${system}`, async () => {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    page.setDefaultTimeout(5000);
+    try {
+      await page.goto(new URL("/ui/agent-home", server.url).toString());
+      await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+      await page.getByLabel("Design system").selectOption(system);
+      const tab = page.getByRole("tab", { name: "All 12", exact: true });
+      await tab.waitFor();
+      // "All 12" is two runs, each in the face its own slot's recipe gives it.
+      const runs = await tab.evaluate((element) =>
+        Array.from(element.querySelectorAll("*"))
+          .filter((child) => child.children.length === 0)
+          .map((child) => {
+            const style = getComputedStyle(child);
+            return { text: child.textContent, family: style.fontFamily };
+          }),
+      );
+      expect(runs.map((run) => run.text)).toEqual(["All", "12"]);
+      expect(runs[1]?.family).not.toBe(runs[0]?.family);
+      expect(runs[1]?.family).toMatch(/mono/i);
+    } finally {
+      await page.close();
+    }
+  });

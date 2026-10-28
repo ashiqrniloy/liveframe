@@ -42,11 +42,11 @@ export const colourRoles = [
   "status.critical",
   "shadow.ambient",
   "shadow.highlight",
-  "patch.1",
-  "patch.2",
-  "patch.3",
-  "patch.4",
-  "patch.5",
+  "identity.1",
+  "identity.2",
+  "identity.3",
+  "identity.4",
+  "identity.5",
 ] as const;
 export type ColourRole = (typeof colourRoles)[number];
 export const typographyRoles = [
@@ -133,11 +133,11 @@ export const fillableRoles = [
   "diagnostic.error.soft",
   "diagnostic.warning.soft",
   "status.critical",
-  "patch.1",
-  "patch.2",
-  "patch.3",
-  "patch.4",
-  "patch.5",
+  "identity.1",
+  "identity.2",
+  "identity.3",
+  "identity.4",
+  "identity.5",
 ] as const satisfies readonly ColourRole[];
 
 export interface Recipe {

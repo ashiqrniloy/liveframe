@@ -237,3 +237,21 @@ test.skipIf(!hasReferences)("themes_keep_reference_colour_authority", async () =
       certifiedTheme.colours[role as keyof typeof roles],
     );
 });
+
+test("certified_identity_roles_distinct", () => {
+  const { colours } = certifiedTheme;
+  const fillable: readonly string[] = fillableRoles;
+  const identity = colourRoles.filter((role) => role.startsWith("identity."));
+  expect(identity).toEqual(["identity.1", "identity.2", "identity.3", "identity.4", "identity.5"]);
+  for (const role of identity) expect(fillable).toContain(role);
+  // Five identity colours that no other role shares, so a Certified surface can tell five sessions apart.
+  const others = colourRoles.filter((role) => !role.startsWith("identity.")).map((role) => colours[role]);
+  const values = identity.map((role) => colours[role as keyof typeof colours]);
+  expect(new Set(values).size).toBe(5);
+  for (const value of values) expect(others).not.toContain(value);
+  // Diagnostic fills are distinct from each other and from the neutral accent wash.
+  const fills = ["diagnostic.error", "diagnostic.warning", "diagnostic.error.soft", "diagnostic.warning.soft"] as const;
+  expect(new Set(fills.map((role) => colours[role])).size).toBe(fills.length);
+  expect(fills.map((role) => colours[role])).not.toContain(colours["accent.soft"]);
+  for (const role of fills) expect(fillable).toContain(role);
+});

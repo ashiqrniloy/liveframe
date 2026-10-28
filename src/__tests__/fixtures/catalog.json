@@ -43,11 +43,11 @@
       "status.critical",
       "shadow.ambient",
       "shadow.highlight",
-      "patch.1",
-      "patch.2",
-      "patch.3",
-      "patch.4",
-      "patch.5"
+      "identity.1",
+      "identity.2",
+      "identity.3",
+      "identity.4",
+      "identity.5"
     ],
     "surfaceRoles": [
       "surface.base",
@@ -75,11 +75,11 @@
       "diagnostic.error.soft",
       "diagnostic.warning.soft",
       "status.critical",
-      "patch.1",
-      "patch.2",
-      "patch.3",
-      "patch.4",
-      "patch.5"
+      "identity.1",
+      "identity.2",
+      "identity.3",
+      "identity.4",
+      "identity.5"
     ],
     "tones": {
       "default": "text.primary",
@@ -153,7 +153,12 @@
               "listItem",
               "terms",
               "term",
-              "detail"
+              "detail",
+              "form",
+              "group",
+              "figure",
+              "status",
+              "alert"
             ],
             "maxLength": 8
           },
@@ -230,7 +235,12 @@
               "listItem",
               "terms",
               "term",
-              "detail"
+              "detail",
+              "form",
+              "group",
+              "figure",
+              "status",
+              "alert"
             ],
             "maxLength": 8
           },
@@ -305,7 +315,12 @@
               "listItem",
               "terms",
               "term",
-              "detail"
+              "detail",
+              "form",
+              "group",
+              "figure",
+              "status",
+              "alert"
             ],
             "maxLength": 8
           },
@@ -380,7 +395,12 @@
               "listItem",
               "terms",
               "term",
-              "detail"
+              "detail",
+              "form",
+              "group",
+              "figure",
+              "status",
+              "alert"
             ],
             "maxLength": 8
           },
@@ -496,7 +516,9 @@
         "basis",
         "position",
         "insetTop",
-        "insetBottom"
+        "insetBottom",
+        "minHeight",
+        "maxHeight"
       ],
       "a11y": {
         "role": "region",
@@ -737,7 +759,8 @@
         "basis",
         "position",
         "insetTop",
-        "insetBottom"
+        "insetBottom",
+        "tone"
       ],
       "a11y": {
         "role": "img",
@@ -1730,6 +1753,10 @@
             "type": "string",
             "maxLength": 80
           },
+          "count": {
+            "type": "string",
+            "maxLength": 16
+          },
           "value": {
             "type": "string",
             "maxLength": 128,
@@ -1753,6 +1780,7 @@
       "slots": [
         "root",
         "label",
+        "count",
         "panel"
       ],
       "styleProps": [

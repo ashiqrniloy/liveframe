@@ -441,6 +441,9 @@ export const implementations = [
               style={node.style}
             >
               <span className={node.slot("label")}>{String(node.props.label)}</span>
+              {typeof node.props.count === "string" ? (
+                <span className={node.slot("count")}>{node.props.count}</span>
+              ) : null}
             </Aria.Tab>
           )}
         </Aria.TabList>
@@ -471,6 +474,7 @@ export const implementations = [
   bind("tab", ({ props, slot, style }) => (
     <Aria.Tab id={props.value} isDisabled={props.disabled ?? false} className={slot("root")} style={style}>
       <span className={slot("label")}>{props.label}</span>
+      {props.count === undefined ? null : <span className={slot("count")}>{props.count}</span>}
     </Aria.Tab>
   )),
 ];

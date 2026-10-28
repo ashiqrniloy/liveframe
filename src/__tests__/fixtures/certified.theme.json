@@ -324,7 +324,7 @@
         0
       ]
     },
-    "patch.1": {
+    "identity.1": {
       "colorSpace": "oklch",
       "components": [
         0.52,
@@ -332,7 +332,7 @@
         22
       ]
     },
-    "patch.2": {
+    "identity.2": {
       "colorSpace": "oklch",
       "components": [
         0.5,
@@ -340,7 +340,7 @@
         250
       ]
     },
-    "patch.3": {
+    "identity.3": {
       "colorSpace": "oklch",
       "components": [
         0.5,
@@ -348,7 +348,7 @@
         162
       ]
     },
-    "patch.4": {
+    "identity.4": {
       "colorSpace": "oklch",
       "components": [
         0.47,
@@ -356,7 +356,7 @@
         232
       ]
     },
-    "patch.5": {
+    "identity.5": {
       "colorSpace": "oklch",
       "components": [
         0.6259,

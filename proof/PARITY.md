@@ -52,7 +52,7 @@ Diagnostics (unsupported APIs, failed fonts, console errors): empty at every wid
 
 | # | Cause | Approved | Widget | Disposition |
 | --- | --- | --- | --- | --- |
-| 1 | **Tabs are React Aria markup.** The tablist gains `aria-orientation="horizontal"`, a tab is a `div[role=tab]` rather than a `button[role=tab]`, the panel is always rendered, and the tab's count is part of its single label string | `div[role=tablist] > button[role=tab] > span(label) + span(count)` | `div[role=tablist] > div[role=tab] > span("All 12")` + `div[role=tabpanel]` | Accepted: the `tabs` primitive is React Aria, and its roles/keys are what the tier-1 keyboard test asserts. Tab widths differ by 4–6 px (G31), measured as ≤ 0.1% of the region |
+| 1 | **Tabs are React Aria markup.** The tablist gains `aria-orientation="horizontal"`, a tab is a `div[role=tab]` rather than a `button[role=tab]`, the panel is always rendered, and the tab's count is a second span in its own `count` slot, as the artifact's | `div[role=tablist] > button[role=tab] > span(label) + span(count)` | `div[role=tablist] > div[role=tab] > span("All 12")` + `div[role=tabpanel]` | Accepted: the `tabs` primitive is React Aria, and its roles/keys are what the tier-1 keyboard test asserts. Tab widths differ by 4–6 px (G31) before plan 016 Task 6; its count slot is meant to close that, re-measured in that task's notes |
 | 2 | **Icons are inline glyphs.** An icon is `span[aria-hidden][role=img] > svg > path` or `circle` | `span[aria-hidden] > svg > use` | Accepted: glyphs are compiled host assets, inlined so the page needs no sprite. The wrapper's `role=img` + `aria-hidden` is the icon primitive's a11y contract |
 | 3 | **A rule is a `separator` element.** The header's bottom rule and the rule above each row group and the decide block are `<hr role="separator">` | borders on `.section-head`, `.line` and `.decide` | Accepted: a real separator is accessible and comes from a primitive. The artifact's rule is a border and therefore no element |
 | 4 | **Facts put text in a `span` and use one `dl` per column pair** | `dl > div > dt + dd` | `dl > dt > span` + `dd > span`, twice | Accepted: `text` is its own primitive, and the two column pairs are separate `terms` containers so each can be sized independently |
@@ -63,7 +63,7 @@ Diagnostics (unsupported APIs, failed fonts, console errors): empty at every wid
 | 9 | **Widget options are a menu popup** | `details > summary + a` | `button[aria-expanded][aria-haspopup="true"]` | Accepted: the `menu` primitive is React Aria, so tier-1 open/arrow-key behaviour is exercised. The `disclosure` primitive covers the card's Reference row |
 | 10 | **Marker spans carry `role="img"`** (rows and kickers) | `span[aria-hidden]` | `span[aria-hidden][role=img]` | Accepted: the icon primitive's contract, as cause 2 |
 
-Row markers and the kicker glyph also draw in `currentColor` where the artifact tints them (G30); that is a colour difference, not a DOM one, and it is inside the pixel budget.
+Row markers and the kicker glyph now take their tones (G30, plan 016 Task 6), so they are tinted as the artifact's are.
 
 ## Style values, by anchor
 

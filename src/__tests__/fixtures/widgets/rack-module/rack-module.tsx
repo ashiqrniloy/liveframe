@@ -9,7 +9,7 @@ export function RackModule({ state: s, data }: WidgetProps<object, RackState, Ra
     <Box surface="surface.module" padding="space.3">
       <Stack gap="space.3">
         <Inline key="rail" gap="space.2" align="center">
-          <Box key="patch" fill="patch.1" radius="full" padding="space.0" width="space.2" height="space.2" />
+          <Box key="patch" fill="identity.1" radius="full" padding="space.0" width="space.2" height="space.2" />
           <Text key="ordinal" text="05" textStyle="mono" />
           <Text key="session" text="Coding Agent · clay" textStyle="meta" />
         </Inline>
@@ -60,7 +60,7 @@ export function RackModule({ state: s, data }: WidgetProps<object, RackState, Ra
         <Inline key="params" gap="space.2" align="center" wrap="wrap">
           <Box key="lamp" fill="accent.primary" radius="full" padding="space.0" width="space.2" height="space.2" />
           <Text key="working" text="Working" />
-          <Box key="jack" fill="patch.1" radius="full" padding="space.0" width="space.2" height="space.2" />
+          <Box key="jack" fill="identity.1" radius="full" padding="space.0" width="space.2" height="space.2" />
           <Text key="agent" text="Coding Agent" />
           <Text key="model" text="Model: sonnet-4.6" />
           <Text key="effort" text="Effort: high" />

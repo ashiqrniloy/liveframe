@@ -83,9 +83,9 @@ export function AgentHomeQueue({ params, state: s, data }: QueueProps) {
         ) : (
           <Stack key="ready" gap="space.3">
             <Tabs label="Queue category" value={s.filter} onChange={state.set("filter")}>
-              <Tab key="all" value="all" label={`All ${total}`} />
+              <Tab key="all" value="all" label="All" count={String(total)} />
               {groups.map((group) => (
-                <Tab key={group.id} value={group.id} label={`${group.label} ${group.total}`} />
+                <Tab key={group.id} value={group.id} label={group.label} count={String(group.total)} />
               ))}
             </Tabs>
             <Inline key="columns" wrap="wrap" gap="space.5" align="start">

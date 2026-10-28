@@ -279,7 +279,7 @@
       ],
       "hex": "#000000"
     },
-    "patch.1": {
+    "identity.1": {
       "colorSpace": "srgb",
       "components": [
         0.4470588235294118,
@@ -288,7 +288,7 @@
       ],
       "hex": "#721045"
     },
-    "patch.2": {
+    "identity.2": {
       "colorSpace": "srgb",
       "components": [
         0.00392156862745098,
@@ -297,7 +297,7 @@
       ],
       "hex": "#015e8b"
     },
-    "patch.3": {
+    "identity.3": {
       "colorSpace": "srgb",
       "components": [
         0,
@@ -306,7 +306,7 @@
       ],
       "hex": "#005f5f"
     },
-    "patch.4": {
+    "identity.4": {
       "colorSpace": "srgb",
       "components": [
         0.3254901960784314,
@@ -315,7 +315,7 @@
       ],
       "hex": "#531ab6"
     },
-    "patch.5": {
+    "identity.5": {
       "colorSpace": "srgb",
       "components": [
         0.3843137254901961,

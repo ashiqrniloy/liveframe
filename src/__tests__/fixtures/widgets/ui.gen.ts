@@ -40,11 +40,11 @@ type _Fill =
   | "diagnostic.error.soft"
   | "diagnostic.warning.soft"
   | "status.critical"
-  | "patch.1"
-  | "patch.2"
-  | "patch.3"
-  | "patch.4"
-  | "patch.5";
+  | "identity.1"
+  | "identity.2"
+  | "identity.3"
+  | "identity.4"
+  | "identity.5";
 type _Radius = "radius.control" | "radius.plate" | "radius.pill" | "full";
 type _TextStyle =
   | "body"
@@ -470,6 +470,7 @@ export const Icon = primitive<{
   readonly position?: _Responsive<"static" | "sticky">;
   readonly insetTop?: _Responsive<_Space>;
   readonly insetBottom?: _Responsive<_Space>;
+  readonly tone?: _Responsive<_Tone>;
 }>("icon");
 
 /**
@@ -949,6 +950,7 @@ export const Disclosure = primitive<{
  */
 export const Tab = primitive<{
   readonly label: string;
+  readonly count?: string;
   readonly value: string;
   readonly disabled?: boolean;
   readonly variant?: "default";

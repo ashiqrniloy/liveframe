@@ -81,7 +81,7 @@ for (const system of ["certified", "rack"])
         ),
       );
       expect(await page.getByRole("button", { name: "Send", exact: true }).isDisabled()).toBe(true);
-      // Indicators draw declared fill roles, so the switch repaints them: identity (patch) for both
+      // Indicators draw declared fill roles, so the switch repaints them: identity for both
       // presentations of the session, accent for the Working lamp and the effort pips.
       const indicators = () =>
         page.evaluate(() => {
@@ -96,14 +96,14 @@ for (const system of ["certified", "rack"])
                 height: style.height,
               };
             });
-          return { patch: pick("patch_1"), accent: pick("accent_primary") };
+          return { patch: pick("identity_1"), accent: pick("accent_primary") };
         });
       await page.getByLabel("Design system").selectOption("rack");
       const rack = await indicators();
       // The rail patch and the composer patch carry the session's identity colour.
       expect(rack.patch).toHaveLength(2);
       for (const marker of rack.patch) {
-        expect(marker.role).toBe(themeSheets.rack.match(/--lf-c-patch_1:([^;}]+)/)?.[1] ?? "missing role");
+        expect(marker.role).toBe(themeSheets.rack.match(/--lf-c-identity_1:([^;}]+)/)?.[1] ?? "missing role");
         expect([marker.radius, marker.width, marker.height]).toEqual(["9999px", "8px", "8px"]);
       }
       expect(new Set(rack.patch.map((marker) => marker.fill)).size).toBe(1);
@@ -119,10 +119,10 @@ for (const system of ["certified", "rack"])
       expect(rack.patch[0]?.fill).not.toBe("rgba(0, 0, 0, 0)");
       await page.getByLabel("Design system").selectOption("certified");
       const certified = await indicators();
-      // Under Certified the same roles resolve through its palette aliases; the limitation stays data,
-      // not a widget workaround, and the pip corner follows the theme's radius value.
+      // Under Certified the same roles resolve to its own identity colour, and the pip corner follows
+      // the theme's radius value.
       for (const marker of certified.patch)
-        expect(marker.role).toBe(themeSheets.certified.match(/--lf-c-patch_1:([^;}]+)/)?.[1] ?? "missing role");
+        expect(marker.role).toBe(themeSheets.certified.match(/--lf-c-identity_1:([^;}]+)/)?.[1] ?? "missing role");
       expect(certified.patch[0]?.fill).not.toBe(rack.patch[0]?.fill);
       expect(certified.accent[0]?.fill).not.toBe(rack.accent[0]?.fill);
       expect(certified.accent.filter((marker) => marker.radius !== "9999px").map((marker) => marker.radius)).toEqual([

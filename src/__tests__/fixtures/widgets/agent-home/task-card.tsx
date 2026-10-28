@@ -18,7 +18,7 @@ export function TaskCard({
   return (
     <Box semantics="article" variant="plate">
       <Inline key="kicker" gap="space.2" align="center">
-        <Icon key="brand" name="seal-brand" width="size.glyph" height="size.glyph" />
+        <Icon key="brand" name="seal-brand" tone="foil" width="size.glyph" height="size.glyph" />
         <Text key="word" text={task.kicker} textStyle="ui" tone="foil" />
       </Inline>
       <Stack key="head" gap="space.2">
@@ -26,7 +26,7 @@ export function TaskCard({
         {/* 8px gap plus 8px right padding on the stamp: 16px between the word and the time, 8px between lines. */}
         <Inline key="state" gap="space.2" wrap="wrap" align="center">
           <Inline key="stamp" gap="space.2" align="center" paddingRight="space.2">
-            <Icon key="marker" name="mk-dashed" />
+            <Icon key="marker" name="mk-dashed" tone="warning" />
             <Text key="word" text={task.status} textStyle="mono.strong" tone="warning" />
           </Inline>
           <Text key="when" text={task.meta} textStyle="meta" tone="muted" />

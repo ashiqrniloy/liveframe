@@ -5,8 +5,10 @@ import {
   type Catalog,
   type Capabilities,
   type DesignSystem,
+  type LiveframeError,
   type Theme,
   type UiNode,
+  compileValidator,
   resolveRecipes,
   validateCatalog,
   validateVocabulary,
@@ -65,12 +67,49 @@ test("proof_formats_validate", async () => {
   expect(ajv.compile(schemaDocument("manifest"))(await read("agent-home.manifest"))).toBe(true);
 });
 
+test("icon_accepts_tone", async () => {
+  const manifest = await read("agent-home.manifest");
+  const { checkNode } = compileValidator({ catalog, capabilities, manifest });
+  const check = (style: Record<string, unknown>) => {
+    const errors: LiveframeError[] = [];
+    const node = { id: "root/glyph", kind: "icon", props: { name: "mk-dashed" }, style };
+    return { ok: checkNode(node, "/root", { errors, maxErrors: 20 }), errors };
+  };
+  expect(catalog.vocabulary.tones).toHaveProperty("warning");
+  expect(check({ tone: "warning" }).ok).toBe(true);
+  // A tone is a declared name; a literal colour never validates.
+  expect(check({ tone: "#ff0000" }).ok).toBe(false);
+  // The proof widgets pass it: every marker and kicker glyph in the benchmark tree takes a tone.
+  const tree = await read("agent-home.tree");
+  const icons: UiNode[] = [];
+  (function visit(node: UiNode) {
+    if (node.kind === "icon") icons.push(node);
+    for (const child of node.children ?? []) visit(child);
+  })(tree.root);
+  expect(icons.length).toBeGreaterThan(0);
+  expect(icons.filter((icon) => !icon.style?.tone)).toEqual([]);
+});
+
+test("tab_count_is_a_prop_with_its_own_slot", async () => {
+  const tab = catalog.definitions.find((d) => d.kind === "tab");
+  expect(tab?.slots).toEqual(["root", "label", "count", "panel"]);
+  const { checkNode } = compileValidator({ catalog, capabilities, manifest: await read("agent-home.manifest") });
+  const tabs = (props: Record<string, unknown>) => {
+    const errors: LiveframeError[] = [];
+    const node = { id: "root/tab", kind: "tab", props, children: [] };
+    return checkNode(node, "/root", { errors, maxErrors: 20 });
+  };
+  expect(tabs({ label: "All", count: "12", value: "all" })).toBe(true);
+  expect(tabs({ label: "All", value: "all" })).toBe(true);
+  expect(tabs({ label: "All", count: 12, value: "all" })).toBe(false);
+});
+
 test("proof_recipes_round_trip", async () => {
   for (const name of ["certified", "rack"]) {
     const ds: DesignSystem = await read(`${name}.design-system`);
     const table = resolveRecipes(ds, { catalog, registry: {} });
     expect(table).toEqual(await read(`${name}.resolved-recipes`));
-    expect(Object.keys(table)).toHaveLength(616);
+    expect(Object.keys(table)).toHaveLength(624);
     expect(table["button.default.root.rest"]?.transitionTiming).toEqual([0.16, 1, 0.3, 1]);
     expect(table["button.default.root.active"]?.translateY).toEqual({ value: 1, unit: "px" });
   }

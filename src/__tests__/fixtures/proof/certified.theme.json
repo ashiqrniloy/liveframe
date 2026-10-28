@@ -285,18 +285,18 @@
     "diagnostic.error.soft": {
       "colorSpace": "oklch",
       "components": [
-        0.626,
-        0.12,
-        82
+        0.52,
+        0.18,
+        22
       ],
       "alpha": 0.08
     },
     "diagnostic.warning.soft": {
       "colorSpace": "oklch",
       "components": [
-        0.626,
-        0.12,
-        82
+        0.5337,
+        0.15,
+        62
       ],
       "alpha": 0.08
     },
@@ -324,44 +324,44 @@
         0
       ]
     },
-    "patch.1": {
+    "identity.1": {
       "colorSpace": "oklch",
       "components": [
-        0.52,
-        0.18,
-        22
+        0.48,
+        0.13,
+        340
       ]
     },
-    "patch.2": {
+    "identity.2": {
       "colorSpace": "oklch",
       "components": [
         0.5,
-        0.12,
-        250
+        0.1,
+        205
       ]
     },
-    "patch.3": {
+    "identity.3": {
+      "colorSpace": "oklch",
+      "components": [
+        0.49,
+        0.1,
+        130
+      ]
+    },
+    "identity.4": {
+      "colorSpace": "oklch",
+      "components": [
+        0.48,
+        0.15,
+        295
+      ]
+    },
+    "identity.5": {
       "colorSpace": "oklch",
       "components": [
         0.5,
-        0.11,
-        162
-      ]
-    },
-    "patch.4": {
-      "colorSpace": "oklch",
-      "components": [
-        0.47,
-        0.095,
-        232
-      ]
-    },
-    "patch.5": {
-      "colorSpace": "oklch",
-      "components": [
-        0.6259,
-        0.12,
-        82
+        0.09,
+        40
       ]
     }
   },

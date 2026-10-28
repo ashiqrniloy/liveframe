@@ -194,6 +194,8 @@ const seeds: Record<string, Recipe> = {
     shadow: [{ inset: true, x: 0, y: -2, blur: 0, spread: 0, colorRole: "text.primary", opacity: 1 }],
   },
   "tab.default.label.rest": {},
+  // The count keeps the root's gap from its label and draws in the mono face.
+  "tab.default.count.rest": { typography: "mono" },
   "tab.default.panel.rest": {},
 };
 for (const variant of ["default", "primary", "danger", "ghost"]) {

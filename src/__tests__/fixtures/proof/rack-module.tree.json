@@ -34,7 +34,7 @@
                 "kind": "box",
                 "props": {},
                 "style": {
-                  "fill": "patch.1",
+                  "fill": "identity.1",
                   "radius": "full",
                   "padding": "space.0",
                   "width": "space.2",
@@ -2191,7 +2191,7 @@
                 "kind": "box",
                 "props": {},
                 "style": {
-                  "fill": "patch.1",
+                  "fill": "identity.1",
                   "radius": "full",
                   "padding": "space.0",
                   "width": "space.2",

@@ -75,7 +75,7 @@ Implemented and validated (`runtime/validate.ts`, `tests/runtime.test.ts`, `test
 | columns, rows, area | ≤ 12 tracks of the dimension domain (`fr` becomes `minmax(0, …)`; QueueRow now uses flex, Plan 007 T10) | queue rows and facts, Rack module |
 | position, insetTop, insetBottom | `static` / `sticky`; `space.*` | sticky focus column |
 | surface (box) | `surface.*` theme roles | cards, panels |
-| fill (box) | a declared subset of non-surface roles (accent, diagnostics, `status.critical`, `patch.1–5`) | rack indicators |
+| fill (box) | a declared subset of non-surface roles (accent, diagnostics, `status.critical`, `identity.1–5`) | rack indicators |
 | radius (box) | `radius.*` design values or `full` | rack indicators, queue plates |
 | textStyle, tone | typography roles; tones default, muted, meta, accent, success, warning, danger, info, foil | all four UIs |
 | Responsive values | any style prop may take `{ base, bp.sm, bp.md }`, keyed by design-system container breakpoints; a value holds at every wider breakpoint | two-column queue, facts, section head, sticky focus |
@@ -115,7 +115,7 @@ Resolutions: **Spec** = proposed spec change (§7). **Phase N** = handled when t
 | # | Gap (source) | Resolution |
 | --- | --- | --- |
 | G1 | Rack typography is user-owned; spec §6.1 puts typography in the theme (GAPS T3) | **Spec**: the theme is the resolved union of colour and typography roles; an app may assemble it from separate sources. Still the only source |
-| G2 | Certified lacks five-patch identity roles and diagnostic fills; it aliases them (GAPS T3, T10) | **Adopter**: the app declares required roles (§6.1). Certified must supply real identity roles before a widget that uses them ships. Not a model gap |
+| G2 | Certified lacks five-patch identity roles and diagnostic fills; it aliases them (GAPS T3, T10) | **Done** (plan 016 T6): the roles are `identity.1–5`, and Certified defines each identity role and the soft diagnostic fills with a distinct value. An app still declares its own required roles (§6.1) |
 | G3 | Rack docs claim 273 recipes; the manifest has 247 (GAPS T3) | **Adopter**: a source-documentation error. The manifest is authoritative |
 | G4 | Rack source variants with no catalog counterpart (`ghostDanger`, label/textInput variants, product families `lamp`/`jack`/`pips`) (GAPS T3) | **Accepted**: kept as reference data. Product families are compositions; `ghostDanger` is an app-declared variant if wanted |
 | G5 | Undeclared Rack spacing/easing references; proof supplied values (GAPS T3) | **Adopter**: the source omits values. Phase 1 install validation rejects such references |
@@ -123,7 +123,7 @@ Resolutions: **Spec** = proposed spec change (§7). **Phase N** = handled when t
 | G7 | No disclosure: Reference and Widget options use `popover` instead of `details` (GAPS T7, PARITY "Disclosure") | **Done** (Plan 002 T4): `disclosure` renders native `details`/`summary` with local open state. Widget options stay a `menu`, which is React Aria markup (see the inventory) |
 | G8 | Plate borders, hairline rules, callout rail, status marker SVGs, brand mark (GAPS T7, PARITY "Marker geometry") | **Done** (Plan 002 T4/T6): `box` variants `plate`, `rule` (per-side top border) and `callout` with a `rail` slot; the five artifact glyphs are host icons. Marker hues remain G30 |
 | G9 | Fixed two columns: no responsive tracks, no mobile stacking, no sticky focus. Desktop 684/684 vs 952/352 px (GAPS T7, T8; PARITY "Desktop proportions", "Mobile stacking") | **Done** (Plan 002 T3/T5): responsive values per breakpoint, `position: sticky` above `bp.md`. Two columns now render 952/352 and 536/352, stacking at 390. A container-query container costs one ~17 ms cold flip per page (`GAPS.md`) |
-| G10 | Lamp, jack and pips are square `surface.*` boxes. No circle, no identity/status fill (GAPS T9) | **Done** (Plan 002 T7): `fill` and `radius` on `box`. The lamp and both patches draw 8 px circles from `accent.primary` and `patch.1`; pips keep a corner. Under Certified the roles alias (G2) |
+| G10 | Lamp, jack and pips are square `surface.*` boxes. No circle, no identity/status fill (GAPS T9) | **Done** (Plan 002 T7): `fill` and `radius` on `box`. The lamp and both patches draw 8 px circles from `accent.primary` and `identity.1`; pips keep a corner. Certified's identity roles are distinct (G2, plan 016 T6) |
 | G11 | Row subject buttons centre their label; button content can't hold title + meta (GAPS T7; harness walk) | **Done** (Plan 002 T3/T6): `align` on `button`, `textAlign` on text. `button.ghost` is a bare left-aligned title; meta is an adjacent node |
 | G12 | Generic wrappers inherit host-page typography (Times New Roman 16px); Rack tab and field labels fall back to serif (PARITY "Typography"; harness walk) | **Phase 3**: the projection sets base typography on the surface root and on every slot that draws text. Recipe completeness covers ink, not font |
 | G13 | Typography and spacing values differ (card title 20.16 vs 24.19 px, kicker weight, row weight) (PARITY) | **Done** (Plan 002 T5a/T6): typography roles gained `letterSpacing`, `textTransform`, `fontStretch` and `fontSizeAdjust`; the roles are data. Card title, kicker, row and group-label weights now match |
@@ -148,8 +148,8 @@ Plan 002 added three gaps to this table, each recorded in `GAPS.md` rather than 
 
 | # | Gap | Resolution |
 | --- | --- | --- |
-| G30 | Row markers and the card kicker draw in `currentColor`; the artifact tints them attention/danger/info/foil (`GAPS.md` "Plan 002 Task 6") | **Phase 2**: an `icon` would need a `tone` style prop, which is the composition surface's decision, not this proof's |
-| G31 | A tab carries one label string, so its count cannot take its own mono face; tab widths differ by 4–6 px (`GAPS.md`) | **Phase 2**: a tab content/count slot |
+| G30 | Row markers and the card kicker draw in `currentColor`; the artifact tints them attention/danger/info/foil (`GAPS.md` "Plan 002 Task 6") | **Done** (plan 016 T6): the catalog's `icon` lists the existing `tone` style prop and the proof widgets pass it; no library change |
+| G31 | A tab carries one label string, so its count cannot take its own mono face; tab widths differ by 4–6 px (`GAPS.md`) | **Done** (plan 016 T6): `tab` takes an optional `count` prop drawn in its own `count` slot |
 | G32 | The render bench is over budget: the artifact-faithful composition renders 679 nodes in 5.75 ms against 2 ms (`GAPS.md` "Plan 002 Task 6", §9) | **Owner decision** (§8). Either the render/validate path gets cheaper, or the budget becomes per-node (`≤ 3 µs/node`, i.e. 2 ms at 680 nodes). The proof does not raise its own budget |
 
 Pixel inventory: **0.72% / 0.75% / 0.97%** at 1440/1024/390 px, within the ≤ 1% bar. `PARITY.md` lists every remaining difference as nine causes plus 32 style values per width, each with its reason; `scripts/inventory.ts` re-derives that list from the capture, collapsing the wrapper elements that make the raw count 281.
