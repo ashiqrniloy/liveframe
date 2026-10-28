@@ -21,11 +21,13 @@ function failure(result: Result<unknown>) {
 }
 
 function fixture(colour: Colour): { catalog: Catalog; theme: Theme } {
+  // A one-role serialization fixture has no proof contrast pairs or backdrop.
+  const { contrast: _, contrastBase: __, ...vocabulary } = catalog.vocabulary;
   return {
     catalog: {
       ...catalog,
       vocabulary: {
-        ...catalog.vocabulary,
+        ...vocabulary,
         colourRoles: ["ink"],
         surfaceRoles: [],
         fillableRoles: [],

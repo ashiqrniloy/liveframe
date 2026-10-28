@@ -557,6 +557,36 @@ Published structural schemas are available as `@arnilo/liveframe/schemas/capabil
 
 ## Theme
 
+The vocabulary may declare up to 256 contrast pairs:
+
+```json
+{
+  "contrast": [
+    { "foreground": "text.primary", "background": "surface.base", "minimum": 4.5 },
+    { "foreground": "border.hairline", "background": "surface.base", "minimum": 1.2, "maximum": 3, "lessThan": 0 }
+  ],
+  "contrastBase": "surface.base"
+}
+```
+
+These are optional vocabulary fields, not theme fields. Pair roles must be declared;
+thresholds are finite in [1, 21], with maximum at least minimum. `lessThan` is a
+zero-based index with no self references or cycles. Optional descriptions are at
+most 500 code points. A translucent background requires `contrastBase`, a declared
+surface role whose theme colour is opaque. A supplied base must always be opaque.
+Malformed declarations fail vocabulary install; missing/nonopaque required bases
+fail theme install with `invalid-document`.
+
+`validateTheme` evaluates WCAG 2.x contrast after deterministic linear-sRGB clipping
+and encoded-sRGB compositing (background over base, then foreground over background).
+All 14 DTCG spaces are supported. Missing components are zero and `hex` does not
+override components. Inclusive bounds and strict ordering compare unrounded ratios;
+`insufficient-contrast` names the pair and ratio to two decimals, or both pairs for
+ordering failures. See [spec §6.5](spec.md#65-the-declared-vocabulary) for the exact math.
+Conversions that overflow fail closed as invalid theme data. No pairs means no
+contrast gate. The catalog classifier treats contrast contract/base changes as
+major; descriptions alone do not count and an omitted maximum equals 21.
+
 `validateTheme(doc, vocabulary)` checks a resolved theme against an installed,
 validated vocabulary. The theme supplies every declared colour and typography
 role exactly once. Missing or undeclared roles return `unknown-name`; malformed

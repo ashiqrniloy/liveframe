@@ -576,8 +576,8 @@ test("switching_suppresses_transitions", async () => {
     await mount(page, {
       "button.default.root.rest": { textColor: "text.primary", transitionDuration: { value: 1000, unit: "ms" } },
     });
-    const alternateColour = theme.colours["surface.base"];
-    if (!alternateColour) throw new Error("Missing surface colour fixture");
+    const alternateColour = theme.colours["accent.primary"];
+    if (!alternateColour) throw new Error("Missing accent colour fixture");
     const alternate: Theme = {
       ...theme,
       id: "alternate",

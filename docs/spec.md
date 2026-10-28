@@ -162,6 +162,7 @@ A theme defines **colour roles** (`surface.base`, `surface.hover`, `text.primary
 - A colour value is a DTCG 2025.10 colour object: `{ colorSpace, components, alpha?, hex? }`, in any colour space DTCG lists. The projection converts it to CSS. A typography role follows the DTCG `typography` composite (`fontFamily`, `fontSize`, `fontWeight`, `letterSpacing`, `lineHeight` as a multiplier), with dimensions in `px` or `rem` and `letterSpacing` also in `em`; the four fields above extend it.
 - Nothing else in the system may introduce a colour.
 - The app declares the required role names (§6.5); a theme that misses one fails validation.
+- The vocabulary may declare contrast pairs (§6.5). Theme installation checks their WCAG 2.x ratios; violations return `insufficient-contrast` with the pair index, roles and measured ratio to two decimals. This is an install check with no per-render work.
 - Light, dark and high-contrast are separate themes, or modes of one theme.
 - In forced-colours mode, OS system colours override everything.
 - The theme is the resolved set of roles. An app may assemble it from separate sources, such as a colour package and the user's own typography preferences. Whatever the sources, nothing outside the resolved theme introduces a colour or a typeface.
@@ -287,10 +288,19 @@ type Vocabulary = {
   radius: string[];
   size: string[];
   breakpoints: string[];
+  contrast?: { foreground: string; background: string; minimum: number;
+               maximum?: number; lessThan?: number; description?: string }[];
+  contrastBase?: string;                  // declared surface role, opaque in the installed theme
 };
 ```
 
 Fixed by the library: the kinds above, the states (§6.2), the recipe properties (§6.2), the style props and their value rules (§6.3), and the `semantics` values (§5). A theme must define every declared role, a design system every declared value name, and a catalog carries its vocabulary.
+
+**Contrast declarations.** At most 256 pairs may name declared colour roles, with finite inclusive thresholds in [1, 21] and `maximum >= minimum`. Descriptions are at most 500 code points. `lessThan` is a zero-based integer pair index: dangling, self and cyclic references are invalid. It requires the measured ratio to be strictly less than the referenced pair's ratio. A supplied `contrastBase` must name a declared surface role and its theme colour must be opaque, even when no background needs it. Translucent pair backgrounds require that base; missing/nonopaque bases are `invalid-document`. Vocabularies without contrast declarations retain their existing behaviour.
+
+**Contrast calculation.** Follow the accepted conversion contract (`decision-logs/2026-10-28-1123-styling-paint-alpha-contrast-native-parts.md` §3): convert all 14 DTCG spaces through XYZ D65 (Bradford-adapting D50), then to linear sRGB, clip channels to [0, 1], and encode sRGB. Rec.2020 uses the approved piecewise inverse transfer, as in the [2025-04-24 CSS Color 4 sample](https://www.w3.org/TR/2025/CRD-css-color-4-20250424/#color-conversion-code). Missing components (`"none"`) are zero, omitted alpha is 1, and `hex` is fallback metadata only. Composite the background over the opaque base if needed, then foreground over background, using encoded-sRGB source-over (`a * source + (1-a) * destination`). Linearize the resulting opaque channels using `c / 12.92` for `c <= 0.04045`, otherwise `((c + 0.055) / 1.055)^2.4`. Luminance is `0.2126R + 0.7152G + 0.0722B`; ratio is `(max(Lfg,Lbg)+0.05)/(min(Lfg,Lbg)+0.05)`. Compare unrounded values; round only diagnostics. Nonfinite conversion results fail as invalid theme data. Cache conversions per role and evaluate pairs/orderings in O(pairs). This deterministic sRGB clipping policy does not claim to reproduce browser perceptual gamut mapping.
+
+Changing the contrast contract or its base is conservatively classified as a major catalog change because it can invalidate installed themes. Description-only changes are ignored; an omitted maximum is equivalent to 21.
 
 ## 7. Authoring and installing (Synapta's model)
 
@@ -593,6 +603,7 @@ It checks:
 | Kind | Meaning |
 |---|---|
 | `invalid-document` | Malformed structure or value, including a manifest, scenario or stored record; missing scenarios point at `/scenarios`. |
+| `insufficient-contrast` | A theme contrast pair violates its minimum, maximum or strict ordering; the message names roles, pair indices and measured ratios to two decimals. |
 | `unknown-name` | An undeclared name. |
 | `incomplete-design-system` | A missing required recipe. |
 | `colour-outside-theme` | A colour outside the theme's authority. |
@@ -620,7 +631,7 @@ It checks:
 
 The validator is **compiled per catalog**: when the catalog, vocabulary, capabilities and manifest are loaded, each definition and schema becomes a closure over precomputed sets and checks, instead of schemas interpreted on every render. It never uses `eval` or the `Function` constructor, which content security policies and some sandboxes forbid. Its per-node checks are what `render()` calls while it builds the tree, so building and validating are one pass; the same validator re-checks a whole tree on arrival. In the Phase 0 proof, validation is more than half of a render's cost, and building the tree checks the same props a second time. Build and validate become one pass (`docs/model.md`, "Performance"; `decision-logs/2026-10-22-1540-typescript-runtime-render-budget.md`).
 
-It validates every other format on install: a catalog's definitions and schema language, the vocabulary, the capabilities, a manifest against its catalog and capabilities, a theme against the vocabulary (every role present), and a design system against the catalog and vocabulary (values typed, every declared name defined, recipes complete after the cascade, and no colour outside the theme). The library publishes a JSON Schema for every format (§13).
+It validates every other format on install: a catalog's definitions and schema language, the vocabulary, the capabilities, a manifest against its catalog and capabilities, a theme against the vocabulary (every role present and every declared contrast minimum, maximum and strict ordering satisfied, §6.5), and a design system against the catalog and vocabulary (values typed, every declared name defined, recipes complete after the cascade, and no colour outside the theme). The library publishes a JSON Schema for every format (§13).
 
 The root export `capabilitiesFor(capabilities, manifest): Result<Capabilities>` selects exactly the manifest's actions and referenced sources from installed documents in linear time, preserving input map order and complete entries without mutation; unknown names return bounded `unknown-name` errors at manifest pointers, and compiling with the successful subset preserves validation behaviour while allowing hosts to prune before browser transfer.
 

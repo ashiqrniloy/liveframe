@@ -13,6 +13,7 @@ import {
   typographySchema,
 } from "./dtcg.ts";
 import type { Vocabulary } from "./vocabulary.ts";
+import { checkContrast } from "./contrast.ts";
 
 // DTCG 2025.10 §4.2: https://www.designtokens.org/tr/2025.10/color/#supported-color-spaces
 // Lab axes and LCH chroma have no theoretical upper bound; typical values are not limits.
@@ -84,6 +85,7 @@ export function validateTheme(doc: unknown, vocabulary: Vocabulary): Result<Them
     checkRoleMap("colours", doc.colours, vocabulary.colourRoles, c);
     checkRoleMap("typography", doc.typography, vocabulary.typographyRoles, c);
   }
+  if (!c.errors.length) checkContrast(doc as Theme, vocabulary, c.reject);
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: doc as Theme };
 }
 

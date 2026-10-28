@@ -1,5 +1,5 @@
 import type { LiveframeError, Result } from "../errors.ts";
-import { arr, checkValue, type Infer, isRecord, record, str } from "../schema.ts";
+import { arr, checkValue, type Infer, int, isRecord, num, obj, record, str } from "../schema.ts";
 
 import { noPaint } from "./fixed.ts";
 
@@ -20,16 +20,33 @@ const lists = {
   size: names("size"),
   breakpoints: names("bp"),
 } as const;
+const pair = obj(
+  { foreground: name, background: name, minimum: num({ minimum: 1, maximum: 21 }) },
+  {
+    maximum: num({ minimum: 1, maximum: 21 }),
+    lessThan: int({ minimum: 0, maximum: 255 }),
+    description: str({ maxLength: 500 }),
+  },
+);
+const contrast = arr(pair, { maxItems: 256 });
 
 export type Vocabulary = { readonly [K in keyof typeof lists]: Infer<(typeof lists)[K]> } & {
   readonly tones: Readonly<Record<string, string>>;
   readonly surfaceTypography: string;
+  readonly contrast?: Infer<typeof contrast>;
+  readonly contrastBase?: string;
 };
 
 /** Embedded in the catalog schema; cross-references are checked on install. */
 export const vocabularySchema = {
   type: "object",
-  properties: { ...lists, tones: { ...record(name.pattern, name, 256), propertyNames: name }, surfaceTypography: name },
+  properties: {
+    ...lists,
+    tones: { ...record(name.pattern, name, 256), propertyNames: name },
+    surfaceTypography: name,
+    contrast,
+    contrastBase: name,
+  },
   required: [...Object.keys(lists), "tones", "surfaceTypography"],
   additionalProperties: false,
 } as const;
@@ -82,6 +99,37 @@ function checkReferences(value: Vocabulary, pointer: (key: string) => string, c:
     if (!colours.has(role)) c.reject("unknown-name", `/tones${pointer(tone)}`, `Undeclared colour role: ${role}`);
   if (!value.typographyRoles.includes(value.surfaceTypography))
     c.reject("unknown-name", "/surfaceTypography", `Undeclared typography role: ${value.surfaceTypography}`);
+  checkContrastReferences(value, colours, c);
+}
+
+function checkContrastReferences(value: Vocabulary, colours: ReadonlySet<string>, c: Checks): void {
+  if (value.contrastBase !== undefined && !value.surfaceRoles.includes(value.contrastBase))
+    c.reject("unknown-name", "/contrastBase", `Expected a declared surface role: ${value.contrastBase}`);
+  const pairs = value.contrast ?? [];
+  for (const [i, pair] of pairs.entries()) {
+    for (const key of ["foreground", "background"] as const)
+      if (!colours.has(pair[key]))
+        c.reject("unknown-name", `/contrast/${i}/${key}`, `Undeclared colour role: ${pair[key]}`);
+    if (pair.maximum !== undefined && pair.maximum < pair.minimum)
+      c.reject("invalid-document", `/contrast/${i}/maximum`, "Maximum must be at least minimum");
+    if (pair.lessThan !== undefined && (pair.lessThan >= pairs.length || pair.lessThan === i))
+      c.reject("invalid-document", `/contrast/${i}/lessThan`, "Expected another contrast pair index");
+  }
+  // Each node has at most one outgoing edge; visiting each once keeps cycle detection linear.
+  const done = new Set<number>();
+  for (let i = 0; i < pairs.length; i++) {
+    const path = new Set<number>();
+    let next: number | undefined = i;
+    while (next !== undefined && next < pairs.length && !done.has(next)) {
+      if (path.has(next)) {
+        c.reject("invalid-document", `/contrast/${next}/lessThan`, "Cyclic contrast ordering");
+        break;
+      }
+      path.add(next);
+      next = pairs[next]?.lessThan;
+    }
+    for (const index of path) done.add(index);
+  }
 }
 
 /** Checks the closed vocabulary and collects at most 20 pointed failures. */
@@ -111,6 +159,12 @@ export function validateVocabulary(doc: unknown): Result<Vocabulary> {
     for (const error of typography.errors)
       c.reject("invalid-document", `/surfaceTypography${error.pointer}`, error.message);
   checkTones(Object.hasOwn(doc, "tones") ? doc.tones : undefined, pointer, c);
+  for (const [key, schema] of Object.entries({ contrast, contrastBase: name })) {
+    if (!Object.hasOwn(doc, key)) continue;
+    const result = checkValue(schema, doc[key]);
+    if (!result.ok)
+      for (const error of result.errors) c.reject("invalid-document", `/${key}${error.pointer}`, error.message);
+  }
   if (errors.length) return { ok: false, errors };
   const value = doc as Vocabulary;
   checkReferences(value, pointer, c);

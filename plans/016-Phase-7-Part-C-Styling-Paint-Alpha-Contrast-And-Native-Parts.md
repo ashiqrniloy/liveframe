@@ -214,7 +214,7 @@ This plan implements spec §6.1 (theme), §6.2 (recipes), §6.4 (projection, for
     - An earlier full run exposed an outdated assertion that counted ordinary and reduced-transparency starting-style rules together; it now checks ordinary rules separately, with a regression for alpha-free reduced starting styles. Another full attempt overlapped unrelated Rust builds (load 40–59) and suffered broad timing/browser failures; no assertions were weakened. The final full run and benchmark above passed after CPU pressure returned below 1%.
 
 
-- [ ] Task 4: Check declared contrast pairs when a theme is installed (LF-10)
+- [x] Task 4: Check declared contrast pairs when a theme is installed (LF-10)
   - Acceptance Criteria:
     - Functional:
       - A vocabulary may declare `contrast: [{ foreground, background, minimum, maximum?, lessThan?, description? }]`, naming declared colour roles. `lessThan` is a zero-based pair index, not a name.
@@ -255,8 +255,10 @@ This plan implements spec §6.1 (theme), §6.2 (recipes), §6.4 (projection, for
     - Files to Create/Edit:
       - `src/formats/contrast.ts` (new); `src/formats/vocabulary.ts`; `src/formats/theme.ts`
       - `src/errors.ts` (kind)
-      - `src/conformance/design-system.ts`
-      - `schemas/vocabulary.json`, `schemas/catalog.json`
+      - `src/conformance/design-system.ts`: existing `every_theme_installs` path already checks all themes; prove contrast failures through its test rather than add a duplicate case.
+      - `src/formats/catalog.ts`: keep the catalog change classifier compatible with optional vocabulary fields and classify changed contrast contracts conservatively as major.
+      - `schemas/catalog.json`: embeds the vocabulary schema; there is no standalone published `schemas/vocabulary.json`.
+      - `proof/scripts/export-formats.ts`: source declarations for the generated proof vocabulary/catalog mirrors.
       - `src/__tests__/fixtures/proof/vocabulary.json` (declare Certified/Rack pairs, so the proof themes are checked)
       - `docs/spec.md` §6.1/§6.5/§10; `docs/styling.md`; `docs/formats.md`; `docs/compatibility.md`
   - Test Cases to Write:
@@ -269,6 +271,17 @@ This plan implements spec §6.1 (theme), §6.2 (recipes), §6.4 (projection, for
     - `vocabulary_without_contrast_unchanged`.
     - `proof_themes_pass_their_pairs`.
     - `conformance_theme_contrast_case`.
+    - Conversion/theme cases live in dedicated `src/__tests__/contrast.test.ts`; declaration/schema cases in `vocabulary.test.ts`, classifier regressions in `catalog.test.ts`, and installed-theme regressions in `conformance-design-system.test.ts`.
+    - Existing fixture callers: `css-theme.test.ts` removes proof-only contrast fields when replacing the vocabulary with a one-role serialization fixture; `css-browser.test.ts` switches to another readable colour; `schemas.test.ts` copies the new module into its isolated publisher fixture.
+  - Notes (executed 2026-10-28):
+    - Added optional bounded contrast declarations and an opaque surface base, closed schema/type validation, role references, finite thresholds, maximum/minimum consistency and linear-time ordering-graph validation. `validateTheme` evaluates only structurally valid themes and returns bounded `insufficient-contrast` errors with pair indices, roles and two-decimal ratios; malformed/missing bases and nonfinite conversions fail as invalid theme data.
+    - `src/formats/contrast.ts` contains the host-API-free conversions for all 14 DTCG spaces, XYZ D65/Bradford adaptation, deterministic linear-sRGB clipping, encoded-sRGB source-over and unrounded WCAG comparisons. Role conversion is cached per install. Golden chromatic references, saturated clipping, alpha/base compositing, lower/upper bounds, strict ordering, bounded failures and legacy no-pair behaviour are covered in `contrast.test.ts`; declarations/schema and catalog classification have separate regressions.
+    - Reference finding: the current CSS Color 4 sample uses a power-2.4 Rec.2020 transfer, unlike the accepted decision's piecewise inverse. Preserved the explicitly approved piecewise contract and pinned the matching [2025-04-24 sample](https://www.w3.org/TR/2025/CRD-css-color-4-20250424/#color-conversion-code) in implementation, golden tests and spec. No new dependency or alternative contrast model was introduced.
+    - Reused `designSystemSuite`'s existing all-theme install case; a regression proves a broken second theme fails. The proof exporter declares six pairs for both Certified and Rack, including text ordering and border bounds; regenerated vocabulary/catalog mirrors validate. Hairline and subtle roles are equal in the existing proof themes, so no false strict ordering is imposed between those roles.
+    - Kept the catalog change classifier compatible with optional non-list vocabulary fields. Changed contrast contracts/bases conservatively require a major; descriptions and an explicit default maximum of 21 do not change classification. Spec §6.1/§6.5/§10, format/styling guidance and compatibility Growth document the shipped behaviour and new error kind. Vocabulary schema remains embedded in `schemas/catalog.json`, with no new published schema identity.
+    - Initial full verification found fixture integration issues: one-role serialization fixtures retained now-invalid proof role references, a switch fixture made text equal its background, the isolated schema publisher omitted the new module, the spec error table omitted the new kind, and an archive doc link pointed outside shipped files. Corrected those exact callers/docs; their focused run passed **50 tests across 6 files**. No assertions were weakened. The core focused run passed **44 tests across 5 files**.
+    - Install timing (1,000 warmed validations of each generated proof theme with six pairs): Certified **0.453 ms/install**, Rack **0.357 ms/install**, below the existing 2 ms theme-install budget. Reproduce with `validateTheme` against `src/__tests__/fixtures/proof/{vocabulary,certified.theme,rack.theme}.json`, 50 warmups and 1,000 measured calls per theme.
+    - Final verification: `bun run check` passed build, generated-file freshness, typecheck, lint, formatting and tests: **743 pass, 4 existing reference-dependent skips, 0 fail**, 747 tests across 97 files (281.09 s). `git diff --check` is clean. The intervening full run had one existing browser-fixture timeout under elevated machine load (742 pass, 4 skip, 1 fail); its complete browser file passed on retry (23 tests, including that case at 4.32 s against its unchanged 5 s limit), and the final full run passed the same case at 4.45 s. No test limits were changed. Standalone pixel parity and release gates remain whole-plan checks, not repeated for this install-only task.
 
 - [ ] Task 5: Add placeholder and scrollbar recipe properties
   - Acceptance Criteria:

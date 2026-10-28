@@ -98,3 +98,11 @@ test("app_sheet_case_allows_structure_and_theme_colour_references", async () => 
   ];
   for (const c of designSystemSuite({ ...input, sheets })) await c.run();
 });
+
+test("conformance_theme_contrast_case_checks_every_installed_theme", async () => {
+  const colours = { ...rackTheme.colours, "text.primary": rackTheme.colours["surface.base"] };
+  const failure = await fails("every_theme_installs", { themes: [certifiedTheme, { ...rackTheme, colours }] });
+  expect(failure.details).toContainEqual(
+    expect.objectContaining({ kind: "insufficient-contrast", message: expect.stringContaining("text.primary") }),
+  );
+});

@@ -396,6 +396,7 @@ function compareDefinition(before: Definition, after: Definition, change: Change
 
 function compareVocabulary(before: Vocabulary, after: Vocabulary, change: Change): void {
   for (const key of Object.keys(before) as (keyof Vocabulary)[]) {
+    if (key === "contrast" || key === "contrastBase") continue;
     if (key === "tones") {
       compareNames(Object.keys(before.tones), Object.keys(after.tones), "vocabulary tone", change);
       for (const [tone, role] of Object.entries(before.tones))
@@ -405,6 +406,10 @@ function compareVocabulary(before: Vocabulary, after: Vocabulary, change: Change
       if (before[key] !== after[key]) change(true, `vocabulary ${key} mapping changed`);
     } else compareNames(before[key], after[key], `vocabulary ${key}`, change);
   }
+  const gates = (v: Vocabulary) =>
+    (v.contrast ?? []).map((p) => [p.foreground, p.background, p.minimum, p.maximum ?? 21, p.lessThan ?? null]);
+  if (JSON.stringify(gates(before)) !== JSON.stringify(gates(after)) || before.contrastBase !== after.contrastBase)
+    change(true, "vocabulary contrast contract changed");
 }
 
 /** Inputs must be validated catalogs. A major result requires a new catalogId major. */

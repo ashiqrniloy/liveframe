@@ -1,6 +1,7 @@
 export type LiveframeError = {
   readonly kind:
     | "invalid-document"
+    | "insufficient-contrast"
     | "unknown-name"
     | "incomplete-design-system"
     | "colour-outside-theme"

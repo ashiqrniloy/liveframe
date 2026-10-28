@@ -148,3 +148,68 @@ test("vocabulary_rejects_role_named_none", () => {
   expect(new Ajv2020({ strict: true }).compile(vocabularySchema)(doc)).toBe(false);
   expect(validateVocabulary({ ...vocabulary, colourRoles: [...vocabulary.colourRoles, "surface.none"] }).ok).toBe(true);
 });
+
+test("contrast_declarations_are_closed_bounded_and_schema_checked", () => {
+  const pair = { foreground: "text.muted", background: "surface.base", minimum: 4.5 };
+  const structural = new Ajv2020({ strict: true }).compile(vocabularySchema);
+  const valid = {
+    ...vocabulary,
+    contrast: [{ ...pair, maximum: 7, description: "Body copy" }],
+    contrastBase: "surface.base",
+  };
+  expect(validateVocabulary(valid).ok).toBe(true);
+  expect(structural(valid)).toBe(true);
+  for (const patch of [
+    { minimum: NaN },
+    { minimum: Infinity },
+    { minimum: 0 },
+    { minimum: 22 },
+    { maximum: -Infinity },
+    { maximum: 22 },
+    { maximum: "7" },
+    { lessThan: -1 },
+    { lessThan: 0.5 },
+    { lessThan: 256 },
+    { lessThan: "0" },
+    { description: "x".repeat(501) },
+    { extra: true },
+    { foreground: 3 },
+  ]) {
+    const doc = { ...vocabulary, contrast: [{ ...pair, ...patch }] };
+    expect(validateVocabulary(doc).ok).toBe(false);
+    expect(structural(doc)).toBe(false);
+  }
+  for (const contrast of [null, {}, Array(257).fill(pair)]) {
+    const doc = { ...vocabulary, contrast };
+    expect(validateVocabulary(doc).ok).toBe(false);
+    expect(structural(doc)).toBe(false);
+  }
+  rejects({ ...vocabulary, contrast: [{ ...pair, foreground: "missing" }] }, "unknown-name", "/contrast/0/foreground");
+  rejects({ ...vocabulary, contrast: [{ ...pair, background: "missing" }] }, "unknown-name", "/contrast/0/background");
+  rejects({ ...vocabulary, contrast: [{ ...pair, maximum: 3 }] }, "invalid-document", "/contrast/0/maximum");
+  for (const contrastBase of ["missing", "text.muted"])
+    rejects({ ...vocabulary, contrastBase }, "unknown-name", "/contrastBase");
+});
+
+test("rejects_invalid_pair_ordering_graph", () => {
+  const pair = { foreground: "text.muted", background: "surface.base", minimum: 1 };
+  for (const contrast of [
+    [{ ...pair, lessThan: 0 }],
+    [{ ...pair, lessThan: 1 }],
+    [
+      { ...pair, lessThan: 1 },
+      { ...pair, lessThan: 0 },
+    ],
+    [
+      { ...pair, lessThan: 1 },
+      { ...pair, lessThan: 2 },
+      { ...pair, lessThan: 0 },
+    ],
+  ])
+    expect(validateVocabulary({ ...vocabulary, contrast }).ok).toBe(false);
+  expect(
+    validateVocabulary({ ...vocabulary, contrast: [{ ...pair, lessThan: 1 }, pair, { ...pair, lessThan: 1 }] }).ok,
+  ).toBe(true);
+  const contrast = Array.from({ length: 256 }, (_, i) => (i === 255 ? pair : { ...pair, lessThan: i + 1 }));
+  expect(validateVocabulary({ ...vocabulary, contrast }).ok).toBe(true);
+});

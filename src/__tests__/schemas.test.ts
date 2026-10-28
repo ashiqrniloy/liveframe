@@ -152,6 +152,7 @@ test("schema_publisher_detects_drift", async () => {
       "src/formats/capabilities.ts",
       "src/formats/manifest.ts",
       "src/formats/theme.ts",
+      "src/formats/contrast.ts",
       "src/formats/dtcg.ts",
       "src/formats/design-system.ts",
       "src/resolve.ts",

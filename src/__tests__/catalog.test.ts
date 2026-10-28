@@ -271,3 +271,28 @@ test("proof_catalog_validates_under_five_milliseconds", () => {
   expect(proofCatalog.definitions).toHaveLength(24);
   expect(elapsed).toBeLessThan(5);
 });
+
+test("contrast_contract_changes_are_major_but_descriptions_are_not", () => {
+  const pair = { foreground: "text.muted", background: "surface.base", minimum: 4.5 };
+  const installed = { ...catalog, vocabulary: { ...catalog.vocabulary, contrast: [pair] } };
+  expect(classifyCatalogChange(catalog, installed).level).toBe("major");
+  expect(classifyCatalogChange(installed, catalog).level).toBe("major");
+  expect(
+    classifyCatalogChange(installed, {
+      ...installed,
+      vocabulary: { ...installed.vocabulary, contrast: [{ ...pair, minimum: 5 }] },
+    }).level,
+  ).toBe("major");
+  expect(
+    classifyCatalogChange(installed, {
+      ...installed,
+      vocabulary: { ...installed.vocabulary, contrastBase: "surface.base" },
+    }).level,
+  ).toBe("major");
+  expect(
+    classifyCatalogChange(installed, {
+      ...installed,
+      vocabulary: { ...installed.vocabulary, contrast: [{ ...pair, description: "Copy", maximum: 21 }] },
+    }).level,
+  ).toBe("none");
+});

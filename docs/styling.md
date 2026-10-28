@@ -40,6 +40,14 @@ All three functions return `Result<string>`, validating inputs before emitting
 anything. Invalid inputs return typed errors with no partial sheet. Identical
 inputs, including inputs with reordered object keys, produce identical bytes.
 
+Declare required contrast pairs in the catalog vocabulary (see the
+[theme format](formats.md#theme)). `validateTheme`, `themeCss` and the conformance
+kit's `every_theme_installs` case check every supplied theme, including alpha
+compositing and optional upper bounds/orderings. A failure returns
+`insufficient-contrast`; a translucent background without an opaque declared
+`contrastBase` is invalid theme data. These checks run when installing/generating
+styles; cache installed inputs and sheets to avoid repeating them per render.
+
 | Sheet | Contents | Regenerate when |
 | --- | --- | --- |
 | Base | Generic reset, surface typography, optional containment, preference and switching overrides | The catalog changes |

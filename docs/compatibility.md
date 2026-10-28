@@ -40,6 +40,10 @@ access named scopes; stop scoped writes before rolling back.
 
 ## Growth
 
+- `insufficient-contrast` is an additive error kind for a theme that violates a
+  vocabulary-declared WCAG contrast minimum, maximum or strict pair ordering.
+  Its message identifies the roles and measured ratios; declarations are optional.
+
 - **Error kinds may be added.** `LiveframeError["kind"]` is an open union in practice: a new release can report a new kind for a case that previously produced a different one or none. Switch on the kinds you act on and treat the rest generically; do not fail on an unknown kind.
 - **Optional fields may be added** to results and documents, and exports may be added. Removing or renaming an export, a kind or a field is a minor (or, after `1.0.0`, major) change.
 

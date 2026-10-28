@@ -147,6 +147,15 @@ const catalog: Catalog = checked(
       ...baseCatalog.vocabulary,
       surfaceTypography: "body",
       colourRoles: baseCatalog.vocabulary.colourRoles,
+      contrastBase: "surface.base",
+      contrast: [
+        { foreground: "text.primary", background: "surface.base", minimum: 4.5 },
+        { foreground: "text.muted", background: "surface.base", minimum: 4.5, lessThan: 0 },
+        { foreground: "text.meta", background: "surface.base", minimum: 4.5, lessThan: 0 },
+        { foreground: "border.hairline", background: "surface.base", minimum: 1.2, maximum: 21 },
+        { foreground: "border.subtle", background: "surface.base", minimum: 1.2, maximum: 21 },
+        { foreground: "border.strong", background: "surface.base", minimum: 3 },
+      ],
     },
   }),
 );
