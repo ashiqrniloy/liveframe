@@ -1,0 +1,1318 @@
+$ bun run build && bun run gen:check && bun run typecheck && bun run lint && bun run format:check && bun run test
+$ bun scripts/build.ts
+$ bun src/cli/liveframe.ts gen src/__tests__/fixtures/proof/catalog.json --out src/__tests__/fixtures/widgets/ui.gen.ts --check
+$ tsc --noEmit && tsc --noEmit -p proof
+$ biome lint .
+proof/renderer/primitives/index.tsx:90:5 lint/complexity/noUselessFragments  FIXABLE  ━━━━━━━━━━━━━━
+
+  i This fragment is unnecessary.
+
+    88 │     </svg>
+    89 │   ) : (
+  > 90 │     <>{icons[name] ?? "◇"}</>
+       │     ^^^^^^^^^^^^^^^^^^^^^^^^^
+    91 │   );
+    92 │ const icon = (name: string | undefined, className: string) =>
+
+  i A fragment is redundant if it contains only one child, or if it is the child of a html element, and is not a keyed fragment.
+
+  i Unsafe fix: Remove the Fragment
+
+    90 │ ····<>{icons[name]·??·"◇"}</>
+       │     ---                  ----
+
+proof/host/preview.ts:1:23 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Several of these imports are unused.
+
+  > 1 │ import type { Intent, Result } from "@arnilo/liveframe";
+      │                       ^^^^^^
+    2 │ import { createPreview, type PreviewBinding, type PreviewSession } from "@arnilo/liveframe/preview";
+    3 │ import { memoryStore } from "@arnilo/liveframe/store";
+
+  i Unused imports might be the result of an incomplete refactoring.
+
+  i Unsafe fix: Remove the unused imports.
+
+    1 │ import·type·{·Intent,·Result·}·from·"@arnilo/liveframe";
+      │                       -------
+
+proof/scripts/inventory.ts:56:7 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    54 │   for (let i = n - 1; i >= 0; i -= 1)
+    55 │     for (let j = m - 1; j >= 0; j -= 1)
+  > 56 │       table[i]![j] =
+       │       ^^^^^^^^^
+    57 │         approved[i] === widget[j] ? table[i + 1]![j + 1]! + 1 : Math.max(table[i + 1]![j]!, table[i]![j + 1]!);
+    58 │   const result: string[][] = [];
+
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+
+
+proof/scripts/inventory.ts:57:37 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    55 │     for (let j = m - 1; j >= 0; j -= 1)
+    56 │       table[i]![j] =
+  > 57 │         approved[i] === widget[j] ? table[i + 1]![j + 1]! + 1 : Math.max(table[i + 1]![j]!, table[i]![j + 1]!);
+       │                                     ^^^^^^^^^^^^^
+    58 │   const result: string[][] = [];
+    59 │   let i = 0;
+
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+
+     55  55 │       for (let j = m - 1; j >= 0; j -= 1)
+     56  56 │         table[i]![j] =
+     57     │ - ········approved[i]·===·widget[j]·?·table[i·+·1]![j·+·1]!·+·1·:·Math.max(table[i·+·1]![j]!,·table[i]![j·+·1]!);
+         57 │ + ········approved[i]·===·widget[j]·?·table[i·+·1]?.[j·+·1]!·+·1·:·Math.max(table[i·+·1]![j]!,·table[i]![j·+·1]!);
+     58  58 │     const result: string[][] = [];
+     59  59 │     let i = 0;
+
+
+proof/scripts/inventory.ts:57:37 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    55 │     for (let j = m - 1; j >= 0; j -= 1)
+    56 │       table[i]![j] =
+  > 57 │         approved[i] === widget[j] ? table[i + 1]![j + 1]! + 1 : Math.max(table[i + 1]![j]!, table[i]![j + 1]!);
+       │                                     ^^^^^^^^^^^^^^^^^^^^^
+    58 │   const result: string[][] = [];
+    59 │   let i = 0;
+
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+
+
+proof/scripts/inventory.ts:57:74 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    55 │     for (let j = m - 1; j >= 0; j -= 1)
+    56 │       table[i]![j] =
+  > 57 │         approved[i] === widget[j] ? table[i + 1]![j + 1]! + 1 : Math.max(table[i + 1]![j]!, table[i]![j + 1]!);
+       │                                                                          ^^^^^^^^^^^^^
+    58 │   const result: string[][] = [];
+    59 │   let i = 0;
+
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+
+     55  55 │       for (let j = m - 1; j >= 0; j -= 1)
+     56  56 │         table[i]![j] =
+     57     │ - ········approved[i]·===·widget[j]·?·table[i·+·1]![j·+·1]!·+·1·:·Math.max(table[i·+·1]![j]!,·table[i]![j·+·1]!);
+         57 │ + ········approved[i]·===·widget[j]·?·table[i·+·1]![j·+·1]!·+·1·:·Math.max(table[i·+·1]?.[j]!,·table[i]![j·+·1]!);
+     58  58 │     const result: string[][] = [];
+     59  59 │     let i = 0;
+
+
+proof/scripts/inventory.ts:57:74 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    55 │     for (let j = m - 1; j >= 0; j -= 1)
+    56 │       table[i]![j] =
+  > 57 │         approved[i] === widget[j] ? table[i + 1]![j + 1]! + 1 : Math.max(table[i + 1]![j]!, table[i]![j + 1]!);
+       │                                                                          ^^^^^^^^^^^^^^^^^
+    58 │   const result: string[][] = [];
+    59 │   let i = 0;
+
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+
+
+proof/scripts/inventory.ts:57:93 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    55 │     for (let j = m - 1; j >= 0; j -= 1)
+    56 │       table[i]![j] =
+  > 57 │         approved[i] === widget[j] ? table[i + 1]![j + 1]! + 1 : Math.max(table[i + 1]![j]!, table[i]![j + 1]!);
+       │                                                                                             ^^^^^^^^^
+    58 │   const result: string[][] = [];
+    59 │   let i = 0;
+
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+
+     55  55 │       for (let j = m - 1; j >= 0; j -= 1)
+     56  56 │         table[i]![j] =
+     57     │ - ········approved[i]·===·widget[j]·?·table[i·+·1]![j·+·1]!·+·1·:·Math.max(table[i·+·1]![j]!,·table[i]![j·+·1]!);
+         57 │ + ········approved[i]·===·widget[j]·?·table[i·+·1]![j·+·1]!·+·1·:·Math.max(table[i·+·1]![j]!,·table[i]?.[j·+·1]!);
+     58  58 │     const result: string[][] = [];
+     59  59 │     let i = 0;
+
+
+proof/scripts/inventory.ts:57:93 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    55 │     for (let j = m - 1; j >= 0; j -= 1)
+    56 │       table[i]![j] =
+  > 57 │         approved[i] === widget[j] ? table[i + 1]![j + 1]! + 1 : Math.max(table[i + 1]![j]!, table[i]![j + 1]!);
+       │                                                                                             ^^^^^^^^^^^^^^^^^
+    58 │   const result: string[][] = [];
+    59 │   let i = 0;
+
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+
+
+proof/scripts/inventory.ts:71:29 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    69 │     }
+    70 │     open ??= [];
+  > 71 │     if (j >= m || (i < n && table[i + 1]![j]! >= table[i]![j + 1]!)) open.push(`- ${approved[i++]!.trim()}`);
+       │                             ^^^^^^^^^^^^^
+    72 │     else open.push(`+ ${widget[j++]!.trim()}`);
+    73 │   }
+
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+
+     69  69 │       }
+     70  70 │       open ??= [];
+     71     │ - ····if·(j·>=·m·||·(i·<·n·&&·table[i·+·1]![j]!·>=·table[i]![j·+·1]!))·open.push(`-·${approved[i++]!.trim()}`);
+         71 │ + ····if·(j·>=·m·||·(i·<·n·&&·table[i·+·1]?.[j]!·>=·table[i]![j·+·1]!))·open.push(`-·${approved[i++]!.trim()}`);
+     72  72 │       else open.push(`+ ${widget[j++]!.trim()}`);
+     73  73 │     }
+
+
+proof/scripts/inventory.ts:71:29 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    69 │     }
+    70 │     open ??= [];
+  > 71 │     if (j >= m || (i < n && table[i + 1]![j]! >= table[i]![j + 1]!)) open.push(`- ${approved[i++]!.trim()}`);
+       │                             ^^^^^^^^^^^^^^^^^
+    72 │     else open.push(`+ ${widget[j++]!.trim()}`);
+    73 │   }
+
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+
+
+proof/scripts/inventory.ts:71:50 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    69 │     }
+    70 │     open ??= [];
+  > 71 │     if (j >= m || (i < n && table[i + 1]![j]! >= table[i]![j + 1]!)) open.push(`- ${approved[i++]!.trim()}`);
+       │                                                  ^^^^^^^^^^^^^^^^^
+    72 │     else open.push(`+ ${widget[j++]!.trim()}`);
+    73 │   }
+
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+
+
+proof/scripts/inventory.ts:71:50 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    69 │     }
+    70 │     open ??= [];
+  > 71 │     if (j >= m || (i < n && table[i + 1]![j]! >= table[i]![j + 1]!)) open.push(`- ${approved[i++]!.trim()}`);
+       │                                                  ^^^^^^^^^
+    72 │     else open.push(`+ ${widget[j++]!.trim()}`);
+    73 │   }
+
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+
+     69  69 │       }
+     70  70 │       open ??= [];
+     71     │ - ····if·(j·>=·m·||·(i·<·n·&&·table[i·+·1]![j]!·>=·table[i]![j·+·1]!))·open.push(`-·${approved[i++]!.trim()}`);
+         71 │ + ····if·(j·>=·m·||·(i·<·n·&&·table[i·+·1]![j]!·>=·table[i]?.[j·+·1]!))·open.push(`-·${approved[i++]!.trim()}`);
+     72  72 │       else open.push(`+ ${widget[j++]!.trim()}`);
+     73  73 │     }
+
+
+proof/scripts/inventory.ts:71:85 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    69 │     }
+    70 │     open ??= [];
+  > 71 │     if (j >= m || (i < n && table[i + 1]![j]! >= table[i]![j + 1]!)) open.push(`- ${approved[i++]!.trim()}`);
+       │                                                                                     ^^^^^^^^^^^^^^
+    72 │     else open.push(`+ ${widget[j++]!.trim()}`);
+    73 │   }
+
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+
+     69  69 │       }
+     70  70 │       open ??= [];
+     71     │ - ····if·(j·>=·m·||·(i·<·n·&&·table[i·+·1]![j]!·>=·table[i]![j·+·1]!))·open.push(`-·${approved[i++]!.trim()}`);
+         71 │ + ····if·(j·>=·m·||·(i·<·n·&&·table[i·+·1]![j]!·>=·table[i]![j·+·1]!))·open.push(`-·${approved[i++]?.trim()}`);
+     72  72 │       else open.push(`+ ${widget[j++]!.trim()}`);
+     73  73 │     }
+
+
+proof/scripts/inventory.ts:72:25 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    70 │     open ??= [];
+    71 │     if (j >= m || (i < n && table[i + 1]![j]! >= table[i]![j + 1]!)) open.push(`- ${approved[i++]!.trim()}`);
+  > 72 │     else open.push(`+ ${widget[j++]!.trim()}`);
+       │                         ^^^^^^^^^^^^
+    73 │   }
+    74 │   if (open) result.push(open);
+
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+
+     70  70 │       open ??= [];
+     71  71 │       if (j >= m || (i < n && table[i + 1]![j]! >= table[i]![j + 1]!)) open.push(`- ${approved[i++]!.trim()}`);
+     72     │ - ····else·open.push(`+·${widget[j++]!.trim()}`);
+         72 │ + ····else·open.push(`+·${widget[j++]?.trim()}`);
+     73  73 │     }
+     74  74 │     if (open) result.push(open);
+
+
+proof/scripts/inventory.ts:99:7 lint/correctness/noUnusedVariables  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! This variable causeOf is unused.
+
+     97 │ ];
+     98 │
+   > 99 │ const causeOf = (hunk: string[]): string => {
+        │       ^^^^^^^
+    100 │   const text = hunk.join("\n");
+    101 │   return causes.find(([pattern]) => pattern.test(text))?.[1] ?? "Unclassified";
+
+  i Unused variables are often the result of typos, incomplete refactors, or other sources of bugs.
+
+  i Unsafe fix: If this is intentional, prepend causeOf with an underscore.
+
+     97  97 │   ];
+     98  98 │
+     99     │ - const·causeOf·=·(hunk:·string[]):·string·=>·{
+         99 │ + const·_causeOf·=·(hunk:·string[]):·string·=>·{
+    100 100 │     const text = hunk.join("\n");
+    101 101 │     return causes.find(([pattern]) => pattern.test(text))?.[1] ?? "Unclassified";
+
+
+src/__tests__/css-style-props.test.ts:7:15 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    6 │ const catalog: Catalog = await Bun.file(new URL("./fixtures/proof/catalog.json", import.meta.url)).json();
+  > 7 │ const space = catalog.vocabulary.space[0]!;
+      │               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    8 │ const cases = {
+    9 │   padding: [space, "padding", "var(--lf-v-space_0)"],
+
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+
+
+src/__tests__/design-system.test.ts:220:22 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    218 │   const { recipeProperties } = await import("../index.ts");
+    219 │   const entry = Object.values(designSystemSchema.properties.recipes.patternProperties)[0];
+  > 220 │   expect(Object.keys(entry!.properties).sort()).toEqual([...recipeProperties].sort());
+        │                      ^^^^^^
+    221 │ });
+    222 │
+
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+
+    218 218 │     const { recipeProperties } = await import("../index.ts");
+    219 219 │     const entry = Object.values(designSystemSchema.properties.recipes.patternProperties)[0];
+    220     │ - ··expect(Object.keys(entry!.properties).sort()).toEqual([...recipeProperties].sort());
+        220 │ + ··expect(Object.keys(entry?.properties).sort()).toEqual([...recipeProperties].sort());
+    221 221 │   });
+    222 222 │
+
+
+src/__tests__/design-system.test.ts:238:28 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    236 │       catalog: {
+    237 │         ...catalog,
+  > 238 │         definitions: [{ ...catalog.definitions[0]!, variants: Array.from({ length: 12 }, (_, i) => `variant${i}`) }],
+        │                            ^^^^^^^^^^^^^^^^^^^^^^^
+    239 │       },
+    240 │       registry: {},
+
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+
+
+src/store/load.ts:3:10 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Several of these imports are unused.
+
+    1 │ import { DEFAULT_MAX_ERRORS, LiveframeFailure, type LiveframeError, type Result } from "../errors.ts";
+    2 │ import type { WidgetPackage } from "../formats/package.ts";
+  > 3 │ import { type Placement, validatePlacement, validateState } from "../formats/records.ts";
+      │          ^^^^^^^^^^^^^^
+    4 │ import type { Json } from "../formats/tree.ts";
+    5 │ import { verifyPackage } from "../pack/verify.ts";
+
+  i Unused imports might be the result of an incomplete refactoring.
+
+  i Unsafe fix: Remove the unused imports.
+
+    3 │ import·{·type·Placement,·validatePlacement,·validateState·}·from·"../formats/records.ts";
+      │          ----------------
+
+The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
+Diagnostics not shown: 27.
+Checked 333 files in 149ms. No fixes applied.
+Found 43 warnings.
+Found 4 infos.
+$ biome format .
+Checked 330 files in 32ms. No fixes applied.
+$ bun test --conditions liveframe:source src proof
+bun test v1.4.2 (744846f84)
+
+proof/tests/runtime.test.ts:
+(pass) ids_are_key_paths_and_stable_across_an_insert [2.04ms]
+(pass) rejects_host_elements_function_props_async_and_missing_keys [0.81ms]
+(pass) compositions_fragments_and_static_children_keep_key_scopes [0.68ms]
+(pass) intents_are_frozen_wire_data_and_declared [0.87ms]
+(pass) catalog_schemas_children_variants_and_styles_fail_closed [2.14ms]
+(pass) responsive_style_values_are_closed_data [0.49ms]
+(pass) fill_accepts_only_declared_fillable_roles [0.22ms]
+(pass) position_fill_radius_and_text_alignment_validate [0.38ms]
+(pass) semantics_are_a_closed_enum_with_terms_child_rules [0.41ms]
+(pass) inputs_and_output_are_deeply_frozen_and_metadata_is_preserved [0.27ms]
+(pass) transport_validation_rejects_unknown_fields_ids_and_non_json [0.70ms]
+(pass) limits_enforce_node_count_depth_and_utf8_bytes [0.59ms]
+(pass) default_depth_and_node_limits_have_inclusive_boundaries [16.21ms]
+(pass) dev_runtime_preserves_static_children_and_rejects_fragment_props [0.43ms]
+(pass) transport_events_styles_and_children_are_closed [0.37ms]
+(pass) runtime_sources_use_no_host_api [3.41ms]
+
+proof/tests/runtime-jsx.test.tsx:
+(pass) automatic_jsx_runtime_expands_typed_catalog_primitives [0.74ms]
+
+proof/tests/projection.test.ts:
+(pass) proof_adapter_uses_library_classes_and_styles [0.99ms]
+(pass) proof_containment_follows_responsive_values [0.09ms]
+
+proof/tests/renderer.test.tsx:
+(pass) registry_check_fails_on_missing_or_duplicate_implementation [6.00ms]
+(pass) server_rendering_and_transport_revalidation [8.66ms]
+(pass) semantics_and_disclosure_render_their_elements [5.49ms]
+(pass) renderer_does_not_import_design_systems_or_widget_authoring_code [0.60ms]
+
+proof/tests/renderer-browser.test.tsx:
+679-node selection certified@1.0.0: {"validation":[2.699999988079071],"render":[63.10000002384186,1.5],"commit":[7,0.4000000059604645],"synchronous":88.60000002384186} ms
+679-node selection rack@1.0.0: {"validation":[2.4000000059604645],"render":[62.49999997019768,1.300000011920929],"commit":[7.299999982118607,0.29999998211860657],"synchronous":87.69999998807907} ms
+(pass) selection_rerender_cost_is_recorded [1383.21ms]
+(pass) dialog_exit_animates_then_unmounts_and_reduced_motion_skips_exit [1487.08ms]
+(pass) open_dialog_locks_scroll_and_makes_background_inert [1016.27ms]
+(pass) local_state_focus_scroll_and_ids_survive_new_and_stale_revisions [924.68ms]
+(pass) three_interaction_tiers_overlays_and_keyboard_controls [1450.37ms]
+(pass) disclosure_toggles_locally_and_survives_rerenders [781.87ms]
+(pass) design_system_switch_changes_styles_without_widget_or_dom_rerender_and_honours_forced_colours [684.58ms]
+(pass) responsive_columns_follow_the_container [181.69ms]
+(pass) surface_text_never_inherits_host_fonts [113.48ms]
+(pass) sticky_position_sticks_within_its_scroller [68.84ms]
+(pass) text_field_counts_code_points [732.14ms]
+
+proof/tests/agent-home.test.ts:
+(pass) selecting_a_row_moves_its_card_to_focus [6.10ms]
+(pass) queue_structure_matches_the_artifact_landmarks [3.76ms]
+(pass) filter_selects_a_visible_focus_and_load_more_advances_all_three_cursors [7.15ms]
+(pass) escalate_requires_a_reason_of_1_to_500_chars [20.14ms]
+(pass) loading_empty_failed_and_permissions_fail_closed [5.94ms]
+(pass) widget_uses_only_catalog_primitives_and_declared_intents [2.26ms]
+(pass) paging_preserves_selection_and_row_ids_and_rejects_old_or_forged_intents [3.09ms]
+
+proof/tests/agent-home-browser.test.ts:
+(pass) agent_home_hydrates_selects_filters_pages_and_dispatches_card_controls_certified [1353.35ms]
+(pass) agent_home_hydrates_selects_filters_pages_and_dispatches_card_controls_rack [1582.76ms]
+(pass) agent_home_scenarios_are_reachable_and_readonly_hides_actions [818.57ms]
+
+proof/tests/core-queue.test.ts:
+(pass) renders_each_size_with_a_distinct_valid_tree [35.09ms]
+(pass) size_outside_the_manifest_is_rejected [0.17ms]
+(pass) decision_sizes_select_page_and_enforce_current_offered_actions [5.19ms]
+(pass) every_size_handles_loading_empty_failure_and_zero_decisions [5.21ms]
+
+proof/tests/core-queue-browser.test.ts:
+(pass) core_queue_sizes_hydrate_with_specimen_caps_and_live_selection [1432.73ms]
+
+proof/tests/clay-browser.test.ts:
+(pass) clay_panels_hydrate_and_exercise_three_interaction_tiers_certified [1131.37ms]
+(pass) clay_panels_hydrate_and_exercise_three_interaction_tiers_rack [1105.80ms]
+
+proof/tests/packages.test.ts:
+(pass) host_pages_render_through_packages_and_runner [59.02ms]
+(pass) host_rechecks_intents_against_manifest_and_capabilities [1.25ms]
+(pass) bound_action_values_are_checked_against_capability_args [12.84ms]
+(pass) concurrent_state_requests_cannot_overwrite_an_accepted_revision [2.27ms]
+
+proof/tests/switch.test.ts:
+(pass) design_system_page_uses_the_unchanged_reference_queue [3.44ms]
+(pass) all_proof_scenarios_render_with_both_scoped_design_systems [4832.84ms]
+agent-home CSS switch: cold 9.90 ms; 5.60 ms max (10 switches, 16.67 ms frame budget)
+(pass) switch_changes_computed_styles_not_dom_structure: agent-home [842.90ms]
+git-status CSS switch: cold 4.00 ms; 3.30 ms max (10 switches, 16.67 ms frame budget)
+(pass) switch_changes_computed_styles_not_dom_structure: git-status [665.06ms]
+
+proof/tests/preview-browser.test.ts:
+679-node 12-cell matrix navigation + draw: 1409.528155 ms
+(pass) every_proof_scenario_draws_at_three_widths_under_both_design_systems [15857.68ms]
+(pass) set_state_rerenders_within_the_session_in_the_browser [2572.73ms]
+(pass) action_appears_in_the_log_and_the_dispatcher_records_no_call [1430.52ms]
+(pass) no_draft_code_reaches_the_browser_and_publish_stores_the_last_package [3255.10ms]
+(pass) preview_routes_reject_bad_requests_and_isolate_sessions [3055.32ms]
+(pass) responsive_values_and_design_system_recipes_are_scoped_to_each_cell [1688.10ms]
+(pass) only_scenario_changes_fetch_and_obsolete_responses_are_discarded [2005.92ms]
+
+proof/tests/preview-agent-loop.test.ts:
+scripted agent loop: 4815 ms
+(pass) scripted_agent_fixes_a_layout_error_from_its_capture_and_publishes_the_previewed_hash [4816.74ms]
+
+proof/tests/conformance.test.ts:
+(pass) catalog_installs [1.02ms]
+(pass) capabilities_install [0.23ms]
+(pass) manifest_installs_against_the_catalog [1.22ms]
+(pass) every_kind_and_variant_has_a_valid_example [11.61ms]
+(pass) every_theme_installs [2.69ms]
+(pass) every_design_system_installs [61.77ms]
+(pass) every_theme_and_design_system_projects [130.44ms]
+(pass) app_sheets_set_no_colour [0.69ms]
+(pass) registry_check_passes [1.99ms]
+(pass) every_example_renders_on_the_server_under_every_design_system [130.37ms]
+(pass) every_node_carries_its_root_slot_class_and_style [193.25ms]
+(pass) invalid_arrival_renders_only_the_fallback [26.05ms]
+Renderer server conformance (Certified × Rack): 582.41 ms
+(pass) proof_implementations_pass_the_renderer_server_cases [582.71ms]
+
+proof/tests/conformance-browser.test.ts:
+Renderer browser conformance (Certified × Rack): 8490.21 ms
+(pass) proof_host_passes_the_renderer_browser_cases [8490.48ms]
+Styled-state conformance (Certified × Rack): 31149.77 ms
+(pass) proof_host_reaches_every_styled_state [31150.09ms]
+Overlay/text conformance (Certified × Rack): 10748.29 ms
+(pass) proof_host_passes_the_overlay_and_text_cases [10748.55ms]
+
+proof/tests/preview-attach.test.ts:
+(pass) attached_session_page_shows_the_bound_package [47.63ms]
+(pass) attached_session_rejects_draft_and_publish_routes [22.83ms]
+
+proof/tests/mcp-agent-loop.test.ts:
+liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).
+agent loop: 2349 ms
+(pass) scripted_agent_writes_fixes_and_lays_out_a_widget_through_mcp_tools_only [2349.36ms]
+
+proof/tests/mcp-capture.test.ts:
+liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).
+(pass) capture_returns_png_snapshot_and_errors_per_cell [4312.39ms]
+liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).
+(pass) capture_shows_the_draft_last_packed [7876.20ms]
+liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).
+(pass) capture_over_12_cells_is_an_error_naming_the_narrowing_arguments [2128.14ms]
+liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).
+(pass) capture_after_pack_sees_that_pack [4779.13ms]
+liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).
+(pass) concurrent_captures_bind_the_page_once [7960.44ms]
+liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).
+(pass) unknown_axis_is_unknown_name [2668.35ms]
+(pass) capture_before_pack_and_without_preview_config_are_errors [224.47ms]
+(pass) capture_page_and_bundle_hold_no_draft_code [82.51ms]
+liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).
+(pass) each_capture_uses_a_fresh_directory_and_the_binding_closes_once [8093.98ms]
+
+proof/tests/preview-capture.test.ts:
+(pass) capture_writes_png_snapshot_and_index_per_cell [4311.52ms]
+(pass) flags_narrow_the_cells [13693.79ms]
+(pass) cell_errors_reach_the_index [680.32ms]
+(pass) cells_whose_names_sanitise_alike_keep_distinct_files [4993.72ms]
+(pass) missing_playwright_reports_how_to_install [16.52ms]
+(pass) capture_errors_carry_their_kind [63.20ms]
+(pass) capture_without_playwright_reports_install_hint [10.29ms]
+(pass) gen_runs_without_playwright [13.21ms]
+
+proof/tests/catalog.test.ts:
+(pass) catalog_has_no_product_shaped_kind [0.06ms]
+(pass) definitions_are_plain_data_with_complete_contracts [0.41ms]
+(pass) definitions_admit_no_colour_or_raw_style_props [1.16ms]
+(skip) references_are_all_attributed
+
+proof/tests/clay.test.ts:
+(skip) git_status_matches_builder_output_structure
+(pass) rack_indicators_use_fillable_roles_and_round_radius [1.07ms]
+(pass) empty_state_renders [0.80ms]
+(pass) agent_info_tabs_and_close_map_to_declared_intents [3.93ms]
+
+proof/tests/host.test.ts:
+(pass) set_state_reruns_widget_and_returns_new_tree [4.07ms]
+(pass) action_is_logged_and_never_rerenders_by_itself [0.96ms]
+(pass) dispatch_rechecks_state_actions_current_tree_and_revision [2.08ms]
+(pass) failed_rerender_rolls_back_state [10.01ms]
+(pass) host_serves_reference_pages_and_rejects_invalid_requests [79.86ms]
+(pass) browser_hydrates_posts_intents_logs_actions_and_switches_styles [620.66ms]
+host setState: 1.04 ms max (25 local HTTP round trips, 50 rows)
+(pass) set_state_http_round_trip_under_50_ms [37.99ms]
+(pass) tier_one_stays_local_and_tier_two_preserves_focus_scroll_and_local_state [1173.43ms]
+(pass) bound_reason_is_completed_logged_once_and_does_not_rerender [848.07ms]
+
+proof/tests/styles.test.ts:
+(pass) design_systems_are_complete_for_the_catalog [1.79ms]
+(pass) recipe_completion_requires_each_slot_and_inherits_rest [0.81ms]
+(pass) themes_share_one_complete_role_vocabulary [0.28ms]
+(pass) no_colour_outside_themes [2.28ms]
+(pass) recipes_reference_only_declared_roles_and_values [5.11ms]
+(pass) style_values_reference_declared_value_names [0.17ms]
+(pass) style_checks_reject_unknown_roles_literals_and_wrong_value_domains [0.32ms]
+(skip) rack_preserves_all_247_source_recipes_and_values
+(pass) translated_rack_source_also_resolves_against_both_themes [1.00ms]
+(skip) themes_keep_reference_colour_authority
+
+src/__tests__/index.test.ts:
+(pass) the wire format id matches spec §9 [0.02ms]
+
+src/__tests__/schema.test.ts:
+(pass) min_length_counts_code_points [32.02ms]
+(pass) minimum_keywords_are_bounded_integers [0.10ms]
+(pass) boolean_schema_annotations_have_public_types [0.06ms]
+(pass) language_rejects_unbounded_and_open_schemas [0.21ms]
+(pass) builders_produce_language_schemas [0.13ms]
+(pass) max_length_counts_code_points [0.08ms]
+(pass) errors_are_bounded_and_pointed [0.30ms]
+(pass) objects_validate_own_properties_without_prototype_collisions [0.06ms]
+(pass) check_value_agrees_with_ajv [6.53ms]
+(pass) check_value_handles_1000_mixed_properties_under_5ms [6.00ms]
+(pass) infer_types_match_schemas [0.17ms]
+
+src/__tests__/schemas.test.ts:
+(pass) published_schemas_match_sources [157.49ms]
+(pass) schema_ids_are_format_urns [0.72ms]
+(pass) package_schema_resolves_manifest_by_urn_offline [33.58ms]
+(pass) meta_schema_agrees_with_language_forms [1.55ms]
+(pass) schema_publisher_check_passes [12.07ms]
+(pass) schema_publisher_detects_drift [135.27ms]
+
+src/__tests__/portability.test.ts:
+(pass) sdk_bundles_for_browser_without_host_apis [3.45ms]
+(pass) css_bundles_for_browser_without_host_apis [2.49ms]
+(pass) src_is_host_api_free [15.19ms]
+(pass) compiled_output_is_host_api_free [23.58ms]
+(pass) host_api_free_subpaths_bundle_clean: conformance [27.42ms]
+(pass) host_api_free_subpaths_bundle_clean: pack [19.29ms]
+(pass) host_api_free_subpaths_bundle_clean: store [11.72ms]
+(pass) host_api_free_subpaths_bundle_clean: preview [22.37ms]
+
+src/__tests__/resolve.test.ts:
+(pass) colour_only_from_theme_roles [1.07ms]
+(pass) completeness_after_cascade [0.37ms]
+(pass) extends_cycles_rejected [0.20ms]
+(pass) references_match_value_kinds [0.28ms]
+(pass) recipe_keys_and_properties_are_closed [0.45ms]
+(pass) design_system_structure_agrees_with_schema [59.54ms]
+(pass) design_system_errors_are_bounded_and_escaped [0.40ms]
+(pass) design_values_and_literals_are_typed_and_bounded [2.04ms]
+(pass) rack_validates_and_resolves_under_50ms [447.73ms]
+(pass) recipe_schema_uses_the_fixed_property_vocabulary [0.27ms]
+(pass) inheritance_and_completeness_fail_closed [0.79ms]
+(pass) cascade_order [0.18ms]
+(pass) extends_merges_properties_and_resolves_child_values [0.17ms]
+(pass) resolution_preserves_role_names_and_checks_inherited_data [0.41ms]
+
+src/__tests__/tree.test.ts:
+(pass) tree_types_match_published_schema [4.70ms]
+(pass) tree_schema_rejects_unknown_fields [0.11ms]
+(pass) tree_schema_checks_paths_envelopes_and_intent_shapes [0.33ms]
+
+src/__tests__/compiled-schema.test.ts:
+(pass) compiled_and_interpreted_agree_on_minimums [15.58ms]
+(pass) compiled_matches_interpreter [6.99ms]
+(pass) errors_are_bounded_without_changing_the_boolean_result [0.14ms]
+(pass) expected_names_the_failed_rule [0.14ms]
+(pass) patterns_compile_once [0.33ms]
+compiled schema: 16.7x faster (1.72 / 28.63 ms per 10,000 values)
+(pass) compiled_is_faster_than_interpreter [284.73ms]
+
+src/__tests__/validator-smoke.test.ts:
+(pass) validator_smoke_under_5us_per_node [4360.26ms]
+
+src/__tests__/validator-rules.test.ts:
+(pass) shared structure pieces > structure_pieces_match_tree_walk [10.29ms]
+(pass) spec §10 failing-case matrix > every_spec_rule_has_a_row [0.49ms]
+(pass) spec §10 failing-case matrix > each_row_fails_as_specified [0.69ms]
+(pass) spec §10 failing-case matrix > expected_text_is_actionable [0.75ms]
+
+src/__tests__/sdk-jsx.test.tsx:
+(pass) sdk jsx runtime > elements_and_intents_are_frozen [0.20ms]
+(pass) sdk jsx runtime > intent_helpers_reject_non_json [0.21ms]
+(pass) sdk jsx runtime > jsx_does_not_call_components [0.02ms]
+(pass) sdk jsx runtime > primitive_tags_record_kind_and_call_through [0.09ms]
+(pass) sdk jsx runtime > jsx_dev_runtime_matches_jsx [0.05ms]
+
+src/__tests__/sdk-types.test.tsx:
+(pass) sdk types > primitive_tags_type_their_props_and_reject_host_elements [0.09ms]
+(pass) sdk types > widget_inputs_are_readonly [0.03ms]
+
+src/__tests__/sdk-render.test.tsx:
+(pass) sdk render > render_error_kinds [0.78ms]
+(pass) sdk render > ids_are_key_paths [0.26ms]
+(pass) sdk render > props_split_into_variant_style_events_and_props [0.11ms]
+(pass) sdk render > widget_runs_once_and_two_root_nodes_fail [0.11ms]
+(pass) sdk render > class_name_and_style_strings_rejected [0.12ms]
+(pass) sdk render > errors_are_bounded [0.18ms]
+(pass) sdk render > rendered_trees_pass_validate_tree [0.45ms]
+(pass) keyed_fragments_preserve_component_paths [0.21ms]
+(pass) composed components and fragments > nested_callback_in_composed_props_is_function_prop [0.28ms]
+(pass) composed components and fragments > composed_component_error_paths [0.47ms]
+
+src/__tests__/sdk-gen.test.ts:
+(pass) gen_prints_nullable [0.73ms]
+(pass) gen_accepts_minimums_without_changing_value_types [0.44ms]
+(pass) gen_is_deterministic_and_formatted [97.93ms]
+(pass) gen_check_detects_drift [66.24ms]
+(pass) gen_rejects_malformed_catalog [37.66ms]
+(pass) gen_escapes_docs_and_property_names_and_rejects_collisions [0.88ms]
+
+src/__tests__/sdk-gen-types.test.tsx:
+(pass) generated_types_reject_wrong_props [0.17ms]
+
+src/__tests__/sdk-proof-widgets.test.ts:
+(pass) ported_manifests_validate: agent-home [0.19ms]
+(pass) proof_scenarios_render: agent-home/ready [5.74ms]
+(pass) proof_scenarios_render: agent-home/host-ready [1.13ms]
+(pass) proof_scenarios_render: agent-home/loading [0.18ms]
+(pass) proof_scenarios_render: agent-home/empty [0.14ms]
+(pass) proof_scenarios_render: agent-home/failed [0.18ms]
+(pass) proof_scenarios_render: agent-home/read-only [0.97ms]
+(pass) proof_scenarios_render: agent-home/no-alerts [0.77ms]
+(pass) proof_scenarios_render: agent-home/no-escalate [0.88ms]
+(pass) proof_trees_match_exports: agent-home [3.22ms]
+(pass) ported_manifests_validate: core-queue [0.17ms]
+(pass) proof_scenarios_render: core-queue/small [0.44ms]
+(pass) proof_scenarios_render: core-queue/medium [3.17ms]
+(pass) proof_scenarios_render: core-queue/large [3.31ms]
+(pass) proof_scenarios_render: core-queue/full [3.50ms]
+(pass) proof_scenarios_render: core-queue/host-small [0.13ms]
+(pass) proof_scenarios_render: core-queue/host-medium [0.34ms]
+(pass) proof_scenarios_render: core-queue/host-large [0.56ms]
+(pass) proof_scenarios_render: core-queue/host-full [0.94ms]
+(pass) proof_trees_match_exports: core-queue.small [0.15ms]
+(pass) proof_trees_match_exports: core-queue.medium [1.62ms]
+(pass) proof_trees_match_exports: core-queue.large [1.92ms]
+(pass) proof_trees_match_exports: core-queue.full [2.08ms]
+(pass) ported_manifests_validate: git-status [0.13ms]
+(pass) proof_scenarios_render: git-status/ready [0.74ms]
+(pass) proof_scenarios_render: git-status/empty [0.04ms]
+(pass) proof_scenarios_render: git-status/benchmark [0.88ms]
+(pass) proof_trees_match_exports: git-status [0.52ms]
+(pass) ported_manifests_validate: rack-module [0.10ms]
+(pass) proof_scenarios_render: rack-module/ready [0.53ms]
+(pass) proof_scenarios_render: rack-module/benchmark [1.13ms]
+(pass) proof_trees_match_exports: rack-module [0.81ms]
+(pass) ported_manifests_validate: harness [0.08ms]
+(pass) proof_scenarios_render: harness/ready [1.47ms]
+(pass) proof_node_counts_hold [17.98ms]
+(pass) proof_scenario_inventory [0.14ms]
+(pass) small_queue_counts_pages_through_cursor [2.00ms]
+
+src/__tests__/sdk-smoke.test.ts:
+(pass) render_smoke_budget [1709.55ms]
+
+src/__tests__/sdk-guide.test.ts:
+(pass) sdk_guide_example_matches_documentation_and_renders [0.49ms]
+
+src/__tests__/errors.test.ts:
+(pass) error_kinds_match_spec [0.38ms]
+
+src/__tests__/pack-bundle.test.ts:
+(pass) bundles_composed_components [22.72ms]
+(pass) rejects_forbidden_imports [1.92ms]
+(pass) rejects_unresolved_cycle_and_syntax [0.79ms]
+(pass) bundle_is_deterministic_and_only_visits_reachable_files [0.35ms]
+(pass) bundle_never_executes [0.20ms]
+(pass) links_import_export_forms_and_isolates_module_scopes [2.74ms]
+(pass) resolves_relative_paths_in_order_and_does_not_escape_files [0.99ms]
+(pass) supports_default_declarations_namespace_reexports_and_sdk_reexports [1.13ms]
+(pass) top_level_await_is_rejected [1.58ms]
+(pass) preserves_module_hashbangs [0.77ms]
+
+src/__tests__/store-memory.test.ts:
+(pass) store_opens_empty_and_returns_undefined_for_missing_records [1.56ms]
+(pass) store_gets_a_placement_by_id [0.98ms]
+(pass) store_rejects_a_second_hash_with_a_typed_failure [0.81ms]
+(pass) store_keeps_every_valid_id [1.01ms]
+(pass) store_rejects_a_second_hash_for_an_existing_version [1.01ms]
+(pass) store_ignores_a_same_hash_put [0.78ms]
+(pass) store_copies_every_record_on_put_and_get [0.97ms]
+(pass) store_lists_placements_sorted_and_replaces_by_id [0.65ms]
+(pass) store_keeps_null_and_false_state_distinct_from_missing [0.11ms]
+(pass) store_keys_styles_by_kind_id_and_version [0.72ms]
+(pass) store_deletes_state_with_its_placement [0.79ms]
+(pass) store_records_load_through_load_placement [2.89ms]
+(pass) store_a_malformed_sibling_does_not_block_a_load [1.37ms]
+
+src/__tests__/runner-worker.test.ts:
+(pass) worker_constructor_timeout_reaches_render [222.64ms]
+(pass) worker_matches_render [125.26ms]
+(pass) worker_times_out_then_recovers [267.03ms]
+(pass) worker_crash_is_render_failed [105.05ms]
+(pass) worker_serialises_requests_and_clones_results [64.17ms]
+(pass) worker_preserves_validation_and_recovers_from_clone_failure [40.18ms]
+(pass) worker_reuses_cloned_configuration_until_identity_changes [53.38ms]
+(pass) worker_close_settles_active_queued_and_future_requests [55.20ms]
+worker warm overhead: 3.3042 ms/render (direct 1.7251, worker 5.0293)
+(pass) worker_warm_overhead_report [817.79ms]
+(pass) forged_worker_result_is_revalidated_on_the_host [44.25ms]
+(pass) unsolicited_result_terminates_the_worker [441.20ms]
+(pass) worker_tree_failing_host_validation_is_rejected [37.49ms]
+(pass) worker_refuses_forged_hash_before_loading [23.86ms]
+(pass) worker_recycles_after_max_packages [57.72ms]
+
+src/__tests__/phase-2-loop.test.ts:
+(pass) packs_stores_reloads_and_renders [74.71ms]
+(pass) every_proof_scenario_through_both_runners [168.09ms]
+(pass) done_list_typed_errors: forbidden import [1.76ms]
+(pass) done_list_typed_errors: bad initial state [0.83ms]
+(pass) done_list_typed_errors: no scenario [0.16ms]
+(pass) done_list_typed_errors: bad scenario [0.50ms]
+(pass) done_list_typed_errors: version conflict [11.51ms]
+(pass) done_list_typed_errors: tampered package [7.40ms]
+(pass) done_list_typed_errors: params do not fit [7.35ms]
+(pass) done_list_typed_errors: corrupt record [1.55ms]
+(pass) done_list_typed_errors: state reset after version change [15.85ms]
+(pass) pack_store_and_reload_never_execute_widget_code [16.00ms]
+(pass) done_list_typed_errors: worker timeout then recovery [139.20ms]
+(pass) package_guide_example_runs [213.65ms]
+
+src/__tests__/css-theme.test.ts:
+(pass) names_are_injective [0.28ms]
+(pass) every_dtcg_colour_space_serializes [19.55ms]
+(pass) font_families_are_quoted_and_escaped [12.37ms]
+(pass) typography_preserves_units_and_resets_optional_fields [8.62ms]
+(pass) theme_sheet_sets_color_scheme [2.89ms]
+(pass) surface_typography_comes_from_the_vocabulary [0.68ms]
+(pass) colour_authority_holds [45.24ms]
+(pass) projection_is_deterministic [15.70ms]
+(pass) invalid_theme_fails_closed [6.72ms]
+(pass) installed_strings_cannot_escape_css_or_style_elements [0.72ms]
+
+src/__tests__/css-style-props.test.ts:
+(pass) every_style_prop_maps [0.78ms]
+(pass) tones_come_from_the_vocabulary [0.06ms]
+(pass) invalid_styles_fail_without_emitting_css [0.20ms]
+(pass) container_only_for_responsive_trees [0.10ms]
+(pass) value_forms_and_colour_authority [0.30ms]
+
+src/__tests__/react-registry.test.tsx:
+(pass) registry_rejects_missing_duplicate_mismatched_and_extra_kinds [1.49ms]
+(pass) registry_validates_catalog_before_binding [0.40ms]
+(pass) registry_ignores_definition_key_order [0.41ms]
+(pass) registry_check_runs_once [0.49ms]
+
+src/__tests__/react-surface.test.tsx:
+(pass) surface_renders_slot_classes_styles_and_scope [1.50ms]
+(pass) responsive_tree_gains_container_on_wrapper_only [1.02ms]
+(pass) invalid_tree_renders_only_the_fallback [1.10ms]
+(pass) undeclared_slot_throws [1.11ms]
+(pass) items_expose_child_node_contexts [0.94ms]
+
+src/__tests__/react-browser.test.tsx:
+(pass) stale_revision_is_ignored_and_new_surface_replaces [187.37ms]
+(pass) validator_runs_once_per_tree [133.42ms]
+(pass) local_interactions_stay_local_and_intents_use_the_current_handler [170.74ms]
+(pass) throwing_implementation_falls_back_at_that_node [144.08ms]
+(pass) browser_shows_fallbacks_for_invalid_tree_and_throwing_node_under_both_systems [321.35ms]
+(pass) portal_overlay_keeps_surface_scope [427.69ms]
+(pass) switch_runs_the_switching_sequence_on_root_and_portal [400.54ms]
+(pass) switch_rerenders_no_implementation_and_keeps_focus [490.42ms]
+(pass) sibling_surfaces_switch_independently [545.16ms]
+Surface two-surface switch with blur: {"cold":8.300000011920929,"samples":[7.0999999940395355,6.800000011920929,6.399999976158142,6.199999988079071,6.200000017881393,6.200000017881393,6.300000011920929,6.199999988079071,6.0999999940395355,6.5999999940395355],"nodes":685}
+(pass) switch_under_budget_with_blur_through_surface [843.40ms]
+(pass) server_markup_hydrates_with_no_recoverable_error [140.59ms]
+(pass) overlay_mounts_after_hydration_without_mismatch [178.70ms]
+(pass) invalid_server_fallback_hydrates_without_mismatch [127.38ms]
+(pass) host_fallback_recovers_on_client_after_ssr_throw [186.08ms]
+
+src/__tests__/react-intents.test.tsx:
+(pass) set_state_without_value_takes_the_event_value [1.57ms]
+(pass) explicit_state_values_are_preserved [1.87ms]
+(pass) action_bind_fills_the_named_argument [0.95ms]
+(pass) undeclared_event_raises_nothing [0.81ms]
+(pass) wrong_carries_type_throws_and_raises_nothing [2.56ms]
+(pass) item_emit_raises_the_item_intent [0.86ms]
+(pass) intent_objects_are_fresh_and_frozen [1.60ms]
+(pass) host_must_recheck_filled_arguments [0.84ms]
+
+src/__tests__/react-ssr.test.tsx:
+(pass) server_renders_fallback_for_invalid_tree [0.88ms]
+(pass) ssr_throw_path_is_specified [0.98ms]
+(pass) server_portal_is_undefined_and_overlay_waits_for_mount [0.88ms]
+Agent-home SSR (test-local implementations): 8.66 ms
+(pass) agent_home_server_render_time_is_recorded [9.52ms]
+
+src/__tests__/renderer-guide.test.tsx:
+(pass) renderer_guide_example_runs [0.66ms]
+
+src/__tests__/preview-session.test.ts:
+(pass) empty_session_and_unknown_scenario_return_not_found [2.80ms]
+(pass) update_returns_the_packed_package_or_pack_errors [11.78ms]
+(pass) render_selects_scenario_state_and_increments_revision [9.80ms]
+(pass) set_state_rerenders_and_invalid_intents_change_nothing [3.76ms]
+(pass) check_renders_every_scenario_without_changing_current_state [3.61ms]
+(pass) preview_checks_generated_outcomes [3.68ms]
+(pass) every_proof_scenario_passes_check [198.44ms]
+(pass) published_package_matches_the_last_preview [5.00ms]
+(pass) scenario_data_is_the_packages_own_and_frozen_by_the_sdk [5.20ms]
+(pass) runner_errors_pass_through_including_node_ids [2.60ms]
+(pass) pending_render_cannot_restore_a_session_reset_by_update [5.21ms]
+
+src/__tests__/preview-react.test.tsx:
+(pass) preview_draws_every_cell_as_sibling_surfaces [2.08ms]
+(pass) intent_log_lists_every_entry_and_initial_errors_show_fallback [0.40ms]
+(pass) selected_cell_round_trips_through_the_url_and_intents_reach_host [242.51ms]
+(pass) errors_list_by_node_and_mark_the_last_good_tree [198.21ms]
+(pass) retained_tree_still_passes_surface_arrival_validation [186.25ms]
+(pass) preview_axes_and_ready_are_published_for_capture_and_invalid_url_defaults [145.39ms]
+
+src/__tests__/catalog.test.ts:
+(pass) catalog_rejects_each_malformed_definition [2.43ms]
+(pass) catalog_change_classification [1.26ms]
+(pass) surface_typography_changes_are_classified [0.06ms]
+(pass) catalog_literal_types_survive [0.03ms]
+(pass) catalog_schema_matches_structure [36.42ms]
+(pass) nested_schema_changes_are_classified [1.55ms]
+(pass) child_style_and_tone_contract_changes_are_classified [0.38ms]
+(pass) catalog_errors_are_bounded_and_escape_pointers [1.00ms]
+(pass) proof_catalog_validates_under_five_milliseconds [12.51ms]
+
+src/__tests__/css-browser.test.ts:
+(pass) state_precedence_follows_the_fixed_order [112.66ms]
+(pass) native_and_aria_selectors_match_the_state_table [406.24ms]
+(pass) touch_has_no_sticky_hover [112.83ms]
+(pass) root_state_reaches_slots_and_disabled_roots_block_hover_and_active [133.01ms]
+(pass) pressed_offset_composes_with_transform [57.50ms]
+(pass) responsive_value_holds_at_wider_breakpoints [67.09ms]
+(pass) breakpoints_follow_the_design_system [72.18ms]
+(pass) sides_mirror_in_rtl [71.38ms]
+(pass) responsive_values_do_not_inherit_parent_overrides [60.38ms]
+(pass) backdrop_blurs_the_page_behind_it [337.28ms]
+(pass) opacity_ancestor_breaks_blur_is_documented_contract [216.68ms]
+(pass) overlay_enters_from_rest [234.02ms]
+(pass) reduced_motion_removes_transitions [94.42ms]
+(pass) reduced_transparency_makes_backdrops_opaque [85.16ms]
+(pass) switching_suppresses_transitions [71.96ms]
+(pass) every_state_differs_from_rest_in_forced_colours [148.32ms]
+(pass) background_edges_survive_forced_colours [116.94ms]
+(pass) fill_indicators_keep_their_shape [72.27ms]
+(pass) forced_colour_states_keep_precedence_and_disabled_guards [182.37ms]
+
+src/__tests__/css-design-system.test.ts:
+(pass) every_recipe_property_projects [0.38ms]
+(pass) side_widths_style_only_their_side [0.08ms]
+(pass) declared_value_variables_preserve_units_and_inheritance [11.14ms]
+(pass) states_equal_to_rest_emit_no_rule [59.04ms]
+(pass) slot_class_is_design_system_independent [30.76ms]
+(pass) every_selector_has_one_class_specificity [31.85ms]
+(pass) design_system_projection_is_deterministic_and_fails_closed [106.02ms]
+(pass) entry_rules_only_where_open_differs [43.62ms]
+(pass) forced_colours_only_restore_differing_states_and_background_edges [148.14ms]
+
+src/__tests__/css-scope-browser.test.ts:
+(pass) two_surfaces_keep_their_own_styles [462.90ms]
+(pass) host_css_does_not_restyle_surfaces [254.69ms]
+(pass) switch_changes_one_surface_only [338.92ms]
+(pass) overlays_keep_scope [156.47ms]
+(pass) nested_surfaces_are_a_recorded_limitation [63.21ms]
+Two-surface CSS switch with blur: {"cold":7.799999982118607,"samples":[7.700000017881393,7.300000011920929,7.5,7.5999999940395355,7.299999982118607,7.5999999940395355,7.5999999940395355,7.899999976158142,7.5999999940395355,7.300000011920929],"nodes":956}
+(pass) switch_under_budget_with_blur [580.10ms]
+
+src/__tests__/design-system.test.ts:
+
+src/__tests__/manifest.test.ts:
+(pass) widget_schema_accepts_min_length_rejects_pattern [27.89ms]
+(pass) min_above_max_is_rejected [0.56ms]
+(pass) manifest_names_only_declared_capabilities [0.31ms]
+(pass) bindings_resolve_and_match_types [0.54ms]
+(pass) nullable_manifest_state_requires_a_declaration [0.09ms]
+(pass) initial_state_matches_schema [0.05ms]
+(pass) manifest_catalog_must_match [0.05ms]
+(pass) capability_schemas_are_in_language [0.52ms]
+(pass) documents_are_closed_and_errors_bounded [0.36ms]
+(pass) published_capabilities_and_manifest_match_structure [42.00ms]
+(pass) agent_home_manifest_validates_under_two_milliseconds [1.18ms]
+(pass) source_literals_validate_nested_values_and_bindings_stay_closed [24.14ms]
+(pass) manifest_schemas_reject_patterns [0.47ms]
+(pass) catalog_and_capability_patterns_still_install [0.34ms]
+(pass) redos_manifest_fails_fast [0.09ms]
+(pass) published_manifest_schema_rejects_patterns [34.93ms]
+
+src/__tests__/pack-hash.test.ts:
+(pass) sha256_nist_vectors [18.75ms]
+(pass) sha256_matches_bun [58.85ms]
+(pass) canonical_json_is_order_independent [1.29ms]
+(pass) canonical_json_preserves_rfc8785_order_and_primitives [0.10ms]
+(pass) canonical_json_rejects_non_json_and_lone_surrogates [0.28ms]
+1 MiB package hash: 13.36 ms
+(pass) package_hash_1_mib_under_50_ms [27.23ms]
+
+src/__tests__/pack.test.ts:
+(pass) pack_is_reproducible [33.27ms]
+(pass) pack_rejections [26.93ms]
+(pass) scenario_defaults_and_capability_result_schemas [19.80ms]
+(pass) verify_detects_tampering [57.27ms]
+(pass) pack_and_verify_never_execute [11.94ms]
+(pass) package_failures_are_bounded_and_fail_closed [42.43ms]
+(pass) verify_rejects_linked_top_level_await [12.87ms]
+(pass) verify_rechecks_manifest_and_scenarios [14.68ms]
+agent-home package verification: 6.28 ms
+(pass) verify_agent_home_under_20_ms [47.66ms]
+
+src/__tests__/package-format.test.ts:
+(pass) package_format_rejects_malformed [17.24ms]
+(pass) record_formats_reject_malformed [0.30ms]
+(pass) json_fields_reject_non_json_and_bound_errors [0.36ms]
+(pass) package_and_record_schemas_agree_with_structural_validators [35.88ms]
+(pass) package_boundaries_and_transport_semantics [17.42ms]
+
+src/__tests__/preview-load.test.ts:
+(pass) loader_escapes_dots [0.25ms]
+(pass) loader_shares_sdk_instance [0.19ms]
+(pass) loader_rewrites_only_canonical_header [0.14ms]
+(pass) loader_caches_by_hash_including_in_flight_loads [0.18ms]
+(pass) loader_resolves_sdk_from_other_cwd [69.26ms]
+(pass) loader_leaves_noncanonical_sdk_imports_bare [29.86ms]
+
+src/__tests__/proof-formats.test.ts:
+(pass) proof_formats_validate [175.44ms]
+(pass) proof_recipes_round_trip [14.36ms]
+(pass) shadow_alpha_preserves_the_theme_colour [0.56ms]
+(pass) no_colour_literals_outside_themes [1.83ms]
+(pass) proof_trees_match_benchmark_shapes_and_catalog [31.30ms]
+
+src/__tests__/react-types.test.tsx:
+(pass) implement_types_follow_const_definitions [0.04ms]
+(pass) json_definitions_use_json_props_and_allow_explicit_narrowing [0.02ms]
+
+src/__tests__/runner-in-process.test.ts:
+(pass) in_process_matches_render [36.78ms]
+(pass) in_process_reports_slow_render [311.34ms]
+(pass) bad_module_is_render_failed [12.53ms]
+(pass) in_process_preserves_sdk_errors_and_limits [11.36ms]
+(pass) in_process_load_is_bounded_by_timeout [109.59ms]
+(pass) forged_hash_cannot_reuse_a_loaded_module [9.39ms]
+(pass) validator_cache_is_bounded [436.44ms]
+(pass) in_process_caches_validator_per_catalog_capabilities_and_hash [17.06ms]
+(pass) in_process_runner_resolves_sdk_from_other_cwd [126.34ms]
+in-process warm median overhead: 0.0259 ms/render
+(pass) in_process_warm_overhead_under_point_one_ms [577.34ms]
+
+src/__tests__/theme.test.ts:
+(pass) theme_must_cover_the_vocabulary [3.18ms]
+(pass) colour_values_follow_dtcg [0.86ms]
+(pass) font_family_is_not_css [0.54ms]
+(pass) typography_is_closed_and_bounded [1.37ms]
+(pass) theme_errors_are_bounded_and_escaped [0.93ms]
+(pass) theme_schema_agrees_with_install_structure_and_ranges [66.51ms]
+(pass) proof_themes_validate_under_2ms [196.85ms]
+
+src/__tests__/validator-tree.test.ts:
+(pass) compiled tree validator > metadata_is_closed_and_validated [0.66ms]
+(pass) compiled tree validator > identity_rules [0.17ms]
+(pass) compiled tree validator > children_and_terms_rules [0.23ms]
+(pass) compiled tree validator > byte_count_equals_stringify [36.75ms]
+(pass) compiled tree validator > string_bytes_respects_remaining_budget [0.20ms]
+(pass) compiled tree validator > limits_fail_closed [26.12ms]
+(pass) compiled tree validator > errors_are_collected_and_bounded [0.63ms]
+(pass) compiled tree validator > invalid_options_fail_closed [0.18ms]
+(pass) compiled tree validator > non_json_and_cycles_are_rejected_without_throwing [0.15ms]
+(pass) compiled tree validator > valid_tree_returned_unchanged [2.28ms]
+(pass) compiled tree validator > validation_does_not_serialise [1.90ms]
+
+src/__tests__/vocabulary.test.ts:
+(pass) vocabulary_requires_surface_typography [21.83ms]
+(pass) surface_typography_must_be_a_declared_role [0.19ms]
+(pass) vocabulary_subsets_must_be_declared [0.09ms]
+(pass) tones_map_to_declared_roles [0.09ms]
+(pass) vocabulary_names_are_bounded_and_unique [1.70ms]
+(pass) vocabulary_schema_matches_structural_validation [14.10ms]
+(pass) vocabulary_errors_are_bounded [0.31ms]
+(pass) vocabulary_returns_original_value [0.09ms]
+(pass) proof_vocabulary_validates_under_one_millisecond [14.84ms]
+
+src/__tests__/preview-guide.test.ts:
+(pass) preview_guide_example_runs [0.94ms]
+
+src/__tests__/sdk-inputs.test.tsx:
+(pass) sdk inputs > json_input_errors_preserve_nested_pointers [0.20ms]
+(pass) sdk inputs > inputs_fail_their_schemas [0.16ms]
+(pass) sdk inputs > data_checked_once_per_object [0.17ms]
+(pass) sdk inputs > checked_data_is_checked_again_under_another_source_schema [1.18ms]
+(pass) sdk inputs > inputs_reach_widget_frozen [0.10ms]
+(pass) sdk inputs > shallow_frozen_inputs_are_deep_frozen [0.11ms]
+(pass) sdk inputs > render_is_deterministic [1.30ms]
+
+src/__tests__/conformance-catalog.test.ts:
+(pass) proof_catalog_passes_the_catalog_suite [14.79ms]
+(pass) catalog_suite_catches_broken_catalogs [27.92ms]
+(pass) catalog_suite_reports_install_errors_in_independent_cases [3.78ms]
+(pass) catalog_version_case_accepts_only_the_required_identity_change [12.53ms]
+
+src/__tests__/conformance-design-system.test.ts:
+(pass) proof_styles_pass_the_design_system_suite [93.40ms]
+(pass) design_system_suite_catches_broken_styles [17.62ms]
+(pass) design_system_suite_resolves_inheritance_from_the_whole_registry [77.40ms]
+(pass) app_sheet_case_rejects_literal_colours_and_names_the_declaration [0.74ms]
+(pass) app_sheet_case_allows_structure_and_theme_colour_references [90.15ms]
+
+src/__tests__/conformance-renderer.test.tsx:
+(pass) renderer_server_cases_pass_and_are_runner_independent [8.57ms]
+(pass) renderer_server_cases_catch_broken_implementations [12.99ms]
+(pass) renderer_server_cases_reject_invalid_or_empty_examples [6.69ms]
+(pass) invalid_arrivals_never_call_even_throwing_implementations [2.52ms]
+
+src/__tests__/conformance-renderer-browser.test.tsx:
+(pass) reference_fixture_passes_arrival_and_interaction_browser_cases [7306.22ms]
+(pass) state_case_reaches_selected_and_catches_an_unreachable_state [13791.40ms]
+(pass) state_case_lists_missing_fixtures [5000.93ms]
+(pass) renderer_browser_cases_catch_hydration [210.36ms]
+(pass) renderer_browser_cases_catch_undeclared [406.08ms]
+(pass) renderer_browser_cases_catch_wrong-value [382.96ms]
+(pass) renderer_browser_cases_catch_index [286.12ms]
+(pass) renderer_browser_cases_catch_context [412.23ms]
+(pass) conformance_page_accepts_trees_only_and_rejects_unknown_styles [412.16ms]
+(pass) missing_browser_fixtures_fail_with_the_named_rule [4995.12ms]
+(pass) hydration_can_be_followed_by_updates_without_remounting [215.96ms]
+(pass) production_without_profiling_fails_instead_of_hiding_renders [8785.81ms]
+(pass) overlay_and_text_cases_pass_on_reference_implementations [8974.92ms]
+(pass) overlay_and_text_cases_catch_scope [368.32ms]
+(pass) overlay_and_text_cases_catch_instant-exit [379.30ms]
+(pass) overlay_and_text_cases_catch_nonmodal [753.96ms]
+(pass) overlay_and_text_cases_catch_utf16 [339.94ms]
+(pass) overlay_and_text_cases_catch_text-intent [358.51ms]
+(pass) overlay_and_text_cases_name_missing_declared_kinds [1393.66ms]
+(pass) overlay_cases_catch_backdrop_ancestors_and_reduced_motion [2535.20ms]
+(pass) overlay_case_rejects_content_removed_during_exit [405.17ms]
+(pass) text_case_accepts_intents_emitted_while_typing [1166.34ms]
+
+src/__tests__/conformance-states.test.ts:
+(pass) state_coverage_lists_all_missing_keys_across_installed_systems [18.28ms]
+(pass) state_comparison_uses_projected_defaults_rather_than_object_shape [0.10ms]
+(pass) rest_equivalent_states_require_no_browser_fixtures [10.32ms]
+
+src/__tests__/conformance-guide.test.ts:
+(pass) store_opens_empty_and_returns_undefined_for_missing_records [0.93ms]
+(pass) store_gets_a_placement_by_id [0.39ms]
+(pass) store_rejects_a_second_hash_with_a_typed_failure [0.36ms]
+(pass) store_keeps_every_valid_id [0.43ms]
+(pass) store_rejects_a_second_hash_for_an_existing_version [0.47ms]
+(pass) store_ignores_a_same_hash_put [0.37ms]
+(pass) store_copies_every_record_on_put_and_get [0.41ms]
+(pass) store_lists_placements_sorted_and_replaces_by_id [0.34ms]
+(pass) store_keeps_null_and_false_state_distinct_from_missing [0.03ms]
+(pass) store_keys_styles_by_kind_id_and_version [0.36ms]
+(pass) store_deletes_state_with_its_placement [0.37ms]
+(pass) store_records_load_through_load_placement [1.09ms]
+(pass) store_a_malformed_sibling_does_not_block_a_load [0.53ms]
+(pass) catalog_installs [0.66ms]
+(pass) capabilities_install [0.16ms]
+(pass) manifest_installs_against_the_catalog [0.73ms]
+(pass) every_kind_and_variant_has_a_valid_example [8.79ms]
+(pass) breaking_changes_take_a_new_major_catalog_id [1.65ms]
+(pass) every_theme_installs [1.77ms]
+(pass) every_design_system_installs [12.49ms]
+(pass) every_theme_and_design_system_projects [68.79ms]
+(pass) app_sheets_set_no_colour [0.06ms]
+(pass) conformance_guide_example_runs [10.19ms]
+(pass) conformance_guide_renderer_examples_run [611.88ms]
+
+src/__tests__/mcp-guide.test.ts:
+(pass) mcp_guide_config_starts_and_lists_the_tools [123.09ms]
+
+src/__tests__/validator-node.test.ts:
+(pass) compiled node validator > node_rejects_undeclared_parts [0.28ms]
+(pass) compiled node validator > style_values_follow_vocabulary [0.20ms]
+(pass) compiled node validator > action_args_match_capability [0.11ms]
+(pass) compiled node validator > bind_rules [0.12ms]
+(pass) compiled node validator > set_state_value_matches_schema [0.05ms]
+(pass) compiled node validator > install_documents_are_validated_before_compilation [2.67ms]
+(pass) compiled node validator > malformed_nodes_and_bounded_sinks [0.26ms]
+(pass) compiled node validator > install_failures_preserve_part_a_errors [2.26ms]
+(pass) compiled node validator > style_table_covers_every_fixed_prop_and_bounds [0.54ms]
+(pass) compiled node validator > boolean_and_optional_bound_values [1.13ms]
+(pass) compiled node validator > prototype_names_are_not_declarations [0.06ms]
+Proof validator compilation: 0.87 ms
+(pass) compiled node validator > proof_compiles_under_20ms [1.84ms]
+
+src/__tests__/conformance-store.test.ts:
+(pass) store_suite_catches_broken_stores [3.00ms]
+(pass) store_suite_cases_are_independent_and_runner_agnostic [10.10ms]
+(pass) store_suite_wraps_adapter_errors_and_bounds_details [0.21ms]
+(pass) store_suite_catches_missing_values_style_collisions_and_corrupt_loads [1.60ms]
+
+src/__tests__/exports.test.ts:
+(pass) css_exports_are_pinned [0.04ms]
+(pass) react_export_surface [0.01ms]
+(pass) renderer_error_is_a_value_export [0.87ms]
+(pass) install_failures_throw_liveframe_failure [5.14ms]
+(pass) liveframe_failure_message_is_bounded [0.06ms]
+(pass) css_public_return_types [17.67ms]
+(pass) sdk_export_surface [0.08ms]
+(pass) sdk_public_types [1.59ms]
+(pass) root_export_surface [0.09ms]
+(pass) compiled_validator_has_only_the_two_members [1.11ms]
+(pass) public_validator_types_support_error_guided_repairs [1.02ms]
+(pass) subpath_export_surfaces [0.12ms]
+(pass) package_license_is_mit [0.66ms]
+
+src/__tests__/store-file.test.ts:
+(pass) store_opens_empty_and_returns_undefined_for_missing_records [1.61ms]
+(pass) store_gets_a_placement_by_id [1.23ms]
+(pass) store_rejects_a_second_hash_with_a_typed_failure [0.75ms]
+(pass) store_keeps_every_valid_id [2.93ms]
+(pass) store_rejects_a_second_hash_for_an_existing_version [1.13ms]
+(pass) store_ignores_a_same_hash_put [0.66ms]
+(pass) store_copies_every_record_on_put_and_get [1.17ms]
+(pass) store_lists_placements_sorted_and_replaces_by_id [0.69ms]
+(pass) store_keeps_null_and_false_state_distinct_from_missing [0.32ms]
+(pass) store_keys_styles_by_kind_id_and_version [1.25ms]
+(pass) store_deletes_state_with_its_placement [1.55ms]
+(pass) store_records_load_through_load_placement [1.77ms]
+(pass) store_a_malformed_sibling_does_not_block_a_load [1.05ms]
+(pass) store_records_survive_reopen [1.09ms]
+(pass) file_store_paths_cannot_escape [4.32ms]
+(pass) long_ids_are_hashed_into_a_file_name_that_fits [0.91ms]
+(pass) corrupt_file_is_typed_error [3.03ms]
+(pass) file_store_ignores_leftover_temps_and_replaces_complete_records [1.34ms]
+(pass) file_store_readers_only_see_complete_replacements [10.31ms]
+
+src/__tests__/store-load.test.ts:
+(pass) load_placement_rejections [1.48ms]
+(pass) load_placement_checks_package_identity_and_passes_verification_errors [1.25ms]
+(pass) load_placement_resets_state [1.69ms]
+
+src/__tests__/cli-mcp.test.ts:
+(pass) tools_list_has_the_six_tools [115.48ms]
+(pass) tools_list_is_exactly_the_authoring_set [122.37ms]
+(pass) mcp_server_imports_no_store [0.33ms]
+(pass) list_primitives_returns_every_definition_or_the_named_ones [120.61ms]
+(pass) unknown_kind_is_an_error_naming_known_kinds [111.19ms]
+(pass) list_vocabulary_names_the_catalog [111.71ms]
+(pass) list_capabilities_lists_sources_and_actions_with_schemas [117.87ms]
+(pass) generated_types_equals_liveframe_gen_output [121.51ms]
+(pass) pack_draft_returns_the_hash_session_update_returns [208.16ms]
+(pass) pack_errors_keep_the_previous_package [220.29ms]
+(pass) argument_errors_are_liveframe_errors [241.69ms]
+(pass) oversized_tree_is_refused_with_a_typed_error [187.19ms]
+(pass) all_scenarios_errors_are_deduplicated [156.83ms]
+(pass) errors_differing_only_in_expected_are_kept [0.19ms]
+(pass) cross_reference_error_is_a_liveframe_error [124.57ms]
+(pass) render_scenarios_returns_tree_or_errors [238.26ms]
+(pass) render_all_matches_session_check [236.08ms]
+(pass) render_before_pack_says_to_pack_first [113.78ms]
+(pass) config_runner_is_used_for_every_render [228.36ms]
+(pass) pack_draft_schema_embeds_the_published_schemas [117.27ms]
+(pass) default_runner_warns_on_stderr [202.64ms]
+(pass) mcp_server_initializes_over_stdio [114.96ms]
+(pass) invalid_config_exits_2_with_errors_on_stderr_and_empty_stdout [289.79ms]
+(pass) missing_argument_prints_the_usage_line [7.78ms]
+(pass) missing_mcp_sdk_reports_how_to_install [43.87ms]
+(pass) gen_runs_without_the_mcp_sdk [16.49ms]
+(pass) default_worker_runner_is_closed_on_shutdown [2514.62ms]
+
+src/__tests__/readme-guide.test.tsx:
+(pass) readme_quickstart_runs [0.58ms]
+
+src/__tests__/docs-links.test.ts:
+(pass) docs_links_resolve [48.07ms]
+
+src/__tests__/archive.test.ts:
+(pass) published_manifest_has_no_source_condition [0.77ms]
+(pass) exports_targets_are_packed [0.29ms]
+(pass) archive_gate_rejects_a_packed_missing_condition [21.20ms]
+(pass) archive_contains_only_the_release_files [0.61ms]
+(pass) every_export_has_types_and_default [0.17ms]
+(pass) package_metadata_is_publishable [0.05ms]
+
+src/__tests__/docs-wording.test.ts:
+(pass) wording_check_matches_export_names_in_the_same_sentence [0.17ms]
+(pass) shipped_docs_never_call_exports_planned [1.94ms]
+
+src/__tests__/nullable.test.ts:
+(pass) nullable_accepts_null_only_when_declared [1.60ms]
+(pass) nullable_must_be_boolean [0.18ms]
+(pass) infer_nullable_is_union [0.10ms]
+(pass) published_schema_nullable_roundtrip [63.31ms]
+
+src/__tests__/union.test.ts:
+(pass) union_rejects_malformed_mapping [0.48ms]
+(pass) union_unknown_tag_fails_at_tag_pointer [0.25ms]
+(pass) union_checks_only_selected_entry [0.26ms]
+(pass) infer_union_is_tagged [0.05ms]
+(pass) published_union_matches_compiled [55.14ms]
+(pass) adding_tag_is_minor_removing_or_narrowing_is_major [1.77ms]
+(pass) union_state_and_action_arguments_require_explicit_valid_values [0.32ms]
+(pass) source_bindings_treat_union_values_as_objects [0.89ms]
+(pass) manifest_rejects_patterns_in_union_branches [23.44ms]
+(pass) gen_prints_formatted_tagged_unions [48.08ms]
+
+src/__tests__/outcome.test.ts:
+(pass) source_outcome_is_language_schema [22.31ms]
+(pass) outcome_scenarios_one_per_status [0.89ms]
+(pass) outcome_scenarios_reject_unknown_source [0.13ms]
+(pass) outcome_scenarios_reject_invalid_seed_and_generated_names [0.69ms]
+
+4 tests skipped:
+(skip) references_are_all_attributed
+(skip) git_status_matches_builder_output_structure
+(skip) rack_preserves_all_247_source_recipes_and_values
+(skip) themes_keep_reference_colour_authority
+
+ 669 pass
+ 4 skip
+ 0 fail
+ 115736 expect() calls
+Ran 673 tests across 94 files. [269.62s]

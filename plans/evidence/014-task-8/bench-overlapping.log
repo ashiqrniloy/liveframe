@@ -1,0 +1,27 @@
+$ bun --conditions liveframe:source bench/validator.bench.ts && bun --conditions liveframe:source bench/render.bench.ts && bun --conditions liveframe:source bench/css.bench.ts
+Bun 1.4.2; linux 7.3.0-4-cachyos; AMD Ryzen 9 PRO 7940HS w/ Radeon 780M Graphics; 16 logical CPUs
+Load average (1/5/15 min): 5.05, 6.89, 8.96; 200 warm-ups, 1,000 runs per implementation
+Generic baseline: checkValue on props only (includes its schema validation); compile/load excluded.
+agent-home: 679 nodes; compiled 1.0499 ms, 1.546 µs/node; generic 1.0820 ms, 1.593 µs/node; 1.03×
+  Equal-work props check: compiled 0.0475 ms; 22.80× over checkValue
+agent-home: failed ≤ 1.5 µs/node or agent-home equal-work props ≥ 2× gate
+core-queue.small: 5 nodes; compiled 0.0080 ms, 1.608 µs/node; generic 0.0070 ms, 1.390 µs/node; 0.86×
+  Equal-work props check: compiled 0.0005 ms; 14.78× over checkValue
+core-queue.small: failed ≤ 1.5 µs/node or agent-home equal-work props ≥ 2× gate
+core-queue.medium: 414 nodes; compiled 0.6063 ms, 1.464 µs/node; generic 0.7058 ms, 1.705 µs/node; 1.16×
+  Equal-work props check: compiled 0.0305 ms; 23.11× over checkValue
+core-queue.large: 446 nodes; compiled 0.7163 ms, 1.606 µs/node; generic 0.7410 ms, 1.661 µs/node; 1.03×
+  Equal-work props check: compiled 0.0289 ms; 25.64× over checkValue
+core-queue.large: failed ≤ 1.5 µs/node or agent-home equal-work props ≥ 2× gate
+core-queue.full: 473 nodes; compiled 0.7562 ms, 1.599 µs/node; generic 0.7727 ms, 1.634 µs/node; 1.02×
+  Equal-work props check: compiled 0.0343 ms; 22.53× over checkValue
+core-queue.full: failed ≤ 1.5 µs/node or agent-home equal-work props ≥ 2× gate
+git-status: 145 nodes; compiled 0.1547 ms, 1.067 µs/node; generic 0.2372 ms, 1.636 µs/node; 1.53×
+  Equal-work props check: compiled 0.0110 ms; 21.49× over checkValue
+rack-module: 236 nodes; compiled 0.2397 ms, 1.016 µs/node; generic 0.3239 ms, 1.373 µs/node; 1.35×
+  Equal-work props check: compiled 0.0162 ms; 20.00× over checkValue
+synthetic-queue: 353 nodes; compiled 0.4758 ms, 1.348 µs/node; generic 0.5906 ms, 1.673 µs/node; 1.24×
+  Equal-work props check: compiled 0.0263 ms; 22.44× over checkValue
+Load average at end: 5.36, 6.9, 8.94
+mixed-feed: 500 elements; compiled 0.0391 ms, 0.078 µs/element
+error: script "bench" exited with code 1

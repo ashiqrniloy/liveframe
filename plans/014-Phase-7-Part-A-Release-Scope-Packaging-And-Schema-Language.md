@@ -394,7 +394,7 @@ This plan implements roadmap Phase 7 ("collects the gaps they report and fixes t
     - Verification: the new regression initially failed because the helper export did not exist. All 28 focused outcome, preview-session and export tests passed after implementation; the real preview session packs all five generated scenarios and renders their statuses through `check()`. Final `bun run check` passed on project-pinned Bun 1.4.2 (669 passed, 4 skipped, 0 failed), including build, generated-fixture check, typecheck, lint, formatting and the full browser suite. `git diff --check` passed.
     - Earlier full checks encountered existing timing instability: one run had 668 passes and the unchanged five-second `missing_browser_fixtures_fail_with_the_named_rule` timeout; that case passed in isolation at 4.81 seconds. Another run had 667 passes and two unchanged CSS switch timing failures under concurrent machine load. Both CSS gates and the browser-fixture case passed in the final full check without changing code, test limits or runtime settings. Whole-plan benchmarks and the release gate were not rerun for this install-time-helper task; their earlier recorded performance limitations remain for Task 8.
 
-- [ ] Task 8: Analyze architectural impact and dispose of every finding
+- [x] Task 8: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional:
       - `plans/evidence/014-impact-analysis.md` records all 12 impact areas against the delivered work.
@@ -408,7 +408,7 @@ This plan implements roadmap Phase 7 ("collects the gaps they report and fixes t
     - Library Documentation to Check Before Implementation:
       - none.
     - Documentation Reviewed:
-      - Impact areas in `.claude/skills/create-plan/references/liveframe.md` §5.
+      - Impact areas in `.agents/skills/create-plan/references/liveframe.md` §5.
     - Options Considered:
       - n/a.
     - Chosen Approach:
@@ -416,9 +416,16 @@ This plan implements roadmap Phase 7 ("collects the gaps they report and fixes t
     - API Notes and Examples:
       - n/a.
     - Files to Create/Edit:
-      - `plans/evidence/014-impact-analysis.md` (new); `plans/backlog.md` (if needed); this plan.
+      - `plans/evidence/014-impact-analysis.md` (new); `plans/evidence/014-task-8/` (verification logs); `plans/backlog.md`; `roadmap.md` (plan status); this plan.
   - Test Cases to Write:
     - None.
+
+  - Notes (executed 2026-10-29):
+    - Completed [the twelve-area impact review](evidence/014-impact-analysis.md) against delivered Tasks 1–7 (`4574639`…`ec088e0`). No new architectural defect, normative change, public API break, dependency or format-id change was found. Rechecked nested widget-pattern rejection, bounded errors and the linear/constant-time additions to value checking.
+    - Presented F1 in one disposition table: retain the existing owner-approved P1 performance investigation, adding this plan's source and measurements to the same backlog entry. No new deferral, timing exception or threshold change. The passing final run does not erase earlier failures or prove their cause; plan 020's release gates remain binding.
+    - Recorded the existing handoffs: plan 018's opt-in authoring expansion must use the delivered alias/manifest/capabilities contract and propagate errors; plan 019's corpus must include the new schema forms and semantic install-only rejection cases. These remain scheduled release work, not additional plan-014 tasks.
+    - Verification: the saved pinned-Bun 1.4.2 `bun run check` at `ec088e0` passed (669 pass, 4 existing skips, 0 fail; build, generation, types, lint and formatting included). On 2026-10-29, sequential `bun run bench`, `bun run release:gate` (all 8 steps, 6.2 s) and the explicit generated-fixture check passed in an isolated checkout of that delivered commit. This preserves unrelated plan-017 work in the main checkout. Logs, commands, machine/load and every final workload number are in the impact record.
+    - Final standalone validation: 0.908–1.472 µs/node (≤1.5); rendering: 1.718–2.572 µs/node (≤3); 679-node agent-home render: 1.3138 ms (≤2). Mixed tagged feed: 0.0389 ms/500 elements. Browser warm-switch maxima from the full check were 5.60/3.30 ms (≤16.67). The initial bench overlapping the full check failed; both runs are retained. No runtime code or test was changed by this task.
 
 ## Verification (whole plan)
 - `bun run check`
@@ -427,7 +434,9 @@ This plan implements roadmap Phase 7 ("collects the gaps they report and fixes t
 - `bun src/cli/liveframe.ts gen src/__tests__/fixtures/proof/catalog.json --out src/__tests__/fixtures/widgets/ui.gen.ts --check`
 
 ## Compromises Made
-- To be filled after tasks are completed and tests pass.
+- Published meta-schemas describe schema structure; install validation enforces sibling minimum/maximum relationships and dynamic tag-property exclusion. Equivalent value-schema tests prove checker agreement without adding a public converter.
+- Timing remains sensitive to the environment. The final sequential whole benchmark passes, but earlier misses and render's separate validation diagnostic remain in the existing P1 investigation; no budget is waived.
 
 ## Further Actions
-- To be filled after task completion with improvements, rationale, and priority.
+- P1 — retain “Phase 1 performance gate: 3 µs per node” in [the backlog](backlog.md), with Task 8 F1's measurements and source. Use controlled baseline/profile evidence to resolve variance and the validation reservation; keep the strict validator/render budgets and plan 020's release gate.
+- Existing approved release handoffs: plan 018 integrates optional outcome expansion; plan 019 carries the schema additions into the language-neutral corpus; plan 020 consolidates adoption/release evidence. No new backlog entry duplicates these scheduled tasks.
