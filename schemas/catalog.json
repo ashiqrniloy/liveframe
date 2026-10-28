@@ -300,7 +300,7 @@
           "type": "array",
           "items": {
             "maxLength": 64,
-            "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+            "pattern": "^(?!none$)[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
             "type": "string"
           },
           "uniqueItems": true

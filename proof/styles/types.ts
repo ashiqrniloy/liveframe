@@ -47,7 +47,6 @@ export const colourRoles = [
   "patch.3",
   "patch.4",
   "patch.5",
-  "colour.transparent",
 ] as const;
 export type ColourRole = (typeof colourRoles)[number];
 export const typographyRoles = [
@@ -142,10 +141,10 @@ export const fillableRoles = [
 ] as const satisfies readonly ColourRole[];
 
 export interface Recipe {
-  readonly backgroundColor?: ColourRole;
+  readonly backgroundColor?: ColourRole | "none";
   readonly textColor?: ColourRole;
-  readonly borderColor?: ColourRole;
-  readonly outlineColor?: ColourRole;
+  readonly borderColor?: ColourRole | "none";
+  readonly outlineColor?: ColourRole | "none";
   readonly borderWidth?: number | `border.${string}`;
   readonly borderTopWidth?: number | `border.${string}`;
   readonly borderRightWidth?: number | `border.${string}`;

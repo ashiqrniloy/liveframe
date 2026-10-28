@@ -51,7 +51,6 @@ export const certifiedTheme = {
     "patch.3": "oklch(0.5000 0.1100 162)",
     "patch.4": "oklch(0.4700 0.0950 232)",
     "patch.5": "oklch(0.6259 0.1200 82)",
-    "colour.transparent": "transparent",
   },
   // Roles mirror the artifact's type helpers: one 13 px text size at two weights, the 12 px mono
   // word, and the three headings it draws.

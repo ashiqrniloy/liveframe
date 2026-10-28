@@ -121,6 +121,8 @@ at most 256 unique names. Names contain at most 64 characters and match
 prefix: `space.`, `radius.`, `size.` and `bp.`. Lists may be empty, and a name may
 appear in different categories.
 
+The exact colour-role name `none` is reserved for recipe no-paint; nested names such as `surface.none` remain valid.
+
 `surfaceRoles` and `fillableRoles` must be subsets of `colourRoles`. `tones`
 maps at most 256 tone names to declared colour roles; both keys and values obey
 the name rules. For example, `tone: "muted"` refers to the declared
@@ -660,7 +662,7 @@ A named value is `{ kind, value }`. Its value follows the corresponding
 | `saturation` | Number in 0–10 (1 means unchanged) |
 | `shadow` | One layer or at most 16 layers; each has `color`, `offsetX`, `offsetY`, `blur`, `spread`, optional `inset` |
 
-Shadow `color` names a declared theme role; literal colours are rejected.
+Shadow `color` names a declared theme role; literal colours and `"none"` are rejected. An empty shadow array clears shadows.
 Offsets and spread are dimensions in −16384–16384; blur is nonnegative.
 To vary shadow alpha, define theme roles with the desired alpha and reference
 those roles. Names have at most 64 characters and use lowercase dotted segments.
@@ -674,7 +676,8 @@ Liveframe state. Recipes accept only the exported `recipeProperties` list:
 
 | Properties | Accepted value |
 | --- | --- |
-| `backgroundColor`, `textColor`, `borderColor`, `outlineColor` | Declared theme colour role only |
+| `backgroundColor`, `borderColor`, `outlineColor` | Declared theme colour role or `"none"` (no paint) |
+| `textColor` | Declared theme colour role only |
 | `typography` | Declared typography role only |
 | `borderWidth`, per-side border widths, `outlineWidth` | `border-width` reference or dimension |
 | `borderRadius` | `radius` reference or dimension |

@@ -195,7 +195,7 @@ A design system contributes:
 - **Structural defaults belong to app primitives.** Headings' wrapping, an icon's box, controls' minimum heights and overlay positioning are trusted app implementation CSS. The library's base sheet supplies only a generic reset, surface typography, containment and environment overrides; it knows no app kinds. Law 3 constrains widget code and installed style data, not trusted app primitive CSS.
 - **Projection semantics.** `borderLeftWidth` and `borderRightWidth` mean inline start and inline end in left-to-right text and project to logical sides, mirroring under `dir="rtl"`; top and bottom remain physical. Vertical writing modes are out of scope. `translateY` uses CSS `translate`, preserving a primitive's own `transform`. `backdropBlur` and `backdropSaturate` compose into one `backdrop-filter`. `backgroundOpacity` multiplies the background colour's alpha through `--lf-alpha`, which environment overrides may force to 1.
 - **Entry motion.** A slot whose resolved `open` declarations differ from `rest` enters from its rest declarations through `@starting-style`, using its recipe transition. Equal states emit no entry rule. Exit motion requires renderer-managed delayed unmounting (§11).
-- **Colour-typed properties accept theme roles only.** Other properties accept design values or bounded literals of the right type.
+- **Colour-typed properties accept theme roles.** `backgroundColor`, `borderColor` and `outlineColor` also accept `"none"`, which supplies no hue and projects to `transparent`. Omission inherits through the cascade; explicit `none` clears inherited paint, even with `backgroundOpacity`. `textColor` and shadow colours require theme roles. The exact colour-role name `none` is reserved in vocabularies; nested names such as `surface.none` remain valid. Other properties accept design values or bounded literals of the right type.
 - **Not allowed:** raw CSS, selectors, scripts, or literal colours.
 - **Derivation:** a design system may `extends` another and override individual recipes or values.
 - **Completeness:** a design system is valid only if, after `extends` and the cascade, every `(kind, variant, slot)` the catalog declares has a `rest` style, and every kind that declares an event has a `focus` overlay. Other states are optional overlays on `rest`.
@@ -262,7 +262,7 @@ Every surface root sets the theme's base typography from the app's vocabulary, a
 | focus | 2px solid `Highlight` outline |
 | invalid | 2px dashed `CanvasText` outline |
 | hover, active, open | 1px `Highlight` outline |
-| Rest background with no positive border width | 1px `CanvasText` outline, offset inward |
+| Explicit rest background (including `none`) with no positive border width | 1px `CanvasText` outline, offset inward |
 | `fill` indicator (`lf_fill`) | 1px `CanvasText` outline, offset inward |
 
 System colours occur only in that media block. The projection never emits `forced-color-adjust: none`.

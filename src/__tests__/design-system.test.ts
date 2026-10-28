@@ -244,3 +244,22 @@ test("inheritance_and_completeness_fail_closed", () => {
   expect(result.errors).toHaveLength(20);
   expect(result.errors.every((error) => error.kind === "incomplete-design-system")).toBe(true);
 });
+
+test("none_accepted_on_colour_properties_only", () => {
+  const schema = new Ajv2020({ strict: true }).compile(schemaDocument("design-system"));
+  for (const property of ["backgroundColor", "borderColor", "outlineColor"]) {
+    const doc = recipe({ [property]: "none" });
+    expect(validateDesignSystem(doc, context).ok).toBe(true);
+    expect(schema(doc)).toBe(true);
+  }
+  for (const property of ["textColor", "typography", "padding", "opacity", "shadow"]) {
+    const result = validateDesignSystem(recipe({ [property]: "none" }), context);
+    expect(result.ok).toBe(false);
+    if (!result.ok)
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({ pointer: `/recipes/button.*.root.rest/${property}` }),
+      );
+  }
+  // Existing line-style keywords remain valid.
+  expect(validateDesignSystem(recipe({ borderStyle: "none", outlineStyle: "none" }), context).ok).toBe(true);
+});

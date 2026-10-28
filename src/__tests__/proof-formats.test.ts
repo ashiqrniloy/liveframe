@@ -91,6 +91,11 @@ test("shadow_alpha_preserves_the_theme_colour", async () => {
 });
 
 test("no_colour_literals_outside_themes", async () => {
+  expect(catalog.vocabulary.colourRoles).not.toContain("colour.transparent");
+  for (const name of ["certified", "rack"]) {
+    expect((await read(`${name}.theme`)).colours).not.toHaveProperty("colour.transparent");
+    expect(JSON.stringify(await read(`${name}.design-system`))).not.toContain("colour.transparent");
+  }
   for (const name of ["catalog", "certified.design-system", "rack.design-system"]) {
     const json = JSON.stringify(await read(name));
     expect(json).not.toMatch(/"colorSpace"|#[0-9a-f]{3,8}\b|(?:oklch|oklab|rgb|hsl|color-mix)\(/i);

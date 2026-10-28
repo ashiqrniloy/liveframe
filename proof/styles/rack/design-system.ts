@@ -1,7 +1,7 @@
 import { completeRecipes } from "../recipes.ts";
 import { type DesignSystem, type DesignValue, type Recipe, states } from "../types.ts";
 
-// Recipe/value data (transparent is a theme role) from the pinned Rack manifest; mapping is below.
+// Recipe/value data (none clears paint) from the pinned Rack manifest; mapping is below.
 export const rackSourceValues = {
   "radius.xs": {
     type: "radius",
@@ -63,7 +63,7 @@ export const rackSourceValues = {
 
 export const rackSourceRecipes = {
   "button.default.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderColor: "border.hairline",
     borderWidth: 1,
@@ -97,7 +97,7 @@ export const rackSourceRecipes = {
     transformPreset: "press-shift-down",
   },
   "button.default.root.focus": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderColor: "border.hairline",
     borderWidth: 1,
@@ -112,7 +112,7 @@ export const rackSourceRecipes = {
     outlineStyle: "solid",
   },
   "button.default.root.disabled": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.disabled",
     borderColor: "border.hairline",
     borderWidth: 1,
@@ -179,7 +179,7 @@ export const rackSourceRecipes = {
     opacity: 1,
   },
   "button.muted.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.muted",
     borderWidth: 0,
     borderRadius: 7,
@@ -210,7 +210,7 @@ export const rackSourceRecipes = {
     transformPreset: "press-shift-down",
   },
   "button.muted.root.focus": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.muted",
     borderWidth: 0,
     borderRadius: 7,
@@ -224,7 +224,7 @@ export const rackSourceRecipes = {
     outlineStyle: "solid",
   },
   "button.muted.root.disabled": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.disabled",
     borderWidth: 0,
     borderRadius: 7,
@@ -290,7 +290,7 @@ export const rackSourceRecipes = {
     opacity: 1,
   },
   "button.ghostDanger.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "diagnostic.error",
     borderWidth: 0,
     borderRadius: 7,
@@ -323,7 +323,7 @@ export const rackSourceRecipes = {
     transformPreset: "press-shift-down",
   },
   "button.ghostDanger.root.focus": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "diagnostic.error",
     borderWidth: 0,
     borderRadius: 7,
@@ -337,7 +337,7 @@ export const rackSourceRecipes = {
     outlineStyle: "solid",
   },
   "button.ghostDanger.root.disabled": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.disabled",
     borderWidth: 0,
     borderRadius: 7,
@@ -414,19 +414,19 @@ export const rackSourceRecipes = {
     gap: "spacing.xxs",
   },
   "textInput.default.label.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 0,
   },
   "textInput.default.description.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 0,
   },
   "textInput.default.error.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "diagnostic.error",
     borderWidth: 0,
     borderRadius: 0,
@@ -462,7 +462,7 @@ export const rackSourceRecipes = {
     gap: "spacing.xs",
   },
   "textInput.bare.input.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 5,
@@ -470,7 +470,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "textInput.bare.input.disabled": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.disabled",
     borderWidth: 0,
     borderRadius: 5,
@@ -486,7 +486,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "textInput.inline.input.focus": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 5,
@@ -512,7 +512,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "list.default.row.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.muted",
     borderWidth: 0,
     borderRadius: 7,
@@ -543,7 +543,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "list.default.row.focus": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.muted",
     borderWidth: 0,
     borderRadius: 7,
@@ -567,7 +567,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "list.nav.row.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.muted",
     borderWidth: 0,
     borderRadius: 7,
@@ -598,7 +598,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "list.nav.row.focus": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.muted",
     borderWidth: 0,
     borderRadius: 7,
@@ -612,19 +612,19 @@ export const rackSourceRecipes = {
     outlineStyle: "solid",
   },
   "list.nav.rowIcon.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 0,
   },
   "list.nav.rowTitle.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 0,
   },
   "list.nav.rowDetail.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 0,
@@ -684,7 +684,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "menu.default.item.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.muted",
     borderWidth: 0,
     borderRadius: 5,
@@ -736,7 +736,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "menu.default.itemDanger.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "diagnostic.error",
     borderWidth: 0,
     borderRadius: 5,
@@ -746,19 +746,19 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "menu.default.query.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 0,
   },
   "menu.default.foot.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 0,
   },
   "dropdown.default.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderWidth: 0,
     borderRadius: 0,
   },
@@ -847,13 +847,13 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "dropdown.default.list.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderWidth: 0,
     borderRadius: 0,
     padding: "spacing.xxs",
   },
   "dropdown.default.item.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.muted",
     borderWidth: 0,
     borderRadius: 5,
@@ -1166,20 +1166,20 @@ export const rackSourceRecipes = {
     gap: "spacing.xxs",
   },
   "keyHint.default.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.muted",
     borderWidth: 0,
     borderRadius: 0,
   },
   "keyHint.default.keys.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 0,
     gap: "spacing.xxs",
   },
   "keyHint.default.row.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.muted",
     borderWidth: 0,
     borderRadius: 0,
@@ -1206,7 +1206,7 @@ export const rackSourceRecipes = {
     ],
   },
   "seg.default.item.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 6,
@@ -1248,7 +1248,7 @@ export const rackSourceRecipes = {
     ],
   },
   "seg.default.item.focus": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 6,
@@ -1262,7 +1262,7 @@ export const rackSourceRecipes = {
     outlineStyle: "solid",
   },
   "seg.default.item.disabled": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.disabled",
     borderWidth: 0,
     borderRadius: 6,
@@ -1270,86 +1270,86 @@ export const rackSourceRecipes = {
     opacity: 0.5,
   },
   "label.display.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 0,
   },
   "label.title.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 0,
   },
   "label.section.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 0,
   },
   "label.body.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 0,
   },
   "label.default.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 0,
   },
   "label.caption.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 0,
   },
   "label.detail.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 0,
   },
   "label.status.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 0,
   },
   "label.eyebrow.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 0,
   },
   "label.accent.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "accent.primary",
     borderWidth: 0,
     borderRadius: 0,
   },
   "divider.default.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderColor: "border.hairline",
     borderWidth: 1,
     borderRadius: 0,
   },
   "divider.strong.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderColor: "border.subtle",
     borderWidth: 1,
     borderRadius: 0,
   },
   "scroll.default.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderWidth: 0,
     borderRadius: 0,
     padding: "spacing.sm",
     gap: "spacing.xs",
   },
   "scroll.default.scrollbarTrack.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderWidth: 0,
     borderRadius: 9999,
   },
@@ -1382,36 +1382,36 @@ export const rackSourceRecipes = {
     borderRadius: 0,
   },
   "editor.default.container.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderWidth: 0,
     borderRadius: 0,
   },
   "editor.default.chrome.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderWidth: 0,
     borderRadius: 0,
     padding: "spacing.xs",
     gap: "spacing.xs",
   },
   "editor.default.docbar.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderWidth: 0,
     borderRadius: 0,
   },
   "editor.default.path.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 0,
   },
   "editor.default.gutter.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 0,
   },
   "editor.default.gutter.selected": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 0,
@@ -1498,19 +1498,19 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "editor.default.squiggleError.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderColor: "diagnostic.error",
     borderWidth: 1,
     borderRadius: 0,
   },
   "editor.default.squiggleWarning.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderColor: "diagnostic.warning",
     borderWidth: 1,
     borderRadius: 0,
   },
   "editor.default.foldMark.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 5,
@@ -1547,7 +1547,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "empty.default.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.muted",
     borderWidth: 0,
     borderRadius: 0,
@@ -1562,7 +1562,7 @@ export const rackSourceRecipes = {
     borderRadius: 10,
   },
   "empty.inline.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.muted",
     borderWidth: 0,
     borderRadius: 0,
@@ -1579,7 +1579,7 @@ export const rackSourceRecipes = {
     gap: "spacing.xs",
   },
   "panel.default.header.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderColor: "border.hairline",
     borderWidth: 1,
@@ -1642,32 +1642,32 @@ export const rackSourceRecipes = {
     gap: "spacing.xs",
   },
   "stack.default.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderWidth: 0,
     borderRadius: 0,
     gap: "spacing.sm",
   },
   "flex.default.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderWidth: 0,
     borderRadius: 0,
     padding: "spacing.sm",
     gap: "spacing.xs",
   },
   "flex.row.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderWidth: 0,
     borderRadius: 0,
     gap: "spacing.xs",
   },
   "flex.column.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderWidth: 0,
     borderRadius: 0,
     gap: "spacing.xs",
   },
   "portal.default.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderWidth: 0,
     borderRadius: 0,
   },
@@ -1720,7 +1720,7 @@ export const rackSourceRecipes = {
     outlineStyle: "solid",
   },
   "collapse.default.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderColor: "border.hairline",
     borderWidth: 1,
@@ -1729,7 +1729,7 @@ export const rackSourceRecipes = {
     gap: "spacing.xs",
   },
   "collapse.default.header.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 7,
@@ -1749,7 +1749,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "collapse.default.header.focus": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 7,
@@ -1763,32 +1763,32 @@ export const rackSourceRecipes = {
     outlineStyle: "solid",
   },
   "collapse.default.body.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderWidth: 0,
     borderRadius: 0,
     padding: "spacing.sm",
   },
   "shell.default.brand.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 0,
     padding: "spacing.xs",
   },
   "shell.default.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 0,
   },
   "shell.default.workingArea.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 0,
   },
   "shell.default.header.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderColor: "border.hairline",
     borderWidth: 1,
@@ -1796,7 +1796,7 @@ export const rackSourceRecipes = {
     padding: "spacing.xs",
   },
   "shell.default.footer.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderColor: "border.hairline",
     borderWidth: 1,
@@ -1827,19 +1827,19 @@ export const rackSourceRecipes = {
     backdropSaturate: 1.15,
   },
   "case.default.strip.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 0,
   },
   "case.default.status.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 0,
   },
   "activityTab.default.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.muted",
     borderWidth: 0,
     borderRadius: 7,
@@ -1870,7 +1870,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "activityTab.default.root.focus": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.muted",
     borderWidth: 0,
     borderRadius: 7,
@@ -1884,7 +1884,7 @@ export const rackSourceRecipes = {
     outlineStyle: "solid",
   },
   "activityTab.default.root.disabled": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.disabled",
     borderWidth: 0,
     borderRadius: 7,
@@ -1893,19 +1893,19 @@ export const rackSourceRecipes = {
     opacity: 0.5,
   },
   "activityTab.default.label.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 0,
   },
   "activityTab.default.label.selected": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "accent.primary",
     borderWidth: 0,
     borderRadius: 0,
   },
   "cue.default.cell.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderWidth: 1,
     borderRadius: 5,
     transitionDuration: 140,
@@ -1913,7 +1913,7 @@ export const rackSourceRecipes = {
     borderColor: "border.subtle",
   },
   "cue.default.cell.hover": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderColor: "border.hairline",
     borderWidth: 1,
     borderRadius: 5,
@@ -1979,14 +1979,14 @@ export const rackSourceRecipes = {
     opacity: 0.42,
   },
   "module.slot.plate.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderColor: "border.hairline",
     borderWidth: 1.5,
     borderStyle: "dashed",
     borderRadius: 10,
   },
   "module.default.rail.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 0,
@@ -1994,7 +1994,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "module.default.ordinal.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 0,
@@ -2002,7 +2002,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "module.default.headApp.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 0,
@@ -2010,7 +2010,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "module.default.headTarget.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.muted",
     borderWidth: 0,
     borderRadius: 0,
@@ -2018,7 +2018,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "module.default.rail.focus": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "accent.primary",
     borderWidth: 0,
     borderRadius: 0,
@@ -2026,7 +2026,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "module.default.ordinal.focus": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "accent.primary",
     borderWidth: 0,
     borderRadius: 0,
@@ -2034,7 +2034,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "module.default.headApp.focus": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "accent.primary",
     borderWidth: 0,
     borderRadius: 0,
@@ -2042,7 +2042,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "module.default.headTarget.focus": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 0,
@@ -2050,7 +2050,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "module.default.head.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 0,
@@ -2071,7 +2071,7 @@ export const rackSourceRecipes = {
     ],
   },
   "lamp.idle.word.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 0,
@@ -2100,7 +2100,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "lamp.working.word.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 0,
@@ -2121,7 +2121,7 @@ export const rackSourceRecipes = {
     borderRadius: 1.5,
   },
   "lamp.blocked.word.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 0,
@@ -2138,7 +2138,7 @@ export const rackSourceRecipes = {
     borderRadius: 1.5,
   },
   "lamp.error.word.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 0,
@@ -2155,7 +2155,7 @@ export const rackSourceRecipes = {
     borderRadius: 9999,
   },
   "lamp.ok.word.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 0,
@@ -2182,7 +2182,7 @@ export const rackSourceRecipes = {
     ],
   },
   "lamp.unbound.word.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 0,
@@ -2361,7 +2361,7 @@ export const rackSourceRecipes = {
     textColor: "patch.5",
   },
   "jack.none.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderWidth: 0,
     borderRadius: 9999,
     shadow: [
@@ -2403,7 +2403,7 @@ export const rackSourceRecipes = {
     borderRadius: 5,
   },
   "pips.default.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderWidth: 0,
     borderRadius: 0,
   },
@@ -2495,7 +2495,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "param.default.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 5,
@@ -2515,7 +2515,7 @@ export const rackSourceRecipes = {
     transitionTiming: "expo-out",
   },
   "param.default.root.focus": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.meta",
     borderWidth: 0,
     borderRadius: 5,
@@ -2529,7 +2529,7 @@ export const rackSourceRecipes = {
     outlineStyle: "solid",
   },
   "param.default.root.disabled": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.disabled",
     borderWidth: 0,
     borderRadius: 5,
@@ -2538,7 +2538,7 @@ export const rackSourceRecipes = {
     opacity: 0.5,
   },
   "param.accent.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "accent.primary",
     borderWidth: 0,
     borderRadius: 5,
@@ -2557,7 +2557,7 @@ export const rackSourceRecipes = {
     gap: "spacing.xs",
   },
   "diag.error.emphasis.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "diagnostic.error",
     borderWidth: 0,
     borderRadius: 0,
@@ -2572,13 +2572,13 @@ export const rackSourceRecipes = {
     gap: "spacing.xs",
   },
   "diag.warning.emphasis.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "diagnostic.warning",
     borderWidth: 0,
     borderRadius: 0,
   },
   "skeleton.default.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderWidth: 0,
     borderRadius: 0,
     gap: "spacing.sm",
@@ -2708,7 +2708,7 @@ seeds["switch.default.thumb.rest"] = { backgroundColor: "text.primary", borderRa
 seeds["switch.default.thumb.selected"] = { backgroundColor: "text.on-accent" };
 seeds["text.default.root.rest"] = { ...seeds["text.default.root.rest"], typography: "body" };
 seeds["heading.default.root.rest"] = { ...seeds["heading.default.root.rest"], typography: "heading.2" };
-seeds["image.default.root.rest"] = { backgroundColor: "colour.transparent" };
+seeds["image.default.root.rest"] = { backgroundColor: "none" };
 seeds["link.default.root.focus"] = focus;
 seeds["link.default.root.rest"] = { ...seeds["link.default.root.rest"], typography: "body" };
 seeds["scroll.default.viewport.rest"] = {};

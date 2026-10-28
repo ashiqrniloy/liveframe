@@ -15,7 +15,7 @@ import {
   signedDimension,
   type CubicBezier,
 } from "./dtcg.ts";
-import { states } from "./fixed.ts";
+import { noPaint, states } from "./fixed.ts";
 
 const literalSchemas = {
   radius: designDimension,
@@ -284,8 +284,12 @@ function checkRecipeProperty(
   }
   const kind = propertyKinds[property as Property];
   if (kind === "colour") {
-    if (typeof value !== "string" || !colours.has(value))
-      c.reject(pointer, "Colour must name a theme role", "colour-outside-theme");
+    if (typeof value !== "string" || (value === noPaint ? property === "textColor" : !colours.has(value)))
+      c.reject(
+        pointer,
+        "Colour must name a theme role or use no-paint on background, border or outline",
+        "colour-outside-theme",
+      );
   } else if (kind === "typography") {
     if (typeof value !== "string" || !context.catalog.vocabulary.typographyRoles.includes(value))
       c.reject(pointer, "Unknown typography role", "unknown-name");

@@ -1,6 +1,8 @@
 import type { LiveframeError, Result } from "../errors.ts";
 import { arr, checkValue, type Infer, isRecord, record, str } from "../schema.ts";
 
+import { noPaint } from "./fixed.ts";
+
 const name = str({ maxLength: 64, pattern: "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$" });
 function names(prefix = "") {
   return {
@@ -9,7 +11,7 @@ function names(prefix = "") {
   };
 }
 const lists = {
-  colourRoles: names(),
+  colourRoles: { ...names(), items: str({ ...name, pattern: `^(?!${noPaint}$)${name.pattern.slice(1)}` }) },
   surfaceRoles: names(),
   fillableRoles: names(),
   typographyRoles: names(),

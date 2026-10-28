@@ -749,3 +749,31 @@ test("forced_colour_states_keep_precedence_and_disabled_guards", async () => {
     await page.close();
   }
 });
+
+test("forced_colours_none_background", async () => {
+  const page = await browser.newPage();
+  try {
+    const overrides = {
+      "button.default.root.rest": {
+        backgroundColor: "none",
+        borderColor: "none",
+        outlineColor: "none",
+        borderWidth: { value: 0, unit: "px" },
+        backgroundOpacity: 0.5,
+      },
+    } as const;
+    await mount(page, overrides);
+    expect(await page.locator("#root").evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
+    await page.emulateMedia({ forcedColors: "active" });
+    expect(
+      await page.locator("#root").evaluate((el) => {
+        const s = getComputedStyle(el);
+        return [s.outlineWidth, s.outlineStyle, s.outlineOffset, s.forcedColorAdjust];
+      }),
+    ).toEqual(["1px", "solid", "-1px", "auto"]);
+    await mount(page);
+    expect(await page.locator("#root").evaluate((el) => getComputedStyle(el).outlineStyle)).toBe("none");
+  } finally {
+    await page.close();
+  }
+});

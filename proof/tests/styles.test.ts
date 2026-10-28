@@ -62,6 +62,7 @@ function checkStyleData(system: DesignSystem, theme: Theme): void {
     for (const [property, value] of Object.entries(recipe)) {
       if (!Object.hasOwn(propertyTypes, property)) throw new Error(`Unknown property: ${property}`);
       const domain = propertyTypes[property as keyof typeof propertyTypes];
+      if (value === "none" && ["backgroundColor", "borderColor", "outlineColor"].includes(property)) continue;
       if (domain === "line-style") {
         if (!["solid", "dashed", "none"].includes(String(value))) throw new Error("Invalid line style");
       } else if (domain === "transform") {
@@ -192,7 +193,7 @@ test.skipIf(!hasReferences)("rack_preserves_all_247_source_recipes_and_values", 
   ).clay.contributions.uiDesignSystem;
   expect(Object.keys(rackSourceRecipes)).toHaveLength(247);
   for (const recipe of Object.values(source.recipes) as Record<string, unknown>[]) {
-    if (recipe.backgroundColor === "transparent") recipe.backgroundColor = "colour.transparent";
+    if (recipe.backgroundColor === "transparent") recipe.backgroundColor = "none";
   }
   expect(rackSourceRecipes).toEqual(source.recipes);
   expect(rackSourceValues).toEqual(source.values);

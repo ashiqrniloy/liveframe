@@ -363,15 +363,6 @@
         0.12,
         82
       ]
-    },
-    "colour.transparent": {
-      "colorSpace": "srgb",
-      "components": [
-        0,
-        0,
-        0
-      ],
-      "alpha": 0
     }
   },
   "typography": {

@@ -48,7 +48,6 @@ export const rackTheme = {
     "accent.fill.hover": "#0031a9",
     "status.critical": "#a60000",
     "shadow.highlight": "#ffffff",
-    "colour.transparent": "transparent",
   },
   typography: {
     body: {

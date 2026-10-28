@@ -97,7 +97,7 @@ This plan implements spec §6.1 (theme), §6.2 (recipes), §6.4 (projection, for
     - Verification passed: `bun run check` outside the sandbox (build, generated-file check, typecheck, lint, format and tests; 720 pass, 4 skip, 0 fail, 96 files). The initial sandbox run could not start browsers/local servers. The sketch also passes `bunx --no-install biome check plans/evidence/016-task-1-browser-sketch.ts`; `git diff --check` is clean.
     - No runtime, schemas or normative shipped-spec changes in this decision-only task. Tasks 2–5 retain their implementation, spec/doc/schema/conformance and browser gates.
 
-- [ ] Task 2: Add a no-paint value for recipe colours (CL-04)
+- [x] Task 2: Add a no-paint value for recipe colours (CL-04)
   - Acceptance Criteria:
     - Functional:
       - The validator accepts `"none"` on the properties Task 1 lists, and rejects it on non-colour properties with a pointer.
@@ -127,8 +127,9 @@ This plan implements spec §6.1 (theme), §6.2 (recipes), §6.4 (projection, for
     - Files to Create/Edit:
       - `src/formats/fixed.ts`; `src/formats/design-system.ts`; `src/formats/vocabulary.ts`
       - `src/css/recipe.ts`; `src/css/forced-colours.ts` (if decided)
-      - `schemas/design-system.json` (regenerated)
-      - `proof/styles/rack/*`; `src/__tests__/fixtures/proof/*` (if they mirror Rack)
+      - `schemas/catalog.json` (regenerated to reserve the colour-role name); `schemas/design-system.json` already accepts the keyword through its role-name string grammar, verified with AJV.
+      - `proof/styles/rack/*`; `proof/styles/certified/*`; `proof/styles/types.ts`; `proof/tests/styles.test.ts`; `proof/GAPS.md`: remove the shared zero-alpha role and migrate both systems' clearing recipes.
+      - `src/__tests__/fixtures/vocabulary.json`, `catalog.json`, `certified.theme.json`, `rack.theme.json`, and `proof/*` mirrors; format, CSS and browser tests.
       - `docs/spec.md` §6.2/§6.4; `docs/styling.md`; `docs/formats.md`
   - Test Cases to Write:
     - `none_accepted_on_colour_properties_only`.
@@ -136,6 +137,16 @@ This plan implements spec §6.1 (theme), §6.2 (recipes), §6.4 (projection, for
     - `none_clears_rest_background_byte_stable` (`css-design-system.test.ts`).
     - `forced_colours_none_background` (`css-browser.test.ts`).
     - `no_colour_literal_outside_theme` (existing colour-authority test, extended).
+
+
+  - Notes (executed 2026-10-28):
+    - Implemented the accepted CL-04 contract: the shared `noPaint` constant permits `none` on background, border and outline colours; projection emits `transparent` directly, including with `backgroundOpacity`. Text and shadow colours still require theme roles. Existing line-style `none` keywords remain valid.
+    - Reserved the exact colour-role name `none` in vocabulary validation and the generated catalog schema, retaining nested names such as `surface.none`. The design-system schema and TypeScript recipe fields already accept this role-shaped string; AJV acceptance is tested, with no redundant schema/type union added.
+    - Migrated Rack and Certified clearing recipes and removed `colour.transparent` from their shared vocabulary, both themes and every fixture mirror. Certified migration is required by the shared complete role vocabulary. Updated the proof source-comparison normalization and transparency finding. Regeneration: `bun proof/scripts/export-formats.ts --out src/__tests__/fixtures/proof`; `bun scripts/schemas.ts`.
+    - Updated spec §6.2/§6.4 and outsider format/styling docs. The existing forced-colours presence rule already implements the approved explicit-no-paint inward edge, so no forced-colours implementation change was needed.
+    - Wrote four regression tests first and observed all four fail before implementation. Final `bun run check` passed: 724 pass, 4 existing reference-dependent skips, 0 fail across 96 files. Browser tests prove transparent ordinary paint, the inward 1px outline at −1px with `forced-color-adjust: auto`, and no edge for an absent background. Colour-authority, cascade completeness and proof round-trip tests pass.
+    - Fixed two older theme fixture mirrors found by the full gate. Earlier verification attempts hit a command timeout, a suspended-browser network error and one 16.8 ms switch sample; the final full run passed unchanged assertions, with the two-surface blur switch at 8.3 ms maximum. Native Windows/AT auditing and pixel parity were not run for this task; the existing native audit gate remains open.
+    - CSS non-regression: `bun bench/css.bench.ts`, run after the full gate without concurrent tests, reports Certified 10.559 ms/sheet / 142,761 bytes and Rack 16.085 ms/sheet / 148,733 bytes, versus pre-change 11.476 ms / 143,977 bytes and 17.244 ms / 149,721 bytes. Style declarations improved from 0.434 to 0.390 µs/node. `git diff --check` is clean.
 
 - [ ] Task 3: Add an alpha modifier to recipe colours (LF-11)
   - Acceptance Criteria:

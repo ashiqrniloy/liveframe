@@ -4,9 +4,9 @@ import type { DesignSystem, Recipe } from "../types.ts";
 // Certified 4.0: hairlines, sharp plates, quiet danger ink, feedback-only motion.
 const focus: Recipe = { outlineColor: "focus.ring", outlineWidth: 2, outlineOffset: 2, outlineStyle: "solid" };
 const control: Recipe = {
-  backgroundColor: "colour.transparent",
+  backgroundColor: "none",
   textColor: "text.primary",
-  borderColor: "colour.transparent",
+  borderColor: "none",
   borderWidth: "border.hairline",
   borderRadius: "radius.control",
   paddingX: "space.4",
@@ -38,7 +38,7 @@ const floating: Recipe = {
   shadow: "shadow.pop",
 };
 const item: Recipe = {
-  backgroundColor: "colour.transparent",
+  backgroundColor: "none",
   textColor: "text.primary",
   borderWidth: 0,
   borderRadius: "radius.plate",
@@ -48,7 +48,7 @@ const item: Recipe = {
   typography: "label",
 };
 const indicator: Recipe = {
-  backgroundColor: "colour.transparent",
+  backgroundColor: "none",
   borderColor: "border.strong",
   borderWidth: "border.hairline",
   borderRadius: "radius.plate",
@@ -67,7 +67,7 @@ const seeds: Record<string, Recipe> = {
   "box.plate.rail.rest": {},
   // A 24% rule above the block, 12/8 padding: the artifact's `.line` rows and `.decide`.
   "box.rule.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     borderColor: "border.subtle",
     borderTopWidth: "border.hairline",
     borderRadius: 0,
@@ -76,7 +76,7 @@ const seeds: Record<string, Recipe> = {
     gap: "space.1",
   },
   "box.rule.rail.rest": {},
-  "box.callout.root.rest": { backgroundColor: "colour.transparent", gap: "space.3", paddingY: "space.1" },
+  "box.callout.root.rest": { backgroundColor: "none", gap: "space.3", paddingY: "space.1" },
   "box.callout.rail.rest": { backgroundColor: "border.subtle", borderRadius: "radius.pill" },
   "disclosure.default.root.rest": { textColor: "text.muted", typography: "meta", gap: "space.1" },
   "disclosure.default.summary.rest": {
@@ -129,7 +129,7 @@ const seeds: Record<string, Recipe> = {
   "button.danger.root.hover": { backgroundColor: "surface.hover" },
   // The artifact's `.line__body`: a bare, left-aligned title inside a row.
   "button.ghost.root.rest": {
-    backgroundColor: "colour.transparent",
+    backgroundColor: "none",
     textColor: "text.primary",
     borderWidth: 0,
     borderRadius: 0,
@@ -214,7 +214,7 @@ for (const prefix of [
 ]) {
   seeds[`${prefix}.focus`] = focus;
   seeds[`${prefix}.active`] = { transformPreset: "press-shift-down" };
-  seeds[`${prefix}.disabled`] ??= { textColor: "text.disabled", backgroundColor: "colour.transparent" };
+  seeds[`${prefix}.disabled`] ??= { textColor: "text.disabled", backgroundColor: "none" };
 }
 for (const prefix of [
   "menu.default.trigger",

@@ -1,4 +1,6 @@
 /** Library-fixed vocabulary (spec §5–§6); role and design-value names belong to apps. */
+export const noPaint = "none";
+
 export const states = ["rest", "hover", "active", "focus", "disabled", "selected", "invalid", "open"] as const;
 
 export const semantics = [

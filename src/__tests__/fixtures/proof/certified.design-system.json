@@ -492,7 +492,7 @@
     "box.plate.rail.invalid": {},
     "box.plate.rail.open": {},
     "box.rule.root.rest": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "borderColor": "border.subtle",
       "borderTopWidth": "border.hairline",
       "borderRadius": {
@@ -504,7 +504,7 @@
       "gap": "space.1"
     },
     "box.rule.root.hover": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "borderColor": "border.subtle",
       "borderTopWidth": "border.hairline",
       "borderRadius": {
@@ -516,7 +516,7 @@
       "gap": "space.1"
     },
     "box.rule.root.active": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "borderColor": "border.subtle",
       "borderTopWidth": "border.hairline",
       "borderRadius": {
@@ -528,7 +528,7 @@
       "gap": "space.1"
     },
     "box.rule.root.focus": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "borderColor": "border.subtle",
       "borderTopWidth": "border.hairline",
       "borderRadius": {
@@ -540,7 +540,7 @@
       "gap": "space.1"
     },
     "box.rule.root.disabled": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "borderColor": "border.subtle",
       "borderTopWidth": "border.hairline",
       "borderRadius": {
@@ -552,7 +552,7 @@
       "gap": "space.1"
     },
     "box.rule.root.selected": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "borderColor": "border.subtle",
       "borderTopWidth": "border.hairline",
       "borderRadius": {
@@ -564,7 +564,7 @@
       "gap": "space.1"
     },
     "box.rule.root.invalid": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "borderColor": "border.subtle",
       "borderTopWidth": "border.hairline",
       "borderRadius": {
@@ -576,7 +576,7 @@
       "gap": "space.1"
     },
     "box.rule.root.open": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "borderColor": "border.subtle",
       "borderTopWidth": "border.hairline",
       "borderRadius": {
@@ -596,42 +596,42 @@
     "box.rule.rail.invalid": {},
     "box.rule.rail.open": {},
     "box.callout.root.rest": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "gap": "space.3",
       "paddingY": "space.1"
     },
     "box.callout.root.hover": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "gap": "space.3",
       "paddingY": "space.1"
     },
     "box.callout.root.active": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "gap": "space.3",
       "paddingY": "space.1"
     },
     "box.callout.root.focus": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "gap": "space.3",
       "paddingY": "space.1"
     },
     "box.callout.root.disabled": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "gap": "space.3",
       "paddingY": "space.1"
     },
     "box.callout.root.selected": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "gap": "space.3",
       "paddingY": "space.1"
     },
     "box.callout.root.invalid": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "gap": "space.3",
       "paddingY": "space.1"
     },
     "box.callout.root.open": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "gap": "space.3",
       "paddingY": "space.1"
     },
@@ -984,7 +984,7 @@
       "outlineStyle": "solid"
     },
     "button.default.root.disabled": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.disabled",
       "borderColor": "border.strong",
       "borderWidth": "border.hairline",
@@ -1250,9 +1250,9 @@
       "opacity": 0.9
     },
     "button.danger.root.rest": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "diagnostic.error",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -1265,7 +1265,7 @@
     "button.danger.root.hover": {
       "backgroundColor": "surface.hover",
       "textColor": "diagnostic.error",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -1276,9 +1276,9 @@
       "transitionTiming": "expo-out"
     },
     "button.danger.root.active": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "diagnostic.error",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -1293,9 +1293,9 @@
       }
     },
     "button.danger.root.focus": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "diagnostic.error",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -1316,9 +1316,9 @@
       "outlineStyle": "solid"
     },
     "button.danger.root.disabled": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.disabled",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -1329,9 +1329,9 @@
       "transitionTiming": "expo-out"
     },
     "button.danger.root.selected": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "diagnostic.error",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -1342,9 +1342,9 @@
       "transitionTiming": "expo-out"
     },
     "button.danger.root.invalid": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "diagnostic.error",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -1355,9 +1355,9 @@
       "transitionTiming": "expo-out"
     },
     "button.danger.root.open": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "diagnostic.error",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -1416,7 +1416,7 @@
       "opacity": 0.9
     },
     "button.ghost.root.rest": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
       "borderWidth": {
         "value": 0,
@@ -1432,7 +1432,7 @@
       "typography": "label.strong"
     },
     "button.ghost.root.hover": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
       "borderWidth": {
         "value": 0,
@@ -1448,7 +1448,7 @@
       "typography": "label.strong"
     },
     "button.ghost.root.active": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
       "borderWidth": {
         "value": 0,
@@ -1468,7 +1468,7 @@
       }
     },
     "button.ghost.root.focus": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
       "borderWidth": {
         "value": 0,
@@ -1494,7 +1494,7 @@
       "outlineStyle": "solid"
     },
     "button.ghost.root.disabled": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.disabled",
       "borderWidth": {
         "value": 0,
@@ -1510,7 +1510,7 @@
       "typography": "label.strong"
     },
     "button.ghost.root.selected": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
       "borderWidth": {
         "value": 0,
@@ -1526,7 +1526,7 @@
       "typography": "label.strong"
     },
     "button.ghost.root.invalid": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
       "borderWidth": {
         "value": 0,
@@ -1542,7 +1542,7 @@
       "typography": "label.strong"
     },
     "button.ghost.root.open": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
       "borderWidth": {
         "value": 0,
@@ -1986,7 +1986,7 @@
       "shadow": "shadow.pop"
     },
     "select.default.option.rest": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
       "borderWidth": {
         "value": 0,
@@ -2012,7 +2012,7 @@
       "typography": "label"
     },
     "select.default.option.active": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
       "borderWidth": {
         "value": 0,
@@ -2025,7 +2025,7 @@
       "typography": "label"
     },
     "select.default.option.focus": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
       "borderWidth": {
         "value": 0,
@@ -2048,7 +2048,7 @@
       "outlineStyle": "solid"
     },
     "select.default.option.disabled": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
       "borderWidth": {
         "value": 0,
@@ -2074,7 +2074,7 @@
       "typography": "label"
     },
     "select.default.option.invalid": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
       "borderWidth": {
         "value": 0,
@@ -2087,7 +2087,7 @@
       "typography": "label"
     },
     "select.default.option.open": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
       "borderWidth": {
         "value": 0,
@@ -2175,25 +2175,25 @@
       "typography": "label"
     },
     "checkbox.default.indicator.rest": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "borderColor": "border.strong",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.plate"
     },
     "checkbox.default.indicator.hover": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "borderColor": "border.strong",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.plate"
     },
     "checkbox.default.indicator.active": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "borderColor": "border.strong",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.plate"
     },
     "checkbox.default.indicator.focus": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "borderColor": "border.strong",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.plate",
@@ -2209,7 +2209,7 @@
       "outlineStyle": "solid"
     },
     "checkbox.default.indicator.disabled": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "borderColor": "border.strong",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.plate"
@@ -2222,13 +2222,13 @@
       "textColor": "text.on-accent"
     },
     "checkbox.default.indicator.invalid": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "borderColor": "border.strong",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.plate"
     },
     "checkbox.default.indicator.open": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "borderColor": "border.strong",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.plate"
@@ -2302,25 +2302,25 @@
       "typography": "label"
     },
     "switch.default.track.rest": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "borderColor": "border.strong",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.pill"
     },
     "switch.default.track.hover": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "borderColor": "border.strong",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.pill"
     },
     "switch.default.track.active": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "borderColor": "border.strong",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.pill"
     },
     "switch.default.track.focus": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "borderColor": "border.strong",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.pill",
@@ -2336,7 +2336,7 @@
       "outlineStyle": "solid"
     },
     "switch.default.track.disabled": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "borderColor": "border.strong",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.pill"
@@ -2349,13 +2349,13 @@
       "textColor": "text.on-accent"
     },
     "switch.default.track.invalid": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "borderColor": "border.strong",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.pill"
     },
     "switch.default.track.open": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "borderColor": "border.strong",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.pill"
@@ -2401,9 +2401,9 @@
     "menu.default.root.invalid": {},
     "menu.default.root.open": {},
     "menu.default.trigger.rest": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": {
         "value": 0,
         "unit": "px"
@@ -2419,7 +2419,7 @@
     "menu.default.trigger.hover": {
       "backgroundColor": "surface.hover",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": {
         "value": 0,
         "unit": "px"
@@ -2433,9 +2433,9 @@
       "transitionTiming": "expo-out"
     },
     "menu.default.trigger.active": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": {
         "value": 0,
         "unit": "px"
@@ -2453,9 +2453,9 @@
       }
     },
     "menu.default.trigger.focus": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": {
         "value": 0,
         "unit": "px"
@@ -2479,9 +2479,9 @@
       "outlineStyle": "solid"
     },
     "menu.default.trigger.disabled": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.disabled",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": {
         "value": 0,
         "unit": "px"
@@ -2495,9 +2495,9 @@
       "transitionTiming": "expo-out"
     },
     "menu.default.trigger.selected": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": {
         "value": 0,
         "unit": "px"
@@ -2511,9 +2511,9 @@
       "transitionTiming": "expo-out"
     },
     "menu.default.trigger.invalid": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": {
         "value": 0,
         "unit": "px"
@@ -2527,9 +2527,9 @@
       "transitionTiming": "expo-out"
     },
     "menu.default.trigger.open": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": {
         "value": 0,
         "unit": "px"
@@ -2615,7 +2615,7 @@
       "shadow": "shadow.pop"
     },
     "menuItem.default.root.rest": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
       "borderWidth": {
         "value": 0,
@@ -2641,7 +2641,7 @@
       "typography": "label"
     },
     "menuItem.default.root.active": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
       "borderWidth": {
         "value": 0,
@@ -2658,7 +2658,7 @@
       }
     },
     "menuItem.default.root.focus": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
       "borderWidth": {
         "value": 0,
@@ -2681,7 +2681,7 @@
       "outlineStyle": "solid"
     },
     "menuItem.default.root.disabled": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.disabled",
       "borderWidth": {
         "value": 0,
@@ -2694,7 +2694,7 @@
       "typography": "label"
     },
     "menuItem.default.root.selected": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
       "borderWidth": {
         "value": 0,
@@ -2707,7 +2707,7 @@
       "typography": "label"
     },
     "menuItem.default.root.invalid": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
       "borderWidth": {
         "value": 0,
@@ -2720,7 +2720,7 @@
       "typography": "label"
     },
     "menuItem.default.root.open": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
       "borderWidth": {
         "value": 0,
@@ -2765,7 +2765,7 @@
     "menuItem.default.icon.invalid": {},
     "menuItem.default.icon.open": {},
     "menuItem.danger.root.rest": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "diagnostic.error",
       "borderWidth": {
         "value": 0,
@@ -2791,7 +2791,7 @@
       "typography": "label"
     },
     "menuItem.danger.root.active": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "diagnostic.error",
       "borderWidth": {
         "value": 0,
@@ -2808,7 +2808,7 @@
       }
     },
     "menuItem.danger.root.focus": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "diagnostic.error",
       "borderWidth": {
         "value": 0,
@@ -2831,7 +2831,7 @@
       "outlineStyle": "solid"
     },
     "menuItem.danger.root.disabled": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.disabled",
       "borderWidth": {
         "value": 0,
@@ -2844,7 +2844,7 @@
       "typography": "label"
     },
     "menuItem.danger.root.selected": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "diagnostic.error",
       "borderWidth": {
         "value": 0,
@@ -2857,7 +2857,7 @@
       "typography": "label"
     },
     "menuItem.danger.root.invalid": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "diagnostic.error",
       "borderWidth": {
         "value": 0,
@@ -2870,7 +2870,7 @@
       "typography": "label"
     },
     "menuItem.danger.root.open": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "diagnostic.error",
       "borderWidth": {
         "value": 0,
@@ -2923,9 +2923,9 @@
     "popover.default.root.invalid": {},
     "popover.default.root.open": {},
     "popover.default.trigger.rest": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -2938,7 +2938,7 @@
     "popover.default.trigger.hover": {
       "backgroundColor": "surface.hover",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -2949,9 +2949,9 @@
       "transitionTiming": "expo-out"
     },
     "popover.default.trigger.active": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -2966,9 +2966,9 @@
       }
     },
     "popover.default.trigger.focus": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -2989,9 +2989,9 @@
       "outlineStyle": "solid"
     },
     "popover.default.trigger.disabled": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -3002,9 +3002,9 @@
       "transitionTiming": "expo-out"
     },
     "popover.default.trigger.selected": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -3015,9 +3015,9 @@
       "transitionTiming": "expo-out"
     },
     "popover.default.trigger.invalid": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -3028,9 +3028,9 @@
       "transitionTiming": "expo-out"
     },
     "popover.default.trigger.open": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -3265,9 +3265,9 @@
       "textColor": "text.primary"
     },
     "dialog.default.close.rest": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -3280,7 +3280,7 @@
     "dialog.default.close.hover": {
       "backgroundColor": "surface.hover",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -3291,9 +3291,9 @@
       "transitionTiming": "expo-out"
     },
     "dialog.default.close.active": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -3308,9 +3308,9 @@
       }
     },
     "dialog.default.close.focus": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -3331,9 +3331,9 @@
       "outlineStyle": "solid"
     },
     "dialog.default.close.disabled": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -3344,9 +3344,9 @@
       "transitionTiming": "expo-out"
     },
     "dialog.default.close.selected": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -3357,9 +3357,9 @@
       "transitionTiming": "expo-out"
     },
     "dialog.default.close.invalid": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -3370,9 +3370,9 @@
       "transitionTiming": "expo-out"
     },
     "dialog.default.close.open": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
-      "borderColor": "colour.transparent",
+      "borderColor": "none",
       "borderWidth": "border.hairline",
       "borderRadius": "radius.control",
       "paddingX": "space.4",
@@ -3665,7 +3665,7 @@
       "paddingY": "space.1"
     },
     "tab.default.root.rest": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.muted",
       "borderWidth": {
         "value": 0,
@@ -3683,7 +3683,7 @@
       "transitionTiming": "expo-out"
     },
     "tab.default.root.hover": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
       "borderWidth": {
         "value": 0,
@@ -3723,7 +3723,7 @@
       ]
     },
     "tab.default.root.active": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.muted",
       "borderWidth": {
         "value": 0,
@@ -3745,7 +3745,7 @@
       }
     },
     "tab.default.root.focus": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.muted",
       "borderWidth": {
         "value": 0,
@@ -3773,7 +3773,7 @@
       "outlineStyle": "solid"
     },
     "tab.default.root.disabled": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.disabled",
       "borderWidth": {
         "value": 0,
@@ -3791,7 +3791,7 @@
       "transitionTiming": "expo-out"
     },
     "tab.default.root.selected": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.primary",
       "borderWidth": {
         "value": 0,
@@ -3831,7 +3831,7 @@
       ]
     },
     "tab.default.root.invalid": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.muted",
       "borderWidth": {
         "value": 0,
@@ -3849,7 +3849,7 @@
       "transitionTiming": "expo-out"
     },
     "tab.default.root.open": {
-      "backgroundColor": "colour.transparent",
+      "backgroundColor": "none",
       "textColor": "text.muted",
       "borderWidth": {
         "value": 0,

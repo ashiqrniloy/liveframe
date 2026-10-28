@@ -141,3 +141,10 @@ test("semantics_lists_live_regions", () => {
   const layout = proofCatalog.definitions.find((d) => d.kind === "stack");
   expect(layout?.props).toMatchObject({ properties: { semantics: { enum: [...semantics] } } });
 });
+
+test("vocabulary_rejects_role_named_none", () => {
+  const doc = { ...vocabulary, colourRoles: [...vocabulary.colourRoles, "none"] };
+  rejects(doc, "invalid-document", "/colourRoles/2");
+  expect(new Ajv2020({ strict: true }).compile(vocabularySchema)(doc)).toBe(false);
+  expect(validateVocabulary({ ...vocabulary, colourRoles: [...vocabulary.colourRoles, "surface.none"] }).ok).toBe(true);
+});

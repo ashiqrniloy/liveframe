@@ -250,3 +250,31 @@ test("forced_colours_only_restore_differing_states_and_background_edges", () => 
     }
   }
 });
+
+test("none_clears_rest_background_byte_stable", () => {
+  const input = {
+    ...systems[0]!,
+    recipes: {
+      ...systems[0]!.recipes,
+      "button.*.root.rest": { backgroundColor: "surface.base" },
+      "button.default.root.rest": {
+        backgroundColor: "none",
+        borderColor: "none",
+        outlineColor: "none",
+        backgroundOpacity: 0.5,
+      },
+    },
+  } satisfies DesignSystem;
+  const resolved = resolveRecipes(input, { catalog, registry: {} });
+  expect(resolved["button.default.root.rest"]?.backgroundColor).toBe("none");
+  expect(recipeDeclarations(resolved["button.default.root.rest"]!)).toBe(
+    "background-color:transparent;border-color:transparent;outline-color:transparent;--lf-alpha:0.5",
+  );
+  const css = sheet(input);
+  expect(css).toBe(sheet(input));
+  const ordinary = css.split("@media (forced-colors:active){")[0]!;
+  expect(ordinary).toContain("background-color:transparent;border-color:transparent;outline-color:transparent");
+  expect(ordinary).not.toContain("--lf-c-none");
+  expect(ordinary).not.toMatch(/#[0-9a-f]{3,8}\b|(?:oklch|oklab|rgb|hsl)\(/i);
+  expect(ordinary.replaceAll("transparent", "")).not.toMatch(/(?:CanvasText|Highlight|currentColor|\bred\b)/);
+});

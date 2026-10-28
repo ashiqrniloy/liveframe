@@ -364,15 +364,6 @@
         82
       ]
     },
-    "colour.transparent": {
-      "colorSpace": "srgb",
-      "components": [
-        0,
-        0,
-        0
-      ],
-      "alpha": 0
-    },
     "shadow.ambient.alpha-0-14": {
       "colorSpace": "oklch",
       "components": [

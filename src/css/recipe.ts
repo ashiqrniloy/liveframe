@@ -1,5 +1,5 @@
 import type { ResolvedRecipe } from "../formats/design-system.ts";
-import { recipeProperties } from "../formats/fixed.ts";
+import { noPaint, recipeProperties } from "../formats/fixed.ts";
 import { colourVar, typographyVar } from "./names.ts";
 
 const dimension = (value: { readonly value: number; readonly unit: string }): string => `${value.value}${value.unit}`;
@@ -18,10 +18,10 @@ const typeFields = {
 type Property = (typeof recipeProperties)[number];
 const properties: { [P in Property]: (value: NonNullable<ResolvedRecipe[P]>, recipe: ResolvedRecipe) => string } = {
   backgroundColor: (value, recipe) =>
-    `background-color:${recipe.backgroundOpacity === undefined ? `var(${colourVar(value)})` : `color-mix(in srgb, var(${colourVar(value)}) calc(var(--lf-alpha) * 100%), transparent)`}`,
+    `background-color:${value === noPaint ? "transparent" : recipe.backgroundOpacity === undefined ? `var(${colourVar(value)})` : `color-mix(in srgb, var(${colourVar(value)}) calc(var(--lf-alpha) * 100%), transparent)`}`,
   textColor: (value) => `color:var(${colourVar(value)})`,
-  borderColor: (value) => `border-color:var(${colourVar(value)})`,
-  outlineColor: (value) => `outline-color:var(${colourVar(value)})`,
+  borderColor: (value) => `border-color:${value === noPaint ? "transparent" : `var(${colourVar(value)})`}`,
+  outlineColor: (value) => `outline-color:${value === noPaint ? "transparent" : `var(${colourVar(value)})`}`,
   borderWidth: (value, recipe) =>
     `border-width:${dimension(value)}${recipe.borderStyle === undefined ? ";border-style:solid" : ""}`,
   borderTopWidth: (value, recipe) =>

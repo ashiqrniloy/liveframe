@@ -174,6 +174,14 @@ The host owns these DOM operations. Slot classes, node identities and widget
 output stay the same, and no widget code runs. Keep alternate sheets loaded;
 removing a sheet still used by another surface would unstyle that surface.
 
+Recipe `backgroundColor`, `borderColor` and `outlineColor` accept `"none"` to
+clear paint inherited through the recipe cascade. They emit `transparent`,
+including when `backgroundOpacity` is set. Omitting a property inherits it.
+`textColor` and shadow colours still require theme roles; an empty shadow array
+clears shadows. The exact colour-role name `none` is reserved in vocabularies.
+In forced colours, an explicit rest background of `none` with no positive border
+width retains the inward 1px OS-colour outline; an absent background adds no edge.
+
 ## Preferences and platform
 
 The projection handles reduced motion by setting transition durations to zero

@@ -405,15 +405,6 @@
         1
       ],
       "hex": "#ffffff"
-    },
-    "colour.transparent": {
-      "colorSpace": "srgb",
-      "components": [
-        0,
-        0,
-        0
-      ],
-      "alpha": 0
     }
   },
   "typography": {
