@@ -18,6 +18,7 @@ import { implementations } from "../renderer/primitives/index.tsx";
 
 type Snapshot = {
   session: string;
+  scenario: string;
   manifest: Manifest;
   scenarios: [string, ...string[]];
   result: Result<UiTree>;
@@ -34,11 +35,12 @@ const checked = validateCapabilities(capabilities);
 if (!checked.ok) throw new Error(JSON.stringify(checked.errors));
 const validator = compileValidator({ catalog, capabilities: checked.value, manifest: initial.manifest });
 const renderer = createRenderer({ catalog, implementations });
-let scenario = url.searchParams.get("scenario") ?? initial.scenarios[0];
+let scenario = initial.scenario;
 let generation = 0;
 let pending = Promise.resolve();
 function App() {
   const [snapshot, setSnapshot] = useState(initial);
+  const [rendered, setRendered] = useState(initial.scenario);
   const [error, setError] = useState("");
   const request = (path: string, body?: { intent: Intent; origin: IntentOrigin }) => {
     const selected = scenario;
@@ -55,6 +57,7 @@ function App() {
         if (!response.ok) throw new Error(next.error ?? "Preview request failed");
         if (current === generation && selected === scenario) {
           setSnapshot((previous) => ({ ...previous, ...next }));
+          setRendered(selected);
           setError("");
         }
       })
@@ -68,6 +71,7 @@ function App() {
         themes={[themes.certified, themes.rack]}
         designSystems={[systems.certified, systems.rack]}
         result={snapshot.result}
+        resultScenario={rendered}
         intents={snapshot.intents}
         renderer={renderer}
         validator={validator}

@@ -290,7 +290,7 @@ This plan implements spec §6.4 (preferences, switching), §7.5 (`<Preview>`, se
     - Docs: spec §6.4 "Preferences and switching" and §11, `docs/styling.md` "Preferences and platform", `docs/renderer.md`. No new decision or dependency; CL-09's attribute contract is unchanged.
     - Verification: the new assertions failed before the change (attribute missing from base and design-system sheets, prop absent); after implementation the focused css and browser suites passed (16 css-design-system, 24 react-browser). `bun run check` passed (783 pass, 4 existing skips, 0 fail).
 
-- [ ] Task 6: Make `<Preview>` safe for in-memory routers and multiple previews (CL-01)
+- [x] Task 6: Make `<Preview>` safe for in-memory routers and multiple previews (CL-01)
   - Acceptance Criteria:
     - Functional:
       - With `selection` supplied, `<Preview>` neither reads nor writes `location`, and `location.href` is unchanged across selections.
@@ -333,6 +333,16 @@ This plan implements spec §6.4 (preferences, switching), §7.5 (`<Preview>`, se
     - `first_result_never_relabelled`.
     - `capture_with_url_key` (`cli-capture`/`preview-browser`).
     - `capture_controlled_preview_rejects_other_scenario`.
+  - Notes (executed 2026-10-29):
+    - Props: `resultScenario` is required; `selection?: PreviewCell` makes the preview controlled; `urlKey?: string` prefixes the uncontrolled keys. The displayed cell is `selection` (each coordinate matched against its axis, falling back to the axis' first entry) or the internal `chosen` state. In controlled mode neither the mount read nor the write effect runs, so `location.href` is untouched; `onSelect` fires only for user selections. Uncontrolled keys are `scenario`/`width`/`theme`/`designSystem`, or `<urlKey>.<name>`, and the mount read and `history.replaceState` are unchanged otherwise.
+    - Labelling: the component no longer keeps a "which scenario did this result arrive for" field. `current = resultScenario === cell.scenario ? result : undefined`, so a result for A is never drawn or dimmed under B; the last-good map is updated only from `resultScenario`. `data-lf-preview` publishes the axes plus `urlKey` (keyed uncontrolled) or `controlled: true`.
+    - Capture: `scenarioKey` comes from the published `urlKey`, so a keyed page is navigated with `<urlKey>.scenario`. A controlled page is read for the scenario it shows, captured as that one scenario without a second navigation, and any other requested scenario raises `CaptureError("not-found")` (existing kind, no new one). Bare-key pages behave exactly as before.
+    - Hosts: the proof host's `/preview` bootstrap now carries the scenario the snapshot was rendered for, so `resultScenario` is server truth rather than a guess (also fixes a latent mismatch when a draft's first scenario is not `ready`). Demo host tracks the rendered scenario beside its snapshot. Both pass it to `<Preview>`; neither adopts `selection`/`urlKey` (one preview, host-owned URL).
+    - Tests: `controlled_preview_leaves_location_unchanged` (URL identical across cell and scenario changes; unknown coordinate falls back per axis), `two_previews_with_url_keys_are_independent` (each preview keeps its own four keys; no bare `scenario`), `first_result_never_relabelled` (a `ready` result with the URL naming `empty` shows the fallback, never the tree, and shows it once labelled `ready`), `capture_with_url_key` (capture selects `empty` through `main.scenario`, proving it did not silently capture `ready`), `capture_controlled_preview_rejects_other_scenario`. The fixture client gained `stale`, `controlled`, `keyed` and `two` modes.
+    - Finding: the existing `selected_cell_round_trips_through_the_url_and_intents_reach_host` test only passed because of this bug — it loaded `?scenario=empty` and then clicked a button that exists only in `ready`'s tree. It now starts from `?scenario=ready` and selects `empty` at the end; that is the regression proof for the old behaviour.
+    - Docs: spec §7.5 (selection modes, `resultScenario`, published attributes, capture), `docs/preview.md` (props, urlKey, controlled mode, capture, and an "Upgrading from 0.1.0" migration note), `CHANGELOG.md` (0.2.0 break), and the execution skill's preview reference.
+    - Verification: `bun run check` passed (788 pass, 4 existing skips, 0 fail; focused `preview-react` 11 pass, proof preview/capture/MCP 24 pass). `bun scripts/demo-test.ts` passed against the packed archive (typecheck plus 52 tests), so the demo host is updated and still captures its 16 cells.
+
 - [ ] Task 7: Generate implementation types for JSON-loaded catalogs (backlog)
   - Acceptance Criteria:
     - Functional:

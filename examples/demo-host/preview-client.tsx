@@ -41,6 +41,7 @@ function App({ initial }: { initial: Snapshot }) {
   const [snapshot, setSnapshot] = useState(initial);
   const [error, setError] = useState("");
   const scenario = useRef(new URLSearchParams(location.search).get("scenario") ?? initial.scenarios[0]);
+  const [rendered, setRendered] = useState(scenario.current);
   // One request at a time, so a late answer for a scenario the user left cannot overwrite the current one.
   const pending = useRef(Promise.resolve());
   const validator = compileValidator({ catalog, capabilities, manifest: snapshot.manifest });
@@ -54,6 +55,7 @@ function App({ initial }: { initial: Snapshot }) {
           ...previous,
           ...(intent ? { result: next.result, intents: next.intents } : next),
         }));
+        setRendered(selected);
         setError("");
       })
       .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : String(cause)));
@@ -66,6 +68,7 @@ function App({ initial }: { initial: Snapshot }) {
         themes={themes}
         designSystems={designSystems}
         result={snapshot.result}
+        resultScenario={rendered}
         intents={snapshot.intents}
         renderer={renderer}
         validator={validator}

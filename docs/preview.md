@@ -85,11 +85,11 @@ SDK freezes them in place on the first render. Scenario data grants no authority
 
 ## Mount `<Preview>` in your page
 
-`<Preview>` is in `@arnilo/liveframe/preview/react`. It is controlled: your page
-owns transport; the component owns layout and the URL. It draws the selected
-scenario's tree in every cell of `widths x themes x designSystems`, as sibling
-surfaces through your `createRenderer()`. Each cell is as wide as its width, so
-responsive values follow the cell, not the window.
+`<Preview>` is in `@arnilo/liveframe/preview/react`. Your page owns transport and
+selection; the component owns layout. It draws the selected scenario's tree in
+every cell of `widths x themes x designSystems`, as sibling surfaces through your
+`createRenderer()`. Each cell is as wide as its width, so responsive values follow
+the cell, not the window.
 
 ```tsx
 <Preview
@@ -97,7 +97,8 @@ responsive values follow the cell, not the window.
   widths={[360, 768, 1280]}          // CSS px
   themes={[certified, rack]}         // { id, version }
   designSystems={[certifiedDs, rackDs]}
-  result={snapshot.result}           // Result<UiTree> for the selected scenario
+  result={snapshot.result}           // Result<UiTree> for resultScenario
+  resultScenario={snapshot.scenario} // which scenario that result was rendered for
   intents={snapshot.intents}         // the session's log
   renderer={renderer}
   validator={validator}
@@ -109,6 +110,11 @@ responsive values follow the cell, not the window.
 
 Wire the callbacks like this:
 
+- `resultScenario` is required. It labels the `result` you pass; the component
+  never guesses. A result for scenario `A` is drawn only while `A` is selected,
+  never under another scenario's name, and the retained "last good render" map is
+  keyed by it too. Return the scenario name from your render route beside the
+  result, as the proof host does.
 - `onSelect(cell)` runs on mount and on every selection change. Width and style
   changes reuse the tree; fetch a new result only when `cell.scenario` changes.
 - Hand `<Preview>` a **new result object** for every completed request, and
@@ -125,11 +131,36 @@ complete working example.
 
 ## Address a cell by URL
 
-The selected cell lives in the query string and is written with
+By default the selected cell lives in the query string and is written with
 `history.replaceState`: `scenario` (name), `width` (CSS px), `theme` and
 `designSystem` (`id@version`). Missing or unknown values select the first entry
 of each axis. Other query parameters and the hash are kept, so your own
 `session` parameter survives.
+
+Pass `urlKey="left"` to prefix every key with it (`left.scenario`,
+`left.width`, ...). Do that whenever the page mounts more than one `<Preview>`:
+two uncontrolled previews sharing bare keys would read and overwrite each other.
+
+## Own the selection instead
+
+If your app has its own router, or you keep the selection in memory, pass
+`selection` and treat the preview as controlled:
+
+```tsx
+const [cell, setCell] = useState<PreviewCell>({ scenario: "ready", width: 360, theme: "certified@1.0.0", designSystem: "certified@1.0.0" });
+const [result, setResult] = useState(snapshot.result);
+const [rendered, setRendered] = useState(snapshot.scenario);
+
+<Preview {...previewProps} selection={cell} result={result} resultScenario={rendered}
+  onSelect={(next) => { setCell(next); setRendered(next.scenario); setResult(await fetchResult(next)); }} />
+```
+
+A controlled `<Preview>` neither reads nor writes `location`, so `location.href`
+stays exactly as your page set it. `onSelect(cell)` still runs for user
+selections, and you feed the new cell back through `selection`; a coordinate your
+axes do not declare falls back to the first entry of its axis. Capture cannot
+address a controlled preview by URL, so it captures the scenario the page shows
+and rejects a request for any other (see below).
 
 ## Capture cells for agents
 
@@ -141,7 +172,9 @@ liveframe preview capture <url> --out <dir> \
 The command opens your preview page in headless Chromium, reads the axes that
 `<Preview>` publishes in `data-lf-preview`, and captures every declared cell
 unless a flag narrows an axis. It loads the page once per scenario and waits for
-`data-lf-ready`. For each cell it writes `<dir>/<cell>.png` (a screenshot of the
+`data-lf-ready`. For a keyed preview it sets `<urlKey>.scenario`; a controlled
+preview ignores the URL, so it captures only the scenario the page shows and
+raises `not-found` when a flag asks for another. For each cell it writes `<dir>/<cell>.png` (a screenshot of the
 cell) and `<dir>/<cell>.aria.yml` (its accessibility snapshot), then
 `<dir>/index.json`:
 
@@ -184,3 +217,23 @@ bunx playwright install chromium
 ```
 
 Without Playwright, the command prints these steps and exits 1.
+
+## Upgrading from 0.1.0
+
+`<Preview>` now takes `resultScenario`, which names the scenario the `result`
+prop was rendered for. Return that name from your render route beside the result:
+
+```diff
+- <Preview result={result} ... />
++ <Preview result={result} resultScenario={rendered} ... />
+```
+
+Then, as they apply to your page:
+
+- **Own navigation?** Add `selection` and feed `onSelect(cell)` back, so the
+  preview stops reading and writing `location` (controlled mode).
+- **More than one preview on the page?** Give each a distinct `urlKey`; bare
+  keys are shared today.
+- **One uncontrolled preview?** Nothing else changes: the bare `scenario`,
+  `width`, `theme` and `designSystem` keys stay the default, so
+  `liveframe preview capture` and MCP `capture_preview` need no adjustment.

@@ -27,6 +27,8 @@ type Axes = {
   readonly widths: readonly number[];
   readonly themes: readonly string[];
   readonly designSystems: readonly string[];
+  readonly urlKey?: string;
+  readonly controlled?: boolean;
 };
 
 /** The capture failure kinds a caller can map to a `LiveframeError` without reading the message. */
@@ -64,6 +66,16 @@ function narrow<T>(axis: string, declared: readonly T[], wanted: readonly T[] | 
     );
   return wanted;
 }
+/** A controlled preview ignores the URL, so only the scenario it shows can be captured. */
+function controlledScenario(shown: string, wanted: readonly string[] | undefined): readonly [string] {
+  const other = wanted?.filter((value) => value !== shown) ?? [];
+  if (other.length)
+    throw new CaptureError(
+      "not-found",
+      `This <Preview> is controlled and shows ${shown}; the URL cannot select ${other.join(", ")}.`,
+    );
+  return [shown];
+}
 
 /** Captures every requested cell of an app's `<Preview>` page into `options.out`. Read-only. */
 export async function capture(
@@ -82,9 +94,10 @@ export async function capture(
   });
   try {
     const page = await browser.newPage();
+    let scenarioKey = "scenario";
     const open = async (scenario?: string) => {
       const target = new URL(url);
-      if (scenario) target.searchParams.set("scenario", scenario);
+      if (scenario) target.searchParams.set(scenarioKey, scenario);
       await page.goto(target.href).catch((error: Error) => {
         throw new CaptureError("not-found", `Cannot open ${target.href}: ${error.message}`);
       });
@@ -97,7 +110,13 @@ export async function capture(
     const declared: Axes = JSON.parse(
       (await page.locator("[data-lf-preview]").getAttribute("data-lf-preview")) ?? "null",
     );
-    const scenarios = narrow("scenario", declared.scenarios, options.scenarios);
+    if (declared.urlKey) scenarioKey = `${declared.urlKey}.scenario`;
+    const shown = declared.controlled
+      ? JSON.parse((await page.locator("[data-lf-cell]").first().getAttribute("data-lf-cell")) ?? "null").scenario
+      : undefined;
+    const scenarios = shown
+      ? controlledScenario(shown, options.scenarios)
+      : narrow("scenario", declared.scenarios, options.scenarios);
     const widths = narrow("width", declared.widths, options.widths);
     const themes = narrow("theme", declared.themes, options.themes);
     const designSystems = narrow("design system", declared.designSystems, options.designSystems);
@@ -112,7 +131,7 @@ export async function capture(
     const cells: CapturedCell[] = [];
     const taken = new Set<string>();
     for (const scenario of scenarios) {
-      await open(scenario);
+      if (!shown) await open(scenario);
       const elements = page.locator("[data-lf-cell]");
       const found = await elements.evaluateAll((all) =>
         all.map((element) => ({

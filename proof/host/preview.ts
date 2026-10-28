@@ -13,6 +13,7 @@ function view(session: PreviewSession, pkg: () => WidgetPackage) {
   return {
     session,
     snapshot: async (scenario: string) => ({
+      scenario,
       result: await session.render({ scenario }),
       manifest: pkg().manifest,
       scenarios: pkg().scenarios.map((entry) => entry.name),
