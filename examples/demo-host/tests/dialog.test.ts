@@ -24,7 +24,12 @@ test("initially_open_dialog_is_dismissable", async () => {
   await api.install(await hello());
   await api.place("open", { name: "Ada" });
   const closed = await api.surface("open");
-  await api.intent("open", offeredIntent(closed, "root/help", "onPress"));
+  await api.intent("open", offeredIntent(closed, "root/help", "onPress"), {
+    surfaceId: closed.tree.surfaceId,
+    revision: closed.tree.revision,
+    nodeId: "root/help",
+    event: "onPress",
+  });
   expect(find((await api.surface("open")).tree.root, "root/dialog")?.props).toMatchObject({ open: true });
 
   const page = await browser.newPage();

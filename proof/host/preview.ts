@@ -1,4 +1,4 @@
-import type { Intent, Result } from "@arnilo/liveframe";
+import type { Intent, IntentOrigin, Result } from "@arnilo/liveframe";
 import { createPreview, type PreviewBinding, type PreviewSession } from "@arnilo/liveframe/preview";
 import { memoryStore } from "@arnilo/liveframe/store";
 import { drafts, packageOptions, value } from "../../src/__tests__/fixtures/widgets/drafts.ts";
@@ -90,7 +90,13 @@ export function previewRoutes() {
         return json(active.update(body as Draft));
       }
       if (url.pathname === "/preview/intent")
-        return json({ result: await active.session.intent(body as Intent), intents: active.session.intents() });
+        return json({
+          result: await active.session.intent(
+            (isRecord(body) && "intent" in body ? body.intent : body) as Intent,
+            (isRecord(body) ? body.origin : undefined) as IntentOrigin | undefined,
+          ),
+          intents: active.session.intents(),
+        });
       if (url.pathname === "/preview/publish") {
         if (!active.publish) return json({ error: "Attached preview sessions are read-only" }, 405);
         return json(await active.publish());

@@ -4,7 +4,7 @@ Depends on: [plan 016](016-Phase-7-Part-C-Styling-Paint-Alpha-Contrast-And-Nativ
 
 ## Objectives
 
-- Let a host check that the served tree offered an intent: `onIntent(intent, origin)` and `checkOffered(tree, origin, intent)` (LF-01), on `<Surface>`, `<Preview>` and `createPreview().intent()`.
+- Let a host check that the served tree offered an intent: `onIntent(intent, origin)` and `checkOffered(tree, origin, intent, validator)` (LF-01), on `<Surface>`, `<Preview>` and `createPreview().intent()`.
 - Give primitives the resolved action metadata (`confirm`, `irreversible`), and let the host enforce confirmation in one place through `<Surface confirm>` (LF-08).
 - Give the host a hook on `<Surface>`'s wrapper and portal container, with a portal default that adds no layout box (CL-02).
 - Let the host turn translucency off for a scope: `transparency="reduced"` (CL-09).
@@ -76,7 +76,7 @@ This plan implements spec §6.4 (preferences, switching), §7.5 (`<Preview>`, se
       <Surface … onIntent={(intent, origin) => send({ intent, origin })} confirm={approve} transparency={tier === "opaque" ? "reduced" : "auto"}
                wrapperProps={{ className: styles.body }} portalProps={{ className: styles.overlays }} />
       // backend
-      const offered = checkOffered(servedTree, origin, intent); if (!offered.ok) return reject(offered.errors);
+      const offered = checkOffered(servedTree, origin, intent, validator); if (!offered.ok) return reject(offered.errors);
       ```
     - Files to Create/Edit:
       - `decision-logs/<date>-renderer-and-preview-host-integration.md` (new)
@@ -90,11 +90,11 @@ This plan implements spec §6.4 (preferences, switching), §7.5 (`<Preview>`, se
     - Task 7's form is a separate `--implementations` output file with its own `--check`, so `/react` stays free of SDK imports.
     - Documentation: MDN via `ctx7` (`/mdn/content`) confirmed `display: contents` removes the box, which is why it was rejected. No runtime, schema, spec or doc changes in this decision-only task.
 
-- [ ] Task 2: Report an intent's origin and check it was offered (LF-01)
+- [x] Task 2: Report an intent's origin and check it was offered (LF-01)
   - Acceptance Criteria:
     - Functional:
       - `onIntent(intent, origin)` receives `origin` with the right `nodeId` and `event` for nested, collection (`items[i].emit`) and portal-rendered nodes. One-argument callbacks keep working.
-      - `checkOffered(tree, origin, intent): Result<void>` rejects each of the following with a typed error and pointer:
+      - `checkOffered(tree, origin, intent, validator): Result<void>` rejects each of the following with a typed error and pointer:
         - a wrong `surfaceId` or `revision`;
         - an unknown node;
         - an undeclared event;
@@ -102,11 +102,11 @@ This plan implements spec §6.4 (preferences, switching), §7.5 (`<Preview>`, se
         - a filled argument other than `bind`, or keys outside the `bindAll` schema;
         - a `setState` key that differs from the offered one;
         - a filled value that fails its schema.
-      - It accepts every intent the renderer actually produced in the existing intent tests.
+      - It accepts every schema-valid intent the renderer produced in the existing intent tests. The intentionally invalid completed values in `host_must_recheck_filled_arguments` and the numeric/object bound tests remain rejected at the host boundary.
       - `<Preview>`'s `onIntent` and `createPreview().intent(intent, origin?)` carry and apply the same check: the session rejects a non-offered intent.
       - The conformance renderer suite records `origin` with each intent.
       - `docs/renderer.md` § "Handle intents at the host boundary" uses `checkOffered`.
-    - Performance: `checkOffered` is O(depth to the node), with an id lookup through a map built once per tree. Render bench non-regression.
+    - Performance: The first `checkOffered` call validates and indexes the tree in O(nodes); later calls reuse validation per tree/validator pair and the id map per tree, with no whole-tree walk. Intent payload validation still applies. Render bench non-regression.
     - Code Quality: `checkOffered` reuses the intent completion rule. Move `complete()` from `src/react/renderer.tsx:62-78` to a host-API-free module, `src/validate/complete.ts`, that both `/react` and the root import. `graft callers complete` lists the callers.
     - Security: law 4 — this closes the forged-intent path that manifest checks alone leave open. Unknown or mismatched origins fail closed.
   - Approach:
@@ -121,24 +121,34 @@ This plan implements spec §6.4 (preferences, switching), §7.5 (`<Preview>`, se
     - Options Considered:
       - See Task 1.
     - Chosen Approach:
-      - As decided in Task 1.
+      - As decided in Task 1, with the [explicit validator argument approved during execution](../decision-logs/2026-10-28-1935-check-offered-explicit-validator.md). JSON trees contain no schemas, so the host supplies its compiled validator. Trees are immutable; the first call validates and indexes them, and later calls reuse that context.
     - API Notes and Examples:
       ```ts
-      export function checkOffered(tree: UiTree, origin: IntentOrigin, intent: Intent): Result<void>;
+      export function checkOffered(tree: UiTree, origin: IntentOrigin, intent: Intent, validator: CompiledValidator): Result<void>;
       ```
     - Files to Create/Edit:
-      - `src/validate/complete.ts` (new); `src/validate/offered.ts` (new); `src/index.ts`
-      - `src/react/renderer.tsx`; `src/preview/react/preview.tsx`; `src/preview/session.ts`; `src/preview/index.ts` (types)
+      - `src/validate/complete.ts` (new); `src/validate/offered.ts` (new); `src/validate/compile.ts`; `src/formats/tree.ts`; `src/index.ts`
+      - `src/react/renderer.tsx`; `src/preview/react/preview.tsx`; `src/preview/session.ts`; `src/preview/authoring.ts`; `src/preview/index.ts` (types)
       - `src/conformance/react/*`
-      - `src/__tests__/exports.test.ts`
+      - `src/__tests__/exports.test.ts`; `src/__tests__/offered.test.ts` (new); intent, preview/session, browser and compiled-guide tests/fixtures
       - `examples/demo-host/*` (uses it); `proof/host/*` (if it handles intents)
-      - `docs/spec.md` §8/§11/§7.5; `docs/renderer.md`; `docs/preview.md`
+      - `docs/spec.md` §8/§11/§7.5; `docs/renderer.md`; `docs/preview.md`; `docs/conformance.md`; `examples/demo-host/README.md`
   - Test Cases to Write:
-    - `origin_for_nested_collection_and_portal_nodes` (`react-intents.test.tsx`).
+    - `origin_for_nested_and_collection_nodes` (`react-intents.test.tsx`); `origin_for_portal_nodes_uses_the_accepted_revision` (`react-browser.test.tsx`).
     - `check_offered_rejects_each_forgery`: one case per rejection.
-    - `check_offered_accepts_renderer_output`.
-    - `session_rejects_unoffered_intent` (`preview-session.test.ts`).
-    - `conformance_records_origin`.
+    - Existing intent tests check valid renderer output through `checkOffered`; `check_offered_caches_validation_and_accepts_json_transport` proves explicit context works across JSON transport.
+    - `session_rejects_unoffered_and_stale_intents_without_mutation` and `session_rejects_unoffered_action_without_logging_it` (`preview-session.test.ts`).
+    - The conformance browser interaction case records `{ intent, origin }` emissions and checks each with `checkOffered`; preview browser coverage asserts the forwarded origin.
+    - `queued_intent_keeps_its_origin_and_is_rejected_after_a_revision_change` (`proof/tests/host.test.ts`); the demo host rejects stale and wrong-node origins.
+
+  - Notes (executed 2026-10-28):
+    - Added root-exported `IntentOrigin` and `checkOffered(tree, origin, intent, validator)`. The owner explicitly approved the fourth argument because transported trees contain no schemas; the [superseding decision](../decision-logs/2026-10-28-1935-check-offered-explicit-validator.md) records the evidence and alternative. The original Task 1 log remains historical.
+    - Moved `complete()` unchanged to the host-API-free validator layer. The helper uses it to preserve literal intent fields, allows only declared completion fields, and checks completed state/action values plus event schemas. Origins, unknown nodes/events, uncompleted markers, extra arguments and invalid values fail closed with existing typed errors and pointers. It validates once per immutable tree/validator pair and indexes node ids once per tree. JSON-transport and cache tests cover the explicit schema context.
+    - Renderer callbacks capture the accepted tree's identity/revision and the emitting node/event, including nested collection items and portals; origins are frozen. One-argument callbacks remain valid. Preview forwards the origin, sessions optionally check it without changing legacy origin-free calls, and both reference hosts carry the captured origin through transport. The demo checks its last served snapshot instead of rendering a new revision before dispatch. Conformance records `{ intent, origin }` through `emissions()`, retains `intents()` compatibility, and checks every interaction emission.
+    - Synced spec §§7.5/8/11 and renderer, preview, conformance and demo-host docs. The known intentionally schema-invalid renderer-output tests still produce their original intents, which the host correctly rejects; the acceptance criterion now says schema-valid output.
+    - Integration finding: blur and click can emit twice from one revision. The queued second intent must remain stale rather than having its revision rewritten. Added a deterministic browser regression proving rejection, documented the retry requirement, and separated draft commit from the happy-path button test. Later confirmation work must likewise retain the original origin (as Task 1 already decided).
+    - Verification: `bun run check` passed (768 pass, 4 existing skips, 0 fail); `bun run demo:test` passed against the packed archive (52 pass); the render bench passed at 1.81–2.51 µs/node (agent-home 1.64 ms). The unchanged switch timing gate passed at 8.5 ms. Earlier full runs hit the 100 ms runner limit and isolated 17.6/17.8 ms switch spikes; the unchanged final run passed, and no limits were relaxed.
+    - The broader `bun run bench` stopped at standalone validator timing gates. An isolated archive of pre-task commit `0a2144f` also failed those gates (core-queue large/full 1.551/1.536 µs/node against 1.5). No validator hot-path or timing-budget change was made for this task; the task's render bench passed. Whole-plan release verification remains for Task 8.
 
 - [ ] Task 3: Mark irreversible actions and expose confirmation metadata to primitives (LF-08)
   - Acceptance Criteria:

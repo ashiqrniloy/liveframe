@@ -1,4 +1,15 @@
-import { checkValue, type Json, LiveframeFailure, type Manifest, type UiNode, type UiTree } from "@arnilo/liveframe";
+import {
+  checkOffered,
+  compileValidator,
+  type CompiledValidator,
+  type Intent,
+  type IntentOrigin,
+  checkValue,
+  type Json,
+  LiveframeFailure,
+  type Manifest,
+  type UiTree,
+} from "@arnilo/liveframe";
 import { pack, verifyPackage } from "@arnilo/liveframe/pack";
 import { createPreview } from "@arnilo/liveframe/preview";
 import { workerRunner } from "@arnilo/liveframe/preview/worker";
@@ -35,24 +46,6 @@ const error = (message: string, status: number) => Response.json({ error: messag
 const isRecord = (value: unknown): value is Record<string, Json> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-/** Does some node in the tree carry this intent? The tree is the only source of intents the host honours. */
-function offered(node: UiNode, intent: Record<string, Json>): boolean {
-  const matches = Object.values(node.events ?? {}).some((event) => {
-    if (event.type === "setState")
-      return (
-        intent.type === "setState" &&
-        intent.key === event.key &&
-        (!Object.hasOwn(event, "value") || Bun.deepEquals(intent.value, event.value))
-      );
-    if (intent.type !== "action" || intent.name !== event.name) return false;
-    if (!event.bind) return Bun.deepEquals(intent.args, event.args ?? {});
-    return (
-      isRecord(intent.args) && Bun.deepEquals({ ...intent.args, [event.bind]: 0 }, { ...event.args, [event.bind]: 0 })
-    );
-  });
-  return matches || (node.children ?? []).some((child) => offered(child, intent));
-}
-
 export async function startHost({ dataDir = dataDirectory, port = 3300 }: { dataDir?: string; port?: number } = {}) {
   const bundle = await clientBundle;
   const store = fileStore(dataDir);
@@ -64,6 +57,7 @@ export async function startHost({ dataDir = dataDirectory, port = 3300 }: { data
   const draftPackage = drafted.value;
   const actions: ActionRecord[] = [];
   const revisions = new Map<string, number>();
+  const served = new Map<string, { tree: UiTree; manifest: Manifest; state: Json; validator: CompiledValidator }>();
   // Records live in one directory with one writing process, so mutations run one at a time.
   let queue: Promise<unknown> = Promise.resolve();
   const serialized = <T>(work: () => Promise<T>): Promise<T> => {
@@ -90,7 +84,14 @@ export async function startHost({ dataDir = dataDirectory, port = 3300 }: { data
       { ...documents, surfaceId: id, revision, timeoutMs },
     );
     if (!tree.ok) return { ok: false as const, errors: tree.errors };
-    return { ok: true as const, tree: tree.value, manifest: pkg.manifest, state };
+    const current = {
+      tree: tree.value,
+      manifest: pkg.manifest,
+      state,
+      validator: compileValidator({ ...documents, manifest: pkg.manifest }),
+    };
+    served.set(id, current);
+    return { ok: true as const, ...current };
   }
   const snapshot = (id: string, tree: UiTree, manifest: Manifest) => ({
     tree,
@@ -138,6 +139,7 @@ export async function startHost({ dataDir = dataDirectory, port = 3300 }: { data
           const checked = checkValue(pkg.manifest.params, params);
           if (!checked.ok) return Response.json({ errors: checked.errors }, { status: 422 });
           await store.putPlacement(placement.value);
+          served.delete(placement.value.id);
           // A new placement starts from the widget's initial state; an existing one keeps its state.
           if ((await store.getState(placement.value.id, "")) === undefined)
             await store.putState(placement.value.id, "", pkg.manifest.initialState);
@@ -150,11 +152,21 @@ export async function startHost({ dataDir = dataDirectory, port = 3300 }: { data
           const body: unknown = await request.json().catch(() => undefined);
           if (!isRecord(body) || !isRecord(body.intent)) return error("Expected { intent }", 400);
           const intent = body.intent;
-          const current = await surface(id);
-          if (!current.ok) return Response.json({ errors: current.errors }, { status: 404 });
+          const current = served.get(id);
+          if (!current) return error("Load the surface before sending an intent", 404);
           const { manifest, state } = current;
           // Law 4: the host decides. The tree must offer the intent, then the manifest and capabilities must allow it.
-          if (!offered(current.tree.root, intent)) return error("Intent not offered by the surface", 400);
+          const offered = checkOffered(
+            current.tree,
+            body.origin as unknown as IntentOrigin,
+            intent as unknown as Intent,
+            current.validator,
+          );
+          if (!offered.ok)
+            return Response.json(
+              { errors: offered.errors },
+              { status: offered.errors[0]?.kind === "version-conflict" ? 409 : 400 },
+            );
           if (intent.type === "setState") {
             if (typeof intent.key !== "string" || !Object.hasOwn(manifest.state.properties, intent.key))
               return error("Unknown state key", 400);

@@ -1,4 +1,14 @@
-import { checkValue, type Intent, type Json, type Manifest, type UiNode, type UiTree } from "@arnilo/liveframe";
+import {
+  checkOffered,
+  compileValidator,
+  type IntentOrigin,
+  checkValue,
+  type Intent,
+  type Json,
+  type Manifest,
+  type UiNode,
+  type UiTree,
+} from "@arnilo/liveframe";
 import { pack, type WidgetPackage } from "@arnilo/liveframe/pack";
 import { inProcessRunner } from "@arnilo/liveframe/preview";
 import type { WidgetProps } from "@arnilo/liveframe/sdk";
@@ -30,6 +40,7 @@ export interface Snapshot {
 }
 export async function createSession(pkg: WidgetPackage, initial: WidgetProps) {
   const surfaceId = crypto.randomUUID();
+  const validator = compileValidator({ ...packageOptions, manifest: pkg.manifest });
   let inputs = structuredClone(initial);
   const draw = async (next: WidgetProps, revision: number) =>
     value(await runner.render(pkg, next, { ...packageOptions, surfaceId, revision }));
@@ -38,7 +49,7 @@ export async function createSession(pkg: WidgetPackage, initial: WidgetProps) {
   const snapshot = (): Snapshot => ({ tree, manifest: pkg.manifest, actions: structuredClone(actions) });
   return {
     snapshot,
-    async dispatch(revision: number, intent: unknown): Promise<Snapshot> {
+    async dispatch(revision: number, intent: unknown, origin?: IntentOrigin): Promise<Snapshot> {
       // No await before this check; commit only after the new tree validates.
       if (revision !== tree.revision) throw new StaleRevision("Stale surface revision");
       const reject = (): never => {
@@ -49,24 +60,17 @@ export async function createSession(pkg: WidgetPackage, initial: WidgetProps) {
       const allowed = candidate.type === "setState" ? ["type", "key", "value"] : ["type", "name", "args"];
       if (Object.keys(candidate).some((key) => !allowed.includes(key))) return reject();
       const offered = (node: UiNode): boolean =>
-        Object.values(node.events ?? {}).some((event) => {
-          if (event.type === "setState")
-            return (
-              candidate.type === "setState" &&
-              candidate.key === event.key &&
-              (!Object.hasOwn(event, "value") || Bun.deepEquals(candidate.value, event.value))
-            );
-          if (candidate.type !== "action" || candidate.name !== event.name) return false;
-          if (!event.bind) return Bun.deepEquals(candidate, event);
-          const args = candidate.args;
-          return (
-            !!args &&
-            typeof args === "object" &&
-            !Array.isArray(args) &&
-            Bun.deepEquals({ ...args, [event.bind]: undefined }, { ...event.args, [event.bind]: undefined })
-          );
-        }) || (node.children ?? []).some(offered);
-      if (!offered(tree.root)) return reject();
+        Object.keys(node.events ?? {}).some(
+          (event) =>
+            checkOffered(
+              tree,
+              { surfaceId, revision: tree.revision, nodeId: node.id, event },
+              intent as Intent,
+              validator,
+            ).ok,
+        ) || (node.children ?? []).some(offered);
+      if (origin !== undefined ? !checkOffered(tree, origin, intent as Intent, validator).ok : !offered(tree.root))
+        return reject();
       if (candidate.type === "setState") {
         if (typeof candidate.key !== "string" || !Object.hasOwn(pkg.manifest.state.properties, candidate.key))
           return reject();

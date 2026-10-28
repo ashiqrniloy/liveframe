@@ -1,6 +1,6 @@
 import type { Locator, Page } from "playwright";
 import { renderToString } from "react-dom/server";
-import { compileValidator, type UiTree, validateCatalog } from "../../index.ts";
+import { checkOffered, compileValidator, type UiTree, validateCatalog } from "../../index.ts";
 import { createRenderer } from "../../react/index.ts";
 import { type ConformanceCase, ConformanceFailure, check } from "../case.ts";
 import { type LifecycleFixtures, lifecycleCases } from "./overlays.ts";
@@ -92,7 +92,13 @@ export function rendererBrowserSuite(
         try {
           await fixture.act(page);
           await settle(page);
-          const actual = await page.evaluate(() => window.liveframeConformance.intents());
+          const emissions = await page.evaluate(() => window.liveframeConformance.emissions());
+          const actual = emissions.map(({ intent }) => intent);
+          const validator = compileValidator(options);
+          for (const { intent, origin } of emissions) {
+            const offered = checkOffered(fixture.tree, origin, intent, validator);
+            check(offered.ok, rule, "§8", offered.ok ? [] : offered.errors);
+          }
           check(!errors.length && equal(actual, fixture.intents), rule, "§8", [
             ...errors,
             `Expected ${JSON.stringify(fixture.intents)}; received ${JSON.stringify(actual)}`,

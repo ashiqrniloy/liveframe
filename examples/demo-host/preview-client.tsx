@@ -1,4 +1,11 @@
-import { compileValidator, type Intent, type Manifest, type Result, type UiTree } from "@arnilo/liveframe";
+import {
+  compileValidator,
+  type Intent,
+  type IntentOrigin,
+  type Manifest,
+  type Result,
+  type UiTree,
+} from "@arnilo/liveframe";
 import { Preview, type PreviewCell } from "@arnilo/liveframe/preview/react";
 import { createRenderer } from "@arnilo/liveframe/react";
 import { useRef, useState } from "react";
@@ -18,7 +25,7 @@ if (!container) throw new Error("Missing #app");
 const renderer = createRenderer({ catalog, implementations });
 const fallback = <p>Widget unavailable</p>;
 
-async function request(path: string, intent?: Intent) {
+async function request(path: string, intent?: { intent: Intent; origin: IntentOrigin }) {
   const response = await fetch(
     path,
     intent
@@ -37,7 +44,7 @@ function App({ initial }: { initial: Snapshot }) {
   // One request at a time, so a late answer for a scenario the user left cannot overwrite the current one.
   const pending = useRef(Promise.resolve());
   const validator = compileValidator({ catalog, capabilities, manifest: snapshot.manifest });
-  const send = (path: string, intent?: Intent) => {
+  const send = (path: string, intent?: { intent: Intent; origin: IntentOrigin }) => {
     const selected = scenario.current;
     pending.current = pending.current
       .then(async () => {
@@ -68,7 +75,7 @@ function App({ initial }: { initial: Snapshot }) {
           scenario.current = cell.scenario;
           send(`/preview/render?scenario=${encodeURIComponent(cell.scenario)}`);
         }}
-        onIntent={(intent) => send("/preview/intent", intent)}
+        onIntent={(intent, origin) => send("/preview/intent", { intent, origin })}
       />
       <p role="alert">{error}</p>
     </>

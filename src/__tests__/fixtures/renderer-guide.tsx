@@ -1,4 +1,13 @@
-import { type Catalog, compileValidator, defineComponent, type Intent, obj, str, type UiTree } from "@arnilo/liveframe";
+import {
+  type Catalog,
+  compileValidator,
+  defineComponent,
+  type Intent,
+  type IntentOrigin,
+  obj,
+  str,
+  type UiTree,
+} from "@arnilo/liveframe";
 import { createRenderer, implement } from "@arnilo/liveframe/react";
 import vocabulary from "./vocabulary.json" with { type: "json" };
 
@@ -60,7 +69,13 @@ export const tree: UiTree = {
 };
 export const identity = { id: "acme", version: "1.0.0" };
 
-export function GuideSurface({ tree, onIntent }: { tree: unknown; onIntent: (intent: Intent) => void }) {
+export function GuideSurface({
+  tree,
+  onIntent,
+}: {
+  tree: unknown;
+  onIntent: (intent: Intent, origin: IntentOrigin) => void;
+}) {
   return (
     <Surface
       tree={tree}

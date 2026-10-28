@@ -1,4 +1,4 @@
-import { compileValidator, type Intent, validateCapabilities } from "@arnilo/liveframe";
+import { compileValidator, type Intent, type IntentOrigin, validateCapabilities } from "@arnilo/liveframe";
 import { createRenderer } from "@arnilo/liveframe/react";
 import { useMemo } from "react";
 import capabilities from "../../src/__tests__/fixtures/widgets/capabilities.json";
@@ -18,7 +18,7 @@ export function ProofSurface({
   designSystem = "certified",
 }: {
   snapshot: Snapshot;
-  onIntent: (intent: Intent) => void;
+  onIntent: (intent: Intent, origin: IntentOrigin) => void;
   designSystem?: keyof typeof systems;
 }) {
   const validator = useMemo(

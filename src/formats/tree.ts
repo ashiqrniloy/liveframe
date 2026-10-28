@@ -17,6 +17,14 @@ export type Intent =
       readonly bindAll?: true;
     });
 
+/** The accepted surface and exact event that produced an intent. */
+export type IntentOrigin = {
+  readonly surfaceId: string;
+  readonly revision: number;
+  readonly nodeId: string;
+  readonly event: string;
+};
+
 const nodeFields = obj(
   { id: name, kind: token, props: bool() },
   { variant: token, style: bool(), events: bool(), children: bool() },

@@ -1,6 +1,6 @@
 import type { Result } from "../errors.ts";
 import type { WidgetPackage } from "../formats/package.ts";
-import type { Intent, Json, UiTree } from "../formats/tree.ts";
+import type { Intent, IntentOrigin, Json, UiTree } from "../formats/tree.ts";
 import type { pack } from "../pack/pack.ts";
 import type { Runner } from "./runner.ts";
 
@@ -11,7 +11,7 @@ export type PreviewSession = {
   /** Render one scenario, with optional state and context overrides. */
   render(options: { scenario: string; state?: Json; context?: Json }): Promise<Result<UiTree>>;
   /** Apply `setState` or a declared action to the current render. */
-  intent(intent: Intent): Promise<Result<UiTree>>;
+  intent(intent: Intent, origin?: IntentOrigin): Promise<Result<UiTree>>;
   /** Every intent applied since the current package was packed. */
   intents(): readonly Intent[];
   /** Render and check every scenario of the current package. */

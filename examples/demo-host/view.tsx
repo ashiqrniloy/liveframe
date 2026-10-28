@@ -1,4 +1,4 @@
-import { compileValidator, type Intent, type Manifest, type UiTree } from "@arnilo/liveframe";
+import { compileValidator, type Intent, type IntentOrigin, type Manifest, type UiTree } from "@arnilo/liveframe";
 import { createRenderer } from "@arnilo/liveframe/react";
 import { useMemo } from "react";
 import { capabilities, catalog, designSystem, theme } from "./app.ts";
@@ -15,7 +15,7 @@ export function DemoSurface({
 }: {
   tree: UiTree;
   manifest: Manifest;
-  onIntent: (intent: Intent) => void;
+  onIntent: (intent: Intent, origin: IntentOrigin) => void;
 }) {
   const validator = useMemo(() => compileValidator({ catalog, capabilities, manifest }), [manifest]);
   return (

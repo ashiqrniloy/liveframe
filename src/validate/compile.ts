@@ -5,6 +5,7 @@ import { type Manifest, validateManifest } from "../formats/manifest.ts";
 import type { LanguageSchema } from "../schema.ts";
 import { closed, field, reject } from "./checks.ts";
 import { compileIntents } from "./intent.ts";
+import { offeredChecks } from "./offered.ts";
 import { compileSchema, type SchemaCheck, type SchemaSink } from "./schema.ts";
 import { type ChildRules, type CompiledStructure, compileStructure } from "./structure.ts";
 import { compileStyles } from "./style.ts";
@@ -188,6 +189,23 @@ function compile(catalog: Catalog, capabilities: Capabilities, manifest: Manifes
     if (source) dataProperties[key] = source.result;
   }
   const validator: CompiledValidator = { checkNode, validateTree: compileTree(catalog, checkNode, structure) };
+  offeredChecks.set(validator, {
+    intent: intent("none"),
+    events: new Map(
+      catalog.definitions.map((definition) => [
+        definition.kind,
+        new Map(
+          Object.entries(definition.events).map(([name, { carries }]) => [
+            name,
+            {
+              carries,
+              check: typeof carries === "object" ? compileSchema(carries.object) : undefined,
+            },
+          ]),
+        ),
+      ]),
+    ),
+  });
   builds.set(validator, {
     catalogId: catalog.catalogId,
     kinds: facts,

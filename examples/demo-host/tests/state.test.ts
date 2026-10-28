@@ -17,7 +17,12 @@ test("state_survives_restart", async () => {
   expect((await api.place("home", { name: "Ada" })).status).toBe(200);
   const initial = await api.surface("home");
   expect(find(initial.tree.root, "root/heading")?.props).toMatchObject({ text: "Hello, Ada" });
-  const pressed = await api.intent("home", offeredIntent(initial, "root/press", "onPress"));
+  const pressed = await api.intent("home", offeredIntent(initial, "root/press", "onPress"), {
+    surfaceId: initial.tree.surfaceId,
+    revision: initial.tree.revision,
+    nodeId: "root/press",
+    event: "onPress",
+  });
   expect(pressed.status).toBe(200);
   const before = (await pressed.json()) as Awaited<ReturnType<typeof api.surface>>;
   expect(find(before.tree.root, "root/text")?.props).toMatchObject({ text: "Pressed 1 times" });

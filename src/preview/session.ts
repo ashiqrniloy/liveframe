@@ -1,7 +1,9 @@
 import type { LiveframeError, Result } from "../errors.ts";
 import { isRecord } from "../formats/capabilities.ts";
 import type { Scenario, WidgetPackage } from "../formats/package.ts";
-import type { Intent, Json, UiTree } from "../formats/tree.ts";
+import type { Intent, IntentOrigin, Json, UiTree } from "../formats/tree.ts";
+import { compileValidator, type CompiledValidator } from "../validate/compile.ts";
+import { checkOffered } from "../validate/offered.ts";
 import { pack } from "../pack/pack.ts";
 import { checkValue } from "../schema.ts";
 import type { PreviewSession } from "./authoring.ts";
@@ -18,6 +20,7 @@ export function createPreview({
   const surfaceId = `preview-${++nextSession}`;
   let revision = 0;
   let pkg: WidgetPackage | undefined;
+  let validator: CompiledValidator | undefined;
   type Selection = { scenario: Scenario; state: Json; context: Json; result?: Result<UiTree> };
   let current: Selection | undefined;
   let log: readonly Intent[] = [];
@@ -96,6 +99,7 @@ export function createPreview({
       const result = pack(draft, { catalog, capabilities });
       if (result.ok) {
         pkg = result.value;
+        validator = compileValidator({ catalog, capabilities, manifest: pkg.manifest });
         current = undefined;
         log = [];
       }
@@ -116,8 +120,13 @@ export function createPreview({
       current = selection(pkg, found, state, context);
       return run(pkg, current);
     },
-    async intent(intent: Intent): Promise<Result<UiTree>> {
+    async intent(intent: Intent, origin?: IntentOrigin): Promise<Result<UiTree>> {
       if (!pkg || !current?.result) return failure("not-found", "", "No current render");
+      if (origin !== undefined) {
+        if (!current.result.ok || !validator) return failure("not-found", "", "No current valid render");
+        const offered = checkOffered(current.result.value, origin, intent, validator);
+        if (!offered.ok) return offered;
+      }
       if (!isRecord(intent)) return failure("invalid-prop", "", "Expected an intent");
       if (intent.type === "setState") return setState(pkg, intent);
       if (intent.type !== "action") return failure("invalid-prop", "/type", "Unknown intent type");

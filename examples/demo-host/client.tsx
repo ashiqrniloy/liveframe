@@ -1,4 +1,4 @@
-import type { Intent, Manifest, UiTree } from "@arnilo/liveframe";
+import type { Intent, IntentOrigin, Manifest, UiTree } from "@arnilo/liveframe";
 import { createRoot } from "react-dom/client";
 import { DemoSurface } from "./view.tsx";
 
@@ -20,13 +20,13 @@ function draw(snapshot: Snapshot) {
 
 // Intents are requests: the server re-checks each one before it changes state or runs an action.
 let pending = Promise.resolve();
-function onIntent(intent: Intent) {
+function onIntent(intent: Intent, origin: IntentOrigin) {
   pending = pending
     .then(async () => {
       const response = await fetch(`/placements/${placement}/intents`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ intent }),
+        body: JSON.stringify({ intent, origin }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Intent rejected");

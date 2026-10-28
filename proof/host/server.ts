@@ -74,16 +74,23 @@ body { margin: 0; -webkit-font-smoothing: antialiased; }
           const body: unknown = await request.json();
           if (
             !isRecord(body) ||
-            Object.keys(body).some((key) => !["surfaceId", "revision", "intent"].includes(key)) ||
+            Object.keys(body).some((key) => !["surfaceId", "revision", "intent", "origin"].includes(key)) ||
             typeof body.surfaceId !== "string" ||
             !Number.isSafeInteger(body.revision)
           )
             return error("Invalid intent request", 400);
           const session = sessions.get(body.surfaceId);
           if (!session) return error("Unknown surface", 404);
-          return Response.json(await session.dispatch(body.revision as number, body.intent), {
-            headers: { "Cache-Control": "no-store" },
-          });
+          return Response.json(
+            await session.dispatch(
+              body.revision as number,
+              body.intent,
+              body.origin as import("@arnilo/liveframe").IntentOrigin | undefined,
+            ),
+            {
+              headers: { "Cache-Control": "no-store" },
+            },
+          );
         } catch (cause) {
           if (cause instanceof StaleRevision) return error(cause.message, 409);
           if (cause instanceof InvalidIntent || cause instanceof SyntaxError) return error(cause.message, 400);

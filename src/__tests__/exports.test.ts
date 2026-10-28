@@ -226,6 +226,7 @@ test("root_export_surface", () => {
       "checkValue",
       "classifyCatalogChange",
       "compileValidator",
+      "checkOffered",
       "defineComponent",
       "int",
       "isLanguageSchema",

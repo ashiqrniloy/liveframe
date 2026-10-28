@@ -69,10 +69,10 @@ export { filtered, log, pkg, store, tree };
   `Promise<Result<UiTree>>`. State comes from the argument, then the scenario,
   then the manifest's `initialState`. Errors that belong to a node carry its
   `nodeId`.
-- `intent(intent)` takes what a cell emits. A `setState` is checked against the
+- `intent(intent, origin?)` takes what a cell emits. A `setState` is checked against the
   manifest's state schema and re-renders. An action is checked against the
   manifest and the capability's argument schema, then logged; the tree is
-  returned unchanged. An invalid intent changes nothing.
+  returned unchanged. An invalid intent changes nothing. With an origin, the session also checks the current tree with `checkOffered` before changing state or logging an action. Without one, existing schema-only callers keep working.
 - `intents()` returns the log. `check()` renders every scenario from its own
   initial state, without touching the current selection.
 - Before a successful `update`, calls return `not-found`.
@@ -103,7 +103,7 @@ responsive values follow the cell, not the window.
   validator={validator}
   fallback={<p>Widget unavailable</p>}
   onSelect={(cell) => { /* fetch only when cell.scenario changes */ }}
-  onIntent={(intent) => { /* POST it to session.intent() */ }}
+  onIntent={(intent, origin) => { /* POST { intent, origin } to session.intent(intent, origin) */ }}
 />
 ```
 
@@ -113,7 +113,7 @@ Wire the callbacks like this:
   changes reuse the tree; fetch a new result only when `cell.scenario` changes.
 - Hand `<Preview>` a **new result object** for every completed request, and
   discard responses for scenarios the user has already left.
-- `onIntent(intent)` goes to your route for `session.intent()`; put the returned
+- `onIntent(intent, origin)` goes to your route for `session.intent(intent, origin)`; put the returned
   result and `session.intents()` into the props.
 - If a render fails, errors are listed with `nodeId` and `pointer`. An earlier
   good tree for that scenario is drawn dimmed and labelled "last good render",

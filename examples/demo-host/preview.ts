@@ -1,4 +1,4 @@
-import type { Intent } from "@arnilo/liveframe";
+import type { Intent, IntentOrigin } from "@arnilo/liveframe";
 import type { WidgetPackage } from "@arnilo/liveframe/pack";
 import type { PreviewSession } from "@arnilo/liveframe/preview";
 import { sheets } from "./styles.ts";
@@ -33,7 +33,13 @@ export async function previewRoutes({ session, package: pkg }: { session: Previe
     if (origin && origin !== new URL(request.url).origin) return json({ error: "Cross-origin request" }, 403);
     const intent: unknown = await request.json().catch(() => undefined);
     if (typeof intent !== "object" || intent === null) return json({ error: "Expected an intent" }, 400);
-    return json({ result: await session.intent(intent as Intent), intents: session.intents() });
+    return json({
+      result: await session.intent(
+        ("intent" in intent ? intent.intent : intent) as Intent,
+        ("origin" in intent ? intent.origin : undefined) as IntentOrigin | undefined,
+      ),
+      intents: session.intents(),
+    });
   };
   return {
     "/preview": () =>

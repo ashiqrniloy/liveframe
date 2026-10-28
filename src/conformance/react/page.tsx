@@ -7,6 +7,7 @@ import {
   compileValidator,
   type DesignSystem,
   type Intent,
+  type IntentOrigin,
   LiveframeFailure,
   type Result,
   type Theme,
@@ -78,9 +79,9 @@ export function conformancePage(options: PageOptions) {
   let root: Root | undefined;
   let tree: unknown;
   let styles: Styles;
-  let recorded: Intent[] = [];
-  const onIntent = (intent: Intent) => {
-    recorded.push(intent);
+  let recorded: { intent: Intent; origin: IntentOrigin }[] = [];
+  const onIntent = (intent: Intent, origin: IntentOrigin) => {
+    recorded.push({ intent, origin });
   };
   function accept(input: unknown, nextStyles: Styles) {
     // Malformed arrivals go to Surface's validator; non-tree commands never mount.
@@ -144,7 +145,8 @@ export function conformancePage(options: PageOptions) {
       accept(tree, nextStyles);
       draw();
     },
-    intents: () => structuredClone(recorded),
+    intents: () => structuredClone(recorded.map(({ intent }) => intent)),
+    emissions: () => structuredClone(recorded),
     renders() {
       if (renders && !profiled)
         throw new Error("Conformance render counts require a development or profiling React build");

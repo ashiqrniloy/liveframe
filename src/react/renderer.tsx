@@ -2,7 +2,15 @@ import { Component, Fragment, type ReactNode, useLayoutEffect, useMemo, useRef, 
 import { slotClass, styleDeclarations, surfaceAttributes } from "../css/index.ts";
 import { type LiveframeError, LiveframeFailure } from "../errors.ts";
 import { carriesValue } from "../formats/events.ts";
-import { type CompiledValidator, type Intent, type Json, type UiNode, type UiTree, validateCatalog } from "../index.ts";
+import {
+  type CompiledValidator,
+  type Intent,
+  type IntentOrigin,
+  type UiNode,
+  type UiTree,
+  validateCatalog,
+} from "../index.ts";
+import { complete } from "../validate/complete.ts";
 import { compileSchema } from "../validate/schema.ts";
 import { binding, type Implementation, type Item } from "./implement.ts";
 
@@ -19,7 +27,7 @@ type SurfaceProps = {
   readonly validator: CompiledValidator;
   readonly theme: { readonly id: string; readonly version: string };
   readonly designSystem: { readonly id: string; readonly version: string };
-  readonly onIntent: (intent: Intent) => void;
+  readonly onIntent: (intent: Intent, origin: IntentOrigin) => void;
   readonly fallback: ReactNode;
   readonly diagnostics?: readonly LiveframeError[];
 };
@@ -59,34 +67,6 @@ function sameDefinition(left: unknown, right: unknown): boolean {
         sameDefinition((left as Record<string, unknown>)[key], (right as Record<string, unknown>)[key]),
     )
   );
-}
-
-function complete(intent: Intent, value?: Json): Intent {
-  let result = intent;
-  if (result.type === "setState" && !Object.hasOwn(result, "value") && value !== undefined)
-    result = { ...result, value };
-  else if (result.type === "action" && result.bind !== undefined && value !== undefined) {
-    const { bind, ...action } = result;
-    result = { ...action, args: { ...action.args, [bind]: value } };
-  } else if (
-    result.type === "action" &&
-    result.bindAll &&
-    value !== null &&
-    typeof value === "object" &&
-    !Array.isArray(value)
-  ) {
-    const { bindAll, ...action } = result;
-    result = { ...action, args: { ...action.args, ...(value as Readonly<Record<string, Json>>) } };
-  }
-  result = structuredClone(result);
-  function freeze(value: unknown) {
-    if (value !== null && typeof value === "object") {
-      for (const entry of Object.values(value)) freeze(entry);
-      Object.freeze(value);
-    }
-  }
-  freeze(result);
-  return result;
 }
 
 export function createRenderer({
@@ -189,7 +169,9 @@ export function createRenderer({
       };
     }, [requestedScope, portal]);
     const root = useMemo(() => {
-      if (!accepted.tree) return null;
+      const tree = accepted.tree;
+      if (!tree) return null;
+      const { surfaceId, revision } = tree;
       function context(node: UiNode): Item {
         const implementation = registry.get(node.kind);
         if (!implementation) throw new Error(`Missing implementation: ${node.kind}`);
@@ -215,7 +197,15 @@ export function createRenderer({
             const check = eventChecks.get(node.kind)?.get(event);
             if (!(check ? check(value, "", { errors: [], maxErrors: 1 }) : carriesValue(carries, value)))
               throw new Error(`Invalid event value: ${node.kind}.${event}`);
-            onIntent(complete(intent, value));
+            onIntent(
+              complete(intent, value),
+              Object.freeze({
+                surfaceId,
+                revision,
+                nodeId: node.id,
+                event,
+              }),
+            );
           },
           children: items.map((child) => child.render()),
           items,
@@ -238,7 +228,7 @@ export function createRenderer({
         };
         return item;
       }
-      return context(accepted.tree.root).render();
+      return context(tree.root).render();
     }, [accepted.tree, portal, fallback, onIntent, diagnostics]);
     const { class: className, ...scope } = surfaceAttributes({ ...appliedScope, tree: accepted.tree ?? emptyTree });
     return (

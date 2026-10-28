@@ -165,6 +165,9 @@ test("browser_hydrates_posts_intents_logs_actions_and_switches_styles", async ()
     const query = page.getByRole("textbox", { name: "Query" });
     await query.fill("local draft");
     expect(posts).toBe(0);
+    const committed = page.waitForResponse((response) => response.url().endsWith("/intent"));
+    await page.getByRole("heading", { name: "Proof host smoke widget" }).click();
+    expect((await committed).ok()).toBe(true);
     const roundTrip = page.waitForResponse((response) => response.url().endsWith("/intent"));
     await page.getByRole("button", { name: "Select task:1", exact: true }).click();
     expect((await roundTrip).ok()).toBe(true);
@@ -209,6 +212,33 @@ test("set_state_http_round_trip_under_50_ms", async () => {
   const max = Math.max(...samples);
   console.log(`host setState: ${max.toFixed(2)} ms max (${samples.length} local HTTP round trips, 50 rows)`);
   expect(max).toBeLessThan(50);
+});
+
+test("queued_intent_keeps_its_origin_and_is_rejected_after_a_revision_change", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(new URL("/ui/harness", server.url).toString());
+    await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+    await page.getByRole("textbox", { name: "Query" }).fill("local draft");
+    let release = () => {};
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route("**/intent", async (route) => {
+      await pending;
+      await route.continue();
+    });
+    const rejected = page.waitForResponse(
+      (response) => response.url().endsWith("/intent") && response.status() === 409,
+    );
+    await page.getByRole("button", { name: "Select task:1", exact: true }).click();
+    release();
+    expect((await rejected).status()).toBe(409);
+    await page.waitForFunction(() => document.getElementById("status")?.textContent === "Stale surface revision");
+    expect(await page.getByText("Selected: task:1", { exact: true }).count()).toBe(0);
+  } finally {
+    await page.close();
+  }
 });
 
 test("tier_one_stays_local_and_tier_two_preserves_focus_scroll_and_local_state", async () => {

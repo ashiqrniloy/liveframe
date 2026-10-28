@@ -1,4 +1,4 @@
-import type { Intent } from "@arnilo/liveframe";
+import type { Intent, IntentOrigin } from "@arnilo/liveframe";
 import { flushSync } from "react-dom";
 import { hydrateRoot } from "react-dom/client";
 import type { Snapshot } from "./pages.ts";
@@ -13,14 +13,14 @@ let designSystem = container.dataset.designSystem as "certified" | "rack";
 const draw = () => <ProofSurface snapshot={snapshot} onIntent={onIntent} designSystem={designSystem} />;
 const status = document.getElementById("status");
 const log = document.getElementById("actions");
-const onIntent = (intent: Intent) => {
+const onIntent = (intent: Intent, origin: IntentOrigin) => {
   // Inputs can commit and submit together; serialize requests against the latest revision.
   pending = pending
     .then(async () => {
       const response = await fetch("/intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ surfaceId: snapshot.tree.surfaceId, revision: snapshot.tree.revision, intent }),
+        body: JSON.stringify({ surfaceId: snapshot.tree.surfaceId, revision: origin.revision, intent, origin }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Intent rejected");

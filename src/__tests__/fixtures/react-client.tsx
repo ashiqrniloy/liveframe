@@ -72,7 +72,11 @@ const { Surface } = renderer((kind, props) => {
   if (kind === "button") button = props;
 });
 let intents: Intent[] = [];
-let onIntent = intents.push.bind(intents);
+const origins: import("../../index.ts").IntentOrigin[] = [];
+let onIntent = (intent: Intent, origin: import("../../index.ts").IntentOrigin) => {
+  intents.push(intent);
+  origins.push(origin);
+};
 const container = document.getElementById("app");
 if (!container) throw new Error("Missing app");
 const mode = new URL(location.href).searchParams.get("ssr");
@@ -124,6 +128,7 @@ declare global {
       checks(): number;
       hydration(): { errors: string[]; firstPortals: Record<string, boolean>; retained: boolean };
       intents(): readonly Intent[];
+      origins(): readonly import("../../index.ts").IntentOrigin[];
       emit(): void;
       replaceIntentHandler(): void;
       tree(revision?: number, surfaceId?: string): UiTree;
@@ -168,10 +173,14 @@ window.surfaceTest = {
     retained: serverNodes.every((node) => container.contains(node)),
   }),
   intents: () => intents,
+  origins: () => origins,
   emit: () => button?.emit("onPress"),
   replaceIntentHandler() {
     intents = [];
-    onIntent = intents.push.bind(intents);
+    onIntent = (intent, origin) => {
+      intents.push(intent);
+      origins.push(origin);
+    };
     draw();
   },
   tree,

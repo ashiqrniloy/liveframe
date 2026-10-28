@@ -21,7 +21,16 @@ capabilities and manifest, and receive `tree` from your backend. The literal tre
 here shows the wire format without running a widget in the browser.
 
 ```tsx
-import { type Catalog, compileValidator, defineComponent, type Intent, obj, str, type UiTree } from "@arnilo/liveframe";
+import {
+  type Catalog,
+  compileValidator,
+  defineComponent,
+  type Intent,
+  type IntentOrigin,
+  obj,
+  str,
+  type UiTree,
+} from "@arnilo/liveframe";
 import { createRenderer, implement } from "@arnilo/liveframe/react";
 import vocabulary from "./vocabulary.json" with { type: "json" };
 
@@ -83,7 +92,13 @@ export const tree: UiTree = {
 };
 export const identity = { id: "acme", version: "1.0.0" };
 
-export function GuideSurface({ tree, onIntent }: { tree: unknown; onIntent: (intent: Intent) => void }) {
+export function GuideSurface({
+  tree,
+  onIntent,
+}: {
+  tree: unknown;
+  onIntent: (intent: Intent, origin: IntentOrigin) => void;
+}) {
   return (
     <Surface
       tree={tree}
@@ -219,7 +234,10 @@ schema compiled once per definition event in the renderer factory. `implement()`
 infers the payload type from that schema. Keep drafts local and collect all current
 field values on submit; no earlier `setState` is needed.
 
-`onIntent` receives a fresh, frozen, complete intent:
+`onIntent(intent, origin)` receives a fresh, frozen, complete intent and a frozen
+`{ surfaceId, revision, nodeId, event }` from the accepted tree. This also identifies
+the child for collection `items[i].emit` and events inside portals. Existing
+one-argument callbacks keep working:
 
 - `{ type: "setState", key: "reason" }` emitted with `"Ready"` becomes
   `{ type: "setState", key: "reason", value: "Ready" }`. An explicit value is preserved.
@@ -233,11 +251,36 @@ field values on submit; no earlier `setState` is needed.
   Object `setState` replaces the whole key. Delivered objects are copied before
   freezing, so the primitive's local payload remains editable.
 
+Send both values in your transport:
+
+```tsx
+onIntent={(intent, origin) => sendIntent({ intent, origin })}
+```
+
+At the backend, use the current served tree and its compiled validator:
+
+```ts
+import { checkOffered } from "@arnilo/liveframe";
+
+const offered = checkOffered(servedTree, request.origin, request.intent, validator);
+if (!offered.ok) return reject(offered.errors);
+// Now authorize the operation for the authenticated user before dispatch.
+```
+
+The helper rejects stale surfaces/revisions, unknown nodes/events, changed literals,
+unexpected filled keys and schema-invalid values with typed errors and pointers.
+It validates and indexes the tree on first use and caches by tree/validator; treat
+served trees as immutable and replace objects when changing them. The validator
+supplies the catalog, manifest and capability schemas that JSON trees do not carry.
+
 Your transport should associate the intent with the authenticated placement,
 surface and accepted revision. **The host re-checks every intent on dispatch**:
 reject stale revisions and intents not offered by the current tree; check the
 manifest's state keys and action allowlist, the filled value/argument schemas,
-and the user's authorization. Browser checks grant no authority.
+and the user's authorization. Browser checks grant no authority. Keep the origin captured at emit time when
+queueing transport requests; never rewrite its revision to the latest one. Two
+emits from one revision can race: after a state update the second is stale and
+must be retried by a fresh interaction with the new tree.
 
 For `setState`, the host updates placement state, re-runs the widget on the backend,
 and returns a validated tree with a newer revision. Pass that new object to

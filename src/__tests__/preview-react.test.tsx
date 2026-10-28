@@ -87,6 +87,12 @@ test("selected_cell_round_trips_through_the_url_and_intents_reach_host", async (
     expect(new URL(page.url()).hash).toBe("#anchor");
     await page.getByRole("button", { name: "Counter 0" }).first().click();
     expect(await page.locator('[aria-label="Intent log"]').textContent()).toContain("committed");
+    expect(JSON.parse((await page.locator("output").getAttribute("data-origin")) ?? "null")).toEqual({
+      surfaceId: "test",
+      revision: 1,
+      nodeId: "root/second",
+      event: "onPress",
+    });
     await page.locator('select[aria-label="Scenario"]').selectOption("ready");
     await page.waitForSelector("[data-lf-ready]");
     expect(new URL(page.url()).searchParams.get("scenario")).toBe("ready");

@@ -35,7 +35,7 @@ the widget and its state are still there. Records live in `.data/` through `file
 | `POST /widgets` | `pack()`, `verifyPackage()`, then `putPackage()`. A second hash under an installed `(id, version)` is `409`. |
 | `PUT /placements/:id` | Checks the widget is installed and the params fit its manifest, then stores the placement and its initial state. |
 | `GET /surfaces/:id` | `loadPlacement()`, then renders with `workerRunner()` and returns the tree and manifest. |
-| `POST /placements/:id/intents` | Re-renders the current tree and honours an intent only if some node offers it. `setState` must fit the manifest's state schema. `action` must be declared by the manifest, allowed by `capabilities.json` and have valid arguments. Then it dispatches in-process and logs it. |
+| `POST /placements/:id/intents` | Accepts `{ intent, origin }` and checks the last served tree with `checkOffered(tree, origin, intent, validator)`. Stale origins return 409; wrong nodes/events and forged intents are rejected. `setState` must fit the manifest's state schema. `action` must be declared by the manifest, allowed by `capabilities.json` and have valid arguments. Then it dispatches in-process and logs it. |
 
 The page (`client.tsx`) draws the tree with `<Surface>`, which validates every arrival, and sends the
 user's intents back. It never runs widget code, and the server never trusts a revision or a tree from

@@ -100,7 +100,10 @@ backend host module into the client entry. Only trees cross into the page.
 
 `conformancePage` installs the projected sheets and exposes
 `window.liveframeConformance`: `mount(tree, styles)`,
-`hydrate(markup, tree, styles)`, `switch(styles)`, `intents()` and `renders()`.
+`hydrate(markup, tree, styles)`, `switch(styles)`, `intents()`, `emissions()` and `renders()`.
+`emissions()` records `{ intent, origin }` together; `intents()` preserves the intent-only view.
+The browser interaction cases check each recorded origin and completed intent with
+`checkOffered(tree, origin, intent, validator)`.
 `styles` has `{ theme: { id, version }, designSystem: { id, version } }`, naming
 installed documents. Normally the browser suite drives these methods. Fixture
 callbacks can mount a higher-revision tree to model a host response; they must

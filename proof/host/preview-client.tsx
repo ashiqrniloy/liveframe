@@ -1,6 +1,7 @@
 import {
   compileValidator,
   type Intent,
+  type IntentOrigin,
   type Manifest,
   type Result,
   type UiTree,
@@ -39,7 +40,7 @@ let pending = Promise.resolve();
 function App() {
   const [snapshot, setSnapshot] = useState(initial);
   const [error, setError] = useState("");
-  const request = (path: string, body?: Intent) => {
+  const request = (path: string, body?: { intent: Intent; origin: IntentOrigin }) => {
     const selected = scenario;
     const current = ++generation;
     pending = pending
@@ -76,7 +77,7 @@ function App() {
           scenario = cell.scenario;
           request(`render?scenario=${encodeURIComponent(scenario)}`);
         }}
-        onIntent={(intent) => request("intent", intent)}
+        onIntent={(intent, origin) => request("intent", { intent, origin })}
       />
       <p role="alert">{error}</p>
     </>

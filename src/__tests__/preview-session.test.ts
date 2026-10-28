@@ -61,6 +61,62 @@ const draft = {
   ],
 };
 
+test("session_rejects_unoffered_and_stale_intents_without_mutation", async () => {
+  const session = createPreview({ ...packageOptions, runner: inProcessRunner() });
+  value(session.update(draft));
+  const tree = value(await session.render({ scenario: "first" }));
+  const find = (node: UiTree["root"]): UiTree["root"] | undefined =>
+    Object.values(node.events ?? {}).some((intent) => intent.type === "setState" && intent.key === "query")
+      ? node
+      : node.children?.map(find).find(Boolean);
+  const node = find(tree.root);
+  if (!node) throw new Error("Missing query event");
+  const event = Object.entries(node.events ?? {}).find(
+    ([, intent]) => intent.type === "setState" && intent.key === "query",
+  )?.[0];
+  if (!event) throw new Error("Missing query event name");
+  const origin = { surfaceId: tree.surfaceId, revision: tree.revision, nodeId: node.id, event };
+  rejects(await session.intent({ type: "setState", key: "selected", value: "forged" }, origin), "invalid-prop", "/key");
+  rejects(
+    await session.intent({ type: "setState", key: "query", value: "valid" }, { ...origin, event: "missing" }),
+    "undeclared-event",
+    "/origin/event",
+  );
+  expect(session.intents()).toEqual([]);
+  const next = value(await session.intent({ type: "setState", key: "query", value: "valid" }, origin));
+  expect(next.revision).toBe(tree.revision + 1);
+  rejects(
+    await session.intent({ type: "setState", key: "query", value: "stale" }, origin),
+    "version-conflict",
+    "/origin/revision",
+  );
+});
+
+test("session_rejects_unoffered_action_without_logging_it", async () => {
+  const session = createPreview({ ...packageOptions, runner: inProcessRunner() });
+  value(
+    session.update({
+      ...draft,
+      entry: "entry.ts",
+      files: {
+        "entry.ts":
+          'import { primitive } from "@arnilo/liveframe/sdk"; import { jsx } from "@arnilo/liveframe/sdk/jsx-runtime"; const Button = primitive("button"); export default () => jsx(Button, {label: "Claim", onPress: {type: "action", name: "tasks.claim", args: {id: "offered"}}});',
+      },
+    }),
+  );
+  const tree = value(await session.render({ scenario: "first" }));
+  const origin = { surfaceId: tree.surfaceId, revision: tree.revision, nodeId: "root", event: "onPress" };
+  rejects(
+    await session.intent({ type: "action", name: "tasks.claim", args: { id: "forged" } }, origin),
+    "invalid-prop",
+    "/args/id",
+  );
+  expect(session.intents()).toEqual([]);
+  const intent: Intent = { type: "action", name: "tasks.claim", args: { id: "offered" } };
+  expect(value(await session.intent(intent, origin))).toBe(tree);
+  expect(session.intents()).toEqual([intent]);
+});
+
 test("preview_rechecks_bind_all_args", async () => {
   const session = createPreview({
     catalog: form.catalog,

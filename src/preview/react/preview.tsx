@@ -1,5 +1,5 @@
 import { type ComponentProps, type ReactNode, useLayoutEffect, useRef, useState } from "react";
-import type { Intent, Result, UiTree } from "../../index.ts";
+import type { Intent, IntentOrigin, Result, UiTree } from "../../index.ts";
 import type { createRenderer } from "../../react/index.ts";
 
 type Identity = { readonly id: string; readonly version: string };
@@ -20,7 +20,7 @@ export type PreviewProps = {
   readonly validator: ComponentProps<ReturnType<typeof createRenderer>["Surface"]>["validator"];
   readonly fallback: ReactNode;
   readonly onSelect: (cell: PreviewCell) => void;
-  readonly onIntent: (intent: Intent) => void;
+  readonly onIntent: (intent: Intent, origin: IntentOrigin) => void;
 };
 const identity = ({ id, version }: Identity) => `${id}@${version}`;
 const noErrors = [] as const;

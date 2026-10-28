@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { renderToString } from "react-dom/server";
-import type { Intent, UiNode } from "../index.ts";
+import { checkOffered, type IntentOrigin, type Intent, type UiNode } from "../index.ts";
 import type { ImplementationProps } from "../react/index.ts";
 import { createRenderer, implement } from "../react/index.ts";
 import * as numeric from "./fixtures/numeric-events.ts";
@@ -64,13 +64,25 @@ test("numeric_set_state_takes_the_event_value", () => {
 function mount(node: UiNode) {
   const contexts = new Map<string, ImplementationProps>();
   const intents: Intent[] = [];
+  const origins: IntentOrigin[] = [];
   const { Surface } = renderer((kind, props) => contexts.set(kind, props));
   const input = withRoot(node);
   expect(surfaceProps.validator.validateTree(input).ok).toBe(true);
-  renderToString(<Surface {...surfaceProps} tree={input} onIntent={(intent) => intents.push(intent)} />);
+  renderToString(
+    <Surface
+      {...surfaceProps}
+      tree={input}
+      onIntent={(intent, origin) => {
+        intents.push(intent);
+        origins.push(origin);
+        if (!(intent.type === "action" && intent.args.reason === ""))
+          expect(checkOffered(input, origin, intent, surfaceProps.validator).ok).toBe(true);
+      }}
+    />,
+  );
   const context = contexts.get(node.kind);
   if (!context) throw new Error("Missing node context");
-  return { context, intents };
+  return { context, intents, origins, input };
 }
 
 function field(intent: Intent): UiNode {
@@ -182,4 +194,32 @@ test("host_must_recheck_filled_arguments", () => {
   context.emit("onCommit", "");
   expect(intents).toEqual([{ type: "action", name: "tasks.escalate", args: { id: "t-1", reason: "" } }]);
   expect(surfaceProps.validator.validateTree(withRoot(field(intents[0] as Intent))).ok).toBe(false);
+});
+
+test("origin_for_nested_and_collection_nodes", () => {
+  const { context, origins, input, intents } = mount({
+    id: "root",
+    kind: "stack",
+    props: {},
+    children: [
+      {
+        id: "root/menu",
+        kind: "menu",
+        props: { label: "Menu" },
+        children: [
+          {
+            id: "root/menu/item",
+            kind: "menuItem",
+            props: { label: "Claim" },
+            events: { onPress: { type: "action", name: "tasks.claim", args: { id: "t1" } } },
+          },
+        ],
+      },
+    ],
+  });
+  context.items[0]?.items[0]?.emit("onPress");
+  expect(origins).toEqual([
+    { surfaceId: input.surfaceId, revision: input.revision, nodeId: "root/menu/item", event: "onPress" },
+  ]);
+  expect(intents).toHaveLength(1);
 });

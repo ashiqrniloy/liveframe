@@ -30,10 +30,25 @@ test("intents_are_rechecked_before_dispatch", async () => {
     { type: "setState", key: "admin", value: true },
     { type: "other" },
   ];
-  for (const intent of refused) expect((await api.intent("home", intent)).status).toBe(400);
+  for (const intent of refused)
+    expect(
+      (
+        await api.intent("home", intent, {
+          surfaceId: snapshot.tree.surfaceId,
+          revision: snapshot.tree.revision,
+          nodeId: "root/press",
+          event: "onPress",
+        })
+      ).status,
+    ).toBe(400);
   expect(host.actions).toEqual([]);
 
-  const allowed = await api.intent("home", offeredIntent(snapshot, "root/notify", "onPress"));
+  const allowed = await api.intent("home", offeredIntent(snapshot, "root/notify", "onPress"), {
+    surfaceId: snapshot.tree.surfaceId,
+    revision: snapshot.tree.revision,
+    nodeId: "root/notify",
+    event: "onPress",
+  });
   expect(allowed.status).toBe(200);
   expect(host.actions).toEqual([{ placement: "home", name: "demo.notify", args: { message: "Hello from Ada" } }]);
   const body = (await allowed.json()) as Awaited<ReturnType<typeof api.surface>>;
@@ -48,4 +63,19 @@ test("no_draft_code_reaches_the_page", async () => {
   expect(bundle).not.toContain("Hello from");
   expect(JSON.stringify(snapshot)).not.toMatch(/export default|jsxDEV|=>/);
   expect(find(snapshot.tree.root, "root/heading")).toBeDefined();
+});
+
+test("stale_and_wrong_node_origins_are_rejected", async () => {
+  const snapshot = await api.surface("home");
+  const intent = offeredIntent(snapshot, "root/notify", "onPress");
+  const origin = {
+    surfaceId: snapshot.tree.surfaceId,
+    revision: snapshot.tree.revision,
+    nodeId: "root/notify",
+    event: "onPress",
+  };
+  const before = host.actions.length;
+  expect((await api.intent("home", intent, { ...origin, revision: origin.revision - 1 })).status).toBe(409);
+  expect((await api.intent("home", intent, { ...origin, nodeId: "root/press" })).status).toBe(400);
+  expect(host.actions).toHaveLength(before);
 });

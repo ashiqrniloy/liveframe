@@ -527,3 +527,37 @@ test("status_region_survives_text_change", async () => {
     await page.close();
   }
 });
+
+test("origin_for_portal_nodes_uses_the_accepted_revision", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    await page.evaluate(() => {
+      const tree = window.surfaceTest.tree(7);
+      window.surfaceTest.update({
+        ...tree,
+        root: {
+          id: "root",
+          kind: "dialog",
+          props: { label: "Overlay", open: true },
+          children: [
+            {
+              id: "root/press",
+              kind: "button",
+              props: { label: "Portal action" },
+              events: { onPress: { type: "setState", key: "reason", value: "fixed" } },
+            },
+          ],
+        },
+      });
+      window.surfaceTest.update(window.surfaceTest.tree(3));
+    });
+    await page.locator("[data-lf-portal]").getByRole("button", { name: "Portal action" }).click();
+    expect(await page.evaluate(() => window.surfaceTest.origins())).toEqual([
+      { surfaceId: "test", revision: 7, nodeId: "root/press", event: "onPress" },
+    ]);
+  } finally {
+    await page.close();
+  }
+});
