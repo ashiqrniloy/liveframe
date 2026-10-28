@@ -384,7 +384,70 @@ This plan implements spec §6.1 (theme), §6.2 (recipes), §6.4 (projection, for
     - PARITY.md, GAPS.md, REPORT.md and the backlog now mark G30, G31 and G2 resolved. `position: relative` and `basis` stay open in the backlog entry.
     - The first full `bun run check` failed at typecheck on the new styles test (role types), fixed. Browser tests failed earlier only while an unrelated Rust build held the machine at load 40+, which made renders exceed 100 ms; they pass at load ~5. Final `bun run check`: **756 pass, 4 existing reference-dependent skips, 0 fail**, 760 tests across 97 files. Warm two-surface switch samples peak at 9.8 ms. `git diff --check` is clean.
 
-- [ ] Task 7: Analyze architectural impact and dispose of every finding
+- [x] Task 7: Let the colour-authority check accept the alpha modifier (impact finding F1)
+  - Acceptance Criteria:
+    - Functional:
+      - `colour_authority_holds` accepts a `{ role, alpha }` colour on `color` and every `*-color` property (`color-mix(in oklab, var(--lf-c-…) N%, transparent)`), alone or under the `backgroundOpacity` mix, and still rejects any literal inside it.
+      - One design system carries every new value form, and the check runs over its projection: alpha on background, text, border and the native parts, `none` on outline and track, and `backgroundOpacity` together with an alpha background.
+      - Negative cases fail: a literal colour, or a literal in the mix's second position, inside the alpha form.
+    - Performance: n/a — test only.
+    - Code Quality: the existing check is widened by one alternative; no second checker.
+    - Security: law 3 — the check is the guard that proves hue authority stays in the theme for the new forms.
+  - Approach:
+    - Skills to Use:
+      - `liveframe-execution`; `surgical-patch`.
+    - Library Documentation to Check Before Implementation:
+      - none.
+    - Documentation Reviewed:
+      - `src/__tests__/css-theme.test.ts` `colour_authority_holds`; Task 3 and Task 5 notes; `plans/evidence/016-impact-analysis.md` F1.
+    - Options Considered:
+      - Exempt `color-mix` from the check — rejected: that removes the guard for the form most likely to carry a literal.
+    - Chosen Approach:
+      - Widen the single-colour alternative and add a probe system.
+    - API Notes and Examples:
+      ```ts
+      const role = String.raw`(?:var\(--lf-c-[\w-]+\)|color-mix\(in oklab, var\(--lf-c-[\w-]+\) [\d.]+%, transparent\))`;
+      ```
+    - Files to Create/Edit:
+      - `src/__tests__/css-theme.test.ts`
+  - Test Cases to Write:
+    - `colour_authority_holds` extended (the existing name): written first, it failed on the alpha form; it fails again if the widening is removed or if a literal is accepted inside the mix.
+  - Notes (executed 2026-10-28):
+    - The owner approved executing F1 as a task above the impact analysis. Before the change, `colour_authority_holds` with the probe system failed at `css-theme.test.ts:227` (the check rejected `border-color:color-mix(in oklab, …)`); after widening it passes with three added negative cases. The probe is Rack with one of every value form on its `scroll.default.viewport.rest` recipe, and the test asserts the projection contains each form so the check cannot pass vacuously.
+    - No library code changed. `bun run typecheck` and Biome pass; the full gate result is in Task 9's measurements.
+
+- [x] Task 8: Require a fixture for a state that differs only in its placeholder (impact finding F6)
+  - Acceptance Criteria:
+    - Functional:
+      - `every_styled_state_is_reachable` requires a state fixture for a (kind, variant, state) whose recipe differs from rest only by `placeholderColor`.
+      - A state that repeats the rest placeholder, or sets none, still needs no fixture; the existing rest-equivalent and projected-defaults cases are unchanged.
+    - Performance: n/a — test-time conformance only.
+    - Code Quality: `recordState` reuses `placeholderDeclarations`, the same function the projection uses to decide whether a state emits a placeholder rule, so the two cannot drift.
+    - Security: n/a — a coverage check; law 3 is untouched.
+  - Approach:
+    - Skills to Use:
+      - `surgical-patch`.
+    - Library Documentation to Check Before Implementation:
+      - none.
+    - Documentation Reviewed:
+      - `src/conformance/react/states.ts` (`recordState`); `src/css/design-system.ts` (`placeholderRules`); `src/__tests__/conformance-states.test.ts`.
+    - Options Considered:
+      - Adding the placeholder to `recipeDeclarations` — rejected: it is a pseudo-element rule, and the main rule must not change.
+    - Chosen Approach:
+      - Compare placeholder declarations beside the main-rule comparison.
+    - API Notes and Examples:
+      ```ts
+      placeholder !== "" && placeholder !== placeholderDeclarations(rest)
+      ```
+    - Files to Create/Edit:
+      - `src/conformance/react/states.ts`; `src/__tests__/conformance-states.test.ts`
+  - Test Cases to Write:
+    - `placeholder_only_state_requires_a_fixture`: a `textField.default.input.focus` recipe that sets only `placeholderColor` must be listed as a missing fixture; fails without the new comparison.
+  - Notes (executed 2026-10-28):
+    - The owner chose to execute F6 (reviewing the conformance area found that `recordState` compared only main-rule declarations, and `recipeDeclarations` emits nothing for `placeholderColor`). The new test failed first (the placeholder-only state needed no fixture), then passed with the change; the three existing state-coverage tests pass. Typecheck passes; `bun run lint` and `bun run format:check` report no errors. Direct Biome on `states.ts` reports an import-order diagnostic that is also present on the unmodified file, so it is not from this change.
+    - The proof's Rack systems set no state-specific placeholder, so no existing fixture requirement changed. The final gate is in Task 9's measurements.
+
+- [x] Task 9: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional:
       - `plans/evidence/016-impact-analysis.md` records all 12 areas, with particular care on area 5 (Styling) and area 3 (law 3).
@@ -409,15 +472,30 @@ This plan implements spec §6.1 (theme), §6.2 (recipes), §6.4 (projection, for
       - `plans/evidence/016-impact-analysis.md` (new); `plans/backlog.md`; this plan.
   - Test Cases to Write:
     - None.
+  - Notes (executed 2026-10-28):
+    - [`plans/evidence/016-impact-analysis.md`](evidence/016-impact-analysis.md) records all 12 areas and six findings. The owner's dispositions: F1 (the colour-authority check could not accept the alpha form on `*-color` properties) executed as Task 7; F6 (a placeholder-only state needed no conformance fixture) executed as Task 8; F2 (plan 017 Task 5's host attribute would not restore alpha modifiers) and F3 (plan 019 Task 6 lacked the WebKit proof of `scrollbar-color`, `::placeholder` and the oklab mix) executed as amendments to those plans' text; F4 (the demo host still uses the retired zero-alpha and `*.alpha-*` roles) and F5 (recipe colour types not exported) added to `plans/backlog.md`.
+    - Colour authority re-run over every new value form: a Rack design system with alpha on background, text, border, shadow and the three native parts, `none` on outline and track, a named opacity and `backgroundOpacity` projected 393 colour-bearing declarations outside the forced block with no literal and no system colour, and `scrollbar-color:auto` inside it. The checked-in `colour_authority_holds` now runs over that system (Task 7).
+    - Verification: the first `bun run check` and `bun run bench` ran while a virtual machine on the host held load at 7.7–9.5 and each failed one timing gate (warm agent-home switch 20.20 ms against 16.67; `core-queue.large` 1.557 µs/node against 1.5). With the load gone, `bun run check` (756 pass, 0 fail), two `bun run bench` runs, `bun run release:gate` (8 steps) and `bun run demo:test` (51 pass) passed unchanged. The final `bun run check`, after Task 8, passed: 757 pass, 4 existing reference-dependent skips, 0 fail, 761 tests. Both timing misses are recorded in the existing P1 backlog entry; no threshold was changed.
+    - Numbers: Certified 8.8–8.9 ms/sheet, 146,938 bytes; Rack 12.3–12.4 ms/sheet, 155,922 bytes; declarations 0.397–0.430 µs/node; warm switches 6.5–10.6 ms. `bun proof/scripts/parity.ts` was last run in Task 6, the final task to change library or proof output, and is not repeated for a test-only and a conformance-check change. Native Windows/assistive-technology auditing was not run (G29, plan 020).
+    - Not staged by this task: `plans/README.md`, `roadmap.md` and plans 017–020 carried owner changes uncommitted before this task, and the 017 and 019 amendments sit inside the untracked plan files.
 
 ## Verification (whole plan)
-- `bun run check`
-- `bun run bench`
-- `bun proof/scripts/parity.ts` (both systems; record the output in the task notes)
-- `bun run release:gate`
+- `bun run check`: passed (757 pass, 0 fail).
+- `bun run bench`: passed twice at load 2.5–2.9; failed once under load 7.7 (see Task 9 notes).
+- `bun proof/scripts/parity.ts` (both systems; record the output in the task notes): run in Task 6, recorded there.
+- `bun run release:gate`: passed.
 
 ## Compromises Made
-- To be filled after tasks are completed and tests pass.
+- Reduced-transparency recovery of alpha modifiers exists only inside `@media (prefers-reduced-transparency:reduce)`. A host-set override waits for plan 017 Task 5, which now requires it.
+- The scrollbar pair is rest-only and Safari before 26.2 and WebKitGTK before 2.52.3 keep native scrollbars (no `::-webkit-scrollbar-*` fallback), by the Task 1 decision. Thumb hover and press stay with the OS.
+- The `scroll.scrollbar` slot remains in the proof catalog but is unrendered, because removing it would change the 616-recipe catalog (Task 5).
+- The placeholder and scrollbar computed-style proof exists only in Chromium. Plan 019 Task 6 carries the WebKit and Firefox proof.
+- Native Windows/assistive-technology behaviour (G29) is not audited; plan 020 owns it.
+- The contrast check uses deterministic sRGB clipping and does not reproduce a browser's gamut mapping. The Task 1 decision accepts this.
 
 ## Further Actions
-- To be filled after task completion with improvements, rationale, and priority.
+- Plan 017 Task 5: restore alpha modifiers and native-part colours under `data-lf-transparency="reduced"` (F2). Priority: with the plan, before the 0.2.0 release.
+- Plan 019 Task 6: prove `scrollbar-color`, `::placeholder` and the oklab mix in WebKit and Firefox (F3). Priority: with the plan.
+- Backlog P3: move the demo host onto `none` and `{ role, alpha }` and declare its contrast pairs (F4).
+- Backlog P4: decide whether to export `ColourValue`, `ShadowLayer` and the `none` constant (F5).
+- Backlog P1 (existing): the validator and render timing investigation gains the numbers from this plan.

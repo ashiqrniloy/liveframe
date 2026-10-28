@@ -1,0 +1,42 @@
+$ bun --conditions liveframe:source bench/validator.bench.ts && bun --conditions liveframe:source bench/render.bench.ts && bun --conditions liveframe:source bench/css.bench.ts
+Bun 1.4.4; linux 7.3.0-4-cachyos; AMD Ryzen 9 PRO 7940HS w/ Radeon 780M Graphics; 16 logical CPUs
+Load average (1/5/15 min): 2.95, 5.17, 5.92; 200 warm-ups, 1,000 runs per implementation
+Generic baseline: checkValue on props only (includes its schema validation); compile/load excluded.
+agent-home: 679 nodes; compiled 0.8746 ms, 1.288 µs/node; generic 0.8911 ms, 1.312 µs/node; 1.02×
+  Equal-work props check: compiled 0.0392 ms; 22.71× over checkValue
+core-queue.small: 5 nodes; compiled 0.0057 ms, 1.147 µs/node; generic 0.0082 ms, 1.639 µs/node; 1.43×
+  Equal-work props check: compiled 0.0006 ms; 13.14× over checkValue
+core-queue.medium: 414 nodes; compiled 0.5070 ms, 1.225 µs/node; generic 0.5443 ms, 1.315 µs/node; 1.07×
+  Equal-work props check: compiled 0.0227 ms; 24.00× over checkValue
+core-queue.large: 446 nodes; compiled 0.6005 ms, 1.346 µs/node; generic 0.5739 ms, 1.287 µs/node; 0.96×
+  Equal-work props check: compiled 0.0251 ms; 22.83× over checkValue
+core-queue.full: 473 nodes; compiled 0.6561 ms, 1.387 µs/node; generic 0.6237 ms, 1.319 µs/node; 0.95×
+  Equal-work props check: compiled 0.0269 ms; 23.18× over checkValue
+git-status: 145 nodes; compiled 0.1310 ms, 0.904 µs/node; generic 0.1595 ms, 1.100 µs/node; 1.22×
+  Equal-work props check: compiled 0.0079 ms; 20.30× over checkValue
+rack-module: 236 nodes; compiled 0.2095 ms, 0.888 µs/node; generic 0.2391 ms, 1.013 µs/node; 1.14×
+  Equal-work props check: compiled 0.0131 ms; 18.24× over checkValue
+synthetic-queue: 353 nodes; compiled 0.4122 ms, 1.168 µs/node; generic 0.4813 ms, 1.364 µs/node; 1.17×
+  Equal-work props check: compiled 0.0211 ms; 22.84× over checkValue
+Load average at end: 2.73, 5.05, 5.87
+mixed-feed: 500 elements; compiled 0.0381 ms, 0.076 µs/element
+Bun 1.4.4; linux 7.3.0-4-cachyos; AMD Ryzen 9 PRO 7940HS w/ Radeon 780M Graphics; 16 logical CPUs
+Load average (1/5/15 min): 2.73, 5.05, 5.87; 200 warm-ups, then the median of 5 batches of at least 50 ms
+Compile/load and first data resolution excluded; selection/state changes included.
+Split: standalone validateTree on emitted trees; render minus validation estimates other work, not an in-render profile.
+Budgets: total ≤ 3 µs/node; reserved validation ≤ 1.5 / other ≤ 1.5 µs/node; agent-home/core-queue medium…full ≤ 2 ms.
+agent-home: 679.00 mean nodes; render 1.2725 ms, 1.874 µs/node; validation 0.9650 ms, 1.421 µs/node (75.8%); other estimate 0.453 µs/node
+core-queue.small: 5.00 mean nodes; render 0.0109 ms, 2.179 µs/node; validation 0.0056 ms, 1.112 µs/node (51.0%); other estimate 1.067 µs/node
+core-queue.medium: 414.00 mean nodes; render 0.8140 ms, 1.966 µs/node; validation 0.6290 ms, 1.519 µs/node (77.3%); other estimate 0.447 µs/node
+core-queue.large: 446.00 mean nodes; render 0.9006 ms, 2.019 µs/node; validation 0.7453 ms, 1.671 µs/node (82.8%); other estimate 0.348 µs/node
+core-queue.full: 473.00 mean nodes; render 1.0325 ms, 2.183 µs/node; validation 0.7833 ms, 1.656 µs/node (75.9%); other estimate 0.527 µs/node
+git-status: 145.00 mean nodes; render 0.2554 ms, 1.761 µs/node; validation 0.1344 ms, 0.927 µs/node (52.6%); other estimate 0.835 µs/node
+rack-module: 236.00 mean nodes; render 0.3538 ms, 1.499 µs/node; validation 0.2157 ms, 0.914 µs/node (61.0%); other estimate 0.585 µs/node
+synthetic-queue: 353.00 mean nodes; render 0.5954 ms, 1.687 µs/node; validation 0.4003 ms, 1.134 µs/node (67.2%); other estimate 0.553 µs/node
+Load average at end: 2.54, 4.93, 5.82
+style_declarations_per_node: 0.397 µs/node; 0.269 ms/tree; 679 nodes
+base: 0.470 ms/sheet; 1072 bytes
+certified theme: 0.961 ms/sheet; 7010 bytes
+certified design system: 8.792 ms/sheet; 146938 bytes
+rack theme: 1.020 ms/sheet; 8257 bytes
+rack design system: 12.406 ms/sheet; 155922 bytes

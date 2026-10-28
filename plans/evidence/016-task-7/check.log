@@ -1,0 +1,499 @@
+$ bun run build && bun run gen:check && bun run typecheck && bun run lint && bun run format:check && bun run test
+$ bun scripts/build.ts
+$ bun src/cli/liveframe.ts gen src/__tests__/fixtures/proof/catalog.json --out src/__tests__/fixtures/widgets/ui.gen.ts --check
+$ tsc --noEmit && tsc --noEmit -p proof
+$ biome lint .
+proof/renderer/primitives/index.tsx:102:5 lint/complexity/noUselessFragments  FIXABLE  ━━━━━━━━━━━━━
+
+  i This fragment is unnecessary.
+  
+    100 │     </svg>
+    101 │   ) : (
+  > 102 │     <>{icons[name] ?? "◇"}</>
+        │     ^^^^^^^^^^^^^^^^^^^^^^^^^
+    103 │   );
+    104 │ const icon = (name: string | undefined, className: string) =>
+  
+  i A fragment is redundant if it contains only one child, or if it is the child of a html element, and is not a keyed fragment.
+  
+  i Unsafe fix: Remove the Fragment
+  
+    102 │ ····<>{icons[name]·??·"◇"}</>
+        │     ---                  ----
+
+proof/host/preview.ts:1:23 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Several of these imports are unused.
+  
+  > 1 │ import type { Intent, Result } from "@arnilo/liveframe";
+      │                       ^^^^^^
+    2 │ import { createPreview, type PreviewBinding, type PreviewSession } from "@arnilo/liveframe/preview";
+    3 │ import { memoryStore } from "@arnilo/liveframe/store";
+  
+  i Unused imports might be the result of an incomplete refactoring.
+  
+  i Unsafe fix: Remove the unused imports.
+  
+    1 │ import·type·{·Intent,·Result·}·from·"@arnilo/liveframe";
+      │                       -------                           
+
+proof/scripts/inventory.ts:56:7 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    54 │   for (let i = n - 1; i >= 0; i -= 1)
+    55 │     for (let j = m - 1; j >= 0; j -= 1)
+  > 56 │       table[i]![j] =
+       │       ^^^^^^^^^
+    57 │         approved[i] === widget[j] ? table[i + 1]![j + 1]! + 1 : Math.max(table[i + 1]![j]!, table[i]![j + 1]!);
+    58 │   const result: string[][] = [];
+  
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+  
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+  
+
+proof/scripts/inventory.ts:57:37 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    55 │     for (let j = m - 1; j >= 0; j -= 1)
+    56 │       table[i]![j] =
+  > 57 │         approved[i] === widget[j] ? table[i + 1]![j + 1]! + 1 : Math.max(table[i + 1]![j]!, table[i]![j + 1]!);
+       │                                     ^^^^^^^^^^^^^
+    58 │   const result: string[][] = [];
+    59 │   let i = 0;
+  
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+  
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     55  55 │       for (let j = m - 1; j >= 0; j -= 1)
+     56  56 │         table[i]![j] =
+     57     │ - ········approved[i]·===·widget[j]·?·table[i·+·1]![j·+·1]!·+·1·:·Math.max(table[i·+·1]![j]!,·table[i]![j·+·1]!);
+         57 │ + ········approved[i]·===·widget[j]·?·table[i·+·1]?.[j·+·1]!·+·1·:·Math.max(table[i·+·1]![j]!,·table[i]![j·+·1]!);
+     58  58 │     const result: string[][] = [];
+     59  59 │     let i = 0;
+  
+
+proof/scripts/inventory.ts:57:37 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    55 │     for (let j = m - 1; j >= 0; j -= 1)
+    56 │       table[i]![j] =
+  > 57 │         approved[i] === widget[j] ? table[i + 1]![j + 1]! + 1 : Math.max(table[i + 1]![j]!, table[i]![j + 1]!);
+       │                                     ^^^^^^^^^^^^^^^^^^^^^
+    58 │   const result: string[][] = [];
+    59 │   let i = 0;
+  
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+  
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+  
+
+proof/scripts/inventory.ts:57:74 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    55 │     for (let j = m - 1; j >= 0; j -= 1)
+    56 │       table[i]![j] =
+  > 57 │         approved[i] === widget[j] ? table[i + 1]![j + 1]! + 1 : Math.max(table[i + 1]![j]!, table[i]![j + 1]!);
+       │                                                                          ^^^^^^^^^^^^^
+    58 │   const result: string[][] = [];
+    59 │   let i = 0;
+  
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+  
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     55  55 │       for (let j = m - 1; j >= 0; j -= 1)
+     56  56 │         table[i]![j] =
+     57     │ - ········approved[i]·===·widget[j]·?·table[i·+·1]![j·+·1]!·+·1·:·Math.max(table[i·+·1]![j]!,·table[i]![j·+·1]!);
+         57 │ + ········approved[i]·===·widget[j]·?·table[i·+·1]![j·+·1]!·+·1·:·Math.max(table[i·+·1]?.[j]!,·table[i]![j·+·1]!);
+     58  58 │     const result: string[][] = [];
+     59  59 │     let i = 0;
+  
+
+proof/scripts/inventory.ts:57:74 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    55 │     for (let j = m - 1; j >= 0; j -= 1)
+    56 │       table[i]![j] =
+  > 57 │         approved[i] === widget[j] ? table[i + 1]![j + 1]! + 1 : Math.max(table[i + 1]![j]!, table[i]![j + 1]!);
+       │                                                                          ^^^^^^^^^^^^^^^^^
+    58 │   const result: string[][] = [];
+    59 │   let i = 0;
+  
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+  
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+  
+
+proof/scripts/inventory.ts:57:93 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    55 │     for (let j = m - 1; j >= 0; j -= 1)
+    56 │       table[i]![j] =
+  > 57 │         approved[i] === widget[j] ? table[i + 1]![j + 1]! + 1 : Math.max(table[i + 1]![j]!, table[i]![j + 1]!);
+       │                                                                                             ^^^^^^^^^
+    58 │   const result: string[][] = [];
+    59 │   let i = 0;
+  
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+  
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     55  55 │       for (let j = m - 1; j >= 0; j -= 1)
+     56  56 │         table[i]![j] =
+     57     │ - ········approved[i]·===·widget[j]·?·table[i·+·1]![j·+·1]!·+·1·:·Math.max(table[i·+·1]![j]!,·table[i]![j·+·1]!);
+         57 │ + ········approved[i]·===·widget[j]·?·table[i·+·1]![j·+·1]!·+·1·:·Math.max(table[i·+·1]![j]!,·table[i]?.[j·+·1]!);
+     58  58 │     const result: string[][] = [];
+     59  59 │     let i = 0;
+  
+
+proof/scripts/inventory.ts:57:93 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    55 │     for (let j = m - 1; j >= 0; j -= 1)
+    56 │       table[i]![j] =
+  > 57 │         approved[i] === widget[j] ? table[i + 1]![j + 1]! + 1 : Math.max(table[i + 1]![j]!, table[i]![j + 1]!);
+       │                                                                                             ^^^^^^^^^^^^^^^^^
+    58 │   const result: string[][] = [];
+    59 │   let i = 0;
+  
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+  
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+  
+
+proof/scripts/inventory.ts:71:29 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    69 │     }
+    70 │     open ??= [];
+  > 71 │     if (j >= m || (i < n && table[i + 1]![j]! >= table[i]![j + 1]!)) open.push(`- ${approved[i++]!.trim()}`);
+       │                             ^^^^^^^^^^^^^
+    72 │     else open.push(`+ ${widget[j++]!.trim()}`);
+    73 │   }
+  
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+  
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     69  69 │       }
+     70  70 │       open ??= [];
+     71     │ - ····if·(j·>=·m·||·(i·<·n·&&·table[i·+·1]![j]!·>=·table[i]![j·+·1]!))·open.push(`-·${approved[i++]!.trim()}`);
+         71 │ + ····if·(j·>=·m·||·(i·<·n·&&·table[i·+·1]?.[j]!·>=·table[i]![j·+·1]!))·open.push(`-·${approved[i++]!.trim()}`);
+     72  72 │       else open.push(`+ ${widget[j++]!.trim()}`);
+     73  73 │     }
+  
+
+proof/scripts/inventory.ts:71:29 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    69 │     }
+    70 │     open ??= [];
+  > 71 │     if (j >= m || (i < n && table[i + 1]![j]! >= table[i]![j + 1]!)) open.push(`- ${approved[i++]!.trim()}`);
+       │                             ^^^^^^^^^^^^^^^^^
+    72 │     else open.push(`+ ${widget[j++]!.trim()}`);
+    73 │   }
+  
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+  
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+  
+
+proof/scripts/inventory.ts:71:50 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    69 │     }
+    70 │     open ??= [];
+  > 71 │     if (j >= m || (i < n && table[i + 1]![j]! >= table[i]![j + 1]!)) open.push(`- ${approved[i++]!.trim()}`);
+       │                                                  ^^^^^^^^^^^^^^^^^
+    72 │     else open.push(`+ ${widget[j++]!.trim()}`);
+    73 │   }
+  
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+  
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+  
+
+proof/scripts/inventory.ts:71:50 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    69 │     }
+    70 │     open ??= [];
+  > 71 │     if (j >= m || (i < n && table[i + 1]![j]! >= table[i]![j + 1]!)) open.push(`- ${approved[i++]!.trim()}`);
+       │                                                  ^^^^^^^^^
+    72 │     else open.push(`+ ${widget[j++]!.trim()}`);
+    73 │   }
+  
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+  
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     69  69 │       }
+     70  70 │       open ??= [];
+     71     │ - ····if·(j·>=·m·||·(i·<·n·&&·table[i·+·1]![j]!·>=·table[i]![j·+·1]!))·open.push(`-·${approved[i++]!.trim()}`);
+         71 │ + ····if·(j·>=·m·||·(i·<·n·&&·table[i·+·1]![j]!·>=·table[i]?.[j·+·1]!))·open.push(`-·${approved[i++]!.trim()}`);
+     72  72 │       else open.push(`+ ${widget[j++]!.trim()}`);
+     73  73 │     }
+  
+
+proof/scripts/inventory.ts:71:85 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    69 │     }
+    70 │     open ??= [];
+  > 71 │     if (j >= m || (i < n && table[i + 1]![j]! >= table[i]![j + 1]!)) open.push(`- ${approved[i++]!.trim()}`);
+       │                                                                                     ^^^^^^^^^^^^^^
+    72 │     else open.push(`+ ${widget[j++]!.trim()}`);
+    73 │   }
+  
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+  
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     69  69 │       }
+     70  70 │       open ??= [];
+     71     │ - ····if·(j·>=·m·||·(i·<·n·&&·table[i·+·1]![j]!·>=·table[i]![j·+·1]!))·open.push(`-·${approved[i++]!.trim()}`);
+         71 │ + ····if·(j·>=·m·||·(i·<·n·&&·table[i·+·1]![j]!·>=·table[i]![j·+·1]!))·open.push(`-·${approved[i++]?.trim()}`);
+     72  72 │       else open.push(`+ ${widget[j++]!.trim()}`);
+     73  73 │     }
+  
+
+proof/scripts/inventory.ts:72:25 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    70 │     open ??= [];
+    71 │     if (j >= m || (i < n && table[i + 1]![j]! >= table[i]![j + 1]!)) open.push(`- ${approved[i++]!.trim()}`);
+  > 72 │     else open.push(`+ ${widget[j++]!.trim()}`);
+       │                         ^^^^^^^^^^^^
+    73 │   }
+    74 │   if (open) result.push(open);
+  
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+  
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     70  70 │       open ??= [];
+     71  71 │       if (j >= m || (i < n && table[i + 1]![j]! >= table[i]![j + 1]!)) open.push(`- ${approved[i++]!.trim()}`);
+     72     │ - ····else·open.push(`+·${widget[j++]!.trim()}`);
+         72 │ + ····else·open.push(`+·${widget[j++]?.trim()}`);
+     73  73 │     }
+     74  74 │     if (open) result.push(open);
+  
+
+proof/scripts/inventory.ts:99:7 lint/correctness/noUnusedVariables  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! This variable causeOf is unused.
+  
+     97 │ ];
+     98 │ 
+   > 99 │ const causeOf = (hunk: string[]): string => {
+        │       ^^^^^^^
+    100 │   const text = hunk.join("\n");
+    101 │   return causes.find(([pattern]) => pattern.test(text))?.[1] ?? "Unclassified";
+  
+  i Unused variables are often the result of typos, incomplete refactors, or other sources of bugs.
+  
+  i Unsafe fix: If this is intentional, prepend causeOf with an underscore.
+  
+     97  97 │   ];
+     98  98 │   
+     99     │ - const·causeOf·=·(hunk:·string[]):·string·=>·{
+         99 │ + const·_causeOf·=·(hunk:·string[]):·string·=>·{
+    100 100 │     const text = hunk.join("\n");
+    101 101 │     return causes.find(([pattern]) => pattern.test(text))?.[1] ?? "Unclassified";
+  
+
+src/__tests__/css-style-props.test.ts:7:15 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    6 │ const catalog: Catalog = await Bun.file(new URL("./fixtures/proof/catalog.json", import.meta.url)).json();
+  > 7 │ const space = catalog.vocabulary.space[0]!;
+      │               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    8 │ const cases = {
+    9 │   padding: [space, "padding", "var(--lf-v-space_0)"],
+  
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+  
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+  
+
+src/__tests__/css-style-props.test.ts:42:5 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    40 │   surface: ["surface.base", "backgroundColor", "var(--lf-c-surface_base)"],
+    41 │   fill: [
+  > 42 │     catalog.vocabulary.fillableRoles[0]!,
+       │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    43 │     "backgroundColor",
+    44 │     `var(--lf-c-${catalog.vocabulary.fillableRoles[0]!.replaceAll(".", "_")})`,
+  
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+  
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+  
+
+src/__tests__/css-style-props.test.ts:44:19 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    42 │     catalog.vocabulary.fillableRoles[0]!,
+    43 │     "backgroundColor",
+  > 44 │     `var(--lf-c-${catalog.vocabulary.fillableRoles[0]!.replaceAll(".", "_")})`,
+       │                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    45 │   ],
+    46 │   radius: ["full", "borderRadius", "9999px"],
+  
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+  
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     42  42 │       catalog.vocabulary.fillableRoles[0]!,
+     43  43 │       "backgroundColor",
+     44     │ - ····`var(--lf-c-${catalog.vocabulary.fillableRoles[0]!.replaceAll(".",·"_")})`,
+         44 │ + ····`var(--lf-c-${catalog.vocabulary.fillableRoles[0]?.replaceAll(".",·"_")})`,
+     45  45 │     ],
+     46  46 │     radius: ["full", "borderRadius", "9999px"],
+  
+
+src/__tests__/css-style-props.test.ts:52:5 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    50 │   textAlign: ["start", "textAlign", "start"],
+    51 │   textStyle: [
+  > 52 │     catalog.vocabulary.typographyRoles[0]!,
+       │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    53 │     "fontSize",
+    54 │     `var(--lf-t-${catalog.vocabulary.typographyRoles[0]!.replaceAll(".", "_")}__fontSize)`,
+  
+  i A non-null assertion tells TypeScript to ignore a possible null or undefined value. If the value is missing at runtime, the code fails with an error that the compiler could not catch.
+  
+  i Check that the value is defined before using it, for example with an if statement or optional chaining, instead of asserting it.
+  
+
+The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
+Diagnostics not shown: 47.
+Checked 347 files in 184ms. No fixes applied.
+Found 63 warnings.
+Found 4 infos.
+$ biome format .
+Checked 344 files in 45ms. No fixes applied.
+$ bun test --conditions liveframe:source src proof
+bun test v1.4.4 (38afee6c8)
+
+proof/tests/renderer-browser.test.tsx:
+679-node selection certified@1.0.0: {"validation":[3.0999999940395355],"render":[83.19999995827675,1.899999976158142],"commit":[7.100000023841858,0.3999999761581421],"synchronous":111.39999997615814} ms
+679-node selection rack@1.0.0: {"validation":[3.699999988079071],"render":[72.40000000596046,1.5],"commit":[8.699999988079071,0.29999998211860657],"synchronous":101.39999997615814} ms
+
+proof/tests/switch.test.ts:
+agent-home CSS switch: cold 10.70 ms; 20.20 ms max (10 switches, 16.67 ms frame budget)
+161 |       expect(requests).toEqual([]);
+162 |       const max = Math.max(...result.samples);
+163 |       console.log(
+164 |         `${name} CSS switch: cold ${result.cold.toFixed(2)} ms; ${max.toFixed(2)} ms max (${result.samples.length} switches, 16.67 ms frame budget)`,
+165 |       );
+166 |       expect(max).toBeLessThan(1000 / 60);
+                        ^
+error: expect(received).toBeLessThan(expected)
+
+Expected: < 16.666666666666668
+Received: 20.200000017881393
+
+      at <anonymous> (/home/arn/Projects/liveframe/proof/tests/switch.test.ts:166:19)
+(fail) switch_changes_computed_styles_not_dom_structure: agent-home [917.99ms]
+git-status CSS switch: cold 5.40 ms; 4.30 ms max (10 switches, 16.67 ms frame budget)
+
+proof/tests/preview-browser.test.ts:
+679-node 12-cell matrix navigation + draw: 2032.463925 ms
+
+proof/tests/preview-agent-loop.test.ts:
+scripted agent loop: 4291 ms
+
+proof/tests/conformance.test.ts:
+Renderer server conformance (Certified × Rack): 540.72 ms
+
+proof/tests/conformance-browser.test.ts:
+Renderer browser conformance (Certified × Rack): 8343.36 ms
+Styled-state conformance (Certified × Rack): 30758.80 ms
+Overlay/text conformance (Certified × Rack): 10580.58 ms
+liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).
+
+proof/tests/mcp-agent-loop.test.ts:
+agent loop: 2293 ms
+liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).
+liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).
+liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).
+liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).
+liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).
+liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).
+liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).
+
+proof/tests/host.test.ts:
+host setState: 1.01 ms max (25 local HTTP round trips, 50 rows)
+
+src/__tests__/compiled-schema.test.ts:
+compiled schema: 12.2x faster (2.10 / 25.54 ms per 10,000 values)
+
+src/__tests__/runner-worker.test.ts:
+worker warm overhead: 3.4387 ms/render (direct 1.7260, worker 5.1648)
+
+src/__tests__/react-browser.test.tsx:
+Surface two-surface switch with blur: {"cold":8.900000005960464,"samples":[7.9000000059604645,7.399999976158142,6.4000000059604645,6.399999976158142,6.5999999940395355,6.4000000059604645,6.5999999940395355,6.4000000059604645,6.0999999940395355,6.5],"nodes":685}
+
+src/__tests__/react-ssr.test.tsx:
+Agent-home SSR (test-local implementations): 10.47 ms
+
+src/__tests__/css-scope-browser.test.ts:
+Two-surface CSS switch with blur: {"cold":7.899999976158142,"samples":[7.299999982118607,7.5,7.4000000059604645,7.5,9.199999988079071,8.5,7.699999988079071,7.800000011920929,7.300000011920929,7.5],"nodes":956}
+
+src/__tests__/pack.test.ts:
+agent-home package verification: 5.61 ms
+
+src/__tests__/runner-in-process.test.ts:
+in-process warm median overhead: 0.0564 ms/render
+
+src/__tests__/validator-node.test.ts:
+Proof validator compilation: 0.82 ms
+
+src/__tests__/pack-hash.test.ts:
+1 MiB package hash: 15.00 ms
+
+ 755 pass
+ 4 skip
+ 1 fail
+ 117543 expect() calls
+Ran 760 tests across 97 files. [279.47s]
+error: script "test" exited with code 1
+error: script "check" exited with code 1

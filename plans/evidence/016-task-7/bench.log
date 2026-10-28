@@ -1,0 +1,24 @@
+$ bun --conditions liveframe:source bench/validator.bench.ts && bun --conditions liveframe:source bench/render.bench.ts && bun --conditions liveframe:source bench/css.bench.ts
+Bun 1.4.4; linux 7.3.0-4-cachyos; AMD Ryzen 9 PRO 7940HS w/ Radeon 780M Graphics; 16 logical CPUs
+Load average (1/5/15 min): 7.67, 6.73, 6.33; 200 warm-ups, 1,000 runs per implementation
+Generic baseline: checkValue on props only (includes its schema validation); compile/load excluded.
+agent-home: 679 nodes; compiled 0.8921 ms, 1.314 µs/node; generic 0.9655 ms, 1.422 µs/node; 1.08×
+  Equal-work props check: compiled 0.0420 ms; 22.98× over checkValue
+core-queue.small: 5 nodes; compiled 0.0062 ms, 1.231 µs/node; generic 0.0069 ms, 1.384 µs/node; 1.12×
+  Equal-work props check: compiled 0.0004 ms; 16.36× over checkValue
+core-queue.medium: 414 nodes; compiled 0.5319 ms, 1.285 µs/node; generic 0.5838 ms, 1.410 µs/node; 1.10×
+  Equal-work props check: compiled 0.0235 ms; 24.88× over checkValue
+core-queue.large: 446 nodes; compiled 0.6944 ms, 1.557 µs/node; generic 0.6649 ms, 1.491 µs/node; 0.96×
+  Equal-work props check: compiled 0.0260 ms; 25.60× over checkValue
+core-queue.large: failed ≤ 1.5 µs/node or agent-home equal-work props ≥ 2× gate
+core-queue.full: 473 nodes; compiled 0.7001 ms, 1.480 µs/node; generic 0.6891 ms, 1.457 µs/node; 0.98×
+  Equal-work props check: compiled 0.0282 ms; 24.41× over checkValue
+git-status: 145 nodes; compiled 0.1443 ms, 0.995 µs/node; generic 0.2201 ms, 1.518 µs/node; 1.53×
+  Equal-work props check: compiled 0.0083 ms; 26.65× over checkValue
+rack-module: 236 nodes; compiled 0.2121 ms, 0.899 µs/node; generic 0.2767 ms, 1.173 µs/node; 1.30×
+  Equal-work props check: compiled 0.0133 ms; 20.88× over checkValue
+synthetic-queue: 353 nodes; compiled 0.4356 ms, 1.234 µs/node; generic 0.5285 ms, 1.497 µs/node; 1.21×
+  Equal-work props check: compiled 0.0221 ms; 23.86× over checkValue
+Load average at end: 7.94, 6.82, 6.36
+mixed-feed: 500 elements; compiled 0.0379 ms, 0.076 µs/element
+error: script "bench" exited with code 1
