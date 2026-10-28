@@ -90,3 +90,25 @@ test("resolution_preserves_role_names_and_checks_inherited_data", () => {
     resolveRecipes({ ...system, id: "child", extends: "test", recipes: {} }, { catalog, registry: { test: broken } }),
   ).toThrow();
 });
+
+test("native_parts_resolve_named_alpha", () => {
+  const doc = {
+    ...system,
+    values: { ...system.values, "opacity.subtle": { kind: "opacity", value: 0.5 } },
+    recipes: {
+      ...system.recipes,
+      "button.*.root.rest": {
+        placeholderColor: { role: "ink", alpha: "opacity.subtle" },
+        scrollbarThumbColor: { role: "ink", alpha: "opacity.subtle" },
+        scrollbarTrackColor: "none",
+      },
+    },
+  } as const;
+  const resolved = resolveRecipes(doc, context);
+  for (const state of ["rest", "hover", "disabled"] as const) {
+    const recipe = resolved[`button.default.root.${state}`];
+    expect(recipe?.placeholderColor).toEqual({ role: "ink", alpha: 0.5 });
+    expect(recipe?.scrollbarThumbColor).toEqual({ role: "ink", alpha: 0.5 });
+    expect(recipe?.scrollbarTrackColor).toBe("none");
+  }
+});

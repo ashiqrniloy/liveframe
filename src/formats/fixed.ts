@@ -93,4 +93,21 @@ export const recipeProperties = [
   "outlineWidth",
   "outlineOffset",
   "outlineStyle",
+  "placeholderColor",
+  "scrollbarThumbColor",
+  "scrollbarTrackColor",
 ] as const;
+
+/** Properties that take a theme role, `none` (except `textColor`) or a role-alpha object. */
+export const colourProperties: readonly string[] = [
+  "backgroundColor",
+  "textColor",
+  "borderColor",
+  "outlineColor",
+  "placeholderColor",
+  "scrollbarThumbColor",
+  "scrollbarTrackColor",
+];
+
+/** Native scrollbar colours are declared only at rest and resolve as a thumb/track pair. */
+export const scrollbarProperties: readonly string[] = ["scrollbarThumbColor", "scrollbarTrackColor"];

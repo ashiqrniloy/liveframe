@@ -1739,6 +1739,123 @@
                 "none"
               ],
               "type": "string"
+            },
+            "placeholderColor": {
+              "oneOf": [
+                {
+                  "maxLength": 64,
+                  "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "maxLength": 64,
+                      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                      "type": "string"
+                    },
+                    "alpha": {
+                      "oneOf": [
+                        {
+                          "maxLength": 64,
+                          "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                          "type": "string"
+                        },
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1,
+                          "multipleOf": 0.0001
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "role",
+                    "alpha"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "scrollbarThumbColor": {
+              "oneOf": [
+                {
+                  "maxLength": 64,
+                  "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "maxLength": 64,
+                      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                      "type": "string"
+                    },
+                    "alpha": {
+                      "oneOf": [
+                        {
+                          "maxLength": 64,
+                          "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                          "type": "string"
+                        },
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1,
+                          "multipleOf": 0.0001
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "role",
+                    "alpha"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "scrollbarTrackColor": {
+              "oneOf": [
+                {
+                  "maxLength": 64,
+                  "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "maxLength": 64,
+                      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                      "type": "string"
+                    },
+                    "alpha": {
+                      "oneOf": [
+                        {
+                          "maxLength": 64,
+                          "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                          "type": "string"
+                        },
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1,
+                          "multipleOf": 0.0001
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "role",
+                    "alpha"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
             }
           },
           "additionalProperties": false

@@ -1348,29 +1348,8 @@ export const rackSourceRecipes = {
     padding: "spacing.sm",
     gap: "spacing.xs",
   },
-  "scroll.default.scrollbarTrack.rest": {
-    backgroundColor: "none",
-    borderWidth: 0,
-    borderRadius: 9999,
-  },
   "scroll.default.scrollbarThumb.rest": {
     backgroundColor: "surface.scrollbar",
-    borderWidth: 0,
-    borderRadius: 9999,
-    transitionDuration: 140,
-    transitionTiming: "expo-out",
-  },
-  "scroll.default.scrollbarThumb.hover": {
-    backgroundColor: "surface.scrollbar",
-    backgroundOpacity: 0.85,
-    borderWidth: 0,
-    borderRadius: 9999,
-    transitionDuration: 140,
-    transitionTiming: "expo-out",
-  },
-  "scroll.default.scrollbarThumb.active": {
-    backgroundColor: "surface.scrollbar",
-    backgroundOpacity: 0.7,
     borderWidth: 0,
     borderRadius: 9999,
     transitionDuration: 140,
@@ -2711,7 +2690,8 @@ seeds["heading.default.root.rest"] = { ...seeds["heading.default.root.rest"], ty
 seeds["image.default.root.rest"] = { backgroundColor: "none" };
 seeds["link.default.root.focus"] = focus;
 seeds["link.default.root.rest"] = { ...seeds["link.default.root.rest"], typography: "body" };
-seeds["scroll.default.viewport.rest"] = {};
+// Native scrollbars take a colour pair on the scrolling slot; thumb hover and press stay with the OS.
+seeds["scroll.default.viewport.rest"] = { scrollbarThumbColor: "surface.scrollbar", scrollbarTrackColor: "none" };
 // Every slot that draws text names a typography role, so no label falls back to the host page's fonts.
 const textRoles = {
   "link.default.label": "body",
@@ -2752,8 +2732,6 @@ for (const key of [
   "textField.default.input.invalid",
   "menuItem.default.root.selected",
   "menuItem.danger.root.selected",
-  "scroll.default.scrollbar.hover",
-  "scroll.default.scrollbar.active",
 ])
   delete seeds[key];
 

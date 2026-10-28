@@ -18,7 +18,7 @@ import {
   shadowLayer,
   signedDimension,
 } from "./dtcg.ts";
-import { noPaint, states } from "./fixed.ts";
+import { noPaint, scrollbarProperties, states } from "./fixed.ts";
 
 const literalSchemas = {
   radius: designDimension,
@@ -71,6 +71,9 @@ const propertyKinds = {
   outlineWidth: "border-width",
   outlineOffset: "spacing",
   outlineStyle: "style",
+  placeholderColor: "colour",
+  scrollbarThumbColor: "colour",
+  scrollbarTrackColor: "colour",
 } as const;
 const lineStyle = str({ maxLength: 6, enum: ["solid", "dashed", "none"] });
 type Property = keyof typeof propertyKinds;
@@ -301,8 +304,12 @@ function checkRecipe(
     !states.includes(state as (typeof states)[number])
   )
     c.reject(path, "Unknown recipe kind, variant, slot or state", "unknown-name");
-  for (const [property, value] of Object.entries(entry))
-    checkRecipeProperty(property, value, at(path, property), c, context, colours);
+  for (const [property, value] of Object.entries(entry)) {
+    // Container hover/active is not thumb hover/active, so native scrollbar colours are rest-only.
+    if (state !== "rest" && scrollbarProperties.includes(property))
+      c.reject(at(path, property), `${property} is declared only in rest recipes`);
+    else checkRecipeProperty(property, value, at(path, property), c, context, colours);
+  }
 }
 
 function checkRecipeProperty(

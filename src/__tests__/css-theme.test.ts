@@ -217,10 +217,11 @@ test("colour_authority_holds", async () => {
       if (property === "color" || property?.endsWith("-color")) {
         const responsive =
           /^(?:var\(--lf-r-(?:surface|fill|tone)__[\w]+__(?:backgroundColor|color),)*var\(--lf-r-(?:surface|fill|tone)__[\w]+__(?:backgroundColor|color)\)\)*$/;
-        const themeColour =
-          /^(?:var\(--lf-c-[\w-]+\)|transparent|currentColor|color-mix\(in srgb, var\(--lf-c-[\w-]+\) calc\(var\(--lf-alpha\) \* 100%\), transparent\))$/;
+        const oneColour = String.raw`(?:var\(--lf-c-[\w-]+\)|transparent|currentColor|color-mix\(in srgb, var\(--lf-c-[\w-]+\) calc\(var\(--lf-alpha\) \* 100%\), transparent\))`;
+        const themeColour = new RegExp(`^${property === "scrollbar-color" ? `${oneColour} ${oneColour}` : oneColour}$`);
         expect(
           themeColour.test(value ?? "") ||
+            (property === "scrollbar-color" && value === "auto") ||
             responsive.test(value ?? "") ||
             /^(?:CanvasText|HighlightText|Highlight|GrayText)$/.test(value ?? ""),
         ).toBe(true);
@@ -243,6 +244,8 @@ test("colour_authority_holds", async () => {
       expect(catalog.vocabulary.colourRoles.map((role) => role.replaceAll(".", "_"))).toContain(role ?? "");
   }
   expect(() => check(".leak{color:red}")).toThrow();
+  expect(() => check(".leak{scrollbar-color:red blue}")).toThrow();
+  expect(() => check(".leak{scrollbar-color:Highlight transparent}")).toThrow();
   expect(() => check(".leak{color:Highlight}")).toThrow();
   expect(() => check(".leak{outline:1px solid CanvasText}")).toThrow();
   expect(() => check("@media (forced-colors:active){.ok{color:GrayText}}.leak{color:Highlight}")).toThrow();

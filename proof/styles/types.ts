@@ -145,6 +145,9 @@ export interface Recipe {
   readonly textColor?: ColourRole;
   readonly borderColor?: ColourRole | "none";
   readonly outlineColor?: ColourRole | "none";
+  readonly placeholderColor?: ColourRole | "none";
+  readonly scrollbarThumbColor?: ColourRole | "none";
+  readonly scrollbarTrackColor?: ColourRole | "none";
   readonly borderWidth?: number | `border.${string}`;
   readonly borderTopWidth?: number | `border.${string}`;
   readonly borderRightWidth?: number | `border.${string}`;
@@ -180,6 +183,9 @@ export const propertyTypes = {
   textColor: "colour",
   borderColor: "colour",
   outlineColor: "colour",
+  placeholderColor: "colour",
+  scrollbarThumbColor: "colour",
+  scrollbarTrackColor: "colour",
   borderWidth: "border-width",
   borderTopWidth: "border-width",
   borderRightWidth: "border-width",

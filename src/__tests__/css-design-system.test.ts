@@ -72,6 +72,9 @@ test("every_recipe_property_projects", () => {
     outlineWidth: px,
     outlineOffset: px,
     outlineStyle: "solid",
+    placeholderColor: "text.muted",
+    scrollbarThumbColor: "surface.scrollbar",
+    scrollbarTrackColor: "surface.well",
   };
   expect(Object.keys(recipe).sort()).toEqual([...recipeProperties].sort());
   const declarations = recipeDeclarations(recipe).split(";");
@@ -109,6 +112,7 @@ test("every_recipe_property_projects", () => {
     "outline-width:2px",
     "outline-offset:2px",
     "outline-style:solid",
+    "scrollbar-color:var(--lf-c-surface_scrollbar) var(--lf-c-surface_well)",
     "transition-property:background-color,color,border-color,outline-color,opacity,translate,box-shadow,backdrop-filter",
   ]);
 });
@@ -306,4 +310,107 @@ test("none_clears_rest_background_byte_stable", () => {
   expect(ordinary).not.toContain("--lf-c-none");
   expect(ordinary).not.toMatch(/#[0-9a-f]{3,8}\b|(?:oklch|oklab|rgb|hsl)\(/i);
   expect(ordinary.replaceAll("transparent", "")).not.toMatch(/(?:CanvasText|Highlight|currentColor|\bred\b)/);
+});
+
+const withRecipes = (recipes: Record<string, unknown>): DesignSystem => ({
+  ...systems[0]!,
+  recipes: { ...systems[0]!.recipes, ...recipes },
+});
+const between = (css: string, from: string, to: string) => css.split(from)[1]?.split(to)[0] ?? "";
+
+test("scrollbar_projection_byte_stable", () => {
+  expect(
+    recipeDeclarations({
+      scrollbarThumbColor: "surface.scrollbar",
+      scrollbarTrackColor: "none",
+    }),
+  ).toBe("scrollbar-color:var(--lf-c-surface_scrollbar) transparent");
+  expect(
+    recipeDeclarations({
+      scrollbarThumbColor: { role: "surface.scrollbar", alpha: 0.5 },
+      scrollbarTrackColor: { role: "surface.well", alpha: 1 },
+    }),
+  ).toBe(
+    "scrollbar-color:color-mix(in oklab, var(--lf-c-surface_scrollbar) 50%, transparent) color-mix(in oklab, var(--lf-c-surface_well) 100%, transparent)",
+  );
+  const input = withRecipes({
+    "button.default.root.rest": { scrollbarThumbColor: "surface.scrollbar", scrollbarTrackColor: "none" },
+    "button.default.root.hover": { placeholderColor: "text.muted" },
+  });
+  const css = sheet(input);
+  expect(css).toBe(sheet(input));
+  expect(css).toContain(
+    ':where([data-lf-ds="certified@1.0.0"]) .lf_button_default_root{scrollbar-color:var(--lf-c-surface_scrollbar) transparent}',
+  );
+  // The pair is rest-only, so every state that inherits it repeats the same value.
+  expect(new Set(css.match(/scrollbar-color:[^;}]*/g))).toEqual(
+    new Set(["scrollbar-color:var(--lf-c-surface_scrollbar) transparent", "scrollbar-color:auto"]),
+  );
+  expect(css).toContain("::placeholder{color:var(--lf-c-text_muted);opacity:1}");
+  expect(css).not.toContain("-webkit-scrollbar");
+});
+
+test("placeholder_projects_through_the_state_selector_builder", () => {
+  const css = sheet(
+    withRecipes({
+      "button.default.root.rest": { placeholderColor: "text.muted" },
+      "button.default.root.hover": { placeholderColor: { role: "text.primary", alpha: 0.5 } },
+      "button.default.root.disabled": { placeholderColor: "none" },
+    }),
+  );
+  const ordinary = css.split("@media (forced-colors:active){")[0]!;
+  const root = ".lf_button_default_root";
+  expect(ordinary).toContain(`${root}::placeholder{color:var(--lf-c-text_muted);opacity:1}`);
+  expect(ordinary).toContain(
+    `${root}:where([data-hovered]):where(:not(:disabled,[data-disabled],[aria-disabled=true])):where(:not(${root}:is(:disabled,[data-disabled],[aria-disabled=true]) *))::placeholder{color:color-mix(in oklab, var(--lf-c-text_primary) 50%, transparent);opacity:1}`,
+  );
+  expect(ordinary).toContain(
+    `${root}:where(:disabled,[data-disabled],[aria-disabled=true])::placeholder{color:transparent;opacity:1}`,
+  );
+  expect(ordinary).toContain("@media (hover:hover)");
+  // A state that only repeats the rest placeholder gets no rule.
+  expect(ordinary.match(/\[data-selected\][^{]*::placeholder/g)).toBeNull();
+});
+
+test("native_parts_resolve_alpha_and_recover_reduced_transparency", () => {
+  const css = sheet(
+    withRecipes({
+      "button.default.root.rest": {
+        scrollbarThumbColor: { role: "surface.scrollbar", alpha: 0 },
+        scrollbarTrackColor: { role: "surface.well", alpha: "opacity.disabled" },
+        placeholderColor: { role: "text.muted", alpha: 0 },
+      },
+      "button.default.root.hover": { placeholderColor: { role: "text.primary", alpha: 0.5 } },
+    }),
+  );
+  const reduced = between(css, "@media (prefers-reduced-transparency:reduce){", "@media (forced-colors:active){");
+  expect(reduced).toContain("scrollbar-color:var(--lf-c-surface_scrollbar) var(--lf-c-surface_well)");
+  expect(reduced).toContain("::placeholder{color:var(--lf-c-text_muted);opacity:1}");
+  expect(reduced).toContain("::placeholder{color:var(--lf-c-text_primary);opacity:1}");
+  expect(reduced).not.toContain("color-mix");
+  expect(css).toContain("color-mix(in oklab, var(--lf-c-surface_scrollbar) 0%, transparent)");
+});
+
+test("native_parts_no_system_colour_outside_forced_block", () => {
+  const css = sheet(
+    withRecipes({
+      "button.default.root.rest": {
+        scrollbarThumbColor: "surface.scrollbar",
+        scrollbarTrackColor: "none",
+        placeholderColor: "text.muted",
+      },
+      "button.default.label.hover": { placeholderColor: "text.muted" },
+    }),
+  );
+  const [ordinary, forced] = [
+    css.split("@media (forced-colors:active){")[0]!,
+    css.split("@media (forced-colors:active){")[1]!,
+  ];
+  expect(ordinary).not.toMatch(/GrayText|CanvasText|Highlight|\bauto\b/);
+  expect(ordinary.replaceAll("transparent", "")).not.toMatch(/#[0-9a-f]{3,8}\b|(?:oklch|rgb|hsl)\(/i);
+  expect(forced).toContain(".lf_button_default_root{scrollbar-color:auto}");
+  expect(forced).toContain(".lf_button_default_root::placeholder{color:GrayText;opacity:1}");
+  // The placeholder restore also covers a slot that sets it only in a state.
+  expect(forced).toContain(".lf_button_default_label::placeholder{color:GrayText;opacity:1}");
+  expect(forced).not.toContain("scrollbar-color:var");
 });

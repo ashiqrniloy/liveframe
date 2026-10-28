@@ -64,6 +64,11 @@ const properties: { [P in Property]: (value: NonNullable<ResolvedRecipe[P]>, rec
   outlineWidth: (value) => `outline-width:${dimension(value)}`,
   outlineOffset: (value) => `outline-offset:${dimension(value)}`,
   outlineStyle: (value) => `outline-style:${value}`,
+  // The placeholder is a pseudo-element: `placeholderDeclarations` projects it through its own rule.
+  placeholderColor: () => "",
+  scrollbarThumbColor: (value, recipe) =>
+    `scrollbar-color:${colourValue(value)} ${colourValue(recipe.scrollbarTrackColor ?? noPaint)}`,
+  scrollbarTrackColor: () => "",
 };
 
 /** Input is the validated, flattened resolver output; fixed order makes comparison deterministic. */
@@ -76,4 +81,9 @@ export function recipeDeclarations(recipe: ResolvedRecipe): string {
   if (recipe.transitionDuration !== undefined || recipe.transitionTiming !== undefined)
     declarations.push(`transition-property:${transitionProperties}`);
   return declarations.join(";");
+}
+
+/** The `::placeholder` rule body. An explicit opacity stops the UA dimming from multiplying the colour. */
+export function placeholderDeclarations(recipe: ResolvedRecipe): string {
+  return recipe.placeholderColor === undefined ? "" : `color:${colourValue(recipe.placeholderColor)};opacity:1`;
 }

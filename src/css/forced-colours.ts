@@ -22,3 +22,7 @@ export function forcedEdgeDeclarations(recipe: ResolvedRecipe): string {
     ? "outline:1px solid CanvasText;outline-offset:-1px"
     : "";
 }
+
+/** Forced colours leave native scrollbars to the OS and restore the placeholder's system colour. */
+export const forcedScrollbarDeclarations = "scrollbar-color:auto";
+export const forcedPlaceholderDeclarations = "color:GrayText;opacity:1";

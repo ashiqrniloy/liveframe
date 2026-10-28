@@ -62,7 +62,7 @@ function checkStyleData(system: DesignSystem, theme: Theme): void {
     for (const [property, value] of Object.entries(recipe)) {
       if (!Object.hasOwn(propertyTypes, property)) throw new Error(`Unknown property: ${property}`);
       const domain = propertyTypes[property as keyof typeof propertyTypes];
-      if (value === "none" && ["backgroundColor", "borderColor", "outlineColor"].includes(property)) continue;
+      if (value === "none" && domain === "colour" && property !== "textColor") continue;
       if (domain === "line-style") {
         if (!["solid", "dashed", "none"].includes(String(value))) throw new Error("Invalid line style");
       } else if (domain === "transform") {

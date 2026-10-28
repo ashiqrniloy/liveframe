@@ -212,8 +212,18 @@ Real Windows and assistive-technology auditing remains an open manual gate.
 
 The host chooses light, dark and high-contrast themes, including any response
 to `prefers-color-scheme` or `prefers-contrast`. Each theme sheet sets its own
-`color-scheme`, which also styles native controls and scrollbars. Placeholder
-and scrollbar colours have no design-system recipe properties.
+`color-scheme`, which also styles native controls and scrollbars.
+
+Recipes style two native parts with theme roles, `"none"` or `{ role, alpha }`.
+`placeholderColor` goes on the slot you attach to the input or textarea and
+projects `::placeholder { color; opacity: 1 }`; it honours every state.
+`scrollbarThumbColor` and `scrollbarTrackColor` go on the scrolling slot and
+project to `scrollbar-color: <thumb> <track>`. Declare both, and only in rest
+recipes: a state that declares either is rejected at install, and states inherit
+the rest pair. Thumb hover and press are the OS's. Safari before 26.2 and
+WebKitGTK before 2.52.3 keep their native scrollbars, and no `::-webkit-scrollbar`
+fallback is emitted. In forced colours the sheet sets `scrollbar-color: auto` and
+a `GrayText` placeholder, leaving both to the OS.
 
 The platform floor is Baseline 2024: custom properties, `:is`/`:where`/`:has`,
 `color-mix()`, `oklch()` and `color()`, container queries, `:user-invalid`,

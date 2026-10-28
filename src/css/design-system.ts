@@ -10,10 +10,16 @@ import {
   type ResolvedRecipe,
 } from "../formats/design-system.ts";
 import type { ColourValue, ShadowLayer } from "../formats/dtcg.ts";
+import { colourProperties, states } from "../formats/fixed.ts";
 import { cascadeRecipes } from "../resolve.ts";
-import { forcedEdgeDeclarations, forcedStateDeclarations } from "./forced-colours.ts";
+import {
+  forcedEdgeDeclarations,
+  forcedPlaceholderDeclarations,
+  forcedScrollbarDeclarations,
+  forcedStateDeclarations,
+} from "./forced-colours.ts";
 import { cssString, slotClass, valueVar } from "./names.ts";
-import { recipeDeclarations } from "./recipe.ts";
+import { placeholderDeclarations, recipeDeclarations } from "./recipe.ts";
 import { responsiveRules } from "./style-props.ts";
 
 export const stateSelectors = {
@@ -33,12 +39,12 @@ export function stateDeclarations(recipe: Parameters<typeof recipeDeclarations>[
   return body === rest ? undefined : body;
 }
 
-function selector(scope: string, cls: string, root: string, condition: string, guarded: boolean): string {
+function selector(scope: string, cls: string, root: string, condition: string, guarded: boolean, pseudo = ""): string {
   const disabled = stateSelectors.disabled;
   // A slot's own hover/press must also be suppressed when its root is disabled.
   const guard = guarded ? `:where(:not(${disabled})):where(:not(${root}:is(${disabled}) *))` : "";
-  const own = `${scope} ${cls}:where(${condition})${guard}`;
-  return cls === root ? own : `${own},${scope} :where(${root}:is(${condition})) ${cls}${guard}`;
+  const own = `${scope} ${cls}:where(${condition})${guard}${pseudo}`;
+  return cls === root ? own : `${own},${scope} :where(${root}:is(${condition})) ${cls}${guard}${pseudo}`;
 }
 
 /** Installed spacing, radius and size values as CSS custom properties. */
@@ -60,13 +66,41 @@ function unmodifiedColours(recipe: ResolvedRecipe): ResolvedRecipe {
   const layer = (value: ShadowLayer<number>): ShadowLayer<number> => ({ ...value, color: colour(value.color) });
   return Object.fromEntries(
     Object.entries(recipe).flatMap<[string, unknown]>(([property, value]) => {
-      if (["backgroundColor", "textColor", "borderColor", "outlineColor"].includes(property))
-        return [[property, colour(value as ColourValue<number>)]];
+      if (colourProperties.includes(property)) return [[property, colour(value as ColourValue<number>)]];
       if (property === "shadow")
         return [[property, Array.isArray(value) ? value.map(layer) : layer(value as ShadowLayer<number>)]];
       return [];
     }),
   );
+}
+
+/** The `::placeholder` rules for one slot in one state; a state repeating the rest placeholder gets none. */
+function placeholderRules(
+  scope: string,
+  cls: string,
+  root: string,
+  state: string,
+  condition: string,
+  recipe: ResolvedRecipe,
+  restRecipe: ResolvedRecipe,
+  rules: string[],
+  reduced: string[],
+  recoverAlpha: boolean,
+): void {
+  const body = placeholderDeclarations(recipe);
+  if (!body || (state !== "rest" && body === placeholderDeclarations(restRecipe))) return;
+  const reducedBody = recoverAlpha ? placeholderDeclarations(unmodifiedColours(recipe)) : "";
+  const guarded = state === "hover" || state === "active";
+  const pseudo = "::placeholder";
+  const targets = [
+    state === "rest" ? `${scope} ${cls}${pseudo}` : selector(scope, cls, root, condition, guarded, pseudo),
+    ...(state === "hover" ? [`@media (hover:hover){${selector(scope, cls, root, ":hover", true, pseudo)}`] : []),
+  ];
+  for (const [i, target] of targets.entries()) {
+    const close = i === 0 ? "" : "}";
+    rules.push(`${target}{${body}}${close}`);
+    if (reducedBody) reduced.push(`${target}{${reducedBody}}${close}`);
+  }
 }
 
 /** The rules for one slot in one state, pushed into `rules` and `forced`. */
@@ -89,6 +123,18 @@ function slotRules(
   const rest = recipeDeclarations(restRecipe);
   const body = state === "rest" ? rest : stateDeclarations(resolved[`${key}.${state}` as RecipeKey] ?? {}, rest);
   const cls = `.${slotClass(definition.kind, variant, slot)}`;
+  placeholderRules(
+    scope,
+    cls,
+    root,
+    state,
+    condition,
+    resolved[`${key}.${state}` as RecipeKey] ?? {},
+    restRecipe,
+    rules,
+    reduced,
+    alphaSlots.has(key),
+  );
   if (body === undefined) return;
   const reducedBody = alphaSlots.has(key)
     ? recipeDeclarations(unmodifiedColours(resolved[`${key}.${state}` as RecipeKey] ?? {}))
@@ -98,6 +144,9 @@ function slotRules(
     if (reducedBody) reduced.push(`${scope} ${cls}{${reducedBody}}`);
     const edge = forcedEdgeDeclarations(restRecipe);
     if (edge) forced.push(`${scope} ${cls}{${edge}}`);
+    if (restRecipe.scrollbarThumbColor !== undefined) forced.push(`${scope} ${cls}{${forcedScrollbarDeclarations}}`);
+    if (states.some((name) => resolved[`${key}.${name}` as RecipeKey]?.placeholderColor !== undefined))
+      forced.push(`${scope} ${cls}::placeholder{${forcedPlaceholderDeclarations}}`);
     return;
   }
   const guarded = state === "hover" || state === "active";

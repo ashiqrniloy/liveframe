@@ -1452,7 +1452,10 @@
       "padding": "spacing.sm",
       "gap": "spacing.xs"
     },
-    "scroll.default.viewport.rest": {},
+    "scroll.default.viewport.rest": {
+      "scrollbarThumbColor": "surface.scrollbar",
+      "scrollbarTrackColor": "none"
+    },
     "scroll.default.viewport.hover": {},
     "scroll.default.viewport.active": {},
     "scroll.default.viewport.focus": {},

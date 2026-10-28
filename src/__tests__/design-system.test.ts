@@ -340,3 +340,94 @@ test("none_accepted_on_colour_properties_only", () => {
   // Existing line-style keywords remain valid.
   expect(validateDesignSystem(recipe({ borderStyle: "none", outlineStyle: "none" }), context).ok).toBe(true);
 });
+
+const nativeParts = ["placeholderColor", "scrollbarThumbColor", "scrollbarTrackColor"] as const;
+
+test("native_part_properties_validate", () => {
+  const validate = new Ajv2020({ strict: true, multipleOfPrecision: 8 }).compile(schemaDocument("design-system"));
+  const values = { ...system.values, "opacity.subtle": { kind: "opacity", value: 0.25 } };
+  for (const property of nativeParts)
+    for (const value of ["ink", "none", { role: "ink", alpha: 0.5 }, { role: "ink", alpha: "opacity.subtle" }]) {
+      const doc = {
+        ...recipe(
+          property === "placeholderColor"
+            ? { [property]: value }
+            : { scrollbarThumbColor: "ink", [property]: value, scrollbarTrackColor: "none" },
+        ),
+        values,
+      };
+      expect(validateDesignSystem(doc, context).ok).toBe(true);
+      expect(validate(doc)).toBe(true);
+    }
+  for (const property of nativeParts)
+    for (const [value, structural] of [
+      ["#fff", true],
+      ["red", false],
+      [{ role: "none", alpha: 1 }, false],
+      [{ role: "ink", alpha: 2 }, true],
+      [7, true],
+    ] as const) {
+      const doc = recipe({ [property]: value });
+      expect(validateDesignSystem(doc, context).ok).toBe(false);
+      // The JSON Schema sees structure only; the vocabulary decides which role names exist.
+      if (structural) expect(validate(doc)).toBe(false);
+    }
+  rejects(recipe({ placeholderColor: "red" }), "colour-outside-theme", "/recipes/button.*.root.rest/placeholderColor");
+});
+
+test("scrollbar_rejects_nonrest_declarations_and_incomplete_pairs", () => {
+  const pair = { scrollbarThumbColor: "ink", scrollbarTrackColor: "none" };
+  expect(validateDesignSystem(recipe(pair), context).ok).toBe(true);
+  // Inheriting the rest pair into every state is valid; declaring it in a state is not.
+  for (const state of ["hover", "active", "focus", "disabled", "selected", "invalid", "open"] as const)
+    for (const property of ["scrollbarThumbColor", "scrollbarTrackColor"] as const) {
+      const doc = {
+        ...recipe(pair),
+        recipes: { ...recipe(pair).recipes, [`button.*.root.${state}`]: { [property]: "ink" } },
+      };
+      const result = validateDesignSystem(doc, context);
+      expect(result.ok).toBe(false);
+      if (!result.ok)
+        expect(result.errors).toContainEqual(
+          expect.objectContaining({
+            pointer: `/recipes/button.*.root.${state}/${property}`,
+            message: expect.stringContaining(property),
+          }),
+        );
+    }
+  // Placeholder colour honours every state.
+  const placeholder = {
+    ...system,
+    recipes: { ...system.recipes, "button.*.root.hover": { placeholderColor: "ink" } },
+  };
+  expect(validateDesignSystem(placeholder, context).ok).toBe(true);
+  for (const lone of [{ scrollbarThumbColor: "ink" }, { scrollbarTrackColor: "ink" }])
+    rejects(recipe(lone), "incomplete-design-system", "/recipes/button.default.root.rest");
+  // A pair is checked after the rest layers of the cascade merge.
+  expect(
+    validateDesignSystem(
+      {
+        ...system,
+        recipes: {
+          ...system.recipes,
+          "button.*.root.rest": { scrollbarThumbColor: "ink" },
+          "button.primary.root.rest": { scrollbarTrackColor: "none" },
+        },
+      },
+      context,
+    ).ok,
+  ).toBe(false);
+  expect(
+    validateDesignSystem(
+      {
+        ...system,
+        recipes: {
+          ...system.recipes,
+          "button.*.root.rest": { scrollbarThumbColor: "ink", scrollbarTrackColor: "none" },
+          "button.primary.root.rest": { scrollbarTrackColor: "ink" },
+        },
+      },
+      context,
+    ).ok,
+  ).toBe(true);
+});

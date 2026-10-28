@@ -8,7 +8,7 @@ import {
   type ResolvedRecipe,
 } from "./formats/design-system.ts";
 import type { ColourValue, ShadowLayer } from "./formats/dtcg.ts";
-import { states } from "./formats/fixed.ts";
+import { colourProperties, states } from "./formats/fixed.ts";
 import { LiveframeFailure, type LiveframeError } from "./errors.ts";
 
 export type ResolvedRecipes = Readonly<Partial<Record<RecipeKey, ResolvedRecipe>>>;
@@ -51,28 +51,28 @@ export function cascadeRecipes(
               const value =
                 typeof input === "string" &&
                 Object.hasOwn(ds.values, input) &&
-                ![
-                  "backgroundColor",
-                  "textColor",
-                  "borderColor",
-                  "outlineColor",
-                  "typography",
-                  "borderStyle",
-                  "outlineStyle",
-                ].includes(property)
+                !colourProperties.includes(property) &&
+                !["typography", "borderStyle", "outlineStyle"].includes(property)
                   ? ds.values[input]?.value
                   : input;
               return [
                 property,
                 property === "shadow"
                   ? shadow(value as ShadowLayer | readonly ShadowLayer[])
-                  : ["backgroundColor", "textColor", "borderColor", "outlineColor"].includes(property)
+                  : colourProperties.includes(property)
                     ? colour(value as ColourValue)
                     : value,
               ];
             }),
           );
         }
+        const rest = table[`${specific}.rest` as RecipeKey];
+        if ((rest?.scrollbarThumbColor === undefined) !== (rest?.scrollbarTrackColor === undefined))
+          reject(
+            `/recipes/${specific}.rest`,
+            "scrollbarThumbColor and scrollbarTrackColor must be declared together",
+            "incomplete-design-system",
+          );
       }
       if (Object.keys(definition.events).length && !focus)
         reject(

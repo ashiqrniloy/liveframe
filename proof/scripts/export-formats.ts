@@ -23,6 +23,7 @@ import { certifiedDesignSystem } from "../styles/certified/design-system.ts";
 import { rackDesignSystem } from "../styles/rack/design-system.ts";
 import {
   propertyTypes,
+  type RecipeKey,
   type Theme as ProofTheme,
   type DesignSystem as ProofSystem,
   type ShadowLayer,
@@ -106,23 +107,31 @@ function literal(kind: string, value: unknown): unknown {
   return px(value);
 }
 function recipes(system: ProofSystem, expand: boolean) {
+  const complete = completeRecipes(system.recipes);
   return Object.fromEntries(
-    Object.entries(completeRecipes(system.recipes)).map(([key, recipe]) => [
-      key,
-      Object.fromEntries(
-        Object.entries(recipe).map(([property, input]) => {
-          if (property === "transformPreset") {
-            ok(input === "none" || input === "press-shift-down", "Unsupported proof transform");
-            return ["translateY", px(input === "none" ? 0 : 1)];
-          }
-          const kind = propertyTypes[property as keyof typeof propertyTypes];
-          if (["colour", "typography", "line-style"].includes(kind)) return [property, input];
-          const value = typeof input === "string" ? system.values[input] : undefined;
-          if (expand && value) return [property, literal(value.type, value.value)];
-          return [property, typeof input === "string" ? input : literal(kind, input)];
-        }),
-      ),
-    ]),
+    Object.entries(complete).map(([key, recipe]) => {
+      // The resolver cascades rest-only scrollbar colours into every state; the expanded comparison does too.
+      const { scrollbarThumbColor, scrollbarTrackColor } =
+        complete[key.replace(/\.[^.]+$/, ".rest") as RecipeKey] ?? {};
+      return [
+        key,
+        Object.fromEntries(
+          Object.entries(expand ? { scrollbarThumbColor, scrollbarTrackColor, ...recipe } : recipe)
+            .filter(([, input]) => input !== undefined)
+            .map(([property, input]) => {
+              if (property === "transformPreset") {
+                ok(input === "none" || input === "press-shift-down", "Unsupported proof transform");
+                return ["translateY", px(input === "none" ? 0 : 1)];
+              }
+              const kind = propertyTypes[property as keyof typeof propertyTypes];
+              if (["colour", "typography", "line-style"].includes(kind)) return [property, input];
+              const value = typeof input === "string" ? system.values[input] : undefined;
+              if (expand && value) return [property, literal(value.type, value.value)];
+              return [property, typeof input === "string" ? input : literal(kind, input)];
+            }),
+        ),
+      ];
+    }),
   );
 }
 function system(input: ProofSystem): DesignSystem {

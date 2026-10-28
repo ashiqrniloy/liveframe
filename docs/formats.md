@@ -706,6 +706,7 @@ Liveframe state. Recipes accept only the exported `recipeProperties` list:
 | Properties | Accepted value |
 | --- | --- |
 | `backgroundColor`, `borderColor`, `outlineColor` | Declared theme colour role, `{ role, alpha }`, or `"none"` (no paint) |
+| `placeholderColor`, `scrollbarThumbColor`, `scrollbarTrackColor` | Declared theme colour role, `{ role, alpha }`, or `"none"`. The scrollbar pair is declared only in `rest` recipes and must resolve together |
 | `textColor` | Declared theme colour role or `{ role, alpha }` |
 | `typography` | Declared typography role only |
 | `borderWidth`, per-side border widths, `outlineWidth` | `border-width` reference or dimension |

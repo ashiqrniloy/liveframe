@@ -570,6 +570,67 @@ test("alpha_reduced_transparency_and_forced_colours", async () => {
   }
 });
 
+test("placeholder_and_scrollbar_computed", async () => {
+  const page = await browser.newPage();
+  try {
+    await mount(page, {
+      "button.default.root.rest": {
+        scrollbarThumbColor: { role: "surface.hover", alpha: 0.5 },
+        scrollbarTrackColor: "none",
+      },
+      "button.default.label.rest": { placeholderColor: { role: "surface.base", alpha: 0.5 } },
+      "button.default.label.hover": { placeholderColor: "surface.active" },
+    });
+    await page
+      .locator("section")
+      .evaluate((el) =>
+        el.insertAdjacentHTML("beforeend", '<input id="field" class="lf_button_default_label" placeholder="hint">'),
+      );
+    // Resolve the same CSS through a probe, so the expectation follows the browser's own colour serialization.
+    const probe = (property: "color" | "scrollbarColor", value: string) =>
+      page.locator("section").evaluate(
+        (el, [name, text]) => {
+          const node = document.createElement("div");
+          el.append(node);
+          node.style[name as "color"] = text as string;
+          const computed = getComputedStyle(node)[name as "color"];
+          node.remove();
+          return computed;
+        },
+        [property, value],
+      );
+    const placeholder = () => page.locator("#field").evaluate((el) => getComputedStyle(el, "::placeholder"));
+    const mixed = (role: string, percent: number) =>
+      `color-mix(in oklab, var(--lf-c-${role}) ${percent}%, transparent)`;
+    const root = () => page.locator("#root").evaluate((el) => getComputedStyle(el).scrollbarColor);
+
+    expect(await root()).toBe(await probe("scrollbarColor", `${mixed("surface_hover", 50)} transparent`));
+    expect((await placeholder()).color).toBe(await probe("color", mixed("surface_base", 50)));
+    expect((await placeholder()).opacity).toBe("1");
+
+    await page.locator("#field").evaluate((el) => el.setAttribute("data-hovered", ""));
+    expect((await placeholder()).color).toBe(await probe("color", "var(--lf-c-surface_active)"));
+    await page.locator("#field").evaluate((el) => el.removeAttribute("data-hovered"));
+
+    // Forced colours leave the scrollbar to the OS and give the placeholder a system colour.
+    await page.emulateMedia({ forcedColors: "active" });
+    expect(await root()).toBe("auto");
+    expect(await probe("color", "GrayText")).toBe((await placeholder()).color);
+    expect((await placeholder()).opacity).toBe("1");
+
+    // Reduced transparency restores the unmodified roles, even from alpha 0.
+    await page.emulateMedia({ forcedColors: "none" });
+    const session = await page.context().newCDPSession(page);
+    await session.send("Emulation.setEmulatedMedia", {
+      features: [{ name: "prefers-reduced-transparency", value: "reduce" }],
+    });
+    expect(await root()).toBe(await probe("scrollbarColor", "var(--lf-c-surface_hover) transparent"));
+    expect((await placeholder()).color).toBe(await probe("color", "var(--lf-c-surface_base)"));
+  } finally {
+    await page.close();
+  }
+});
+
 test("switching_suppresses_transitions", async () => {
   const page = await browser.newPage();
   try {

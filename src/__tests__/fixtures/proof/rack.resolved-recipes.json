@@ -1479,14 +1479,38 @@
       "unit": "px"
     }
   },
-  "scroll.default.viewport.rest": {},
-  "scroll.default.viewport.hover": {},
-  "scroll.default.viewport.active": {},
-  "scroll.default.viewport.focus": {},
-  "scroll.default.viewport.disabled": {},
-  "scroll.default.viewport.selected": {},
-  "scroll.default.viewport.invalid": {},
-  "scroll.default.viewport.open": {},
+  "scroll.default.viewport.rest": {
+    "scrollbarThumbColor": "surface.scrollbar",
+    "scrollbarTrackColor": "none"
+  },
+  "scroll.default.viewport.hover": {
+    "scrollbarThumbColor": "surface.scrollbar",
+    "scrollbarTrackColor": "none"
+  },
+  "scroll.default.viewport.active": {
+    "scrollbarThumbColor": "surface.scrollbar",
+    "scrollbarTrackColor": "none"
+  },
+  "scroll.default.viewport.focus": {
+    "scrollbarThumbColor": "surface.scrollbar",
+    "scrollbarTrackColor": "none"
+  },
+  "scroll.default.viewport.disabled": {
+    "scrollbarThumbColor": "surface.scrollbar",
+    "scrollbarTrackColor": "none"
+  },
+  "scroll.default.viewport.selected": {
+    "scrollbarThumbColor": "surface.scrollbar",
+    "scrollbarTrackColor": "none"
+  },
+  "scroll.default.viewport.invalid": {
+    "scrollbarThumbColor": "surface.scrollbar",
+    "scrollbarTrackColor": "none"
+  },
+  "scroll.default.viewport.open": {
+    "scrollbarThumbColor": "surface.scrollbar",
+    "scrollbarTrackColor": "none"
+  },
   "scroll.default.scrollbar.rest": {
     "backgroundColor": "surface.scrollbar",
     "borderWidth": {
