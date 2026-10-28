@@ -32,6 +32,7 @@ export function baseCss(catalog: Catalog): Result<string> {
       "@media (forced-colors:active){:where([data-lf-ds]) .lf_fill{outline:1px solid CanvasText;outline-offset:-1px}}",
       "@media (prefers-reduced-motion:reduce){:where([data-lf-ds]) *{transition-duration:0s !important;translate:none !important}}",
       "@media (prefers-reduced-transparency:reduce){:where([data-lf-ds]) *{--lf-alpha:1 !important;backdrop-filter:none !important}}",
+      ":where([data-lf-transparency=reduced]) *{--lf-alpha:1 !important;backdrop-filter:none !important}",
       ":where([data-lf-ds][data-lf-switching]),:where([data-lf-ds][data-lf-switching]) *{transition:none !important}",
     ].join("\n"),
   };

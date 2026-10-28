@@ -134,7 +134,7 @@ Two plans: Part A (release hardening and API freeze), then Part B (packaging, de
 ## 3. Execution state
 
 - **Current phase:** Phase 6 complete (plan 012, Tasks 1–15 and Task 14.1, findings disposed in the impact analysis and backlog; plan 013, Tasks 1–14, `@arnilo/liveframe@0.1.0` published from CI with provenance and verified from the registry, impact findings disposed — F1–F3 executed, F4–F5 in the backlog). Phase 5 complete (plan 010, Tasks 1–10; owner dispositions recorded in the impact analysis and backlog). Phase 8 complete (plan 011, Tasks 1–9; findings disposed in the impact analysis and backlog). Phase 4 complete. Part B (Preview, plan 009) is complete — Tasks 1–8 and impact follow-up Task 7a; Task 3 closed with an owner-approved timing exception reproduced on the pre-task baseline; findings disposed in the impact analysis and backlog. Phase 4 Part A (React renderer, plan 008) complete — Tasks 1–11 and impact follow-up Task 11a complete; findings disposed in the impact analysis and backlog. Phase 3 plan 007 Tasks 1–12 and impact follow-up Task 11a are complete; findings disposed in the impact analysis and backlog. Phase 2 plans 005 and 006 are complete; plan 005's impact findings include active SDK validation and validator-performance backlog items. Phase 0 complete (plan 002, Tasks 1–9; owner dispositions recorded in the impact analysis and backlog).
-- **Next free plan number:** 014.
+- **Next free plan number:** 021.
 
 One line per plan. Detail lives in the plan file, never here.
 
@@ -155,5 +155,8 @@ One line per plan. Detail lives in the plan file, never here.
 | [013](plans/013-Phase-6-Part-B-Packaging-Demo-And-Release.md) | 6 | complete (Tasks 1–14; 0.1.0 published and verified; impact findings disposed) |
 | [014](plans/014-Phase-7-Part-A-Release-Scope-Packaging-And-Schema-Language.md) | 7 | complete (0.2.0; Tasks 1–8; twelve-area impact review complete; existing approved P1 performance backlog retained) |
 | [015](plans/015-Phase-7-Part-B-Events-Manifests-Capabilities-And-State.md) | 7 | complete (0.2.0; Tasks 1–9; impact finding retains the existing approved P1 performance backlog; integration handoffs recorded) |
-| [016](plans/016-Phase-7-Part-C-Styling-Paint-Alpha-Contrast-And-Native-Parts.md) | 7 | in progress (0.2.0; Tasks 1–5 complete: styling decisions, no-paint, alpha recipe colours, contrast pairs and native-part recipe properties) |
-| [017](plans/017-Phase-7-Part-D-Renderer-And-Preview-Host-Integration.md) | 7 | in progress (0.2.0; Tasks 1–4 complete: renderer/preview contracts, intent origin/offered checks, action confirmation metadata and wrapper/portal host hooks) |
+| [016](plans/016-Phase-7-Part-C-Styling-Paint-Alpha-Contrast-And-Native-Parts.md) | 7 | complete (0.2.0; Tasks 1–9: styling decisions, no-paint, alpha recipe colours, contrast pairs, native-part recipe properties, the proof's G30/G31/G2 gaps, two impact follow-ups; findings disposed — F2 and F3 amend plans 017 and 019, F4 and F5 in the backlog) |
+| [017](plans/017-Phase-7-Part-D-Renderer-And-Preview-Host-Integration.md) | 7 | in progress (0.2.0; Tasks 1–5 complete: renderer/preview contracts, intent origin/offered checks, action confirmation metadata, wrapper/portal host hooks and the host-set reduced-transparency attribute) |
+| [018](plans/018-Phase-7-Part-E-Runner-Kit-Capture-And-Authoring-Library.md) | 7 | planned (0.2.0) |
+| [019](plans/019-Phase-7-Part-F-Agent-Surfaces-Conformance-Corpus-And-Engines.md) | 7 | planned (0.2.0) |
+| [020](plans/020-Phase-7-Part-G-Release-0-2-0.md) | 7 | planned (0.2.0) |

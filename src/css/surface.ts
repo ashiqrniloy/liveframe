@@ -8,11 +8,13 @@ export function surfaceAttributes({
   theme,
   designSystem,
   tree,
+  transparency,
 }: {
   theme: Pick<Theme, "id" | "version">;
   designSystem: Pick<DesignSystem, "id" | "version">;
   tree: UiTree;
-}): { class: string; "data-lf-theme": string; "data-lf-ds": string } {
+  transparency?: "auto" | "reduced";
+}): { class: string; "data-lf-theme": string; "data-lf-ds": string; "data-lf-transparency"?: "reduced" } {
   const pending: UiNode[] = [tree.root];
   let responsive = false;
   while (pending.length) {
@@ -28,5 +30,6 @@ export function surfaceAttributes({
     class: `lf_surface${responsive ? " lf_container" : ""}`,
     "data-lf-theme": `${theme.id}@${theme.version}`,
     "data-lf-ds": `${designSystem.id}@${designSystem.version}`,
+    ...(transparency === "reduced" ? { "data-lf-transparency": "reduced" as const } : {}),
   };
 }

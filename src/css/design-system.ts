@@ -223,12 +223,18 @@ export function designSystemCss(system: DesignSystem, context: DesignSystemConte
   if (!prepared.ok) return prepared;
   const resolved = cascadeRecipes(prepared.value, context.catalog);
   const scope = `:where([data-lf-ds=${cssString(`${system.id}@${system.version}`)}])`;
+  const reducedScope = `:where([data-lf-ds=${cssString(`${system.id}@${system.version}`)}][data-lf-transparency=reduced])`;
   const vocabulary = context.catalog.vocabulary;
   const rules = [`${scope}{${tokenVariables(prepared.value, vocabulary).join(";")}}`];
   const forced: string[] = [];
   const reduced: string[] = [];
   stateRules(scope, context, resolved, rules, forced, reduced);
-  if (reduced.length) rules.push(`@media (prefers-reduced-transparency:reduce){${reduced.join("")}}`);
+  if (reduced.length) {
+    const block = reduced.join("");
+    rules.push(`@media (prefers-reduced-transparency:reduce){${block}}`);
+    // The reduced-transparency attribute recovers exactly what the media query does: the same rules, scoped by it.
+    rules.push(block.replaceAll(scope, reducedScope));
+  }
   rules.push(responsiveRules(scope, breakpoints(prepared.value, vocabulary)));
   rules.push(`@media (forced-colors:active){${forced.join("")}}`);
   return { ok: true, value: rules.join("\n") };

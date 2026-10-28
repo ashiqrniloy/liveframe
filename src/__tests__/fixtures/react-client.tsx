@@ -67,7 +67,11 @@ const switchTree: UiTree = {
     ],
   },
 };
-const styles = [
+const styles: {
+  theme: { id: string; version: string };
+  designSystem: { id: string; version: string };
+  transparency?: "auto" | "reduced";
+}[] = [
   { theme: surfaceProps.theme, designSystem: surfaceProps.designSystem },
   { theme: { id: "rack", version: "1.0.0" }, designSystem: { id: "rack", version: "1.0.0" } },
 ];
@@ -153,6 +157,7 @@ declare global {
       mountSwitching(): void;
       mountForm(): void;
       switchStyles(index: number, theme: string, designSystem?: string, version?: string): void;
+      setTransparency(index: number, value: "auto" | "reduced"): void;
       renders(): number;
       unmount(): void;
       setScope(system: string): void;
@@ -208,6 +213,10 @@ window.surfaceTest = {
   },
   switchStyles(index, theme, designSystem = theme, version = "1.0.0") {
     styles[index] = { theme: { id: theme, version }, designSystem: { id: designSystem, version } };
+    draw();
+  },
+  setTransparency(index, value) {
+    styles[index] = { ...styles[index]!, transparency: value };
     draw();
   },
   renders: () => renders,

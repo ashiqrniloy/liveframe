@@ -248,7 +248,7 @@ This plan implements spec §6.4 (preferences, switching), §7.5 (`<Preview>`, se
     - Updated spec §11 and the renderer guide with the hooks, viewport-width responsive overlay behavior, transformed/filtered/contained ancestor caveat and the backdrop opacity/filter rule. No new decision or dependency was needed; Task 1's approved contract is unchanged.
     - Verification: the new merge and base-sheet assertions failed before implementation; focused surface/browser tests then passed (28 pass). `bun run check` passed (778 pass, 4 existing skips, 0 fail), including build, generated-file drift, typecheck, lint, formatting and all tests. The first full run hit the five-minute command timeout without a test failure; the completed rerun used a ten-minute limit. Whole-plan bench, demo and release gates remain for Task 8.
 
-- [ ] Task 5: Let the host reduce transparency for a scope (CL-09)
+- [x] Task 5: Let the host reduce transparency for a scope (CL-09)
   - Acceptance Criteria:
     - Functional:
       - The base sheet applies the reduced-transparency overrides under `:where([data-lf-transparency="reduced"])`, emitted once, byte-stable, next to the existing media query (`src/css/base.ts:32`).
@@ -282,6 +282,13 @@ This plan implements spec §6.4 (preferences, switching), §7.5 (`<Preview>`, se
     - `attribute_recovers_alpha_modifiers_like_the_media_query` (`css-design-system.test.ts`): the attribute rules carry the same declarations as the media block; fails if only the media query is extended.
     - `reduced_transparency_prop_in_portal` (`react-browser.test.tsx`).
     - `transparency_switch_suppresses_transitions`.
+  - Notes (executed 2026-10-29):
+    - Base sheet: `:where([data-lf-transparency=reduced]) *{--lf-alpha:1 !important;backdrop-filter:none !important}`, emitted once directly after the reduced-transparency media query (`src/css/base.ts`). `<Surface transparency="reduced">` adds `data-lf-transparency="reduced"` through `surfaceAttributes`, so the wrapper and portal carry it together; the value is part of the switching effect's scope identity, so a change reuses the `data-lf-switching` sequence and no second effect exists.
+    - Design-system sheet: the existing `reduced` recovery list is now emitted twice, once inside `@media (prefers-reduced-transparency:reduce)` as before and once under `:where([data-lf-ds="id@version"][data-lf-transparency=reduced])`. The attribute block is derived from the same string, so it carries exactly the same declarations for every recipe colour, shadow layer, `placeholderColor` and `scrollbar*Color`, including alpha 0; only slots that use a modifier appear, and a system with no modifiers gains no attribute rules.
+    - Tests: `base_sheet_has_transparency_attribute_rule_once` (css-theme), `attribute_recovers_alpha_modifiers_like_the_media_query` (css-design-system; asserts the attribute block equals the media block re-scoped), `reduced_transparency_prop_in_portal` (blurred backdrop with `backgroundOpacity` inside an open portal goes to `backdrop-filter:none` and alpha 255, sibling surface unaffected), `transparency_switch_suppresses_transitions`, and `reduced_transparency_recovers_alpha_modifiers` (browser: `borderColor`, `textColor`, shadow and `placeholderColor` modifiers, two of them alpha 0, resolve as their unmodified role references under the attribute while the OS query is off).
+    - Sizes (`bun bench/css.bench.ts`, before → after): base sheet 1189 → 1287 B (+98); certified design system 146938 → 150656 B (+3718); rack design system 155922 → 162804 B (+6882). Both proof systems use alpha modifiers, so both gain the block; the delta equals the re-scoped copy of their existing media block. Sheet build times: base 0.520 ms, certified 9.660 ms, rack 13.193 ms (unchanged order of magnitude).
+    - Docs: spec §6.4 "Preferences and switching" and §11, `docs/styling.md` "Preferences and platform", `docs/renderer.md`. No new decision or dependency; CL-09's attribute contract is unchanged.
+    - Verification: the new assertions failed before the change (attribute missing from base and design-system sheets, prop absent); after implementation the focused css and browser suites passed (16 css-design-system, 24 react-browser). `bun run check` passed (783 pass, 4 existing skips, 0 fail).
 
 - [ ] Task 6: Make `<Preview>` safe for in-memory routers and multiple previews (CL-01)
   - Acceptance Criteria:
@@ -326,7 +333,6 @@ This plan implements spec §6.4 (preferences, switching), §7.5 (`<Preview>`, se
     - `first_result_never_relabelled`.
     - `capture_with_url_key` (`cli-capture`/`preview-browser`).
     - `capture_controlled_preview_rejects_other_scenario`.
-
 - [ ] Task 7: Generate implementation types for JSON-loaded catalogs (backlog)
   - Acceptance Criteria:
     - Functional:

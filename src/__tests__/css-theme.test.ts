@@ -197,6 +197,13 @@ test("surface_typography_comes_from_the_vocabulary", () => {
   expect(sheet).not.toContain(":root");
 });
 
+test("base_sheet_has_transparency_attribute_rule_once", () => {
+  const sheet = css(baseCss(catalog));
+  expect(
+    sheet.split(":where([data-lf-transparency=reduced]) *{--lf-alpha:1 !important;backdrop-filter:none !important}"),
+  ).toHaveLength(2);
+});
+
 test("colour_authority_holds", async () => {
   function check(sheet: string) {
     const forcedRanges = [...sheet.matchAll(/@media \(forced-colors:active\)\{/g)].map((match) => {

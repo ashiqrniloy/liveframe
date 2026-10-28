@@ -205,8 +205,12 @@ The projection handles reduced motion by setting transition durations to zero
 and removing the pressed offset. Reduced transparency forces the background-opacity
 multiplier to 1, removes backdrop filters and restores unmodified theme-role references
 for colour and shadow modifiers, even alpha 0. Theme-intrinsic alpha and explicit
-no-paint stay unchanged; support for that query is a progressive
-enhancement. Forced-colours mode keeps `forced-color-adjust: auto` and adds OS
+no-paint stay unchanged. It applies either when the OS asks for it
+(`prefers-reduced-transparency: reduce`, a progressive enhancement) or when the host
+renders `<Surface transparency="reduced">`; the latter sets `data-lf-transparency="reduced"`
+on the scope containers and the sheets emit the same forcing and recovery rules under
+that attribute, so a modifier resolves identically with or without OS support.
+Forced-colours mode keeps `forced-color-adjust: auto` and adds OS
 system-colour state cues and outlines for background-only edges and fill shapes.
 Real Windows and assistive-technology auditing remains an open manual gate.
 

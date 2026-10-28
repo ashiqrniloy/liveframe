@@ -317,6 +317,16 @@ const withRecipes = (recipes: Record<string, unknown>): DesignSystem => ({
   recipes: { ...systems[0]!.recipes, ...recipes },
 });
 const between = (css: string, from: string, to: string) => css.split(from)[1]?.split(to)[0] ?? "";
+/** The body of the braced block starting at `marker`, nested braces included. */
+function blockBody(css: string, marker: string): string {
+  const start = css.indexOf(marker);
+  let depth = 0;
+  for (let i = start + marker.length - 1; start !== -1 && i < css.length; i++) {
+    if (css[i] === "{") depth++;
+    else if (css[i] === "}" && --depth === 0) return css.slice(start + marker.length, i);
+  }
+  return "";
+}
 
 test("scrollbar_projection_byte_stable", () => {
   expect(
@@ -389,6 +399,35 @@ test("native_parts_resolve_alpha_and_recover_reduced_transparency", () => {
   expect(reduced).toContain("::placeholder{color:var(--lf-c-text_primary);opacity:1}");
   expect(reduced).not.toContain("color-mix");
   expect(css).toContain("color-mix(in oklab, var(--lf-c-surface_scrollbar) 0%, transparent)");
+});
+
+test("attribute_recovers_alpha_modifiers_like_the_media_query", () => {
+  const px = { value: 1, unit: "px" } as const;
+  const css = sheet(
+    withRecipes({
+      "button.default.root.rest": {
+        backgroundColor: { role: "surface.base", alpha: 0 },
+        borderColor: { role: "border.hairline", alpha: 0 },
+        textColor: { role: "text.primary", alpha: 0 },
+        shadow: [{ color: { role: "surface.base", alpha: 0.25 }, offsetX: px, offsetY: px, blur: px, spread: px }],
+      },
+      "button.default.root.hover": { borderColor: { role: "border.hairline", alpha: 0.5 } },
+      "button.default.label.rest": { placeholderColor: { role: "text.muted", alpha: 0 } },
+    }),
+  );
+  const scope = ':where([data-lf-ds="certified@1.0.0"])';
+  const attribute = ':where([data-lf-ds="certified@1.0.0"][data-lf-transparency=reduced])';
+  const media = blockBody(css, "@media (prefers-reduced-transparency:reduce){");
+  expect(media).toContain("border-color:var(--lf-c-border_hairline)");
+  expect(media).toContain("color:var(--lf-c-text_primary)");
+  expect(media).toContain("box-shadow:1px 1px 1px 1px var(--lf-c-surface_base)");
+  expect(media).toContain("::placeholder{color:var(--lf-c-text_muted);opacity:1}");
+  expect(media).not.toContain("color-mix(in oklab");
+  // The attribute must recover exactly the media query's rules, not a second, partial set.
+  expect(css).toContain(media.replaceAll(scope, attribute));
+  // A system without alpha modifiers gains no attribute rules.
+  const plain = Object.fromEntries(Object.keys(systems[0]!.recipes ?? {}).map((key) => [key, {}]));
+  expect(sheet({ ...systems[0]!, recipes: plain })).not.toContain("data-lf-transparency");
 });
 
 test("native_parts_no_system_colour_outside_forced_block", () => {

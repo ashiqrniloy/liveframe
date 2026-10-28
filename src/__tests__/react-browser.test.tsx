@@ -17,6 +17,24 @@ for (const name of ["certified", "rack"]) {
   const system: DesignSystem = await read(`${name}.design-system`);
   sheets.push(css(themeCss(theme, catalog)), css(designSystemCss(system, { catalog, registry: {} })));
 }
+// Rack with alpha modifiers, including alpha 0, on the parts that reach every colour channel.
+const rack: DesignSystem = await read("rack.design-system");
+const px = { value: 1, unit: "px" } as const;
+const modifiers: DesignSystem = {
+  ...rack,
+  id: "modifiers",
+  recipes: {
+    ...rack.recipes,
+    "button.default.root.rest": {
+      backgroundColor: "surface.base",
+      borderColor: { role: "border.hairline", alpha: 0 },
+      textColor: { role: "text.primary", alpha: 0 },
+      shadow: [{ color: { role: "surface.base", alpha: 0.25 }, offsetX: px, offsetY: px, blur: px, spread: px }],
+    },
+    "button.default.label.rest": { placeholderColor: { role: "text.muted", alpha: 0 } },
+  },
+};
+sheets.push(css(designSystemCss(modifiers, { catalog, registry: {} })));
 
 const { Surface } = renderer();
 
@@ -431,6 +449,129 @@ test("switch_runs_the_switching_sequence_on_root_and_portal", async () => {
     expect(result.order).toEqual(
       Array(2).fill(["data-lf-switching", "data-lf-theme", "data-lf-ds", "data-lf-switching"]),
     );
+  } finally {
+    await page.close();
+  }
+});
+
+test("reduced_transparency_prop_in_portal", async () => {
+  const page = await mountSwitching();
+  try {
+    const attributes = (surface: string) =>
+      page
+        .locator(`${surface} > [data-lf-ds]`)
+        .evaluateAll((els) => els.map((el) => el.getAttribute("data-lf-transparency")));
+    const backdrop = (surface: string) =>
+      page.locator(`${surface} [data-lf-portal] .lf_dialog_default_backdrop`).evaluate((el) => {
+        const style = getComputedStyle(el);
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 1;
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("Missing canvas context");
+        context.fillStyle = style.backgroundColor;
+        context.fillRect(0, 0, 1, 1);
+        return { filter: style.backdropFilter, alpha: context.getImageData(0, 0, 1, 1).data[3] };
+      });
+    expect(await attributes("#b")).toEqual([null, null]);
+    expect(await backdrop("#b")).toEqual({ filter: "blur(2px) saturate(1)", alpha: 189 });
+    await page.evaluate(() => window.surfaceTest.setTransparency(1, "reduced"));
+    // Root and portal carry the preference together, so blurred overlay content recovers too.
+    expect(await attributes("#b")).toEqual(["reduced", "reduced"]);
+    expect(await backdrop("#b")).toEqual({ filter: "none", alpha: 255 });
+    // The sibling surface keeps its own preference.
+    expect(await attributes("#a")).toEqual([null, null]);
+    expect((await backdrop("#a")).alpha).toBe(199);
+  } finally {
+    await page.close();
+  }
+});
+
+test("transparency_switch_suppresses_transitions", async () => {
+  const page = await mountSwitching();
+  try {
+    const result = await page.evaluate(async () => {
+      const scopes = [...document.querySelectorAll("#a > [data-lf-ds]")];
+      const records: MutationRecord[] = [];
+      const observer = new MutationObserver((batch) => records.push(...batch));
+      for (const scope of scopes) observer.observe(scope, { attributes: true, attributeOldValue: true });
+      window.surfaceTest.setTransparency(0, "reduced");
+      const marked = scopes.every((el) => el.hasAttribute("data-lf-switching"));
+      const durations = [...document.querySelectorAll("#a button")].map(
+        (el) => getComputedStyle(el).transitionDuration,
+      );
+      const attribute = scopes.map((el) => el.getAttribute("data-lf-transparency"));
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      observer.disconnect();
+      return {
+        marked,
+        attribute,
+        durations: [...new Set(durations)],
+        removed: scopes.every((el) => !el.hasAttribute("data-lf-switching")),
+        order: scopes.map((scope) =>
+          records.filter((record) => record.target === scope).map((record) => record.attributeName),
+        ),
+      };
+    });
+    expect(result.marked).toBe(true);
+    expect(result.attribute).toEqual(["reduced", "reduced"]);
+    expect(result.removed).toBe(true);
+    expect(result.durations).toEqual(["0s"]);
+    expect(result.order).toEqual(Array(2).fill(["data-lf-switching", "data-lf-transparency", "data-lf-switching"]));
+  } finally {
+    await page.close();
+  }
+});
+
+test("reduced_transparency_recovers_alpha_modifiers", async () => {
+  const page = await mountSwitching();
+  try {
+    expect(await page.evaluate(() => matchMedia("(prefers-reduced-transparency: reduce)").matches)).toBe(false);
+    await page.evaluate(() => window.surfaceTest.switchStyles(0, "certified", "modifiers"));
+    const read = () =>
+      page.evaluate(() => {
+        const scope = document.querySelector("#a > [data-lf-ds]") as HTMLElement;
+        const root = scope.querySelector(".lf_button_default_root") as HTMLElement;
+        const field = document.createElement("input");
+        field.className = "lf_button_default_label";
+        field.placeholder = "hint";
+        scope.append(field);
+        const probe = (property: string, value: string) => {
+          const node = document.createElement("div");
+          scope.append(node);
+          node.style.setProperty(property, value);
+          const computed = getComputedStyle(node).getPropertyValue(property);
+          node.remove();
+          return computed;
+        };
+        const style = getComputedStyle(root);
+        const values = [
+          style.color,
+          style.borderTopColor,
+          style.boxShadow,
+          getComputedStyle(field, "::placeholder").color,
+        ];
+        field.remove();
+        return {
+          values,
+          modified: [
+            probe("color", "color-mix(in oklab, var(--lf-c-text_primary) 0%, transparent)"),
+            probe("border-top-color", "color-mix(in oklab, var(--lf-c-border_hairline) 0%, transparent)"),
+            probe("box-shadow", "1px 1px 1px 1px color-mix(in oklab, var(--lf-c-surface_base) 25%, transparent)"),
+            probe("color", "color-mix(in oklab, var(--lf-c-text_muted) 0%, transparent)"),
+          ],
+          recovered: [
+            probe("color", "var(--lf-c-text_primary)"),
+            probe("border-top-color", "var(--lf-c-border_hairline)"),
+            probe("box-shadow", "1px 1px 1px 1px var(--lf-c-surface_base)"),
+            probe("color", "var(--lf-c-text_muted)"),
+          ],
+        };
+      });
+    const before = await read();
+    expect(before.values).toEqual(before.modified);
+    await page.evaluate(() => window.surfaceTest.setTransparency(0, "reduced"));
+    const after = await read();
+    expect(after.values).toEqual(after.recovered);
   } finally {
     await page.close();
   }

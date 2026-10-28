@@ -145,6 +145,11 @@ displaying it. The example's server markup includes:
 `Surface` surrounds that root with its own wrapper and adds a sibling empty portal
 container. Both carry `lf_surface`, `data-lf-theme="acme@1.0.0"` and
 `data-lf-ds="acme@1.0.0"`; the portal also carries `data-lf-portal=""`.
+`transparency="reduced"` adds `data-lf-transparency="reduced"` to both, which
+forces opaque backgrounds, drops backdrop filters and restores unmodified theme
+colours without waiting for OS support (see [styling](styling.md#preferences-and-platform));
+leaving it unset or `"auto"` removes the attribute. Changing it runs the same
+no-transition switching sequence as a theme change.
 Responsive trees add `lf_container` to both scope containers. Node slots and
 parents of responsive nodes do not gain container classes. Mount multiple surfaces
 as siblings; surfaces must not nest.

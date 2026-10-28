@@ -48,6 +48,7 @@ type SurfaceProps = {
   readonly diagnostics?: readonly LiveframeError[];
   readonly wrapperProps?: HostProps;
   readonly portalProps?: HostProps;
+  readonly transparency?: "auto" | "reduced";
   readonly confirm?: (intent: Intent, meta: Readonly<{ confirm: boolean; irreversible: boolean }>) => Promise<boolean>;
 };
 
@@ -152,6 +153,7 @@ export function createRenderer({
     confirm,
     wrapperProps,
     portalProps,
+    transparency,
   }: SurfaceProps) {
     const mounted = useRef(false);
     const confirming = useRef(false);
@@ -181,8 +183,9 @@ export function createRenderer({
       () => ({
         theme: { id: theme.id, version: theme.version },
         designSystem: { id: designSystem.id, version: designSystem.version },
+        transparency: transparency === "reduced" ? ("reduced" as const) : ("auto" as const),
       }),
-      [theme.id, theme.version, designSystem.id, designSystem.version],
+      [theme.id, theme.version, designSystem.id, designSystem.version, transparency],
     );
     const [appliedScope, setAppliedScope] = useState(requestedScope);
     const previousScope = useRef(requestedScope);
