@@ -1,3 +1,4 @@
+import * as authoring from "@arnilo/liveframe/authoring";
 import * as capture from "@arnilo/liveframe/preview/capture";
 import { expect, test } from "bun:test";
 import type {
@@ -334,4 +335,8 @@ test("package_license_is_mit", async () => {
 
 test("exports_list_preview_capture", () => {
   expect(Object.keys(capture).sort()).toEqual(["CaptureError", "capture", "playwrightBackend"]);
+});
+
+test("authoring_export_surface", () => {
+  expect(Object.keys(authoring).sort()).toEqual(["createAuthoring"]);
 });

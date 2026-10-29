@@ -197,7 +197,7 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
     - Verification: `bun run check` passed (812 tests, four existing skips), including source/compiled portability scans, the no-Playwright import, keyed/controlled preview and CLI/MCP browser tests. `bun run release:gate` passed all eight steps, including the installed subpath's Node import; its generic export-target check required no archive-gate source change. Refreshed graft.
     - Performance: `timeout 120s bun --conditions liveframe:source plans/evidence/018-task-3-capture-timing.ts` compares the pinned pre-extraction commit against the current CLI on the existing eight-cell proof capture. Before: 5039.73 / 4770.78 ms; after: 5063.54 / 4782.19 ms. Means: 4905.26 / 4922.87 ms (+0.36%), no meaningful wall-time regression. The original single browser test measured 4762.91 ms before extraction and 4689.10 ms in the first full check.
 
-- [ ] Task 4: Ship authoring as a library (LF-15)
+- [x] Task 4: Ship authoring as a library (LF-15)
   - Acceptance Criteria:
     - Functional:
       - `/authoring` exports `createAuthoring(config)` with seven typed async operations: `listPrimitives`, `listVocabulary`, `listCapabilities`, `generatedTypes`, `packDraft`, `renderScenarios` and `capturePreview`. They have the MCP tools' inputs, outputs, bounds, serialisation and `LiveframeError` shapes.
@@ -230,17 +230,25 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
       const packed = await a.packDraft({ files, entry, manifest, scenarios });
       ```
     - Files to Create/Edit:
-      - `src/authoring/index.ts` (new) and moved modules; `src/cli/mcp.ts`; `src/preview/authoring.ts`
+      - `src/authoring/index.ts` and `src/authoring/checks.ts` (new); `src/cli/mcp.ts`; `src/preview/authoring.ts`
       - `package.json` `exports`
       - `src/__tests__/authoring.test.ts` (new), `exports.test.ts`, `portability.test.ts`
-      - `scripts/release/archive-gate.ts`, node probe
-      - `docs/spec.md` §13; `docs/mcp.md`; `README.md` (subpath list)
+      - `scripts/release/fixtures/node-probe.mjs`: import and exercise the installed subpath; the archive gate already checks every export target
+      - `docs/spec.md` §13; `docs/mcp.md`; `README.md` (subpath list); `CHANGELOG.md`
   - Test Cases to Write:
     - `authoring_operations_match_mcp_tools` (`authoring.test.ts`): same inputs give the same JSON.
     - `authoring_serializes_draft_operations`.
     - `authoring_without_mcp_sdk`.
     - `authoring_expands_outcome_scenarios`.
     - `mcp_adapter_tests_unchanged` (existing `cli-mcp.test.ts`).
+
+  - Notes (executed 2026-10-29):
+    - Added `/authoring` with `createAuthoring()`, seven typed async operations returning `Result`, an explicit host runner, optional injected capture/preview, and `close()`. Capture returns coordinates, errors, PNG bytes and nullable snapshot text. The new `PackedDraft` summary keeps emitted metadata types behind the existing `Json` alias. No host APIs, peer loading, file output or runtime authority were added.
+    - Moved argument validation, metadata filtering, the 256 KiB tree bound, error deduplication and the draft-operation queue into `src/authoring/`; `checks.ts` holds the status helper. The CLI retains schemas, SDK wiring/content mapping, configuration validation, its default worker warning and lazy capture backend. Its internal `checkAll` re-export keeps the existing MCP tests unchanged. Preview binding remains lazy, shared, retried after rejection and closed on shutdown.
+    - `renderScenarios({ outcomes: true })` expands one outcome source through `outcomeScenarios`, leaves scenarios with no outcome source unchanged, and rejects ambiguous sources or invalid seeds before rendering anything. Expanded renders use a separate surface/revision sequence; direct tests prove the preview's selected state, revision, intents and packed scenarios are preserved.
+    - Added seven direct-library tests, including JSON parity with the MCP tools, queue ordering, lazy binding/retry/close, capture bounds/errors/null snapshots, metadata policy, multibyte tree size, and import with both optional peers blocked. Added the export pin, source/compiled browser portability coverage and an installed-package Node probe. Updated spec §13, the MCP guide's in-process section, README and changelog. The generic archive export-target checks needed no source change.
+    - Verification: `bun run check` passed (821 pass, four existing skips, zero failures); `bun run release:gate` passed all eight steps, including strict consumer types and Node. Fixed the new generic arrow's TSX ambiguity caught by the source portability scanner. One earlier full run missed the unchanged CSS switch budget (19.3 ms against 16.67 ms); the final full run passed that original threshold. Refreshed graft.
+    - Performance: paired standalone `cli-mcp.test.ts` runs against an unmodified detached checkout and the implementation passed the same 32 tests / 155 assertions in 8.66 s and 7.77 s respectively, with no timing regression. Temporary comparison worktrees were removed.
 
 - [ ] Task 5: Ship the runner kit and rebuild the reference runners on it (LF-13)
   - Acceptance Criteria:

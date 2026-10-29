@@ -1,3 +1,4 @@
+import { createAuthoring } from "@arnilo/liveframe/authoring";
 import { capture, playwrightBackend } from "@arnilo/liveframe/preview/capture";
 // Gate step 7: the host-API-free subpaths run under plain Node, from another directory.
 import { readFileSync } from "node:fs";
@@ -21,7 +22,19 @@ const options = { catalog: catalog.value, capabilities: capabilities.value, surf
 const packed = pack({ files, entry: "entry.tsx", manifest: read("manifest"), scenarios: [read("scenario")] }, options);
 if (!packed.ok) throw new Error(JSON.stringify(packed.errors));
 
+const authoring = createAuthoring({
+  ...options,
+  runner: {
+    render() {
+      throw new Error("Catalog reads must not render");
+    },
+  },
+});
+const vocabulary = await authoring.listVocabulary();
+await authoring.close();
+
 const checks = {
+  "authoring.createAuthoring": vocabulary.ok && vocabulary.value.catalogId === catalog.value.catalogId,
   validateCatalog: catalog.ok,
   "sdk.primitive": jsx(primitive("text"), { text: "ok" }).type !== undefined,
   "preview/capture": typeof capture === "function" && typeof playwrightBackend === "function",

@@ -11,6 +11,8 @@ Changed:
 
 Added:
 
+- `@arnilo/liveframe/authoring` exports `createAuthoring()` with the seven typed authoring operations, an explicit host runner, injected capture and opt-in outcome checks. `liveframe mcp` adapts these operations without changing its tools (LF-15).
+
 - `@arnilo/liveframe/preview/capture` exports host-independent `capture()` and pluggable `CaptureBackend`, with an explicit `playwrightBackend(playwright)` adapter. Results contain an in-memory file map; snapshots may be absent. CLI output is preserved, and MCP accepts `AuthoringConfig.capture` (CL-05, LF-02).
 
 - `@arnilo/liveframe/sdk/gen` exposes `generate()` and `generateDefinitions()`, byte-identical to `liveframe gen` and `liveframe gen --implementations`, for host build services (LF-02).

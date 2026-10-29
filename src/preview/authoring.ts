@@ -19,7 +19,7 @@ export type PreviewSession = {
   check(): Promise<Result<readonly { scenario: string; result: Result<UiTree> }[]>>;
 };
 
-/** What `liveframe mcp` hands a host's `preview()` factory to bind its own `<Preview>` page. */
+/** What authoring hands a host's `preview()` factory to bind its own `<Preview>` page. */
 export type PreviewBinding = {
   readonly session: PreviewSession;
   /** The draft last packed successfully, for the page's manifest and scenario names. */

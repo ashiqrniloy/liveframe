@@ -138,6 +138,7 @@ Widgets are authored separately with the [SDK](docs/sdk.md), which exports `rend
 | `@arnilo/liveframe/store` | Record formats, the `Store` interface, `memoryStore()` and `loadPlacement()` |
 | `@arnilo/liveframe/store/fs` | `fileStore(dir)`, which reads and writes the file system |
 | `@arnilo/liveframe/preview` | The `Runner` interface, `inProcessRunner()` and `createPreview()` |
+| `@arnilo/liveframe/authoring` | Seven typed authoring operations without MCP; the host supplies its runner |
 | `@arnilo/liveframe/preview/capture` | Capture as bytes with a pluggable backend |
 | `@arnilo/liveframe/preview/worker` | `workerRunner()`, which needs the `Worker` global |
 | `@arnilo/liveframe/preview/react` | `<Preview>` |

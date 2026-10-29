@@ -116,6 +116,11 @@
       "liveframe:source": "./src/preview/capture/index.ts",
       "types": "./dist/preview/capture/index.d.ts",
       "default": "./dist/preview/capture/index.js"
+    },
+    "./authoring": {
+      "liveframe:source": "./src/authoring/index.ts",
+      "types": "./dist/authoring/index.d.ts",
+      "default": "./dist/authoring/index.js"
     }
   },
   "files": [

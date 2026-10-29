@@ -16,6 +16,34 @@ For a running demo host, the [demo agent walkthrough](demo-agent.md) supplies
 the CLI preview binding and HTTP install/place steps. MCP tools never perform
 those host mutations.
 
+## In-process authoring
+
+Use `@arnilo/liveframe/authoring` to call the same operations from a backend service or agent host without MCP or stdio:
+
+```ts
+import { createAuthoring } from "@arnilo/liveframe/authoring";
+
+// catalog and capabilities have already passed validateCatalog/validateCapabilities.
+// runner, preview and capture are supplied by your host.
+const authoring = createAuthoring({ catalog, capabilities, runner, preview, capture });
+try {
+  const packed = await authoring.packDraft({ files, entry, manifest, scenarios });
+  if (!packed.ok) throw new Error(JSON.stringify(packed.errors));
+  const checked = await authoring.renderScenarios();
+  const captured = await authoring.capturePreview({ widths: [360] });
+} finally {
+  await authoring.close();
+}
+```
+
+All seven methods return `Promise<Result<T>>`, with the same errors and bounds as the tools below. Their names are `listPrimitives`, `listVocabulary`, `listCapabilities`, `generatedTypes`, `packDraft`, `renderScenarios` and `capturePreview`. A single-scenario render returns a tree of at most 256 KiB; an all-scenario render returns statuses with shared errors deduplicated. Capture returns at most 12 cells, each with `scenario`, `width`, `theme`, `designSystem`, `errors`, `aria: string | null` and `png: Uint8Array`. There are no output files or base64 conversions.
+
+The runner is required and remains owned by your host. This subpath loads neither the MCP SDK nor Playwright. Capture needs both your `preview(binding)` factory and an injected `CaptureBackend`; missing configuration returns `not-found`. The factory starts lazily on the first capture, is reused after success and retried after failure. `close()` waits for queued draft operations and closes the bound page. The three draft methods share one queue; catalog reads stay concurrent. `exposeMeta` defaults to `false`, as in the CLI config.
+
+`renderScenarios({ outcomes: true })` checks all five outcomes of each scenario with one `sourceOutcome` source. Add `scenario` to select a single seed, and optionally `state` or `context` to override its render inputs. Scenarios with no outcome source are checked once; two outcome sources in one scenario return `invalid-document` at `/scenarios/<index>`, so split the seeds. Invalid expansion returns errors before any scenario renders. Expanded renders use the injected runner without changing the page's current selection, state, intents or packed package. With `outcomes: true` the result is always scenario statuses.
+
+These operations grant no store, dispatcher, resolver, installation, placement or approval authority. Keep authoring on your backend; neither reference runner is an isolation boundary.
+
 ## Install the optional peers
 
 ```sh
