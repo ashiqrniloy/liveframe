@@ -12,6 +12,8 @@ explicitly_approved_by_user: true
 
 `liveframe mcp <config-module>` is specified with six decisions. D1: the host's config binds its own `<Preview>` page to the server's session, through `preview(binding)`. D2: the command takes a host-written config module, not flags. D3: capture stays in the CLI, with no new subpath, and `AuthoringConfig` is a type-only `/preview` export. D4: the tools include a read-only `list_capabilities`, and `pack_draft`'s input schema is built from the published manifest and scenario schemas. D5: drafts are sent inline, in `session.update()`'s shape. D6: the Phase 8 Done test's layout mistake is a valid draft that is visibly wrong in the capture.
 
+> **D3 superseded (2026-10-29):** `decision-logs/2026-10-29-1244-runner-kit-capture-and-authoring-library.md` adds `/preview/capture` and `AuthoringConfig.capture?: CaptureBackend`, keeping the core host-API-free by injecting the backend. D1, D2, D4, D5 and D6 remain in force.
+
 ## Context
 
 `decision-logs/2026-10-22-0902-authoring-mcp-server-for-coding-agents.md` fixed the scope (authoring only, after v1) and `decision-logs/2026-10-22-1836-mcp-server-in-0-1-0.md` moved it into 0.1.0 with preview capture added. The preview contracts are in `decision-logs/2026-10-24-0306-phase-4-renderer-and-preview-contracts.md`, which also allows the CLI to lazily load command-specific optional peers (its decision 6). What neither record settles is how the server reaches a preview page, how a host configures it, where capture lives, and what exactly the tools take and return.

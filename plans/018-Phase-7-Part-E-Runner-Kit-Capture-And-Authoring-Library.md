@@ -26,7 +26,7 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
 
 ## Tasks
 
-- [ ] Task 1: Record the runner, capture and authoring library decisions
+- [x] Task 1: Record the runner, capture and authoring library decisions
   - Acceptance Criteria:
     - Functional: an accepted decision log settles each question, and supersedes D3 explicitly.
       - **LF-02:**
@@ -36,7 +36,7 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
       - **CL-05:**
         - the `CaptureBackend` interface: `open(url)`, `waitReady(selector)`, `cells()`, `screenshot(cell)` returning PNG bytes, and `ariaSnapshot(cell)` returning YAML or `null`;
         - the default backend's home. Recommended: `playwrightBackend(playwright)`, which takes the Playwright module the caller imported, so no library subpath does a dynamic `import()` (spec §13). The CLI keeps its lazy import;
-        - the snapshot format the backend must return (Playwright's aria-snapshot YAML, pinned to a version range), and `aria: null` recorded in `index.json`;
+        - the snapshot format the backend must return (Playwright's aria-snapshot YAML, pinned to a version range), and `snapshot: null` recorded in `index.json`;
         - `AuthoringConfig.capture?: CaptureBackend`.
       - **LF-15:**
         - `/authoring` exports `createAuthoring({ catalog, capabilities, runner, preview?, capture? })`;
@@ -47,7 +47,7 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
       - **LF-13:**
         - the subpath name (`/runner-kit`);
         - `renderModule(widgetDefault, inputs, { catalog, capabilities, manifest, surfaceId, revision, limits, maxErrors })`, synchronous, with a bounded validator cache;
-        - the linker contract: the exact header lines `pack()` emits, and `linkPackage(code, sdkSpecifier)`;
+        - the linker contract: the exact header lines `pack()` emits, and `linkPackage(code, resolve)`;
         - the bundle's build tool (`Bun.build`) and the exact self-containment rules;
         - `renderMany` on `Runner`, or documented guidance only (recommended: guidance; the host still validates each result);
         - the non-Bun isolate used in CI. Recommended: Node's `vm.SourceTextModule`, because Node is already used by the archive gate's Node probe; record Deno as the alternative.
@@ -81,7 +81,7 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
       - One log for the four library surfaces.
     - API Notes and Examples:
       ```ts
-      const result = await capture(url, { backend: playwrightBackend(await import("playwright")), maxCells: 12 });
+      const result = await capture(url, { backend: playwrightBackend(playwright), maxCells: 12 }); // { index, files }
       const authoring = createAuthoring({ catalog, capabilities, runner: clayRunner, capture: webdriverBackend });
       const tree = renderModule(widget.default, inputs, { catalog, capabilities, manifest, surfaceId, revision });
       ```
@@ -90,6 +90,14 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
       - `decision-logs/2026-10-24-2330-authoring-mcp-server-contract.md` (a "superseded by" note on D3 only)
   - Test Cases to Write:
     - None. The decision log is the record.
+  - Notes (executed 2026-10-29):
+    - Wrote `decision-logs/2026-10-29-1244-runner-kit-capture-and-authoring-library.md` with all four surfaces and the in-process memory bound, and added a D3-only "superseded" note to `decision-logs/2026-10-24-2330-authoring-mcp-server-contract.md`; D1, D2, D4, D5 and D6 stand.
+    - LF-02: `/sdk/gen` re-exports `generate()` and `generateDefinitions()`. `/preview/capture` returns `{ index, files: Map<name, Uint8Array> }` and writes nothing; `liveframe preview capture` keeps the only file-writing path, and no `writeCapture` subpath is added in 0.2.0. `CaptureError` keeps its three kinds.
+    - CL-05: `CaptureBackend.open(url)` returns a session with `waitReady`, `axes`, `cells`, `screenshot`, `ariaSnapshot` and `close`; `axes` also carries a controlled preview's `shown` scenario. The optional `backend.close?.()` lets `playwrightBackend()` reuse one Chromium instance across scenarios. `playwrightBackend(playwright)` ships from `/preview/capture` with a type-only Playwright import; the CLI keeps its lazy import. The snapshot is Playwright's default `ariaSnapshot()` YAML on the `^1.49.0` peer floor, opaque and unparsed; a missing snapshot is `snapshot: null` with no file. `AuthoringConfig.capture?` is added.
+    - LF-15: `createAuthoring({ catalog, capabilities, runner, preview?, capture?, exposeMeta? })`, with `catalog`/`capabilities` already validated and `runner` required. The seven operations return the library's `Result`; `capturePreview` returns PNG bytes and snapshot text, not files. `outcomes: true` expands a scenario only when exactly one of its sources is a `sourceOutcome` envelope; two is a typed `invalid-document`, and expanded scenarios render directly through the runner so session state is untouched. `liveframe mcp` keeps the schemas, content mapping, lazy Playwright and `workerRunner()` default.
+    - LF-13: `renderModule` is synchronous and keyed to the canonical manifest JSON in the existing 64-entry LRU shape; `linkPackage(code, resolve)` takes a resolver because one string cannot map the three SDK specifiers, rewrites only canonical header lines and rejects malformed headers with typed errors. The bundle uses `Bun.build` with `format: "esm"`, `splitting: false`, `target: "browser"`, `minify: true`, and CI uses Node 26's `linkRequests()`/`instantiate()` (its `SourceTextModule` has no `link()`), verified on Node v26.11.1. `renderMany` is docs guidance only.
+    - In-process memory: `inProcessRunner({ maxModules? })` defaults to 256, counts the loader's process-wide map, and refuses a new hash with `limit-exceeded`; loaded hashes still render.
+    - Documentation checked through Context7: Playwright `ariaSnapshot`/`screenshot`, `Bun.build`, and Node `vm.SourceTextModule`; local versions were Bun 1.4.4, Node v26.11.1 and Playwright 1.64.1. No tests were added; the log is the record.
 
 - [ ] Task 2: Export `generate()` (LF-02)
   - Acceptance Criteria:
@@ -127,9 +135,9 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
 - [ ] Task 3: Make capture a pluggable library function (CL-05, LF-02)
   - Acceptance Criteria:
     - Functional:
-      - `/preview/capture` exports `capture(url, { backend, out?, scenarios?, widths?, themes?, designSystems?, maxCells? })` and the `CaptureBackend` type.
+      - `/preview/capture` exports `capture(url, { backend, scenarios?, widths?, themes?, designSystems?, maxCells? })` and the `CaptureBackend` type. It returns `{ index, files: Map<name, Uint8Array> }`, writes nothing, and takes no `out`.
       - `playwrightBackend(playwright)` lives where Task 1 decided.
-      - A fake-page backend passes the capture tests: axis narrowing and `unknown-name`, the cell bound and `limit-exceeded`, the `data-lf-ready` wait, sanitised unique names, the `urlKey`-prefixed scenario, `index.json`, and `aria: null` recorded when the backend has none.
+      - A fake-page backend passes the capture tests: axis narrowing and `unknown-name`, the cell bound and `limit-exceeded`, the `data-lf-ready` wait, sanitised unique names, the `urlKey`-prefixed scenario, `index.json`, and `snapshot: null` recorded when the backend has none.
       - The MCP tests run with an injected backend.
       - Importing `/preview/capture` succeeds with Playwright blocked (`no-playwright` preload).
       - `liveframe preview capture` keeps its flags and output, and is rebuilt on the function.
@@ -138,7 +146,7 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
     - Code Quality:
       - The core does no file I/O and no dynamic `import()`. The portability scan covers it, or the spec's host-API list names it.
       - `CaptureError` kinds are unchanged.
-    - Security: law 1 is unchanged, because the backend sees only the app's page. A backend error is wrapped as `render-failed`, never thrown raw into MCP.
+    - Security: law 1 is unchanged, because the backend sees only the app's page. A backend error that is not a `CaptureError` is mapped to `render-failed` by the authoring/MCP adapter, never thrown raw into MCP.
   - Approach:
     - Skills to Use:
       - `safe-refactor`: extract the core from `src/cli/capture.ts` while the existing tests bracket it.
@@ -153,11 +161,11 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
       - As decided in Task 1.
     - API Notes and Examples:
       ```ts
-      export interface CaptureBackend { open(url: string): Promise<CaptureSession> }
-      export interface CaptureSession { waitReady(selector: string): Promise<void>; axes(): Promise<string | null>; cells(): Promise<CellHandle[]>; screenshot(cell: CellHandle): Promise<Uint8Array>; ariaSnapshot(cell: CellHandle): Promise<string | null>; close(): Promise<void> }
+      export interface CaptureBackend { open(url: string): Promise<CaptureSession>; close?(): Promise<void> }
+      export interface CaptureSession { waitReady(selector: string): Promise<void>; axes(): Promise<CaptureAxes | null>; cells(): Promise<readonly CaptureCell[]>; screenshot(cell: Handle): Promise<Uint8Array>; ariaSnapshot(cell: Handle): Promise<string | null>; close(): Promise<void> }
       ```
     - Files to Create/Edit:
-      - `src/preview/capture/index.ts` (new); `src/preview/capture/playwright.ts` (new, or per Task 1)
+      - `src/preview/capture/index.ts` (new); `src/preview/capture/playwright.ts` (new, exporting `playwrightBackend`)
       - `src/cli/capture.ts` (thin); `src/cli/mcp.ts`; `src/preview/authoring.ts` (`capture?`)
       - `package.json` `exports`
       - `src/__tests__/exports.test.ts`, `portability.test.ts`, `cli-mcp.test.ts` and a new `preview-capture.test.ts`
@@ -165,7 +173,7 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
       - `docs/spec.md` §7.5/§13; `docs/preview.md`; `docs/mcp.md`; `CHANGELOG.md`
   - Test Cases to Write:
     - `capture_with_fake_backend_covers_contract` (`preview-capture.test.ts`): one case per behaviour.
-    - `capture_records_null_aria`.
+    - `capture_records_null_snapshot`.
     - `capture_subpath_imports_without_playwright`.
     - `mcp_capture_with_injected_backend` (`cli-mcp.test.ts`).
     - Existing CLI capture tests pass unchanged.
@@ -219,7 +227,7 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
   - Acceptance Criteria:
     - Functional:
       - `/runner-kit` exports `renderModule` and `linkPackage`. `renderModule` is synchronous, compiles and caches the validator (bounded, LRU 64, like the runners), and calls `render()`.
-      - `linkPackage(code, sdkSpecifier)` rewrites exactly the canonical header lines `pack()` emits, and rejects code without a canonical header with a typed error.
+      - `linkPackage(code, resolve)` rewrites exactly the canonical header lines `pack()` emits, and rejects a malformed or non-canonical SDK header with a typed error (code with no SDK imports is accepted unchanged).
       - `docs/packages.md` documents the linker contract (the exact lines).
       - `inProcessRunner` and `workerRunner` are rebuilt on the kit, with identical results on the existing runner tests (`runner-in-process.test.ts`, `runner-worker.test.ts`) and on every proof scenario.
       - Batching guidance (or `renderMany`) is documented per Task 1.
@@ -241,7 +249,7 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
       - As decided in Task 1.
     - API Notes and Examples:
       ```ts
-      const linked = linkPackage(pkg.code, "sandbox:liveframe-sdk"); // Result<string>
+      const linked = linkPackage(pkg.code, (specifier) => `sandbox:${specifier}`); // Result<string>
       ```
     - Files to Create/Edit:
       - `src/runner-kit/index.ts` (new); `src/preview/in-process.ts`; `src/preview/load.ts`; `src/preview/worker/*`; `src/preview/cache.ts`
@@ -295,7 +303,7 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
 - [ ] Task 7: Bound or report the in-process runner's module memory (backlog)
   - Acceptance Criteria:
     - Functional:
-      - Per Task 1: `inProcessRunner({ maxModules? })` reports `stats().modules`, and past `maxModules` refuses a new hash with `limit-exceeded` (an already-loaded hash still renders).
+      - Per Task 1: `inProcessRunner({ maxModules? })` reports `stats().modules`, and past `maxModules` (default 256) refuses a new hash with `limit-exceeded` (an already-loaded hash still renders). The count is the loader's process-wide map.
       - The default is documented, and existing callers keep working.
       - Spec §7.5 and `docs/packages.md` replace "memory grows" with the bound.
       - The backlog entry is closed.
