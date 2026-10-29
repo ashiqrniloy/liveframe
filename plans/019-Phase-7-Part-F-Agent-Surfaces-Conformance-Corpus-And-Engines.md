@@ -127,7 +127,7 @@ This plan implements spec §7.2 and §9 (trees, ids), §10 (validation), §13 (p
     - `elements_type_and_schema_agree`.
   - Notes (executed 2026-10-29): `renderElements` reuses `render()`'s emitter through a small internal `renderPrepared`; element JSON is converted to internal SDK elements, and each carries its input pointer so emitted errors point into the JSON. Finding: a tree can carry ids from keyed fragments that have no node (the `git-status` fixture does), so element JSON gained one structural kind, `{ "kind": "fragment", key?, children }`. It has no props/style/events/variant, is in the generated schema and `Elements<Catalog>`, and the fixture script rebuilds fragment wrappers from id segments; without it, equivalent JSON could not reproduce the fixture's ids. `ephemeralManifest` lives in `/sdk`, derives its state schema from the initial value, and throws `TypeError` on `null`/non-JSON state. `generateElementsSchema` ships from `/sdk/gen` and the CLI, with `gen:check` and a fixture; the JSON-Schema fragments are rebuilt locally because importing `treeSchema` put the forbidden literal `node:` into the browser bundle. `scripts/fixtures/elements.ts` generates `src/__tests__/fixtures/elements.json` from `renderWorkloads()`. Bench: agent-home elements at 2.47 µs/node (gate 3). Docs updated in spec §7.2/§9/§13, `docs/sdk.md` and `docs/formats.md`. `bun run check`: 839 pass, 4 skip, 0 fail.
 
-- [ ] Task 3: Measure tree patches on a streaming agent surface (LF-17)
+- [x] Task 3: Measure tree patches on a streaming agent surface (LF-17)
   - Acceptance Criteria:
     - Functional:
       - `bench/streaming.bench.ts` streams N revisions of the Task 1 subject through `renderElements` → JSON → `<Surface>` arrival validation → React commit. It records the Task 1 measurements.
@@ -158,6 +158,7 @@ This plan implements spec §7.2 and §9 (trees, ids), §10 (validation), §13 (p
       - `package.json` (`bench` script, if it is added there)
   - Test Cases to Write:
     - None. The bench and evidence file are the record.
+  - Notes (executed 2026-10-29): `bench/streaming.bench.ts` streams 100 revisions of the 679-node, 50-row agent-home subject at a 10/s target through `renderElements` → whole-tree JSON → `<Surface>` in Chromium, with `bench/streaming-client.tsx` timing arrival validation and the React Profiler. Each revision changes one row's status. Results are in `plans/evidence/019-streaming-bench.md` (machine, Bun 1.4.4, Chromium 156.0.8078.4, regeneration command): median 117,985 JSON bytes, 5,099 gzip bytes, 8–11 changed leaf bytes, 1.4 ms arrival validation, 10.3 ms React commit net of validation, 12.1 ms combined, 9.90 updates/s achieved. Both pre-agreed thresholds are exceeded. `decision-logs/2026-10-29-1737-streaming-tree-patches.md` records that patches are warranted; no patch API lands in this plan. The patch-format task above Task 7 is not added here because plan 019 requires the owner's explicit approval for it.
 
 - [ ] Task 4: Ship a language-neutral conformance corpus for every format (CL-06)
   - Acceptance Criteria:

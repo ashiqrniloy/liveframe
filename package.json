@@ -141,7 +141,7 @@
   },
   "scripts": {
     "build": "bun scripts/build.ts",
-    "bench": "bun --conditions liveframe:source bench/validator.bench.ts && bun --conditions liveframe:source bench/render.bench.ts && bun --conditions liveframe:source bench/css.bench.ts",
+    "bench": "bun --conditions liveframe:source bench/validator.bench.ts && bun --conditions liveframe:source bench/render.bench.ts && bun --conditions liveframe:source bench/css.bench.ts && bun --conditions liveframe:source bench/streaming.bench.ts",
     "proof": "bun proof/host/server.ts",
     "test": "bun test --conditions liveframe:source src proof",
     "typecheck": "tsc --noEmit && tsc --noEmit -p proof",
