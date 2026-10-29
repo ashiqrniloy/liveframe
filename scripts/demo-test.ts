@@ -31,6 +31,8 @@ await rename(join(pack, tarball), join(pack, "arnilo-liveframe.tgz"));
 // A repacked tarball keeps its path, so drop the lockfile and the installed copy to avoid a stale install.
 // --no-save installs the packed archive itself; the demo's dependency stays the registry version.
 await rm(join(demo, "bun.lock"), { force: true });
+// Install the other dependencies first: on a clean checkout, `bun add` alone resolves the registry copy of the package over the tarball.
+run(["bun", "install"], demo);
 await rm(join(demo, "node_modules/@arnilo"), { recursive: true, force: true });
 run(["bun", "add", "--no-save", `file:${join(pack, "arnilo-liveframe.tgz")}`], demo);
 run(["bun", "run", "typecheck"], demo);
