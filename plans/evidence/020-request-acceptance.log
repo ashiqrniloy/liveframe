@@ -1,0 +1,367 @@
+bun test v1.4.4 (38afee6c8)
+
+evidence/013-task-12/probes.test.ts:
+
+evidence/013-task-12/worker-default.test.ts:
+
+proof/tests/runtime.test.ts:
+
+proof/tests/runtime-jsx.test.tsx:
+
+proof/tests/projection.test.ts:
+
+proof/tests/renderer.test.tsx:
+
+proof/tests/renderer-browser.test.tsx:
+
+proof/tests/agent-home.test.ts:
+
+proof/tests/agent-home-browser.test.ts:
+
+proof/tests/core-queue.test.ts:
+
+proof/tests/core-queue-browser.test.ts:
+
+proof/tests/packages.test.ts:
+(pass) host_rechecks_intents_against_manifest_and_capabilities [11.26ms]
+
+proof/tests/switch.test.ts:
+
+proof/tests/preview-browser.test.ts:
+
+proof/tests/preview-agent-loop.test.ts:
+
+proof/tests/conformance.test.ts:
+
+proof/tests/conformance-browser.test.ts:
+
+proof/tests/preview-attach.test.ts:
+
+proof/tests/mcp-agent-loop.test.ts:
+liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).
+agent loop: 2487 ms
+(pass) scripted_agent_writes_fixes_and_lays_out_a_widget_through_mcp_tools_only [2487.14ms]
+
+proof/tests/mcp-capture.test.ts:
+
+proof/tests/preview-capture.test.ts:
+(pass) flags_narrow_the_cells [16010.17ms]
+(pass) gen_runs_without_playwright [17.36ms]
+
+proof/tests/catalog.test.ts:
+(pass) definitions_admit_no_colour_or_raw_style_props [1.29ms]
+
+proof/tests/clay.test.ts:
+
+proof/tests/host.test.ts:
+(pass) dispatch_rechecks_state_actions_current_tree_and_revision [7.01ms]
+(pass) browser_hydrates_posts_intents_logs_actions_and_switches_styles [718.03ms]
+(pass) queued_intent_keeps_its_origin_and_is_rejected_after_a_revision_change [438.05ms]
+
+proof/tests/styles.test.ts:
+
+proof/tests/clay-browser.test.ts:
+
+src/__tests__/index.test.ts:
+
+src/__tests__/schema.test.ts:
+(pass) min_length_counts_code_points [32.57ms]
+(pass) minimum_keywords_are_bounded_integers [0.10ms]
+
+src/__tests__/resolve.test.ts:
+(pass) alpha_modifier_validates [91.07ms]
+(pass) none_accepted_on_colour_properties_only [61.86ms]
+
+src/__tests__/tree.test.ts:
+
+src/__tests__/compiled-schema.test.ts:
+
+src/__tests__/validator-smoke.test.ts:
+
+src/__tests__/validator-rules.test.ts:
+(pass) bind_number_into_string_fails [0.47ms]
+(pass) min and max height > min_max_height_validate_and_project [0.21ms]
+(pass) min and max height > max_height_rejects_undeclared [0.05ms]
+
+src/__tests__/sdk-jsx.test.tsx:
+
+src/__tests__/sdk-types.test.tsx:
+
+src/__tests__/sdk-render.test.tsx:
+
+src/__tests__/sdk-gen.test.ts:
+(pass) sdk_gen_subpath_matches_cli_output [34.73ms]
+
+src/__tests__/sdk-gen-types.test.tsx:
+
+src/__tests__/sdk-proof-widgets.test.ts:
+(pass) capabilities_for_equivalence_on_proof_manifests: agent-home [25.00ms]
+(pass) capabilities_for_equivalence_on_proof_manifests: core-queue [28.95ms]
+(pass) capabilities_for_equivalence_on_proof_manifests: git-status [4.17ms]
+(pass) capabilities_for_equivalence_on_proof_manifests: rack-module [4.36ms]
+(pass) capabilities_for_equivalence_on_proof_manifests: harness [4.06ms]
+
+src/__tests__/sdk-smoke.test.ts:
+
+src/__tests__/sdk-guide.test.ts:
+
+src/__tests__/errors.test.ts:
+
+src/__tests__/pack-bundle.test.ts:
+
+src/__tests__/store-memory.test.ts:
+
+src/__tests__/runner-worker.test.ts:
+
+src/__tests__/phase-2-loop.test.ts:
+
+src/__tests__/css-style-props.test.ts:
+
+src/__tests__/react-registry.test.tsx:
+
+src/__tests__/react-surface.test.tsx:
+(pass) host_class_appended_scope_survives [1.70ms]
+(pass) invalid_tree_renders_only_the_fallback [1.42ms]
+
+src/__tests__/react-browser.test.tsx:
+(pass) confirmation_is_single_flight_preserves_origin_and_drops_after_unmount [317.72ms]
+(pass) unconfirmed_action_never_reaches_on_intent_and_confirm_throw_raises_nothing [801.54ms]
+(pass) form_submit_carries_all_fields [213.57ms]
+(pass) portal_overlay_keeps_surface_scope [424.70ms]
+(pass) portal_takes_no_grid_track_and_overlay_responsive_value_tracks_viewport [428.25ms]
+(pass) switch_runs_the_switching_sequence_on_root_and_portal [443.63ms]
+(pass) reduced_transparency_prop_in_portal [408.12ms]
+(pass) transparency_switch_suppresses_transitions [433.48ms]
+Surface two-surface switch with blur: {"cold":8,"samples":[7.400000035762787,7.200000047683716,6.800000011920929,6.800000011920929,6.599999964237213,7,6.699999988079071,6.700000047683716,6.600000023841858,8],"nodes":686}
+(pass) switch_under_budget_with_blur_through_surface [942.77ms]
+(pass) status_region_survives_text_change [160.86ms]
+
+src/__tests__/react-intents.test.tsx:
+(pass) events_metadata_reaches_nested_and_collection_nodes [1.89ms]
+(pass) emit_rejects_nan_infinity_and_fraction_for_integer [3.43ms]
+(pass) wrong_carries_type_throws_and_raises_nothing [3.35ms]
+(pass) origin_for_nested_and_collection_nodes [1.12ms]
+
+src/__tests__/react-ssr.test.tsx:
+
+src/__tests__/renderer-guide.test.tsx:
+
+src/__tests__/preview-session.test.ts:
+(pass) preview_intent_rejects_out_of_range_number [8.07ms]
+(pass) session_rejects_unoffered_and_stale_intents_without_mutation [7.17ms]
+(pass) preview_rechecks_bind_all_args [7.06ms]
+(pass) preview_checks_generated_outcomes [5.04ms]
+
+src/__tests__/preview-react.test.tsx:
+(pass) controlled_preview_leaves_location_unchanged [209.25ms]
+(pass) two_previews_with_url_keys_are_independent [201.00ms]
+(pass) first_result_never_relabelled [145.04ms]
+(pass) capture_with_url_key [422.06ms]
+
+src/__tests__/catalog.test.ts:
+
+src/__tests__/css-scope-browser.test.ts:
+
+src/__tests__/pack.test.ts:
+(pass) verify_rechecks_manifest_and_scenarios [14.80ms]
+
+src/__tests__/package-format.test.ts:
+(pass) package_boundaries_and_transport_semantics [15.05ms]
+
+src/__tests__/preview-load.test.ts:
+
+src/__tests__/proof-formats.test.ts:
+(pass) proof_vocabulary_has_no_alpha_roles [14.56ms]
+(pass) no_colour_literals_outside_themes [3.04ms]
+
+src/__tests__/react-types.test.tsx:
+
+src/__tests__/runner-in-process.test.ts:
+
+src/__tests__/theme.test.ts:
+
+src/__tests__/validator-tree.test.ts:
+
+src/__tests__/vocabulary.test.ts:
+(pass) semantics_lists_live_regions [0.11ms]
+(pass) vocabulary_rejects_role_named_none [17.38ms]
+
+src/__tests__/preview-guide.test.ts:
+
+src/__tests__/sdk-inputs.test.tsx:
+
+src/__tests__/conformance-catalog.test.ts:
+
+src/__tests__/conformance-design-system.test.ts:
+
+src/__tests__/conformance-renderer.test.tsx:
+(pass) conformance_numeric_fixture [10.45ms]
+(pass) conformance_semantics_fixtures_render [9.43ms]
+
+src/__tests__/conformance-renderer-browser.test.tsx:
+(pass) conformance_form_fixture [2186.96ms]
+
+src/__tests__/conformance-guide.test.ts:
+
+src/__tests__/mcp-guide.test.ts:
+
+src/__tests__/validator-node.test.ts:
+
+src/__tests__/conformance-store.test.ts:
+(pass) store_suite_catches_scope_leaks_and_incomplete_deletion [2.31ms]
+(pass) store_suite_wraps_adapter_errors_and_bounds_details [0.10ms]
+
+src/__tests__/store-file.test.ts:
+(pass) file_store_reads_0_1_0_directory [6.85ms]
+
+src/__tests__/store-load.test.ts:
+(pass) load_placement_explicit_state_resets_like_stored [2.92ms]
+(pass) verify_placement_inputs_matches_load_placement [3.90ms]
+
+src/__tests__/readme-guide.test.tsx:
+
+src/__tests__/docs-links.test.ts:
+
+src/__tests__/archive.test.ts:
+(pass) published_manifest_has_no_source_condition [1.02ms]
+(pass) archive_gate_rejects_a_packed_missing_condition [21.80ms]
+
+src/__tests__/docs-wording.test.ts:
+(pass) wording_check_matches_export_names_in_the_same_sentence [0.19ms]
+(pass) shipped_docs_never_call_exports_planned [3.31ms]
+
+src/__tests__/nullable.test.ts:
+(pass) published_schema_nullable_roundtrip [61.78ms]
+
+src/__tests__/union.test.ts:
+(pass) union_rejects_malformed_mapping [0.53ms]
+(pass) union_unknown_tag_fails_at_tag_pointer [0.28ms]
+(pass) published_union_matches_compiled [53.14ms]
+
+src/__tests__/outcome.test.ts:
+(pass) source_outcome_is_language_schema [23.04ms]
+(pass) outcome_scenarios_one_per_status [0.77ms]
+
+src/__tests__/cli-mcp.test.ts:
+(pass) oversized_tree_is_refused_with_a_typed_error [192.49ms]
+(pass) mcp_capture_with_injected_backend [198.11ms]
+
+src/__tests__/manifest.test.ts:
+(pass) widget_schema_accepts_min_length_rejects_pattern [27.93ms]
+(pass) min_above_max_is_rejected [0.70ms]
+(pass) manifest_description_bounded [0.46ms]
+(pass) meta_depth_and_bytes_bounded [1.28ms]
+(pass) capability_meta_bounded [0.32ms]
+(pass) published_manifest_schema_accepts_meta [40.35ms]
+
+src/__tests__/pack-hash.test.ts:
+(pass) meta_changes_hash [4.85ms]
+
+src/__tests__/schemas.test.ts:
+(pass) published_schemas_match_sources [159.94ms]
+(pass) irreversible_in_capabilities_schema [0.97ms]
+(pass) meta_schema_agrees_with_language_forms [1.75ms]
+
+src/__tests__/object-events.test.tsx:
+(pass) bind_all_schema_mismatch_fails_with_pointer [6.03ms]
+(pass) emit_rejects_invalid_object_and_completes_fresh_intents [2.40ms]
+
+src/__tests__/capabilities-for.test.ts:
+
+src/__tests__/contrast.test.ts:
+(pass) converts_every_dtcg_space_to_luminance [0.37ms]
+(pass) wide_gamut_srgb_clipping_reference_values [0.08ms]
+(pass) pair_below_minimum_fails_with_ratio [0.79ms]
+(pass) pair_above_maximum_fails_and_thresholds_compare_unrounded_ratios [1.26ms]
+(pass) ordering_violation_names_both_pairs [0.53ms]
+(pass) composites_alpha_before_ratio [0.29ms]
+(pass) translucent_background_requires_opaque_declared_base [0.92ms]
+(pass) vocabulary_without_contrast_unchanged [0.27ms]
+
+src/__tests__/css-design-system.test.ts:
+(pass) alpha_projection_byte_stable [10.14ms]
+(pass) forced_colours_only_restore_differing_states_and_background_edges [115.51ms]
+(pass) none_clears_rest_background_byte_stable [24.08ms]
+(pass) attribute_recovers_alpha_modifiers_like_the_media_query [14.53ms]
+
+src/__tests__/css-browser.test.ts:
+(pass) scroll_max_height_scrolls [60.63ms]
+(pass) alpha_reduced_transparency_and_forced_colours [84.36ms]
+(pass) switching_suppresses_transitions [68.19ms]
+
+src/__tests__/design-system.test.ts:
+
+src/__tests__/conformance-states.test.ts:
+
+src/__tests__/css-theme.test.ts:
+(pass) base_sheet_has_transparency_attribute_rule_once [0.94ms]
+(pass) colour_authority_holds [54.62ms]
+
+src/__tests__/offered.test.ts:
+(pass) check_offered_rejects_each_forgery [0.37ms]
+
+src/__tests__/preview-capture.test.ts:
+(pass) capture_with_fake_backend_covers_contract [0.56ms]
+(pass) capture_records_null_snapshot [0.13ms]
+(pass) capture_subpath_imports_without_playwright [8.41ms]
+
+src/__tests__/authoring.test.ts:
+(pass) authoring_operations_match_mcp_tools [28.83ms]
+(pass) authoring_serializes_draft_operations_and_binds_lazily [36.01ms]
+(pass) authoring_expands_outcome_scenarios_without_changing_preview_selection [9.41ms]
+(pass) authoring_without_mcp_sdk [38.35ms]
+(pass) authoring_results_match_mcp_json [257.54ms]
+
+src/__tests__/exports.test.ts:
+(pass) exports_list_sdk_gen [0.06ms]
+
+src/__tests__/portability.test.ts:
+(pass) compiled_output_is_host_api_free [13.38ms]
+
+src/__tests__/runner-kit.test.ts:
+(pass) link_package_rewrites_only_canonical_header [0.13ms]
+(pass) link_package_rejects_missing_header [0.13ms]
+(pass) render_module_matches_render [83.69ms]
+
+src/__tests__/runner-bundle.test.ts:
+(pass) bundle_is_self_contained [19.71ms]
+runner kit bundle rendered under node v26.11.1
+(pass) bundle_renders_under_node_vm [115.82ms]
+
+src/__tests__/sdk-elements.test.ts:
+(pass) render_elements_matches_render_for_fixtures [36.19ms]
+(pass) render_elements_error_pointers_into_json [0.48ms]
+(pass) elements_schema_deterministic_and_drift_checked [88.51ms]
+
+src/__tests__/corpus.test.ts:
+(pass) corpus_cases_match_validators [19.56ms]
+(pass) corpus_covers_every_validator_error_kind [28.84ms]
+
+src/__tests__/hash-vectors.test.ts:
+(pass) hash_vectors_match [1.70ms]
+(pass) hash_vectors_include_rfc8785_appendix_b [0.62ms]
+(pass) rejected_inputs_rejected [0.33ms]
+
+src/__tests__/preloads.test.ts:
+
+src/__tests__/migration-guide.test.ts:
+
+examples/demo-host/tests/state.test.ts:
+
+examples/demo-host/tests/public-exports.test.ts:
+
+examples/demo-host/tests/intents.test.ts:
+
+examples/demo-host/tests/dialog.test.ts:
+
+examples/demo-host/tests/conformance.test.ts:
+
+examples/demo-host/tests/conformance-browser.test.ts:
+
+examples/demo-host/tests/preview.test.ts:
+
+ 124 pass
+ 786 filtered out
+ 0 fail
+ 16945 expect() calls
+Ran 124 tests across 116 files. [31.74s]
