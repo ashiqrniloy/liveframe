@@ -7,9 +7,10 @@ import {
   rendererSuite,
 } from "@arnilo/liveframe/conformance/react";
 import { memoryStore } from "@arnilo/liveframe/store";
-import { chromium, type Page } from "playwright";
+import type { Page } from "playwright";
 import { capabilities, catalog, examples, manifest } from "./fixtures/conformance/index.ts";
 import { fixtures, examples as hydrationExamples, pageOptions } from "./fixtures/conformance-browser.tsx";
+import { launchBrowser } from "./fixtures/browser.ts";
 import { browserHost } from "./fixtures/conformance-browser-host.ts";
 
 const styles = { ...pageOptions, sheets: ["button { display: inline-flex }"] };
@@ -60,7 +61,7 @@ function rendererCases(
 
 test("conformance_guide_renderer_examples_run", async () => {
   const server = await browserHost(new URL("./fixtures/conformance-guide-client.ts", import.meta.url).pathname);
-  const browser = await chromium.launch();
+  const browser = await launchBrowser();
   try {
     const cases = rendererCases(
       pageOptions,

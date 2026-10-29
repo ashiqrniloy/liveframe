@@ -76,6 +76,19 @@ surrogate, so a value position may hold the tagged escape
 as four uppercase hex digits. A literal `$liveframe` key is therefore not
 representable in a vector.
 
+## Browser engines
+
+The library's browser tests default to Chromium. Set
+`LIVEFRAME_BROWSER=firefox` or `LIVEFRAME_BROWSER=webkit` to run the same suites
+in another Playwright engine; CI runs Chromium through the normal check and both
+others explicitly. The styling suite records two headless limitations:
+Playwright WebKit 27.2 on Linux reports forced colours but does not apply them,
+so forced-colour-only checks are skipped there; headless WebKit and Firefox do
+not paint `backdrop-filter` in screenshots, so its pixel comparison is
+Chromium-only while all three assert the computed style. See
+[`plans/evidence/019-engines.md`](https://github.com/ashiqrniloy/liveframe/blob/main/plans/evidence/019-engines.md)
+for versions, commands and results.
+
 **Passing these suites does not prove isolation or authorization** (spec §14).
 Reference runners are not sandboxes. The backend still resolves data as the
 viewer, checks completed intents and revisions, and decides whether to execute

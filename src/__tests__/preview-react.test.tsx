@@ -3,11 +3,12 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Preview } from "@arnilo/liveframe/preview/react";
-import { type Browser, chromium } from "playwright";
+import type { Browser } from "playwright";
 import { renderToString } from "react-dom/server";
 import { baseCss, designSystemCss } from "../css/index.ts";
 import { validateDesignSystem } from "../index.ts";
 import { capture } from "../cli/capture.ts";
+import { launchBrowser } from "./fixtures/browser.ts";
 import designSystem from "./fixtures/proof/certified.design-system.json" with { type: "json" };
 import { catalog, identity, renderer, surfaceProps, tree } from "./fixtures/react-surface.tsx";
 
@@ -70,7 +71,7 @@ beforeAll(async () => {
             },
           ),
   });
-  browser = await chromium.launch({ headless: true });
+  browser = await launchBrowser();
 });
 afterAll(async () => {
   await browser?.close();

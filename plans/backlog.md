@@ -254,9 +254,10 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Section: Conformance portability (spec §13)
 - Priority: P3
 - Source: plans/010-Phase-5-Conformance-Kit.md Task 10 (F2), plans/evidence/010-impact-analysis.md
-- Status: owner-approved backlog 2026-10-25.
-- What: smoke-test registrations in Vitest/Jest using Bun as tool runner and run adopter-relevant Firefox/WebKit coverage. Keep Bun/Chromium as the current evidence limit until executed.
-- Why: runner-independent signatures and Chromium execution do not establish compatibility with other runners or browsers.
+- Status: narrowed 2026-10-29 in plan 019 Task 6. WebKit and Firefox coverage is done; Vitest/Jest registration remains because both blocked-peer preloads need Bun's `mock.module`.
+- What: smoke-test registrations in Vitest/Jest using Bun as tool runner. Firefox/WebKit coverage is done; keep Bun as the only runner until a Vitest/Jest registration and its preload replacement are executed.
+- Why: runner-independent signatures and Chromium execution do not establish compatibility with other runners. Browser compatibility is now covered; runner compatibility is not.
+- Done (2026-10-29): `LIVEFRAME_BROWSER=webkit` and `LIVEFRAME_BROWSER=firefox` run all six browser test files. Chromium 156, Firefox 157 and Playwright WebKit 27.2 pass; CI installs all three. `preloads_are_effective` re-proves both blocked-peer preloads under the only runner used, Bun. WebKit forced-colour emulation and headless backdrop screenshots are recorded limitations in `docs/styling.md` and `plans/evidence/019-engines.md`.
 - Note (2026-10-25, plan 012 Task 15 F4): both peer-blocking preloads (`src/__tests__/fixtures/no-playwright.ts`, `no-mcp-sdk.ts`) use Bun's `mock.module`, so moving the suite to another runner silently makes them decorative again — the exact defect plan 012 Task 13 fixed (D6). Whatever registration is verified must also re-prove that the two blocked-peer tests fail without their preloads.
 
 ## Prove the demo conforms through the installed package

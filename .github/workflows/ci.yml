@@ -22,8 +22,12 @@ jobs:
           node-version: 26
           package-manager-cache: false
       - run: bun install --frozen-lockfile
-      - run: bunx playwright install --with-deps chromium
+      - run: bunx playwright install --with-deps chromium webkit firefox
       - run: bun run check
+      - name: Browser suites (WebKit)
+        run: LIVEFRAME_BROWSER=webkit bun run test
+      - name: Browser suites (Firefox)
+        run: LIVEFRAME_BROWSER=firefox bun run test
       - run: bun scripts/release/archive-gate.ts
       - name: Browsers for the playwright floor
         run: bunx playwright@1.49.0 install --with-deps chromium chromium-headless-shell

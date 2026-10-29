@@ -236,7 +236,7 @@ This plan implements spec §7.2 and §9 (trees, ids), §10 (validation), §13 (p
     - `rejected_inputs_rejected`.
   - Notes (executed 2026-10-29): `conformance/hash/` now holds 45 vectors: RFC 8785 Appendix B's 24 finite rows, 6 explicit number edges, 4 escape/non-BMP string cases, 3 UTF-16 key-ordering cases and 8 rejected inputs. Rejected values use the decision log's `$liveframe` tagged escape for lone surrogates and non-finite numbers; `-0` is written literally so it survives JSON parsing. `src/__tests__/hash-vectors.test.ts` decodes the tags, compares `canonicalJson` byte-for-byte, hashes the UTF-8 text and checks every rejected value throws `TypeError`; the Appendix B test pins all 24 canonical rows and the parsed `-0`. `docs/packages.md`, `docs/conformance.md`, `docs/compatibility.md` and spec §13 describe the vectors. The archive gate's corpus check became a shared conformance check and gained a `hash vectors packed` step; `bun run release:gate` passes all 11 steps.
 
-- [ ] Task 6: Verify the conformance suites in WebKit, Firefox and another runner (backlog)
+- [x] Task 6: Verify the conformance suites in WebKit, Firefox and another runner (backlog)
   - Acceptance Criteria:
     - Functional:
       - `rendererBrowserSuite` and the library's browser tests run under Playwright WebKit and Firefox, in CI and locally on Linux. That covers the platform floor: `@starting-style`, `:user-invalid`, `font-size-adjust`, container queries, `:popover-open` and `backdrop-filter`.
@@ -271,6 +271,7 @@ This plan implements spec §7.2 and §9 (trees, ids), §10 (validation), §13 (p
   - Test Cases to Write:
     - The existing browser suites, parameterised by engine.
     - `preloads_are_effective` (re-proof): the preload tests fail without their preloads.
+  - Notes (executed 2026-10-29): all six browser test files now launch through `src/__tests__/fixtures/browser.ts`, selected by `LIVEFRAME_BROWSER` (Chromium default, Firefox, WebKit). `platform_floor_features_compute` adds cross-engine proof for `@starting-style`, container queries, `:user-invalid`, `:popover-open`, `backdrop-filter`, `font-size-adjust`, `color-mix()` and `text-wrap: balance`. The browser suites pass: Chromium 115/115, Firefox 115/115, WebKit 110 pass and 5 forced-colour skips. Full `bun run test`: Chromium 846 pass and 4 existing skips, Firefox 846 pass and 4 existing skips, WebKit 841 pass and 9 skips (4 existing plus 5 forced-colour cases). Two recorded engine limitations are in `docs/styling.md` and `plans/evidence/019-engines.md`: Playwright WebKit 27.2 on Linux reports forced colours without applying UA mapping, so forced-colour-only cases are skipped there, and headless WebKit/Firefox compute but do not paint `backdrop-filter`, so the pixel diff stays Chromium-only. CI installs all three engines and runs the WebKit and Firefox suites. `src/__tests__/preloads.test.ts` re-proves both `mock.module` preloads; the other-runner backlog entry is narrowed to Vitest/Jest because Task 1's `mock.module` reason still holds. Browser suite timings: Chromium 77 s, Firefox 123 s, WebKit 86 s.
 
 - [ ] Task 7: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:

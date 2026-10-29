@@ -1,18 +1,19 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
-import { type Browser, chromium } from "playwright";
+import type { Browser } from "playwright";
 import { renderToString } from "react-dom/server";
 import { ConformanceFailure } from "../conformance/index.ts";
 import { type BrowserFixtures, rendererBrowserSuite } from "../conformance/react/index.ts";
 import { compileValidator } from "../index.ts";
 import { createRenderer } from "../react/index.ts";
 import { examples, fixtures, overlayFixtures, pageOptions, textFixtures } from "./fixtures/conformance-browser.tsx";
+import { launchBrowser } from "./fixtures/browser.ts";
 import { browserHost } from "./fixtures/conformance-browser-host.ts";
 
 let server: Awaited<ReturnType<typeof browserHost>>;
 let browser: Browser;
 beforeAll(async () => {
   server = await browserHost(new URL("./fixtures/conformance-client.tsx", import.meta.url).pathname);
-  browser = await chromium.launch();
+  browser = await launchBrowser();
 }, 30000);
 afterAll(async () => {
   await browser?.close();
@@ -151,7 +152,7 @@ test("missing_browser_fixtures_fail_with_the_named_rule", async () => {
     url: server.url.href,
   })[0];
   await expect(c?.run()).rejects.toMatchObject({ rule: "every_example_hydrates_without_mismatch" });
-});
+}, 30000);
 
 test("hydration_can_be_followed_by_updates_without_remounting", async () => {
   const { Surface } = createRenderer(pageOptions);

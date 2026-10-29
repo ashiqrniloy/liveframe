@@ -214,6 +214,17 @@ Forced-colours mode keeps `forced-color-adjust: auto` and adds OS
 system-colour state cues and outlines for background-only edges and fill shapes.
 Real Windows and assistive-technology auditing remains an open manual gate.
 
+The browser suite runs in Chromium, Firefox and Playwright WebKit. Two
+headless-engine limitations are recorded rather than treated as library
+defects: Playwright WebKit 27.2 on Linux reports `(forced-colors: active)` but
+does not apply the UA forced-colour mapping, so its forced-colour-only checks
+are skipped; Chromium and Firefox prove those rules. Headless WebKit and Firefox accept `backdrop-filter` and
+report its computed value, but do not paint it in screenshots, so the pixel
+comparison runs in Chromium and the computed-style check runs in all three.
+`scrollbar-color`, `::placeholder`, `color-mix()`, reduced-transparency recovery,
+container queries, `:user-invalid`, `:popover-open`, `@starting-style`,
+`font-size-adjust` and `text-wrap: balance` are checked in all three.
+
 The host chooses light, dark and high-contrast themes, including any response
 to `prefers-color-scheme` or `prefers-contrast`. Each theme sheet sets its own
 `color-scheme`, which also styles native controls and scrollbars.
