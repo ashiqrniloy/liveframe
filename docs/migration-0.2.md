@@ -77,7 +77,14 @@ Two behaviours do change without breaking an interface, so check them if you rel
 - A vocabulary that declares `contrast` now fails a theme install that misses a pair's minimum, maximum or strict ordering, with `insufficient-contrast`.
 - The empty portal container still takes a layout box, as in 0.1.0. In a grid or flex parent it can claim a track or add a gap; `portalProps={{ style: { display: "contents" } }}` removes the box without detaching overlays. See [The renderer](renderer.md).
 
-## 5. Check the migration
+## 5. Keep the host's security boundaries
+
+- **`meta` grants nothing.** Treat manifest and capability annotations as untrusted input on load; they never authorise an operation. See [the security model](security.md).
+- **`confirm` is not authorisation.** The renderer's confirmation hook is a UI convenience. The host still checks its confirmation policy and authorises the authenticated user on dispatch. See [the renderer guide](renderer.md).
+- **The runner kit is not isolation.** `/runner-kit` runs inside the realm supplied by the host and does not bound time or access. Run hostile code in an isolated runner and validate every returned tree on the host. See [the security model](security.md).
+- **`checkOffered` is the host's job.** Before dispatch, call it with the current served tree, the captured origin, the completed intent and the compiled validator. Reject stale or unoffered intents, then authorise the operation; a passing check grants no authority. See [the renderer guide](renderer.md).
+
+## 6. Check the migration
 
 Run the conformance suites you already registered ([Conformance](conformance.md)). The store suite fails as soon as a store keeps 0.1.0's two-argument state methods, which is the point:
 

@@ -39,7 +39,7 @@ Tests run with `bun test --conditions liveframe:source -t '<one alternation of t
 | LF-08.1 | The metadata reaches implementations for nested and collection nodes | `events_metadata_reaches_nested_and_collection_nodes` (`react-intents.test.tsx`) |
 | LF-08.2 | With `confirm` supplied, an unconfirmed action never reaches `onIntent` | `unconfirmed_action_never_reaches_on_intent_and_confirm_throw_raises_nothing` (`react-browser.test.tsx`)<br>`confirmation_is_single_flight_preserves_origin_and_drops_after_unmount` (`react-browser.test.tsx`) |
 | LF-08.3 | The capabilities format and schema tests cover `irreversible` | `irreversible_in_capabilities_schema` (`schemas.test.ts`) |
-| LF-08.4 | The docs repeat that the host still re-checks on dispatch | `docs/renderer.md:266` ("confirmation policy and authorisation on dispatch") and `docs/security.md` § confirmation |
+| LF-08.4 | The docs repeat that the host still re-checks on dispatch | `docs/renderer.md` confirmation and host-dispatch sections ("confirmation policy and authorisation on dispatch"); reviewed in `020-release-readiness-review.md` S5 |
 | LF-09.1 | Format, schema and generated-type tests cover the new values | `semantics_lists_live_regions` (`vocabulary.test.ts`) |
 | LF-09.2 | A `status` node's text change is announced once and is not remounted | `status_region_survives_text_change` (`react-browser.test.tsx`) |
 | LF-09.3 | The conformance renderer suite gains semantics fixtures | `conformance_semantics_fixtures_render` (`conformance-renderer.test.tsx`) |

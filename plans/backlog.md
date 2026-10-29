@@ -5,6 +5,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 ## Phase 1 performance gate: 3 µs per node
 
 - Disposition: existing P1 retained by the owner on 2026-10-25 (plan 002 Task 9 carry-over F2; plans/evidence/002-impact-analysis.md).
+- Release-specific deferral (2026-10-30, plan 020 Task 8 R1): owner answered, verbatim, "Fix the migration guide omissions. Defer the webkit switching budget issue". Headless WebKit on Linux measured 18–22 ms for switching; its tests permit 25.1 ms and therefore do not prove the normative ≤16.67 ms budget. Investigate and remeasure this path under controlled conditions before claiming the budget is met; retain the 16.67 ms specification and existing Chromium gate. Evidence: `plans/evidence/019-engines.md`, `plans/evidence/020-release-readiness-review.md`; decision: `decision-logs/2026-10-30-0430-webkit-switching-budget-deferral.md`. The 0.2.0 changelog discloses the limitation; this deferral is not final release approval.
 - Section: Phase 1 (spec §10, §12)
 - Priority: P1
 - Source: plans/002-Phase-0-Parity-Re-Proof.md (G32), plans/004-Phase-1-Part-B-Compiled-Validator.md, plans/005-Phase-2-Part-A-SDK.md Task 8, plans/014-Phase-7-Part-A-Release-Scope-Packaging-And-Schema-Language.md Task 8 (F1), plans/015-Phase-7-Part-B-Events-Manifests-Capabilities-And-State.md Task 9 (F1), plans/016-Phase-7-Part-C-Styling-Paint-Alpha-Contrast-And-Native-Parts.md Task 9
