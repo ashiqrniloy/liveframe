@@ -123,11 +123,15 @@ test("loader_leaves_noncanonical_sdk_imports_bare", async () => {
       `import { loadModule } from ${JSON.stringify(new URL("../preview/load.ts", import.meta.url).href)};
 await loadModule('import { render } from "@arnilo/liveframe/sdk"; export default render;', "loader-bare-outside");`,
     );
-    const child = Bun.spawn(["timeout", "10s", process.execPath, "--conditions", "liveframe:source", script], {
-      cwd: directory,
-      stdout: "pipe",
-      stderr: "pipe",
-    });
+    // Bun's auto-install would otherwise fetch the published package and resolve the bare specifier.
+    const child = Bun.spawn(
+      ["timeout", "10s", process.execPath, "--no-install", "--conditions", "liveframe:source", script],
+      {
+        cwd: directory,
+        stdout: "pipe",
+        stderr: "pipe",
+      },
+    );
     const [stdout, stderr, exitCode] = await Promise.all([
       new Response(child.stdout).text(),
       new Response(child.stderr).text(),
