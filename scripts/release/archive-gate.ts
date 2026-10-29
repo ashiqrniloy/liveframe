@@ -7,9 +7,11 @@
  *   timeout 900s bun scripts/release/archive-gate.ts --tarball /tmp/arnilo-liveframe-0.0.0.tgz
  *   timeout 900s bun scripts/release/archive-gate.ts --package @arnilo/liveframe@next
  */
+import { readFileSync } from "node:fs";
 import { cp, mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { assertSelfContained } from "./bundle-check.ts";
 import { assertExportsPacked, stagePackage } from "./publish-manifest.ts";
 
 const root = new URL("../../", import.meta.url).pathname;
@@ -133,6 +135,13 @@ try {
           new Set(new Bun.Glob("**/*").scanSync({ cwd: directory, onlyFiles: true })),
         );
       },
+    ],
+    [
+      "runner bundle packed and self-contained",
+      () =>
+        assertSelfContained(
+          readFileSync(join(dir, "node_modules/@arnilo/liveframe/dist/runner-kit.bundle.js"), "utf8"),
+        ),
     ],
     ["pack, store, reload and render through both runners", () => run(["bun", join(fixtures, "step1-runner.ts")], dir)],
     ["worker timeout, then recovery", () => run(["bun", join(fixtures, "step2-timeout.ts")], dir)],

@@ -140,6 +140,7 @@ Widgets are authored separately with the [SDK](docs/sdk.md), which exports `rend
 | `@arnilo/liveframe/preview` | The `Runner` interface, `inProcessRunner()` and `createPreview()` |
 | `@arnilo/liveframe/authoring` | Seven typed authoring operations without MCP; the host supplies its runner |
 | `@arnilo/liveframe/runner-kit` | `renderModule()` and `linkPackage()`, the in-sandbox half of a runner |
+| `@arnilo/liveframe/runner-kit.bundle.js` | The kit, SDK and validator as one import-free ES module for isolates |
 | `@arnilo/liveframe/preview/capture` | Capture as bytes with a pluggable backend |
 | `@arnilo/liveframe/preview/worker` | `workerRunner()`, which needs the `Worker` global |
 | `@arnilo/liveframe/preview/react` | `<Preview>` |

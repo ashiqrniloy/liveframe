@@ -300,7 +300,7 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
     - Verification: `bun run check` passed (829 pass, four existing skips); `bun run release:gate` passed all eight steps. Refreshed graft.
     - Performance: three paired runs of `runner-in-process`/`runner-worker` against the stashed pre-change tree. Worker warm overhead: 3.23–3.38 ms (after) vs 3.14–3.32 ms (before). In-process warm median overhead is within ±0.05 ms of zero both ways. `bench/render.bench.ts` per-node costs match within noise. Re-validation cost on the worker host is unchanged because it still keys by hash.
 
-- [ ] Task 6: Publish a self-contained single-file runner bundle and run it outside Bun (LF-13)
+- [x] Task 6: Publish a self-contained single-file runner bundle and run it outside Bun (LF-13)
   - Acceptance Criteria:
     - Functional:
       - The build emits `dist/runner-kit.bundle.js`: SDK, validator and `renderModule`, ESM, with no dynamic `import()`, no `import.meta`, no relative or bare imports, and no `node:`/`bun:` references.
@@ -336,6 +336,16 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
     - `bundle_is_self_contained` (acorn scan).
     - `bundle_renders_under_node_vm`: tree equality with `render()`.
     - Archive gate step `runner bundle packed and self-contained`.
+
+  - Notes (executed 2026-10-29):
+    - `scripts/build.ts` now runs `Bun.build` after `tsc` on `scripts/runner-kit-bundle.ts`, which re-exports `/runner-kit`, `/sdk` and `jsxDEV`. Options: `format: "esm"`, `target: "browser"`, `splitting: false`, `minify: true`. The output is `dist/runner-kit.bundle.js`, and `package.json` `exports` names it as the string target `./runner-kit.bundle.js`. One namespace serves all three SDK specifiers, so SDK element identity is shared between the widget and the renderer. No second build tool, and `files` already covers `dist`.
+    - `scripts/release/bundle-check.ts` (`assertSelfContained`) parses with acorn and rejects import declarations, `import()`, `import.meta`, re-exports from another module and any `node:`/`bun:` string. The archive gate has a new step, `runner bundle packed and self-contained`, run on the installed bundle (the gate is now 9 steps, all passing). `archive.test.ts` `every_export_has_types_and_default` now allows the bundle as its one other bare-file export.
+    - `scripts/release/fixtures/vm-bundle.mjs` runs the bundle in a fresh `vm.createContext({})` using Node 26's `linkRequests()`/`instantiate()`: it links the packed code with the bundle's own `linkPackage`, renders through `renderModule`, and reports `typeof Bun/process/require` from inside the context. It prints `unsupported` on a Node without `linkRequests()`, and the test then skips with a message.
+    - `runner-bundle.test.ts`: `bundle_is_self_contained` (the built bundle passes; six bad inputs fail) and `bundle_renders_under_node_vm` (agent-home tree equals the SDK `render()`'s, all three globals `undefined`; logs `node v26.11.1`). It skips when `node` is absent. It needs `dist/`, which `bun run check` builds first.
+    - CI: `.github/workflows/ci.yml` installs Node 26 with `setup-node` (same pinned action as `publish.yml`), because `ubuntu-latest`'s default Node may predate `linkRequests()` and the test would skip silently.
+    - Docs: `docs/packages.md` "Embed the single-file bundle" (embedding and snapshotting), `docs/security.md`, spec §13 table, README and `CHANGELOG.md`.
+    - Performance: `dist/runner-kit.bundle.js` is 57,352 bytes, 18,744 bytes gzipped. No budget.
+    - Verification: `bun run check` passed (831 pass, four existing skips) and `bun run release:gate` passed all nine steps. One earlier full `check` run reported a single failing test after the bundle test was added; I did not capture which, and two later full runs (one `bun test`, one `bun run check`) had zero failures, so I treat it as the known timing flake from Task 4 but it is unconfirmed.
 
 - [ ] Task 7: Bound or report the in-process runner's module memory (backlog)
   - Acceptance Criteria:

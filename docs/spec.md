@@ -743,6 +743,7 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
   | `@arnilo/liveframe/preview` | The `Runner` interface, `inProcessRunner()` and `createPreview()` (§7.5), plus the type-only `PreviewSession`, `PreviewBinding` and `AuthoringConfig` |
   | `@arnilo/liveframe/authoring` | Host-API-free `createAuthoring()` with seven typed authoring operations; requires the host's runner |
   | `@arnilo/liveframe/runner-kit` | Host-API-free `renderModule()` and `linkPackage()`, the in-sandbox half of a runner (§7.5) |
+  | `@arnilo/liveframe/runner-kit.bundle.js` | The same kit with the SDK and validator as one self-contained ES module: no `import()`, `import.meta`, relative or bare imports, and no `node:`/`bun:` references (checked with `acorn` by the archive gate). One namespace serves all three SDK specifiers. Not an isolation boundary |
   | `@arnilo/liveframe/preview/capture` | Host-API-free `capture()`, `CaptureBackend` and `playwrightBackend(playwright)` (§7.5) |
   | `@arnilo/liveframe/preview/worker` | `workerRunner()`, which needs the `Worker` global |
   | `@arnilo/liveframe/preview/react` | `<Preview>`. Like `/react`, it needs the optional `react` peer |

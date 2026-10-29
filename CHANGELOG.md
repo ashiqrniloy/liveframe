@@ -13,6 +13,8 @@ Added:
 
 - `@arnilo/liveframe/runner-kit` exports `renderModule()` and a pure `linkPackage(code, resolve)` with a documented linker contract, the in-sandbox half of a host's own runner. `inProcessRunner()` and `workerRunner()` are rebuilt on it with unchanged results (LF-13).
 
+- `@arnilo/liveframe/runner-kit.bundle.js` is a self-contained ES module of the SDK, validator and runner kit for sandboxes with no module resolution. The archive gate checks that it imports nothing, and a CI test renders a packed widget with it under Node's `vm` (LF-13).
+
 - `@arnilo/liveframe/authoring` exports `createAuthoring()` with the seven typed authoring operations, an explicit host runner, injected capture and opt-in outcome checks. `liveframe mcp` adapts these operations without changing its tools (LF-15).
 
 - `@arnilo/liveframe/preview/capture` exports host-independent `capture()` and pluggable `CaptureBackend`, with an explicit `playwrightBackend(playwright)` adapter. Results contain an in-memory file map; snapshots may be absent. CLI output is preserved, and MCP accepts `AuthoringConfig.capture` (CL-05, LF-02).

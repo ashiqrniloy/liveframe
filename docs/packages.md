@@ -365,6 +365,40 @@ The kit is not an isolation boundary: it runs wherever you call it, with that
 realm's authority, and it never belongs in the browser. Isolation is your sandbox's
 job.
 
+### Embed the single-file bundle
+
+A sandbox with no module resolution (an isolate, a worker with an empty
+`node_modules`, a build service's VM) can take the kit as one file instead:
+`@arnilo/liveframe/runner-kit.bundle.js`, which is `dist/runner-kit.bundle.js` in the
+installed package. It is one minified ES module (about 57 KB, 19 KB gzipped) that
+contains the SDK, the validator, `renderModule` and `linkPackage`, and it imports
+nothing: no dynamic `import()`, no `import.meta`, no relative or bare specifier and no
+`node:` or `bun:` reference. The archive gate parses it to check that.
+
+Its one namespace answers all three SDK specifiers, so link a package's header to the
+bundle itself and load both as modules:
+
+```js
+// Node: node --experimental-vm-modules; any isolate with ES module support works alike.
+const kit = new vm.SourceTextModule(bundleText, { identifier: "kit", context });
+const linked = kit.namespace.linkPackage(pkg.code, () => "kit"); // after kit.evaluate()
+const widget = new vm.SourceTextModule(linked.value, { identifier: "widget", context });
+// Link widget's one request to kit, then evaluate. widget.namespace.default is the widget.
+kit.namespace.renderModule(widget.namespace.default, inputs, { catalog, capabilities, manifest, surfaceId, revision });
+```
+
+[`vm-bundle.mjs`](https://github.com/ashiqrniloy/liveframe/blob/main/scripts/release/fixtures/vm-bundle.mjs)
+is the complete version, run by `runner-bundle.test.ts` on Node 26 in a fresh `vm`
+context with no `process`, `require` or `Bun`, and it checks the tree against the
+SDK's `render()`.
+
+To snapshot an isolate, evaluate the bundle once, keep the module namespace, and call
+`renderModule` per render; the validator cache lives in that namespace, so a snapshot
+taken after a first render keeps the compiled validators. Pass the catalog,
+capabilities and manifest as plain JSON each time. The bundle is the same code the
+subpath ships, so it is as trusted as your sandbox makes it: it is not an isolation
+boundary, and the host validates every tree it gets back.
+
 ## Executable proof
 
 [`phase-2-loop.test.ts`](https://github.com/ashiqrniloy/liveframe/blob/main/src/__tests__/phase-2-loop.test.ts) runs this guide's
