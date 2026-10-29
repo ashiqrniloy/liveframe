@@ -1,0 +1,299 @@
+$ bun scripts/demo-test.ts
+$ bun scripts/build.ts
+bun pack v1.4.4 (38afee6c8)
+
+packed 4.87KB package.json
+packed 5.37KB CHANGELOG.md
+packed 1.1KB LICENSE
+packed 9.52KB README.md
+packed 0.95KB SECURITY.md
+packed 1.56KB dist/cli/capture.d.ts
+packed 6.1KB dist/cli/capture.js
+packed 30B dist/cli/liveframe.d.ts
+packed 4.82KB dist/cli/liveframe.js
+packed 1.1KB dist/cli/mcp.d.ts
+packed 21.94KB dist/cli/mcp.js
+packed 0.55KB dist/conformance/case.d.ts
+packed 0.55KB dist/conformance/case.js
+packed 435B dist/conformance/catalog.d.ts
+packed 3.89KB dist/conformance/catalog.js
+packed 422B dist/conformance/design-system.d.ts
+packed 6.42KB dist/conformance/design-system.js
+packed 0.64KB dist/conformance/fixture.d.ts
+packed 1.98KB dist/conformance/fixture.js
+packed 212B dist/conformance/index.d.ts
+packed 190B dist/conformance/index.js
+packed 1.0KB dist/conformance/react/browser.d.ts
+packed 12.42KB dist/conformance/react/browser.js
+packed 196B dist/conformance/react/index.d.ts
+packed 143B dist/conformance/react/index.js
+packed 1.33KB dist/conformance/react/overlays.d.ts
+packed 11.35KB dist/conformance/react/overlays.js
+packed 1.24KB dist/conformance/react/page.d.ts
+packed 5.35KB dist/conformance/react/page.js
+packed 0.81KB dist/conformance/react/server.d.ts
+packed 8.35KB dist/conformance/react/server.js
+packed 500B dist/conformance/react/states.d.ts
+packed 4.49KB dist/conformance/react/states.js
+packed 360B dist/conformance/store.d.ts
+packed 17.00KB dist/conformance/store.js
+packed 241B dist/css/base.d.ts
+packed 2.1KB dist/css/base.js
+packed 1.17KB dist/css/design-system.d.ts
+packed 9.66KB dist/css/design-system.js
+packed 0.83KB dist/css/forced-colours.d.ts
+packed 0.99KB dist/css/forced-colours.js
+packed 295B dist/css/index.d.ts
+packed 295B dist/css/index.js
+packed 487B dist/css/names.d.ts
+packed 0.86KB dist/css/names.js
+packed 434B dist/css/recipe.d.ts
+packed 4.91KB dist/css/recipe.js
+packed 0.56KB dist/css/style-props.d.ts
+packed 6.75KB dist/css/style-props.js
+packed 0.61KB dist/css/surface.d.ts
+packed 0.87KB dist/css/surface.js
+packed 307B dist/css/theme.d.ts
+packed 3.26KB dist/css/theme.js
+packed 1.46KB dist/errors.d.ts
+packed 0.99KB dist/errors.js
+packed 6.67KB dist/formats/capabilities.d.ts
+packed 8.39KB dist/formats/capabilities.js
+packed 37.66KB dist/formats/catalog.d.ts
+packed 18.61KB dist/formats/catalog.js
+packed 0.75KB dist/formats/contrast.d.ts
+packed 8.12KB dist/formats/contrast.js
+packed 72.23KB dist/formats/design-system.d.ts
+packed 14.88KB dist/formats/design-system.js
+packed 33.47KB dist/formats/dtcg.d.ts
+packed 3.88KB dist/formats/dtcg.js
+packed 275B dist/formats/events.d.ts
+packed 352B dist/formats/events.js
+packed 1.80KB dist/formats/fixed.d.ts
+packed 2.24KB dist/formats/fixed.js
+packed 434B dist/formats/json.d.ts
+packed 1.96KB dist/formats/json.js
+packed 7.80KB dist/formats/manifest.d.ts
+packed 9.49KB dist/formats/manifest.js
+packed 7.55KB dist/formats/package.d.ts
+packed 3.79KB dist/formats/package.js
+packed 7.33KB dist/formats/records.d.ts
+packed 2.1KB dist/formats/records.js
+packed 224.91KB dist/formats/registry.d.ts
+packed 4.39KB dist/formats/registry.js
+packed 11.26KB dist/formats/theme.d.ts
+packed 5.80KB dist/formats/theme.js
+packed 12.40KB dist/formats/tree.d.ts
+packed 2.52KB dist/formats/tree.js
+packed 13.77KB dist/formats/vocabulary.d.ts
+packed 7.38KB dist/formats/vocabulary.js
+packed 1.44KB dist/index.d.ts
+packed 0.94KB dist/index.js
+packed 0.54KB dist/pack/bundle.d.ts
+packed 11.67KB dist/pack/bundle.js
+packed 0.71KB dist/pack/hash.d.ts
+packed 6.22KB dist/pack/hash.js
+packed 250B dist/pack/index.d.ts
+packed 215B dist/pack/index.js
+packed 0.54KB dist/pack/outcome.d.ts
+packed 2.67KB dist/pack/outcome.js
+packed 0.52KB dist/pack/pack.d.ts
+packed 1.23KB dist/pack/pack.js
+packed 0.72KB dist/pack/verify.d.ts
+packed 2.94KB dist/pack/verify.js
+packed 2.19KB dist/preview/authoring.d.ts
+packed 11B dist/preview/authoring.js
+packed 1.17KB dist/preview/cache.d.ts
+packed 2.1KB dist/preview/cache.js
+packed 1.35KB dist/preview/in-process.d.ts
+packed 3.16KB dist/preview/in-process.js
+packed 298B dist/preview/index.d.ts
+packed 97B dist/preview/index.js
+packed 474B dist/preview/load.d.ts
+packed 1.46KB dist/preview/load.js
+packed 77B dist/preview/react/index.d.ts
+packed 40B dist/preview/react/index.js
+packed 1.70KB dist/preview/react/preview.d.ts
+packed 5.83KB dist/preview/react/preview.js
+packed 0.82KB dist/preview/runner.d.ts
+packed 11B dist/preview/runner.js
+packed 364B dist/preview/session.d.ts
+packed 6.1KB dist/preview/session.js
+packed 11B dist/preview/worker/entry.d.ts
+packed 0.62KB dist/preview/worker/entry.js
+packed 0.98KB dist/preview/worker/index.d.ts
+packed 6.26KB dist/preview/worker/index.js
+packed 0.71KB dist/preview/worker/protocol.d.ts
+packed 11B dist/preview/worker/protocol.js
+packed 1.95KB dist/react/implement.d.ts
+packed 341B dist/react/implement.js
+packed 165B dist/react/index.d.ts
+packed 107B dist/react/index.js
+packed 1.63KB dist/react/renderer.d.ts
+packed 12.24KB dist/react/renderer.js
+packed 0.80KB dist/resolve.d.ts
+packed 3.66KB dist/resolve.js
+packed 7.99KB dist/schema.d.ts
+packed 12.32KB dist/schema.js
+packed 1.30KB dist/sdk/element.d.ts
+packed 1.71KB dist/sdk/element.js
+packed 398B dist/sdk/gen.d.ts
+packed 9.50KB dist/sdk/gen.js
+packed 326B dist/sdk/index.d.ts
+packed 182B dist/sdk/index.js
+packed 1.61KB dist/sdk/intents.d.ts
+packed 3.68KB dist/sdk/intents.js
+packed 250B dist/sdk/jsx-dev-runtime.d.ts
+packed 236B dist/sdk/jsx-dev-runtime.js
+packed 0.82KB dist/sdk/jsx-runtime.d.ts
+packed 400B dist/sdk/jsx-runtime.js
+packed 0.89KB dist/sdk/render.d.ts
+packed 21.96KB dist/sdk/render.js
+packed 0.68KB dist/sdk/types.d.ts
+packed 11B dist/sdk/types.js
+packed 180B dist/store/fs/index.d.ts
+packed 5.34KB dist/store/fs/index.js
+packed 1.16KB dist/store/index.d.ts
+packed 205B dist/store/index.js
+packed 0.96KB dist/store/load.d.ts
+packed 4.16KB dist/store/load.js
+packed 159B dist/store/memory.d.ts
+packed 2.42KB dist/store/memory.js
+packed 152B dist/store/scope.d.ts
+packed 422B dist/store/scope.js
+packed 167B dist/validate/bytes.d.ts
+packed 1.20KB dist/validate/bytes.js
+packed 0.56KB dist/validate/checks.d.ts
+packed 1.18KB dist/validate/checks.js
+packed 2.11KB dist/validate/compile.d.ts
+packed 9.18KB dist/validate/compile.js
+packed 128B dist/validate/complete.d.ts
+packed 1.0KB dist/validate/complete.js
+packed 415B dist/validate/intent.d.ts
+packed 6.13KB dist/validate/intent.js
+packed 0.88KB dist/validate/offered.d.ts
+packed 5.38KB dist/validate/offered.js
+packed 396B dist/validate/schema.d.ts
+packed 7.60KB dist/validate/schema.js
+packed 3.16KB dist/validate/structure.d.ts
+packed 6.51KB dist/validate/structure.js
+packed 315B dist/validate/style.d.ts
+packed 5.36KB dist/validate/style.js
+packed 0.95KB dist/validate/tree.d.ts
+packed 11.32KB dist/validate/tree.js
+packed 6.0KB docs/compatibility.md
+packed 13.82KB docs/conformance.md
+packed 5.34KB docs/demo-agent.md
+packed 43.12KB docs/formats.md
+packed 10.97KB docs/mcp.md
+packed 20.10KB docs/model.md
+packed 18.71KB docs/packages.md
+packed 12.19KB docs/preview.md
+packed 23.50KB docs/renderer.md
+packed 14.28KB docs/sdk.md
+packed 4.51KB docs/security.md
+packed 99.40KB docs/spec.md
+packed 14.83KB docs/styling.md
+packed 10.21KB schemas/capabilities.json
+packed 20.47KB schemas/catalog.json
+packed 62.59KB schemas/design-system.json
+packed 11.20KB schemas/manifest.json
+packed 1.40KB schemas/placement.json
+packed 6.75KB schemas/schema-language.json
+packed 1.14KB schemas/style-record.json
+packed 32.91KB schemas/theme.json
+packed 4.12KB schemas/ui-tree.json
+packed 1.95KB schemas/widget-package.json
+
+/home/arn/Projects/liveframe/examples/demo-host/.pack/arnilo-liveframe-0.1.0.tgz
+
+Total files: 202
+Shasum: 1c3b1ae9b864d935043662c571c8c5394975138e
+Integrity: sha512-O27xc1d/edR+O[...]kP5WN/Cb3wQUg==
+Unpacked size: 1.38MB
+Packed size: 262.11KB
+bun add v1.4.4 (38afee6c8)
+Resolving dependencies
+Resolved, downloaded and extracted [15]
+
+installed @arnilo/liveframe@/home/arn/Projects/liveframe/examples/demo-host/.pack/arnilo-liveframe.tgz with binaries:
+ - liveframe
+
+1 package installed [1.54s]
+$ tsc --noEmit
+$ bun test --timeout 60000
+bun test v1.4.4 (38afee6c8)
+
+tests/state.test.ts:
+(pass) state_survives_restart [166.48ms]
+(pass) a_version_cannot_change_content [19.20ms]
+(pass) a_placement_needs_an_installed_widget_and_valid_params [13.99ms]
+
+tests/public-exports.test.ts:
+(pass) demo_uses_public_exports_only [12.49ms]
+
+tests/intents.test.ts:
+demo.notify: Hello from Ada
+(pass) intents_are_rechecked_before_dispatch [21.04ms]
+(pass) no_draft_code_reaches_the_page [5.65ms]
+(pass) stale_and_wrong_node_origins_are_rejected [3.40ms]
+
+tests/dialog.test.ts:
+(pass) initially_open_dialog_is_dismissable [268.85ms]
+
+tests/conformance.test.ts:
+(pass) store > store_scoped_state_is_isolated [5.88ms]
+(pass) store > store_delete_placement_removes_all_scopes [5.51ms]
+(pass) store > store_scope_bound_enforced [0.60ms]
+(pass) store > store_opens_empty_and_returns_undefined_for_missing_records [1.62ms]
+(pass) store > store_gets_a_placement_by_id [1.47ms]
+(pass) store > store_rejects_a_second_hash_with_a_typed_failure [1.03ms]
+(pass) store > store_keeps_every_valid_id [4.12ms]
+(pass) store > store_rejects_a_second_hash_for_an_existing_version [1.39ms]
+(pass) store > store_ignores_a_same_hash_put [0.80ms]
+(pass) store > store_copies_every_record_on_put_and_get [1.77ms]
+(pass) store > store_lists_placements_sorted_and_replaces_by_id [1.05ms]
+(pass) store > store_keeps_null_and_false_state_distinct_from_missing [0.45ms]
+(pass) store > store_keys_styles_by_kind_id_and_version [1.32ms]
+(pass) store > store_deletes_state_with_its_placement [1.89ms]
+(pass) store > store_records_load_through_load_placement [4.32ms]
+(pass) store > store_a_malformed_sibling_does_not_block_a_load [6.53ms]
+(pass) store > store_records_survive_reopen [1.86ms]
+(pass) catalog > catalog_installs [0.43ms]
+(pass) catalog > capabilities_install [0.05ms]
+(pass) catalog > manifest_installs_against_the_catalog [0.42ms]
+(pass) catalog > every_kind_and_variant_has_a_valid_example [1.32ms]
+(pass) catalog > breaking_changes_take_a_new_major_catalog_id [1.30ms]
+(pass) design system > every_theme_installs [1.90ms]
+(pass) design system > every_design_system_installs [5.07ms]
+(pass) design system > every_theme_and_design_system_projects [24.71ms]
+(pass) design system > app_sheets_set_no_colour [0.49ms]
+(pass) renderer > registry_check_passes [0.70ms]
+(pass) renderer > every_example_renders_on_the_server_under_every_design_system [21.21ms]
+(pass) renderer > every_node_carries_its_root_slot_class_and_style [11.35ms]
+(pass) renderer > invalid_arrival_renders_only_the_fallback [3.37ms]
+
+tests/conformance-browser.test.ts:
+(pass) renderer in the browser > every_example_hydrates_without_mismatch [463.70ms]
+(pass) renderer in the browser > invalid_arrival_shows_only_the_fallback_and_recovers [812.20ms]
+(pass) renderer in the browser > interactions_raise_one_complete_intent [1616.80ms]
+(pass) renderer in the browser > focus_scroll_and_local_state_survive_revisions [870.57ms]
+(pass) renderer in the browser > switching_keeps_nodes_and_focus_and_rerenders_nothing [1224.01ms]
+(pass) renderer in the browser > every_styled_state_is_reachable [10758.90ms]
+(pass) renderer in the browser > overlay_keeps_surface_scope [965.47ms]
+(pass) renderer in the browser > overlay_exit_finishes_before_unmount [3290.50ms]
+(pass) renderer in the browser > open_overlay_locks_scroll_and_makes_background_inert [2471.48ms]
+(pass) renderer in the browser > text_input_counts_code_points [916.03ms]
+
+tests/preview.test.ts:
+Captured 16 cells in 116 ms each
+(pass) demo_preview_captures_every_cell [1861.02ms]
+MCP capture of one cell: 665 ms
+(pass) demo_mcp_lists_seven_tools_and_captures [4872.01ms]
+(pass) preview_bundle_has_no_draft_code [4.59ms]
+(pass) preview_logs_an_action_and_never_dispatches_it [1.03ms]
+
+ 52 pass
+ 0 fail
+ 120 expect() calls
+Ran 52 tests across 7 files. [31.36s]

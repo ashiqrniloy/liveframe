@@ -96,7 +96,7 @@ registered. Log to stderr only: stdout carries the protocol.
 | `list_primitives` | `{ kinds? }` | Every definition in full, or the named kinds |
 | `list_vocabulary` | — | `{ catalogId, vocabulary }`: the id a manifest must name, then colours, surfaces, typography, tones and the `space`/`radius`/`size`/`bp` names |
 | `list_capabilities` | — | Each source's params and result schema and each action's args schema (capability `meta` only with `exposeMeta`) |
-| `generated_types` | — | The `liveframe gen` output, byte-identical |
+| `generated_types` | — | The typed component module (`liveframe gen` without `--implementations`), byte-identical |
 | `pack_draft` | `{ files, entry, manifest, scenarios }` | `{ hash, id, version, description?, scenarios }` (plus `meta` with `exposeMeta`) |
 | `render_scenarios` | `{ scenario?, state?, context? }` | One scenario's tree (at most 256 KiB), or every scenario's status and each distinct error once |
 | `capture_preview` | `{ scenarios?, widths?, themes?, designSystems? }` | Each cell's coordinates, errors, accessibility snapshot and PNG |

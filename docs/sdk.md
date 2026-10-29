@@ -26,18 +26,19 @@ bunx liveframe gen catalog.json --implementations --out ui.definitions.gen.ts
 ```
 
 `--implementations` writes literal `as const` definitions instead of the
-component module, one export per definition. Import them when a widget implements
+component module, one export per definition. Import them where the app implements
 a primitive itself: `implement()` then infers props, slots, event names and carry
 value types from the JSON catalog as it does from a hand-written
-`defineComponent`. Keep the file out of the widget bundle unless you use it; the
-generator imports no SDK and generates no implementation. `--check` drift-checks
-either mode.
+`defineComponent`. The file is app-side, never widget code (primitives are the
+app's, §11); the generator imports no SDK and generates no implementation.
+`--check` drift-checks either mode.
 
 The package installs this as the `liveframe` binary, so a project that depends on
 it can run `liveframe gen catalog.json --out ui.gen.ts [--check]` directly.
 `--check` never writes: it exits 0 for matching output and 1 for missing or changed output, reporting the
 first differing line. Invalid catalogs, JSON, usage or file operations exit 2.
-Put the check command in your CI; this repo includes it in `bun run check`.
+Put both check commands in your CI (`--check` per generated file); this repo
+includes them in `bun run check`.
 
 `liveframe gen` emits readonly tagged unions for `union(discriminator, mapping)`, including nested properties and array items. Narrow on the tag before reading a branch-specific field.
 

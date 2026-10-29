@@ -115,7 +115,8 @@ Wire the callbacks like this:
   never under another scenario's name, and the retained "last good render" map is
   keyed by it too. Return the scenario name from your render route beside the
   result, as the proof host does.
-- `onSelect(cell)` runs on mount and on every selection change. Width and style
+- `onSelect(cell)` runs on mount and on every selection change in an uncontrolled
+  preview; a controlled one calls it only for user selections. Width and style
   changes reuse the tree; fetch a new result only when `cell.scenario` changes.
 - Hand `<Preview>` a **new result object** for every completed request, and
   discard responses for scenarios the user has already left.

@@ -385,7 +385,7 @@ This plan implements spec §6.4 (preferences, switching), §7.5 (`<Preview>`, se
     - Docs: `docs/sdk.md` (mode, when to use it, drift), `docs/renderer.md` ("Write primitive implementations": generate literal definitions when inference is wanted from a JSON catalog), spec §7.2 (new bullet) and §13's CLI line, and `plans/backlog.md`, whose "Evaluate generated implementation types for JSON-loaded catalogs" entry is closed with its resolution.
     - Verification: `bun run check` passed (792 pass, 4 existing skips, 0 fail), including `gen:check` over the three generated files and `tsc --noEmit`.
 
-- [ ] Task 8: Analyze architectural impact and dispose of every finding
+- [x] Task 8: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional:
       - `plans/evidence/017-impact-analysis.md` records all 12 areas, especially area 6 (Interaction tiers) and area 3 (law 4).
@@ -410,6 +410,11 @@ This plan implements spec §6.4 (preferences, switching), §7.5 (`<Preview>`, se
       - `plans/evidence/017-impact-analysis.md` (new); `plans/backlog.md`; this plan.
   - Test Cases to Write:
     - None.
+  - Notes (executed 2026-10-29):
+    - Evidence: `plans/evidence/017-impact-analysis.md` records all 12 areas with the code, spec and decision-log references, and `plans/evidence/017-task-8/` holds the text logs (`bench-under-load.log`, `bench.log`, `check.log`, `demo-test.log`, `release-gate.log`). No code defect was found; the two subtle paths were verified directly — the compiled intent schema validates an explicit `setState` value against the manifest state schema before completion (decision-log rule 5 holds for both the explicit and implicit form), and `onIntent` has one call site, always with an intent from `complete()`.
+    - Area 6 and law 4: no tier changed; confirmation runs inside the surface before the tier-3 round trip and adds none; `confirm` and `irreversible` are independent and neither grants authority. Area 3: `wrapperProps`/`portalProps` are host-only props the renderer never reads from a tree; `origin` is derived from the accepted tree; the generated definitions module is app-side data with a type-only import; `checkOffered` fails closed on a wrong surface/revision/node/event, changed literals, mutated trees and unknown validators.
+    - Findings (all six executed after owner approval): F1 spec §8's tier-3 row said "confirms if irreversible" — reworded to "confirms per its policy" plus an §8 rule "Confirmation is UI, authorisation is the host's"; F2 `docs/preview.md` claimed `onSelect` runs on mount for controlled previews too — scoped to the uncontrolled preview; F3 `docs/sdk.md` and spec §7.2 described implementations as widget-owned — now the app's, and sdk.md tells CI to check both generated files; F4 `docs/mcp.md` called `generated_types` "the `liveframe gen` output" — now "the typed component module", with backlog P4 "Offer generated implementation definitions to MCP clients" for the absent route; F5 the bench's one failed validator gate under load is recorded on the existing P1 entry (thresholds unchanged); F6 plan 018 Task 2 now requires `/sdk/gen` to export both generator modes, byte-identical to the CLI.
+    - Verification: `bun run check` passed (792 pass, 4 existing skips, 0 fail, 121,625 expect() calls, 274 s); `bun run release:gate` passed all 8 steps in 5.1 s; `bun run demo:test` passed 52 tests in 31 s against the packed archive; the second `bun run bench` passed every gate (validator 0.887–1.436 µs/node, render 1.649–2.518 µs/node, agent-home 1.2716 ms, base sheet 1,287 B, Certified system 150,656 B, Rack system 162,804 B), with warm switching at 6.80 ms (agent-home) and 3.30 ms (git-status) inside the 16.67 ms frame budget. The first bench run's `core-queue.full` failure at 1.552 µs/node under load 4.6–4.9 is the same workload measured at 1.436 under load 3.0; the render diagnostic above 1.5 µs/node on medium/large/full is the known non-in-render subtraction. No threshold or test was changed.
 
 ## Verification (whole plan)
 - `bun run check`
@@ -418,7 +423,17 @@ This plan implements spec §6.4 (preferences, switching), §7.5 (`<Preview>`, se
 - `bun run release:gate`
 
 ## Compromises Made
-- To be filled after tasks are completed and tests pass.
+- `<Surface confirm>` is a renderer convenience, not authority: without the hook, or with `irreversible` alone, emission is unchanged and every host still authorises on dispatch (§8, §11).
+- `checkOffered` caches per immutable tree object, so a mutated tree is unsupported by contract; replace tree objects instead of editing them.
+- The reduced-transparency attribute forcing is descendant-wide inside the scope (`*` with `!important`), so it also overrides host-authored descendant declarations under that surface. That is what "for a scope" means, and it is the only way to recover backdrops and alpha modifiers written by recipe rules.
+- The design-system sheet emits the recovery block twice per system (media query plus attribute scope) for slots that use a modifier only, which is most of the Certified and Rack sheets: +3,718 B and +6,882 B. Keeping one block would need a selector list the attribute scope cannot share with the media query.
+- `events` metadata reports `confirm` and `irreversible` only; a primitive that needs more host context must not learn it from the renderer.
+- The generated definitions module is a second output of the same generator, not a runtime module: an app that wants inference imports it, and widgets keep importing only the typed component module.
+- `/sdk/gen` still exports nothing in 0.2.0; plan 018 Task 2 exports both generator modes.
+- The validator bench is load-sensitive on this VM: one run failed `core-queue.full` at 1.552 µs/node and the same code passed at 1.436 on a quieter machine state. No threshold changed.
 
 ## Further Actions
-- To be filled after task completion with improvements, rationale, and priority.
+- Plan 018 Task 2: export both generator modes from `/sdk/gen`, byte-identical to the CLI (F6, amended). Priority: with that plan.
+- Backlog P4: offer the generated implementation definitions to MCP clients (`generated_types` returns the component module only) (F4).
+- Backlog P1 (existing): the validator and render timing investigation gains this plan's load-sensitive numbers; thresholds and tests unchanged (F5).
+- Plan 019 Task 6: the browser verification inherits the transparency attribute test only through the library suite; a cross-browser reduced-transparency proof is not added here.

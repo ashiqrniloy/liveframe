@@ -1,0 +1,12 @@
+$ bun scripts/release/archive-gate.ts
+ok every exports target is packed (0.0s)
+installed @arnilo/liveframe@0.1.0 in /tmp/liveframe-archive-uD4sWC (2.2s)
+ok every installed exports target exists (0.0s)
+ok pack, store, reload and render through both runners (0.1s)
+ok worker timeout, then recovery (1.6s)
+ok liveframe gen and gen --check (0.1s)
+ok liveframe mcp over stdio (0.3s)
+ok browser bundle from the installed package (0.1s)
+ok consumer types under strict NodeNext (0.6s)
+ok host-API-free subpaths under node (0.1s)
+archive gate passed all 8 steps in 5.1s
