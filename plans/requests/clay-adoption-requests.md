@@ -1,7 +1,7 @@
 # Bug and feature requests from the Clay adoption analysis
 
 - **Release scope update (2026-10-27):** the owner renumbered the release to **0.2.0**, including every LF/CL request and the backlog items both documents raise; this supersedes the original targets below ([scope decision](../../decision-logs/2026-10-27-2028-release-0-2-0-scope-and-breaking-changes.md)).
-- **Delivery status (2026-10-29):** all nine requests and the backlog items they raised are implemented for 0.2.0. [`docs/adopters-0.2.md`](../../docs/adopters-0.2.md) records, per ID, the shipped API, its spec section and its limitation; this document stays the request record. LF-06's break arrived at the minor version, as this document required.
+- **Delivery status (2026-10-30):** all nine requests and the backlog items they raised are implemented in `@arnilo/liveframe@0.2.0`, published and verified from the registry. [`docs/adopters-0.2.md`](../../docs/adopters-0.2.md) records, per ID, the shipped API, its spec section and its limitation; this document stays the request record. LF-06's break arrived at the minor version, as this document required.
 - **Source:** analysis of `@arnilo/liveframe@0.1.0` (the published tarball, `docs/`, `schemas/` and `dist/`; source at `9cc70e9`) against Clay's UI system (`clay`, branch `fix/language_support` at `944afbd8`):
   - SDUI: `crates/clay-server/src/shell/components.rs`, `crates/clay-server/src/server/ops/sdui.rs`, `frontend/src/sdui/*`;
   - styling: `packages/design-rack`, `crates/clay-protocol/src/protocol/design_system.rs`, `frontend/src/theme/*`;
