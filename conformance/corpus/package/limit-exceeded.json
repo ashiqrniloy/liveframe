@@ -1,0 +1,15 @@
+{
+  "inputs": {
+    "doc": "docs/limit-exceeded.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "limit-exceeded",
+        "pointer": "/manifest/meta"
+      }
+    ]
+  }
+}

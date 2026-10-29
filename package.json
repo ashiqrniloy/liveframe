@@ -132,6 +132,7 @@
   "files": [
     "dist",
     "schemas",
+    "conformance",
     "docs",
     "CHANGELOG.md",
     "SECURITY.md"

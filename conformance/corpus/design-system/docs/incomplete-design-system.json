@@ -1,0 +1,22 @@
+{
+  "format": "liveframe-design-system/1",
+  "id": "corpus",
+  "version": "1",
+  "values": {
+    "space.1": {
+      "kind": "spacing",
+      "value": {
+        "value": 4,
+        "unit": "px"
+      }
+    }
+  },
+  "recipes": {
+    "button.*.root.rest": {
+      "padding": "space.1"
+    },
+    "button.*.root.focus": {
+      "outlineColor": "focus"
+    }
+  }
+}

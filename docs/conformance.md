@@ -13,6 +13,49 @@ The package is pre-1.0; install it and use the subpaths it exports.
 | `rendererSuite` | Complete implementation registry, successful server rendering for each example × theme × design system, root slot/style output, and fallback-only invalid arrivals with no implementation calls | Content deferred until client mount, browser interactions and the renderer's internal caching/error-boundary machinery |
 | `rendererBrowserSuite` | Hydration, arrival rejection/recovery, expected complete intents, focus/scroll/draft survival, switching without renders, styled-state reachability, declared overlay lifecycle and text bounds | Undeclared overlay/input roles, unprovided interaction scenarios, timing budgets, production authorization and unsupported nested surfaces |
 
+## Language-neutral corpus
+
+The package also ships `conformance/corpus/` as committed JSON, for ports that
+do not run TypeScript. One directory per format holds the cases:
+`catalog`, `theme`, `design-system`, `capabilities`, `manifest`, `ui-tree`,
+`package`, `placement`, `style-record` and `elements`. Shared documents live
+under `conformance/corpus/common/`. The library's own suite in
+`src/__tests__/corpus.test.ts` runs every case through the reference validators;
+a failing case must match the reference `(kind, pointer)` set exactly and stay
+inside the 20-error bound.
+
+Each case is exactly `{ inputs, options, expect }`. `inputs.doc` names the
+document under test; any other input names a supporting document by role
+(`catalog`, `capabilities`, `manifest`, `theme`, `designSystem` or
+`vocabulary`). All paths are relative to the case file and may not escape the
+corpus root. `designSystem` names a parent for a `design-system` case; the case
+document is also registered by its own `id`, so a two-document cycle can be
+exercised. `options` is `{}` for most formats; `ui-tree` and `elements` may set
+`maxErrors` and `limits`. `elements` cases always run with
+`surfaceId: "corpus"` and `revision: 1`.
+
+```json
+{
+  "inputs": {
+    "doc": "docs/manifest.json",
+    "catalog": "../common/catalog.json",
+    "capabilities": "../common/capabilities.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [{ "kind": "catalog-mismatch", "pointer": "/catalogId" }]
+  }
+}
+```
+
+`expect` is `{ "ok": true }` or `{ "ok": false, "errors": [...] }`. Errors match
+on `kind` and `pointer` only, as an unordered set. A port must reproduce that
+set, not a message, and must stop at the same 20-error bound. The corpus pins
+the fail-closed cases; it is data a port can execute without importing
+Liveframe. Adding a case is additive; changing an existing case's expectation
+requires a format version, as `docs/compatibility.md` says.
+
 **Passing these suites does not prove isolation or authorization** (spec §14).
 Reference runners are not sandboxes. The backend still resolves data as the
 viewer, checks completed intents and revisions, and decides whether to execute

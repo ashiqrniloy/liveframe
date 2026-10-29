@@ -1,0 +1,16 @@
+{
+  "inputs": {
+    "doc": "docs/unknown-name.json",
+    "catalog": "../common/catalog.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "unknown-name",
+        "pointer": "/recipes/button.*.root.rest/padding"
+      }
+    ]
+  }
+}

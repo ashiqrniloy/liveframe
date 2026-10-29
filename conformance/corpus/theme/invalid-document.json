@@ -1,0 +1,16 @@
+{
+  "inputs": {
+    "doc": "docs/invalid-document.json",
+    "vocabulary": "../common/vocabulary.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "invalid-document",
+        "pointer": "/format"
+      }
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "inputs": {
+    "doc": "docs/cyclic-extends.json",
+    "catalog": "../common/catalog.json",
+    "designSystem": "docs/cyclic-b.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "cyclic-extends",
+        "pointer": "/registry/corpus-a/extends"
+      }
+    ]
+  }
+}

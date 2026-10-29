@@ -1,0 +1,15 @@
+{
+  "inputs": {
+    "doc": "docs/unknown-name.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "unknown-name",
+        "pointer": "/definitions/0/defaultVariant"
+      }
+    ]
+  }
+}

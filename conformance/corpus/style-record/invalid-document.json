@@ -1,0 +1,15 @@
+{
+  "inputs": {
+    "doc": "docs/invalid-document.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "invalid-document",
+        "pointer": "/kind"
+      }
+    ]
+  }
+}

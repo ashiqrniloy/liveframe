@@ -1,0 +1,15 @@
+{
+  "kind": "button",
+  "props": {
+    "label": "x"
+  },
+  "events": {
+    "onNope": {
+      "type": "action",
+      "name": "tasks.claim",
+      "args": {
+        "id": "task:1"
+      }
+    }
+  }
+}

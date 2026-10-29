@@ -1,0 +1,17 @@
+{
+  "kind": "stack",
+  "children": [
+    {
+      "kind": "text",
+      "props": {
+        "text": "x"
+      }
+    },
+    {
+      "kind": "text",
+      "props": {
+        "text": "y"
+      }
+    }
+  ]
+}

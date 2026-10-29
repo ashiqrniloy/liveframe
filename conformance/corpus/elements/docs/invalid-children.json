@@ -1,0 +1,14 @@
+{
+  "kind": "text",
+  "props": {
+    "text": "x"
+  },
+  "children": [
+    {
+      "kind": "text",
+      "props": {
+        "text": "y"
+      }
+    }
+  ]
+}

@@ -1,0 +1,142 @@
+{
+  "format": "liveframe-capabilities/1",
+  "sources": {},
+  "actions": {
+    "decisions.review": {
+      "description": "Proof action decisions.review.",
+      "args": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^.+$",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "tasks.claim": {
+      "description": "Proof action tasks.claim.",
+      "args": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^.+$",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "tasks.escalate": {
+      "description": "Proof action tasks.escalate.",
+      "args": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^.+$",
+            "maxLength": 128
+          },
+          "reason": {
+            "type": "string",
+            "pattern": "[\\s\\S]",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "id",
+          "reason"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "alerts.acknowledge": {
+      "description": "Proof action alerts.acknowledge.",
+      "args": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^.+$",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "alerts.snooze": {
+      "description": "Proof action alerts.snooze.",
+      "args": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^.+$",
+            "maxLength": 128
+          },
+          "duration": {
+            "type": "string",
+            "enum": [
+              "hour",
+              "day"
+            ],
+            "maxLength": 4
+          }
+        },
+        "required": [
+          "id",
+          "duration"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "alerts.convert": {
+      "description": "Proof action alerts.convert.",
+      "args": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^.+$",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "queue.retry": {
+      "description": "Proof action queue.retry.",
+      "args": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    "queue.about": {
+      "description": "Proof action queue.about.",
+      "args": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  },
+  "extra": true
+}

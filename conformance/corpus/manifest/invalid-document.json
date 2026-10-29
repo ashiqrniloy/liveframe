@@ -1,0 +1,17 @@
+{
+  "inputs": {
+    "doc": "docs/invalid-document.json",
+    "catalog": "../common/proof-catalog.json",
+    "capabilities": "../common/capabilities.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "invalid-document",
+        "pointer": "/format"
+      }
+    ]
+  }
+}

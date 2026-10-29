@@ -37,6 +37,7 @@ access named scopes; stop scoped writes before rolling back.
 
 - A format's meaning never changes within its `/N` version. `liveframe/manifest/1`, `liveframe-catalog/1` and the rest keep their fields, their required keys and their validation rules for as long as they are `/1`.
 - A new format version is a new `$id` (`urn:liveframe:<format>:N`), never a moved one, and the published JSON Schema for the old version keeps describing the old version. The library may read old versions for a while, but nothing silently reinterprets a document.
+- A conformance corpus case's expected `(kind, pointer)` set changes only with a format version. Adding a case is additive; changing an existing case's expectation is a format-version change, not a patch, because ports rely on the corpus as executable data.
 
 ## Growth
 

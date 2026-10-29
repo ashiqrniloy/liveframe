@@ -1,0 +1,56 @@
+{
+  "format": "liveframe-catalog/1",
+  "catalogId": "corpus.ui@1",
+  "description": "Corpus primitives.",
+  "vocabulary": {
+    "colourRoles": [
+      "ink",
+      "focus"
+    ],
+    "typographyRoles": [
+      "body"
+    ],
+    "surfaceTypography": "body",
+    "surfaceRoles": [],
+    "fillableRoles": [],
+    "tones": {},
+    "space": [
+      "space.1"
+    ],
+    "radius": [],
+    "size": [],
+    "breakpoints": []
+  },
+  "definitions": [
+    {
+      "kind": "button",
+      "description": "Runs an intent.",
+      "variants": [
+        "default",
+        "primary"
+      ],
+      "defaultVariant": "missing",
+      "slots": [
+        "root",
+        "label"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "children": "none",
+      "events": {
+        "onPress": {
+          "carries": "none",
+          "description": "Pressed."
+        }
+      },
+      "styleProps": [],
+      "a11y": {
+        "role": "button"
+      }
+    }
+  ]
+}

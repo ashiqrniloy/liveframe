@@ -1,0 +1,16 @@
+{
+  "inputs": {
+    "doc": "docs/unknown-name.json",
+    "vocabulary": "../common/vocabulary.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "unknown-name",
+        "pointer": "/colours/extra"
+      }
+    ]
+  }
+}

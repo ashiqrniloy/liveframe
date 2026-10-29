@@ -137,6 +137,22 @@ try {
       },
     ],
     [
+      "corpus packed",
+      () => {
+        const installedCorpus = join(dir, "node_modules/@arnilo/liveframe/conformance/corpus");
+        const sourceCorpus = join(root, "conformance/corpus");
+        const source = new Set(new Bun.Glob("**/*.json").scanSync({ cwd: sourceCorpus, onlyFiles: true }));
+        const packed = new Set(new Bun.Glob("**/*.json").scanSync({ cwd: installedCorpus, onlyFiles: true }));
+        if (!source.size) throw new Error("conformance/corpus holds no JSON documents");
+        for (const file of source) {
+          if (!packed.has(file)) throw new Error(`corpus file not packed: conformance/corpus/${file}`);
+          JSON.parse(readFileSync(join(installedCorpus, file), "utf8"));
+        }
+        if (packed.size !== source.size)
+          throw new Error(`packed corpus has ${packed.size} JSON files, expected ${source.size}`);
+      },
+    ],
+    [
       "runner bundle packed and self-contained",
       () =>
         assertSelfContained(

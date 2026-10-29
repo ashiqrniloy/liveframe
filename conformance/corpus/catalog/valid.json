@@ -1,0 +1,9 @@
+{
+  "inputs": {
+    "doc": "docs/valid.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": true
+  }
+}

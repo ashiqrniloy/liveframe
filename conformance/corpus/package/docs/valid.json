@@ -1,0 +1,138 @@
+{
+  "format": "liveframe-package/1",
+  "manifest": {
+    "format": "liveframe-manifest/1",
+    "id": "agent-home",
+    "version": "1.0.0",
+    "catalogId": "proof.ui@1",
+    "params": {
+      "type": "object",
+      "properties": {
+        "canAct": {
+          "type": "boolean"
+        },
+        "canEscalate": {
+          "type": "boolean"
+        },
+        "canViewAlerts": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "canAct",
+        "canEscalate",
+        "canViewAlerts"
+      ],
+      "additionalProperties": false
+    },
+    "state": {
+      "type": "object",
+      "properties": {
+        "filter": {
+          "type": "string",
+          "enum": [
+            "all",
+            "decisions",
+            "tasks",
+            "alerts"
+          ],
+          "maxLength": 9
+        },
+        "selected": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "cursors": {
+          "type": "object",
+          "properties": {
+            "decisions": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "tasks": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "alerts": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "decisions",
+            "tasks",
+            "alerts"
+          ],
+          "additionalProperties": false
+        },
+        "escalating": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "filter",
+        "selected",
+        "cursors",
+        "escalating",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "context": {
+      "type": "object",
+      "properties": {
+        "size": {
+          "type": "string",
+          "enum": [
+            "small",
+            "medium",
+            "large",
+            "full"
+          ],
+          "maxLength": 6
+        }
+      },
+      "required": [
+        "size"
+      ],
+      "additionalProperties": false
+    },
+    "initialState": {
+      "filter": "all",
+      "selected": "decision-8812",
+      "cursors": {
+        "decisions": "start",
+        "tasks": "start",
+        "alerts": "start"
+      },
+      "escalating": "",
+      "reason": ""
+    },
+    "sources": {},
+    "actions": [
+      "decisions.review",
+      "tasks.claim",
+      "tasks.escalate",
+      "alerts.acknowledge",
+      "alerts.snooze",
+      "alerts.convert",
+      "queue.retry",
+      "queue.about"
+    ]
+  },
+  "code": "export default () => null;",
+  "scenarios": [
+    {
+      "name": "default",
+      "params": {},
+      "context": {},
+      "data": {}
+    }
+  ],
+  "hash": "sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}

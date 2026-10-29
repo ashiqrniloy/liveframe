@@ -1,0 +1,10 @@
+{
+  "inputs": {
+    "doc": "docs/valid.json",
+    "catalog": "../common/catalog.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": true
+  }
+}

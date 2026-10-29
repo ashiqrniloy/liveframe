@@ -160,7 +160,7 @@ This plan implements spec §7.2 and §9 (trees, ids), §10 (validation), §13 (p
     - None. The bench and evidence file are the record.
   - Notes (executed 2026-10-29): `bench/streaming.bench.ts` streams 100 revisions of the 679-node, 50-row agent-home subject at a 10/s target through `renderElements` → whole-tree JSON → `<Surface>` in Chromium, with `bench/streaming-client.tsx` timing arrival validation and the React Profiler. Each revision changes one row's status. Results are in `plans/evidence/019-streaming-bench.md` (machine, Bun 1.4.4, Chromium 156.0.8078.4, regeneration command): median 117,985 JSON bytes, 5,099 gzip bytes, 8–11 changed leaf bytes, 1.4 ms arrival validation, 10.3 ms React commit net of validation, 12.1 ms combined, 9.90 updates/s achieved. Both pre-agreed thresholds are exceeded. `decision-logs/2026-10-29-1737-streaming-tree-patches.md` records that patches are warranted; no patch API lands in this plan. The patch-format task above Task 7 is not added here because plan 019 requires the owner's explicit approval for it.
 
-- [ ] Task 4: Ship a language-neutral conformance corpus for every format (CL-06)
+- [x] Task 4: Ship a language-neutral conformance corpus for every format (CL-06)
   - Acceptance Criteria:
     - Functional:
       - `conformance/corpus/<format>/*.json` holds cases per Task 1 for every listed format. They are generated where possible from the existing failing-case tests, and hand-written where needed.
@@ -195,6 +195,7 @@ This plan implements spec §7.2 and §9 (trees, ids), §10 (validation), §13 (p
     - `corpus_cases_match_validators`.
     - `corpus_covers_every_validator_error_kind`.
     - Archive gate step `corpus packed`.
+  - Notes (executed 2026-10-29): `conformance/corpus/` now holds 45 committed cases across all ten formats, with shared documents under `common/` and per-case failing documents under `<format>/docs/`. Cases use only `{ inputs, options, expect }`; `src/__tests__/corpus.test.ts` resolves relative inputs with a corpus-root guard, maps each directory to its reference validator, compares `(kind, pointer)` as an unordered set, and enforces the 20-error bound. The coverage test lists the 15 kinds format validators emit, the 9 kinds they never emit, and checks both against the union parsed from `src/errors.ts`; corpus run time is about 40 ms. Package `files` and the release allowlist include `conformance`, spec §13 lists the shipped corpus and its contract, `docs/conformance.md` documents the case format for ports, and `docs/compatibility.md` says a case expectation changes only with a format version. `scripts/release/archive-gate.ts` gained the `corpus packed` step, which compares every source JSON with the installed package and parses each one; `bun run release:gate` passes all 10 steps.
 
 - [ ] Task 5: Ship canonical-hash test vectors (CL-06)
   - Acceptance Criteria:

@@ -1,0 +1,11 @@
+{
+  "inputs": {
+    "doc": "docs/valid.json",
+    "catalog": "../common/proof-catalog.json",
+    "capabilities": "../common/capabilities.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": true
+  }
+}

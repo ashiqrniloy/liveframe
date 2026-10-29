@@ -1,0 +1,18 @@
+{
+  "inputs": {
+    "doc": "docs/undeclared-event.json",
+    "catalog": "../common/proof-catalog.json",
+    "capabilities": "../common/capabilities.json",
+    "manifest": "../common/manifest.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "undeclared-event",
+        "pointer": "/root/children/0/events/onNope"
+      }
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "inputs": {
+    "doc": "docs/catalog-mismatch.json",
+    "catalog": "../common/proof-catalog.json",
+    "capabilities": "../common/capabilities.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "catalog-mismatch",
+        "pointer": "/catalogId"
+      }
+    ]
+  }
+}

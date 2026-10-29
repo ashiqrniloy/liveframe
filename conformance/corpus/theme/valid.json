@@ -1,0 +1,10 @@
+{
+  "inputs": {
+    "doc": "docs/valid.json",
+    "vocabulary": "../common/vocabulary.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": true
+  }
+}

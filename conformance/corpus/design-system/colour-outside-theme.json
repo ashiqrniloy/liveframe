@@ -1,0 +1,16 @@
+{
+  "inputs": {
+    "doc": "docs/colour-outside-theme.json",
+    "catalog": "../common/catalog.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "colour-outside-theme",
+        "pointer": "/recipes/button.*.root.rest/backgroundColor"
+      }
+    ]
+  }
+}

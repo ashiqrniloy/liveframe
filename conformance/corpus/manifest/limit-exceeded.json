@@ -1,0 +1,17 @@
+{
+  "inputs": {
+    "doc": "docs/limit-exceeded.json",
+    "catalog": "../common/proof-catalog.json",
+    "capabilities": "../common/capabilities.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "limit-exceeded",
+        "pointer": "/meta"
+      }
+    ]
+  }
+}

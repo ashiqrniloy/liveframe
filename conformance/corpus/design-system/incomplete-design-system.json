@@ -1,0 +1,20 @@
+{
+  "inputs": {
+    "doc": "docs/incomplete-design-system.json",
+    "catalog": "../common/catalog.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "incomplete-design-system",
+        "pointer": "/recipes/button.default.label.rest"
+      },
+      {
+        "kind": "incomplete-design-system",
+        "pointer": "/recipes/button.primary.label.rest"
+      }
+    ]
+  }
+}

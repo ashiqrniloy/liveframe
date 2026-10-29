@@ -1,0 +1,13 @@
+{
+  "kind": "button",
+  "props": {
+    "label": "x"
+  },
+  "events": {
+    "onPress": {
+      "type": "action",
+      "name": "missing",
+      "args": {}
+    }
+  }
+}

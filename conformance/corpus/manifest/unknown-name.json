@@ -1,0 +1,17 @@
+{
+  "inputs": {
+    "doc": "docs/unknown-name.json",
+    "catalog": "../common/proof-catalog.json",
+    "capabilities": "../common/capabilities.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "unknown-name",
+        "pointer": "/actions/0"
+      }
+    ]
+  }
+}

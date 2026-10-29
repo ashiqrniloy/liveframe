@@ -1,0 +1,9 @@
+{
+  "id": "home-1",
+  "slot": "home.main",
+  "widget": {
+    "id": "agent-home",
+    "version": "1.0.0"
+  },
+  "params": {}
+}

@@ -1,0 +1,24 @@
+{
+  "inputs": {
+    "doc": "docs/insufficient-contrast.json",
+    "vocabulary": "../common/vocabulary.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "insufficient-contrast",
+        "pointer": "/colours/text.primary"
+      },
+      {
+        "kind": "insufficient-contrast",
+        "pointer": "/colours/text.muted"
+      },
+      {
+        "kind": "insufficient-contrast",
+        "pointer": "/colours/text.meta"
+      }
+    ]
+  }
+}

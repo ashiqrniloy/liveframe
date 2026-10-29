@@ -1,0 +1,36 @@
+{
+  "format": "liveframe/1",
+  "catalogId": "proof.ui@1",
+  "surfaceId": "corpus",
+  "revision": 1,
+  "root": {
+    "id": "root",
+    "kind": "box",
+    "props": {},
+    "children": [
+      {
+        "id": "root/button",
+        "kind": "button",
+        "props": {
+          "label": "Act"
+        },
+        "events": {
+          "onPress": {
+            "type": "action",
+            "name": "tasks.claim",
+            "args": {
+              "id": "task:1"
+            }
+          }
+        }
+      },
+      {
+        "id": "root/button",
+        "kind": "text",
+        "props": {
+          "text": "Hello"
+        }
+      }
+    ]
+  }
+}
