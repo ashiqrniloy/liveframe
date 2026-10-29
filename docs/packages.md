@@ -154,7 +154,11 @@ canonical JSON of `{ format, manifest, code, scenarios }`, excluding `hash`:
 recursive UTF-16 key ordering, no whitespace, ECMAScript number serialization,
 unchanged array order and Unicode, then UTF-8 and SHA-256. Non-JSON values,
 non-finite numbers and lone surrogates are rejected. Repacking identical input
-produces the same hash; changing a scenario also changes it.
+produces the same hash; changing a scenario also changes it. The package ships
+language-neutral vectors under `conformance/hash/`: each accepted vector is
+`{ value, canonical, sha256 }`, and the library's `hash-vectors.test.ts` runs it
+through the canonicaliser and hash. RFC 8785 Appendix B's number table and the
+rejected-input cases are pinned there for other implementations.
 
 **A hash checks integrity, not signatures, origin or approval.** Anyone who
 changes content can calculate a new hash. The app owns provenance, review and

@@ -197,7 +197,7 @@ This plan implements spec §7.2 and §9 (trees, ids), §10 (validation), §13 (p
     - Archive gate step `corpus packed`.
   - Notes (executed 2026-10-29): `conformance/corpus/` now holds 45 committed cases across all ten formats, with shared documents under `common/` and per-case failing documents under `<format>/docs/`. Cases use only `{ inputs, options, expect }`; `src/__tests__/corpus.test.ts` resolves relative inputs with a corpus-root guard, maps each directory to its reference validator, compares `(kind, pointer)` as an unordered set, and enforces the 20-error bound. The coverage test lists the 15 kinds format validators emit, the 9 kinds they never emit, and checks both against the union parsed from `src/errors.ts`; corpus run time is about 40 ms. Package `files` and the release allowlist include `conformance`, spec §13 lists the shipped corpus and its contract, `docs/conformance.md` documents the case format for ports, and `docs/compatibility.md` says a case expectation changes only with a format version. `scripts/release/archive-gate.ts` gained the `corpus packed` step, which compares every source JSON with the installed package and parses each one; `bun run release:gate` passes all 10 steps.
 
-- [ ] Task 5: Ship canonical-hash test vectors (CL-06)
+- [x] Task 5: Ship canonical-hash test vectors (CL-06)
   - Acceptance Criteria:
     - Functional:
       - `conformance/hash/*.json` holds `{ value, canonical, sha256 }` triples. They cover:
@@ -234,6 +234,7 @@ This plan implements spec §7.2 and §9 (trees, ids), §10 (validation), §13 (p
     - `hash_vectors_match`.
     - `hash_vectors_include_rfc8785_appendix_b`.
     - `rejected_inputs_rejected`.
+  - Notes (executed 2026-10-29): `conformance/hash/` now holds 45 vectors: RFC 8785 Appendix B's 24 finite rows, 6 explicit number edges, 4 escape/non-BMP string cases, 3 UTF-16 key-ordering cases and 8 rejected inputs. Rejected values use the decision log's `$liveframe` tagged escape for lone surrogates and non-finite numbers; `-0` is written literally so it survives JSON parsing. `src/__tests__/hash-vectors.test.ts` decodes the tags, compares `canonicalJson` byte-for-byte, hashes the UTF-8 text and checks every rejected value throws `TypeError`; the Appendix B test pins all 24 canonical rows and the parsed `-0`. `docs/packages.md`, `docs/conformance.md`, `docs/compatibility.md` and spec §13 describe the vectors. The archive gate's corpus check became a shared conformance check and gained a `hash vectors packed` step; `bun run release:gate` passes all 11 steps.
 
 - [ ] Task 6: Verify the conformance suites in WebKit, Firefox and another runner (backlog)
   - Acceptance Criteria:

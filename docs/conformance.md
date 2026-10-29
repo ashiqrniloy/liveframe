@@ -56,6 +56,26 @@ the fail-closed cases; it is data a port can execute without importing
 Liveframe. Adding a case is additive; changing an existing case's expectation
 requires a format version, as `docs/compatibility.md` says.
 
+## Canonical-hash vectors
+
+`conformance/hash/` ships committed arrays of hash vectors for ports. An accepted
+vector is exactly `{ value, canonical, sha256 }`: `canonical` is the RFC 8785
+text for `value`, and `sha256` is the lowercase hexadecimal digest of its UTF-8
+bytes, without the `sha256-` package prefix. The files cover RFC 8785 Appendix
+B's number table, the required ECMAScript number edges, key ordering by UTF-16
+code units including non-BMP keys, escapes, non-BMP strings and rejected inputs.
+`src/__tests__/hash-vectors.test.ts` runs every vector through
+`canonicalJson` and the hash.
+
+A rejected vector is `{ value, rejected }`, where `rejected` is
+`"lone-surrogate"` or `"non-finite-number"`; a port must reject it with its
+equivalent type error. JSON cannot carry a non-finite number or an unpaired
+surrogate, so a value position may hold the tagged escape
+`{ "$liveframe": "number", "value": "NaN" | "Infinity" | "-Infinity" }` or
+`{ "$liveframe": "string", "codeUnits": ["D800", ...] }`, with UTF-16 code units
+as four uppercase hex digits. A literal `$liveframe` key is therefore not
+representable in a vector.
+
 **Passing these suites does not prove isolation or authorization** (spec §14).
 Reference runners are not sandboxes. The backend still resolves data as the
 viewer, checks completed intents and revisions, and decides whether to execute

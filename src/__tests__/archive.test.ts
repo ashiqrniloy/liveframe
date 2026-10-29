@@ -90,7 +90,7 @@ const allowed = [
   /^SECURITY\.md$/,
   /^dist\/(?:[^/]+\/)*[^/]+\.(?:js|d\.ts)$/,
   /^schemas\/[^/]+\.json$/,
-  /^conformance\/corpus\/(?:[^/]+\/)*[^/]+\.json$/,
+  /^conformance\/(?:corpus|hash)\/(?:[^/]+\/)*[^/]+\.json$/,
   /^docs\/[^/]+\.md$/,
 ];
 

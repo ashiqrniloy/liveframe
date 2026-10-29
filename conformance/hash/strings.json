@@ -1,0 +1,22 @@
+[
+  {
+    "value": "\u0000\b\f\n\r\t\"\\/é😀",
+    "canonical": "\"\\u0000\\b\\f\\n\\r\\t\\\"\\\\/é😀\"",
+    "sha256": "63e11b69f8a0aac8e93d82e503b3fa9e41114467afc84bf5827a210ad53b27a5"
+  },
+  {
+    "value": "é",
+    "canonical": "\"é\"",
+    "sha256": "f2886017e9c7abacf804b54d64787dce2b611c9544ba21f3affdd126a6e50086"
+  },
+  {
+    "value": "é",
+    "canonical": "\"é\"",
+    "sha256": "3d68ce21f2899a475713cdbe7562ba9bdb6b1dfde8af1f221bdff4a0935b53b2"
+  },
+  {
+    "value": "A B C",
+    "canonical": "\"A B C\"",
+    "sha256": "b9d75c7be8859398dd24e090a803f398e678b8d1e6c3a128e0066ccac88b02e6"
+  }
+]

@@ -1,0 +1,39 @@
+[
+  {
+    "value": {
+      "1": "One",
+      "€": "Euro Sign",
+      "\r": "Carriage Return",
+      "דּ": "Hebrew Letter Dalet With Dagesh",
+      "😀": "Emoji: Grinning Face",
+      "": "Control",
+      "ö": "Latin Small Letter O With Diaeresis"
+    },
+    "canonical": "{\"\\r\":\"Carriage Return\",\"1\":\"One\",\"\":\"Control\",\"ö\":\"Latin Small Letter O With Diaeresis\",\"€\":\"Euro Sign\",\"😀\":\"Emoji: Grinning Face\",\"דּ\":\"Hebrew Letter Dalet With Dagesh\"}",
+    "sha256": "5e321556d22018a9656991a9e94f77ec175fa193e52a2429d312f8419ec8b08c"
+  },
+  {
+    "value": {
+      "b": {
+        "d": 1,
+        "c": 2
+      },
+      "a": [
+        {
+          "z": 0,
+          "y": 1
+        }
+      ]
+    },
+    "canonical": "{\"a\":[{\"y\":1,\"z\":0}],\"b\":{\"c\":2,\"d\":1}}",
+    "sha256": "bd05cd805c917e10e62d333105e2811224d6d55167dbe4bd2604cc0136d9908f"
+  },
+  {
+    "value": {
+      "😀": 1,
+      "": 2
+    },
+    "canonical": "{\"😀\":1,\"\":2}",
+    "sha256": "04208f6cdb854e2ab1b07dd3633a39dec854344fe72824cf7f2fdb4e2e33129e"
+  }
+]

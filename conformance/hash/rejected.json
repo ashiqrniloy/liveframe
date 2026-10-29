@@ -1,0 +1,76 @@
+[
+  {
+    "value": {
+      "$liveframe": "string",
+      "codeUnits": [
+        "D800"
+      ]
+    },
+    "rejected": "lone-surrogate"
+  },
+  {
+    "value": {
+      "$liveframe": "string",
+      "codeUnits": [
+        "DC00"
+      ]
+    },
+    "rejected": "lone-surrogate"
+  },
+  {
+    "value": {
+      "$liveframe": "string",
+      "codeUnits": [
+        "0078",
+        "DC00",
+        "0079"
+      ]
+    },
+    "rejected": "lone-surrogate"
+  },
+  {
+    "value": {
+      "nested": [
+        {
+          "$liveframe": "string",
+          "codeUnits": [
+            "D800"
+          ]
+        }
+      ]
+    },
+    "rejected": "lone-surrogate"
+  },
+  {
+    "value": {
+      "$liveframe": "number",
+      "value": "NaN"
+    },
+    "rejected": "non-finite-number"
+  },
+  {
+    "value": {
+      "$liveframe": "number",
+      "value": "Infinity"
+    },
+    "rejected": "non-finite-number"
+  },
+  {
+    "value": {
+      "$liveframe": "number",
+      "value": "-Infinity"
+    },
+    "rejected": "non-finite-number"
+  },
+  {
+    "value": {
+      "nested": [
+        {
+          "$liveframe": "number",
+          "value": "NaN"
+        }
+      ]
+    },
+    "rejected": "non-finite-number"
+  }
+]
