@@ -99,7 +99,7 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
     - In-process memory: `inProcessRunner({ maxModules? })` defaults to 256, counts the loader's process-wide map, and refuses a new hash with `limit-exceeded`; loaded hashes still render.
     - Documentation checked through Context7: Playwright `ariaSnapshot`/`screenshot`, `Bun.build`, and Node `vm.SourceTextModule`; local versions were Bun 1.4.4, Node v26.11.1 and Playwright 1.64.1. No tests were added; the log is the record.
 
-- [ ] Task 2: Export `generate()` (LF-02)
+- [x] Task 2: Export `generate()` (LF-02)
   - Acceptance Criteria:
     - Functional:
       - `@arnilo/liveframe/sdk/gen` exports `generate(catalog): string`, byte-identical to `liveframe gen`'s output. `liveframe gen` calls the exported function.
@@ -131,6 +131,11 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
     - `sdk_gen_subpath_matches_cli_output` (`sdk-gen.test.ts`), for both the component and definitions mode.
     - `exports_list_sdk_gen`.
     - Node probe imports `/sdk/gen`.
+  - Notes (executed 2026-10-29):
+    - Added `./sdk/gen` to `package.json`, mapping directly to `src/sdk/gen.ts` for source and `dist/sdk/gen.{js,d.ts}` for publish; no code moved, and `liveframe gen` already imported the same two functions.
+    - `sdk_gen_subpath_matches_cli_output` imports `@arnilo/liveframe/sdk/gen` and compares each mode's text with a fresh CLI run in a temporary directory. `exports_list_sdk_gen` pins the two-function surface. The SDK browser-portability case now bundles the subpath too.
+    - The archive gate's Node probe imports both functions from the installed package and checks each output; the full gate passed all 8 steps, including the Node subpath step.
+    - Docs: spec §7.2 and §13, `docs/sdk.md`, the README package table and `CHANGELOG.md` now name `/sdk/gen`. `bun run check` and the targeted tests pass.
 
 - [ ] Task 3: Make capture a pluggable library function (CL-05, LF-02)
   - Acceptance Criteria:

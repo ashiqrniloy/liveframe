@@ -11,6 +11,7 @@ Changed:
 
 Added:
 
+- `@arnilo/liveframe/sdk/gen` exposes `generate()` and `generateDefinitions()`, byte-identical to `liveframe gen` and `liveframe gen --implementations`, for host build services (LF-02).
 - `loadPlacement` accepts optional `{ scope, state }`; explicit state bypasses the state read and follows the same reported-reset rules. `/store` exports `verifyPlacementInputs` for hosts keeping state elsewhere. Store conformance covers scope isolation, bounds and deletion.
 
 Fixed:

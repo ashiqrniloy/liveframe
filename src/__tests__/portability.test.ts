@@ -16,13 +16,13 @@ const subpaths = [
 
 test("sdk_bundles_for_browser_without_host_apis", async () => {
   const bundle = await Bun.build({
-    entrypoints: ["../sdk/index.ts", "../sdk/jsx-runtime.ts", "../sdk/jsx-dev-runtime.ts"].map(
+    entrypoints: ["../sdk/index.ts", "../sdk/gen.ts", "../sdk/jsx-runtime.ts", "../sdk/jsx-dev-runtime.ts"].map(
       (path) => new URL(path, import.meta.url).pathname,
     ),
     target: "browser",
   });
   expect(bundle.success).toBe(true);
-  expect(bundle.outputs).toHaveLength(3);
+  expect(bundle.outputs).toHaveLength(4);
   for (const output of bundle.outputs) {
     const source = await output.text();
     expect(source, output.path).not.toMatch(

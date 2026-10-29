@@ -131,6 +131,7 @@ Widgets are authored separately with the [SDK](docs/sdk.md), which exports `rend
 |---|---|
 | `@arnilo/liveframe` | Definition, catalog, theme and design-system formats; the validator; the recipe resolver; `LiveframeFailure` and `LiveframeError` |
 | `@arnilo/liveframe/sdk` | The JSX runtime (`/sdk/jsx-runtime`, `/sdk/jsx-dev-runtime`), intent helpers and `render()` |
+| `@arnilo/liveframe/sdk/gen` | The host-side emitters behind `liveframe gen`: `generate()` and `generateDefinitions()` |
 | `@arnilo/liveframe/react` | The renderer: `createRenderer()`, `<Surface>` and `implement()` |
 | `@arnilo/liveframe/css` | The scoped CSS projection and the class, style, scope and variable helpers; the host inserts sheets |
 | `@arnilo/liveframe/pack` | Package and scenario formats, structural validators, `pack()` and `verifyPackage()` |

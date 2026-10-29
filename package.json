@@ -56,6 +56,11 @@
       "types": "./dist/sdk/index.d.ts",
       "default": "./dist/sdk/index.js"
     },
+    "./sdk/gen": {
+      "liveframe:source": "./src/sdk/gen.ts",
+      "types": "./dist/sdk/gen.d.ts",
+      "default": "./dist/sdk/gen.js"
+    },
     "./sdk/jsx-runtime": {
       "liveframe:source": "./src/sdk/jsx-runtime.ts",
       "types": "./dist/sdk/jsx-runtime.d.ts",

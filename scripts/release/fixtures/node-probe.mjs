@@ -5,6 +5,7 @@ import { baseCss } from "@arnilo/liveframe/css";
 import { catalogSuite } from "@arnilo/liveframe/conformance";
 import { pack } from "@arnilo/liveframe/pack";
 import { jsx, primitive } from "@arnilo/liveframe/sdk";
+import { generate, generateDefinitions } from "@arnilo/liveframe/sdk/gen";
 import { memoryStore } from "@arnilo/liveframe/store";
 
 const read = (name) => JSON.parse(readFileSync(new URL(`./${name}.json`, import.meta.url), "utf8"));
@@ -22,6 +23,8 @@ if (!packed.ok) throw new Error(JSON.stringify(packed.errors));
 const checks = {
   validateCatalog: catalog.ok,
   "sdk.primitive": jsx(primitive("text"), { text: "ok" }).type !== undefined,
+  "sdk/gen.generate": generate(catalog.value).includes("export const Button"),
+  "sdk/gen.generateDefinitions": generateDefinitions(catalog.value).includes("as const satisfies Definition"),
   "css.baseCss": baseCss(catalog.value).ok,
   "pack.pack": packed.ok,
   "store.memoryStore": (await memoryStore().getPlacement("missing")) === undefined,

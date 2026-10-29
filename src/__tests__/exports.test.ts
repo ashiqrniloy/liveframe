@@ -30,6 +30,7 @@ import type {
   WidgetProps,
 } from "@arnilo/liveframe/sdk";
 import * as sdk from "@arnilo/liveframe/sdk";
+import * as sdkGen from "@arnilo/liveframe/sdk/gen";
 import type { JSX as DevJSX } from "@arnilo/liveframe/sdk/jsx-dev-runtime";
 import * as devRuntime from "@arnilo/liveframe/sdk/jsx-dev-runtime";
 import type { JSX } from "@arnilo/liveframe/sdk/jsx-runtime";
@@ -174,6 +175,10 @@ test("sdk_export_surface", () => {
   expect(sdk.jsx).toBe(runtime.jsx);
   expect(sdk.jsxs).toBe(runtime.jsxs);
   expect(sdk.Fragment).toBe(devRuntime.Fragment);
+});
+
+test("exports_list_sdk_gen", () => {
+  expect(Object.keys(sdkGen).sort()).toEqual(["generate", "generateDefinitions"]);
 });
 
 test("sdk_public_types", () => {

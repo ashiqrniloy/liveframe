@@ -33,6 +33,18 @@ value types from the JSON catalog as it does from a hand-written
 app's, §11); the generator imports no SDK and generates no implementation.
 `--check` drift-checks either mode.
 
+A host build service can generate the same modules without the CLI:
+
+```ts
+import { generate, generateDefinitions } from "@arnilo/liveframe/sdk/gen";
+
+const components = generate(validatedCatalog);
+const definitions = generateDefinitions(validatedCatalog);
+```
+
+Both take a validated `Catalog` and return the exact text of the corresponding
+CLI mode. The subpath is host-API-free, so it runs in any ES2022 runtime.
+
 The package installs this as the `liveframe` binary, so a project that depends on
 it can run `liveframe gen catalog.json --out ui.gen.ts [--check]` directly.
 `--check` never writes: it exits 0 for matching output and 1 for missing or changed output, reporting the

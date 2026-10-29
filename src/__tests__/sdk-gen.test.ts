@@ -3,6 +3,10 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { validateCatalog } from "../formats/catalog.ts";
+import {
+  generate as generateFromSubpath,
+  generateDefinitions as generateDefinitionsFromSubpath,
+} from "@arnilo/liveframe/sdk/gen";
 import { generate, generateDefinitions } from "../sdk/gen.ts";
 import { arr, bool, obj, str } from "../schema.ts";
 import proof from "./fixtures/proof/catalog.json" with { type: "json" };
@@ -64,6 +68,23 @@ async function run(args: string[]) {
     clearTimeout(timer);
   }
 }
+
+test("sdk_gen_subpath_matches_cli_output", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "liveframe-sdk-gen-"));
+  try {
+    for (const implementations of [false, true]) {
+      const out = join(dir, implementations ? "ui.definitions.gen.ts" : "ui.gen.ts");
+      const args = ["gen", input, "--out", out, ...(implementations ? ["--implementations"] : [])];
+      expect((await run(args)).code).toBe(0);
+      const emitted = implementations
+        ? generateDefinitionsFromSubpath(catalog.value)
+        : generateFromSubpath(catalog.value);
+      expect(emitted).toBe(await Bun.file(out).text());
+    }
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
 
 test("gen_is_deterministic_and_formatted", async () => {
   const output = generate(catalog.value);
