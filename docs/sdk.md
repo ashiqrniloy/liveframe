@@ -288,11 +288,13 @@ because the prop's schema rejects the value first.
 ## Public exports and executable examples
 
 `@arnilo/liveframe/sdk` exports `jsx`, `jsxs`, `Fragment`, `primitive`, `state`,
-`action` and `render`. Its type exports are `Component`, `Element`,
-`DeepReadonly`, `Intent`, `Json`, `WidgetProps`, `RenderLimits` and `RenderOptions`.
-`/sdk/jsx-runtime` exports `jsx`, `jsxs`, `Fragment` and the `JSX` type namespace;
-`/sdk/jsx-dev-runtime` exports `jsxDEV`, `Fragment` and that namespace. The
-generator implementation and element branding helpers are internal.
+`action`, `render`, `renderElements` and `ephemeralManifest`. Its type exports are
+`Component`, `Element`, `Elements`, `DeepReadonly`, `Intent`, `Json`, `WidgetProps`,
+`RenderLimits` and `RenderOptions`. `/sdk/gen` exports `generate`,
+`generateDefinitions` and `generateElementsSchema`. `/sdk/jsx-runtime` exports
+`jsx`, `jsxs`, `Fragment` and the `JSX` type namespace; `/sdk/jsx-dev-runtime`
+exports `jsxDEV`, `Fragment` and that namespace. Element branding helpers are
+internal.
 
 The complete example is checked verbatim and rendered by
 [`sdk-guide.test.ts`](https://github.com/ashiqrniloy/liveframe/blob/main/src/__tests__/sdk-guide.test.ts). Error examples and ids

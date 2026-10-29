@@ -445,3 +445,12 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Source: decision-logs/2026-10-29-1244-runner-kit-capture-and-authoring-library.md (CL-05)
 - What: `docs/preview.md` and the decision log describe the default backend's snapshot as Playwright's `ariaSnapshot()` YAML on the `^1.49.0` peer range, but only the installed 1.64.1 is exercised. Run the browser capture test against 1.49 and the newest release (a scratch install, not a new dependency), and either confirm the opaque-text claim or narrow the stated range.
 - Why: the snapshot is opaque text by design, so a format change across minors would pass every test and still change what an agent reads.
+
+## Design tree patches for streaming agent surfaces
+
+- Disposition: deferred 2026-10-29 after plan 019 Task 7. The approved streaming decision warrants patches; the patch format and API need the owner's explicit approval before a plan task is written.
+- Section: Agent surfaces (spec §9)
+- Priority: P2
+- Source: plans/019-Phase-7-Part-F-Agent-Surfaces-Conformance-Corpus-And-Engines.md Task 3 and Task 7; decision-logs/2026-10-29-1737-streaming-tree-patches.md
+- What: design a patch format and transport for `renderElements()` streaming, then re-measure the same 679-node agent-home subject at 10 revisions/s against the fixed thresholds (gzip above 1 KiB or arrival validation plus React commit above 8 ms). Keep full arrival validation and the whole-tree path as the fallback.
+- Why: the measured whole-tree update is 117,985 JSON bytes, 5,099 gzipped and 12.1 ms validation plus commit, while only 8–11 changed leaf bytes are needed per revision. Clay's top-priority agent surface remains outside its streaming budget until a patch design is approved and built.

@@ -273,7 +273,7 @@ This plan implements spec §7.2 and §9 (trees, ids), §10 (validation), §13 (p
     - `preloads_are_effective` (re-proof): the preload tests fail without their preloads.
   - Notes (executed 2026-10-29): all six browser test files now launch through `src/__tests__/fixtures/browser.ts`, selected by `LIVEFRAME_BROWSER` (Chromium default, Firefox, WebKit). `platform_floor_features_compute` adds cross-engine proof for `@starting-style`, container queries, `:user-invalid`, `:popover-open`, `backdrop-filter`, `font-size-adjust`, `color-mix()` and `text-wrap: balance`. The browser suites pass: Chromium 115/115, Firefox 115/115, WebKit 110 pass and 5 forced-colour skips. Full `bun run test`: Chromium 846 pass and 4 existing skips, Firefox 846 pass and 4 existing skips, WebKit 841 pass and 9 skips (4 existing plus 5 forced-colour cases). Two recorded engine limitations are in `docs/styling.md` and `plans/evidence/019-engines.md`: Playwright WebKit 27.2 on Linux reports forced colours without applying UA mapping, so forced-colour-only cases are skipped there, and headless WebKit/Firefox compute but do not paint `backdrop-filter`, so the pixel diff stays Chromium-only. CI installs all three engines and runs the WebKit and Firefox suites. `src/__tests__/preloads.test.ts` re-proves both `mock.module` preloads; the other-runner backlog entry is narrowed to Vitest/Jest because Task 1's `mock.module` reason still holds. Browser suite timings: Chromium 77 s, Firefox 123 s, WebKit 86 s.
 
-- [ ] Task 7: Analyze architectural impact and dispose of every finding
+- [x] Task 7: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional:
       - `plans/evidence/019-impact-analysis.md` records all 12 areas, especially area 11 (Conformance) and area 9 (Agent authoring).
@@ -298,6 +298,7 @@ This plan implements spec §7.2 and §9 (trees, ids), §10 (validation), §13 (p
       - `plans/evidence/019-impact-analysis.md` (new); `plans/backlog.md`; this plan.
   - Test Cases to Write:
     - None.
+  - Notes (executed 2026-10-29): `plans/evidence/019-impact-analysis.md` records all 12 areas. Area 3 confirms element JSON reaches the same one-pass emitter and node checks through `prepareElements()` → `renderPrepared()`; `validateInputs: false` only skips the empty ephemeral params/state/context/data check. Area 11 confirms 45 corpus cases cover all 15 format-validator kinds, 9 `elements` cases, and 45 hash vectors. Bench: render 1.855 µs/node, `renderElements` 2.414 µs/node, validator 1.249 µs/node; a Task 7 streaming re-run measured 10.7 ms and 7.30/s under heavier load, while the committed Task 3 sample remains 12.1 ms and 9.90/s. Both exceed the fixed patch thresholds. Finding F1 (streaming patches warranted, no patch API) is deferred to the backlog because the approved decision requires owner approval before a patch task; finding F2 (the `docs/sdk.md` public-export summary omitted the new SDK exports) was fixed. No finding needed a new task above this one.
 
 ## Verification (whole plan)
 - `bun run check`
@@ -307,7 +308,12 @@ This plan implements spec §7.2 and §9 (trees, ids), §10 (validation), §13 (p
 - `bun run release:gate`
 
 ## Compromises Made
-- To be filled after tasks are completed and tests pass.
+- Tree patches are warranted by the streaming measurement but are not designed or shipped in plan 019. The approved decision log defers the patch format and API to a separate task with explicit owner approval; the whole-tree path remains the only shipped transport.
+- Playwright WebKit 27.2 on Linux reports forced colours without applying the UA mapping, so five forced-colour-only browser cases skip there; Chromium and Firefox prove those rules. Headless WebKit and Firefox compute but do not paint `backdrop-filter`, so the pixel diff stays Chromium-only.
+- Vitest/Jest registration is not verified. Both blocked-peer preloads use Bun's `mock.module`; `preloads_are_effective` re-proves them under Bun, and the backlog entry is narrowed to the remaining runner work.
+- The Task 7 streaming re-run was noisier than the Task 3 sample (10.7 ms and 7.30 updates/s versus 12.1 ms and 9.90/s). The committed Task 3 evidence is retained; both samples exceed the fixed thresholds.
 
 ## Further Actions
-- To be filled after task completion with improvements, rationale, and priority.
+- Design tree patches for streaming agent surfaces and re-measure the same 679-node subject: `plans/backlog.md` "Design tree patches for streaming agent surfaces", P2. Owner approval is required before a patch format or API task is written.
+- Add a Vitest/Jest registration path for the conformance suites and replace the Bun-only `mock.module` preloads: `plans/backlog.md` "Verify conformance registrations in other runners and browsers", P3 (browser half done).
+- After a patch design lands, re-run `bun run bench` and compare against the fixed 1 KiB gzip and 8 ms validation-plus-commit thresholds; do not change a threshold without a new measurement.
