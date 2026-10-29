@@ -24,7 +24,7 @@ This plan implements spec §7.2 and §9 (trees, ids), §10 (validation), §13 (p
 
 ## Tasks
 
-- [ ] Task 1: Record the agent-surface, corpus and engine-verification decisions
+- [x] Task 1: Record the agent-surface, corpus and engine-verification decisions
   - Acceptance Criteria:
     - Functional: an accepted decision log settles each question.
       - **LF-16:**
@@ -83,6 +83,7 @@ This plan implements spec §7.2 and §9 (trees, ids), §10 (validation), §13 (p
       - `decision-logs/<date>-agent-surfaces-corpus-and-engines.md` (new)
   - Test Cases to Write:
     - None. The decision log is the record.
+  - Notes (executed 2026-10-29): recorded in `decision-logs/2026-10-29-1552-agent-surfaces-corpus-and-engines.md`. Settled beyond the plan's sketch: `renderElements` takes `unknown` and reports input pointers with the derived `nodeId`; the key rule is "derived sibling segments must be unique" (JSON cannot tell static from dynamic children); `ephemeralManifest` lives in `/sdk` and derives its state schema from the `state` value; `generateElementsSchema` ships from `/sdk/gen` and uses `urn:liveframe:elements:1`; the streaming subject is 679 nodes at 10 revisions/s with a 1 KiB gzip or 8 ms validation+commit patch threshold; corpus cases are exactly `{ inputs, options, expect }` with an unordered `(kind, pointer)` set, and hash vectors use a `$liveframe` tagged escape for non-finite numbers and lone surrogates. Engines: one `LIVEFRAME_BROWSER` parameter (no Playwright Test runner); Vitest stays in the backlog because the two preloads need Bun's `mock.module`, and a Vitest re-proof would need Vite/Node tooling plus a second preload mechanism. Task 2's file list keeps `src/sdk/elements.ts`; Task 6's helper is `src/__tests__/fixtures/browser.ts`.
 
 - [ ] Task 2: Render ephemeral surfaces from agent JSON (LF-16)
   - Acceptance Criteria:
