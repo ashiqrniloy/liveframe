@@ -1,7 +1,13 @@
 # G29: native Windows forced-colours and assistive-technology audit
 
-**Status: checklist written 2026-10-29 (plan 020 Task 2). The Windows run has not happened.** Every `Result` cell below is empty
-until the owner, or an auditor the owner names, runs this on Windows and records what they see.
+**Status: written 2026-10-29 (plan 020 Task 2) and accepted by the owner as the audit's definition, with the run waived.**
+
+When the owner was asked to run it, they answered, verbatim: "I don't care about windows. So mark the task completed with a note and
+move ahead." So every `Result` cell below is empty and stays empty unless someone later runs the audit on Windows: this file is a
+specification of what to look at and what to expect, not evidence of native rendering. `CHANGELOG.md` 0.2.0 lists the unrun
+verification as a known limitation, as 0.1.0 did.
+
+Someone who does run it should fill the results, then fix or defer each fail as the last section describes.
 
 Why this is manual: G29 asks for native Windows forced-colour rendering, native control and scrollbar geometry, and
 assistive-technology behaviour. Chromium automation on Linux can prove the projection's rules, but not the OS's own
@@ -218,4 +224,5 @@ reader in each row's Result.
 | 8. Baseline | 1 | | | |
 | **Total** | **61** | | | |
 
-Owner's verdict, verbatim:
+**Owner's verdict on the audit as delivered (2026-10-29), verbatim:** "I don't care about windows. So mark the task completed with a note
+and move ahead."
