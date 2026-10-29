@@ -20,6 +20,8 @@ The planned migrations are:
 
 Only 0.1.0 has shipped. The Store break avoids an unsafe unscoped fallback, and the Preview break removes incorrect scenario inference; the scope decision explains why each proceeds at this minor boundary. Later plans must add any further break and migration to the register and this section. Other planned additions preserve existing `/1` document meanings. These changes are not shipped yet.
 
+Step-by-step migration, with the before and after of each break and an executable sample: [`docs/migration-0.2.md`](migration-0.2.md). Per-request shipped API and limitations: [`docs/adopters-0.2.md`](adopters-0.2.md).
+
 0.2.0 will read a 0.1.0 `fileStore` directory without export/import: `states/<id>.json` remains shared scope `""`, and non-empty scopes use `states/<id>/<scope>.json` with safe filename encoding. This does not promise that 0.1.0 can read new scoped state.
 
 The Store migration is implemented for the upcoming release. Scope is required
