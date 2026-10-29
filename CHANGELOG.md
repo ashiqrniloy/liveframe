@@ -4,6 +4,8 @@ All notable changes to `@arnilo/liveframe` are recorded here. The project follow
 
 ## Unreleased (0.2.0)
 
+This section ships as `0.2.0-rc.1` first. Locally that candidate passed the archive gate (11 steps, 5.9 s), the peer floors (React 19.0.0, Playwright 1.49.0, `@modelcontextprotocol/server` 2.0.0) and `bun run demo:test` against the packed tarball (52 tests).
+
 [`docs/migration-0.2.md`](docs/migration-0.2.md) covers the three breaking changes; [`docs/adopters-0.2.md`](docs/adopters-0.2.md) maps every adopter request to what shipped.
 
 Changed (breaking):
