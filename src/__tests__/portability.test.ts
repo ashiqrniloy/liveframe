@@ -3,6 +3,7 @@ import { expect, test } from "bun:test";
 // Per-subpath exceptions from spec §13 and plan 006 Tasks 4, 7–9.
 // Store reaches the packer through loadPlacement → verifyPackage.
 const subpaths = [
+  { path: "preview/capture", dependencies: false, loader: false, host: "none" },
   { path: "conformance/react", dependencies: false, loader: false, host: "DOM" },
   { path: "conformance", dependencies: true, loader: false, host: "none" },
   { path: "pack", dependencies: true, loader: false, host: "none" },

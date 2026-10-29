@@ -11,6 +11,8 @@ Changed:
 
 Added:
 
+- `@arnilo/liveframe/preview/capture` exports host-independent `capture()` and pluggable `CaptureBackend`, with an explicit `playwrightBackend(playwright)` adapter. Results contain an in-memory file map; snapshots may be absent. CLI output is preserved, and MCP accepts `AuthoringConfig.capture` (CL-05, LF-02).
+
 - `@arnilo/liveframe/sdk/gen` exposes `generate()` and `generateDefinitions()`, byte-identical to `liveframe gen` and `liveframe gen --implementations`, for host build services (LF-02).
 - `loadPlacement` accepts optional `{ scope, state }`; explicit state bypasses the state read and follows the same reported-reset rules. `/store` exports `verifyPlacementInputs` for hosts keeping state elsewhere. Store conformance covers scope isolation, bounds and deletion.
 

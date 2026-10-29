@@ -137,7 +137,7 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
     - The archive gate's Node probe imports both functions from the installed package and checks each output; the full gate passed all 8 steps, including the Node subpath step.
     - Docs: spec §7.2 and §13, `docs/sdk.md`, the README package table and `CHANGELOG.md` now name `/sdk/gen`. `bun run check` and the targeted tests pass.
 
-- [ ] Task 3: Make capture a pluggable library function (CL-05, LF-02)
+- [x] Task 3: Make capture a pluggable library function (CL-05, LF-02)
   - Acceptance Criteria:
     - Functional:
       - `/preview/capture` exports `capture(url, { backend, scenarios?, widths?, themes?, designSystems?, maxCells? })` and the `CaptureBackend` type. It returns `{ index, files: Map<name, Uint8Array> }`, writes nothing, and takes no `out`.
@@ -174,14 +174,28 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
       - `src/cli/capture.ts` (thin); `src/cli/mcp.ts`; `src/preview/authoring.ts` (`capture?`)
       - `package.json` `exports`
       - `src/__tests__/exports.test.ts`, `portability.test.ts`, `cli-mcp.test.ts` and a new `preview-capture.test.ts`
-      - `scripts/release/archive-gate.ts`
-      - `docs/spec.md` §7.5/§13; `docs/preview.md`; `docs/mcp.md`; `CHANGELOG.md`
+      - `scripts/release/fixtures/node-probe.mjs`: import the new installed subpath; the archive gate already checks every export target
+      - `src/__tests__/fixtures/capture-backend.ts`, `mcp-capture.config.ts`: fake capture engine and injected MCP config
+      - `proof/tests/preview-capture.test.ts`: require Playwright snapshots explicitly and prove cookies survive scenario navigation
+      - `plans/evidence/018-task-3-capture-timing.ts`: compare the pinned pre-extraction implementation with the current CLI
+      - `docs/spec.md` §7.5/§13; `docs/preview.md`; `docs/mcp.md`; `README.md`; `CHANGELOG.md`
   - Test Cases to Write:
     - `capture_with_fake_backend_covers_contract` (`preview-capture.test.ts`): one case per behaviour.
     - `capture_records_null_snapshot`.
     - `capture_subpath_imports_without_playwright`.
     - `mcp_capture_with_injected_backend` (`cli-mcp.test.ts`).
-    - Existing CLI capture tests pass unchanged.
+    - Existing CLI capture behavior tests pass; the snapshot-reading assertion narrows the new nullable type.
+    - `capture_preserves_page_cookies_across_scenarios`: sessions share a Chromium context so moving to per-scenario pages preserves cookies.
+    - `mcp_capture_maps_backend_errors`, `mcp_capture_without_snapshot`: raw backend errors become `render-failed`, and absent snapshots still return PNG content.
+
+  - Notes (executed 2026-10-29):
+    - Added the host-API-free `/preview/capture` subpath with `capture`, `CaptureError`, `playwrightBackend` and the generic backend/session/axes/cell/result types. Capture returns `{ index, files }`, including encoded `index.json`, without file I/O, an `out` option, dynamic imports or runtime Playwright imports.
+    - Preserved axis narrowing and typed errors, the cell bound before screenshots, readiness waits, keyed scenario navigation, controlled previews, sanitised unique names and cell errors. Each session and the optional backend close on success or failure. Null snapshots emit `snapshot: null` and no YAML file.
+    - The Playwright adapter takes the caller's module and reuses one Chromium instance and browser context across scenario pages. The cookie regression test failed with two missing cookies before the shared-context fix and passed afterwards; the existing browser capture test only needed an explicit non-null snapshot assertion for its new type.
+    - The CLI keeps lazy optional-peer loading, installation errors, flags and file output. MCP accepts `AuthoringConfig.capture`, reads the returned bytes directly instead of using temporary directories, keeps the 12-cell bound and maps untagged backend failures to `render-failed`. Injected-backend tests cover PNGs, missing snapshots and backend errors.
+    - Updated spec §7.5/§13, the preview/MCP guides, README and changelog. The preview guide documents opaque default Playwright ARIA-snapshot YAML on the `^1.49.0` peer range, null snapshots and engine-dependent fidelity. Context7 verified screenshot/ARIA APIs and browser-context cookie sharing against the current docs; local Playwright is 1.64.1.
+    - Verification: `bun run check` passed (812 tests, four existing skips), including source/compiled portability scans, the no-Playwright import, keyed/controlled preview and CLI/MCP browser tests. `bun run release:gate` passed all eight steps, including the installed subpath's Node import; its generic export-target check required no archive-gate source change. Refreshed graft.
+    - Performance: `timeout 120s bun --conditions liveframe:source plans/evidence/018-task-3-capture-timing.ts` compares the pinned pre-extraction commit against the current CLI on the existing eight-cell proof capture. Before: 5039.73 / 4770.78 ms; after: 5063.54 / 4782.19 ms. Means: 4905.26 / 4922.87 ms (+0.36%), no meaningful wall-time regression. The original single browser test measured 4762.91 ms before extraction and 4689.10 ms in the first full check.
 
 - [ ] Task 4: Ship authoring as a library (LF-15)
   - Acceptance Criteria:

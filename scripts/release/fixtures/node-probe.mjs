@@ -1,3 +1,4 @@
+import { capture, playwrightBackend } from "@arnilo/liveframe/preview/capture";
 // Gate step 7: the host-API-free subpaths run under plain Node, from another directory.
 import { readFileSync } from "node:fs";
 import { validateCapabilities, validateCatalog } from "@arnilo/liveframe";
@@ -23,6 +24,7 @@ if (!packed.ok) throw new Error(JSON.stringify(packed.errors));
 const checks = {
   validateCatalog: catalog.ok,
   "sdk.primitive": jsx(primitive("text"), { text: "ok" }).type !== undefined,
+  "preview/capture": typeof capture === "function" && typeof playwrightBackend === "function",
   "sdk/gen.generate": generate(catalog.value).includes("export const Button"),
   "sdk/gen.generateDefinitions": generateDefinitions(catalog.value).includes("as const satisfies Definition"),
   "css.baseCss": baseCss(catalog.value).ok,

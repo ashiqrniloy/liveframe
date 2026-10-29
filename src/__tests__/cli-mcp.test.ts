@@ -536,3 +536,56 @@ test("default_worker_runner_is_closed_on_shutdown", async () => {
     await rm(dir, { recursive: true, force: true });
   }
 }, 30000);
+
+test("mcp_capture_with_injected_backend", async () => {
+  await withClient(
+    async (client) => {
+      const packed = await call(client, "pack_draft", drafts[0] as unknown as Record<string, unknown>);
+      expect(packed.isError).toBe(false);
+      const result = await client.callTool({
+        name: "capture_preview",
+        arguments: { scenarios: ["ready"], widths: [360] },
+      });
+      expect(result.isError).not.toBe(true);
+      expect(result.content).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: "image", data: "iVBORw==" }),
+          expect.objectContaining({ type: "text", text: 'ready @360px\n- text "Hello"\n' }),
+        ]),
+      );
+    },
+    { config: `${fixtures}/mcp-capture.config.ts` },
+  );
+});
+
+test("mcp_capture_maps_backend_errors", async () => {
+  await withClient(
+    async (client) => {
+      await call(client, "pack_draft", drafts[0] as unknown as Record<string, unknown>);
+      const result = await call(client, "capture_preview");
+      expect(result.isError).toBe(true);
+      expect(result.json()).toEqual([expect.objectContaining({ kind: "render-failed", message: "backend failed" })]);
+    },
+    { config: `${fixtures}/mcp-capture.config.ts`, env: { LF_CAPTURE_FAILURE: "1" } },
+  );
+});
+
+test("mcp_capture_without_snapshot", async () => {
+  await withClient(
+    async (client) => {
+      await call(client, "pack_draft", drafts[0] as unknown as Record<string, unknown>);
+      const result = await client.callTool({
+        name: "capture_preview",
+        arguments: { scenarios: ["ready"], widths: [360] },
+      });
+      expect(result.isError).not.toBe(true);
+      expect(result.content).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: "text", text: "ready @360px\n" }),
+          expect.objectContaining({ type: "image" }),
+        ]),
+      );
+    },
+    { config: `${fixtures}/mcp-capture.config.ts`, env: { LF_NULL_SNAPSHOT: "1" } },
+  );
+});

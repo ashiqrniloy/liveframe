@@ -1,6 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import pkg from "../../package.json" with { type: "json" };
 import manifestDoc from "../../schemas/manifest.json" with { type: "json" };
@@ -18,7 +16,8 @@ import type { Runner } from "../preview/runner.ts";
 import { createPreview } from "../preview/session.ts";
 import { workerRunner } from "../preview/worker/index.ts";
 import { generate } from "../sdk/gen.ts";
-import { capture, CaptureError } from "./capture.ts";
+import { capture, CaptureError } from "../preview/capture/index.ts";
+import { defaultCaptureBackend } from "./capture.ts";
 
 export class McpSdkMissing extends Error {
   override name = "McpSdkMissing";
@@ -310,6 +309,9 @@ function createAuthoring({
   let bound: Promise<{ readonly url: string; close(): Promise<void> }> | undefined;
   return {
     session,
+    async captureBackend() {
+      return config.capture ?? (await defaultCaptureBackend());
+    },
     exposeMeta,
     get package() {
       return packed;
@@ -448,6 +450,9 @@ const captureSchema = {
   additionalProperties: false,
 };
 
+const snapshotText = (name: string | null, files: Map<string, Uint8Array>) =>
+  name === null ? "" : new TextDecoder().decode(files.get(name));
+
 type Content = { type: "text"; text: string } | { type: "image"; data: string; mimeType: "image/png" };
 
 /** `capture_preview`: the bound page's cells, captured by the same `capture()` the CLI uses. */
@@ -477,10 +482,12 @@ function registerCaptureTool(
             { kind: "not-found", pointer: "", message: String(error instanceof Error ? error.message : error) },
           ]);
         }
-        // A directory per capture, removed once its files are read: cell names repeat across calls.
-        const out = await mkdtemp(join(tmpdir(), "liveframe-mcp-"));
         try {
-          const index = await capture(url, { out, ...options, maxCells: 12 });
+          const { index, files } = await capture(url, {
+            backend: await authoring.captureBackend(),
+            ...options,
+            maxCells: 12,
+          });
           const content: Content[] = [
             text(
               index.cells.map(({ scenario, width, theme, designSystem, errors }) => ({
@@ -496,11 +503,11 @@ function registerCaptureTool(
             content.push({
               type: "text",
               text: `${cell.scenario} @${cell.width}px
-${await Bun.file(join(out, cell.snapshot)).text()}`,
+${snapshotText(cell.snapshot, files)}`,
             });
             content.push({
               type: "image",
-              data: Buffer.from(await Bun.file(join(out, cell.png)).arrayBuffer()).toString("base64"),
+              data: Buffer.from(files.get(cell.png)!).toString("base64"),
               mimeType: "image/png",
             });
           }
@@ -513,8 +520,6 @@ ${await Bun.file(join(out, cell.snapshot)).text()}`,
               message: String(error instanceof Error ? error.message : error),
             },
           ]);
-        } finally {
-          await rm(out, { recursive: true, force: true });
         }
       }),
   );

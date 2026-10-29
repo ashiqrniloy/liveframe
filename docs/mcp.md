@@ -149,6 +149,12 @@ another tool call:
   "expected": "one of: space.0, space.1, space.2, space.3" }
 ```
 
+`AuthoringConfig.capture?: CaptureBackend` lets a host inject a capture engine
+from `@arnilo/liveframe/preview/capture`; omitted, the CLI lazily uses Playwright.
+A backend may return no accessibility snapshot; the tool then returns empty
+snapshot text alongside its PNG. Captures use the returned bytes directly,
+without temporary files. Untagged backend errors become `render-failed`.
+
 `capture_preview` captures every declared cell unless an argument narrows an
 axis, at most 12 cells per call. The first block lists the cells, then each
 cell's accessibility snapshot and its PNG as an image block:

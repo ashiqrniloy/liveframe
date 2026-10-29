@@ -111,6 +111,11 @@
       "liveframe:source": "./src/conformance/react/index.ts",
       "types": "./dist/conformance/react/index.d.ts",
       "default": "./dist/conformance/react/index.js"
+    },
+    "./preview/capture": {
+      "liveframe:source": "./src/preview/capture/index.ts",
+      "types": "./dist/preview/capture/index.d.ts",
+      "default": "./dist/preview/capture/index.js"
     }
   },
   "files": [

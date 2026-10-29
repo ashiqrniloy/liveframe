@@ -1,3 +1,4 @@
+import * as capture from "@arnilo/liveframe/preview/capture";
 import { expect, test } from "bun:test";
 import type {
   CompiledValidator,
@@ -329,4 +330,8 @@ test("package_license_is_mit", async () => {
   expect(text.startsWith("MIT License\n\nCopyright (c) 2026 Niloy Rahman\n")).toBe(true);
   expect(text).toContain('THE SOFTWARE IS PROVIDED "AS IS"');
   expect(text).toContain("copies or substantial portions of the Software.");
+});
+
+test("exports_list_preview_capture", () => {
+  expect(Object.keys(capture).sort()).toEqual(["CaptureError", "capture", "playwrightBackend"]);
 });

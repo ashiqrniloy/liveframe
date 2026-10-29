@@ -1,3 +1,4 @@
+import type { CaptureBackend } from "./capture/index.ts";
 import type { Result } from "../errors.ts";
 import type { WidgetPackage } from "../formats/package.ts";
 import type { Intent, IntentOrigin, Json, UiTree } from "../formats/tree.ts";
@@ -33,6 +34,8 @@ export type AuthoringConfig = {
   readonly capabilities: unknown;
   /** The app's runner. Defaults to `workerRunner()`. */
   readonly runner?: Runner;
+  /** Capture engine; the CLI lazily defaults to Playwright when omitted. */
+  readonly capture?: CaptureBackend;
   /** Show host `meta` (capability and manifest) to the agent. Default false: `meta` is the host's, not the agent's. */
   readonly exposeMeta?: boolean;
   /** Binds the app's preview page to the server's session; called once, after the first successful pack. */

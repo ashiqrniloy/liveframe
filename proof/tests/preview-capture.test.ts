@@ -29,6 +29,7 @@ test("capture_writes_png_snapshot_and_index_per_cell", async () => {
     for (const cell of index.cells) {
       const png = new Uint8Array(await Bun.file(join(dir, cell.png)).arrayBuffer());
       expect([...png.slice(0, 4)]).toEqual([0x89, 0x50, 0x4e, 0x47]);
+      if (cell.snapshot === null) throw new Error("Playwright omitted its snapshot");
       expect(await Bun.file(join(dir, cell.snapshot)).text()).toContain("- ");
       expect(cell.errors).toEqual([]);
     }
@@ -227,3 +228,31 @@ test("gen_runs_without_playwright", async () => {
     await rm(dir, { recursive: true });
   }
 });
+
+test("capture_preserves_page_cookies_across_scenarios", async () => {
+  const cookies: boolean[] = [];
+  const local = Bun.serve({
+    port: 0,
+    fetch(request) {
+      const scenario = new URL(request.url).searchParams.get("scenario");
+      if (scenario) cookies.push(request.headers.get("cookie")?.includes("capture-session=ready") === true);
+      const axes = { scenarios: ["one", "two"], widths: [360], themes: ["light"], designSystems: ["plain"] };
+      const cell = { scenario: scenario ?? "one", width: 360, theme: "light", designSystem: "plain" };
+      return new Response(
+        `<main data-lf-ready data-lf-preview='${JSON.stringify(axes)}'><div data-lf-cell='${JSON.stringify(cell)}'>Hello</div></main>`,
+        {
+          headers: { "content-type": "text/html", "set-cookie": "capture-session=ready; Path=/" },
+        },
+      );
+    },
+  });
+  const dir = await temp();
+  try {
+    const index = await capture(local.url.href, { out: dir });
+    expect(index.cells).toHaveLength(2);
+    expect(cookies).toEqual([true, true]);
+  } finally {
+    await local.stop(true);
+    await rm(dir, { recursive: true, force: true });
+  }
+}, 30000);

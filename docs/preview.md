@@ -195,9 +195,38 @@ typed tool error instead of parsing the message.
 
 Cell filenames come from the coordinates with unsafe characters replaced; if two
 cells sanitise to the same name, later ones get a `-2`, `-3` suffix. Read the
-paths from `index.json`, not from the coordinates. Capture is a command today;
-the library does not export it as a function. A coding agent reaches the same
+paths from `index.json`, not from the coordinates. A coding agent reaches the same
 capture through the `capture_preview` tool ([agent guide](mcp.md)).
+
+Call capture directly from a host service:
+
+```ts
+import { capture, playwrightBackend } from "@arnilo/liveframe/preview/capture";
+import * as playwright from "playwright";
+
+const { index, files } = await capture(url, {
+  backend: playwrightBackend(playwright),
+  scenarios: ["ready"],
+  widths: [360],
+  maxCells: 12,
+});
+// files is a Map<string, Uint8Array>, including index.json; persist or stream it yourself.
+```
+
+The library writes nothing and takes no `out`. Importing it does not load
+Playwright. Supply any `CaptureBackend<Handle>`: `open(url)` returns a session
+with `waitReady(selector)`, `axes()`, `cells()`, `screenshot(handle)`,
+`ariaSnapshot(handle)` and `close()`. Cells carry their opaque handle,
+coordinates and errors; axes carry `shown` for a controlled preview. Capture
+closes each session and calls the optional `backend.close()` even on failure.
+Use a backend per call; the Playwright backend reuses one Chromium instance
+across that call's scenarios.
+
+Snapshots use Playwright's default `locator.ariaSnapshot()` YAML format
+(`playwright ^1.49.0`), kept as opaque text rather than parsed data. A backend
+without snapshots returns `null`: the index records `snapshot: null` and the
+file map contains no corresponding `.aria.yml`. A screenshot is only as
+faithful as the backend's engine; another engine may render differently.
 
 The capture URL must reach a session that holds the draft. Transport and draft
 upload routes belong to the host; Liveframe defines no HTTP session API. For
