@@ -399,6 +399,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Source: plans/evidence/013-repository-audit.md:75
 - What: `src/__tests__/fixtures/widgets/git-status/labels.ts` is a near-verbatim copy of Clay's `packages/git/src/status.ts`, and the owner has not ruled on it. Choose one: keep it as the owner's own code, replace it with a neutral fixture, or attribute the source in-repo.
 - Why: the public repository should not carry unexplained third-party-derived code; the proof widgets already record their derivation, so the fixture is the one unclear case.
+- Status: closed 2026-10-29 in plan 020 Task 1. The owner's decision, verbatim: "Go with option 1" — keep it as the owner's own code, with a note in the repository. `labels.ts` now states in its header that it is the owner's own code, adapted from the owner's own Clay project (`packages/git/src/status.ts`, commit `7770d18c`), so no third-party licence applies; the `@clay/git` package header is gone. Nothing else changed: the labels, their consumers (`src/__tests__/fixtures/widgets/git-status/git-status.tsx`, `proof/widgets/clay/git-status.tsx`) and every dependent test and golden are unchanged.
 
 ## Cover /preview in the archive gate's Node probe
 

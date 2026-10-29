@@ -23,7 +23,7 @@ This plan implements roadmap Phase 7's 0.2.0 release scope (added by plan 014 Ta
 
 ## Tasks
 
-- [ ] Task 1: Settle the git-status labels fixture (backlog)
+- [x] Task 1: Settle the git-status labels fixture (backlog)
   - Acceptance Criteria:
     - Functional:
       - The owner chooses one of three options for `src/__tests__/fixtures/widgets/git-status/labels.ts`: keep it as the owner's own code with a note, replace it with a neutral fixture, or attribute the source in the repository.
@@ -49,6 +49,7 @@ This plan implements roadmap Phase 7's 0.2.0 release scope (added by plan 014 Ta
       - `src/__tests__/fixtures/widgets/git-status/*` (depends on the choice); `plans/backlog.md`
   - Test Cases to Write:
     - The existing tests that use the fixture.
+  - Notes (executed 2026-10-29): the owner answered, verbatim, "Go with option 1" — keep it as the owner's own code, with a note in the repository. `src/__tests__/fixtures/widgets/git-status/labels.ts` now opens with that note: the owner's own code, adapted from the owner's own Clay project (`packages/git/src/status.ts`, commit `7770d18c`), no third-party licence applies; the `@clay/git` package header is gone and the composition paragraph stays. No label, consumer, test or golden changed, so coverage is identical by construction — the alternative (a neutral fixture) would have cost `src/__tests__/fixtures/elements.json`, the 52 text nodes in `proof-formats.test.ts:169` and the skipped `git_status_matches_builder_output_structure` parity check. Provenance evidence checked before asking: every commit on Clay's `packages/git/src/status.ts` is by Niloy Rahman, the same copyright holder as this MIT repository, and Clay has no `LICENSE` of its own, so the source imposes no licence condition. `plans/backlog.md`'s entry is closed with the owner's words. `bun run check`: 846 pass, 4 skip, 0 fail.
 
 - [ ] Task 2: Run the native forced-colours and assistive-technology audit (G29)
   - Acceptance Criteria:

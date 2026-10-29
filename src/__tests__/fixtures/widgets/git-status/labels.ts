@@ -1,6 +1,8 @@
-// @clay/git read-only status tree composition.
+// The owner's own code, adapted from the owner's own Clay project
+// (`packages/git/src/status.ts`, commit 7770d18c): no third-party licence applies
+// (plans/backlog.md, "Decide the Clay-derived git-status labels fixture", closed 2026-10-29).
 //
-// Produces an inert SDUI status tree. The adapter never emits absolute
+// Read-only status tree composition. Produces an inert SDUI status tree. The adapter never emits absolute
 // repository/workspace paths, control characters, or executable code:
 // only sanitized branch/dirty/count labels.
 
