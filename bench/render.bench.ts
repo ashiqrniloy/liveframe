@@ -1,6 +1,8 @@
 import { strict as assert } from "node:assert";
 import { cpus, loadavg, platform, release } from "node:os";
 import { countNodes, renderWorkloads } from "../src/__tests__/fixtures/render-workloads.ts";
+import { renderElements } from "../src/sdk/elements.ts";
+import { toElements } from "../scripts/fixtures/elements.ts";
 
 const runs = 1_000;
 /** Independent samples per workload; the verdict is their median, not one noisy batch. */
@@ -90,6 +92,23 @@ for (const workload of workloads) {
     console.error(`${workload.name}: failed render budget`);
     failed = true;
   }
+}
+const agent = workloads.find((workload) => workload.name === "agent-home");
+assert(agent, "agent-home workload missing");
+const agentTree = agent.run(0);
+const agentElements = toElements(agentTree.root);
+const agentNodes = countNodes(agentTree.root);
+const elementsMs = measure(() => {
+  const result = renderElements(agentElements, { validator: agent.validator, surfaceId: "proof", revision: 0 });
+  assert(result.ok, `agent-home elements: ${JSON.stringify(result.errors)}`);
+});
+const elementsPerNode = (elementsMs * 1_000) / agentNodes;
+console.log(
+  `agent-home elements: ${agentNodes} nodes; renderElements ${elementsMs.toFixed(4)} ms, ${elementsPerNode.toFixed(3)} µs/node`,
+);
+if (elementsPerNode > 3) {
+  console.error("agent-home elements: failed render budget");
+  failed = true;
 }
 console.log(`Load average at end: ${loadavg().join(", ")}`);
 if (failed) process.exitCode = 1;

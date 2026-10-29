@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { validateCatalog } from "../formats/catalog.ts";
-import { generate, generateDefinitions } from "../sdk/gen.ts";
+import { generate, generateDefinitions, generateElementsSchema } from "../sdk/gen.ts";
 import { CaptureError } from "./capture.ts";
 
 const captureUsage =
@@ -62,33 +62,40 @@ async function mcpCommand(args: string[]): Promise<number> {
   }
 }
 
-const genUsage = "Usage: liveframe gen <catalog.json> --out <file> [--check] [--implementations]";
+const genUsage = "Usage: liveframe gen <catalog.json> --out <file> [--check] [--implementations | --elements-schema]";
 
 function genFlags(flags: string[]) {
   let out: string | undefined;
   let check = false;
   let implementations = false;
+  let elements = false;
   for (let i = 0; i < flags.length; i++) {
     if (flags[i] === "--out" && !out && flags[i + 1] && !flags[i + 1]?.startsWith("--")) out = flags[++i];
     else if (flags[i] === "--check" && !check) check = true;
     else if (flags[i] === "--implementations" && !implementations) implementations = true;
+    else if (flags[i] === "--elements-schema" && !elements) elements = true;
     else throw new Error(genUsage);
   }
-  return { out, check, implementations };
+  if (implementations && elements) throw new Error(genUsage);
+  return { out, check, implementations, elements };
 }
 
 async function main(args: string[]): Promise<number> {
   if (args[0] === "mcp") return mcpCommand(args.slice(1));
   if (args[0] === "preview" && args[1] === "capture") return previewCapture(args.slice(2));
   const [command, catalogPath, ...flags] = args;
-  const { out, check, implementations } = genFlags(flags);
+  const { out, check, implementations, elements } = genFlags(flags);
   if (command !== "gen" || !catalogPath || !out) throw new Error(genUsage);
   const catalog = validateCatalog(await Bun.file(catalogPath).json());
   if (!catalog.ok) {
     console.error(JSON.stringify(catalog.errors, null, 2));
     return 2;
   }
-  const expected = implementations ? generateDefinitions(catalog.value) : generate(catalog.value);
+  const expected = elements
+    ? generateElementsSchema(catalog.value)
+    : implementations
+      ? generateDefinitions(catalog.value)
+      : generate(catalog.value);
   if (check) {
     const file = Bun.file(out);
     if (!(await file.exists())) {

@@ -172,7 +172,17 @@ test("css_public_return_types", () => {
 });
 
 test("sdk_export_surface", () => {
-  expect(Object.keys(sdk).sort()).toEqual(["Fragment", "action", "jsx", "jsxs", "primitive", "render", "state"]);
+  expect(Object.keys(sdk).sort()).toEqual([
+    "Fragment",
+    "action",
+    "ephemeralManifest",
+    "jsx",
+    "jsxs",
+    "primitive",
+    "render",
+    "renderElements",
+    "state",
+  ]);
   expect(Object.keys(runtime).sort()).toEqual(["Fragment", "jsx", "jsxs"]);
   expect(Object.keys(devRuntime).sort()).toEqual(["Fragment", "jsxDEV"]);
   expect(sdk.jsx).toBe(runtime.jsx);
@@ -181,7 +191,7 @@ test("sdk_export_surface", () => {
 });
 
 test("exports_list_sdk_gen", () => {
-  expect(Object.keys(sdkGen).sort()).toEqual(["generate", "generateDefinitions"]);
+  expect(Object.keys(sdkGen).sort()).toEqual(["generate", "generateDefinitions", "generateElementsSchema"]);
 });
 
 test("sdk_public_types", () => {

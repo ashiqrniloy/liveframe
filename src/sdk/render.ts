@@ -53,12 +53,32 @@ export function render<P, S, D, C>(
   inputs: WidgetProps<P, S, D, C>,
   options: RenderOptions,
 ): Result<UiTree> {
+  return renderValue(() => widget(inputs), inputs, options, true);
+}
+
+/** Internal: builds a tree from an already-built root element, for element JSON (spec §7.2). */
+export function renderPrepared(
+  root: Element,
+  options: RenderOptions,
+  sourcePointers: WeakMap<Element, string>,
+): Result<UiTree> {
+  return renderValue(() => root, {}, options, false, sourcePointers);
+}
+
+function renderValue(
+  getResult: () => unknown,
+  inputs: Readonly<Record<string, unknown>>,
+  options: RenderOptions,
+  validateInputs: boolean,
+  sourcePointers?: WeakMap<Element, string>,
+): Result<UiTree> {
   const { validator, surfaceId, revision } = options;
   const { catalogId, kinds, structure } = buildFacts(validator);
   const budget = options.limits ? { ...DEFAULT_LIMITS, ...options.limits } : DEFAULT_LIMITS;
   const maxErrors = options.maxErrors ?? DEFAULT_MAX_ERRORS;
   const errors: LiveframeError[] = [];
   const ids = new Set<string>();
+  const idPointers = new Map<string, string>();
   const path: (string | number)[] = [];
   const ancestors = new Set<object>();
   const sink: SchemaSink = { errors, maxErrors };
@@ -92,7 +112,8 @@ export function render<P, S, D, C>(
   const structureSink = {
     nodeId: "root",
     reject(expected: string, suffix = "") {
-      fail("invalid-children", `/${structureSink.nodeId}${suffix}`, expected, structureSink.nodeId);
+      const base = idPointers.get(structureSink.nodeId) ?? `/${structureSink.nodeId}`;
+      fail("invalid-children", `${base}${suffix}`, expected, structureSink.nodeId);
     },
   };
 
@@ -222,9 +243,9 @@ export function render<P, S, D, C>(
     bytes = jsonSink.bytes;
   }
 
-  /** Where an element that failed before it got an id sits: its parent's node id path. */
+  /** Where an element that failed before it got an id sits: its parent's input pointer. */
   function parentPointer(parentId: string | null): string {
-    return parentId === null ? "" : `/${parentId}`;
+    return parentId === null ? "" : (idPointers.get(parentId) ?? `/${parentId}`);
   }
 
   function dataKind(value: unknown): LiveframeError["kind"] | undefined {
@@ -270,6 +291,7 @@ export function render<P, S, D, C>(
     out: UiNode[],
   ): void {
     if (stopped) return;
+    const sourcePointer = sourcePointers?.get(start);
     if (parentId === null && out.length) {
       fail("invalid-children", "", "exactly one root element", "root");
       return;
@@ -327,7 +349,7 @@ export function render<P, S, D, C>(
       if (text.length === 0 || text.length > 128) {
         fail(
           "invalid-prop",
-          parentPointer(parentId),
+          sourcePointer ?? parentPointer(parentId),
           "a nonempty bounded string or finite number key",
           parentId ?? "root",
         );
@@ -375,14 +397,19 @@ export function render<P, S, D, C>(
 
     const kind = typeof element.type === "string" ? undefined : isRecord(element.type) ? element.type.kind : undefined;
     if (typeof element.type === "string") {
-      fail("host-element", parentPointer(parentId), `no host element <${element.type}>`, parentId ?? "root");
+      fail(
+        "host-element",
+        sourcePointer ?? parentPointer(parentId),
+        `no host element <${element.type}>`,
+        parentId ?? "root",
+      );
       return;
     }
     const definition: KindFacts | undefined = typeof kind === "string" ? kinds.get(kind) : undefined;
     if (typeof kind !== "string" || !definition) {
       fail(
         "unknown-component",
-        parentPointer(parentId),
+        sourcePointer ?? parentPointer(parentId),
         `a catalog kind: ${[...kinds.keys()].join(", ")}`,
         parentId ?? "root",
       );
@@ -390,14 +417,19 @@ export function render<P, S, D, C>(
     }
 
     if (requireKey && key === undefined) {
-      fail("missing-key", parentPointer(parentId), "a key on every element in a list", parentId ?? "root");
+      fail(
+        "missing-key",
+        sourcePointer ?? parentPointer(parentId),
+        "a key on every element in a list",
+        parentId ?? "root",
+      );
       return;
     }
     const segment = key === undefined ? kind : String(key);
     if (siblings.has(segment)) {
       fail(
         key === undefined ? "missing-key" : "duplicate-key",
-        parentPointer(parentId),
+        sourcePointer ?? parentPointer(parentId),
         "siblings with distinct keys",
         parentId ?? "root",
       );
@@ -405,12 +437,13 @@ export function render<P, S, D, C>(
     }
     siblings.add(segment);
     const id = parentId === null ? "root" : `${parentId}/${encodeSegment(segment)}`;
-    const pointer = `/${id}`;
+    const pointer = sourcePointer ?? `/${id}`;
     if (ids.has(id)) {
-      fail("duplicate-key", `${pointer}/id`, "a unique key-path id", id);
+      fail("duplicate-key", sourcePointers ? pointer : `${pointer}/id`, "a unique key-path id", id);
       return;
     }
     ids.add(id);
+    idPointers.set(id, pointer);
     if (nodes >= budget.nodes) {
       limit(`at most ${budget.nodes} nodes`, id, pointer);
       return;
@@ -537,7 +570,7 @@ export function render<P, S, D, C>(
   if (!Number.isSafeInteger(revision) || revision < 0)
     fail("invalid-prop", "", "a revision that is a non-negative safe integer", "root");
   if (errors.length) return { ok: false, errors };
-  checkInputs();
+  if (validateInputs) checkInputs();
   if (errors.length) return { ok: false, errors: finish() };
 
   let firstField = true;
@@ -555,7 +588,7 @@ export function render<P, S, D, C>(
 
   let result: unknown;
   try {
-    result = widget(inputs);
+    result = getResult();
   } catch (thrown) {
     fail("render-failed", "", "the widget to run without throwing", "root", thrownMessage(thrown));
     return { ok: false, errors: finish() };

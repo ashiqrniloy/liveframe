@@ -85,7 +85,7 @@ This plan implements spec §7.2 and §9 (trees, ids), §10 (validation), §13 (p
     - None. The decision log is the record.
   - Notes (executed 2026-10-29): recorded in `decision-logs/2026-10-29-1552-agent-surfaces-corpus-and-engines.md`. Settled beyond the plan's sketch: `renderElements` takes `unknown` and reports input pointers with the derived `nodeId`; the key rule is "derived sibling segments must be unique" (JSON cannot tell static from dynamic children); `ephemeralManifest` lives in `/sdk` and derives its state schema from the `state` value; `generateElementsSchema` ships from `/sdk/gen` and uses `urn:liveframe:elements:1`; the streaming subject is 679 nodes at 10 revisions/s with a 1 KiB gzip or 8 ms validation+commit patch threshold; corpus cases are exactly `{ inputs, options, expect }` with an unordered `(kind, pointer)` set, and hash vectors use a `$liveframe` tagged escape for non-finite numbers and lone surrogates. Engines: one `LIVEFRAME_BROWSER` parameter (no Playwright Test runner); Vitest stays in the backlog because the two preloads need Bun's `mock.module`, and a Vitest re-proof would need Vite/Node tooling plus a second preload mechanism. Task 2's file list keeps `src/sdk/elements.ts`; Task 6's helper is `src/__tests__/fixtures/browser.ts`.
 
-- [ ] Task 2: Render ephemeral surfaces from agent JSON (LF-16)
+- [x] Task 2: Render ephemeral surfaces from agent JSON (LF-16)
   - Acceptance Criteria:
     - Functional:
       - `renderElements` builds the tree in one pass, with `render()`'s key-path ids, validation, limits and error kinds. Each error carries a JSON pointer into the input.
@@ -125,6 +125,7 @@ This plan implements spec §7.2 and §9 (trees, ids), §10 (validation), §13 (p
     - `ephemeral_manifest_validates`.
     - `elements_schema_deterministic_and_drift_checked`.
     - `elements_type_and_schema_agree`.
+  - Notes (executed 2026-10-29): `renderElements` reuses `render()`'s emitter through a small internal `renderPrepared`; element JSON is converted to internal SDK elements, and each carries its input pointer so emitted errors point into the JSON. Finding: a tree can carry ids from keyed fragments that have no node (the `git-status` fixture does), so element JSON gained one structural kind, `{ "kind": "fragment", key?, children }`. It has no props/style/events/variant, is in the generated schema and `Elements<Catalog>`, and the fixture script rebuilds fragment wrappers from id segments; without it, equivalent JSON could not reproduce the fixture's ids. `ephemeralManifest` lives in `/sdk`, derives its state schema from the initial value, and throws `TypeError` on `null`/non-JSON state. `generateElementsSchema` ships from `/sdk/gen` and the CLI, with `gen:check` and a fixture; the JSON-Schema fragments are rebuilt locally because importing `treeSchema` put the forbidden literal `node:` into the browser bundle. `scripts/fixtures/elements.ts` generates `src/__tests__/fixtures/elements.json` from `renderWorkloads()`. Bench: agent-home elements at 2.47 µs/node (gate 3). Docs updated in spec §7.2/§9/§13, `docs/sdk.md` and `docs/formats.md`. `bun run check`: 839 pass, 4 skip, 0 fail.
 
 - [ ] Task 3: Measure tree patches on a streaming agent surface (LF-17)
   - Acceptance Criteria:

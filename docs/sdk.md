@@ -131,6 +131,64 @@ result can contain 21 entries with the default. Limits also bound component
 expansion and nested child arrays. `render()` is synchronous; it cannot stop a
 widget's infinite loop. The host owns execution isolation and time limits.
 
+## Ephemeral surfaces from agent JSON
+
+A chat agent can answer with a one-off surface as JSON instead of authoring a
+package. `renderElements(json, options)` takes the same options as `render()` and
+returns the same `Result<UiTree>`:
+
+```ts
+import { ephemeralManifest, renderElements } from "@arnilo/liveframe/sdk";
+
+const json = {
+  kind: "stack",
+  props: {},
+  children: [
+    { kind: "text", props: { text: "Done" } },
+    {
+      kind: "button",
+      key: "open",
+      props: { label: "Open" },
+      events: { onPress: { type: "action", name: "tasks.claim", args: { id: "t1" } } },
+    },
+  ],
+};
+
+const manifest = ephemeralManifest({
+  catalogId: catalog.catalogId,
+  actions: ["tasks.claim"],
+  state: { selected: "t1" },
+});
+const validator = compileValidator({ catalog, capabilities, manifest });
+const result = renderElements(json, { validator, surfaceId: "chat", revision: 1 });
+```
+
+Each element is `{ kind, key?, variant?, props?, style?, events?, children? }`.
+Intents use the normal `Intent` shape. `renderElements()` derives the same
+key-path ids as `render()`, applies the same props, style, event, child, limit
+and error checks in one pass, and reports every error with a JSON pointer into
+the input. A `fragment` element (`{ kind: "fragment", key?, children }`) groups
+keyed children without adding a tree node.
+
+`ephemeralManifest()` returns a manifest with fixed `id: "ephemeral"` and
+`version: "0"`, empty params and context, and the state schema derived from the
+initial `state` value. It is not stored. The host still validates the document
+with `validateManifest()` and still re-checks the tree on arrival; an ephemeral
+surface grants nothing.
+
+The typed form is `Elements<Catalog>`. To give an agent tool a JSON Schema,
+generate one per catalog:
+
+```sh
+bunx liveframe gen catalog.json --elements-schema --out elements.schema.json
+```
+
+`generateElementsSchema(catalog)` from `@arnilo/liveframe/sdk/gen` produces the
+same bytes. The schema uses JSON Schema 2020-12, has the id
+`urn:liveframe:elements:1`, and is drift-checked like the other generated files.
+`/authoring` exposes no tool for this path; wire `renderElements()` into your own
+agent tool.
+
 ## Intents and author constraints
 
 An event prop carries one frozen intent, never a callback:

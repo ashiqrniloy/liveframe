@@ -351,6 +351,20 @@ argument types, id uniqueness and parent relationships, and configurable
 render limits require the compiled validator described below. Structural
 schema validation alone does not establish those guarantees.
 
+## Element JSON
+
+Agent surfaces may arrive as element JSON and are converted on the backend,
+before the wire format. Each element is
+`{ kind, key?, variant?, props?, style?, events?, children? }`; intents use the
+`Intent` shape above. `renderElements()` applies the same ids, limits and checks
+as `render()`, and reports errors with pointers into the JSON. A
+`{ kind: "fragment", key?, children }` element scopes ids without adding a node.
+
+The per-catalog schema for this input is generated, not published for all
+catalogs: `liveframe gen <catalog> --elements-schema --out <file>` writes JSON
+Schema 2020-12 with `$id: "urn:liveframe:elements:1"`. See
+[the SDK guide](sdk.md#ephemeral-surfaces-from-agent-json).
+
 ## Validation
 
 Compile once when the host loads a catalog, its capabilities and a widget's

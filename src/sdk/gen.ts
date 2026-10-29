@@ -227,3 +227,163 @@ export function generateDefinitions(catalog: Catalog): string {
     "",
   ].join("\n")}\n${definitions.join("\n\n")}\n`;
 }
+
+/** The tree format's JSON-Schema fragments, rebuilt here so this host-free subpath never names a host API. */
+function intentSchemas(): { json: Record<string, unknown>; intent: Record<string, unknown> } {
+  const json = { $ref: "#/$defs/json" };
+  const jsonMap = { type: "object", additionalProperties: json };
+  const name = { type: "string", maxLength: 128, pattern: "^.+$" };
+  const capability = {
+    type: "string",
+    maxLength: 128,
+    pattern: "^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)*$",
+  };
+  return {
+    json: {
+      anyOf: [
+        { type: "null" },
+        { type: "boolean" },
+        { type: "number" },
+        { type: "string" },
+        { type: "array", items: json },
+        jsonMap,
+      ],
+    },
+    intent: {
+      oneOf: [
+        {
+          type: "object",
+          additionalProperties: false,
+          required: ["type", "key"],
+          properties: { type: { const: "setState" }, key: name, value: json },
+        },
+        {
+          type: "object",
+          additionalProperties: false,
+          required: ["type", "name", "args"],
+          properties: {
+            type: { const: "action" },
+            name: capability,
+            args: jsonMap,
+            bind: name,
+            bindAll: { const: true },
+          },
+          not: { properties: { bind: {}, bindAll: {} }, required: ["bind", "bindAll"] },
+        },
+      ],
+    },
+  };
+}
+
+function discriminatedSchema(
+  schema: Extract<LanguageSchema, { readonly discriminator: string }>,
+): Record<string, unknown> {
+  return {
+    oneOf: Object.entries(schema.mapping).map(([tag, entry]) => {
+      const branch = jsonSchema(entry);
+      return {
+        ...branch,
+        properties: { ...(branch.properties as Record<string, unknown>), [schema.discriminator]: { const: tag } },
+        required: [schema.discriminator, ...((branch.required as string[] | undefined) ?? [])],
+      };
+    }),
+  };
+}
+
+/** JSON Schema 2020-12 for the schema language; keywords only, no annotations a port would ignore. */
+function jsonSchema(schema: LanguageSchema): Record<string, unknown> {
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: one flat switch over the schema forms is clearer than six helpers.
+  const form = (): Record<string, unknown> => {
+    if ("discriminator" in schema) return discriminatedSchema(schema);
+    switch (schema.type) {
+      case "string": {
+        const out: Record<string, unknown> = { type: "string", maxLength: schema.maxLength };
+        if (schema.minLength !== undefined) out.minLength = schema.minLength;
+        if (schema.pattern !== undefined) out.pattern = schema.pattern;
+        if (schema.enum !== undefined) out.enum = [...schema.enum];
+        return out;
+      }
+      case "number":
+      case "integer": {
+        const out: Record<string, unknown> = { type: schema.type };
+        if (schema.minimum !== undefined) out.minimum = schema.minimum;
+        if (schema.maximum !== undefined) out.maximum = schema.maximum;
+        return out;
+      }
+      case "boolean":
+        return { type: "boolean" };
+      case "array": {
+        const out: Record<string, unknown> = {
+          type: "array",
+          items: jsonSchema(schema.items),
+          maxItems: schema.maxItems,
+        };
+        if (schema.minItems !== undefined) out.minItems = schema.minItems;
+        return out;
+      }
+      case "object": {
+        const properties: Record<string, unknown> = {};
+        for (const [key, child] of Object.entries(schema.properties)) properties[key] = jsonSchema(child);
+        const out: Record<string, unknown> = { type: "object", properties, additionalProperties: false };
+        if (schema.required.length) out.required = [...schema.required];
+        return out;
+      }
+    }
+  };
+  const base = form();
+  return schema.nullable === true ? { anyOf: [base, { type: "null" }] } : base;
+}
+
+/** Deterministic agent-facing element JSON Schema for one catalog (LF-16). */
+export function generateElementsSchema(catalog: Catalog): string {
+  const fragment = {
+    type: "object",
+    description: "A keyed group with no node of its own.",
+    additionalProperties: false,
+    required: ["kind", "children"],
+    properties: {
+      kind: { const: "fragment" },
+      key: { anyOf: [{ type: "string" }, { type: "number" }] },
+      children: { type: "array", items: { $ref: "#/$defs/element" } },
+    },
+  };
+  const element = {
+    oneOf: [
+      fragment,
+      ...catalog.definitions.map((definition) => ({
+        type: "object",
+        description: definition.description,
+        additionalProperties: false,
+        required: ["kind"],
+        properties: {
+          kind: { const: definition.kind },
+          key: { anyOf: [{ type: "string" }, { type: "number" }] },
+          ...(definition.variants.length ? { variant: { enum: [...definition.variants] } } : {}),
+          props: jsonSchema(definition.props),
+          style: {
+            type: "object",
+            properties: Object.fromEntries(definition.styleProps.map((name) => [name, {}])),
+            additionalProperties: false,
+          },
+          events: {
+            type: "object",
+            properties: Object.fromEntries(
+              Object.keys(definition.events).map((name) => [name, { $ref: "#/$defs/intent" }]),
+            ),
+            additionalProperties: false,
+          },
+          children: { type: "array", items: { $ref: "#/$defs/element" } },
+        },
+      })),
+    ],
+  };
+  const intents = intentSchemas();
+  const document = {
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    $id: "urn:liveframe:elements:1",
+    title: `Liveframe elements for ${catalog.catalogId}`,
+    $ref: "#/$defs/element",
+    $defs: { json: intents.json, intent: intents.intent, element },
+  };
+  return `${JSON.stringify(document, null, 2)}\n`;
+}

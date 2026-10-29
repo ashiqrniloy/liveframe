@@ -1,0 +1,2386 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:liveframe:elements:1",
+  "title": "Liveframe elements for proof.ui@1",
+  "$ref": "#/$defs/element",
+  "$defs": {
+    "json": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/json"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/json"
+          }
+        }
+      ]
+    },
+    "intent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "key"
+          ],
+          "properties": {
+            "type": {
+              "const": "setState"
+            },
+            "key": {
+              "type": "string",
+              "maxLength": 128,
+              "pattern": "^.+$"
+            },
+            "value": {
+              "$ref": "#/$defs/json"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "name",
+            "args"
+          ],
+          "properties": {
+            "type": {
+              "const": "action"
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 128,
+              "pattern": "^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)*$"
+            },
+            "args": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/json"
+              }
+            },
+            "bind": {
+              "type": "string",
+              "maxLength": 128,
+              "pattern": "^.+$"
+            },
+            "bindAll": {
+              "const": true
+            }
+          },
+          "not": {
+            "properties": {
+              "bind": {},
+              "bindAll": {}
+            },
+            "required": [
+              "bind",
+              "bindAll"
+            ]
+          }
+        }
+      ]
+    },
+    "element": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "A keyed group with no node of its own.",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "children"
+          ],
+          "properties": {
+            "kind": {
+              "const": "fragment"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The box primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "box"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default",
+                "plate",
+                "rule",
+                "callout"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "semantics": {
+                  "type": "string",
+                  "maxLength": 8,
+                  "enum": [
+                    "section",
+                    "article",
+                    "aside",
+                    "header",
+                    "footer",
+                    "nav",
+                    "list",
+                    "listItem",
+                    "terms",
+                    "term",
+                    "detail",
+                    "form",
+                    "group",
+                    "figure",
+                    "status",
+                    "alert"
+                  ]
+                },
+                "label": {
+                  "type": "string",
+                  "maxLength": 80
+                }
+              },
+              "additionalProperties": false
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {},
+                "surface": {},
+                "fill": {},
+                "radius": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The stack primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "stack"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "semantics": {
+                  "type": "string",
+                  "maxLength": 8,
+                  "enum": [
+                    "section",
+                    "article",
+                    "aside",
+                    "header",
+                    "footer",
+                    "nav",
+                    "list",
+                    "listItem",
+                    "terms",
+                    "term",
+                    "detail",
+                    "form",
+                    "group",
+                    "figure",
+                    "status",
+                    "alert"
+                  ]
+                },
+                "label": {
+                  "type": "string",
+                  "maxLength": 80
+                }
+              },
+              "additionalProperties": false
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {},
+                "gap": {},
+                "direction": {},
+                "align": {},
+                "justify": {},
+                "wrap": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The inline primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "inline"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "semantics": {
+                  "type": "string",
+                  "maxLength": 8,
+                  "enum": [
+                    "section",
+                    "article",
+                    "aside",
+                    "header",
+                    "footer",
+                    "nav",
+                    "list",
+                    "listItem",
+                    "terms",
+                    "term",
+                    "detail",
+                    "form",
+                    "group",
+                    "figure",
+                    "status",
+                    "alert"
+                  ]
+                },
+                "label": {
+                  "type": "string",
+                  "maxLength": 80
+                }
+              },
+              "additionalProperties": false
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {},
+                "gap": {},
+                "direction": {},
+                "align": {},
+                "justify": {},
+                "wrap": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The grid primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "grid"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "semantics": {
+                  "type": "string",
+                  "maxLength": 8,
+                  "enum": [
+                    "section",
+                    "article",
+                    "aside",
+                    "header",
+                    "footer",
+                    "nav",
+                    "list",
+                    "listItem",
+                    "terms",
+                    "term",
+                    "detail",
+                    "form",
+                    "group",
+                    "figure",
+                    "status",
+                    "alert"
+                  ]
+                },
+                "label": {
+                  "type": "string",
+                  "maxLength": 80
+                }
+              },
+              "additionalProperties": false
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {},
+                "gap": {},
+                "align": {},
+                "justify": {},
+                "columns": {},
+                "rows": {},
+                "area": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The scroll primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "scroll"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                "axis": {
+                  "type": "string",
+                  "maxLength": 10,
+                  "enum": [
+                    "vertical",
+                    "horizontal",
+                    "both"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "label"
+              ]
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {},
+                "minHeight": {},
+                "maxHeight": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The separator primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "separator"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "orientation": {
+                  "type": "string",
+                  "maxLength": 10,
+                  "enum": [
+                    "horizontal",
+                    "vertical"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The text primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "text"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "maxLength": 10000
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "text"
+              ]
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {},
+                "textStyle": {},
+                "tone": {},
+                "textAlign": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The heading primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "heading"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "maxLength": 10000
+                },
+                "level": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 6
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "text",
+                "level"
+              ]
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {},
+                "textStyle": {},
+                "tone": {},
+                "textAlign": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The icon primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "icon"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "maxLength": 128,
+                  "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$"
+                },
+                "label": {
+                  "type": "string",
+                  "maxLength": 80
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "name"
+              ]
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {},
+                "tone": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The image primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "image"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "src": {
+                  "type": "string",
+                  "maxLength": 2048,
+                  "pattern": "^(https://|/[^/])"
+                },
+                "alt": {
+                  "type": "string",
+                  "maxLength": 10000
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "src",
+                "alt"
+              ]
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The link primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "link"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                "href": {
+                  "type": "string",
+                  "maxLength": 2048,
+                  "pattern": "^(https://|/[^/]|#)"
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "label",
+                "href"
+              ]
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The button primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "button"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default",
+                "primary",
+                "danger",
+                "ghost"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                "icon": {
+                  "type": "string",
+                  "maxLength": 128,
+                  "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$"
+                },
+                "disabled": {
+                  "type": "boolean"
+                },
+                "current": {
+                  "type": "boolean"
+                },
+                "pressed": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "label"
+              ]
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "width": {},
+                "grow": {},
+                "align": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {
+                "onPress": {
+                  "$ref": "#/$defs/intent"
+                }
+              },
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The textField primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "textField"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                "value": {
+                  "type": "string",
+                  "maxLength": 10000
+                },
+                "placeholder": {
+                  "type": "string",
+                  "maxLength": 10000
+                },
+                "multiline": {
+                  "type": "boolean"
+                },
+                "disabled": {
+                  "type": "boolean"
+                },
+                "readOnly": {
+                  "type": "boolean"
+                },
+                "maxLength": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 10000
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "label"
+              ]
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {
+                "onChange": {
+                  "$ref": "#/$defs/intent"
+                },
+                "onCommit": {
+                  "$ref": "#/$defs/intent"
+                }
+              },
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The select primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "select"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                "value": {
+                  "type": "string",
+                  "maxLength": 128,
+                  "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$"
+                },
+                "disabled": {
+                  "type": "boolean"
+                },
+                "options": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "string",
+                        "maxLength": 128,
+                        "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "maxLength": 80
+                      },
+                      "disabled": {
+                        "type": "boolean"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                      "value",
+                      "label"
+                    ]
+                  },
+                  "maxItems": 100
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "label",
+                "options"
+              ]
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {
+                "onChange": {
+                  "$ref": "#/$defs/intent"
+                }
+              },
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The checkbox primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "checkbox"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                "checked": {
+                  "type": "boolean"
+                },
+                "disabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "label"
+              ]
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {
+                "onChange": {
+                  "$ref": "#/$defs/intent"
+                }
+              },
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The switch primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "switch"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                "checked": {
+                  "type": "boolean"
+                },
+                "disabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "label"
+              ]
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {
+                "onChange": {
+                  "$ref": "#/$defs/intent"
+                }
+              },
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The menu primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "menu"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                "disabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "label"
+              ]
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The menuItem primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "menuItem"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default",
+                "danger"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                "icon": {
+                  "type": "string",
+                  "maxLength": 128,
+                  "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$"
+                },
+                "disabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "label"
+              ]
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {
+                "onPress": {
+                  "$ref": "#/$defs/intent"
+                }
+              },
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The popover primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "popover"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "maxLength": 80
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "label"
+              ]
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The dialog primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "dialog"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                "open": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "label"
+              ]
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {
+                "onClose": {
+                  "$ref": "#/$defs/intent"
+                }
+              },
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The tooltip primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "tooltip"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "maxLength": 10000
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "text"
+              ]
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The tabs primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "tabs"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                "value": {
+                  "type": "string",
+                  "maxLength": 128,
+                  "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$"
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "label"
+              ]
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {
+                "onChange": {
+                  "$ref": "#/$defs/intent"
+                }
+              },
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The disclosure primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "disclosure"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                "open": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "label"
+              ]
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {
+                "onToggle": {
+                  "$ref": "#/$defs/intent"
+                }
+              },
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The tab primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "tab"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                "count": {
+                  "type": "string",
+                  "maxLength": 16
+                },
+                "value": {
+                  "type": "string",
+                  "maxLength": 128,
+                  "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$"
+                },
+                "disabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "label",
+                "value"
+              ]
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
