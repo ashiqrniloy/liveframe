@@ -148,3 +148,7 @@ Two bullets are proven, but not by the test name their plan predicted. Both are 
 - LF-07.1: `pack()` and `verifyPackage()`'s coverage of `description`/`meta` is `verify_rechecks_manifest_and_scenarios` (verification re-runs the manifest validator, which is what enforces the bounds), not a dedicated round-trip test.
 
 No bullet is left without evidence, so no task is added above Task 8 and nothing is deferred. G29's unrun Windows audit is not a request bullet; it stays the known limitation Task 3 recorded.
+
+## Installed release candidate
+
+The installed-package rows (LF-02.2, LF-02.4, LF-16 bundle, CL-06 corpus and vectors) were re-run against `@arnilo/liveframe@0.2.0-rc.3` from the registry; see [020-release-candidate.md](020-release-candidate.md). The remaining rows are tests on the source tree and have no installed form.
