@@ -2,7 +2,7 @@
 
 Prepared 2026-10-30 against `acad1cb` (plan 020 Task 7), reviewing the registry-installed `0.2.0-rc.3` evidence. The owner-directed follow-up changes the migration guide and changelog; the published rc.3 does not contain those corrections. Runtime code is unchanged. Task 9 owns the final version, release tag, publication and registry verification.
 
-**Finding dispositions approved; final release go/no-go and corrected-candidate verification remain pending. Task 8 remains unchecked.** No final release tag has been created or pushed by this task.
+**Finding dispositions approved. The corrected candidate is verified and the owner gave the release go (2026-10-30, recorded below); Task 8 is closed.** The release tag itself belongs to Task 9.
 
 The tables cover every acceptance item in Tasks 1–7, all 28 Compromises Made bullets in plans 014–019, and every open finding or handoff from their impact analyses. `fixed` means the condition is satisfied or the documented contract is verified; it does not mean that a documented limitation disappeared. `deferred` names existing owner approval and the remaining work. `pending` requires an owner disposition before Task 8 can close.
 
@@ -165,7 +165,7 @@ Review correction: Requests LF-08.4 cites a nonexistent `docs/security.md` confi
 
 **Owner's verbatim finding disposition (2026-10-30):** “Fix the migration guide omissions. Defer the webkit switching budget issue”. R4 is corrected in the checkout and R1 is deferred; R2/R3 retain their existing approvals. This answer disposes of the named findings but does not state a final release go.
 
-**Final release go/no-go:** pending. Verify a new release candidate containing the corrected guide and limitation disclosure, then record the owner's final go/no-go before checking Task 8. Task 9 publication remains separate.
+**Final release go/no-go (2026-10-30):** go. The owner's instruction for Task 9, verbatim: “Complete - [ ] Task 9: Publish 0.2.0 and verify it from the registry from @plans/020-Phase-7-Part-G-Release-0-2-0.md and update the plan once done”. The corrected candidate `0.2.0-rc.4` was published and verified first (archive gate, corrected files in the tarball, provenance), then `0.2.0` was published; see [the release record](020-release.md).
 
 ## Validation
 
