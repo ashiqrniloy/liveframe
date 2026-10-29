@@ -1,0 +1,24 @@
+load 6.02
+Bun 1.4.4; linux 7.3.0-4-cachyos; AMD Ryzen 9 PRO 7940HS w/ Radeon 780M Graphics; 16 logical CPUs
+Load average (1/5/15 min): 6.02, 6.6, 6.34; 200 warm-ups, 1,000 runs per implementation
+Generic baseline: checkValue on props only (includes its schema validation); compile/load excluded.
+agent-home: 679 nodes; compiled 0.9638 ms, 1.419 µs/node; generic 1.0960 ms, 1.614 µs/node; 1.14×
+  Equal-work props check: compiled 0.0521 ms; 21.04× over checkValue
+core-queue.small: 5 nodes; compiled 0.0059 ms, 1.172 µs/node; generic 0.0068 ms, 1.359 µs/node; 1.16×
+  Equal-work props check: compiled 0.0004 ms; 16.66× over checkValue
+core-queue.medium: 414 nodes; compiled 0.5577 ms, 1.347 µs/node; generic 0.6389 ms, 1.543 µs/node; 1.15×
+  Equal-work props check: compiled 0.0275 ms; 23.19× over checkValue
+core-queue.large: 446 nodes; compiled 0.6591 ms, 1.478 µs/node; generic 0.6521 ms, 1.462 µs/node; 0.99×
+  Equal-work props check: compiled 0.0300 ms; 21.73× over checkValue
+core-queue.full: 473 nodes; compiled 0.7285 ms, 1.540 µs/node; generic 0.7422 ms, 1.569 µs/node; 1.02×
+  Equal-work props check: compiled 0.0318 ms; 23.34× over checkValue
+core-queue.full: failed ≤ 1.5 µs/node or agent-home equal-work props ≥ 2× gate
+git-status: 145 nodes; compiled 0.1376 ms, 0.949 µs/node; generic 0.1898 ms, 1.309 µs/node; 1.38×
+  Equal-work props check: compiled 0.0093 ms; 20.31× over checkValue
+rack-module: 236 nodes; compiled 0.2310 ms, 0.979 µs/node; generic 0.2887 ms, 1.223 µs/node; 1.25×
+  Equal-work props check: compiled 0.0158 ms; 18.28× over checkValue
+synthetic-queue: 353 nodes; compiled 0.4216 ms, 1.194 µs/node; generic 0.5654 ms, 1.602 µs/node; 1.34×
+  Equal-work props check: compiled 0.0261 ms; 21.66× over checkValue
+Load average at end: 6.09, 6.6, 6.35
+mixed-feed: 500 elements; compiled 0.0384 ms, 0.077 µs/element
+exit 1

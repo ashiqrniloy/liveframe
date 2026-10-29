@@ -6,6 +6,7 @@ import { validateCapabilities, validateCatalog } from "@arnilo/liveframe";
 import { baseCss } from "@arnilo/liveframe/css";
 import { catalogSuite } from "@arnilo/liveframe/conformance";
 import { pack } from "@arnilo/liveframe/pack";
+import { createPreview, inProcessRunner } from "@arnilo/liveframe/preview";
 import { linkPackage, renderModule } from "@arnilo/liveframe/runner-kit";
 import { jsx, primitive } from "@arnilo/liveframe/sdk";
 import { generate, generateDefinitions } from "@arnilo/liveframe/sdk/gen";
@@ -40,6 +41,10 @@ const rendered = renderModule(() => jsx(primitive("text"), { text: "ok" }), read
   manifest: packed.value.manifest,
 });
 
+const runner = inProcessRunner();
+const executed = await runner.render(packed.value, read("scenario"), options);
+const preview = createPreview({ catalog: catalog.value, capabilities: capabilities.value, runner });
+
 const checks = {
   "runner-kit.linkPackage":
     linked.ok && linked.value.startsWith('import * as __lf_sdk0 from "sandbox:@arnilo/liveframe/sdk'),
@@ -47,6 +52,8 @@ const checks = {
   "authoring.createAuthoring": vocabulary.ok && vocabulary.value.catalogId === catalog.value.catalogId,
   validateCatalog: catalog.ok,
   "sdk.primitive": jsx(primitive("text"), { text: "ok" }).type !== undefined,
+  "preview.inProcessRunner": executed.ok && runner.stats().modules > 0,
+  "preview.createPreview": typeof preview.render === "function",
   "preview/capture": typeof capture === "function" && typeof playwrightBackend === "function",
   "sdk/gen.generate": generate(catalog.value).includes("export const Button"),
   "sdk/gen.generateDefinitions": generateDefinitions(catalog.value).includes("as const satisfies Definition"),

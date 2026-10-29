@@ -1,0 +1,14 @@
+load 6.16
+bun test v1.4.4 (38afee6c8)
+
+src/__tests__/runner-worker.test.ts:
+worker warm overhead: 3.3839 ms/render (direct 2.0181, worker 5.4020)
+
+src/__tests__/runner-in-process.test.ts:
+in-process warm median overhead: 0.0027 ms/render
+
+ 26 pass
+ 0 fail
+ 402 expect() calls
+Ran 26 tests across 2 files. [4.58s]
+exit 0

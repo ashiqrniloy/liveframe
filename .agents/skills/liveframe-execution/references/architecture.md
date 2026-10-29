@@ -17,11 +17,15 @@ One npm package with subpath exports:
 | --- | --- | --- |
 | `@arnilo/liveframe` | Formats, types, JSON Schemas, validator, recipe resolver | No |
 | `/sdk` | JSX runtime, intents, `render()`, `liveframe gen` | No (the CLI entry may read files) |
+| `/sdk/gen` | `generate()`, `generateDefinitions()` (the `liveframe gen` emitters) | No |
 | `/pack` | `pack()`, `verifyPackage()` | No |
 | `/store` | Record formats, `Store` interface, `memoryStore()`, `loadPlacement()` | No |
 | `/store/fs` | `fileStore(dir)` | File system |
 | `/preview` | `Runner` interface, `inProcessRunner()`, `createPreview()` | No |
 | `/runner-kit` | `renderModule()`, `linkPackage()` (the in-sandbox half of a runner) | No |
+| `/runner-kit.bundle.js` | The kit plus SDK and validator as one self-contained ES module | No |
+| `/preview/capture` | `capture()`, `CaptureBackend`, `playwrightBackend(playwright)` | No |
+| `/authoring` | `createAuthoring()`: the seven authoring operations (runner required) | No |
 | `/preview/worker` | `workerRunner()` | `Worker` global |
 | `/preview/react` | `<Preview>` | Yes (React, DOM) |
 | `/css` | Theme and design system → CSS custom properties and classes | No |

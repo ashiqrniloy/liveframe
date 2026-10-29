@@ -1,0 +1,257 @@
+load 6.43
+$ bun scripts/demo-test.ts
+$ bun scripts/build.ts
+bun pack v1.4.4 (38afee6c8)
+
+packed 5.41KB package.json
+packed 6.89KB CHANGELOG.md
+packed 1.1KB LICENSE
+packed 10.1KB README.md
+packed 0.95KB SECURITY.md
+packed 0.52KB dist/authoring/checks.d.ts
+packed 1.1KB dist/authoring/checks.js
+packed 2.40KB dist/authoring/index.d.ts
+packed 13.0KB dist/authoring/index.js
+packed 0.73KB dist/cli/capture.d.ts
+packed 1.0KB dist/cli/capture.js
+packed 30B dist/cli/liveframe.d.ts
+packed 4.82KB dist/cli/liveframe.js
+packed 0.62KB dist/cli/mcp.d.ts
+packed 11.22KB dist/cli/mcp.js
+packed 0.55KB dist/conformance/case.d.ts
+packed 0.55KB dist/conformance/case.js
+packed 435B dist/conformance/catalog.d.ts
+packed 3.89KB dist/conformance/catalog.js
+packed 422B dist/conformance/design-system.d.ts
+packed 6.42KB dist/conformance/design-system.js
+packed 0.64KB dist/conformance/fixture.d.ts
+packed 1.98KB dist/conformance/fixture.js
+packed 212B dist/conformance/index.d.ts
+packed 190B dist/conformance/index.js
+packed 1.0KB dist/conformance/react/browser.d.ts
+packed 12.42KB dist/conformance/react/browser.js
+packed 196B dist/conformance/react/index.d.ts
+packed 143B dist/conformance/react/index.js
+packed 1.33KB dist/conformance/react/overlays.d.ts
+packed 11.35KB dist/conformance/react/overlays.js
+packed 1.24KB dist/conformance/react/page.d.ts
+packed 5.35KB dist/conformance/react/page.js
+packed 0.81KB dist/conformance/react/server.d.ts
+packed 8.35KB dist/conformance/react/server.js
+packed 500B dist/conformance/react/states.d.ts
+packed 4.49KB dist/conformance/react/states.js
+packed 360B dist/conformance/store.d.ts
+packed 17.00KB dist/conformance/store.js
+packed 241B dist/css/base.d.ts
+packed 2.1KB dist/css/base.js
+packed 1.17KB dist/css/design-system.d.ts
+packed 9.66KB dist/css/design-system.js
+packed 0.83KB dist/css/forced-colours.d.ts
+packed 0.99KB dist/css/forced-colours.js
+packed 295B dist/css/index.d.ts
+packed 295B dist/css/index.js
+packed 487B dist/css/names.d.ts
+packed 0.86KB dist/css/names.js
+packed 434B dist/css/recipe.d.ts
+packed 4.91KB dist/css/recipe.js
+packed 0.56KB dist/css/style-props.d.ts
+packed 6.75KB dist/css/style-props.js
+packed 0.61KB dist/css/surface.d.ts
+packed 0.87KB dist/css/surface.js
+packed 307B dist/css/theme.d.ts
+packed 3.26KB dist/css/theme.js
+packed 1.46KB dist/errors.d.ts
+packed 0.99KB dist/errors.js
+packed 6.67KB dist/formats/capabilities.d.ts
+packed 8.39KB dist/formats/capabilities.js
+packed 37.66KB dist/formats/catalog.d.ts
+packed 18.61KB dist/formats/catalog.js
+packed 0.75KB dist/formats/contrast.d.ts
+packed 8.12KB dist/formats/contrast.js
+packed 72.23KB dist/formats/design-system.d.ts
+packed 14.88KB dist/formats/design-system.js
+packed 33.47KB dist/formats/dtcg.d.ts
+packed 3.88KB dist/formats/dtcg.js
+packed 275B dist/formats/events.d.ts
+packed 352B dist/formats/events.js
+packed 1.80KB dist/formats/fixed.d.ts
+packed 2.24KB dist/formats/fixed.js
+packed 434B dist/formats/json.d.ts
+packed 1.96KB dist/formats/json.js
+packed 7.80KB dist/formats/manifest.d.ts
+packed 9.49KB dist/formats/manifest.js
+packed 7.55KB dist/formats/package.d.ts
+packed 3.79KB dist/formats/package.js
+packed 7.33KB dist/formats/records.d.ts
+packed 2.1KB dist/formats/records.js
+packed 224.91KB dist/formats/registry.d.ts
+packed 4.39KB dist/formats/registry.js
+packed 11.26KB dist/formats/theme.d.ts
+packed 5.80KB dist/formats/theme.js
+packed 12.40KB dist/formats/tree.d.ts
+packed 2.52KB dist/formats/tree.js
+packed 13.77KB dist/formats/vocabulary.d.ts
+packed 7.38KB dist/formats/vocabulary.js
+packed 1.44KB dist/index.d.ts
+packed 0.94KB dist/index.js
+packed 0.54KB dist/pack/bundle.d.ts
+packed 11.63KB dist/pack/bundle.js
+packed 0.71KB dist/pack/hash.d.ts
+packed 6.22KB dist/pack/hash.js
+packed 250B dist/pack/index.d.ts
+packed 215B dist/pack/index.js
+packed 0.54KB dist/pack/outcome.d.ts
+packed 2.67KB dist/pack/outcome.js
+packed 0.52KB dist/pack/pack.d.ts
+packed 1.23KB dist/pack/pack.js
+packed 0.72KB dist/pack/verify.d.ts
+packed 2.94KB dist/pack/verify.js
+packed 2.37KB dist/preview/authoring.d.ts
+packed 11B dist/preview/authoring.js
+packed 0.53KB dist/preview/cache.d.ts
+packed 0.79KB dist/preview/cache.js
+packed 2.60KB dist/preview/capture/index.d.ts
+packed 4.55KB dist/preview/capture/index.js
+packed 296B dist/preview/capture/playwright.d.ts
+packed 3.0KB dist/preview/capture/playwright.js
+packed 1.80KB dist/preview/in-process.d.ts
+packed 3.76KB dist/preview/in-process.js
+packed 320B dist/preview/index.d.ts
+packed 97B dist/preview/index.js
+packed 0.67KB dist/preview/load.d.ts
+packed 1.71KB dist/preview/load.js
+packed 77B dist/preview/react/index.d.ts
+packed 40B dist/preview/react/index.js
+packed 1.70KB dist/preview/react/preview.d.ts
+packed 5.83KB dist/preview/react/preview.js
+packed 0.82KB dist/preview/runner.d.ts
+packed 11B dist/preview/runner.js
+packed 364B dist/preview/session.d.ts
+packed 6.1KB dist/preview/session.js
+packed 11B dist/preview/worker/entry.d.ts
+packed 0.62KB dist/preview/worker/entry.js
+packed 0.98KB dist/preview/worker/index.d.ts
+packed 6.31KB dist/preview/worker/index.js
+packed 0.71KB dist/preview/worker/protocol.d.ts
+packed 11B dist/preview/worker/protocol.js
+packed 1.95KB dist/react/implement.d.ts
+packed 341B dist/react/implement.js
+packed 165B dist/react/index.d.ts
+packed 107B dist/react/index.js
+packed 1.63KB dist/react/renderer.d.ts
+packed 12.24KB dist/react/renderer.js
+packed 0.80KB dist/resolve.d.ts
+packed 3.66KB dist/resolve.js
+packed 57.35KB dist/runner-kit.bundle.js
+packed 0.83KB dist/runner-kit/cache.d.ts
+packed 1.44KB dist/runner-kit/cache.js
+packed 130B dist/runner-kit/index.d.ts
+packed 85B dist/runner-kit/index.js
+packed 0.90KB dist/runner-kit/link.d.ts
+packed 2.14KB dist/runner-kit/link.js
+packed 1.61KB dist/runner-kit/render.d.ts
+packed 2.31KB dist/runner-kit/render.js
+packed 7.99KB dist/schema.d.ts
+packed 12.32KB dist/schema.js
+packed 1.30KB dist/sdk/element.d.ts
+packed 1.71KB dist/sdk/element.js
+packed 398B dist/sdk/gen.d.ts
+packed 9.50KB dist/sdk/gen.js
+packed 326B dist/sdk/index.d.ts
+packed 182B dist/sdk/index.js
+packed 1.61KB dist/sdk/intents.d.ts
+packed 3.68KB dist/sdk/intents.js
+packed 250B dist/sdk/jsx-dev-runtime.d.ts
+packed 236B dist/sdk/jsx-dev-runtime.js
+packed 0.82KB dist/sdk/jsx-runtime.d.ts
+packed 400B dist/sdk/jsx-runtime.js
+packed 0.89KB dist/sdk/render.d.ts
+packed 21.96KB dist/sdk/render.js
+packed 0.68KB dist/sdk/types.d.ts
+packed 11B dist/sdk/types.js
+packed 180B dist/store/fs/index.d.ts
+packed 5.34KB dist/store/fs/index.js
+packed 1.16KB dist/store/index.d.ts
+packed 205B dist/store/index.js
+packed 0.96KB dist/store/load.d.ts
+packed 4.16KB dist/store/load.js
+packed 159B dist/store/memory.d.ts
+packed 2.42KB dist/store/memory.js
+packed 152B dist/store/scope.d.ts
+packed 422B dist/store/scope.js
+packed 167B dist/validate/bytes.d.ts
+packed 1.20KB dist/validate/bytes.js
+packed 0.56KB dist/validate/checks.d.ts
+packed 1.18KB dist/validate/checks.js
+packed 2.11KB dist/validate/compile.d.ts
+packed 9.18KB dist/validate/compile.js
+packed 128B dist/validate/complete.d.ts
+packed 1.0KB dist/validate/complete.js
+packed 415B dist/validate/intent.d.ts
+packed 6.13KB dist/validate/intent.js
+packed 0.88KB dist/validate/offered.d.ts
+packed 5.38KB dist/validate/offered.js
+packed 396B dist/validate/schema.d.ts
+packed 7.60KB dist/validate/schema.js
+packed 3.16KB dist/validate/structure.d.ts
+packed 6.51KB dist/validate/structure.js
+packed 315B dist/validate/style.d.ts
+packed 5.36KB dist/validate/style.js
+packed 0.95KB dist/validate/tree.d.ts
+packed 11.32KB dist/validate/tree.js
+packed 6.0KB docs/compatibility.md
+packed 13.82KB docs/conformance.md
+packed 5.34KB docs/demo-agent.md
+packed 43.12KB docs/formats.md
+packed 14.1KB docs/mcp.md
+packed 20.10KB docs/model.md
+packed 23.19KB docs/packages.md
+packed 13.54KB docs/preview.md
+packed 23.50KB docs/renderer.md
+packed 14.75KB docs/sdk.md
+packed 4.91KB docs/security.md
+packed 105.43KB docs/spec.md
+packed 14.83KB docs/styling.md
+packed 10.21KB schemas/capabilities.json
+packed 20.47KB schemas/catalog.json
+packed 62.59KB schemas/design-system.json
+packed 11.20KB schemas/manifest.json
+packed 1.40KB schemas/placement.json
+packed 6.75KB schemas/schema-language.json
+packed 1.14KB schemas/style-record.json
+packed 32.91KB schemas/theme.json
+packed 4.12KB schemas/ui-tree.json
+packed 1.95KB schemas/widget-package.json
+
+/home/arn/Projects/liveframe/examples/demo-host/.pack/arnilo-liveframe-0.1.0.tgz
+
+Total files: 219
+Shasum: 4bca60772195ba03c3967e7d247dd209b5bca285
+Integrity: sha512-NjjH558In1KFm[...]fl5BWQFN2iCkQ==
+Unpacked size: 1.47MB
+Packed size: 0.29MB
+bun add v1.4.4 (38afee6c8)
+Resolving dependencies
+Resolved, downloaded and extracted [16]
+
+installed @arnilo/liveframe@/home/arn/Projects/liveframe/examples/demo-host/.pack/arnilo-liveframe.tgz with binaries:
+ - liveframe
+
+1 package installed [1.53s]
+$ tsc --noEmit
+$ bun test --timeout 60000
+bun test v1.4.4 (38afee6c8)
+
+tests/intents.test.ts:
+demo.notify: Hello from Ada
+
+tests/preview.test.ts:
+Captured 16 cells in 130 ms each
+MCP capture of one cell: 785 ms
+
+ 52 pass
+ 0 fail
+ 120 expect() calls
+Ran 52 tests across 7 files. [32.43s]
+exit 0
+load-end 6.16

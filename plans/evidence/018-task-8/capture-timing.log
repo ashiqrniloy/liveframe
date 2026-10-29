@@ -1,0 +1,6 @@
+load 6.28
+before: 4878.92 ms, 8 cells
+after: 5001.83 ms, 8 cells
+before: 4862.10 ms, 8 cells
+after: 4998.41 ms, 8 cells
+exit 0

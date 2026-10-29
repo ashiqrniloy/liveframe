@@ -1,0 +1,23 @@
+load 6.09
+Bun 1.4.4; linux 7.3.0-4-cachyos; AMD Ryzen 9 PRO 7940HS w/ Radeon 780M Graphics; 16 logical CPUs
+Load average (1/5/15 min): 6.09, 6.6, 6.35; 200 warm-ups, then the median of 5 batches of at least 50 ms
+Compile/load and first data resolution excluded; selection/state changes included.
+Split: standalone validateTree on emitted trees; render minus validation estimates other work, not an in-render profile.
+Budgets: total ≤ 3 µs/node; reserved validation ≤ 1.5 / other ≤ 1.5 µs/node; agent-home/core-queue medium…full ≤ 2 ms.
+agent-home: 679.00 mean nodes; render 1.4060 ms, 2.071 µs/node; validation 0.9817 ms, 1.446 µs/node (69.8%); other estimate 0.625 µs/node
+core-queue.small: 5.00 mean nodes; render 0.0112 ms, 2.236 µs/node; validation 0.0056 ms, 1.128 µs/node (50.4%); other estimate 1.109 µs/node
+core-queue.medium: 414.00 mean nodes; render 0.8584 ms, 2.073 µs/node; validation 0.6488 ms, 1.567 µs/node (75.6%); other estimate 0.506 µs/node
+core-queue.large: 446.00 mean nodes; render 0.9847 ms, 2.208 µs/node; validation 0.7097 ms, 1.591 µs/node (72.1%); other estimate 0.617 µs/node
+core-queue.full: 473.00 mean nodes; render 1.1752 ms, 2.484 µs/node; validation 0.7857 ms, 1.661 µs/node (66.9%); other estimate 0.823 µs/node
+git-status: 145.00 mean nodes; render 0.2861 ms, 1.973 µs/node; validation 0.1365 ms, 0.941 µs/node (47.7%); other estimate 1.032 µs/node
+rack-module: 236.00 mean nodes; render 0.4036 ms, 1.710 µs/node; validation 0.2152 ms, 0.912 µs/node (53.3%); other estimate 0.798 µs/node
+synthetic-queue: 353.00 mean nodes; render 0.6392 ms, 1.811 µs/node; validation 0.4066 ms, 1.152 µs/node (63.6%); other estimate 0.659 µs/node
+Load average at end: 6.43, 6.65, 6.37
+exit 0
+style_declarations_per_node: 0.428 µs/node; 0.291 ms/tree; 679 nodes
+base: 0.501 ms/sheet; 1287 bytes
+certified theme: 1.026 ms/sheet; 7010 bytes
+certified design system: 9.329 ms/sheet; 150656 bytes
+rack theme: 1.125 ms/sheet; 8257 bytes
+rack design system: 13.022 ms/sheet; 162804 bytes
+exit 0

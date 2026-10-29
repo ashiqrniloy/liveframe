@@ -388,7 +388,29 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
     - Tests: `in_process_runner_reports_module_count` and `in_process_runner_refuses_past_max_modules` in `runner-in-process.test.ts`. Both measure the current count rather than assume zero, since the loader map is shared by the whole test process.
     - Verification: `bun run check` passed (833 pass, four existing skips, zero failures).
 
-- [ ] Task 8: Analyze architectural impact and dispose of every finding
+- [x] Task 7a: Correct stale records and close the Node probe gap (impact findings F1–F4)
+  - Acceptance Criteria:
+    - Functional:
+      - F1: the decision log's linker paragraph states the rule Task 5 built.
+      - F2: the agent skill references name the shipped locations of `/sdk/gen`, `/preview/capture`, `/authoring` and the bundle.
+      - F3: the archive gate's Node probe imports `/preview` and renders a packed widget through `inProcessRunner()`; the backlog entry is closed.
+      - F4: the validator-gate miss under load is recorded on the existing P1 entry.
+    - Performance: n/a — records and a probe.
+    - Code Quality: the probe change is five lines in `node-probe.mjs`; nothing else in `scripts/` changed.
+    - Security: n/a — the probe runs the existing loader under Node.
+  - Approach:
+    - Chosen Approach:
+      - Raised by Task 8's analysis and approved by the owner on 2026-10-29. See `plans/evidence/018-impact-analysis.md`.
+    - Files to Create/Edit:
+      - `decision-logs/2026-10-29-1244-runner-kit-capture-and-authoring-library.md`
+      - `.claude/skills/liveframe-execution/references/{architecture,preview,sdk}.md`
+      - `scripts/release/fixtures/node-probe.mjs`; `plans/backlog.md`
+  - Test Cases to Write:
+    - The archive gate's "host-API-free subpaths under node" step covers F3 (it throws if a check fails).
+  - Notes (executed 2026-10-29):
+    - All four applied. `bun run release:gate` passes all nine steps after the probe change.
+
+- [x] Task 8: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional:
       - `plans/evidence/018-impact-analysis.md` records all 12 areas, especially area 8 (Portability) and area 9 (Agent authoring).
@@ -415,6 +437,13 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
   - Test Cases to Write:
     - None.
 
+  - Notes (executed 2026-10-29):
+    - `plans/evidence/018-impact-analysis.md` records all 12 areas and seven findings. The owner approved the recommended dispositions: F1–F4 executed as Task 7a, F5–F7 to the backlog (P4 each; F6 extends the existing runner-suite entry).
+    - The backlog item "Cover /preview in the archive gate's Node probe" was not covered by the new imports (the probe loaded `/preview/capture` only). Task 7a added the `/preview` import and closed it.
+    - Security: the portability scan passes; the only dynamic `import(` in library subpaths is `src/preview/load.ts:32` (`dist/preview/load.js` compiled), and the bundle has none.
+    - Performance: worker warm overhead 3.384 ms/render, in-process 0.0027 ms; capture +2.7 % over the pre-extraction implementation at load ≈ 6 (Task 3 measured +0.36 %), recorded as noise. `bun run bench` failed the standalone validator gate at load ≈ 6 (`core-queue.full` 1.570 and 1.540 µs/node), and the unmodified pre-plan commit `05d6b7c` fails it the same way. That is the load-sensitive pattern on the existing P1 entry, not a regression. Render and CSS pass; logs in `plans/evidence/018-task-8/`.
+    - Whole-plan verification: `bun run check` (833 pass, 4 skips, 0 fail), `bun run release:gate` (9 steps), `bun run demo:test` (52 pass) passed. `bun run bench` is the one non-green item above.
+
 ## Verification (whole plan)
 - `bun run check`
 - `bun run bench`
@@ -422,7 +451,15 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
 - `bun run demo:test`
 
 ## Compromises Made
-- To be filled after tasks are completed and tests pass.
+- `linkPackage` does not detect an SDK import outside the canonical header (the decision log first said it would). Detecting one needs a parse and the loader contract keeps such imports bare; the docs, spec §7.5 and the corrected log say so (Task 5, F1).
+- `renderPackage` stays in `in-process.ts` as the load-and-deadline orchestration; only the render step moved to the kit's `renderWidget` (Task 5).
+- `stats()` is on the new `InProcessRunner` type, not on `Runner`, because `Runner` is the host-implemented interface. The module count is process-wide, so every in-process runner shares it and a failed load also takes a slot (Task 7).
+- No `writeCapture(dir, result)` helper and no `Runner.renderMany`; both are documented guidance only (Task 1).
+- The Node `vm` proof is checkout evidence under Node 26, not production adoption; Deno is a documented alternative only.
+- The validator bench gate cannot be shown green on this machine at load ≈ 6; the miss is reproduced on the pre-plan baseline (Task 8, F4).
 
 ## Further Actions
-- To be filled after task completion with improvements, rationale, and priority.
+- P4: identify the intermittent full-check failure seen in Task 6 if it recurs (`plans/backlog.md`).
+- P4: extend the runner-suite conformance entry to cover the kit and `CaptureBackend` once an adopter supplies either (`plans/backlog.md`).
+- P4: test the capture snapshot format across the Playwright `^1.49.0` peer range (`plans/backlog.md`).
+- P1 (existing): the validator gate under load, now with a plan 018 data point (`plans/backlog.md`).

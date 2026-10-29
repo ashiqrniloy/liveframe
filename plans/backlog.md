@@ -8,6 +8,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Section: Phase 1 (spec §10, §12)
 - Priority: P1
 - Source: plans/002-Phase-0-Parity-Re-Proof.md (G32), plans/004-Phase-1-Part-B-Compiled-Validator.md, plans/005-Phase-2-Part-A-SDK.md Task 8, plans/014-Phase-7-Part-A-Release-Scope-Packaging-And-Schema-Language.md Task 8 (F1), plans/015-Phase-7-Part-B-Events-Manifests-Capabilities-And-State.md Task 9 (F1), plans/016-Phase-7-Part-C-Styling-Paint-Alpha-Contrast-And-Native-Parts.md Task 9
+- Measured (2026-10-29, plan 018 Task 8 F4): at load 6.0–6.4 from the host virtual machine, `bun run bench` failed the validator gate twice (`core-queue.full` 1.570 and 1.540 µs/node against 1.5; every other fixture ≤ 1.46 in the first run). The unmodified baseline `05d6b7c` (before plan 018) failed the same gate at load 6.33 (`core-queue.large` and `core-queue.full`, full 1.507), and `git diff 05d6b7c..HEAD` touches no validator, format or render code, so plan 018 did not cause it. Render (≤ 2.484 µs/node, agent-home 1.406 ms) and CSS passed in the same state. No threshold changed; output in `plans/evidence/018-task-8/`. This is the load-sensitive pattern already recorded below, not a resolution.
 - Measured (2026-10-28–29, plan 014 Task 8 F1): initial pinned-Bun 1.4.2 validator run overlapping the full check failed at 1.546 µs/node on agent-home and up to 1.608 on queues. A subsequent sequential whole bench on the isolated delivered commit `ec088e0` passed: standalone validation 0.908–1.472 µs/node, render 1.718–2.572 µs/node, agent-home 1.3138 ms, mixed tagged feed 0.0389 ms/500 elements. Render's separate validation diagnostic measured medium/large/full at 1.708/1.642/1.789 µs/node; this is not an in-render profile. Retain the existing owner-approved P1 investigation, strict thresholds and plan 020 release gates. Both runs, machine/load and commands are recorded in `plans/evidence/014-impact-analysis.md` and `plans/evidence/014-task-8/`; no new timing exception or resolved-cause claim.
 - Status: reopened 2026-10-24 for the standalone validator gate (plan 005 Task 10, F8). The full SDK render gate remains delivered. Plan 012 Task 13 stabilised the render bench's verdict (median of 5 batches of ≥ 50 ms). Thresholds are unchanged: the 2026-10-25 readiness run measured `core-queue.small` at 3.006 µs/node with one 1,000-run batch; on 2026-10-26 the same machine, Bun and threshold measured 2.075 / 2.180 / 2.023 µs/node in three full `bun run bench` runs.
 - Current evidence: `plans/evidence/005-impact-analysis.md` records two failing Bun 1.4.4 validator runs under concurrent machine load: large/full queues at 1.602/1.670 µs/node initially, agent-home at 1.513 on the follow-up. Validator code and its benchmark are unchanged; contention and the Bun upgrade are hypotheses, not proved causes. SDK rendering still passes every ≤3 µs/node and required ≤2 ms gate (agent-home 1.802 µs/node). Run a controlled comparison against the prior Bun 1.4.2 baseline, profile any remaining miss, and retain the strict 1.5 gate; do not retry until a passing sample or relax thresholds.
@@ -275,6 +276,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Priority: P4
 - Source: plans/009-Phase-4-Part-B-Preview.md Task 8 (F9)
 - What: if an adopter supplies an isolated runner (Synapta's), consider a Phase 5 suite proving it returns the same trees, typed errors and time-limit behaviour as the reference runners. The `every_proof_scenario_passes_check` cases in `src/__tests__/preview-session.test.ts` are the seed.
+- Extended 2026-10-29 (plan 018 Task 8 F6): `/runner-kit` now lets a host build its own runner, and `CaptureBackend` lets it supply its own capture engine, so the same question applies to both. A runner suite would check hash verification, the time limit, result validation and `limit-exceeded`; a backend suite would check the `CaptureBackend` contract (axes, `waitReady`, PNG bytes, nullable snapshot, `close`). `src/__tests__/fixtures/capture-backend.ts` seeds the second. Still conditional on an adopter supplying either.
 - Why: preview and production must use the same runner, and today nothing checks a custom runner against the contract. Phase 5 covers catalogs, design systems, renderers and stores only.
 
 ## Give agents the catalog id and one error set
@@ -403,6 +405,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Section: Release gates (spec §13)
 - Priority: P3
 - Source: plans/evidence/013-impact-analysis.md F5
+- Status: closed 2026-10-29 in plan 018 (impact finding F3, `plans/evidence/018-impact-analysis.md`): `node-probe.mjs` imports `/preview`, renders the packed widget through `inProcessRunner()` under plain Node (which runs the `data:` URL loader), reads `stats().modules` and calls `createPreview()`; the archive gate's "host-API-free subpaths under node" step passes.
 - What: spec §13 declares `@arnilo/liveframe/preview` host-API-free, but `scripts/release/fixtures/node-probe.mjs` imports only `.`, `/sdk`, `/css`, `/pack`, `/store` and `/conformance`. Import `/preview` there and assert its exports under plain Node.
 - Why: the probe is the published-package portability proof; the one host-API-free subpath it skips is the one an adopter would notice. A manual Node 26.11.1 import already succeeds, so this is coverage, not a defect.
 
@@ -423,3 +426,21 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Source: plans/016-Phase-7-Part-C-Styling-Paint-Alpha-Contrast-And-Native-Parts.md Task 7 (F5)
 - What: `ColourValue` and `ShadowLayer` (`src/formats/dtcg.ts`) and the `noPaint` constant (`src/formats/fixed.ts`) are not exported from the root, although `Recipe` and `ResolvedRecipe` use them. An adopter writing recipe tooling can derive the type with `NonNullable<Recipe["borderColor"]>` but cannot name it. Decide whether to export the two types and the keyword, and update `src/__tests__/exports.test.ts` and the API docs together.
 - Why: exports are frozen by minor-version policy, so adding names is cheap now and costs a deliberate decision later. No adopter has asked yet.
+
+## Identify the intermittent full-check failure seen in plan 018 Task 6
+
+- Disposition: added 2026-10-29 with the owner's approval after plan 018 Task 8 (`plans/evidence/018-impact-analysis.md` F5).
+- Section: Test suite (spec §13)
+- Priority: P4
+- Source: plans/018-Phase-7-Part-E-Runner-Kit-Capture-And-Authoring-Library.md Task 6 notes
+- What: one full `bun run check` run after the bundle test was added reported a single failing test whose name was not captured; later full runs (Tasks 6 and 7, and 833 pass / 0 fail on 2026-10-29) were green. If it recurs, capture the test name and the machine load at the time before changing anything; the CSS switch budget under VM load (plan 018 Task 4) is the known candidate.
+- Why: an uncaptured intermittent failure is cheap to diagnose the first time it is logged and expensive after it has become routine to re-run.
+
+## Test the capture snapshot format across the Playwright peer range
+
+- Disposition: added 2026-10-29 with the owner's approval after plan 018 Task 8 (`plans/evidence/018-impact-analysis.md` F7).
+- Section: Preview capture (spec §7.5)
+- Priority: P4
+- Source: decision-logs/2026-10-29-1244-runner-kit-capture-and-authoring-library.md (CL-05)
+- What: `docs/preview.md` and the decision log describe the default backend's snapshot as Playwright's `ariaSnapshot()` YAML on the `^1.49.0` peer range, but only the installed 1.64.1 is exercised. Run the browser capture test against 1.49 and the newest release (a scratch install, not a new dependency), and either confirm the opaque-text claim or narrow the stated range.
+- Why: the snapshot is opaque text by design, so a format change across minors would pass every test and still change what an agent reads.

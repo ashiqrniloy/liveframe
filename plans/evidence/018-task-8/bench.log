@@ -1,0 +1,27 @@
+load 6.16
+$ bun --conditions liveframe:source bench/validator.bench.ts && bun --conditions liveframe:source bench/render.bench.ts && bun --conditions liveframe:source bench/css.bench.ts
+Bun 1.4.4; linux 7.3.0-4-cachyos; AMD Ryzen 9 PRO 7940HS w/ Radeon 780M Graphics; 16 logical CPUs
+Load average (1/5/15 min): 6.17, 6.67, 6.35; 200 warm-ups, 1,000 runs per implementation
+Generic baseline: checkValue on props only (includes its schema validation); compile/load excluded.
+agent-home: 679 nodes; compiled 0.9529 ms, 1.403 µs/node; generic 1.2007 ms, 1.768 µs/node; 1.26×
+  Equal-work props check: compiled 0.0448 ms; 26.81× over checkValue
+core-queue.small: 5 nodes; compiled 0.0064 ms, 1.277 µs/node; generic 0.0088 ms, 1.766 µs/node; 1.38×
+  Equal-work props check: compiled 0.0004 ms; 21.67× over checkValue
+core-queue.medium: 414 nodes; compiled 0.5735 ms, 1.385 µs/node; generic 0.6602 ms, 1.595 µs/node; 1.15×
+  Equal-work props check: compiled 0.0253 ms; 26.05× over checkValue
+core-queue.large: 446 nodes; compiled 0.6511 ms, 1.460 µs/node; generic 0.7259 ms, 1.628 µs/node; 1.11×
+  Equal-work props check: compiled 0.0275 ms; 26.39× over checkValue
+core-queue.full: 473 nodes; compiled 0.7424 ms, 1.570 µs/node; generic 0.8528 ms, 1.803 µs/node; 1.15×
+  Equal-work props check: compiled 0.0284 ms; 30.00× over checkValue
+core-queue.full: failed ≤ 1.5 µs/node or agent-home equal-work props ≥ 2× gate
+git-status: 145 nodes; compiled 0.1451 ms, 1.001 µs/node; generic 0.2072 ms, 1.429 µs/node; 1.43×
+  Equal-work props check: compiled 0.0083 ms; 24.87× over checkValue
+rack-module: 236 nodes; compiled 0.2388 ms, 1.012 µs/node; generic 0.3176 ms, 1.346 µs/node; 1.33×
+  Equal-work props check: compiled 0.0154 ms; 20.67× over checkValue
+synthetic-queue: 353 nodes; compiled 0.4511 ms, 1.278 µs/node; generic 0.6524 ms, 1.848 µs/node; 1.45×
+  Equal-work props check: compiled 0.0222 ms; 29.44× over checkValue
+Load average at end: 6.22, 6.66, 6.36
+mixed-feed: 500 elements; compiled 0.0396 ms, 0.079 µs/element
+error: script "bench" exited with code 1
+exit 1
+load-end 6.22
