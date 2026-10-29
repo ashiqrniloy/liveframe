@@ -1,0 +1,251 @@
+{
+  "format": "liveframe-catalog/1",
+  "catalogId": "carries@1",
+  "description": "Carries for generated implementation types.",
+  "vocabulary": {
+    "colourRoles": [
+      "surface.base",
+      "surface.raised",
+      "surface.case",
+      "surface.module",
+      "surface.well",
+      "surface.hover",
+      "surface.active",
+      "surface.selected",
+      "surface.scrim",
+      "surface.kbd",
+      "surface.scrollbar",
+      "text.primary",
+      "text.muted",
+      "text.meta",
+      "text.foil",
+      "text.disabled",
+      "text.status",
+      "text.kbd",
+      "text.on-accent",
+      "border.hairline",
+      "border.subtle",
+      "border.strong",
+      "border.focus",
+      "border.kbd",
+      "accent.primary",
+      "accent.muted",
+      "accent.soft",
+      "accent.fill",
+      "accent.fill.hover",
+      "focus.ring",
+      "diagnostic.error",
+      "diagnostic.warning",
+      "diagnostic.success",
+      "diagnostic.info",
+      "diagnostic.error.soft",
+      "diagnostic.warning.soft",
+      "status.critical",
+      "shadow.ambient",
+      "shadow.highlight",
+      "identity.1",
+      "identity.2",
+      "identity.3",
+      "identity.4",
+      "identity.5"
+    ],
+    "surfaceRoles": [
+      "surface.base",
+      "surface.raised",
+      "surface.case",
+      "surface.module",
+      "surface.well",
+      "surface.hover",
+      "surface.active",
+      "surface.selected",
+      "surface.scrim",
+      "surface.kbd",
+      "surface.scrollbar"
+    ],
+    "fillableRoles": [
+      "accent.primary",
+      "accent.muted",
+      "accent.soft",
+      "accent.fill",
+      "accent.fill.hover",
+      "diagnostic.error",
+      "diagnostic.warning",
+      "diagnostic.success",
+      "diagnostic.info",
+      "diagnostic.error.soft",
+      "diagnostic.warning.soft",
+      "status.critical",
+      "identity.1",
+      "identity.2",
+      "identity.3",
+      "identity.4",
+      "identity.5"
+    ],
+    "tones": {
+      "default": "text.primary",
+      "muted": "text.muted",
+      "meta": "text.meta",
+      "accent": "accent.primary",
+      "success": "diagnostic.success",
+      "warning": "diagnostic.warning",
+      "danger": "diagnostic.error",
+      "info": "diagnostic.info",
+      "foil": "text.foil"
+    },
+    "typographyRoles": [
+      "body",
+      "caption",
+      "fine",
+      "label",
+      "label.small",
+      "label.strong",
+      "ui",
+      "overline",
+      "heading.1",
+      "heading.2",
+      "heading.2.compact",
+      "heading.3",
+      "mono",
+      "mono.strong",
+      "meta"
+    ],
+    "space": [
+      "space.0",
+      "space.1",
+      "space.2",
+      "space.3",
+      "space.4",
+      "space.5",
+      "space.6",
+      "space.7"
+    ],
+    "radius": [
+      "radius.control",
+      "radius.plate",
+      "radius.pill"
+    ],
+    "size": [
+      "size.rail",
+      "size.glyph"
+    ],
+    "breakpoints": [
+      "bp.sm",
+      "bp.md"
+    ],
+    "surfaceTypography": "body",
+    "contrastBase": "surface.base",
+    "contrast": [
+      {
+        "foreground": "text.primary",
+        "background": "surface.base",
+        "minimum": 4.5
+      },
+      {
+        "foreground": "text.muted",
+        "background": "surface.base",
+        "minimum": 4.5,
+        "lessThan": 0
+      },
+      {
+        "foreground": "text.meta",
+        "background": "surface.base",
+        "minimum": 4.5,
+        "lessThan": 0
+      },
+      {
+        "foreground": "border.hairline",
+        "background": "surface.base",
+        "minimum": 1.2,
+        "maximum": 21
+      },
+      {
+        "foreground": "border.subtle",
+        "background": "surface.base",
+        "minimum": 1.2,
+        "maximum": 21
+      },
+      {
+        "foreground": "border.strong",
+        "background": "surface.base",
+        "minimum": 3
+      }
+    ]
+  },
+  "definitions": [
+    {
+      "kind": "carries",
+      "description": "Every carry form.",
+      "props": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "additionalProperties": false
+      },
+      "children": "none",
+      "events": {
+        "onPress": {
+          "carries": "none",
+          "description": "Pressed."
+        },
+        "onChange": {
+          "carries": "string",
+          "description": "Changed."
+        },
+        "onToggle": {
+          "carries": "boolean",
+          "description": "Toggled."
+        },
+        "onNumber": {
+          "carries": "number",
+          "description": "Numbered."
+        },
+        "onInteger": {
+          "carries": "integer",
+          "description": "Counted."
+        },
+        "onSubmit": {
+          "carries": {
+            "object": {
+              "type": "object",
+              "properties": {
+                "reason": {
+                  "type": "string",
+                  "maxLength": 500
+                },
+                "confirm": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "reason",
+                "confirm"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "description": "Submitted."
+        }
+      },
+      "variants": [
+        "default"
+      ],
+      "defaultVariant": "default",
+      "slots": [
+        "root",
+        "label"
+      ],
+      "styleProps": [],
+      "a11y": {
+        "role": "button",
+        "name": "label"
+      }
+    }
+  ]
+}

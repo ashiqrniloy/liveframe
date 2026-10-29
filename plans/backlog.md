@@ -204,6 +204,8 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 ## Evaluate generated implementation types for JSON-loaded catalogs
 
+- Status: closed 2026-10-29 by [plan 017](017-Phase-7-Part-D-Renderer-And-Preview-Host-Integration.md) Task 7.
+- Resolution: `liveframe gen <catalog> --implementations --out <file>` emits a separate module of literal `as const satisfies Definition` exports, so `implement()` infers props, slots, event names and numeric and object carry value types from a JSON-loaded catalog. `--check` drift-checks it (`bun run gen:check` covers both generated fixtures) and `react-types.test.tsx` rejects a wrong prop, slot and event at compile time. The generator stays in `src/sdk/gen.ts`, `/react` still imports nothing from `/sdk`, and no runtime implementation is generated. `docs/sdk.md`, `docs/renderer.md` and spec §7.2/§13 document the mode.
 - Section: Conditional implementation authoring improvement (spec §7.2, §11)
 - Priority: P4
 - Source: plans/008-Phase-4-Part-A-React-Renderer.md Task 11 (F4), plans/evidence/008-impact-analysis.md

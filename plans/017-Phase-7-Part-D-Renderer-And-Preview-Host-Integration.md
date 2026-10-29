@@ -343,7 +343,7 @@ This plan implements spec §6.4 (preferences, switching), §7.5 (`<Preview>`, se
     - Docs: spec §7.5 (selection modes, `resultScenario`, published attributes, capture), `docs/preview.md` (props, urlKey, controlled mode, capture, and an "Upgrading from 0.1.0" migration note), `CHANGELOG.md` (0.2.0 break), and the execution skill's preview reference.
     - Verification: `bun run check` passed (788 pass, 4 existing skips, 0 fail; focused `preview-react` 11 pass, proof preview/capture/MCP 24 pass). `bun scripts/demo-test.ts` passed against the packed archive (typecheck plus 52 tests), so the demo host is updated and still captures its 16 cells.
 
-- [ ] Task 7: Generate implementation types for JSON-loaded catalogs (backlog)
+- [x] Task 7: Generate implementation types for JSON-loaded catalogs (backlog)
   - Acceptance Criteria:
     - Functional:
       - `--implementations` (Task 1) writes a second, separate file of literal (`as const`) definitions for a JSON catalog. With them, `implement()` infers props, slot names and event names, and the value types for numeric and object carries.
@@ -376,6 +376,14 @@ This plan implements spec §6.4 (preferences, switching), §7.5 (`<Preview>`, se
   - Test Cases to Write:
     - `gen_implementations_literal_and_drift_checked`.
     - `generated_definitions_reject_wrong_prop_slot_event` (type-level).
+  - Notes (executed 2026-10-29):
+    - Generator: `generateDefinitions(catalog)` in `src/sdk/gen.ts`, beside `generate`. It emits `export const <Name> = { … } as const satisfies Definition;` per definition, reusing the typed-components module's Pascal name and collision rule through a shared `componentName` helper. The literal emitter puts one object member per line and keeps an array inline while it fits the 120-column line, which is what the formatter produces, so the output is byte-stable with no formatter dependency. Nested schemas therefore stay literal (`carries: "number"`, `carries: { object: { … } }`), which is what `Infer` and `Emit` narrow from. The file type-imports `Definition` from the package root and imports nothing from `/sdk`; no runtime implementation is generated.
+    - CLI: `--implementations` selects the definitions generator for `--out`; `--check` drift-checks either mode through the same path. Flag parsing moved into `genFlags()` because adding the third flag pushed `main()` to a cognitive complexity of 26 against the repo's lint max of 25.
+    - Fixtures: `src/__tests__/fixtures/widgets/ui.definitions.gen.ts` (the 24-definition proof catalog, 1,499 lines) and `src/__tests__/fixtures/widgets/carries.definitions.gen.ts`. The carries fixture exists because the proof catalog has no numeric or object carries and must not change (its node counts and conformance expectations are fixed), so `carries.json` holds one definition with every carry form: none, string, boolean, number, integer and object.
+    - `package.json`'s `gen:check` now runs three checks in one line: the components module, the definitions module and the carries definitions module.
+    - Tests: `gen_implementations_literal_and_drift_checked` (determinism, byte-identity with the committed file, biome-formatted, CLI write, clean `--check`, drift at a reported line, a definitions file failing the components check, and both committed definitions fixtures clean), `gen_emits_carry_literals` (the three carry literal shapes), `generated_definitions_reject_wrong_prop_slot_event` (generated `Button`: inferred prop types, readonly props, declared slots and events, `carries: "none"` rejects a value, unknown prop/slot/event are compile errors), `generated_definitions_infer_numeric_and_object_carries` (generated `Carries`: number, integer and object carry values infer, and wrong type, missing value, missing required property, wrong property type, extra property and missing payload all fail). `bun run typecheck` enforces every `@ts-expect-error`, so the rejections are real and not comments.
+    - Docs: `docs/sdk.md` (mode, when to use it, drift), `docs/renderer.md` ("Write primitive implementations": generate literal definitions when inference is wanted from a JSON catalog), spec §7.2 (new bullet) and §13's CLI line, and `plans/backlog.md`, whose "Evaluate generated implementation types for JSON-loaded catalogs" entry is closed with its resolution.
+    - Verification: `bun run check` passed (792 pass, 4 existing skips, 0 fail), including `gen:check` over the three generated files and `tsc --noEmit`.
 
 - [ ] Task 8: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:

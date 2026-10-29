@@ -2,6 +2,8 @@ import { expect, test } from "bun:test";
 import { Component } from "react";
 import { bool, type Definition, defineComponent, type Json, obj, str } from "../index.ts";
 import { type Implementation, type ImplementationProps, implement } from "../react/index.ts";
+import { Carries } from "./fixtures/widgets/carries.definitions.gen.ts";
+import { Button } from "./fixtures/widgets/ui.definitions.gen.ts";
 
 const field = defineComponent({
   kind: "field",
@@ -133,5 +135,62 @@ test("json_definitions_use_json_props_and_allow_explicit_narrowing", () => {
   });
   expect(implement(field, Field)).toBeDefined();
   expect(implement<Definition, { label: string }>(loaded, ({ props }) => <span>{props.label}</span>)).toBeDefined();
+  expect(binding).toBeDefined();
+});
+
+test("generated_definitions_reject_wrong_prop_slot_event", () => {
+  const binding: Implementation = implement(Button, ({ props, slot, emit, style }) => {
+    const label: string = props.label;
+    const icon: string | undefined = props.icon;
+    const pressed: boolean | undefined = props.pressed;
+    slot("root");
+    slot("label");
+    slot("icon");
+    emit("onPress");
+    // @ts-expect-error generated definitions narrow props
+    props.missing;
+    // @ts-expect-error generated props are readonly
+    props.label = "";
+    // @ts-expect-error label is a string
+    const wrong: boolean = props.label;
+    // @ts-expect-error generated definitions narrow slots
+    slot("missing");
+    // @ts-expect-error generated definitions narrow events
+    emit("onMissing");
+    // @ts-expect-error carries none accepts no value
+    emit("onPress", "value");
+    void [icon, pressed, wrong];
+    return (
+      <div className={slot("root")} style={style}>
+        {label}
+      </div>
+    );
+  });
+  expect(binding).toBeDefined();
+});
+
+test("generated_definitions_infer_numeric_and_object_carries", () => {
+  const binding: Implementation = implement(Carries, ({ props, emit }) => {
+    const label: string = props.label;
+    emit("onNumber", 1.5);
+    emit("onInteger", 2);
+    emit("onSubmit", { reason: "draft", confirm: true });
+    // @ts-expect-error a numeric carry rejects a string
+    emit("onNumber", "2");
+    // @ts-expect-error a numeric carry requires its value
+    emit("onNumber");
+    // @ts-expect-error an integer carry rejects a boolean
+    emit("onInteger", true);
+    // @ts-expect-error an object carry requires every required property
+    emit("onSubmit", { reason: "draft" });
+    // @ts-expect-error an object carry checks property types
+    emit("onSubmit", { reason: true, confirm: true });
+    // @ts-expect-error an object carry rejects undeclared properties
+    emit("onSubmit", { reason: "draft", confirm: true, extra: 1 });
+    // @ts-expect-error an object carry requires a payload
+    emit("onSubmit");
+    void label;
+    return null;
+  });
   expect(binding).toBeDefined();
 });

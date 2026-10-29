@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { validateCatalog } from "../formats/catalog.ts";
-import { generate } from "../sdk/gen.ts";
+import { generate, generateDefinitions } from "../sdk/gen.ts";
 import { CaptureError } from "./capture.ts";
 
 const captureUsage =
@@ -62,25 +62,33 @@ async function mcpCommand(args: string[]): Promise<number> {
   }
 }
 
+const genUsage = "Usage: liveframe gen <catalog.json> --out <file> [--check] [--implementations]";
+
+function genFlags(flags: string[]) {
+  let out: string | undefined;
+  let check = false;
+  let implementations = false;
+  for (let i = 0; i < flags.length; i++) {
+    if (flags[i] === "--out" && !out && flags[i + 1] && !flags[i + 1]?.startsWith("--")) out = flags[++i];
+    else if (flags[i] === "--check" && !check) check = true;
+    else if (flags[i] === "--implementations" && !implementations) implementations = true;
+    else throw new Error(genUsage);
+  }
+  return { out, check, implementations };
+}
+
 async function main(args: string[]): Promise<number> {
   if (args[0] === "mcp") return mcpCommand(args.slice(1));
   if (args[0] === "preview" && args[1] === "capture") return previewCapture(args.slice(2));
   const [command, catalogPath, ...flags] = args;
-  let out: string | undefined;
-  let check = false;
-  for (let i = 0; i < flags.length; i++) {
-    if (flags[i] === "--out" && !out && flags[i + 1] && !flags[i + 1]?.startsWith("--")) out = flags[++i];
-    else if (flags[i] === "--check" && !check) check = true;
-    else throw new Error("Usage: liveframe gen <catalog.json> --out <file> [--check]");
-  }
-  if (command !== "gen" || !catalogPath || !out)
-    throw new Error("Usage: liveframe gen <catalog.json> --out <file> [--check]");
+  const { out, check, implementations } = genFlags(flags);
+  if (command !== "gen" || !catalogPath || !out) throw new Error(genUsage);
   const catalog = validateCatalog(await Bun.file(catalogPath).json());
   if (!catalog.ok) {
     console.error(JSON.stringify(catalog.errors, null, 2));
     return 2;
   }
-  const expected = generate(catalog.value);
+  const expected = implementations ? generateDefinitions(catalog.value) : generate(catalog.value);
   if (check) {
     const file = Bun.file(out);
     if (!(await file.exists())) {

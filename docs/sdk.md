@@ -22,7 +22,16 @@ Generate the components next to your widget:
 ```bash
 bunx liveframe gen catalog.json --out ui.gen.ts
 bunx liveframe gen catalog.json --out ui.gen.ts --check
+bunx liveframe gen catalog.json --implementations --out ui.definitions.gen.ts
 ```
+
+`--implementations` writes literal `as const` definitions instead of the
+component module, one export per definition. Import them when a widget implements
+a primitive itself: `implement()` then infers props, slots, event names and carry
+value types from the JSON catalog as it does from a hand-written
+`defineComponent`. Keep the file out of the widget bundle unless you use it; the
+generator imports no SDK and generates no implementation. `--check` drift-checks
+either mode.
 
 The package installs this as the `liveframe` binary, so a project that depends on
 it can run `liveframe gen catalog.json --out ui.gen.ts [--check]` directly.

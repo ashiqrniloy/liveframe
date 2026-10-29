@@ -188,7 +188,11 @@ With a literal `defineComponent` definition, TypeScript infers props from its
 schema, slot names from `slots`, and event names and values from `events`.
 JSON-loaded definitions use `Record<string, Json>` props and string names; an
 explicit `implement<Definition, MyProps>` type argument can narrow their props.
-Runtime arrival validation still establishes the contract.
+For inference instead, generate literal definitions with
+`liveframe gen catalog.json --implementations --out ui.definitions.gen.ts` and
+import those: `as const` exports make `implement()` infer props, slots, events and
+carry value types exactly as a hand-written `defineComponent` does. Runtime
+arrival validation still establishes the contract either way.
 
 | Input | What your component does with it |
 | --- | --- |
