@@ -4,6 +4,7 @@ import { expect, test } from "bun:test";
 // Store reaches the packer through loadPlacement → verifyPackage.
 const subpaths = [
   { path: "authoring", dependencies: true, loader: false, host: "none" },
+  { path: "runner-kit", dependencies: false, loader: false, host: "none" },
   { path: "preview/capture", dependencies: false, loader: false, host: "none" },
   { path: "conformance/react", dependencies: false, loader: false, host: "DOM" },
   { path: "conformance", dependencies: true, loader: false, host: "none" },

@@ -12,6 +12,7 @@ import type {
 import * as conformance from "@arnilo/liveframe/conformance";
 import * as conformanceReact from "@arnilo/liveframe/conformance/react";
 import type { ConformanceCase } from "@arnilo/liveframe/conformance";
+import * as runnerKit from "@arnilo/liveframe/runner-kit";
 import * as pack from "@arnilo/liveframe/pack";
 import * as store from "@arnilo/liveframe/store";
 import * as fileStore from "@arnilo/liveframe/store/fs";
@@ -339,4 +340,8 @@ test("exports_list_preview_capture", () => {
 
 test("authoring_export_surface", () => {
   expect(Object.keys(authoring).sort()).toEqual(["createAuthoring"]);
+});
+
+test("runner_kit_export_surface", () => {
+  expect(Object.keys(runnerKit).sort()).toEqual(["linkPackage", "renderModule"]);
 });

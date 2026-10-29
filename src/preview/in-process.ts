@@ -1,9 +1,9 @@
 import type { Result } from "../errors.ts";
 import type { WidgetPackage } from "../formats/package.ts";
 import type { UiTree } from "../formats/tree.ts";
-import { render } from "../sdk/render.ts";
+import { renderWidget } from "../runner-kit/render.ts";
 import type { WidgetProps } from "../sdk/types.ts";
-import { compiledValidator, verifyPackageHash } from "./cache.ts";
+import { verifyPackageHash } from "./cache.ts";
 import { type LoadedModule, loadModule } from "./load.ts";
 import type { Runner, RunnerOptions } from "./runner.ts";
 
@@ -66,10 +66,7 @@ export async function renderPackage(
         ok: false,
         errors: [{ kind: "limit-exceeded", pointer: "", message: `Module evaluation exceeded ${timeoutMs} ms` }],
       };
-    const widget = module.default;
-    if (typeof widget !== "function") throw new Error("Widget module must have a function default export");
-    const validator = compiledValidator({ ...options, manifest: pkg.manifest }, pkg.hash);
-    result = render((props) => widget(props), inputs, { ...options, validator });
+    result = renderWidget(module.default, inputs, { ...options, manifest: pkg.manifest }, pkg.hash);
   } catch (error) {
     result = {
       ok: false,

@@ -1,7 +1,8 @@
 import type { LiveframeError, Result } from "../../errors.ts";
 import type { WidgetPackage } from "../../formats/package.ts";
 import type { UiTree } from "../../formats/tree.ts";
-import { compiledValidator, verifyPackageHash } from "../cache.ts";
+import { compiledValidator } from "../../runner-kit/cache.ts";
+import { verifyPackageHash } from "../cache.ts";
 import type { Runner, RunnerOptions } from "../runner.ts";
 import type { WorkerMessage } from "./protocol.ts";
 

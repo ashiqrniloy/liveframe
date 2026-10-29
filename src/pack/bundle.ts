@@ -10,12 +10,9 @@ import {
 import { transform } from "sucrase";
 import type { LiveframeError, Result } from "../errors.ts";
 import { documentChecks } from "../formats/capabilities.ts";
+import { sdkSpecifiers } from "../runner-kit/link.ts";
 
-const sdkSpecifiers = new Set([
-  "@arnilo/liveframe/sdk",
-  "@arnilo/liveframe/sdk/jsx-runtime",
-  "@arnilo/liveframe/sdk/jsx-dev-runtime",
-]);
+const sdkSpecifierSet: ReadonlySet<string> = new Set(sdkSpecifiers);
 
 class BundleFailure extends Error {
   constructor(readonly errors: readonly LiveframeError[]) {
@@ -72,7 +69,7 @@ export function checkModule(source: string, at: string, allowRelative = false): 
         node.source
       ) {
         const specifier = String(node.source.value);
-        if (!sdkSpecifiers.has(specifier) && !(allowRelative && /^\.\.?\//.test(specifier)))
+        if (!sdkSpecifierSet.has(specifier) && !(allowRelative && /^\.\.?\//.test(specifier)))
           c.reject(location, `Import ${specifier} is not allowed`, "forbidden-import");
       }
     });
@@ -256,7 +253,7 @@ export function bundle({
 
     const link: Link = { source, imports: [], exported: new Map(), stars: [], edits: [] };
     const dependency = (specifier: string): string => {
-      if (!sdkSpecifiers.has(specifier)) return visit(resolve(files, file, specifier)).id;
+      if (!sdkSpecifierSet.has(specifier)) return visit(resolve(files, file, specifier)).id;
       let id = sdk.get(specifier);
       if (!id) {
         id = `__lf_sdk${sdk.size}`;

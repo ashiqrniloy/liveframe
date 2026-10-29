@@ -121,6 +121,11 @@
       "liveframe:source": "./src/authoring/index.ts",
       "types": "./dist/authoring/index.d.ts",
       "default": "./dist/authoring/index.js"
+    },
+    "./runner-kit": {
+      "liveframe:source": "./src/runner-kit/index.ts",
+      "types": "./dist/runner-kit/index.d.ts",
+      "default": "./dist/runner-kit/index.js"
     }
   },
   "files": [

@@ -1,3 +1,5 @@
+import { linkPackage } from "../runner-kit/link.ts";
+
 export type LoadedModule = { readonly default?: unknown };
 
 const modules = new Map<string, Promise<LoadedModule>>();
@@ -11,12 +13,13 @@ const modules = new Map<string, Promise<LoadedModule>>();
 export function loadModule(code: string, hash: string): Promise<LoadedModule> {
   const cached = modules.get(hash);
   if (cached) return cached;
-  // Sticky matching stops at the end of the header, before any widget text.
-  const rewritten = code.replace(
-    /import \* as (__lf_sdk\d+) from "(@arnilo\/liveframe\/sdk(?:\/jsx(?:-dev)?-runtime)?)";(\n|$)/gy,
-    (_, binding: string, specifier: string, newline: string) =>
-      `import * as ${binding} from ${JSON.stringify(import.meta.resolve(specifier))};${newline}`,
-  );
+  const linked = linkPackage(code, (specifier) => import.meta.resolve(specifier));
+  if (!linked.ok) {
+    const failed = Promise.reject(new Error(linked.errors[0]?.message ?? "Package code cannot be linked"));
+    modules.set(hash, failed);
+    return failed;
+  }
+  const rewritten = linked.value;
   const loaded: Promise<LoadedModule> = import(
     `data:text/javascript,${encodeURIComponent(rewritten).replaceAll(".", "%2E")}`
   );

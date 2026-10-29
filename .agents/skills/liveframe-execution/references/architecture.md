@@ -21,6 +21,7 @@ One npm package with subpath exports:
 | `/store` | Record formats, `Store` interface, `memoryStore()`, `loadPlacement()` | No |
 | `/store/fs` | `fileStore(dir)` | File system |
 | `/preview` | `Runner` interface, `inProcessRunner()`, `createPreview()` | No |
+| `/runner-kit` | `renderModule()`, `linkPackage()` (the in-sandbox half of a runner) | No |
 | `/preview/worker` | `workerRunner()` | `Worker` global |
 | `/preview/react` | `<Preview>` | Yes (React, DOM) |
 | `/css` | Theme and design system → CSS custom properties and classes | No |

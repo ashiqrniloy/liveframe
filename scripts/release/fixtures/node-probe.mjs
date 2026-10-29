@@ -6,6 +6,7 @@ import { validateCapabilities, validateCatalog } from "@arnilo/liveframe";
 import { baseCss } from "@arnilo/liveframe/css";
 import { catalogSuite } from "@arnilo/liveframe/conformance";
 import { pack } from "@arnilo/liveframe/pack";
+import { linkPackage, renderModule } from "@arnilo/liveframe/runner-kit";
 import { jsx, primitive } from "@arnilo/liveframe/sdk";
 import { generate, generateDefinitions } from "@arnilo/liveframe/sdk/gen";
 import { memoryStore } from "@arnilo/liveframe/store";
@@ -33,7 +34,16 @@ const authoring = createAuthoring({
 const vocabulary = await authoring.listVocabulary();
 await authoring.close();
 
+const linked = linkPackage(packed.value.code, (specifier) => `sandbox:${specifier}`);
+const rendered = renderModule(() => jsx(primitive("text"), { text: "ok" }), read("scenario"), {
+  ...options,
+  manifest: packed.value.manifest,
+});
+
 const checks = {
+  "runner-kit.linkPackage":
+    linked.ok && linked.value.startsWith('import * as __lf_sdk0 from "sandbox:@arnilo/liveframe/sdk'),
+  "runner-kit.renderModule": rendered.ok && rendered.value.root.props.text === "ok",
   "authoring.createAuthoring": vocabulary.ok && vocabulary.value.catalogId === catalog.value.catalogId,
   validateCatalog: catalog.ok,
   "sdk.primitive": jsx(primitive("text"), { text: "ok" }).type !== undefined,

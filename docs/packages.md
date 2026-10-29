@@ -319,6 +319,52 @@ verified on Bun 1.4.2; published-build loader/worker resolution remains a
 release gate. Browser-target bundle checks prove the host-free module boundary,
 not permission to run widgets in a browser.
 
+## Build a runner with the kit
+
+`@arnilo/liveframe/runner-kit` is the in-sandbox half of a runner, for a host that
+runs packages in its own sandbox. It has two pure functions and no host APIs; both
+reference runners use them.
+
+`linkPackage(code, resolve): Result<string>` prepares `pkg.code` for the sandbox's
+module loader. `pack()` starts the code with one line per SDK specifier it uses,
+exactly:
+
+```js
+import * as __lf_sdk0 from "@arnilo/liveframe/sdk";
+import * as __lf_sdk1 from "@arnilo/liveframe/sdk/jsx-runtime";
+import * as __lf_sdk2 from "@arnilo/liveframe/sdk/jsx-dev-runtime";
+```
+
+The numbers count from 0 in order, the specifiers are those three, and each appears
+at most once. `linkPackage` replaces each specifier with `resolve(specifier)` (a URL
+or whatever specifier your isolate imports) and returns every other byte unchanged.
+Code without such lines is returned as it is. A line that starts
+`import * as __lf_sdk` but differs from the form above, skips a number or repeats a
+specifier is an `invalid-document` error at `/code`. Only the header is examined, so
+a hand-written import of the SDK further down is left bare for your loader to
+reject.
+
+```ts
+const linked = linkPackage(pkg.code, (specifier) => `sandbox:${specifier}`);
+```
+
+`renderModule(widgetDefault, inputs, { catalog, capabilities, manifest, surfaceId,
+revision, limits?, maxErrors? })` renders the module's default export once and
+returns the same `Result<UiTree>` as the SDK's `render()`. It is synchronous and
+caches the compiled validator, keyed by the manifest and bounded to the 64 most
+recent manifests per catalog and capabilities pair. A widget that throws, or a
+default export that is not a function, is `render-failed`. It does not time the
+render; your sandbox does.
+
+To show several scenarios of one package, pack once and render each scenario with
+its own inputs: the module loads once and the validator is cached, so there is no
+batch call to add. Validate each tree you receive on the host, whatever sandbox
+produced it.
+
+The kit is not an isolation boundary: it runs wherever you call it, with that
+realm's authority, and it never belongs in the browser. Isolation is your sandbox's
+job.
+
 ## Executable proof
 
 [`phase-2-loop.test.ts`](https://github.com/ashiqrniloy/liveframe/blob/main/src/__tests__/phase-2-loop.test.ts) runs this guide's

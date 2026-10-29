@@ -250,7 +250,7 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
     - Verification: `bun run check` passed (821 pass, four existing skips, zero failures); `bun run release:gate` passed all eight steps, including strict consumer types and Node. Fixed the new generic arrow's TSX ambiguity caught by the source portability scanner. One earlier full run missed the unchanged CSS switch budget (19.3 ms against 16.67 ms); the final full run passed that original threshold. Refreshed graft.
     - Performance: paired standalone `cli-mcp.test.ts` runs against an unmodified detached checkout and the implementation passed the same 32 tests / 155 assertions in 8.66 s and 7.77 s respectively, with no timing regression. Temporary comparison worktrees were removed.
 
-- [ ] Task 5: Ship the runner kit and rebuild the reference runners on it (LF-13)
+- [x] Task 5: Ship the runner kit and rebuild the reference runners on it (LF-13)
   - Acceptance Criteria:
     - Functional:
       - `/runner-kit` exports `renderModule` and `linkPackage`. `renderModule` is synchronous, compiles and caches the validator (bounded, LRU 64, like the runners), and calls `render()`.
@@ -289,6 +289,16 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
     - `render_module_matches_render`.
     - `render_module_caches_validator_bounded`.
     - The existing runner suites, unchanged and passing.
+
+  - Notes (executed 2026-10-29):
+    - Added `/runner-kit` (`src/runner-kit/`): `linkPackage` and `renderModule` are the only exports, pinned by `exports.test.ts`; `portability.test.ts` scans and bundles the subpath. The SDK specifier list now lives in `runner-kit/link.ts` and `pack/bundle.ts` imports it, so the packer and the linker share one source.
+    - `linkPackage(code, resolve)` reads only the leading `import * as __lf_sdk…` lines. Each must be exactly `import * as __lf_sdk<N> from "<specifier>";`, numbered from 0 in order, with no repeated specifier; anything else is `invalid-document` at `/code`. Later bytes pass through unchanged, and code with no header is returned as it came. **Deviation from the decision log:** the log said an SDK specifier outside the header is rejected. Detecting one needs a parse, and the existing `loader_leaves_noncanonical_sdk_imports_bare` test requires such imports to stay bare, so they are neither rewritten nor detected; `docs/packages.md` and spec §7.5 say so.
+    - The validator cache moved to `runner-kit/cache.ts` (`compiledValidator(options, key)`, LRU 64 per `(catalog, capabilities)`). `renderModule` keys it by the manifest's canonical JSON, memoised per manifest object. The runners pass their verified package hash as the key, so `validator_cache_is_bounded` and the per-hash cache tests pass unchanged, and the worker host's re-validation does the same work as before. The internal `renderWidget` (not exported from the subpath) is the shared core. A manifest that is not JSON returns `invalid-document` at `/manifest`.
+    - `src/preview/load.ts` now links with `linkPackage` (`import.meta.resolve` as the resolver); a malformed header makes `loadModule` reject (cached by hash, like any failed import), which the runners report as `render-failed`. The rewritten-code `import(...)` line is unchanged for the portability scan.
+    - `renderPackage` in `in-process.ts` stays as the internal load + deadline orchestration used by the worker entry, but its validator, function check, `render()` call and error mapping are now the kit's `renderWidget`. I kept the orchestration there because it is runner policy (timeouts), not kit code; the plan's wording "replaced by the kit" is met for the render step only.
+    - Batching: documentation only, in `docs/packages.md` ("Build a runner with the kit") and spec §7.5, per Task 1. Also updated spec §13 (table, linker contract), `docs/security.md`, README, `CHANGELOG.md` and the skill's architecture table. The Node probe imports the installed subpath, links a packed widget and renders a tree.
+    - Verification: `bun run check` passed (829 pass, four existing skips); `bun run release:gate` passed all eight steps. Refreshed graft.
+    - Performance: three paired runs of `runner-in-process`/`runner-worker` against the stashed pre-change tree. Worker warm overhead: 3.23–3.38 ms (after) vs 3.14–3.32 ms (before). In-process warm median overhead is within ±0.05 ms of zero both ways. `bench/render.bench.ts` per-node costs match within noise. Re-validation cost on the worker host is unchanged because it still keys by hash.
 
 - [ ] Task 6: Publish a self-contained single-file runner bundle and run it outside Bun (LF-13)
   - Acceptance Criteria:
