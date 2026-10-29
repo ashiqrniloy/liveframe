@@ -347,7 +347,7 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
     - Performance: `dist/runner-kit.bundle.js` is 57,352 bytes, 18,744 bytes gzipped. No budget.
     - Verification: `bun run check` passed (831 pass, four existing skips) and `bun run release:gate` passed all nine steps. One earlier full `check` run reported a single failing test after the bundle test was added; I did not capture which, and two later full runs (one `bun test`, one `bun run check`) had zero failures, so I treat it as the known timing flake from Task 4 but it is unconfirmed.
 
-- [ ] Task 7: Bound or report the in-process runner's module memory (backlog)
+- [x] Task 7: Bound or report the in-process runner's module memory (backlog)
   - Acceptance Criteria:
     - Functional:
       - Per Task 1: `inProcessRunner({ maxModules? })` reports `stats().modules`, and past `maxModules` (default 256) refuses a new hash with `limit-exceeded` (an already-loaded hash still renders). The count is the loader's process-wide map.
@@ -379,6 +379,14 @@ This plan implements spec §7.5 (runners, capture) and §13 (subpaths, host-API 
   - Test Cases to Write:
     - `in_process_runner_reports_module_count`.
     - `in_process_runner_refuses_past_max_modules`.
+
+  - Notes (executed 2026-10-29):
+    - `src/preview/load.ts` gains `loadedModuleCount()` and `isModuleLoaded(hash)`, both reading the one existing `modules` map. `inProcessRunner({ maxModules? })` returns the new `InProcessRunner` type (`Runner` plus `stats(): { modules }`), exported as a type from `/preview`. The type lives in `in-process.ts`, not `runner.ts` as the plan listed, because `Runner` is the host-implemented interface and `stats()` is specific to the reference runner.
+    - After the hash check, a hash not yet in the map is refused with `limit-exceeded` (pointer `""`) once the count reaches `maxModules` (default 256); a loaded hash still renders. Both checks are map lookups, so the cost is O(1). The worker path (`renderPackage`) is untouched: `workerRunner` keeps its `maxPackages` recycle.
+    - The count is process-wide, so every in-process runner shares it and a runner's `maxModules` is judged against all modules the process has loaded (including rejected link or load attempts, which the loader also caches). The docs and the JSDoc say so.
+    - Docs: spec §7.5 (runner list and the caches paragraph), `docs/packages.md` and `CHANGELOG.md` replace "memory grows" with the bound. The backlog entry "Cap or report the in-process runner's module memory" is marked closed.
+    - Tests: `in_process_runner_reports_module_count` and `in_process_runner_refuses_past_max_modules` in `runner-in-process.test.ts`. Both measure the current count rather than assume zero, since the loader map is shared by the whole test process.
+    - Verification: `bun run check` passed (833 pass, four existing skips, zero failures).
 
 - [ ] Task 8: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:

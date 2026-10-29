@@ -376,6 +376,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Section: Preview runners (spec §7.5)
 - Priority: P4
 - Source: plans/evidence/012-impact-analysis.md F6
+- Status: closed 2026-10-29 in plan 018 Task 7 (`decision-logs/2026-10-29-1244-runner-kit-capture-and-authoring-library.md`): `inProcessRunner({ maxModules? })` reports `stats().modules` and refuses a new hash past `maxModules` (default 256) with `limit-exceeded`. The count is the loader's process-wide map.
 - What: `inProcessRunner()` cannot unload a module, so its memory grows with every distinct package it renders; spec §7.5 and `docs/packages.md` say so, and nothing measures or bounds it. Decide between a recycle mechanism (in-process there is no worker to replace, so real recycling means a fresh context — a different design) and an observable count (a `stats()` or a logged warning past a threshold), so a long-lived server rendering many drafts does not grow silently.
 - Why: every other cache in the reference runners is bounded (64 validators, `maxPackages` in the worker); the in-process module map is the one unbounded structure, documented but unmeasured.
 

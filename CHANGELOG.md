@@ -11,6 +11,8 @@ Changed:
 
 Added:
 
+- `inProcessRunner({ maxModules? })` reports its loaded-module count through `stats()` and refuses a new package past `maxModules` (default 256) with `limit-exceeded`; packages already loaded still render. The count is process-wide.
+
 - `@arnilo/liveframe/runner-kit` exports `renderModule()` and a pure `linkPackage(code, resolve)` with a documented linker contract, the in-sandbox half of a host's own runner. `inProcessRunner()` and `workerRunner()` are rebuilt on it with unchanged results (LF-13).
 
 - `@arnilo/liveframe/runner-kit.bundle.js` is a self-contained ES module of the SDK, validator and runner kit for sandboxes with no module resolution. The archive gate checks that it imports nothing, and a CI test renders a packed widget with it under Node's `vm` (LF-13).

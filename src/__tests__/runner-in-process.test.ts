@@ -123,6 +123,30 @@ test("forged_hash_cannot_reuse_a_loaded_module", async () => {
   if (after.ok) expect(after.value.root.props.text).toBe("ok");
 });
 
+test("in_process_runner_reports_module_count", async () => {
+  const runner = inProcessRunner();
+  const before = runner.stats().modules;
+  const pkg = withCode(`${simpleCode}\n// module count`);
+  expect((await runner.render(pkg, inputs, options)).ok).toBe(true);
+  expect(runner.stats()).toEqual({ modules: before + 1 });
+  expect((await runner.render(pkg, inputs, options)).ok).toBe(true);
+  expect(inProcessRunner().stats().modules).toBe(before + 1);
+});
+
+test("in_process_runner_refuses_past_max_modules", async () => {
+  const loaded = withCode(`${simpleCode}\n// already loaded`);
+  expect((await inProcessRunner().render(loaded, inputs, options)).ok).toBe(true);
+  const runner = inProcessRunner({ maxModules: inProcessRunner().stats().modules });
+  const fresh = withCode(`${simpleCode}\n// refused`);
+  expect(await runner.render(fresh, inputs, options)).toMatchObject({
+    ok: false,
+    errors: [{ kind: "limit-exceeded", pointer: "" }],
+  });
+  expect(runner.stats().modules).toBe(inProcessRunner().stats().modules);
+  expect((await runner.render(loaded, inputs, options)).ok).toBe(true);
+  expect(runner.stats().modules).toBe(inProcessRunner().stats().modules);
+});
+
 test("validator_cache_is_bounded", async () => {
   const runner = inProcessRunner();
   const current = { ...options, catalog: { ...catalog }, capabilities: { ...capabilities } };

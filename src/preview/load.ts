@@ -4,6 +4,15 @@ export type LoadedModule = { readonly default?: unknown };
 
 const modules = new Map<string, Promise<LoadedModule>>();
 
+/** The process-wide module count; modules cannot be unloaded, so it only grows. */
+export function loadedModuleCount(): number {
+  return modules.size;
+}
+
+export function isModuleLoaded(hash: string): boolean {
+  return modules.has(hash);
+}
+
 /**
  * Loads backend widget code once per verified package hash; this is not isolation.
  * Escape dots because Bun sniffs a file extension even in data: URLs.

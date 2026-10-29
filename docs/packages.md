@@ -281,10 +281,13 @@ Modules are cached by hash, and validators per catalog identity, capabilities
 identity and hash, keeping the 64 most recently used. Replace configuration
 objects when their contracts change.
 
-- `inProcessRunner()` uses a default 100 ms elapsed-time check. It reports
-  `limit-exceeded` after slow code returns; it cannot interrupt an infinite loop.
-  Loaded modules cannot be unloaded, so its memory grows with every distinct
-  package it renders; a host with unbounded drafts should use the worker runner.
+- `inProcessRunner({ maxModules? })` uses a default 100 ms elapsed-time check. It
+  reports `limit-exceeded` after slow code returns; it cannot interrupt an infinite loop.
+  Loaded modules cannot be unloaded, so it bounds them: `stats().modules` reports
+  the loader's process-wide module count, and once that reaches `maxModules`
+  (default 256) a package whose hash is not loaded yet is refused with
+  `limit-exceeded`, while loaded packages still render. A host with unbounded
+  drafts should use the worker runner, which recycles its worker.
 - `workerRunner({ timeoutMs?, maxPackages? })` serializes requests in one lazy
   worker, with a
   default 100 ms deadline including startup. Per-render `timeoutMs` overrides
