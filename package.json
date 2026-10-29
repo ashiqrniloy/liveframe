@@ -1,6 +1,6 @@
 {
   "name": "@arnilo/liveframe",
-  "version": "0.2.0-rc.2",
+  "version": "0.2.0-rc.3",
   "description": "Runtime-composable UI: primitives, design-system recipes and TSX widgets that change an app's UI without a deployment.",
   "type": "module",
   "license": "MIT",

@@ -4,7 +4,7 @@ All notable changes to `@arnilo/liveframe` are recorded here. The project follow
 
 ## Unreleased (0.2.0)
 
-This section ships as `0.2.0-rc.2` first. `0.2.0-rc.1` was tagged but never published: CI's `demo:test` installed the registry `0.1.0` over the packed archive on a clean checkout, and `scripts/demo-test.ts` now installs the demo's other dependencies before the archive. No change to the package. Locally that candidate passed the archive gate (11 steps, 5.9 s), the peer floors (React 19.0.0, Playwright 1.49.0, `@modelcontextprotocol/server` 2.0.0) and `bun run demo:test` against the packed tarball (52 tests).
+This section ships as `0.2.0-rc.3` first. `0.2.0-rc.1` and `0.2.0-rc.2` were tagged but never published: CI's `demo:test` ran on Bun 1.4.2, where `bun add --no-save` kept the registry `0.1.0` instead of the packed archive, and `scripts/demo-test.ts` now points the demo's dependency at the archive for the run. No change to the package.
 
 [`docs/migration-0.2.md`](docs/migration-0.2.md) covers the three breaking changes; [`docs/adopters-0.2.md`](docs/adopters-0.2.md) maps every adopter request to what shipped.
 
