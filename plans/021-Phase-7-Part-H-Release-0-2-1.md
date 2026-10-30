@@ -523,13 +523,13 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - `timeout 1200s bun run check` passed: **876 passed, 4 skipped, 0 failed**, across 880 tests and 109 files (273.11 s). Build, generated-code checks, typecheck, lint and formatting all passed. This includes the new diff/comparison/error-boundary regressions and the previously failing host, preview, render-deadline and switching cases, with their original limits. The four existing skipped reference-fixture tests are unchanged.
     - `timeout 600s bun run release:gate` passed **all 13 steps** in 6.3 s, including patch-vector packing, both bundle checks and all nine vectors through installed Node public exports. Task 10 is complete; no finding invalidates a later task. Streaming gzip/arrival/commit measurements remain Task 11, and the planned cross-engine measurement work in Tasks 13–14 is unchanged.
 
-- [ ] Task 11: Measure patches on the LF-17 subject (CL-15)
+- [x] Task 11: Measure patches on the LF-17 subject (CL-15)
   - Acceptance Criteria:
     - Functional:
       - `bench/streaming.bench.ts` gains a patch mode on the same subject and constants (679 nodes, 50 rows, 10 revisions/s, one row's status per revision, `MAX_GZIP_BYTES = 1024`, `MAX_VALIDATION_AND_COMMIT_MS = 8`).
       - Per revision, the host runs `diffTrees` and sends patch JSON. The browser runs `JSON.parse` → `applyPatch` → `<Surface tree>` (arrival validation) → React commit, measured the way LF-17 measured it.
       - Results go to a new `plans/evidence/021-streaming-patches.md`, with machine, Bun, Chromium, React build and load. `019-streaming-bench.md` is not overwritten (plan 020 Compromises: it is LF-17's decision record).
-      - The task records the verdict: the gzip median, and the median of arrival validation plus commit, each against its threshold. If commit alone misses 8 ms, Task 12 runs. If both pass, Task 12 is recorded as `n/a — measured` and skipped.
+      - The task records the verdict: the gzip median, and the median of arrival validation plus commit, each against its threshold. If arrival validation plus commit misses 8 ms, Task 12 runs (including when commit alone fits but leaves insufficient validation headroom). If both pass, Task 12 is recorded as `n/a — measured` and skipped.
     - Performance: this task is the measurement, and the thresholds are unchanged.
     - Code Quality: one bench file with a mode flag. The whole-tree path is unchanged, so its numbers stay comparable.
     - Security: n/a.
@@ -541,6 +541,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       - React 19.x Profiler API; Playwright 1.64.
     - Documentation Reviewed:
       - `bench/streaming.bench.ts:1-40`; `bench/streaming-client.tsx`; `plans/evidence/019-streaming-bench.md`.
+      - Context7 verified the official [React Profiler](https://react.dev/reference/react/Profiler) `actualDuration` (render work, distinct from DOM commit/paint) and [Playwright evaluation](https://playwright.dev/docs/evaluating) serialization/Promise handling; installed React 19.3.1 / Playwright 1.64.1.
       - `src/react/renderer.tsx:212-300`: every accepted tree rebuilds every node context and element, so commit is expected to stay near 10 ms without Task 12.
     - Options Considered:
       - Change the renderer first. Rejected: roadmap §1 adds an optimisation only when a measurement calls for it.
@@ -551,11 +552,18 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       bun --conditions liveframe:source bench/streaming.bench.ts --patches
       ```
     - Files to Create/Edit:
-      - `bench/streaming.bench.ts`; `bench/streaming-client.tsx`; `plans/evidence/021-streaming-patches.md` (new)
+      - `bench/streaming.bench.ts`; `bench/streaming-client.tsx`; `plans/evidence/021-streaming-patches.md` (new); this plan (measurement and Task 12 trigger); `roadmap.md` §3 (execution status)
   - Test Cases to Write:
     - None. A bench, recorded as evidence. Its assertions use the fixed thresholds only in the task that claims them (Task 12, or this task if it passes).
 
-- [ ] Task 12: Keep unchanged subtrees out of the React commit (CL-15, if Task 11's commit misses)
+  - Notes (executed 2026-10-31):
+    - Added `--patches` to the existing streaming driver and browser client. The unchanged 679-node, 50-row generator produces 100 updates at the same 10/s target; patch mode mounts revision 0 outside measurement, then diffs and streams revisions 1–100. Every host diff/apply round-trip is asserted, as are browser arrival validation, development Profiler samples and final-tree equality. Whole-tree mode retains its original revisions, mount sample and measurement method. No renderer, public API, dependency or spec change.
+    - Recorded the run in [021-streaming-patches.md](evidence/021-streaming-patches.md): median **310 JSON bytes**, **228 gzip bytes** (≤ 1,024), **0.549 ms host diffTrees** (≤ 1.5), **0.400 ms browser applyPatch** (≤ 0.5), **1.200 ms arrival validation**, **7.700 ms net Profiler render work**, and **9.100 ms arrival validation plus Profiler work** (> 8). Browser parse median was 0.000 ms at the clock resolution; flushSync wall was 21.900 ms and parse/apply/flushSync end-to-end was 22.300 ms. Achieved 9.90 updates/s using LF-17's unchanged rate calculation. Machine/build/load metadata and all 100 samples are in the record.
+    - **Task 12 is required**, because the combined 9.1 ms median exceeds the fixed 8 ms budget. Clarified its trigger here and in its title: commit-only 7.7 ms fits, but the budget includes validation. Neither threshold nor the renderer changed. Context7 confirms that React's actualDuration measures render work rather than DOM commit or paint; the evidence preserves LF-17's historical metric and separately reports browser wall/end-to-end time instead of silently redefining the budget.
+    - A whole-tree control using the same driver, temporarily redirecting only its evidence destination to local `evidence/021-task-11-whole-control.md`, reproduced the historical JSON/gzip medians exactly (**117,985 / 5,099 bytes**) and measured **10.300 ms** validation plus Profiler work (historical 12.100 ms). The temporary driver was removed. `019-streaming-bench.md` is byte-for-byte unchanged. Regenerate the control with the standard whole-tree command in a disposable checkout to preserve that historical record.
+    - `timeout 1200s bun run check` passed: **876 passed, 4 skipped, 0 failed**, 880 tests across 109 files (282.09 s); build, generated-code checks, typecheck, lint and formatting passed. Full output is local-only at `evidence/021-task-11-check.log`. The browser client separately passed a strict TypeScript check. An exploratory strict check including the host benchmark (excluded by the existing project tsconfig) still reports its pre-existing fixture/assert typing issues; that unrelated typing cleanup was not added to this measurement task.
+
+- [ ] Task 12: Keep unchanged subtrees out of the React commit (CL-15, if Task 11's arrival validation plus commit misses)
   - Acceptance Criteria:
     - Functional:
       - `<Surface>` reuses each node's context and rendered element when the node object is `===` the previous tree's node (which `applyPatch` guarantees), so React bails out of unchanged subtrees.
