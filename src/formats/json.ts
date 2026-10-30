@@ -48,7 +48,18 @@ export function validateJson(doc: unknown): Result<Json> {
       ancestors.has(value) ||
       (!Array.isArray(value) && ![Object.prototype, null].includes(Object.getPrototypeOf(value)))
     ) {
-      c.reject(pointer, "Expected a JSON value without cycles or non-finite numbers");
+      const prototype = typeof value === "object" && value !== null ? Object.getPrototypeOf(value) : null;
+      const foreignRealm =
+        prototype !== null &&
+        prototype !== Object.prototype &&
+        Object.getPrototypeOf(prototype) === null &&
+        Object.prototype.toString.call(value) === "[object Object]";
+      c.reject(
+        pointer,
+        foreignRealm
+          ? "Expected a JSON value created in this realm; this object was created in another realm (parse it inside the sandbox)"
+          : "Expected a JSON value without cycles or non-finite numbers",
+      );
       continue;
     }
     ancestors.add(value);

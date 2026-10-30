@@ -1,6 +1,7 @@
 import type { Result } from "../errors.ts";
 import type { Capabilities } from "../formats/capabilities.ts";
 import type { Catalog } from "../formats/catalog.ts";
+import { validateJson } from "../formats/json.ts";
 import type { Manifest } from "../formats/manifest.ts";
 import type { UiTree } from "../formats/tree.ts";
 import { canonicalJson } from "../pack/hash.ts";
@@ -75,9 +76,18 @@ export function renderModule(
   try {
     key = manifestKey(options.manifest);
   } catch {
+    const checked = validateJson(options.manifest);
     return {
       ok: false,
-      errors: [{ kind: "invalid-document", pointer: "/manifest", message: "Manifest must be a JSON value" }],
+      errors: [
+        {
+          kind: "invalid-document",
+          pointer: "/manifest",
+          message: checked.ok
+            ? "Manifest must be a JSON value"
+            : (checked.errors[0]?.message ?? "Manifest must be a JSON value"),
+        },
+      ],
     };
   }
   return renderWidget(widgetDefault, inputs, options, key);

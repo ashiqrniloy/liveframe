@@ -5,7 +5,7 @@
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 
-const [bundlePath, requestPath] = process.argv.slice(2);
+const [bundlePath, requestPath, realm = "inner"] = process.argv.slice(2);
 if (typeof vm.SourceTextModule?.prototype.linkRequests !== "function") {
   console.log("unsupported");
   process.exit(0);
@@ -21,7 +21,8 @@ const harness = make(
   `import * as kit from "sandbox:kit";
    import * as linked from "sandbox:linked";
    export const run = (request) => {
-     const { manifest, catalog, capabilities, inputs, surfaceId, revision } = JSON.parse(request);
+     const { manifest, catalog, capabilities, inputs, surfaceId, revision } =
+       typeof request === "string" ? JSON.parse(request) : request;
      return JSON.stringify({
        globals: { bun: typeof Bun, process: typeof process, require: typeof require },
        result: kit.renderModule(linked.default, inputs, { catalog, capabilities, manifest, surfaceId, revision }),
@@ -43,4 +44,4 @@ await harness.linkRequests(harness.moduleRequests.map(({ specifier }) => (specif
 harness.instantiate();
 await harness.evaluate();
 
-console.log(harness.namespace.run(request));
+console.log(harness.namespace.run(realm === "outer" ? JSON.parse(request) : request));

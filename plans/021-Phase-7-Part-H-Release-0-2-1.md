@@ -240,7 +240,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Extended the archive export test and release gate to check the new bundle. `timeout 600s bun run release:gate` passed all 12 steps, including "validator bundle packed and self-contained". Updated README, spec §13 and the package guide with the validator-only namespace and realm-local loading example. No existing format meaning changed.
     - `timeout 900s bun run check` passed: **857 passed, 4 skipped, 0 failed**. The first run exposed the archive test's runner-only allowlist (fixed) and two browser switching timing failures (24.5/26.1 ms); both passed a focused rerun (9.7/9.6 ms maxima) and the final full run with unchanged limits. The focused bundle/export/portability run also passed all 37 tests. No registry publication or tag push belongs to this task.
 
-- [ ] Task 5: Report inputs from another realm (CL-12)
+- [x] Task 5: Report inputs from another realm (CL-12)
   - Acceptance Criteria:
     - Functional:
       - `validateJson` still rejects an object whose prototype is not this realm's `Object.prototype` or `null`, so every caller fails closed as today.
@@ -258,11 +258,13 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Documentation Reviewed:
       - `src/formats/json.ts:21-41`; `src/runner-kit/render.ts:24-31,69-84` (`manifestKey` → `canonicalJson` → `validateJson`); `src/pack/hash.ts:30-31`.
       - `scripts/release/fixtures/vm-bundle.mjs:20-29` (parses inside the context today).
+      - Node.js 26.0.0 `vm.createContext` and contextification documentation via Context7 (`/nodejs/node/v26.0.0`): a context supplies its own built-ins. Tests run locally on Bun 1.4.4 and Node 26.11.1.
     - Options Considered:
       - Accept any-realm plain objects by checking the prototype's shape. Rejected (see Security).
       - Document only. Rejected: Clay hit a misleading message, and the message is cheap to fix.
     - Chosen Approach:
       - Keep the identity rule, name the realm in the message, and document it.
+      - Recover `validateJson`'s message only when manifest hashing fails, leaving the successful render path unchanged.
     - API Notes and Examples:
       - n/a (message only).
     - Files to Create/Edit:
@@ -272,6 +274,11 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
   - Test Cases to Write:
     - `bundle_reports_outer_realm_manifest`: the vm harness passes an outer-realm manifest and expects `invalid-document` at `/manifest` with the realm message. Fails if the message reverts, or if the object is accepted.
     - `validate_json_names_foreign_realm`: a Bun `vm` (`node:vm`) object rejected with the realm message, while a class instance keeps the generic message. Fails if the detection is too broad.
+  - Notes (executed 2026-10-30):
+    - `validateJson` keeps the prototype identity rule and adds the realm-specific message only on rejection. `renderModule` recovers that validation message when manifest hashing fails, preserving `invalid-document` at `/manifest` without adding work to successful renders. No export, format or spec meaning changed.
+    - Both regressions failed before implementation and passed afterward. `validate_json_names_foreign_realm` covers direct and nested foreign objects, local and foreign class instances, ordinary invalid values, local/null-prototype objects and JSON reparsed locally. `bundle_reports_outer_realm_manifest` rejects outer-realm input under Node 26.11.1; `bundle_renders_under_node_vm` still proves realm-local rendering matches the SDK. The focused runner-kit/bundle run passed all 10 tests.
+    - Documented realm-local `JSON.parse` next to the package guide's bundle example and snapshot guidance. `docs/security.md` has no conflicting input-error message and needed no edit.
+    - `timeout 900s bun run check` passed: **859 passed, 4 skipped, 0 failed**. The final `timeout 600s bun run bench` passed; agent-home total render measured 1.910 µs/node. Earlier timing runs failed under load, including the unchanged Task 4 checkout (core-queue.full validator 1.525 µs/node against 1.5); isolated agent-home validation was comparable before/after (1.312/1.301 µs/node). Restored the benchmark-generated `019-streaming-bench.md` to preserve LF-17's earlier evidence. `git diff --check` passed. Task 6 is next.
 
 - [ ] Task 6: Check package hashes in the corpus and export the hash (CL-11)
   - Acceptance Criteria:

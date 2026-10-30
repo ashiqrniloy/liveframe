@@ -394,6 +394,13 @@ const widget = new vm.SourceTextModule(linked.value, { identifier: "widget", con
 kit.namespace.renderModule(widget.namespace.default, inputs, { catalog, capabilities, manifest, surfaceId, revision });
 ```
 
+Create the JSON inputs in the sandbox's realm: pass JSON text across the boundary
+and call `JSON.parse` inside the context that loaded the bundle. In particular,
+a manifest parsed outside that context is rejected as `invalid-document` at
+`/manifest` with a message naming the other realm. Plain objects must use the
+validator's own `Object.prototype` or a `null` prototype; matching the shape of
+another realm's prototype does not make an object acceptable.
+
 [`vm-bundle.mjs`](https://github.com/ashiqrniloy/liveframe/blob/main/scripts/release/fixtures/vm-bundle.mjs)
 is the complete version, run by `runner-bundle.test.ts` on Node 26 in a fresh `vm`
 context with no `process`, `require` or `Bun`, and it checks the tree against the
@@ -402,9 +409,9 @@ SDK's `render()`.
 To snapshot an isolate, evaluate the bundle once, keep the module namespace, and call
 `renderModule` per render; the validator cache lives in that namespace, so a snapshot
 taken after a first render keeps the compiled validators. Pass the catalog,
-capabilities and manifest as plain JSON each time. The bundle is the same code the
-subpath ships, so it is as trusted as your sandbox makes it: it is not an isolation
-boundary, and the host validates every tree it gets back.
+capabilities and manifest as plain JSON created in the sandbox's realm each time.
+The bundle is the same code the subpath ships, so it is as trusted as your sandbox
+makes it: it is not an isolation boundary, and the host validates every tree it gets back.
 
 ### Validate without rendering
 
