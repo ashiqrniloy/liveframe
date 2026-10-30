@@ -48,3 +48,8 @@ jobs:
           case "$version" in *-*) tag=next ;; *) tag=latest ;; esac
           dry=; if [ "${{ inputs.dry_run }}" = true ]; then dry=--dry-run; fi
           npm publish "$RUNNER_TEMP/liveframe-publish" --access public --tag "$tag" $dry
+          # A release moves `next` too, so `@next` never installs an older build than `latest`.
+          # npm's trusted publisher must allow dist-tags, and only npm >= 11.21.0 (>= 12.2.0 on 12.x) does it.
+          if [ -z "$dry" ] && [ "$tag" = latest ]; then
+            npx --yes npm@12.2.1 dist-tag add "@arnilo/liveframe@$version" next
+          fi

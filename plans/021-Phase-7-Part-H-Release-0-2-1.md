@@ -374,7 +374,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Spec §13 names the data exports beside `./schemas/*` and records the no-overlap rule; `docs/conformance.md` shows a resolution snippet. No export, format meaning or archive layout changed.
     - `timeout 900s bun run check` passed: **861 passed, 4 skipped, 0 failed**. Two earlier full runs failed only on pre-existing load-sensitive timing tests (`render_smoke_budget` and `worker_warm_overhead_report`); both passed focused reruns (3.0 s and 2.3 s) and the final full run. `timeout 900s bun run release:gate` passed all 12 steps, including "host-API-free subpaths under node", which now resolves the three paths from the installed archive. No registry publication belongs to this task.
 
-- [ ] Task 8: Keep `next` at or above `latest` (CL-14)
+- [x] Task 8: Keep `next` at or above `latest` (CL-14)
   - Acceptance Criteria:
     - Functional:
       - `docs/compatibility.md` § "Release process" gains a release checklist with this step: after a non-prerelease version is published, move `next` to it (`npm dist-tag add @arnilo/liveframe@<version> next`) and verify with `npm view @arnilo/liveframe dist-tags`.
@@ -403,6 +403,13 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       - `docs/compatibility.md`; `.github/workflows/publish.yml` (tentative, only if OIDC permits it)
   - Test Cases to Write:
     - None automated. The registry check in Task 18 is the proof. `docs-links` covers the edited page.
+  - Notes (executed 2026-10-30):
+    - Docs check (npm trusted-publishers and dist-tag pages via Context7, `/websites/npmjs`): trusted publishing **does** permit `npm dist-tag` — since npm CLI 11.21.0 (12.2.0 on 12.x), gated on the trusted publisher's **Allow npm dist-tag** setting, which is off by default and separate from direct publish. That supersedes plan 020's assumption that trusted publishing covers only the workflow's publish; no stored token is added.
+    - Workflow: the existing Publish step now runs `npx --yes npm@12.2.1 dist-tag add "@arnilo/liveframe@$version" next` after a non-dry-run `latest` publish — no new step, gated inline on the computed `tag`. The CLI is pinned because Node 24's bundled npm can predate 11.21.0; the publish path and its own ≥ 11.5.1 gate are unchanged. A prerelease already publishes under `next` and a dry run skips both.
+    - Docs: `docs/compatibility.md` § Release process gains the `next` sentence and a five-step release checklist — gates, owner go, tag push, the automated dist-tag step with the one-time npmjs.com toggle and its manual fallback, then registry verification including `npm view @arnilo/liveframe dist-tags` (`next` the release or newer).
+    - Self-check: a temporary shell simulation with a fake `npx` confirmed only a non-dry-run release calls the tag command; `0.2.1-rc.1`, `--dry-run` and the publish step alone call nothing. YAML parses (14 steps). No automated test belongs to this task.
+    - `timeout 1200s bun run check` passed: **861 passed, 4 skipped, 0 failed**. Earlier runs under external load (load average 16–26 from other projects; one run hit the 900 s cap) failed only the recorded load-sensitive timing tests — `switch_under_budget_with_blur`, `switch_under_budget_with_blur_through_surface`, `in_process_warm_overhead_under_point_one_ms` and worker timeouts; each passed a focused rerun (3 pass, 4.8 s, no browser timing change) and the final full run. Nothing was weakened.
+    - Risk for Task 18: the npmjs.com **Allow npm dist-tag** toggle is an owner action outside the repo and cannot be verified here. If it is still off, step 4 fails after a successful publish and the checklist's manual `npm dist-tag add` applies.
 
 - [ ] Task 9: Add the tree-patch format and `applyPatch` (CL-15)
   - Acceptance Criteria:
