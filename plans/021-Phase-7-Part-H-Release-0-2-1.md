@@ -280,14 +280,14 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Documented realm-local `JSON.parse` next to the package guide's bundle example and snapshot guidance. `docs/security.md` has no conflicting input-error message and needed no edit.
     - `timeout 900s bun run check` passed: **859 passed, 4 skipped, 0 failed**. The final `timeout 600s bun run bench` passed; agent-home total render measured 1.910 µs/node. Earlier timing runs failed under load, including the unchanged Task 4 checkout (core-queue.full validator 1.525 µs/node against 1.5); isolated agent-home validation was comparable before/after (1.312/1.301 µs/node). Restored the benchmark-generated `019-streaming-bench.md` to preserve LF-17's earlier evidence. `git diff --check` passed. Task 6 is next.
 
-- [ ] Task 6: Check package hashes in the corpus and export the hash (CL-11)
+- [x] Task 6: Check package hashes in the corpus and export the hash (CL-11)
   - Acceptance Criteria:
     - Functional:
       - `conformance/corpus/package/docs/valid.json` carries its real `hash`, and its case still expects `ok: true`.
       - The package cases name `catalog` and `capabilities` support inputs and run through `verifyPackage` (per Task 1's decision). Adding inputs changes no existing expectation.
       - New cases:
         - `package/hash-mismatch.json`: `hash-mismatch` at `/hash`;
-        - `package/forbidden-import.json`: `forbidden-import` at its `/code` pointer.
+        - `package/forbidden-import.json`: `forbidden-import` at its `/code/<line>` pointer (`/code/1`).
       - `FORMAT_KINDS.package` in `corpus.test.ts` lists both kinds and no longer lists them as non-format kinds.
       - `conformance/hash/packages.json` holds `{ package, hash }` vectors, at least the corpus valid package and one with non-ASCII code or scenario text. `hash` is `sha256-` plus the lowercase hex SHA-256 of `canonicalJson({ format, manifest, code, scenarios })`.
       - `/pack` exports `canonicalJson` and `packageHash`. The hash-vector test imports them from `@arnilo/liveframe/pack`.
@@ -326,6 +326,13 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - `every_format_kind_has_a_failing_case` (existing), now covering `hash-mismatch` and `forbidden-import`.
     - `package_hash_vectors_through_public_exports`: imports from the subpath and checks every vector. Fails if the composition (field set, prefix, case) changes.
     - `exports_list_pack_hash`: `/pack`'s export names include both functions.
+  - Notes (executed 2026-10-30):
+    - `package` corpus cases now run through `verifyPackage` with `catalog` and `capabilities` inputs. `valid.json` carries its real hash (`sha256-7c2a7fb7…ab688`, cross-checked with `sha256sum` over `canonicalJson`). New cases `hash-mismatch` (`/hash`, valid package with changed code) and `forbidden-import` (`/code/1`, an `import "node:fs"` on line 1). `invalid-document` and `limit-exceeded` keep their expectations.
+    - Finding: the old `valid.json` had never been through the manifest and scenario checks. Its scenario `params: {}` and `context: {}` did not fit its own manifest, so `verifyPackage` rejected it. The scenario now carries `canAct`/`canEscalate`/`canViewAlerts: true` and `size: "medium"`. The document changed, not its `ok: true` expectation. The scenario change was needed for the hash to mean anything.
+    - Finding: `forbidden-import` points at `/code/<line>` (pointer carries the line, as `transpile-failed` does), not bare `/code`. The case pins `/code/1`, and `docs/conformance.md` says so.
+    - `/pack` exports `canonicalJson` and `packageHash`. `conformance/hash/packages.json` holds two `{ package, hash }` vectors: the corpus package and one with non-ASCII code and scenario text. `hash-vectors.test.ts` now classifies each entry (`isPackageVector`) and throws on an unknown shape, and `package_hash_vectors_through_public_exports` imports from `@arnilo/liveframe/pack`. `exports.test.ts` lists both names.
+    - Docs: `docs/conformance.md` (package cases run through `verifyPackage`; package vectors) and `docs/spec.md` §7.3 and §13. Also updated the storage skill's "Today" line.
+    - `timeout 900s bun run check` passed: **860 passed, 4 skipped, 0 failed**. One earlier full run had 1 failure in the test phase; I did not capture which test, and two later runs were clean. Treat it as the known load-sensitive flake pattern until seen again.
 
 - [ ] Task 7: Resolve `package.json` and the conformance data through `exports` (CL-13)
   - Acceptance Criteria:

@@ -129,10 +129,16 @@
   "scenarios": [
     {
       "name": "default",
-      "params": {},
-      "context": {},
+      "params": {
+        "canAct": true,
+        "canEscalate": true,
+        "canViewAlerts": true
+      },
+      "context": {
+        "size": "medium"
+      },
       "data": {}
     }
   ],
-  "hash": "sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  "hash": "sha256-7c2a7fb79b1ba266eed9ec02ed9c5e555b7f7d905ec48f510b056a1a139ab688"
 }

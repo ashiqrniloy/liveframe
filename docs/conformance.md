@@ -22,7 +22,11 @@ do not run TypeScript. One directory per format holds the cases:
 under `conformance/corpus/common/`. The library's own suite in
 `src/__tests__/corpus.test.ts` runs every case through the reference validators;
 a failing case must match the reference `(kind, pointer)` set exactly and stay
-inside the 20-error bound.
+inside the 20-error bound. The `package` cases run through `verifyPackage`, with
+`catalog` and `capabilities` inputs, so they pin the whole integrity check in
+its order: shape, manifest and scenarios, the SDK-only import rule, then the
+hash. A port that verifies packages must reproduce `hash-mismatch` at `/hash`
+and `forbidden-import` at the offending line (`/code/<line>`).
 
 Each case is exactly `{ inputs, options, expect }`. `inputs.doc` names the
 document under test; any other input names a supporting document by role
@@ -66,6 +70,13 @@ B's number table, the required ECMAScript number edges, key ordering by UTF-16
 code units including non-BMP keys, escapes, non-BMP strings and rejected inputs.
 `src/__tests__/hash-vectors.test.ts` runs every vector through
 `canonicalJson` and the hash.
+
+`packages.json` holds package vectors, `{ package, hash }`: `hash` is `sha256-`
+plus the lowercase hex SHA-256 of the UTF-8 canonical text of
+`{ format, manifest, code, scenarios }` (the package without its `hash`). The
+file includes the corpus's valid package and one with non-ASCII code and
+scenario text. A TypeScript host gets the same value from `canonicalJson` and
+`packageHash`, exported by `@arnilo/liveframe/pack`.
 
 A rejected vector is `{ value, rejected }`, where `rejected` is
 `"lone-surrogate"` or `"non-finite-number"`; a port must reject it with its

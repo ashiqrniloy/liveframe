@@ -19,7 +19,7 @@ Rules:
 
 ## Today
 
-- Shipped: `/pack` exports `pack`, `verifyPackage`, `validateScenario`, `validateWidgetPackageShape` and types `WidgetPackage`, `Scenario`. Results are `Result<WidgetPackage>`; failures are bounded to 20 errors. Verification also re-parses code and checks SDK-only imports. Neither executes code.
+- Shipped: `/pack` exports `pack`, `verifyPackage`, `canonicalJson`, `packageHash`, `validateScenario`, `validateWidgetPackageShape` and types `WidgetPackage`, `Scenario`. Results are `Result<WidgetPackage>`; failures are bounded to 20 errors. Verification also re-parses code and checks SDK-only imports. Neither executes code.
 - `/store` exports `Store`, `Placement`, `StyleRecord`, `memoryStore`, `loadPlacement`, `validatePlacement`, `validateState` and `validateStyleRecord`. `/store/fs` exports `fileStore`. Stores isolate records from caller mutation, preserve same-hash packages, reject second hashes with `version-conflict`, sort placements and delete placement state with its placement.
 - `loadPlacement` returns `Result<{ package, params, state, reset? }>`. Missing state uses initial state without a reset; invalid state reports validation errors in `reset`. Loading never writes a reset back. Missing records, bad params, identity mismatch and verification failures reject loading; other I/O failures can reject the promise.
 - File paths encode every byte except lowercase ASCII letters, digits, underscore and hyphen as `%XX`. Writes use a same-directory temporary file and rename, assuming one writing process. This is not a multi-record transaction.

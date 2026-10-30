@@ -325,8 +325,10 @@ test("subpath_export_surfaces", () => {
   expect(Object.keys(preview).sort()).toEqual(["createPreview", "inProcessRunner"]);
   expect(Object.keys(worker).sort()).toEqual(["workerRunner"]);
   expect(Object.keys(pack).sort()).toEqual([
+    "canonicalJson",
     "outcomeScenarios",
     "pack",
+    "packageHash",
     "validateScenario",
     "validateWidgetPackageShape",
     "verifyPackage",

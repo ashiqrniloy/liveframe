@@ -11,7 +11,7 @@ import {
   validateManifest,
   validateTheme,
 } from "../index.ts";
-import { validateWidgetPackageShape } from "../formats/package.ts";
+import { verifyPackage } from "../pack/verify.ts";
 import { validatePlacement, validateStyleRecord } from "../formats/records.ts";
 import { renderElements } from "../sdk/elements.ts";
 
@@ -51,7 +51,7 @@ const FORMAT_KINDS = {
     "undeclared-action",
     "limit-exceeded",
   ],
-  package: ["invalid-document", "limit-exceeded"],
+  package: ["invalid-document", "limit-exceeded", "hash-mismatch", "forbidden-import"],
   placement: ["invalid-document"],
   "style-record": ["invalid-document"],
   elements: [
@@ -68,9 +68,7 @@ const FORMAT_KINDS = {
 
 /** Kinds produced by pack, render, store, preview or authoring code, never by a format validator. */
 const NON_FORMAT_KINDS = [
-  "forbidden-import",
   "transpile-failed",
-  "hash-mismatch",
   "version-conflict",
   "not-found",
   "host-element",
@@ -214,7 +212,10 @@ function runner(corpusCase: CorpusCase): Result<unknown> {
         capabilities: support.capabilities as never,
       });
     case "package":
-      return validateWidgetPackageShape(corpusCase.doc);
+      return verifyPackage(corpusCase.doc, {
+        catalog: support.catalog as never,
+        capabilities: support.capabilities as never,
+      });
     case "placement":
       return validatePlacement(corpusCase.doc);
     case "style-record":

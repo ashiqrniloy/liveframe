@@ -1,0 +1,17 @@
+{
+  "inputs": {
+    "doc": "docs/forbidden-import.json",
+    "catalog": "../common/proof-catalog.json",
+    "capabilities": "../common/capabilities.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "forbidden-import",
+        "pointer": "/code/1"
+      }
+    ]
+  }
+}

@@ -2,14 +2,25 @@ import { expect, test } from "bun:test";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { packageHash } from "@arnilo/liveframe/pack";
+import type { WidgetPackage } from "@arnilo/liveframe/pack";
 import { canonicalJson, sha256, utf8 } from "../pack/hash.ts";
 
 const hashRoot = fileURLToPath(new URL("../../conformance/hash/", import.meta.url));
 const files = (await readdir(hashRoot)).filter((file) => file.endsWith(".json")).sort();
 
-type HashVector =
+type ValueVector =
   | { readonly value: unknown; readonly canonical: string; readonly sha256: string }
   | { readonly value: unknown; readonly rejected: "lone-surrogate" | "non-finite-number" };
+type PackageVector = { readonly package: WidgetPackage; readonly hash: string };
+type HashVector = ValueVector | PackageVector;
+
+/** The one place an entry's shape is decided: an unknown shape fails the test instead of being skipped. */
+function isPackageVector(vector: HashVector, where: string): vector is PackageVector {
+  if (record(vector) && "package" in vector && "hash" in vector) return true;
+  if (record(vector) && "value" in vector && ("canonical" in vector || "rejected" in vector)) return false;
+  throw new Error(`${where}: unknown vector shape`);
+}
 
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -47,6 +58,7 @@ test("hash_vectors_match", async () => {
   expect(files.length).toBeGreaterThan(0);
   for (const file of files) {
     for (const [index, vector] of (await read(file)).entries()) {
+      if (isPackageVector(vector, `${file}[${index}]`)) continue;
       const value = decode(vector.value);
       if ("rejected" in vector) {
         expect(() => canonicalJson(value), `${file}[${index}]`).toThrow(TypeError);
@@ -89,14 +101,35 @@ test("hash_vectors_include_rfc8785_appendix_b", async () => {
     "-0.0000033333333333333333",
     "1424953923781206.2",
   ]);
-  expect(Object.is(decode(vectors[1]?.value), -0)).toBe(true);
+  expect(Object.is(decode(vectors[1] && "value" in vectors[1] ? vectors[1].value : undefined), -0)).toBe(true);
 });
 
 test("rejected_inputs_rejected", async () => {
   const vectors = await read("rejected.json");
   expect(vectors.length).toBeGreaterThan(0);
   for (const [index, vector] of vectors.entries()) {
+    expect(isPackageVector(vector, `rejected.json[${index}]`), `rejected.json[${index}]`).toBe(false);
     expect("rejected" in vector, `rejected.json[${index}]`).toBe(true);
-    expect(() => canonicalJson(decode(vector.value)), `rejected.json[${index}]`).toThrow(TypeError);
+    expect(
+      () => canonicalJson(decode("value" in vector ? vector.value : undefined)),
+      `rejected.json[${index}]`,
+    ).toThrow(TypeError);
   }
+});
+
+test("package_hash_vectors_through_public_exports", async () => {
+  const vectors = await read("packages.json");
+  expect(vectors.length).toBeGreaterThanOrEqual(2);
+  for (const [index, vector] of vectors.entries()) {
+    const where = `packages.json[${index}]`;
+    expect(isPackageVector(vector, where), where).toBe(true);
+    const { package: pkg, hash } = vector as PackageVector;
+    const { hash: _, ...content } = pkg;
+    const { format, manifest, code, scenarios } = content;
+    expect(hash, where).toMatch(/^sha256-[0-9a-f]{64}$/);
+    expect(hash, where).toBe(pkg.hash);
+    expect(`sha256-${sha256(utf8(canonicalJson({ format, manifest, code, scenarios })))}`, where).toBe(hash);
+    expect(packageHash(content), where).toBe(hash);
+  }
+  expect(vectors.some((vector) => /\P{ASCII}/u.test((vector as PackageVector).package.code))).toBe(true);
 });

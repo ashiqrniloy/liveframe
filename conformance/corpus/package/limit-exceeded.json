@@ -1,6 +1,8 @@
 {
   "inputs": {
-    "doc": "docs/limit-exceeded.json"
+    "doc": "docs/limit-exceeded.json",
+    "catalog": "../common/proof-catalog.json",
+    "capabilities": "../common/capabilities.json"
   },
   "options": {},
   "expect": {
