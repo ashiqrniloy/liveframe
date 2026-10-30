@@ -1,0 +1,338 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:liveframe:tree-patch:1",
+  "type": "object",
+  "properties": {
+    "format": {
+      "maxLength": 22,
+      "enum": [
+        "liveframe/tree-patch/1"
+      ],
+      "type": "string"
+    },
+    "catalogId": {
+      "maxLength": 128,
+      "pattern": "^[a-z][a-z0-9.-]*@[1-9][0-9]*$",
+      "type": "string"
+    },
+    "surfaceId": {
+      "maxLength": 128,
+      "pattern": "^.+$",
+      "type": "string"
+    },
+    "base": {
+      "minimum": 0,
+      "maximum": 9007199254740991,
+      "type": "integer"
+    },
+    "revision": {
+      "minimum": 0,
+      "maximum": 9007199254740991,
+      "type": "integer"
+    },
+    "ops": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "maxLength": 3,
+                "enum": [
+                  "set"
+                ],
+                "type": "string"
+              },
+              "variant": {
+                "maxLength": 64,
+                "pattern": "^[a-z][A-Za-z0-9-]*$",
+                "type": "string"
+              },
+              "style": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/$defs/json"
+                }
+              },
+              "events": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/$defs/intent"
+                }
+              },
+              "id": {
+                "type": "string",
+                "pattern": "^root(?:/(?:[a-zA-Z0-9_.!~*'():-]|%[0-9A-F]{2})+)*$"
+              },
+              "kind": {
+                "maxLength": 64,
+                "pattern": "^[a-z][A-Za-z0-9-]*$",
+                "type": "string"
+              },
+              "props": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/$defs/json"
+                }
+              }
+            },
+            "required": [
+              "op",
+              "id",
+              "kind",
+              "props"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "maxLength": 6,
+                "enum": [
+                  "insert"
+                ],
+                "type": "string"
+              },
+              "parent": {
+                "type": "string",
+                "pattern": "^root(?:/(?:[a-zA-Z0-9_.!~*'():-]|%[0-9A-F]{2})+)*$",
+                "maxLength": 9007199254740991
+              },
+              "index": {
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "type": "integer"
+              },
+              "node": {
+                "$ref": "#/$defs/node"
+              }
+            },
+            "required": [
+              "op",
+              "parent",
+              "index",
+              "node"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "maxLength": 6,
+                "enum": [
+                  "remove"
+                ],
+                "type": "string"
+              },
+              "id": {
+                "type": "string",
+                "pattern": "^root(?:/(?:[a-zA-Z0-9_.!~*'():-]|%[0-9A-F]{2})+)*$",
+                "maxLength": 9007199254740991
+              }
+            },
+            "required": [
+              "op",
+              "id"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "op": {
+                "maxLength": 4,
+                "enum": [
+                  "move"
+                ],
+                "type": "string"
+              },
+              "id": {
+                "type": "string",
+                "pattern": "^root(?:/(?:[a-zA-Z0-9_.!~*'():-]|%[0-9A-F]{2})+)*$",
+                "maxLength": 9007199254740991
+              },
+              "index": {
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "op",
+              "id",
+              "index"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "format",
+    "catalogId",
+    "surfaceId",
+    "base",
+    "revision",
+    "ops"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "json": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/json"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/json"
+          }
+        }
+      ]
+    },
+    "intent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "value": {
+              "$ref": "#/$defs/json"
+            },
+            "type": {
+              "maxLength": 8,
+              "enum": [
+                "setState"
+              ],
+              "type": "string"
+            },
+            "key": {
+              "maxLength": 128,
+              "pattern": "^.+$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "key"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "bind": {
+              "maxLength": 128,
+              "pattern": "^.+$",
+              "type": "string"
+            },
+            "bindAll": {
+              "const": true
+            },
+            "type": {
+              "maxLength": 6,
+              "enum": [
+                "action"
+              ],
+              "type": "string"
+            },
+            "name": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)*$",
+              "type": "string"
+            },
+            "args": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/json"
+              }
+            }
+          },
+          "required": [
+            "type",
+            "name",
+            "args"
+          ],
+          "additionalProperties": false,
+          "not": {
+            "properties": {
+              "bind": {},
+              "bindAll": {}
+            },
+            "required": [
+              "bind",
+              "bindAll"
+            ]
+          }
+        }
+      ]
+    },
+    "node": {
+      "type": "object",
+      "properties": {
+        "variant": {
+          "maxLength": 64,
+          "pattern": "^[a-z][A-Za-z0-9-]*$",
+          "type": "string"
+        },
+        "style": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/json"
+          }
+        },
+        "events": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/intent"
+          }
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^root(?:/(?:[a-zA-Z0-9_.!~*'():-]|%[0-9A-F]{2})+)*$"
+        },
+        "kind": {
+          "maxLength": 64,
+          "pattern": "^[a-z][A-Za-z0-9-]*$",
+          "type": "string"
+        },
+        "props": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/json"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "props"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

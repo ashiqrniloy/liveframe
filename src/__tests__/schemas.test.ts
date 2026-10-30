@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { formats, schemaDocument } from "../formats/registry.ts";
-import { arr, bool, int, isLanguageSchema, num, obj, str, validateCatalog, validateCapabilities } from "../index.ts";
+import { arr, bool, int, isLanguageSchema, num, obj, str, validateCapabilities, validateCatalog } from "../index.ts";
 import { catalog as numericCatalog } from "./fixtures/numeric-events.ts";
 import * as form from "./fixtures/object-events.ts";
 
@@ -164,6 +164,7 @@ test("schema_publisher_detects_drift", async () => {
       "src/formats/records.ts",
       "src/formats/json.ts",
       "src/formats/tree.ts",
+      "src/formats/tree-patch.ts",
       "src/formats/catalog.ts",
       "src/formats/events.ts",
       "src/formats/capabilities.ts",

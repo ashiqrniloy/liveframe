@@ -1,0 +1,21 @@
+{
+  "format": "liveframe/tree-patch/1",
+  "catalogId": "proof.ui@1",
+  "surfaceId": "corpus",
+  "base": 1,
+  "revision": 2,
+  "ops": [
+    {
+      "op": "insert",
+      "parent": "root",
+      "index": 0,
+      "node": {
+        "id": "root/text",
+        "kind": "text",
+        "props": {
+          "text": "Hello"
+        }
+      }
+    }
+  ]
+}

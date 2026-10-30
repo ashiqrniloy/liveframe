@@ -1,18 +1,20 @@
 import { expect, test } from "bun:test";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { validatePlacement, validateStyleRecord } from "../formats/records.ts";
 import {
+  applyPatch,
   compileValidator,
   type LiveframeError,
   type Result,
-  validateCatalog,
+  type UiTree,
   validateCapabilities,
+  validateCatalog,
   validateDesignSystem,
   validateManifest,
   validateTheme,
 } from "../index.ts";
 import { verifyPackage } from "../pack/verify.ts";
-import { validatePlacement, validateStyleRecord } from "../formats/records.ts";
 import { renderElements } from "../sdk/elements.ts";
 
 const FORMATS = [
@@ -22,6 +24,7 @@ const FORMATS = [
   "capabilities",
   "manifest",
   "ui-tree",
+  "tree-patch",
   "package",
   "placement",
   "style-record",
@@ -51,6 +54,7 @@ const FORMAT_KINDS = {
     "undeclared-action",
     "limit-exceeded",
   ],
+  "tree-patch": ["stale-patch", "not-found", "invalid-document", "duplicate-key"],
   package: ["invalid-document", "limit-exceeded", "hash-mismatch", "forbidden-import"],
   placement: ["invalid-document"],
   "style-record": ["invalid-document"],
@@ -77,7 +81,7 @@ const NON_FORMAT_KINDS = [
   "render-failed",
 ] as const;
 
-const SUPPORT_ROLES = new Set(["catalog", "capabilities", "manifest", "theme", "designSystem", "vocabulary"]);
+const SUPPORT_ROLES = new Set(["base", "catalog", "capabilities", "manifest", "theme", "designSystem", "vocabulary"]);
 const corpusRoot = fileURLToPath(new URL("../../conformance/corpus/", import.meta.url));
 
 type ExpectedError = { readonly kind: LiveframeError["kind"]; readonly pointer: string };
@@ -220,6 +224,15 @@ function runner(corpusCase: CorpusCase): Result<unknown> {
       return validatePlacement(corpusCase.doc);
     case "style-record":
       return validateStyleRecord(corpusCase.doc);
+    case "tree-patch": {
+      const applied = applyPatch(support.base as UiTree, corpusCase.doc);
+      if (!applied.ok) return applied;
+      return compileValidator({
+        catalog: support.catalog as never,
+        capabilities: support.capabilities as never,
+        manifest: support.manifest as never,
+      }).validateTree(applied.value);
+    }
     case "ui-tree": {
       const validator = compileValidator({
         catalog: support.catalog as never,

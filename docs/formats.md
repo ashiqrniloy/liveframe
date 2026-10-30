@@ -351,6 +351,36 @@ argument types, id uniqueness and parent relationships, and configurable
 render limits require the compiled validator described below. Structural
 schema validation alone does not establish those guarantees.
 
+## Tree patches
+
+Hosts can transport an optional `liveframe/tree-patch/1` document instead of a whole tree. Whole trees remain the fallback. The renderer takes the resulting whole tree.
+
+```ts
+import { applyPatch, validateTreePatch, type TreePatch, type PatchOp } from "@arnilo/liveframe";
+
+const patch: TreePatch = {
+  format: "liveframe/tree-patch/1", catalogId: current.catalogId,
+  surfaceId: current.surfaceId, base: current.revision, revision: current.revision + 1,
+  ops: [{ op: "set", id: "root/status", kind: "text", props: { text: "Done" } }],
+};
+const result = applyPatch(current, patch);
+if (result.ok) {
+  const checked = validator.validateTree(result.value);
+  if (checked.ok) current = checked.value;
+  else requestWholeTree();
+} else requestWholeTree();
+```
+
+`validateTreePatch(unknown)` checks closed shapes and JSON values, including node and intent fields. `schemas/tree-patch.json` (`urn:liveframe:tree-patch:1`) agrees on standalone shape; the validator additionally checks `revision > base`. Revisions and indexes are nonnegative safe integers. Empty ops advance the revision.
+
+Operations address node ids and run in order: `set` replaces kind, props and optional variant/style/events, deleting omitted optional fields and preserving id/children; `insert` carries `{ parent, index, node }` and accepts zero through current child count; `remove` carries `{ id }` and omits children when the last is removed; `move` carries `{ id, index }` within the current parent, with the index measured after detachment. Root set is allowed; root removal/move is rejected. Parent changes require remove plus insert with new key-path ids. Inserted descendants are immediately addressable; removed descendants cease to be targets.
+
+`applyPatch` returns `stale-patch` for a wrong surface or base revision, `not-found` for an absent target/parent, and `invalid-document` for malformed patches, catalog mismatch, invalid indexes or root removal/move. An ambiguous duplicate target is `duplicate-key`; otherwise full-tree validation rejects duplicates and checks catalog rules and destination key paths. Application is atomic and never returns a partial result.
+
+**Validate the complete result before accepting or serving it.** Application is structural only; renderer arrival validation remains independent. `checkOffered` uses the accepted patched revision and rejects superseded origins. On failure retain the accepted tree and request a whole tree. A host must never reuse one catalog/surface/revision for different content; patches carry no content hash.
+
+Untouched subtrees share identity with the base; changed nodes and ancestors are copied. Neither input is mutated or frozen. Treat served trees and all nested values as immutable while in use. See [the wire contract](spec.md#91-optional-tree-patches).
+
 ## Element JSON
 
 Agent surfaces may arrive as element JSON and are converted on the backend,

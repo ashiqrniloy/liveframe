@@ -1,14 +1,13 @@
-import { designSystemSchema } from "./design-system.ts";
 import { literal } from "../schema.ts";
-import { catalogSchema } from "./catalog.ts";
-
 import { capabilitiesSchema } from "./capabilities.ts";
+import { catalogSchema } from "./catalog.ts";
+import { designSystemSchema } from "./design-system.ts";
 import { manifestSchema } from "./manifest.ts";
-import { themeSchema } from "./theme.ts";
-import { treeSchema } from "./tree.ts";
-
 import { widgetPackageSchema } from "./package.ts";
 import { placementSchema, styleRecordSchema } from "./records.ts";
+import { themeSchema } from "./theme.ts";
+import { treeSchema } from "./tree.ts";
+import { treePatchSchema } from "./tree-patch.ts";
 
 const annotations = {
   description: { type: "string" },
@@ -89,6 +88,7 @@ const schemaId = (format: string) => `urn:liveframe:${format}:1`;
 /** Add each format here; publishing and drift checks both read this registry. */
 export const formats = {
   "ui-tree": treeSchema,
+  "tree-patch": treePatchSchema,
   "design-system": designSystemSchema,
   theme: themeSchema,
   "schema-language": schemaLanguage,

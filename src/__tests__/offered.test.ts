@@ -1,5 +1,6 @@
 import { expect, spyOn, test } from "bun:test";
 import {
+  applyPatch,
   bool,
   checkOffered,
   compileValidator,
@@ -184,4 +185,21 @@ test("bind_all_cannot_fill_an_unoffered_optional_action_argument", () => {
     validator,
   );
   expect(result).toMatchObject({ ok: false, errors: [{ kind: "invalid-prop", pointer: "/args/audit" }] });
+});
+
+test("check_offered_follows_patched_revision", () => {
+  const result = applyPatch(bound, {
+    format: "liveframe/tree-patch/1",
+    catalogId: bound.catalogId,
+    surfaceId: bound.surfaceId,
+    base: bound.revision,
+    revision: bound.revision + 1,
+    ops: [],
+  });
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+  expect(checkOffered(result.value, origin(result.value), intent, surfaceProps.validator).ok).toBe(true);
+  const stale = checkOffered(result.value, origin(bound), intent, surfaceProps.validator);
+  expect(stale.ok).toBe(false);
+  if (!stale.ok) expect(stale.errors[0]?.kind).toBe("version-conflict");
 });

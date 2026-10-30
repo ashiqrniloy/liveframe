@@ -11,6 +11,7 @@ export type LiveframeError = {
     | "transpile-failed"
     | "hash-mismatch"
     | "version-conflict"
+    | "stale-patch"
     | "not-found"
     | "host-element"
     | "unknown-component"

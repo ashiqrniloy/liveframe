@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { cpus, loadavg, platform, release } from "node:os";
 import { validatorCatalog, validatorFixtures } from "../src/__tests__/fixtures/validator.ts";
-import { arr, checkValue, obj, str, union, type UiNode } from "../src/index.ts";
+import { applyPatch, arr, checkValue, obj, str, type TreePatch, type UiNode, union } from "../src/index.ts";
 import { compileSchema, type SchemaSink } from "../src/validate/schema.ts";
 
 const fixtures = await validatorFixtures();
@@ -79,3 +79,48 @@ console.log(
   `mixed-feed: 500 elements; compiled ${feedMs.toFixed(4)} ms, ${((feedMs * 1000) / 500).toFixed(3)} µs/element`,
 );
 if (failed) process.exitCode = 1;
+
+// LF-17's 679-node, 50-row subject: application only; validation remains a separate gate.
+const subject = fixtures.find((fixture) => fixture.name === "agent-home");
+assert(subject && subject.nodes === 679);
+const pending = [subject.tree.root];
+const statuses: UiNode[] = [];
+while (pending.length) {
+  const node = pending.pop();
+  assert(node);
+  if (node.props.text === "overdue") statuses.push(node);
+  pending.push(...(node.children ?? []));
+}
+assert.equal(statuses.length, 50, "LF-17 must have 50 row statuses");
+const samples: number[] = [];
+let served = subject.tree;
+for (let i = 0; i < 1200; i++) {
+  const node = statuses[i % statuses.length];
+  assert(node);
+  const { children: _children, ...own } = node;
+  const patch: TreePatch = {
+    format: "liveframe/tree-patch/1",
+    catalogId: served.catalogId,
+    surfaceId: served.surfaceId,
+    base: served.revision,
+    revision: served.revision + 1,
+    ops: [
+      { op: "set", ...own, props: { ...node.props, text: Math.floor(i / statuses.length) % 2 ? "overdue" : "done" } },
+    ],
+  };
+  const start = performance.now();
+  const result = applyPatch(served, patch);
+  const elapsed = performance.now() - start;
+  assert(result.ok);
+  assert.equal(result.value.revision, patch.revision);
+  assert(subject.validateTree(result.value).ok);
+  served = result.value;
+  if (i >= 200) samples.push(elapsed);
+}
+samples.sort((a, b) => a - b);
+const median = samples[Math.floor(samples.length / 2)];
+assert(median !== undefined);
+console.log(
+  `applyPatch: 679 nodes, 50 rows, one row status per revision; 200 warm-ups, 1000 samples; median ${median.toFixed(4)} ms (<= 0.5 ms)`,
+);
+assert(median <= 0.5, "applyPatch exceeded 0.5 ms median");

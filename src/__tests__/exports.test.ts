@@ -1,5 +1,3 @@
-import * as authoring from "@arnilo/liveframe/authoring";
-import * as capture from "@arnilo/liveframe/preview/capture";
 import { expect, test } from "bun:test";
 import type {
   CompiledValidator,
@@ -9,19 +7,19 @@ import type {
   UiTree,
   ValidateTreeOptions,
 } from "@arnilo/liveframe";
+import * as liveframe from "@arnilo/liveframe";
+import * as authoring from "@arnilo/liveframe/authoring";
+import type { ConformanceCase } from "@arnilo/liveframe/conformance";
 import * as conformance from "@arnilo/liveframe/conformance";
 import * as conformanceReact from "@arnilo/liveframe/conformance/react";
-import type { ConformanceCase } from "@arnilo/liveframe/conformance";
-import * as runnerKit from "@arnilo/liveframe/runner-kit";
-import * as pack from "@arnilo/liveframe/pack";
-import * as store from "@arnilo/liveframe/store";
-import * as fileStore from "@arnilo/liveframe/store/fs";
-import * as preview from "@arnilo/liveframe/preview";
-import * as worker from "@arnilo/liveframe/preview/worker";
-import * as previewReact from "@arnilo/liveframe/preview/react";
-import * as liveframe from "@arnilo/liveframe";
 import * as css from "@arnilo/liveframe/css";
+import * as pack from "@arnilo/liveframe/pack";
+import * as preview from "@arnilo/liveframe/preview";
+import * as capture from "@arnilo/liveframe/preview/capture";
+import * as previewReact from "@arnilo/liveframe/preview/react";
+import * as worker from "@arnilo/liveframe/preview/worker";
 import * as react from "@arnilo/liveframe/react";
+import * as runnerKit from "@arnilo/liveframe/runner-kit";
 import type {
   Component,
   DeepReadonly,
@@ -38,11 +36,13 @@ import type { JSX as DevJSX } from "@arnilo/liveframe/sdk/jsx-dev-runtime";
 import * as devRuntime from "@arnilo/liveframe/sdk/jsx-dev-runtime";
 import type { JSX } from "@arnilo/liveframe/sdk/jsx-runtime";
 import * as runtime from "@arnilo/liveframe/sdk/jsx-runtime";
+import * as store from "@arnilo/liveframe/store";
+import * as fileStore from "@arnilo/liveframe/store/fs";
 import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
 import catalog from "./fixtures/proof/catalog.json" with { type: "json" };
-import theme from "./fixtures/proof/certified.theme.json" with { type: "json" };
 import designSystem from "./fixtures/proof/certified.design-system.json" with { type: "json" };
+import theme from "./fixtures/proof/certified.theme.json" with { type: "json" };
 
 test("validator_bundle_subpath_resolves", () => {
   expect(import.meta.resolve("@arnilo/liveframe/validator.bundle.js")).toBe(
@@ -256,6 +256,8 @@ test("root_export_surface", () => {
     [
       "LIVEFRAME_FORMAT",
       "LiveframeFailure",
+      "applyPatch",
+      "validateTreePatch",
       "arr",
       "bool",
       "checkValue",
@@ -373,4 +375,19 @@ test("authoring_export_surface", () => {
 
 test("runner_kit_export_surface", () => {
   expect(Object.keys(runnerKit).sort()).toEqual(["linkPackage", "renderModule"]);
+});
+
+test("tree_patch_types_and_schema_are_public", () => {
+  const patch: import("@arnilo/liveframe").TreePatch = {
+    format: "liveframe/tree-patch/1",
+    catalogId: "test@1",
+    surfaceId: "s",
+    base: 0,
+    revision: 1,
+    ops: [] satisfies import("@arnilo/liveframe").PatchOp[],
+  };
+  expect(liveframe.validateTreePatch(patch).ok).toBe(true);
+  expect(import.meta.resolve("@arnilo/liveframe/schemas/tree-patch.json")).toBe(
+    new URL("../../schemas/tree-patch.json", import.meta.url).href,
+  );
 });

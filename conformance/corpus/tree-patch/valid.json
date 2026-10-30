@@ -1,0 +1,13 @@
+{
+  "inputs": {
+    "doc": "docs/valid.json",
+    "base": "../ui-tree/docs/valid.json",
+    "catalog": "../common/proof-catalog.json",
+    "capabilities": "../common/capabilities.json",
+    "manifest": "../common/manifest.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": true
+  }
+}

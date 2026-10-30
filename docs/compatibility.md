@@ -50,6 +50,8 @@ access named scopes; stop scoped writes before rolling back.
 
 ## Growth
 
+- `stale-patch` is an additive error kind for an optional tree patch whose surface or base revision differs from the supplied tree. Whole-tree transport remains valid.
+
 - `insufficient-contrast` is an additive error kind for a theme that violates a
   vocabulary-declared WCAG contrast minimum, maximum or strict pair ordering.
   Its message identifies the roles and measured ratios; declarations are optional.

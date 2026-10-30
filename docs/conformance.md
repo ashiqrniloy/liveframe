@@ -18,7 +18,7 @@ The package is pre-1.0; install it and use the subpaths it exports.
 The package also ships `conformance/corpus/` as committed JSON, for ports that
 do not run TypeScript. One directory per format holds the cases:
 `catalog`, `theme`, `design-system`, `capabilities`, `manifest`, `ui-tree`,
-`package`, `placement`, `style-record` and `elements`. Shared documents live
+`package`, `placement`, `style-record`, `elements` and `tree-patch`. Shared documents live
 under `conformance/corpus/common/`. Resolve a document through the package's
 `exports`, under Bun or Node, so no path into `node_modules` is needed:
 
@@ -37,9 +37,11 @@ its order: shape, manifest and scenarios, the SDK-only import rule, then the
 hash. A port that verifies packages must reproduce `hash-mismatch` at `/hash`
 and `forbidden-import` at the offending line (`/code/<line>`).
 
+The `tree-patch` cases run `applyPatch(base, doc)` followed, on success, by whole-tree validation with `catalog`, `capabilities` and `manifest`. Application failures point into the patch; final validation failures point into the resulting tree.
+
 Each case is exactly `{ inputs, options, expect }`. `inputs.doc` names the
 document under test; any other input names a supporting document by role
-(`catalog`, `capabilities`, `manifest`, `theme`, `designSystem` or
+(`base`, `catalog`, `capabilities`, `manifest`, `theme`, `designSystem` or
 `vocabulary`). All paths are relative to the case file and may not escape the
 corpus root. `designSystem` names a parent for a `design-system` case; the case
 document is also registered by its own `id`, so a two-document cycle can be

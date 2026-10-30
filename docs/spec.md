@@ -592,10 +592,46 @@ type Intent =
   | { type: "action"; name: string; args: Record<string, Json>; bind?: string; bindAll?: true }; // bind and bindAll are exclusive
 ```
 
-- Each render sends the **whole tree**. The renderer reconciles by `id`, so unchanged nodes keep their DOM and local state.
+- Each render produces a **whole tree**. Whole-tree transport remains valid. Hosts may instead transport `liveframe/tree-patch/1` against a previously validated tree. The renderer still receives a whole tree and reconciles by `id`, so unchanged nodes keep their DOM and local state.
 - A `revision` lower than the current one is ignored.
-- Compression comes before patches. The tree is repetitive JSON, so the transport's compression (gzip, brotli) shrinks it well. Patches are a later optimisation, added only if a measurement on a realistic tree shows they're needed.
+- LF-17 measured a realistic streaming surface beyond the compression and arrival budgets; optional patches follow the approved design in `decision-logs/2026-10-30-1928-tree-patch-format.md`.
 - Interop with A2UI or other formats is possible through a converter. It is not part of v1.
+
+### 9.1 Optional tree patches
+
+```ts
+type TreePatch = {
+  readonly format: "liveframe/tree-patch/1";
+  readonly catalogId: string;
+  readonly surfaceId: string;
+  readonly base: number;
+  readonly revision: number;
+  readonly ops: readonly PatchOp[];
+};
+type PatchOp =
+  | { readonly op: "set"; readonly id: string; readonly kind: string;
+      readonly variant?: string; readonly props: Readonly<Record<string, Json>>;
+      readonly style?: Readonly<Record<string, Json>>;
+      readonly events?: Readonly<Record<string, Intent>> }
+  | { readonly op: "insert"; readonly parent: string; readonly index: number; readonly node: UiNode }
+  | { readonly op: "remove"; readonly id: string }
+  | { readonly op: "move"; readonly id: string; readonly index: number };
+```
+
+`validateTreePatch(patch: unknown): Result<TreePatch>` checks closed document and operation shapes, JSON values and `revision > base`. Revisions and indexes are nonnegative safe integers; revision gaps are allowed. Node fields, ids and intents follow the UI-tree constraints. The published schema checks standalone shape; sibling-number comparison is an additional validator check.
+
+`applyPatch(base: UiTree, patch: unknown): Result<UiTree>` takes a previously validated base. It checks patch shape first, then identity, then applies operations in order against the preceding result. Wrong surface or base revision is `stale-patch` at `/surfaceId` or `/base`; catalog mismatch is `invalid-document` at `/catalogId`. Hosts must assign unique content to each catalog/surface/revision identity; there is no base hash.
+
+- `set` replaces the complete kind/variant/props/style/events payload; omitted optional fields are deleted. It preserves id and children exactly and may target the root.
+- `insert` inserts a complete subtree before the current child at `index`; zero through child count is allowed, including append. Absent children count as zero. Subtree ids must follow the destination key path; application never rewrites them.
+- `remove` deletes a non-root subtree and its descendants. Removing the last child omits the parent's children field.
+- `move` reorders a non-root child within its current parent. Its final index is measured after detachment, from zero through the remaining child count. Moving to the same position is valid. Parent changes require remove plus insert with new ids.
+
+Missing targets or parents are `not-found` at the op's `/id` or `/parent`. Malformed patches, non-increasing revisions, out-of-range indexes and root removal/move are `invalid-document`. An addressed ambiguous duplicate target is `duplicate-key`; other duplicate ids and catalog-specific checks are rejected by subsequent whole-tree validation. Errors point into the patch, except failures from whole-tree validation, which point into its result.
+
+Application is atomic: failures expose no partial result. Success returns a new tree envelope retaining format/catalog/surface with the new revision; empty ops retain the root. Changed nodes and ancestors are copied, and untouched subtrees retain reference identity. Application neither mutates nor freezes caller objects. Hosts must keep served trees and nested values immutable while in use.
+
+Application is structural only. The host validates the complete result before accepting its revision, serving it or using it for dispatch checks; the renderer independently validates arrivals. On any failure retain the last accepted tree and request a whole tree. Patches contain no widget code or authority. `checkOffered` still checks the accepted revision; superseded origins fail as `version-conflict`. There is no renderer patch prop or incremental validation.
 
 ## 10. Validation
 
@@ -626,7 +662,8 @@ It checks:
 | `transpile-failed` | A syntax error, with file and line in `pointer` (§7.3). |
 | `hash-mismatch` | Package content differs from its declared hash. |
 | `version-conflict` | A second hash under an existing package `(id, version)`. |
-| `not-found` | A missing placement or package. |
+| `stale-patch` | A tree patch names a different surface or base revision. |
+| `not-found` | A missing placement, package or patch target/parent. |
 | `host-element` | A host element such as a raw HTML tag. |
 | `unknown-component` | A component outside the catalog. |
 | `invalid-prop` | A prop or placement param that fails its schema. |
@@ -733,7 +770,7 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
 
   | Import | Holds |
   |---|---|
-  | `@arnilo/liveframe` | Definition, catalog, theme and design-system formats; the validator; the recipe resolver; `LiveframeFailure` and `LiveframeError` |
+  | `@arnilo/liveframe` | Definition, catalog, theme, design-system, UI-tree and tree-patch formats; `validateTreePatch` and `applyPatch`; the validator; the recipe resolver; `LiveframeFailure` and `LiveframeError` |
   | `@arnilo/liveframe/sdk` | The JSX runtime (`/sdk/jsx-runtime`, `/sdk/jsx-dev-runtime`), intent helpers, and `render()` |
   | `@arnilo/liveframe/sdk/gen` | The host-side emitters behind `liveframe gen`: `generate()`, `generateDefinitions()` and `generateElementsSchema()` |
   | `@arnilo/liveframe/react` | The renderer: `createRenderer()`, `<Surface>` and `implement()` (§11). `react` and `react-dom` are optional peer dependencies used by the React subpaths |
@@ -752,6 +789,7 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
   | `@arnilo/liveframe/conformance` | Host-API-free catalog, design-system and store suites: `catalogSuite()`, `designSystemSuite()`, `storeSuite()`, plus `ConformanceCase` and `ConformanceFailure` |
   | `@arnilo/liveframe/conformance/react` | `rendererSuite()` (server cases), `rendererBrowserSuite()` (browser cases) and `conformancePage()` (the app's in-page host); needs the optional `react` and `react-dom` peers |
 
+- `schemas/tree-patch.json` has `$id: urn:liveframe:tree-patch:1`.
 - A JSON Schema for every format is published at `@arnilo/liveframe/schemas/<format>.json`, so apps and agents in any language can validate the documents. The element JSON Schema is the exception: it depends on one catalog, so it is generated per catalog with `liveframe gen --elements-schema` instead of shipped for all. Each document's `$id` is `urn:liveframe:<format>:1` — the format and its version, never a domain or a package version — and cross-document references use those ids, so registering the published schemas resolves them without a network fetch. The files ship inside the package; a format version is a new id, never a moved one.
 - The data files resolve through `exports` as well: `@arnilo/liveframe/package.json`, `@arnilo/liveframe/conformance/corpus/<format>/<document>.json` and `@arnilo/liveframe/conformance/hash/<file>.json`. Each data directory is its own explicit pattern, never one `./conformance/*` that would overlap the `./conformance` and `./conformance/react` code subpaths. `import.meta.resolve` finds them under both Bun and Node, so a port needs no path into `node_modules`.
 - What the package ships, and nothing else: `dist/` compiled ES2022 JavaScript with `.d.ts` declarations, `schemas/*.json`, `conformance/` (the language-neutral corpus and hash vectors), `docs/*.md`, `README.md`, `CHANGELOG.md`, `SECURITY.md`, `LICENSE` and `package.json`. No `.ts` or `.tsx` sources, tests, fixtures or proof code. Each subpath's `exports` entry names its declaration and its JavaScript, and the binary is `dist/cli/liveframe.js`.
@@ -804,6 +842,7 @@ Paths are relative to `@arnilo/liveframe`; `.` is the root export. The `sdk` row
 - An app needs one import of the kit per environment. The host-API-free suites need no React installation; renderer suites and the page host use the React subpath.
 - Browser cases run in the app's test process through an app-supplied Playwright `Page`. The app bundles and serves its own page, whose entry calls `conformancePage()` with its catalog, implementations and styles. The kit bundles and serves nothing, and uses Playwright types without loading it at runtime. The page host accepts UI trees and style identities, never widget code (law 1); it records intents without dispatching actions or granting authority (law 4).
 - Fixtures are app-supplied trees and locators. Coverage fails closed: every catalog `(kind, variant)` needs an example; missing examples fail the suite and name the missing pairs. Every `(kind, variant, state)` whose resolved recipe differs from rest in any installed design system needs a state fixture; a missing fixture fails and names the tuple. The app declares which kinds are overlays and text inputs and supplies the corresponding lifecycle and text-bound fixtures; the catalog does not mark these roles. The conformance guide must explain this declaration requirement.
+- `conformance/corpus/tree-patch/` applies patches then validates the complete result, with support roles `base`, `catalog`, `capabilities` and `manifest`.
 - `conformance/corpus/` holds committed language-neutral cases for every format, with shared documents under `conformance/corpus/common/`. Each case is `{ inputs, options, expect }`; errors match on `(kind, pointer)` only, as an unordered set inside the 20-error bound. The library's own suite runs the cases through the reference validators (the `package` cases through `verifyPackage`, so they also pin `hash-mismatch` and `forbidden-import`), and a case expectation changes only with a format version. The package ships the corpus so a port can execute it without TypeScript.
 - `conformance/hash/` holds committed language-neutral vectors: accepted `{ value, canonical, sha256 }` and rejected `{ value, rejected }` entries, with tagged escapes for values JSON cannot carry. `sha256` is the lowercase hex digest of the UTF-8 canonical text, without the `sha256-` prefix. `packages.json` holds `{ package, hash }` entries, where `hash` is `sha256-` plus the digest of the canonical `{ format, manifest, code, scenarios }` (§7.3). The library's suite runs every vector through the canonicaliser and hash; the set includes RFC 8785 Appendix B and changes only with a format version.
 
@@ -814,7 +853,7 @@ Paths are relative to `@arnilo/liveframe`; `.` is the root export. The `sdk` row
 - Migrating widget state between versions beyond resetting it to the initial state (§7.4).
 - Agent tooling beyond generated typed component modules for the catalog, structured validation errors, preview capture (§7.5) and the authoring MCP server (§13). Runtime agent tools that install, place or approve widgets stay the app's (`decision-logs/2026-10-22-0902-authoring-mcp-server-for-coding-agents.md`).
 - Renderers other than React.
-- Tree patches, and A2UI or other wire interop.
+- A2UI or other wire interop.
 
 ## 15. Open decisions
 

@@ -411,7 +411,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - `timeout 1200s bun run check` passed: **861 passed, 4 skipped, 0 failed**. Earlier runs under external load (load average 16–26 from other projects; one run hit the 900 s cap) failed only the recorded load-sensitive timing tests — `switch_under_budget_with_blur`, `switch_under_budget_with_blur_through_surface`, `in_process_warm_overhead_under_point_one_ms` and worker timeouts; each passed a focused rerun (3 pass, 4.8 s, no browser timing change) and the final full run. Nothing was weakened.
     - Risk for Task 18: the npmjs.com **Allow npm dist-tag** toggle is an owner action outside the repo and cannot be verified here. If it is still off, step 4 fails after a successful publish and the checklist's manual `npm dist-tag add` applies.
 
-- [ ] Task 9: Add the tree-patch format and `applyPatch` (CL-15)
+- [x] Task 9: Add the tree-patch format and `applyPatch` (CL-15)
   - Acceptance Criteria:
     - Functional:
       - Implements [Task 2's approved design](../decision-logs/2026-10-30-1928-tree-patch-format.md) exactly. `TreePatch`, `PatchOp` and `validateTreePatch` ship in the root export. `schemas/tree-patch.json` (`$id` `urn:liveframe:tree-patch:1`) agrees with `validateTreePatch` on standalone shape checks; the validator additionally checks the cross-field constraint `revision > base`, which standard JSON Schema cannot express as a sibling-number comparison.
@@ -448,10 +448,11 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       ```
     - Files to Create/Edit:
       - `src/formats/tree-patch.ts` (new); `src/validate/patch.ts` (new); `src/index.ts`; `src/errors.ts`
-      - `scripts/schemas.ts`; `schemas/tree-patch.json` (generated)
+      - `src/formats/registry.ts` (the existing `scripts/schemas.ts` publisher reads the registry); `schemas/tree-patch.json` (generated)
       - `conformance/corpus/tree-patch/**` (new); `src/__tests__/corpus.test.ts`
       - `src/__tests__/tree-patch.test.ts` (new); `src/__tests__/schemas.test.ts`; `src/__tests__/offered.test.ts`; `src/__tests__/exports.test.ts`
-      - `docs/spec.md` §9, §13, §14; `docs/formats.md`; `docs/compatibility.md`
+      - `docs/spec.md` §9, §10, §13, §14; `docs/formats.md`; `docs/compatibility.md`; `docs/conformance.md`
+      - `bench/validator.bench.ts` (one-row application median on the LF-17 subject)
   - Test Cases to Write:
     - `apply_patch_applies_each_op`: set, insert, remove and move, each against a small tree. Fails on a wrong position or a dropped field.
     - `apply_patch_shares_untouched_subtrees`: siblings of the changed node are `===` the base's. Fails if the implementation deep-copies.
@@ -461,6 +462,12 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - `apply_patch_obeys_order_and_ownership`: inserted targets become addressable, removed targets become absent, optional set fields are deleted when omitted, root set works, root remove/move and invalid indexes fail, empty ops advance revision, catalog mismatch fails, and application neither mutates nor freezes its inputs.
     - `check_offered_follows_patched_revision`: accepts the new revision and rejects the superseded one.
     - The corpus cases under `tree-patch/`.
+  - Notes (executed 2026-10-31):
+    - Implemented the approved four-op format, readonly `TreePatch`/`PatchOp`, `validateTreePatch`, generated `schemas/tree-patch.json`, root exports and additive `stale-patch`. The existing schema publisher reads the added registry entry; no publisher rewrite or dependency was needed.
+    - `applyPatch` validates patch shape before identity checks, applies ordered edits atomically with a per-tree WeakMap index, updates inserted/removed descendant targets, rejects ambiguity and preserves untouched references. It neither mutates nor freezes inputs. Whole-result validation remains mandatory; renderer and `checkOffered` semantics are unchanged.
+    - Added six application-plus-validation corpus cases, standalone schema/corpus parity with revision ordering tested separately, public type/schema exports, ownership/ordering/sharing/error regressions and patched-revision intent checks. Updated spec §9/§10/§13/§14, format, compatibility and conformance docs. `diffTrees` and vectors remain Task 10; streaming arrival/commit measurements remain Task 11.
+    - `timeout 120s bun --conditions liveframe:source bench/validator.bench.ts` passed all existing gates and the new application gate: median **0.0919 ms**, below **0.5 ms**, including index construction on successive accepted 679-node, 50-row trees (200 warm-ups, 1,000 samples; one changed row status per revision). Bun 1.4.4, Linux 7.3.0-4-cachyos, AMD Ryzen 9 PRO 7940HS, 16 logical CPUs. Load averages were 2.77/8.59/12.47 initially and 2.87/8.51/12.42 before the patch case. An earlier loaded run measured 0.2140 ms for application but failed existing validator timing gates; no threshold was changed.
+    - `timeout 1200s bun run check` passed: **869 passed, 4 skipped, 0 failed** (873 tests, 109 files). Earlier runs exposed the missing spec error-table row (fixed), existing timing failures and browser timeouts during external build load (peaking above 100). The final unchanged-budget full run passed, including the previously failing switch, package-verification and hydration gates.
 
 - [ ] Task 10: Add `diffTrees` and patch vectors (CL-15)
   - Acceptance Criteria:
