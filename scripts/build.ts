@@ -18,18 +18,22 @@ for await (const path of new Bun.Glob("dist/**/*.d.ts").scan(root)) {
   if (rewritten !== source) await Bun.write(url, rewritten);
 }
 
-// A self-contained ESM bundle for sandboxes with no module resolution: SDK, validator and
-// renderModule in one file. "browser" keeps node: and bun: built-ins out of the output.
-const bundle = await Bun.build({
-  entrypoints: [`${root}scripts/runner-kit-bundle.ts`],
-  format: "esm",
-  target: "browser",
-  splitting: false,
-  minify: true,
-});
-const [output] = bundle.outputs;
-if (!bundle.success || bundle.outputs.length !== 1 || !output) {
-  console.error(bundle.logs.join("\n") || "The runner kit bundle must be exactly one file");
-  process.exit(1);
+// Self-contained modules for sandboxes with no module resolution.
+// "browser" keeps node: and bun: built-ins out of the output.
+async function buildBundle(name: string): Promise<void> {
+  const bundle = await Bun.build({
+    entrypoints: [`${root}scripts/${name}-bundle.ts`],
+    format: "esm",
+    target: "browser",
+    splitting: false,
+    minify: true,
+  });
+  const [output] = bundle.outputs;
+  if (!bundle.success || bundle.outputs.length !== 1 || !output) {
+    console.error(bundle.logs.join("\n") || `The ${name} bundle must be exactly one file`);
+    process.exit(1);
+  }
+  await Bun.write(`${root}dist/${name}.bundle.js`, output);
 }
-await Bun.write(`${root}dist/runner-kit.bundle.js`, output);
+await buildBundle("runner-kit");
+await buildBundle("validator");

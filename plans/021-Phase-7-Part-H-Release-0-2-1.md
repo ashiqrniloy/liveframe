@@ -191,7 +191,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - The portability gate tokenizes JavaScript, ignoring comments and literal text while checking interpolated expressions. It checks host-API-free source, compiled output and browser bundles against the table, with a docs/table equality test. Temporarily replacing completion with `structuredClone` made the source gate fail; restored the implementation before final checks.
     - `timeout 900s bun run check` passed: 853 tests passed, 4 skipped, 0 failed. `timeout 180s bun run bench` passed. The pre-change bench failed the existing agent-home validator timing gate (1.992 µs/node); the final run measured 1.288 µs/node and 1.944 µs/node total render. An additional nested `bindAll` comparison against HEAD's completion (7 batches of 10,000, after 2,000 warm-ups) measured medians of 4.30 µs before and 2.08 µs after. Benchmark-generated plan 019 evidence was restored, so this task does not rewrite earlier evidence. Task 4 still owns the validator bundle and bare-vm proof.
 
-- [ ] Task 4: Publish the validator bundle (CL-10)
+- [x] Task 4: Publish the validator bundle (CL-10)
   - Acceptance Criteria:
     - Functional:
       - `dist/validator.bundle.js` is one self-contained ES module that re-exports the root export (`compileValidator`, `checkOffered`, `capabilitiesFor`, every `validate*`, the recipe resolver, and, after Task 9, `applyPatch`/`diffTrees`). `exports` has `"./validator.bundle.js"`.
@@ -212,6 +212,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       - `scripts/runner-kit-bundle.ts`; `scripts/build.ts:21-35`; `scripts/release/bundle-check.ts:10-30`.
       - `scripts/release/archive-gate.ts:142-157` (bundle step).
       - `src/__tests__/runner-bundle.test.ts:40-84` (vm test pattern).
+      - Bun 1.4.2 bundler documentation via Context7 (`/oven-sh/bun/bun-v1.4.2`): browser target, ESM output, disabled splitting and minification. Node's v24 API documentation via Context7: `SourceTextModule` context, `linkRequests`, `instantiate` and `evaluate`; exercised locally on Node 26.11.1.
     - Options Considered:
       - Grow `runner-kit.bundle.js` with the validator exports. Rejected: Clay's kernel never renders, and loading the runner kit puts `renderModule` in a trusted isolate (Clay's stated reason).
       - A curated export list. Rejected: it drifts from the root export, and the root export is already host-API-free.
@@ -226,13 +227,18 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Files to Create/Edit:
       - `scripts/validator-bundle.ts` (new); `scripts/build.ts`; `package.json` (`exports`)
       - `scripts/release/archive-gate.ts`; `scripts/release/fixtures/vm-validator.mjs` (new)
-      - `src/__tests__/validator-bundle.test.ts` (new); `src/__tests__/exports.test.ts`
+      - `src/__tests__/validator-bundle.test.ts` (new); `src/__tests__/exports.test.ts`; `src/__tests__/archive.test.ts` (permit and check both bare-file bundle exports)
       - `docs/spec.md` §13; `docs/packages.md`; `README.md`
   - Test Cases to Write:
     - `validator_bundle_is_self_contained`: `assertSelfContained` passes, and the export names equal the root export's. Fails on any import or a missing export.
     - `validator_bundle_omits_the_render_path`: no `renderModule`, `render` or `linkPackage`. Fails if the entry re-exports the SDK.
     - `validator_bundle_validates_under_bare_vm`: in a `vm.createContext({})` context, validates the corpus tree and runs `checkOffered` (accept plus forged revision), and its JSON results deep-equal the root export's. Fails if any non-ECMAScript global is reached (for example a reintroduced `structuredClone`).
     - The archive gate step "validator bundle packed and self-contained" fails on an unpacked or impure bundle.
+  - Notes (executed 2026-10-30):
+    - Added `scripts/validator-bundle.ts`, re-exporting the root namespace, and `./validator.bundle.js`. Both bundles use one build helper. The validator bundle is **69,787 B** (baseline for Task 9's 20% growth check), with no SDK render exports or new dependencies.
+    - Added self-containment, root-export parity, render-path exclusion, public-subpath resolution and bare-VM parity tests. On Node 26.11.1, `vm.createContext({})` validates the corpus tree and accepts/rejects the same intents as the root module; transported inputs are parsed inside the context. The existing compiled-output portability test scans the new bundle with Task 3's non-ECMAScript global checks and no exceptions.
+    - Extended the archive export test and release gate to check the new bundle. `timeout 600s bun run release:gate` passed all 12 steps, including "validator bundle packed and self-contained". Updated README, spec §13 and the package guide with the validator-only namespace and realm-local loading example. No existing format meaning changed.
+    - `timeout 900s bun run check` passed: **857 passed, 4 skipped, 0 failed**. The first run exposed the archive test's runner-only allowlist (fixed) and two browser switching timing failures (24.5/26.1 ms); both passed a focused rerun (9.7/9.6 ms maxima) and the final full run with unchanged limits. The focused bundle/export/portability run also passed all 37 tests. No registry publication or tag push belongs to this task.
 
 - [ ] Task 5: Report inputs from another realm (CL-12)
   - Acceptance Criteria:

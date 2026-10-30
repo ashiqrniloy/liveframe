@@ -44,7 +44,7 @@ The backend subpaths (`/store/fs`, `/preview/worker`, the in-process package loa
 | `store` | `console` |
 | `preview` | `setTimeout`, `clearTimeout`, `TextDecoder`, `console` |
 
-Paths are relative to `@arnilo/liveframe`; `.` is the root export. The `sdk` row includes `/sdk/gen` and both JSX runtimes; `/runner-kit.bundle.js` also needs no non-ECMAScript globals. Entries include bundled dependencies: Acorn guards its unused `console` warning, and the packer's source-map codec optionally uses `TextDecoder` with a pure JavaScript fallback. Preview timers bound module loading; capture needs the Encoding and URL APIs. Authoring reaches capture. Source, compiled output and browser bundles are checked against this table in CI.
+Paths are relative to `@arnilo/liveframe`; `.` is the root export. The `sdk` row includes `/sdk/gen` and both JSX runtimes; `/runner-kit.bundle.js` and `/validator.bundle.js` also need no non-ECMAScript globals. Entries include bundled dependencies: Acorn guards its unused `console` warning, and the packer's source-map codec optionally uses `TextDecoder` with a pure JavaScript fallback. Preview timers bound module loading; capture needs the Encoding and URL APIs. Authoring reaches capture. Source, compiled output and browser bundles are checked against this table in CI.
 
 ## Quickstart
 
@@ -156,6 +156,7 @@ Widgets are authored separately with the [SDK](docs/sdk.md), which exports `rend
 | `@arnilo/liveframe/authoring` | Seven typed authoring operations without MCP; the host supplies its runner |
 | `@arnilo/liveframe/runner-kit` | `renderModule()` and `linkPackage()`, the in-sandbox half of a runner |
 | `@arnilo/liveframe/runner-kit.bundle.js` | The kit, SDK and validator as one import-free ES module for isolates |
+| `@arnilo/liveframe/validator.bundle.js` | The root exports as one import-free ES module for hosts that validate without rendering |
 | `@arnilo/liveframe/preview/capture` | Capture as bytes with a pluggable backend |
 | `@arnilo/liveframe/preview/worker` | `workerRunner()`, which needs the `Worker` global |
 | `@arnilo/liveframe/preview/react` | `<Preview>` |

@@ -406,6 +406,30 @@ capabilities and manifest as plain JSON each time. The bundle is the same code t
 subpath ships, so it is as trusted as your sandbox makes it: it is not an isolation
 boundary, and the host validates every tree it gets back.
 
+### Validate without rendering
+
+A host that only validates data can load
+`@arnilo/liveframe/validator.bundle.js` (`dist/validator.bundle.js` in the archive).
+It is one self-contained ES module with all the root exports, including
+`compileValidator`, `checkOffered`, the install validators and recipe resolver.
+It needs only ES2022 globals and has no SDK render path, `renderModule` or
+`linkPackage`. Keep it separate from the runner kit in a validating isolate,
+where widget code never runs.
+
+```js
+import * as lf from "@arnilo/liveframe/validator.bundle.js";
+const validator = lf.compileValidator({ catalog, capabilities, manifest });
+const checked = validator.validateTree(tree);
+if (checked.ok) lf.checkOffered(checked.value, origin, intent, validator);
+```
+
+In a sandbox with no module resolution, load the bundle text as an ES module
+and keep its namespace. Parse transported inputs with `JSON.parse` inside that
+context so they belong to its realm.
+[`vm-validator.mjs`](https://github.com/ashiqrniloy/liveframe/blob/main/scripts/release/fixtures/vm-validator.mjs)
+shows the complete Node VM harness; the tests compare its corpus validation and
+accepted/forged intent results with the root module in a bare context.
+
 ## Executable proof
 
 [`phase-2-loop.test.ts`](https://github.com/ashiqrniloy/liveframe/blob/main/src/__tests__/phase-2-loop.test.ts) runs this guide's

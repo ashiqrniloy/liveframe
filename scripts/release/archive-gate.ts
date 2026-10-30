@@ -154,6 +154,11 @@ try {
     ["corpus packed", () => assertConformance("corpus")],
     ["hash vectors packed", () => assertConformance("hash")],
     [
+      "validator bundle packed and self-contained",
+      () =>
+        assertSelfContained(readFileSync(join(dir, "node_modules/@arnilo/liveframe/dist/validator.bundle.js"), "utf8")),
+    ],
+    [
       "runner bundle packed and self-contained",
       () =>
         assertSelfContained(

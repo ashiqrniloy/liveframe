@@ -44,6 +44,12 @@ import catalog from "./fixtures/proof/catalog.json" with { type: "json" };
 import theme from "./fixtures/proof/certified.theme.json" with { type: "json" };
 import designSystem from "./fixtures/proof/certified.design-system.json" with { type: "json" };
 
+test("validator_bundle_subpath_resolves", () => {
+  expect(import.meta.resolve("@arnilo/liveframe/validator.bundle.js")).toBe(
+    new URL("../../dist/validator.bundle.js", import.meta.url).href,
+  );
+});
+
 test("css_exports_are_pinned", () => {
   expect(Object.keys(css).sort()).toEqual([
     "baseCss",

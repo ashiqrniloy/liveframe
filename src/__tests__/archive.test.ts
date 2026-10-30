@@ -111,9 +111,9 @@ test("archive_contains_only_the_release_files", () => {
 test("every_export_has_types_and_default", () => {
   for (const [subpath, entry] of Object.entries(pkg.exports)) {
     if (typeof entry === "string") {
-      if (subpath === "./runner-kit.bundle.js") {
-        expect(entry).toBe("./dist/runner-kit.bundle.js");
-        expect(files).toContain("dist/runner-kit.bundle.js");
+      if (subpath === "./runner-kit.bundle.js" || subpath === "./validator.bundle.js") {
+        expect(entry).toBe(`./dist/${subpath.slice(2)}`);
+        expect(files).toContain(`dist/${subpath.slice(2)}`);
         continue;
       }
       expect(subpath, "only the schemas and bundle exports may map bare files").toBe("./schemas/*");

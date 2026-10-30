@@ -127,7 +127,8 @@
       "types": "./dist/runner-kit/index.d.ts",
       "default": "./dist/runner-kit/index.js"
     },
-    "./runner-kit.bundle.js": "./dist/runner-kit.bundle.js"
+    "./runner-kit.bundle.js": "./dist/runner-kit.bundle.js",
+    "./validator.bundle.js": "./dist/validator.bundle.js"
   },
   "files": [
     "dist",
