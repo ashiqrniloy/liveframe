@@ -141,7 +141,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Corrected Tasks 9 and 10 to match the approved design. Four ops cannot reproduce every omitted-versus-empty children representation, so diffing requires SDK-form inputs and otherwise returns `invalid-document` for whole-tree fallback. Validated trees are not frozen today; application follows the existing readonly ownership contract without freezing caller objects. Schema parity covers standalone shape, with cross-field revision ordering tested separately.
     - `timeout 900s bun run check` passed: 847 tests passed, 4 skipped, 0 failed. The final documentation also passed the focused `docs-links` and `docs-wording` run (3 tests), and `git diff --check` passed. No runtime implementation, new tests or patch performance claims belong to this design task; Tasks 9–12 provide those.
 
-- [ ] Task 3: Clone intents without `structuredClone` and make the runtime matrix true (CL-10)
+- [x] Task 3: Clone intents without `structuredClone` and make the runtime matrix true (CL-10)
   - Acceptance Criteria:
     - Functional:
       - `complete()` copies and freezes the intent in one JSON-only walk. `checkOffered` and `<Surface>` emissions return results identical to today's: a fresh, deeply frozen, complete intent. An explicit `setState` value and a `bindAll` object are copied, not aliased.
@@ -155,19 +155,22 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Skills to Use:
       - `liveframe-execution`: host-API-free core.
       - `surgical-patch`: a narrow fix with regression proof.
+      - `find-docs`: verify the installed Acorn tokenizer API used by the portability gate.
     - Library Documentation to Check Before Implementation:
-      - ECMAScript 2022 global object (§19) to confirm the list is not ECMAScript; WHATWG HTML (timers), Encoding and URL standards. No package docs.
+      - ECMAScript 2022 global object (§19) to confirm the list is not ECMAScript; WHATWG HTML (timers), Encoding and URL standards. Acorn 8.19.0 tokenizer identifier tokens.
     - Documentation Reviewed:
       - `src/validate/complete.ts:3-29` (`structuredClone` at `:20`, then a separate freeze walk).
       - `src/authoring/index.ts:151,303`; `src/preview/in-process.ts:14-16`; `src/preview/capture/index.ts:121-123`.
       - `src/__tests__/portability.test.ts:4-18` (subpaths table) and `:57-83` (`scanHostApiFree`).
       - `README.md:32`; `docs/spec.md:756`; `docs/sdk.md:46`.
+      - [ECMAScript 2022 §19](https://262.ecma-international.org/13.0/#sec-global-object), WHATWG [timers](https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#timers), [Encoding](https://encoding.spec.whatwg.org/#interface-textencoder) and [URL](https://url.spec.whatwg.org/#url) standards.
+      - [Acorn tokenizer API](https://github.com/acornjs/acorn/blob/master/_autodocs/api-reference/tokenizer.md), fetched with Context7 for the installed Acorn 8.19.0: identifier tokens exclude comments and string contents.
     - Options Considered:
       - `JSON.parse(JSON.stringify(x))`. Rejected: three walks (stringify, parse, freeze) on every emit.
       - Keep `structuredClone` behind a feature check. Rejected: two code paths, and the fallback is the one that matters.
       - Remove every WHATWG global, including `URL` in capture. Rejected: capture runs beside Playwright and parses page URLs, so naming the global costs nothing and rewriting URL parsing is risk with no reader.
     - Chosen Approach:
-      - Copy and freeze in one walk, remove the cheap uses, and name the rest in a matrix that CI enforces.
+      - Copy and freeze in one walk, remove the cheap uses, and name the rest in a matrix that CI enforces. Tokenize transpiled JavaScript with the installed Acorn to avoid matching comments and literal strings; use the same per-subpath allowlist for source, compiled output and browser bundles. Include guarded globals found in bundled dependencies in the matrix rather than adding regex exceptions.
     - API Notes and Examples:
       ```ts
       /** A deep, frozen copy of a JSON value; inputs are already validated JSON. */
@@ -176,11 +179,17 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Files to Create/Edit:
       - `src/formats/json.ts`; `src/validate/complete.ts`; `src/authoring/index.ts`
       - `src/__tests__/portability.test.ts`; `src/__tests__/offered.test.ts` (or `react-intents.test.tsx`)
-      - `README.md`; `docs/spec.md` §13; `docs/sdk.md` (the "any ES2022 runtime" line)
+      - `README.md`; `docs/spec.md` §13; `docs/sdk.md` (the "any ES2022 runtime" line); `roadmap.md` §3 (task completion)
   - Test Cases to Write:
     - `complete_returns_a_frozen_copy_without_structured_clone`: deletes `globalThis.structuredClone` for the test, then completes a `setState`, a `bind` and a `bindAll` intent and asserts deep-frozen, unaliased results. Fails if `structuredClone` returns, or if the copy aliases the input.
     - `host_api_free_subpaths_use_only_matrix_globals`: scans source and `dist/`, and fails on a non-ECMAScript global outside the subpath's allowlist. Mutant: re-adding `structuredClone` to `complete.ts` fails it.
     - `runtime_matrix_names_every_allowlisted_global`: parses the spec §13 matrix and asserts it equals the allowlist. Fails if docs and scan drift.
+
+  - Notes (executed 2026-10-30):
+    - Added internal `frozenJsonCopy` beside `validateJson`; `complete()` now copies and freezes validated JSON in one recursive walk, safely retaining own `__proto__` keys. The regression first failed on the old `structuredClone` call, then passed with that global deleted for explicit/carried state, `bind`, `bindAll` and `checkOffered`. It checks nested arrays/objects, frozen outputs, fresh references and unfrozen inputs; existing renderer emission tests also passed.
+    - Reused `utf8` for authoring's tree-byte limit. Kept capture's Encoding/URL APIs and preview's timers, and made README, spec §13 and SDK portability wording agree with the scan. The scan also found guarded `console` references in Acorn and optional `TextDecoder` references in the packer's source-map codec; the matrix and per-subpath allowlist include those transitive references. No public export or format meaning changed; §13's runtime claims are now explicit.
+    - The portability gate tokenizes JavaScript, ignoring comments and literal text while checking interpolated expressions. It checks host-API-free source, compiled output and browser bundles against the table, with a docs/table equality test. Temporarily replacing completion with `structuredClone` made the source gate fail; restored the implementation before final checks.
+    - `timeout 900s bun run check` passed: 853 tests passed, 4 skipped, 0 failed. `timeout 180s bun run bench` passed. The pre-change bench failed the existing agent-home validator timing gate (1.992 µs/node); the final run measured 1.288 µs/node and 1.944 µs/node total render. An additional nested `bindAll` comparison against HEAD's completion (7 batches of 10,000, after 2,000 warm-ups) measured medians of 4.30 µs before and 2.08 µs after. Benchmark-generated plan 019 evidence was restored, so this task does not rewrite earlier evidence. Task 4 still owns the validator bundle and bare-vm proof.
 
 - [ ] Task 4: Publish the validator bundle (CL-10)
   - Acceptance Criteria:

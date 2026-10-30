@@ -5,7 +5,7 @@ import { validateJson } from "../formats/json.ts";
 import { validateManifestShape } from "../formats/manifest.ts";
 import { type Scenario, validateScenario, type WidgetPackage } from "../formats/package.ts";
 import type { Json, UiTree } from "../formats/tree.ts";
-import { canonicalJson } from "../pack/hash.ts";
+import { canonicalJson, utf8 } from "../pack/hash.ts";
 import { outcomeScenarios } from "../pack/outcome.ts";
 import type { PreviewBinding, PreviewSession } from "../preview/authoring.ts";
 import { type CaptureBackend, CaptureError, capture } from "../preview/capture/index.ts";
@@ -148,7 +148,7 @@ export function createAuthoring(options: AuthoringOptions) {
   async function renderOne(input: RenderInput): Promise<Result<UiTree>> {
     const result = await session.render({ ...input, scenario: input.scenario! });
     if (!result.ok) return result;
-    const size = new TextEncoder().encode(JSON.stringify(result.value)).byteLength;
+    const size = utf8(JSON.stringify(result.value)).byteLength;
     if (size > MAX_TREE_BYTES)
       return {
         ok: false,

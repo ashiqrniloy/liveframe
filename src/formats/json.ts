@@ -4,6 +4,16 @@ import type { Json } from "./tree.ts";
 
 type Entry = { value: unknown; pointer: string; exit?: boolean };
 
+/** A deep, frozen copy; callers supply already validated JSON. */
+export function frozenJsonCopy<T extends Json>(value: T): T {
+  if (value === null || typeof value !== "object") return value;
+  return Object.freeze(
+    Array.isArray(value)
+      ? value.map((child) => frozenJsonCopy(child))
+      : Object.fromEntries(Object.entries(value).map(([key, child]) => [key, frozenJsonCopy(child)])),
+  ) as T;
+}
+
 /** Children pushed last-first, so popping walks them in document order. */
 function pushChildren(value: object, pointer: string, pending: Entry[]): void {
   if (Array.isArray(value)) {

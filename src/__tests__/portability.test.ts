@@ -1,21 +1,102 @@
 import { expect, test } from "bun:test";
+import { tokenizer } from "acorn";
 
 // Per-subpath exceptions from spec §13 and plan 006 Tasks 4, 7–9.
 // Store reaches the packer through loadPlacement → verifyPackage.
 const subpaths = [
-  { path: "authoring", dependencies: true, loader: false, host: "none" },
-  { path: "runner-kit", dependencies: false, loader: false, host: "none" },
-  { path: "preview/capture", dependencies: false, loader: false, host: "none" },
-  { path: "conformance/react", dependencies: false, loader: false, host: "DOM" },
-  { path: "conformance", dependencies: true, loader: false, host: "none" },
-  { path: "pack", dependencies: true, loader: false, host: "none" },
-  { path: "store", dependencies: true, loader: false, host: "none" },
-  { path: "store/fs", dependencies: false, loader: false, host: "filesystem" },
-  { path: "preview", dependencies: true, loader: true, host: "none" },
-  { path: "preview/worker", dependencies: false, loader: true, host: "Worker/self" },
-  { path: "preview/react", dependencies: false, loader: false, host: "DOM" },
-  { path: "react", dependencies: false, loader: false, host: "DOM" },
+  { path: ".", dependencies: false, loader: false, host: "none", globals: [] },
+  { path: "sdk", dependencies: false, loader: false, host: "none", globals: [] },
+  { path: "css", dependencies: false, loader: false, host: "none", globals: [] },
+  {
+    path: "authoring",
+    dependencies: true,
+    loader: false,
+    host: "none",
+    globals: ["TextEncoder", "TextDecoder", "URL", "console"],
+  },
+  { path: "runner-kit", dependencies: false, loader: false, host: "none", globals: [] },
+  {
+    path: "preview/capture",
+    dependencies: false,
+    loader: false,
+    host: "none",
+    globals: ["TextEncoder", "TextDecoder", "URL"],
+  },
+  { path: "conformance/react", dependencies: false, loader: false, host: "DOM", globals: [] },
+  { path: "conformance", dependencies: true, loader: false, host: "none", globals: ["TextDecoder", "console"] },
+  { path: "pack", dependencies: true, loader: false, host: "none", globals: ["TextDecoder", "console"] },
+  { path: "store", dependencies: true, loader: false, host: "none", globals: ["console"] },
+  { path: "store/fs", dependencies: false, loader: false, host: "filesystem", globals: [] },
+  {
+    path: "preview",
+    dependencies: true,
+    loader: true,
+    host: "none",
+    globals: ["setTimeout", "clearTimeout", "TextDecoder", "console"],
+  },
+  { path: "preview/worker", dependencies: false, loader: true, host: "Worker/self", globals: [] },
+  { path: "preview/react", dependencies: false, loader: false, host: "DOM", globals: [] },
+  { path: "react", dependencies: false, loader: false, host: "DOM", globals: [] },
 ] as const;
+
+const nonEcmascriptGlobals = new Set([
+  "structuredClone",
+  "TextEncoder",
+  "TextDecoder",
+  "URL",
+  "URLSearchParams",
+  "setTimeout",
+  "setInterval",
+  "clearTimeout",
+  "queueMicrotask",
+  "crypto",
+  "atob",
+  "btoa",
+  "performance",
+  "AbortController",
+  "console",
+]);
+
+function matrixGlobals(source: string): string[] {
+  return [
+    ...new Set(
+      [...tokenizer(source, { ecmaVersion: "latest", sourceType: "module" })]
+        .filter((token) => token.type.label === "name")
+        .map((token) => source.slice(token.start, token.end))
+        .filter((name) => nonEcmascriptGlobals.has(name)),
+    ),
+  ].sort();
+}
+
+function checkMatrixGlobals(source: string, allowed: readonly string[], path: string): void {
+  expect(
+    matrixGlobals(source).filter((name) => !allowed.includes(name)),
+    path,
+  ).toEqual([]);
+}
+
+test("runtime_matrix_names_every_allowlisted_global", async () => {
+  const expected = subpaths
+    .filter(({ host }) => host === "none")
+    .map(({ path, globals }) => [path, [...globals].sort()]);
+  for (const file of ["README.md", "docs/spec.md"]) {
+    const doc = await Bun.file(new URL(`../../${file}`, import.meta.url)).text();
+    const matrix = doc.split("| Host-API-free subpath | Non-ECMAScript globals |")[1]?.split("\n\n")[0] ?? "";
+    const rows = [...matrix.matchAll(/^\s*\| `([^`]+)` \| (none|`[^|]+) \|$/gm)].map(([, path, globals]) => [
+      path,
+      globals === "none" ? [] : [...(globals ?? "").matchAll(/`([^`]+)`/g)].map((match) => match[1]).sort(),
+    ]);
+    expect(rows, file).toEqual(expected);
+  }
+});
+
+test("matrix_global_scan_rejects_unlisted_identifiers", () => {
+  for (const name of nonEcmascriptGlobals) {
+    expect(matrixGlobals(`${name};`)).toEqual([name]);
+    expect(matrixGlobals(`${name}();`)).toEqual([name]);
+  }
+  expect(matrixGlobals(`/* URL */ "console"; \`URL \${TextEncoder}\``)).toEqual(["TextEncoder"]);
+});
 
 test("sdk_bundles_for_browser_without_host_apis", async () => {
   const bundle = await Bun.build({
@@ -66,11 +147,15 @@ async function scanHostApiFree(root: string): Promise<void> {
     // Only the CLI reads catalogs and writes generated modules; the SDK emitter remains host-free.
     if (path.startsWith("cli/")) continue;
     // The file-store subpath is the explicit filesystem exception in spec §13.
-    const subpath = subpaths.find((entry) => path.startsWith(`${entry.path}/`) && entry.host !== "none");
+    const subpath = subpaths
+      .filter((entry) => path.startsWith(`${entry.path}/`))
+      .sort((a, b) => b.path.length - a.path.length)[0];
     if (subpath?.host === "filesystem") continue;
     // The backend worker subpath is the explicit Worker/self exception in spec §13.
     const workerSubpath = subpath?.host === "Worker/self";
     const source = await Bun.file(`${root}${path}`).text();
+    if (!subpath || subpath.host === "none")
+      checkMatrixGlobals(transpiler.transformSync(source), subpath?.globals ?? [], path);
     // Relative specifiers such as "./in-process.ts" are not process member access.
     const executable = source.replace(/\bfrom\s+(["'])\.\.?\/[^"'\n]+\1/g, 'from ""');
     const checked = workerSubpath
@@ -119,9 +204,9 @@ test("compiled_output_is_host_api_free", async () => {
 
 test.each(subpaths.filter(({ host }) => host === "none"))(
   "host_api_free_subpaths_bundle_clean: $path",
-  async ({ path, dependencies, loader }) => {
+  async ({ path, dependencies, loader, globals }) => {
     const bundle = await Bun.build({
-      entrypoints: [new URL(`../${path}/index.ts`, import.meta.url).pathname],
+      entrypoints: [new URL(path === "." ? "../index.ts" : `../${path}/index.ts`, import.meta.url).pathname],
       target: "browser",
       metafile: true,
     });
@@ -134,6 +219,7 @@ test.each(subpaths.filter(({ host }) => host === "none"))(
     const output = bundle.outputs[0];
     if (!output) throw new Error("Missing pack bundle output");
     let source = await output.text();
+    checkMatrixGlobals(source, globals, path);
     // Exact pinned-dependency snippets: two Buffer paths (one guarded, one in an
     // unused type checker), plus text emitted by transforms we never enable.
     const knownSnippets = [

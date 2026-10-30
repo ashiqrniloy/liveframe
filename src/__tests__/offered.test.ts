@@ -9,9 +9,49 @@ import {
   str,
   type UiTree,
 } from "../index.ts";
-import * as form from "./fixtures/object-events.ts";
+import { complete } from "../validate/complete.ts";
 import * as numeric from "./fixtures/numeric-events.ts";
+import * as form from "./fixtures/object-events.ts";
 import { surfaceProps, withRoot } from "./fixtures/react-surface.tsx";
+
+test("complete_returns_a_frozen_copy_without_structured_clone", () => {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, "structuredClone");
+  Reflect.deleteProperty(globalThis, "structuredClone");
+  try {
+    const payload = JSON.parse('{"nested":[null,true,3,"text",{"__proto__":{"safe":true}}]}');
+    const cases: [Intent, typeof payload | undefined, Intent][] = [
+      [
+        { type: "setState", key: "value", value: payload },
+        undefined,
+        { type: "setState", key: "value", value: payload },
+      ],
+      [{ type: "setState", key: "value" }, payload, { type: "setState", key: "value", value: payload }],
+      [
+        { type: "action", name: "submit", args: { fixed: payload }, bind: "value" },
+        payload,
+        { type: "action", name: "submit", args: { fixed: payload, value: payload } },
+      ],
+      [
+        { type: "action", name: "submit", args: { fixed: payload }, bindAll: true },
+        { value: payload },
+        { type: "action", name: "submit", args: { fixed: payload, value: payload } },
+      ],
+    ];
+    function assertCopy(copy: unknown, source: unknown): void {
+      expect(copy).toEqual(source);
+      if (source === null || typeof source !== "object") return;
+      expect(copy).not.toBe(source);
+      expect(Object.isFrozen(copy)).toBe(true);
+      expect(Object.isFrozen(source)).toBe(false);
+      for (const key of Object.keys(source))
+        assertCopy((copy as Record<string, unknown>)[key], (source as Record<string, unknown>)[key]);
+    }
+    for (const [offered, value, expected] of cases) assertCopy(complete(offered, value), expected);
+    expect(checkOffered(bound, origin(bound), intent, surfaceProps.validator).ok).toBe(true);
+  } finally {
+    if (descriptor) Object.defineProperty(globalThis, "structuredClone", descriptor);
+  }
+});
 
 const origin = (tree: UiTree, event = "onCommit"): IntentOrigin => ({
   surfaceId: tree.surfaceId,

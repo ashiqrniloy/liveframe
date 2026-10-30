@@ -29,7 +29,22 @@ Each peer is optional and only the subpaths that need it use it:
 | `playwright` | `^1.49.0` | `liveframe preview capture`, the MCP server's `capture_preview` |
 | `@modelcontextprotocol/server` | `^2.0.0` | `liveframe mcp` |
 
-The backend subpaths (`/store/fs`, `/preview/worker`, the in-process package loader and the CLI) need Bun ≥ 1.4.2. The host-API-free subpaths need any ES2022 runtime. The browser subpaths (`/css`, `/react`, `/preview/react`, `/conformance/react`) need any ESM bundler. The package ships compiled ES2022 JavaScript with `.d.ts` declarations and the published JSON Schemas; [spec §13](docs/spec.md#13-tech-stack-and-packages) has the runtime matrix and package contents.
+The backend subpaths (`/store/fs`, `/preview/worker`, the in-process package loader and the CLI) need Bun ≥ 1.4.2. The host-API-free subpaths need ES2022 plus only the globals listed below. The browser subpaths (`/css`, `/react`, `/preview/react`, `/conformance/react`) need any ESM bundler. The package ships compiled ES2022 JavaScript with `.d.ts` declarations and the published JSON Schemas; [spec §13](docs/spec.md#13-tech-stack-and-packages) has the runtime matrix and package contents.
+
+| Host-API-free subpath | Non-ECMAScript globals |
+|---|---|
+| `.` | none |
+| `sdk` | none |
+| `css` | none |
+| `authoring` | `TextEncoder`, `TextDecoder`, `URL`, `console` |
+| `runner-kit` | none |
+| `preview/capture` | `TextEncoder`, `TextDecoder`, `URL` |
+| `conformance` | `TextDecoder`, `console` |
+| `pack` | `TextDecoder`, `console` |
+| `store` | `console` |
+| `preview` | `setTimeout`, `clearTimeout`, `TextDecoder`, `console` |
+
+Paths are relative to `@arnilo/liveframe`; `.` is the root export. The `sdk` row includes `/sdk/gen` and both JSX runtimes; `/runner-kit.bundle.js` also needs no non-ECMAScript globals. Entries include bundled dependencies: Acorn guards its unused `console` warning, and the packer's source-map codec optionally uses `TextDecoder` with a pure JavaScript fallback. Preview timers bound module loading; capture needs the Encoding and URL APIs. Authoring reaches capture. Source, compiled output and browser bundles are checked against this table in CI.
 
 ## Quickstart
 

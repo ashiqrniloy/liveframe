@@ -43,7 +43,7 @@ const definitions = generateDefinitions(validatedCatalog);
 ```
 
 Both take a validated `Catalog` and return the exact text of the corresponding
-CLI mode. The subpath is host-API-free, so it runs in any ES2022 runtime.
+CLI mode. The subpath needs only ES2022, with no non-ECMAScript globals (see the [runtime matrix](spec.md#13-tech-stack-and-packages)).
 
 The package installs this as the `liveframe` binary, so a project that depends on
 it can run `liveframe gen catalog.json --out ui.gen.ts [--check]` directly.

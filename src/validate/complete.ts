@@ -1,3 +1,4 @@
+import { frozenJsonCopy } from "../formats/json.ts";
 import type { Intent, Json } from "../formats/tree.ts";
 
 export function complete(intent: Intent, value?: Json): Intent {
@@ -17,13 +18,5 @@ export function complete(intent: Intent, value?: Json): Intent {
     const { bindAll, ...action } = result;
     result = { ...action, args: { ...action.args, ...(value as Readonly<Record<string, Json>>) } };
   }
-  result = structuredClone(result);
-  function freeze(value: unknown) {
-    if (value !== null && typeof value === "object") {
-      for (const entry of Object.values(value)) freeze(entry);
-      Object.freeze(value);
-    }
-  }
-  freeze(result);
-  return result;
+  return frozenJsonCopy(result);
 }

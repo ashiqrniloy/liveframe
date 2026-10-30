@@ -753,7 +753,23 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
 
 - A JSON Schema for every format is published at `@arnilo/liveframe/schemas/<format>.json`, so apps and agents in any language can validate the documents. The element JSON Schema is the exception: it depends on one catalog, so it is generated per catalog with `liveframe gen --elements-schema` instead of shipped for all. Each document's `$id` is `urn:liveframe:<format>:1` — the format and its version, never a domain or a package version — and cross-document references use those ids, so registering the published schemas resolves them without a network fetch. The files ship inside the package; a format version is a new id, never a moved one.
 - What the package ships, and nothing else: `dist/` compiled ES2022 JavaScript with `.d.ts` declarations, `schemas/*.json`, `conformance/` (the language-neutral corpus and hash vectors), `docs/*.md`, `README.md`, `CHANGELOG.md`, `SECURITY.md`, `LICENSE` and `package.json`. No `.ts` or `.tsx` sources, tests, fixtures or proof code. Each subpath's `exports` entry names its declaration and its JavaScript, and the binary is `dist/cli/liveframe.js`.
-- Runtime matrix. The backend subpaths (`/store/fs`, `/preview/worker`, the in-process package loader and the CLI) need Bun ≥ 1.4.2. The host-API-free subpaths need any ES2022 runtime. The browser subpaths (`/css`, `/react`, `/preview/react`, `/conformance/react`) need any ESM bundler. `react`/`react-dom`, `playwright` and `@modelcontextprotocol/server` are optional peers, each with a subpath that needs it.
+- Runtime matrix. The backend subpaths (`/store/fs`, `/preview/worker`, the in-process package loader and the CLI) need Bun ≥ 1.4.2. The host-API-free subpaths need ES2022 plus only the globals listed below. The browser subpaths (`/css`, `/react`, `/preview/react`, `/conformance/react`) need any ESM bundler. `react`/`react-dom`, `playwright` and `@modelcontextprotocol/server` are optional peers, each with a subpath that needs it.
+
+| Host-API-free subpath | Non-ECMAScript globals |
+|---|---|
+| `.` | none |
+| `sdk` | none |
+| `css` | none |
+| `authoring` | `TextEncoder`, `TextDecoder`, `URL`, `console` |
+| `runner-kit` | none |
+| `preview/capture` | `TextEncoder`, `TextDecoder`, `URL` |
+| `conformance` | `TextDecoder`, `console` |
+| `pack` | `TextDecoder`, `console` |
+| `store` | `console` |
+| `preview` | `setTimeout`, `clearTimeout`, `TextDecoder`, `console` |
+
+Paths are relative to `@arnilo/liveframe`; `.` is the root export. The `sdk` row includes `/sdk/gen` and both JSX runtimes; `/runner-kit.bundle.js` also needs no non-ECMAScript globals. Entries include bundled dependencies: Acorn guards its unused `console` warning, and the packer's source-map codec optionally uses `TextDecoder` with a pure JavaScript fallback. Preview timers bound module loading; capture needs the Encoding and URL APIs. Authoring reaches capture. Source, compiled output and browser bundles are checked against this table in CI.
+
 - Peer ranges start at the oldest version that passes the suites covering them: `react` and `react-dom` `^19.0.0`, `playwright` `^1.49.0` (the version that added `locator.ariaSnapshot()`) and `@modelcontextprotocol/server` `^2.0.0`. `scripts/release/peer-floors.ts` installs each floor into a temporary copy of the checkout and runs those suites; a range widens only when that run passes.
 - One CLI, `liveframe`, exposed through the package's `bin` (`liveframe gen`, `liveframe gen --check`, `liveframe gen --implementations`, `liveframe gen --elements-schema`, `liveframe preview capture`, `liveframe mcp`). `liveframe gen` writes a widget's typed component module into the app (§7.2), `--elements-schema` writes the per-catalog agent JSON Schema, and the same emitters are importable from `/sdk/gen`. `playwright` is an optional peer dependency, needed only by `preview capture`.
 - **In-process authoring.** `/authoring` exports `createAuthoring({ catalog, capabilities, runner, preview?, capture?, exposeMeta? })`. Catalog and capabilities are validated documents; the runner is required. Its seven async operations return `Result<T>`: `listPrimitives({ kinds? })`, `listVocabulary()`, `listCapabilities()`, `generatedTypes()`, `packDraft({ files, entry, manifest, scenarios })`, `renderScenarios({ scenario?, state?, context?, outcomes? })` and `capturePreview({ scenarios?, widths?, themes?, designSystems? })`. Their values, errors and bounds match the MCP tools below, except capture returns cells with coordinates, errors, `aria: string | null` and `png: Uint8Array`. It writes no files and loads neither MCP nor Playwright. Missing capture configuration returns `not-found`.
