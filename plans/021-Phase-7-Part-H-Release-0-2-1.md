@@ -334,7 +334,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Docs: `docs/conformance.md` (package cases run through `verifyPackage`; package vectors) and `docs/spec.md` §7.3 and §13. Also updated the storage skill's "Today" line.
     - `timeout 900s bun run check` passed: **860 passed, 4 skipped, 0 failed**. One earlier full run had 1 failure in the test phase; I did not capture which test, and two later runs were clean. Treat it as the known load-sensitive flake pattern until seen again.
 
-- [ ] Task 7: Resolve `package.json` and the conformance data through `exports` (CL-13)
+- [x] Task 7: Resolve `package.json` and the conformance data through `exports` (CL-13)
   - Acceptance Criteria:
     - Functional:
       - `exports` gains `"./package.json": "./package.json"`, `"./conformance/corpus/*": "./conformance/corpus/*"` and `"./conformance/hash/*": "./conformance/hash/*"`.
@@ -367,6 +367,12 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
   - Test Cases to Write:
     - `exports_resolve_package_json_and_conformance_data`: Bun `import.meta.resolve` on the three paths. Fails if an entry is removed.
     - Node probe step: resolves the same three paths from the installed archive. Fails with `ERR_PACKAGE_PATH_NOT_EXPORTED` if an entry is missing.
+  - Notes (executed 2026-10-30):
+    - Added `./package.json`, `./conformance/corpus/*` and `./conformance/hash/*`. The conformance entries are explicit per-directory patterns, so nothing overlaps the `./conformance` and `./conformance/react` code subpaths. `import.meta.resolve` finds all three under Bun, and the Node probe finds the same three documents in the installed archive.
+    - Finding: the plan's `conformance/corpus/ui-tree/valid.json` does not exist; the real case is `conformance/corpus/ui-tree/docs/valid.json`. The test and the probe pin the real path, and no duplicate case was added.
+    - `assertExportsPacked` needed no resolver change: it already expands `*` and checks that some packed file matches. `archive.test.ts` previously allowed a bare-file mapping only for `./schemas/*` and the two bundles; it now allows exactly `./package.json`, `./schemas/*`, `./conformance/corpus/*` and `./conformance/hash/*`, matches each target to the tarball, and asserts that a missing conformance target still fails. Task 10's `./conformance/patch/*` follows the same explicit-pattern rule.
+    - Spec §13 names the data exports beside `./schemas/*` and records the no-overlap rule; `docs/conformance.md` shows a resolution snippet. No export, format meaning or archive layout changed.
+    - `timeout 900s bun run check` passed: **861 passed, 4 skipped, 0 failed**. Two earlier full runs failed only on pre-existing load-sensitive timing tests (`render_smoke_budget` and `worker_warm_overhead_report`); both passed focused reruns (3.0 s and 2.3 s) and the final full run. `timeout 900s bun run release:gate` passed all 12 steps, including "host-API-free subpaths under node", which now resolves the three paths from the installed archive. No registry publication belongs to this task.
 
 - [ ] Task 8: Keep `next` at or above `latest` (CL-14)
   - Acceptance Criteria:

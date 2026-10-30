@@ -19,10 +19,19 @@ The package also ships `conformance/corpus/` as committed JSON, for ports that
 do not run TypeScript. One directory per format holds the cases:
 `catalog`, `theme`, `design-system`, `capabilities`, `manifest`, `ui-tree`,
 `package`, `placement`, `style-record` and `elements`. Shared documents live
-under `conformance/corpus/common/`. The library's own suite in
-`src/__tests__/corpus.test.ts` runs every case through the reference validators;
-a failing case must match the reference `(kind, pointer)` set exactly and stay
-inside the 20-error bound. The `package` cases run through `verifyPackage`, with
+under `conformance/corpus/common/`. Resolve a document through the package's
+`exports`, under Bun or Node, so no path into `node_modules` is needed:
+
+```js
+const url = new URL(import.meta.resolve("@arnilo/liveframe/conformance/corpus/ui-tree/docs/valid.json"));
+const tree = JSON.parse(await readFile(url, "utf8"));
+```
+
+`@arnilo/liveframe/conformance/hash/<file>.json` resolves the vectors and
+`@arnilo/liveframe/package.json` the archive's own metadata. The library's own
+suite in `src/__tests__/corpus.test.ts` runs every case through the reference
+validators; a failing case must match the reference `(kind, pointer)` set
+exactly and stay inside the 20-error bound. The `package` cases run through `verifyPackage`, with
 `catalog` and `capabilities` inputs, so they pin the whole integrity check in
 its order: shape, manifest and scenarios, the SDK-only import rule, then the
 hash. A port that verifies packages must reproduce `hash-mismatch` at `/hash`

@@ -13,6 +13,11 @@ import { generate, generateDefinitions } from "@arnilo/liveframe/sdk/gen";
 import { memoryStore } from "@arnilo/liveframe/store";
 
 const read = (name) => JSON.parse(readFileSync(new URL(`./${name}.json`, import.meta.url), "utf8"));
+// Gate step 8: package metadata and conformance data resolve through `exports`.
+const resolveJson = (specifier) => JSON.parse(readFileSync(new URL(import.meta.resolve(specifier)), "utf8"));
+const ownManifest = resolveJson("@arnilo/liveframe/package.json");
+const corpusTree = resolveJson("@arnilo/liveframe/conformance/corpus/ui-tree/docs/valid.json");
+const packageVectors = resolveJson("@arnilo/liveframe/conformance/hash/packages.json");
 const catalog = validateCatalog(read("catalog"));
 const capabilities = validateCapabilities(read("capabilities"));
 if (!catalog.ok || !capabilities.ok) throw new Error("The fixture documents do not validate");
@@ -67,6 +72,10 @@ const checks = {
       examples: [],
       published: catalog.value,
     }).length > 0,
+  "exports.package.json": ownManifest.name === "@arnilo/liveframe",
+  "exports.conformance.corpus": corpusTree.surfaceId === "corpus" && corpusTree.format === "liveframe/1",
+  "exports.conformance.hash":
+    packageVectors.length > 0 && packageVectors.every((vector) => typeof vector.hash === "string"),
 };
 for (const [name, passed] of Object.entries(checks)) if (!passed) throw new Error(`${name} failed`);
 console.log(`node ${process.version} ran ${Object.keys(checks).length} entry points`);

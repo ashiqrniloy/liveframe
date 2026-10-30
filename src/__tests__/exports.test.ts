@@ -50,6 +50,17 @@ test("validator_bundle_subpath_resolves", () => {
   );
 });
 
+test("exports_resolve_package_json_and_conformance_data", () => {
+  const root = new URL("../../", import.meta.url);
+  expect(import.meta.resolve("@arnilo/liveframe/package.json")).toBe(new URL("package.json", root).href);
+  expect(import.meta.resolve("@arnilo/liveframe/conformance/corpus/ui-tree/docs/valid.json")).toBe(
+    new URL("conformance/corpus/ui-tree/docs/valid.json", root).href,
+  );
+  expect(import.meta.resolve("@arnilo/liveframe/conformance/hash/packages.json")).toBe(
+    new URL("conformance/hash/packages.json", root).href,
+  );
+});
+
 test("css_exports_are_pinned", () => {
   expect(Object.keys(css).sort()).toEqual([
     "baseCss",

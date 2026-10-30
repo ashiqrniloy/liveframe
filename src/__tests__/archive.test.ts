@@ -45,10 +45,18 @@ test("published_manifest_has_no_source_condition", () => {
 });
 
 test("exports_targets_are_packed", () => {
-  const files = new Set(["dist/index.js", "dist/index.d.ts", "schemas/catalog.json"]);
+  const files = new Set([
+    "dist/index.js",
+    "dist/index.d.ts",
+    "schemas/catalog.json",
+    "conformance/corpus/ui-tree/docs/valid.json",
+    "package.json",
+  ]);
   const exports = {
     ".": { types: "./dist/index.d.ts", default: "./dist/index.js" },
     "./schemas/*": "./schemas/*",
+    "./conformance/corpus/*": "./conformance/corpus/*",
+    "./package.json": "./package.json",
   };
   expect(() => assertExportsPacked(exports, files)).not.toThrow();
   expect(() => assertExportsPacked({ ...exports, ".": { ...exports["."], bogus: "./missing.js" } }, files)).toThrow(
@@ -58,6 +66,9 @@ test("exports_targets_are_packed", () => {
     'exports["."]["default"][1]',
   );
   expect(() => assertExportsPacked({ "./schemas/*": "./missing/*" }, files)).toThrow("./missing/*");
+  expect(() => assertExportsPacked({ "./conformance/corpus/*": "./conformance/missing/*" }, files)).toThrow(
+    "./conformance/missing/*",
+  );
   expect(() => assertExportsPacked({ ".": null }, files)).not.toThrow();
   expect(() => assertExportsPacked(pkg.exports, new Set(files))).toThrow("liveframe:source");
 });
@@ -116,8 +127,11 @@ test("every_export_has_types_and_default", () => {
         expect(files).toContain(`dist/${subpath.slice(2)}`);
         continue;
       }
-      expect(subpath, "only the schemas and bundle exports may map bare files").toBe("./schemas/*");
-      expect(files).toContain("schemas/catalog.json");
+      expect(subpath, "only data and schema files may map bare files").toMatch(
+        /^\.\/(?:package\.json|schemas\/\*|conformance\/(?:corpus|hash)\/\*)$/,
+      );
+      expect(entry).toBe(subpath);
+      expect(() => assertExportsPacked({ [subpath]: entry }, new Set(files))).not.toThrow();
       continue;
     }
     if (subpath !== ".") expect(subpath).toMatch(/^\.\//);

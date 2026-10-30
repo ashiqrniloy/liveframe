@@ -72,6 +72,9 @@
       "default": "./dist/sdk/jsx-dev-runtime.js"
     },
     "./schemas/*": "./schemas/*",
+    "./conformance/corpus/*": "./conformance/corpus/*",
+    "./conformance/hash/*": "./conformance/hash/*",
+    "./package.json": "./package.json",
     "./pack": {
       "liveframe:source": "./src/pack/index.ts",
       "types": "./dist/pack/index.d.ts",
