@@ -20,7 +20,7 @@ Depends on: plan [020](020-Phase-7-Part-G-Release-0-2-0.md) complete (0.2.0 publ
 - `@arnilo/liveframe@0.2.1` is on npm with provenance under `latest`, and `npm view @arnilo/liveframe dist-tags` shows `next` at or above `latest`.
 - The archive ships `dist/validator.bundle.js`. A bare Node `vm` context with no globals added validates a corpus tree and runs `checkOffered` with the same results as the root export.
 - `conformance/corpus/package/` runs through `verifyPackage` and includes a `hash-mismatch` case and a `forbidden-import` case. `conformance/hash/packages.json` pins package hashes, and both are checked through the public exports.
-- `liveframe/tree-patch/1` has a TS type, a published JSON Schema, a spec section, corpus cases and vectors. `applyPatch(prev, diffTrees(prev, next))` deep-equals `next` for every corpus tree pair. The LF-17 subject streamed as patches is at or under 1 KiB gzip and 8 ms arrival validation plus commit per update (median).
+- `liveframe/tree-patch/1` has a TS type, a published JSON Schema, a spec section, corpus cases and vectors. For matching catalog/surface and increasing revisions, `applyPatch(prev, diffTrees(prev, next))` deep-equals `next` for every supported corpus tree pair; explicit empty children receive the approved `invalid-document` rejection and whole-tree fallback. The LF-17 subject streamed as patches is at or under 1 KiB gzip and 8 ms arrival validation plus commit per update (median).
 - A WebKit test asserts the switching budget at 16.67 ms on the measurement the diagnosis shows to be the library's, with no WebKit-only ceiling above it.
 - `CHANGELOG.md` has a 0.2.1 entry, `docs/adopters-0.2.md` maps CL-10 to CL-16 to what shipped, and `plans/evidence/021-request-acceptance.md` names a passing test or record for every acceptance bullet.
 
@@ -69,7 +69,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Updated `docs/compatibility.md` Versions and added the 0.2.1 scope, preserving the no-break promise and fixed existing format meanings, corpus expectations and hash vectors. Tree patches remain gated on Task 2's separate design approval and whole-tree validation before render; no spec meaning changed in this task.
     - `timeout 900s bun run check` passed: 847 tests passed, 4 skipped, 0 failed. The final compatibility text also passed the focused `docs-links` and `docs-wording` run (3 tests). No new test was needed for this policy record.
 
-- [ ] Task 2: Design the tree-patch format (CL-15)
+- [x] Task 2: Design the tree-patch format (CL-15)
   - Acceptance Criteria:
     - Functional:
       - A decision log, approved by the owner, fixes the following. Tasks 9 to 12 implement exactly what it says.
@@ -85,7 +85,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
         - **Validation.** `applyPatch` is structural only. The patched tree is then validated whole with `validator.validateTree`, which is what `<Surface>` arrival validation and host validation already do, so law 2 is unchanged. Incremental validation is not built. The log may adopt it later only with a measurement and identical results.
         - **Transport.** `<Surface>` keeps taking a whole `tree`. A browser host applies the patch with `applyPatch` and passes the result, because `applyPatch` is host-API-free and in the root export. The log records the rejected alternative, a `patch` prop on `<Surface>`.
         - **`checkOffered`.** No semantic change: an origin names the revision the patch produced.
-        - **Diffing.** `diffTrees(prev, next)` is deterministic: the same inputs always produce byte-identical canonical JSON, so the vectors are stable.
+        - **Diffing.** `diffTrees(prev, next)` is deterministic: the same inputs always produce byte-identical canonical JSON, so the vectors are stable. The owner-approved correction restricts diff inputs to SDK form (empty children omitted), returning `invalid-document` for whole-tree fallback on explicit empty children; supported pairs round-trip exactly.
         - **Measurement.** LF-17's subject and thresholds are reused unchanged (`decision-logs/2026-10-29-1737-streaming-tree-patches.md`).
       - The spec edits are drafted in the log: §9 (patches as an optional transport, whole trees stay valid), §14 (strike "Tree patches", keep "A2UI or other wire interop"), §13 (root-export row, schemas list, corpus and vectors).
     - Performance: the log states the budgets that Tasks 9 to 12 must meet:
@@ -132,9 +132,14 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       declare function applyPatch(base: UiTree, patch: unknown): Result<UiTree>;
       ```
     - Files to Create/Edit:
-      - `decision-logs/2026-10-30-HHMM-tree-patch-format.md` (new)
+      - `decision-logs/2026-10-30-1928-tree-patch-format.md` (new)
+      - This plan (approved Task 9/10 corrections and completion notes); `roadmap.md` §3 (execution status).
   - Test Cases to Write:
     - None. The log fixes what Tasks 9 to 12 test.
+  - Notes (executed 2026-10-30):
+    - The owner answered “Approve the proposal and plan corrections”. Recorded the [approved format decision](../decision-logs/2026-10-30-1928-tree-patch-format.md): ordered op semantics, deterministic diff order, identity/errors, host-side application, no base hash, whole-tree validation, draft spec edits and unchanged LF-17 budgets. The normative spec changes in Task 9 when the format ships.
+    - Corrected Tasks 9 and 10 to match the approved design. Four ops cannot reproduce every omitted-versus-empty children representation, so diffing requires SDK-form inputs and otherwise returns `invalid-document` for whole-tree fallback. Validated trees are not frozen today; application follows the existing readonly ownership contract without freezing caller objects. Schema parity covers standalone shape, with cross-field revision ordering tested separately.
+    - `timeout 900s bun run check` passed: 847 tests passed, 4 skipped, 0 failed. The final documentation also passed the focused `docs-links` and `docs-wording` run (3 tests), and `git diff --check` passed. No runtime implementation, new tests or patch performance claims belong to this design task; Tasks 9–12 provide those.
 
 - [ ] Task 3: Clone intents without `structuredClone` and make the runtime matrix true (CL-10)
   - Acceptance Criteria:
@@ -367,11 +372,12 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
 - [ ] Task 9: Add the tree-patch format and `applyPatch` (CL-15)
   - Acceptance Criteria:
     - Functional:
-      - Implements Task 2's approved design exactly. `TreePatch`, `PatchOp` and `validateTreePatch` ship in the root export. `schemas/tree-patch.json` (`$id` `urn:liveframe:tree-patch:1`) validates the same documents as `validateTreePatch`.
+      - Implements [Task 2's approved design](../decision-logs/2026-10-30-1928-tree-patch-format.md) exactly. `TreePatch`, `PatchOp` and `validateTreePatch` ship in the root export. `schemas/tree-patch.json` (`$id` `urn:liveframe:tree-patch:1`) agrees with `validateTreePatch` on standalone shape checks; the validator additionally checks the cross-field constraint `revision > base`, which standard JSON Schema cannot express as a sibling-number comparison.
       - `applyPatch(base, patch)` returns `Result<UiTree>`. It applies ops in order and preserves the identity of every subtree no op touches (structural sharing). It fails with:
         - `stale-patch`: wrong `surfaceId`, or `base` ≠ the tree's revision;
         - `not-found`: an unknown target or parent id;
-        - `invalid-document`: a malformed patch, an out-of-range index, or `revision ≤ base`.
+        - `invalid-document`: a malformed patch, a catalog mismatch, an out-of-range index, root removal/move, or `revision ≤ base`.
+        - `duplicate-key`: an ambiguous duplicate target; otherwise the subsequent whole-tree validator rejects duplicate ids.
         - It never returns a partly applied tree.
       - `"stale-patch"` joins `LiveframeError["kind"]` and § Growth in `docs/compatibility.md`.
       - `checkOffered` accepts an intent whose origin names the patched revision, and rejects one from the superseded revision with `version-conflict`.
@@ -379,7 +385,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       - Spec §9 and §14 carry the log's edits. The §13 root-export row and the schemas list name the new format. `docs/formats.md` documents it for outsiders.
     - Performance: `applyPatch` ≤ 0.5 ms median for a one-row patch on the 679-node subject, recorded by a new case in `bench/streaming.bench.ts` or `bench/validator.bench.ts`. Whole-tree validation is unchanged.
     - Code Quality: `src/formats/tree-patch.ts` holds the type, shape validator and schema export, following `src/formats/tree.ts`. `src/validate/patch.ts` holds `applyPatch`, following the per-tree `WeakMap` index of `src/validate/offered.ts` (built once per base tree). No new dependency.
-    - Security: law 2. `applyPatch` output is unvalidated until `validateTree` runs. Docs and the JSDoc say so, and `<Surface>` arrival validation still runs on every tree. The result is frozen like a validated tree, so a host cannot mutate shared subtrees.
+    - Security: law 2. `applyPatch` output is unvalidated until `validateTree` runs. Docs and the JSDoc say so, and `<Surface>` arrival validation still runs on every tree. Application never mutates or freezes the base or patch. Trees follow the existing readonly ownership contract; hosts must not mutate served trees or nested values while in use. Runtime freezing is not promised.
   - Approach:
     - Skills to Use:
       - `liveframe-execution`: the new-format chores (schema plus type plus test, validator rejections, spec plus docs).
@@ -409,7 +415,8 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - `apply_patch_shares_untouched_subtrees`: siblings of the changed node are `===` the base's. Fails if the implementation deep-copies.
     - `apply_patch_rejects_stale_base`: wrong `surfaceId` and wrong `base` give `stale-patch`. Fails if base identity is unchecked.
     - `apply_patch_is_all_or_nothing`: a valid op followed by a `not-found` op returns an error and leaves the base unchanged.
-    - `tree_patch_schema_matches_validator`: Ajv against `validateTreePatch` on the corpus documents.
+    - `tree_patch_schema_matches_validator`: Ajv against `validateTreePatch` for standalone shape checks on the corpus documents. Cross-field revision ordering and base-dependent application errors are separate assertions.
+    - `apply_patch_obeys_order_and_ownership`: inserted targets become addressable, removed targets become absent, optional set fields are deleted when omitted, root set works, root remove/move and invalid indexes fail, empty ops advance revision, catalog mismatch fails, and application neither mutates nor freezes its inputs.
     - `check_offered_follows_patched_revision`: accepts the new revision and rejects the superseded one.
     - The corpus cases under `tree-patch/`.
 
@@ -417,12 +424,12 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
   - Acceptance Criteria:
     - Functional:
       - `diffTrees(prev, next)` returns `Result<TreePatch>`:
-        - `invalid-document` when the `catalogId` or `surfaceId` differ, or when `next.revision ≤ prev.revision`;
+        - `invalid-document` when the `catalogId` or `surfaceId` differ, when `next.revision ≤ prev.revision`, or when either input contains an explicit empty `children` array (whole-tree fallback; existing whole-tree validation remains unchanged);
         - otherwise the deterministic ops of Task 2 (same inputs give byte-identical canonical JSON).
-      - `applyPatch(prev, diffTrees(prev, next))` deep-equals `next` for every ordered pair of corpus UI trees that share a surface. Where the corpus has too few, add pairs to the vectors: the LF-17 one-row change, a reorder, an insert, a removal, a kind change and a parent change.
+      - For every ordered pair of corpus UI trees with matching catalog/surface and increasing revisions, assert exact deep-equality after diff/application for SDK-form inputs (empty children omitted), or explicit `invalid-document` with whole-tree fallback when either input contains empty children. Never silently normalise a document or weaken equality. Where the corpus has too few, add pairs to the vectors: the LF-17 one-row change, a reorder, an insert, a removal, a kind change and a parent change.
       - `conformance/patch/diff.json` holds `{ prev, next, patch }` vectors (or `prev`/`next` as corpus document paths), checked through the public exports. `docs/conformance.md` describes them. The archive gate's conformance step covers the new directory, and `package.json` `exports` gains `./conformance/patch/*`.
     - Performance: `diffTrees` ≤ 1.5 ms median per revision on the 679-node subject, recorded in the bench.
-    - Code Quality: `diffTrees` lives beside `applyPatch` in `src/validate/patch.ts`. It is one pass by id that compares own fields with the existing deep-equality helper (`src/validate/offered.ts` `difference`, extracted if needed). There is no generic LCS. Child order uses `move` ops computed from the kept ids.
+    - Code Quality: `diffTrees` lives beside `applyPatch` in `src/validate/patch.ts`. It compares own fields with the existing deep-equality helper (`src/validate/offered.ts` `difference`, extracted if needed). Follow the approved next-tree preorder: set own fields, remove absent children in reverse sibling order, then insert/move retained children left to right and recurse. No descendant ops beneath inserted/removed subtrees, no generic LCS, and no claim that every sibling reorder is linear.
     - Security: n/a. `diffTrees` runs on the host, on trees the host already validated. It never runs widget code.
   - Approach:
     - Skills to Use:
@@ -434,7 +441,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Options Considered:
       - A minimal edit script (LCS) over children. Rejected: more code than the subject needs. Id-keyed moves are deterministic and bounded by the number of children.
     - Chosen Approach:
-      - An id-keyed single pass.
+      - Id-keyed traversal with the approved deterministic operation order and explicit whole-tree fallback for unsupported empty-child representation.
     - API Notes and Examples:
       ```ts
       const patch = diffTrees(served, rendered); // host side
@@ -446,7 +453,8 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       - `scripts/release/archive-gate.ts` (`assertConformance("patch")`)
       - `src/__tests__/tree-patch.test.ts`; `src/__tests__/exports.test.ts`; `docs/conformance.md`; `docs/formats.md`
   - Test Cases to Write:
-    - `diff_then_apply_round_trips_every_pair`: fails on any lost field, order or node.
+    - `diff_then_apply_round_trips_every_pair`: supported corpus pairs round-trip exactly; explicit empty-child inputs reject with `invalid-document` and preserve whole-tree fallback. Fails on any lost field, order or node, or silent normalisation.
+    - `diff_vectors_pin_independent_edit_order`: independent sibling changes, object property insertion order, and optional-field deletion produce the canonical vectors in the approved operation order.
     - `diff_is_deterministic`: two runs give the same canonical JSON. Fails if map or object iteration order leaks.
     - `diff_rejects_mismatched_surfaces`.
     - `patch_vectors_through_public_exports`: fails if diff output changes for a fixed vector.
