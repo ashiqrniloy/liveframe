@@ -74,6 +74,7 @@
     "./schemas/*": "./schemas/*",
     "./conformance/corpus/*": "./conformance/corpus/*",
     "./conformance/hash/*": "./conformance/hash/*",
+    "./conformance/patch/*": "./conformance/patch/*",
     "./package.json": "./package.json",
     "./pack": {
       "liveframe:source": "./src/pack/index.ts",

@@ -50,12 +50,14 @@ test("exports_targets_are_packed", () => {
     "dist/index.d.ts",
     "schemas/catalog.json",
     "conformance/corpus/ui-tree/docs/valid.json",
+    "conformance/patch/diff.json",
     "package.json",
   ]);
   const exports = {
     ".": { types: "./dist/index.d.ts", default: "./dist/index.js" },
     "./schemas/*": "./schemas/*",
     "./conformance/corpus/*": "./conformance/corpus/*",
+    "./conformance/patch/*": "./conformance/patch/*",
     "./package.json": "./package.json",
   };
   expect(() => assertExportsPacked(exports, files)).not.toThrow();
@@ -67,6 +69,9 @@ test("exports_targets_are_packed", () => {
   );
   expect(() => assertExportsPacked({ "./schemas/*": "./missing/*" }, files)).toThrow("./missing/*");
   expect(() => assertExportsPacked({ "./conformance/corpus/*": "./conformance/missing/*" }, files)).toThrow(
+    "./conformance/missing/*",
+  );
+  expect(() => assertExportsPacked({ "./conformance/patch/*": "./conformance/missing/*" }, files)).toThrow(
     "./conformance/missing/*",
   );
   expect(() => assertExportsPacked({ ".": null }, files)).not.toThrow();
@@ -101,7 +106,7 @@ const allowed = [
   /^SECURITY\.md$/,
   /^dist\/(?:[^/]+\/)*[^/]+\.(?:js|d\.ts)$/,
   /^schemas\/[^/]+\.json$/,
-  /^conformance\/(?:corpus|hash)\/(?:[^/]+\/)*[^/]+\.json$/,
+  /^conformance\/(?:corpus|hash|patch)\/(?:[^/]+\/)*[^/]+\.json$/,
   /^docs\/[^/]+\.md$/,
 ];
 
@@ -128,7 +133,7 @@ test("every_export_has_types_and_default", () => {
         continue;
       }
       expect(subpath, "only data and schema files may map bare files").toMatch(
-        /^\.\/(?:package\.json|schemas\/\*|conformance\/(?:corpus|hash)\/\*)$/,
+        /^\.\/(?:package\.json|schemas\/\*|conformance\/(?:corpus|hash|patch)\/\*)$/,
       );
       expect(entry).toBe(subpath);
       expect(() => assertExportsPacked({ [subpath]: entry }, new Set(files))).not.toThrow();

@@ -5,6 +5,7 @@ import { carriesValue } from "../formats/events.ts";
 import type { Intent, IntentOrigin, Json, UiNode, UiTree } from "../formats/tree.ts";
 import type { CompiledValidator } from "./compile.ts";
 import { complete } from "./complete.ts";
+import { difference } from "./difference.ts";
 import type { SchemaCheck } from "./schema.ts";
 
 type EventCheck = { carries: Definition["events"][string]["carries"]; check: SchemaCheck | undefined };
@@ -23,28 +24,6 @@ const failure = (kind: LiveframeError["kind"], pointer: string, message: string)
   ok: false,
   errors: [{ kind, pointer, message }],
 });
-
-function difference(expected: unknown, actual: unknown, path = ""): string | undefined {
-  if (expected === actual) return;
-  if (
-    expected === null ||
-    actual === null ||
-    typeof expected !== "object" ||
-    typeof actual !== "object" ||
-    Array.isArray(expected) !== Array.isArray(actual)
-  )
-    return path;
-  for (const key of new Set([...Object.keys(expected), ...Object.keys(actual)])) {
-    const pointer = at(path, key);
-    if (!Object.hasOwn(expected, key) || !Object.hasOwn(actual, key)) return pointer;
-    const mismatch = difference(
-      (expected as Record<string, unknown>)[key],
-      (actual as Record<string, unknown>)[key],
-      pointer,
-    );
-    if (mismatch !== undefined) return mismatch;
-  }
-}
 
 /** Check against the host's served, immutable tree and its compiled schema context. */
 export function checkOffered(

@@ -42,5 +42,5 @@ export {
 } from "./schema.ts";
 export { type CompiledValidator, type CompileValidatorOptions, compileValidator } from "./validate/compile.ts";
 export { checkOffered } from "./validate/offered.ts";
-export { applyPatch } from "./validate/patch.ts";
+export { applyPatch, diffTrees } from "./validate/patch.ts";
 export type { ValidateTreeOptions } from "./validate/tree.ts";

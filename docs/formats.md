@@ -381,6 +381,15 @@ Operations address node ids and run in order: `set` replaces kind, props and opt
 
 Untouched subtrees share identity with the base; changed nodes and ancestors are copied. Neither input is mutated or frozen. Treat served trees and all nested values as immutable while in use. See [the wire contract](spec.md#91-optional-tree-patches).
 
+`diffTrees(prev, next)` runs on the host's previously validated, immutable trees and returns `Result<TreePatch>`. Catalog and surface must match and the revision must increase. Either input containing an explicit empty `children` array returns `invalid-document`; send that whole tree unchanged instead. This SDK-form restriction applies only to diffing, not whole-tree validation. Successful diffs round-trip exactly through `applyPatch`.
+
+```ts
+const result = diffTrees(served, rendered);
+send(result.ok ? result.value : rendered);
+```
+
+Diffs compare JSON objects independent of property insertion order and arrays in order. At each retained parent in next-tree preorder: set changed own fields, remove absent children in reverse sibling order, then insert or move children left to right and recurse. Inserted and removed subtrees need no descendant ops. Parent changes use removal and insertion with new key-path ids. Canonical JSON is deterministic; a minimal edit script is not promised. [Patch vectors](conformance.md#tree-diff-vectors) pin the order.
+
 ## Element JSON
 
 Agent surfaces may arrive as element JSON and are converted on the backend,

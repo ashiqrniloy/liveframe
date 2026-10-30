@@ -56,6 +56,9 @@ test("exports_resolve_package_json_and_conformance_data", () => {
   expect(import.meta.resolve("@arnilo/liveframe/conformance/corpus/ui-tree/docs/valid.json")).toBe(
     new URL("conformance/corpus/ui-tree/docs/valid.json", root).href,
   );
+  expect(import.meta.resolve("@arnilo/liveframe/conformance/patch/diff.json")).toBe(
+    new URL("conformance/patch/diff.json", root).href,
+  );
   expect(import.meta.resolve("@arnilo/liveframe/conformance/hash/packages.json")).toBe(
     new URL("conformance/hash/packages.json", root).href,
   );
@@ -257,6 +260,7 @@ test("root_export_surface", () => {
       "LIVEFRAME_FORMAT",
       "LiveframeFailure",
       "applyPatch",
+      "diffTrees",
       "validateTreePatch",
       "arr",
       "bool",

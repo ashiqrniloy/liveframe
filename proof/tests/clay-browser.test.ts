@@ -16,7 +16,7 @@ for (const system of ["certified", "rack"])
     });
     try {
       for (const name of ["git-status", "rack-module"]) {
-        await page.goto(new URL(`/ui/${name}`, server.url).toString());
+        expect((await page.goto(new URL(`/ui/${name}`, server.url).toString()))?.status()).toBe(200);
         await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
         expect(await page.getByLabel("Design system").inputValue()).toBe("rack");
         expect(await page.locator("#app > div:first-child").getAttribute("data-lf-ds")).toBe("rack@1.0.0");

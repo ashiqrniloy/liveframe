@@ -56,6 +56,10 @@ body { margin: 0; -webkit-font-smoothing: antialiased; }
     hostname: "127.0.0.1",
     port,
     maxRequestBodySize: 1048576,
+    error(cause) {
+      console.error(cause);
+      return error("Host failed to render page", 500);
+    },
     async fetch(request) {
       const url = new URL(request.url);
       if (url.hostname !== "127.0.0.1") return error("Unknown host", 403);

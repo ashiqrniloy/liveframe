@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { cpus, loadavg, platform, release } from "node:os";
 import { validatorCatalog, validatorFixtures } from "../src/__tests__/fixtures/validator.ts";
-import { applyPatch, arr, checkValue, obj, str, type TreePatch, type UiNode, union } from "../src/index.ts";
+import { applyPatch, arr, diffTrees, checkValue, obj, str, type TreePatch, type UiNode, union } from "../src/index.ts";
 import { compileSchema, type SchemaSink } from "../src/validate/schema.ts";
 
 const fixtures = await validatorFixtures();
@@ -80,7 +80,7 @@ console.log(
 );
 if (failed) process.exitCode = 1;
 
-// LF-17's 679-node, 50-row subject: application only; validation remains a separate gate.
+// LF-17's 679-node, 50-row subject: time application and host diffing separately from validation.
 const subject = fixtures.find((fixture) => fixture.name === "agent-home");
 assert(subject && subject.nodes === 679);
 const pending = [subject.tree.root];
@@ -93,6 +93,7 @@ while (pending.length) {
 }
 assert.equal(statuses.length, 50, "LF-17 must have 50 row statuses");
 const samples: number[] = [];
+const diffSamples: number[] = [];
 let served = subject.tree;
 for (let i = 0; i < 1200; i++) {
   const node = statuses[i % statuses.length];
@@ -114,8 +115,18 @@ for (let i = 0; i < 1200; i++) {
   assert(result.ok);
   assert.equal(result.value.revision, patch.revision);
   assert(subject.validateTree(result.value).ok);
+  // Host renders are fresh trees; do not benchmark against application's shared nodes.
+  const rendered = JSON.parse(JSON.stringify(result.value));
+  const diffStart = performance.now();
+  const diff = diffTrees(served, rendered);
+  const diffElapsed = performance.now() - diffStart;
+  assert(diff.ok);
+  assert.deepEqual(diff.value, patch);
   served = result.value;
-  if (i >= 200) samples.push(elapsed);
+  if (i >= 200) {
+    samples.push(elapsed);
+    diffSamples.push(diffElapsed);
+  }
 }
 samples.sort((a, b) => a - b);
 const median = samples[Math.floor(samples.length / 2)];
@@ -124,3 +135,11 @@ console.log(
   `applyPatch: 679 nodes, 50 rows, one row status per revision; 200 warm-ups, 1000 samples; median ${median.toFixed(4)} ms (<= 0.5 ms)`,
 );
 assert(median <= 0.5, "applyPatch exceeded 0.5 ms median");
+
+diffSamples.sort((a, b) => a - b);
+const diffMedian = diffSamples[Math.floor(diffSamples.length / 2)];
+assert(diffMedian !== undefined);
+console.log(
+  `diffTrees: 679 nodes, 50 rows, one row status per revision; 200 warm-ups, 1000 samples; median ${diffMedian.toFixed(4)} ms (<= 1.5 ms)`,
+);
+assert(diffMedian <= 1.5, "diffTrees exceeded 1.5 ms median");

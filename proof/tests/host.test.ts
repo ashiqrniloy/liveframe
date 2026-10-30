@@ -82,6 +82,32 @@ test("failed_rerender_rolls_back_state", async () => {
   expect(next.tree.root.children?.find((node) => node.kind === "textField")?.props.value).toBe("");
 });
 
+test("page_render_failure_returns_500_without_an_unhandled_rejection", async () => {
+  const draft = drafts.at(-1);
+  const original = packages.get("harness");
+  if (!draft || !original) throw new Error("Missing harness");
+  const broken = value(
+    pack(
+      {
+        ...draft,
+        files: {
+          ...draft.files,
+          "entry.ts": 'export default () => { throw new Error("Controlled page render failure"); };',
+        },
+      },
+      packageOptions,
+    ),
+  );
+  packages.set("harness", broken);
+  try {
+    const response = await fetch(new URL("/ui/harness", server.url));
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ error: "Host failed to render page" });
+  } finally {
+    packages.set("harness", original);
+  }
+});
+
 let server: Awaited<ReturnType<typeof startHost>>;
 let browser: Browser;
 beforeAll(async () => {
@@ -246,7 +272,7 @@ test("tier_one_stays_local_and_tier_two_preserves_focus_scroll_and_local_state",
     const page = await browser.newPage();
     page.setDefaultTimeout(5000);
     try {
-      await page.goto(new URL("/ui/harness", server.url).toString());
+      expect((await page.goto(new URL("/ui/harness", server.url).toString()))?.status()).toBe(200);
       await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
       await page.getByLabel("Design system").selectOption(system);
       const requests: string[] = [];
@@ -293,7 +319,7 @@ test("bound_reason_is_completed_logged_once_and_does_not_rerender", async () => 
   for (const system of ["certified", "rack"]) {
     const page = await browser.newPage();
     try {
-      await page.goto(new URL("/ui/harness", server.url).toString());
+      expect((await page.goto(new URL("/ui/harness", server.url).toString()))?.status()).toBe(200);
       await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
       await page.getByLabel("Design system").selectOption(system);
       const posts: unknown[] = [];

@@ -469,7 +469,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - `timeout 120s bun --conditions liveframe:source bench/validator.bench.ts` passed all existing gates and the new application gate: median **0.0919 ms**, below **0.5 ms**, including index construction on successive accepted 679-node, 50-row trees (200 warm-ups, 1,000 samples; one changed row status per revision). Bun 1.4.4, Linux 7.3.0-4-cachyos, AMD Ryzen 9 PRO 7940HS, 16 logical CPUs. Load averages were 2.77/8.59/12.47 initially and 2.87/8.51/12.42 before the patch case. An earlier loaded run measured 0.2140 ms for application but failed existing validator timing gates; no threshold was changed.
     - `timeout 1200s bun run check` passed: **869 passed, 4 skipped, 0 failed** (873 tests, 109 files). Earlier runs exposed the missing spec error-table row (fixed), existing timing failures and browser timeouts during external build load (peaking above 100). The final unchanged-budget full run passed, including the previously failing switch, package-verification and hydration gates.
 
-- [ ] Task 10: Add `diffTrees` and patch vectors (CL-15)
+- [x] Task 10: Add `diffTrees` and patch vectors (CL-15)
   - Acceptance Criteria:
     - Functional:
       - `diffTrees(prev, next)` returns `Result<TreePatch>`:
@@ -483,10 +483,13 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
   - Approach:
     - Skills to Use:
       - `liveframe-execution`.
+      - `investigate-first` and `surgical-patch`: diagnose failed gates and fix the proof-host error boundary without changing limits.
+      - `find-docs`: verify Bun's HTTP error callback.
     - Library Documentation to Check Before Implementation:
-      - none.
+      - none for diffing; current Bun HTTP error-handling documentation for the diagnosed proof-host prerequisite, exercised on Bun 1.4.4.
     - Documentation Reviewed:
       - Task 2's log; `src/validate/offered.ts:30-48` (`difference`); `conformance/corpus/ui-tree/docs/*`.
+      - Bun's [HTTP error-handling documentation](https://github.com/oven-sh/bun/blob/main/docs/runtime/http/error-handling.mdx), fetched through Context7 before the proof-host fix.
     - Options Considered:
       - A minimal edit script (LCS) over children. Rejected: more code than the subject needs. Id-keyed moves are deterministic and bounded by the number of children.
     - Chosen Approach:
@@ -497,16 +500,28 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       send(patch.ok ? patch.value : rendered);
       ```
     - Files to Create/Edit:
-      - `src/validate/patch.ts`; `src/index.ts`
+      - `src/validate/patch.ts`; `src/index.ts`; `src/validate/difference.ts` (extract the existing comparator); `src/validate/offered.ts` (use the shared comparator)
       - `conformance/patch/diff.json` (new); `package.json` (`exports`)
-      - `scripts/release/archive-gate.ts` (`assertConformance("patch")`)
-      - `src/__tests__/tree-patch.test.ts`; `src/__tests__/exports.test.ts`; `docs/conformance.md`; `docs/formats.md`
+      - `scripts/release/archive-gate.ts` (`assertConformance("patch")`); `scripts/release/fixtures/node-probe.mjs` (installed public-export vector checks)
+      - `src/__tests__/tree-patch.test.ts`; `src/__tests__/exports.test.ts`; `src/__tests__/archive.test.ts` (patch data allowlists and missing-target checks)
+      - `docs/conformance.md`; `docs/formats.md`; `docs/spec.md` §9/§13 (diff semantics and data export); `bench/validator.bench.ts` (LF-17 diff median)
+      - `proof/host/server.ts`; `proof/tests/host.test.ts`; `proof/tests/clay-browser.test.ts` (diagnosed proof-host error-boundary prerequisite); `plans/evidence/021-task-10-check-diagnosis.md` (diagnosis record)
   - Test Cases to Write:
     - `diff_then_apply_round_trips_every_pair`: supported corpus pairs round-trip exactly; explicit empty-child inputs reject with `invalid-document` and preserve whole-tree fallback. Fails on any lost field, order or node, or silent normalisation.
     - `diff_vectors_pin_independent_edit_order`: independent sibling changes, object property insertion order, and optional-field deletion produce the canonical vectors in the approved operation order.
     - `diff_is_deterministic`: two runs give the same canonical JSON. Fails if map or object iteration order leaks.
     - `diff_rejects_mismatched_surfaces`.
     - `patch_vectors_through_public_exports`: fails if diff output changes for a fixed vector.
+    - `shared_json_comparison_preserves_mismatch_pointers`: preserves the existing comparison's missing/extra-field, array-order and escaped-pointer behavior after extracting it and removing temporary Set allocations.
+
+    - `page_render_failure_returns_500_without_an_unhandled_rejection`: a failing widget returns controlled HTTP 500 without Bun failing an active test through its default request-error handler. Failed before the fix and passed afterward.
+  - Notes (executed 2026-10-31):
+    - Implemented the approved deterministic next-tree preorder `diffTrees` beside `applyPatch`, with identity/revision checks and explicit empty-children rejection for unchanged whole-tree fallback. Extracted the existing JSON comparison into `src/validate/difference.ts`, preserving mismatch pointer order while avoiding temporary Sets; leaf nodes avoid child bookkeeping. No dependency, schema or wire-contract change.
+    - Added nine independently specified vectors, including the real 679-node LF-17 one-row change, reorder, subtree insertion/removal, kind and parent changes, independent edits, optional-field deletion, object property order and array order. Public-export tests pin canonical output, reverse object key insertion order, round-trip valid corpus pairs with additional revisions, cover explicit empty-children fallback and 36 mixed sibling pairs. Updated spec §9/§13, format/conformance docs, root/data exports, archive allowlists and the installed Node probe.
+    - Investigated earlier failed checks in [the diagnosis record](evidence/021-task-10-check-diagnosis.md). Both switching failures reproduced on the pre-Task-10 checkout and passed unchanged during a quiet control. Fixed a separate proof-host error boundary as a small prerequisite: rejected page renders now return controlled JSON HTTP 500, and the affected host/Clay browser tests assert HTTP 200 before waiting for hydration. The failing-widget regression failed before the fix and passed afterward. No runner deadline, browser timeout or switching threshold was raised.
+    - After the owner terminated competing build and VM workloads, `timeout 180s bun --conditions liveframe:source bench/validator.bench.ts` passed **all existing and new gates**. On the unchanged 679-node, 50-row LF-17 subject: median **diffTrees 0.5185 ms** (≤ 1.5 ms) and **applyPatch 0.1015 ms** (≤ 0.5 ms), with 200 warm-ups and 1,000 samples. Diffing compares fresh next-tree objects, copying outside the timed span, and asserts the exact expected patch; validation is timed separately. Bun 1.4.4, Linux 7.3.0-4-cachyos, AMD Ryzen 9 PRO 7940HS, 16 logical CPUs; load 3.28/12.45/17.45 initially and 2.93/12.08/17.27 before the patch cases.
+    - `timeout 1200s bun run check` passed: **876 passed, 4 skipped, 0 failed**, across 880 tests and 109 files (273.11 s). Build, generated-code checks, typecheck, lint and formatting all passed. This includes the new diff/comparison/error-boundary regressions and the previously failing host, preview, render-deadline and switching cases, with their original limits. The four existing skipped reference-fixture tests are unchanged.
+    - `timeout 600s bun run release:gate` passed **all 13 steps** in 6.3 s, including patch-vector packing, both bundle checks and all nine vectors through installed Node public exports. Task 10 is complete; no finding invalidates a later task. Streaming gzip/arrival/commit measurements remain Task 11, and the planned cross-engine measurement work in Tasks 13–14 is unchanged.
 
 - [ ] Task 11: Measure patches on the LF-17 subject (CL-15)
   - Acceptance Criteria:

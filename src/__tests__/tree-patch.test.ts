@@ -1,15 +1,10 @@
 import { expect, test } from "bun:test";
 import { Ajv2020 } from "ajv/dist/2020.js";
+import { applyPatch, compileValidator, diffTrees } from "@arnilo/liveframe";
+import { canonicalJson } from "@arnilo/liveframe/pack";
+import { difference } from "../validate/difference.ts";
 import { schemaDocument } from "../formats/registry.ts";
-import {
-  applyPatch,
-  type PatchOp,
-  type Result,
-  type TreePatch,
-  type UiNode,
-  type UiTree,
-  validateTreePatch,
-} from "../index.ts";
+import { type PatchOp, type Result, type TreePatch, type UiNode, type UiTree, validateTreePatch } from "../index.ts";
 
 const node = (id: string): UiNode => ({ id, kind: "text", props: { text: id } });
 const base: UiTree = {
@@ -235,4 +230,139 @@ test("apply_patch_updates_indexes_after_descendant_removal_and_reinsertion", () 
   expect(value(applyPatch(explicit, patch([{ op: "set", id: "root", kind: "text", props: {} }]))).root.children).toBe(
     explicit.root.children,
   );
+});
+
+test("diff_rejects_mismatched_surfaces_revisions_and_empty_children", () => {
+  const next = { ...base, revision: 3 };
+  for (const [prev, target] of [
+    [base, { ...next, surfaceId: "other" }],
+    [base, { ...next, catalogId: "other@1" }],
+    [base, base],
+    [next, base],
+    [{ ...base, root: { ...base.root, children: [] } }, next],
+    [base, { ...next, root: { ...next.root, children: [node("root/a"), { ...node("root/b"), children: [] }] } }],
+  ] as const) {
+    const result = diffTrees(prev, target);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.errors[0]?.kind).toBe("invalid-document");
+    const sent = result.ok ? result.value : target;
+    expect(sent).toBe(target);
+  }
+});
+
+test("diff_preserves_inputs_and_omitted_versus_present_own_fields", () => {
+  const prev: UiTree = { ...base, root: { ...base.root, variant: "old", style: {}, events: {} } };
+  const next: UiTree = { ...base, revision: 3, root: { ...base.root, props: { nested: { b: [1, 2], a: true } } } };
+  const before = JSON.stringify([prev, next]);
+  const result = value(diffTrees(prev, next));
+  expect(result.ops).toHaveLength(1);
+  expect(value(applyPatch(prev, result))).toEqual(next);
+  expect(JSON.stringify([prev, next])).toBe(before);
+  expect(Object.isFrozen(prev)).toBe(false);
+  expect(value(diffTrees(base, { ...base, revision: 3 })).ops).toEqual([]);
+});
+
+type DiffVector = { name: string; prev: UiTree; next: UiTree; patch: TreePatch };
+const vectors: DiffVector[] = await Bun.file(
+  new URL(import.meta.resolve("@arnilo/liveframe/conformance/patch/diff.json")),
+).json();
+
+test("patch_vectors_through_public_exports_and_deterministic_edit_order", () => {
+  expect(vectors).toHaveLength(9);
+  for (const { name, prev, next, patch } of vectors) {
+    const first = value(diffTrees(prev, next));
+    expect(canonicalJson(first), name).toBe(canonicalJson(patch));
+    expect(canonicalJson(value(diffTrees(prev, next))), name).toBe(canonicalJson(first));
+    expect(value(applyPatch(prev, first)), name).toEqual(next);
+    // JSON object insertion order must not affect either equality or emitted ops.
+    const reverseKeys = (input: unknown): unknown => {
+      if (Array.isArray(input)) return input.map(reverseKeys);
+      if (input && typeof input === "object")
+        return Object.fromEntries(
+          Object.entries(input)
+            .reverse()
+            .map(([key, val]) => [key, reverseKeys(val)]),
+        );
+      return input;
+    };
+    expect(canonicalJson(value(diffTrees(reverseKeys(prev) as UiTree, reverseKeys(next) as UiTree))), name).toBe(
+      canonicalJson(patch),
+    );
+  }
+});
+
+test("diff_then_apply_round_trips_every_pair", async () => {
+  const root = new URL("../../conformance/corpus/", import.meta.url);
+  const read = (path: string) => Bun.file(new URL(path, root)).json();
+  const validator = compileValidator({
+    catalog: await read("common/proof-catalog.json"),
+    capabilities: await read("common/capabilities.json"),
+    manifest: await read("common/manifest.json"),
+  });
+  const trees: UiTree[] = [];
+  for (const file of new Bun.Glob("ui-tree/docs/*.json").scanSync({ cwd: root.pathname })) {
+    const checked = validator.validateTree(await read(file));
+    if (checked.ok) trees.push(checked.value);
+  }
+  expect(trees.length).toBeGreaterThan(0);
+  const original = trees[0];
+  if (!original) throw new Error("Missing valid corpus tree");
+  trees.push({ ...original, revision: original.revision + 1 });
+  const explicit = { ...original, revision: original.revision + 2, root: { ...original.root, children: [] } };
+  expect(validator.validateTree(explicit).ok).toBe(true);
+  trees.push(explicit);
+  let roundTrips = 0;
+  let fallbacks = 0;
+  const emptyChildren = (node: UiNode): boolean =>
+    node.children?.length === 0 || (node.children ?? []).some(emptyChildren);
+  for (const prev of trees)
+    for (const next of trees) {
+      if (prev.catalogId !== next.catalogId || prev.surfaceId !== next.surfaceId || prev.revision >= next.revision)
+        continue;
+      const result = diffTrees(prev, next);
+      if (emptyChildren(prev.root) || emptyChildren(next.root)) {
+        expect(result.ok).toBe(false);
+        if (!result.ok) expect(result.errors[0]?.kind).toBe("invalid-document");
+        expect(result.ok ? result.value : next).toBe(next);
+        fallbacks++;
+      } else {
+        expect(value(applyPatch(prev, value(result)))).toEqual(next);
+        roundTrips++;
+      }
+    }
+  expect(roundTrips).toBeGreaterThan(0);
+  expect(fallbacks).toBeGreaterThan(0);
+});
+
+test("diff_round_trips_mixed_sibling_edits", () => {
+  const nodes = [node("root/a"), node("root/b"), node("root/c")];
+  const orders = [[], [0], [1, 0], [2, 0, 1], [1, 2], [2, 1, 0]];
+  for (const before of orders)
+    for (const after of orders) {
+      const tree = (order: number[], revision: number): UiTree => ({
+        ...base,
+        revision,
+        root: {
+          id: "root",
+          kind: "stack",
+          props: {},
+          ...(order.length ? { children: order.map((i) => nodes[i] as UiNode) } : {}),
+        },
+      });
+      const prev = tree(before, 1),
+        next = tree(after, 3);
+      expect(value(applyPatch(prev, value(diffTrees(prev, next))))).toEqual(next);
+    }
+});
+
+test("shared_json_comparison_preserves_mismatch_pointers", () => {
+  for (const [expected, actual, pointer] of [
+    [{ a: 1, b: { x: 2 } }, { b: { x: 2 }, a: 1 }, undefined],
+    [{ a: [1, 2] }, { a: [2, 1] }, "/a/0"],
+    [{ "a/b": { "~x": 1 } }, { "a/b": {} }, "/a~1b/~0x"],
+    [{ a: 1 }, { a: 1, extra: 2 }, "/extra"],
+    [{ a: undefined }, {}, "/a"],
+    [{ a: 1 }, { extra: 2 }, "/a"],
+  ] as const)
+    expect(difference(expected, actual)).toBe(pointer);
 });
