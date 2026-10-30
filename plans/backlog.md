@@ -458,3 +458,12 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Source: plans/019-Phase-7-Part-F-Agent-Surfaces-Conformance-Corpus-And-Engines.md Task 3 and Task 7; decision-logs/2026-10-29-1737-streaming-tree-patches.md
 - What: design a patch format and transport for `renderElements()` streaming, then re-measure the same 679-node agent-home subject at 10 revisions/s against the fixed thresholds (gzip above 1 KiB or arrival validation plus React commit above 8 ms). Keep full arrival validation and the whole-tree path as the fallback.
 - Why: the measured whole-tree update is 117,985 JSON bytes, 5,099 gzipped and 12.1 ms validation plus commit, while only 8–11 changed leaf bytes are needed per revision. Clay's top-priority agent surface remains outside its streaming budget until a patch design is approved and built.
+
+## Ship the post-0.2.0 documentation corrections
+
+- Disposition: added 2026-10-30 with the owner's approval in plan 020 Task 10 (`plans/evidence/020-impact-analysis.md`). These are factual corrections found after the `v0.2.0` tag, so the published archive still carries the earlier wording.
+- Section: Phase 7 follow-up (docs and spec, spec §13)
+- Priority: P2
+- Source: plans/evidence/020-impact-analysis.md (F1–F5)
+- What: the published 0.2.0 archive predates four corrections now in the repository: `docs/spec.md` §13's `/sdk/gen` row names `generateElementsSchema()` (F1); `docs/compatibility.md` §0.2.0 states the release in the present tense instead of "the next planned release" and "not shipped yet" (F2); `docs/adopters-0.2.md` states that the LF-17 measurement warrants tree patches and that the design needs separate approval, instead of saying the measurement "decided against" them (F3); `README.md` names `0.2.0` as the current release (F4). Ship them in the next patch release (0.2.1) or alongside the next fix, and re-run `bun run check`, `docs-links` and `docs-wording`.
+- Why: the adopter-facing guide and the compatibility policy are the two documents an outsider reads before migrating, and both currently misstate the shipped release. No runtime, format, export or threshold changes, so a patch release is enough and no new candidate is needed for correctness — only the archive's docs change.

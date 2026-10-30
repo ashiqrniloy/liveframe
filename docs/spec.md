@@ -735,7 +735,7 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
   |---|---|
   | `@arnilo/liveframe` | Definition, catalog, theme and design-system formats; the validator; the recipe resolver; `LiveframeFailure` and `LiveframeError` |
   | `@arnilo/liveframe/sdk` | The JSX runtime (`/sdk/jsx-runtime`, `/sdk/jsx-dev-runtime`), intent helpers, and `render()` |
-  | `@arnilo/liveframe/sdk/gen` | The host-side emitters behind `liveframe gen`: `generate()` and `generateDefinitions()` |
+  | `@arnilo/liveframe/sdk/gen` | The host-side emitters behind `liveframe gen`: `generate()`, `generateDefinitions()` and `generateElementsSchema()` |
   | `@arnilo/liveframe/react` | The renderer: `createRenderer()`, `<Surface>` and `implement()` (§11). `react` and `react-dom` are optional peer dependencies used by the React subpaths |
   | `@arnilo/liveframe/css` | Pure, host-API-free projection into three scoped sheets, plus class, style, scope and variable helpers (§6.4); the host inserts sheets |
   | `@arnilo/liveframe/pack` | Package and scenario formats, structural validators, `pack()` and `verifyPackage()` (§7.3) |

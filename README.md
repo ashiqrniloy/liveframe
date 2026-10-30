@@ -181,7 +181,7 @@ The client starts the server itself. The [MCP guide](docs/mcp.md) covers the sev
 
 ## Status
 
-Pre-1.0 (`0.1.0` is the first release). The public API, the formats and the on-disk `fileStore` layout are described by the [compatibility policy](docs/compatibility.md); the [release notes](CHANGELOG.md) list the known limitations of this release.
+Pre-1.0 (`0.2.0` is the current release). The public API, the formats and the on-disk `fileStore` layout are described by the [compatibility policy](docs/compatibility.md); the [release notes](CHANGELOG.md) list the known limitations of this release.
 
 ## Development
 

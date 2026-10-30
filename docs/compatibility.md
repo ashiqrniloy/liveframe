@@ -10,21 +10,21 @@ What a version bump of `@arnilo/liveframe` may change. The policy is [decision R
 
 ## 0.2.0
 
-The next planned release is 0.2.0, covering all Synapta LF-01–LF-17 and Clay CL-01–CL-09 requests and the backlog items they raise. The [scope decision and breaking-change register](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-10-27-2028-release-0-2-0-scope-and-breaking-changes.md) records the owner's approval, plan map and rationale for proceeding without an intervening 0.1.x deprecation release.
+0.2.0 covers all Synapta LF-01–LF-17 and Clay CL-01–CL-09 requests and the backlog items they raise. The [scope decision and breaking-change register](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-10-27-2028-release-0-2-0-scope-and-breaking-changes.md) records the owner's approval, plan map and rationale for proceeding without an intervening 0.1.x deprecation release.
 
-The planned migrations are:
+The migrations it carries are:
 
 - **Store:** replace `putState(placementId, state)` / `getState(placementId)` with `putState(placementId, scope, state)` / `getState(placementId, scope)`. Use `""` for shared state or an opaque host-selected scope for isolated state; pass `{ scope }` to `loadPlacement`. Update custom stores and run the scope-isolation conformance case. Unsupported scopes must fail closed, never silently share state. Placement deletion removes every scope.
 - **Preview:** supply `resultScenario` alongside each `result`, naming the scenario actually rendered. Inference from the URL is removed because it can label a tree as the wrong scenario. The optional controlled `selection`/`onSelect` mode and per-preview `urlKey` support hosts that own navigation or mount multiple previews.
 - **Capture:** use `capture` from `@arnilo/liveframe/preview/capture` with an injected backend and consume its returned `{ index, files }`. This reopens the CLI-only decision D3; 0.1.0 has no supported capture function export to deprecate. Existing CLI and MCP capture behavior is retained.
 
-Only 0.1.0 has shipped. The Store break avoids an unsafe unscoped fallback, and the Preview break removes incorrect scenario inference; the scope decision explains why each proceeds at this minor boundary. Later plans must add any further break and migration to the register and this section. Other planned additions preserve existing `/1` document meanings. These changes are not shipped yet.
+0.1.0 shipped before it. The Store break avoids an unsafe unscoped fallback, and the Preview break removes incorrect scenario inference; the scope decision explains why each proceeds at this minor boundary. A further break and its migration join the register and this section in the release that carries them. The additions preserve the existing `/1` document meanings.
 
 Step-by-step migration, with the before and after of each break and an executable sample: [`docs/migration-0.2.md`](migration-0.2.md). Per-request shipped API and limitations: [`docs/adopters-0.2.md`](adopters-0.2.md).
 
-0.2.0 will read a 0.1.0 `fileStore` directory without export/import: `states/<id>.json` remains shared scope `""`, and non-empty scopes use `states/<id>/<scope>.json` with safe filename encoding. This does not promise that 0.1.0 can read new scoped state.
+0.2.0 reads a 0.1.0 `fileStore` directory without export/import: `states/<id>.json` remains shared scope `""`, and non-empty scopes use `states/<id>/<scope>.json` with safe filename encoding. This does not promise that 0.1.0 can read new scoped state.
 
-The Store migration is implemented for the upcoming release. Scope is required
+Scope is required
 on both state methods and must be a string of at most 128 Unicode code points;
 invalid scopes reject with `invalid-document` at `/scope`. The optional fourth
 argument to `loadPlacement` accepts `{ scope, state }`; supplying state skips the

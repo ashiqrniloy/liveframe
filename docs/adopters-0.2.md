@@ -24,7 +24,7 @@ Where a row says a limitation, it is part of the release, not a to-do. The row i
 | LF-14 | The host ships the whole capabilities document to the browser, including operations the widget never uses. | `capabilitiesFor(capabilities, manifest)`, pure and deterministic, and `compileValidator` gives identical results on its output. | §10 | Pruning only: the host still ships validator inputs, and the manifest still declares every intent. |
 | LF-15 | The seven authoring operations exist only behind a stdio MCP server, so an app with its own tool protocol cannot reuse them. | `/authoring` exports `createAuthoring()` with the seven typed operations; `liveframe mcp` is an adapter over it. | §13 | Requires the host's `runner`; loads neither the MCP SDK nor Playwright. |
 | LF-16 | An agent answers with one-off JSON, but a validated tree needs derived key-path ids and a manifest, so the host synthesises both by hand. | Element JSON (`{ kind, key?, variant?, props, style?, events?, children? }`), `renderElements()`, `ephemeralManifest()`, and a JSON Schema per catalog from `generateElementsSchema()`. | §7.2, §9 | Trees are ephemeral: nothing is packaged or stored, and the surface still validates against its own manifest. |
-| LF-17 | A streaming agent surface re-sends and re-validates the whole tree on every update, and nobody has measured whether patches are worth it. | A recorded benchmark: 100 revisions of a 679-node, 50-row surface at 10/s through `renderElements` and `<Surface>`, with transfer bytes, arrival validation and React commit cost. | §9 | No API change: tree patches stay unimplemented, per the measurement's decision. |
+| LF-17 | A streaming agent surface re-sends and re-validates the whole tree on every update, and nobody has measured whether patches are worth it. | A recorded benchmark: 100 revisions of a 679-node, 50-row surface at 10/s through `renderElements` and `<Surface>`, with transfer bytes, arrival validation and React commit cost. | §9 | No API change: the measurement warrants patches, but no format or API ships until that design is approved. |
 
 ## Clay requests
 
@@ -53,5 +53,5 @@ Where a row says a limitation, it is part of the release, not a to-do. The row i
 ## Not delivered, and why
 
 - **Native Windows forced-colours and assistive-technology audit (G29).** The checklist exists at `plans/evidence/020-g29-audit.md`, and the owner waived the run for this release. The [known limitations](../CHANGELOG.md) repeat it.
-- **Tree patches (`§9`).** The LF-17 measurement decided against them; see the row above.
+- **Tree patches (`§9`).** The LF-17 measurement warrants them; designing the format and API needs its own owner approval, so none ships yet.
 - **An authorisation model, an approval flow, a storage backend or a layout shell.** None ship, in 0.2.0 or before: they stay the app's.
