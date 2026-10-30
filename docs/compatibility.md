@@ -4,9 +4,15 @@ What a version bump of `@arnilo/liveframe` may change. The policy is [decision R
 
 ## Versions
 
-- **Patch (`0.1.x`)** never breaks the public API, the formats or the on-disk `fileStore` layout. Bug fixes, documentation and widening a peer range (only with the proof the [release task](https://github.com/ashiqrniloy/liveframe/blob/main/plans/013-Phase-6-Part-B-Packaging-Demo-And-Release.md) describes) can ship here.
+- **Patch (`0.x.y`)** never breaks the public API, the formats or the on-disk `fileStore` layout. Bug fixes, documentation, additive exports, error kinds, corpus cases, hash vectors and new optional format versions can ship here, as can widening a peer range (only with the proof the [release task](https://github.com/ashiqrniloy/liveframe/blob/main/plans/013-Phase-6-Part-B-Packaging-Demo-And-Release.md) describes). Existing format meanings, corpus expectations and hash vectors remain fixed under the rules below.
 - **Minor (`0.x`)** may break the public API. Every breaking change in `0.x` comes at a minor version, with a deprecation in an earlier release where that is feasible.
 - **`1.0.0`** changes the rule above: from then on a breaking change needs a major version.
+
+## 0.2.1
+
+The [0.2.1 scope decision](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-10-30-1914-release-0-2-1-scope-and-patch-content.md) adds a self-contained validator bundle, public `canonicalJson` and `packageHash` exports from `/pack`, package-integrity corpus cases and package-hash vectors, and resolvable `package.json` and conformance data paths (CL-10, CL-11, CL-13). Package corpus cases will run through `verifyPackage`, including integrity verification and the SDK-only import rule, with `hash-mismatch` and `forbidden-import` cases. The release scope also includes the runtime and realm-message fixes, release-tag maintenance, WebKit switching-budget proof and post-0.2.0 documentation corrections (CL-10, CL-12, CL-14, CL-16).
+
+CL-15's optional `liveframe/tree-patch/1` format, diff/apply functions, schema, corpus cases and vectors are in this same release scope, gated on the separate design approval in plan 021 Task 2. Whole trees keep working unchanged. A patched tree must be validated whole before the renderer reads it, preserving law 2. This section records release scope; the later plan tasks provide implementation and release evidence.
 
 ## 0.2.0
 
