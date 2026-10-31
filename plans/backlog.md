@@ -354,6 +354,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phase 8 follow-up (spec §7.5, §13)
 - Priority: P4
+- Status: closed 2026-10-31 in plan 021 Task 14.9: `AuthoringConfig` and `createAuthoring()` accept `maxCaptureCells` (integer 1–48, default 12), validate at startup and refuse excess cells before screenshots. The tool advertises its bound; the guide documents response-byte limits and narrowing axes.
 - Source: plans/011-Phase-8-Authoring-MCP-Server.md Task 6, Task 9 (F7)
 - What: `capture_preview` caps a call at the literal `12` in `src/cli/mcp.ts`, and spec §13 states that bound. Three widths × two themes × two design systems is already twelve, so an app with a third theme or design system cannot capture its full matrix in one call. Either keep the cap and say the reason in the spec, or take it from `AuthoringConfig` with a documented maximum.
 - Why: the number was chosen to bound one PNG per cell in a tool result; it is a transport bound, not a contract the app should be unable to reach.

@@ -38,6 +38,8 @@ export type AuthoringConfig = {
   readonly runner?: Runner;
   /** Capture engine; the CLI lazily defaults to Playwright when omitted. */
   readonly capture?: CaptureBackend;
+  /** Per-call capture cell bound: integer 1–48, default 12. Invalid values exit 2 at /maxCaptureCells. */
+  readonly maxCaptureCells?: number;
   /** Show host `meta` (capability and manifest) to the agent. Default false: `meta` is the host's, not the agent's. */
   readonly exposeMeta?: boolean;
   /** Binds the app's preview page to the server's session; called once, after the first successful pack. */

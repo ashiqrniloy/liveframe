@@ -1,7 +1,15 @@
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { expect, test } from "bun:test";
-import { obj, sourceOutcome, str, type UiNode, type UiTree, validateCapabilities } from "@arnilo/liveframe";
+import {
+  LiveframeFailure,
+  obj,
+  sourceOutcome,
+  str,
+  type UiNode,
+  type UiTree,
+  validateCapabilities,
+} from "@arnilo/liveframe";
 import { createAuthoring } from "@arnilo/liveframe/authoring";
 import type { PreviewBinding } from "@arnilo/liveframe/preview";
 import { inProcessRunner } from "@arnilo/liveframe/preview";
@@ -492,5 +500,47 @@ test("authoring_results_match_mcp_json", async () => {
   } finally {
     await client.close();
     await a.close();
+  }
+});
+
+test("capture_bound_defaults_to_twelve_and_raised_by_config", async () => {
+  for (const maxCaptureCells of [undefined, 1, 16, 48]) {
+    const widths = Array.from({ length: 49 }, (_, i) => 360 + i);
+    const fake = fakeCapture({ scenarios: ["ready"], widths, themes: ["light"], designSystems: ["plain"] });
+    const a = createAuthoring({
+      ...options(),
+      ...(maxCaptureCells === undefined ? {} : { maxCaptureCells }),
+      capture: fake.backend,
+      preview: async () => ({ url: "https://example.test", async close() {} }),
+    });
+    try {
+      value(await a.packDraft(draft));
+      const bound = maxCaptureCells ?? 12;
+      const refused = await a.capturePreview({ widths: widths.slice(0, bound + 1) });
+      expect(refused).toMatchObject({
+        ok: false,
+        errors: [{ kind: "limit-exceeded", message: expect.stringContaining(`maxCaptureCells: ${bound}`) }],
+      });
+      expect(fake.shots).toBe(0);
+      const count = bound === 16 ? 13 : bound;
+      expect(value(await a.capturePreview({ widths: widths.slice(0, count) }))).toHaveLength(count);
+      expect(fake.shots).toBe(count);
+    } finally {
+      await a.close();
+    }
+  }
+});
+
+test("capture_bound_rejects_invalid_config", () => {
+  for (const maxCaptureCells of [0, -1, 1.5, 49, NaN, Infinity, null, "16"]) {
+    try {
+      createAuthoring({ ...options(), maxCaptureCells } as never);
+      throw new Error("Expected startup failure");
+    } catch (error) {
+      expect(error).toBeInstanceOf(LiveframeFailure);
+      expect((error as LiveframeFailure).errors).toMatchObject([
+        { kind: "invalid-document", pointer: "/maxCaptureCells" },
+      ]);
+    }
   }
 });

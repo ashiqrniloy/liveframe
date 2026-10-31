@@ -11,7 +11,7 @@ import packageDoc from "../../schemas/widget-package.json" with { type: "json" }
 import treeDoc from "../../schemas/ui-tree.json" with { type: "json" };
 import { type Capabilities, validateCapabilities } from "../formats/capabilities.ts";
 import { type Catalog, validateCatalog } from "../formats/catalog.ts";
-import type { LiveframeError, Result } from "../index.ts";
+import { LiveframeFailure, type LiveframeError, type Result } from "../index.ts";
 import type { AuthoringConfig } from "../preview/authoring.ts";
 import type { CaptureBackend } from "../preview/capture/index.ts";
 import type { Runner } from "../preview/runner.ts";
@@ -373,15 +373,14 @@ const captureSchema = {
 
 type Content = { type: "text"; text: string } | { type: "image"; data: string; mimeType: "image/png" };
 
-function registerCaptureTool(sdk: Sdk, server: Server, authoring: Authoring): void {
+function registerCaptureTool(sdk: Sdk, server: Server, authoring: Authoring, maxCaptureCells: number): void {
   server.registerTool(
     "capture_preview",
     {
       title: "Capture preview",
       outputSchema: sdk.fromJsonSchema(outputSchemas.capture_preview),
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
-      description:
-        "Captures the bound preview page's cells — at most 12 per call — and returns each cell's coordinates, LiveframeErrors and accessibility snapshot as text with its PNG as an image. Omit an axis to keep every value the page declares.",
+      description: `Captures the bound preview page's cells — at most ${maxCaptureCells} per call — and returns each cell's coordinates, LiveframeErrors and accessibility snapshot as text with its PNG as an image. Omit an axis to keep every value the page declares.`,
       inputSchema: sdk.fromJsonSchema<CaptureInput>(captureSchema as Parameters<Sdk["fromJsonSchema"]>[0]),
     },
     async (input) => {
@@ -437,19 +436,27 @@ export async function mcp(path: string, load: () => Promise<Sdk> = loadSdk): Pro
   const { config, catalog, capabilities } = loaded;
   const owned = config.runner === undefined;
   const runner: Runner & { close?(): void } = config.runner ?? workerRunner();
+  let authoring: Authoring;
+  try {
+    authoring = createAuthoring({
+      ...config,
+      catalog,
+      capabilities,
+      runner,
+      capture: config.capture ?? lazyCaptureBackend(),
+    });
+  } catch (error) {
+    if (owned) runner.close?.();
+    if (!(error instanceof LiveframeFailure)) throw error;
+    console.error(JSON.stringify(error.errors, null, 2));
+    return 2;
+  }
   // Say plainly what the default runner means: agent-written code runs with this process's permissions.
   if (owned)
     console.error(
       "liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).",
     );
   const server = new sdk.McpServer({ name: "liveframe", version: pkg.version });
-  const authoring = createAuthoring({
-    ...config,
-    catalog,
-    capabilities,
-    runner,
-    capture: config.capture ?? lazyCaptureBackend(),
-  });
   // Include disk reads in arrival order, before the host-free authoring queue.
   let pending: Promise<unknown> = Promise.resolve();
   const queued = <T>(work: () => Promise<T>): Promise<T> => {
@@ -471,7 +478,7 @@ export async function mcp(path: string, load: () => Promise<Sdk> = loadSdk): Pro
   };
   registerCatalogTools(sdk, server, authoring);
   registerDraftTools(sdk, server, drafts);
-  registerCaptureTool(sdk, server, drafts);
+  registerCaptureTool(sdk, server, drafts, config.maxCaptureCells ?? 12);
   await server.connect(new sdk.StdioServerTransport());
   await new Promise<void>((resolveStop) => {
     const stop = () => resolveStop();

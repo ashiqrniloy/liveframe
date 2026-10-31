@@ -1,4 +1,4 @@
-import type { LiveframeError, Result } from "../errors.ts";
+import { LiveframeFailure, type LiveframeError, type Result } from "../errors.ts";
 import { type Capabilities, isRecord } from "../formats/capabilities.ts";
 import type { Catalog, Definition } from "../formats/catalog.ts";
 import { validateJson } from "../formats/json.ts";
@@ -22,6 +22,8 @@ export type AuthoringOptions = {
   readonly runner: Runner;
   readonly preview?: (binding: PreviewBinding) => Promise<{ readonly url: string; close(): Promise<void> }>;
   readonly capture?: CaptureBackend;
+  /** Per-call capture cell bound: integer 1–48, default 12. Invalid values throw LiveframeFailure. */
+  readonly maxCaptureCells?: number;
   readonly exposeMeta?: boolean;
 };
 
@@ -151,6 +153,9 @@ let nextAuthoring = 0;
 
 /** Backend-only authoring. The host supplies its runner; no operation grants runtime authority. */
 export function createAuthoring(options: AuthoringOptions) {
+  const maxCaptureCells = options.maxCaptureCells === undefined ? 12 : options.maxCaptureCells;
+  if (!Number.isInteger(maxCaptureCells) || maxCaptureCells < 1 || maxCaptureCells > 48)
+    throw new LiveframeFailure([at("/maxCaptureCells", "Expected maxCaptureCells to be an integer from 1 to 48")]);
   const { catalog, capabilities, runner } = options;
   const exposeMeta = options.exposeMeta === true;
   const session = createPreview({ catalog, capabilities, runner });
@@ -376,7 +381,11 @@ export function createAuthoring(options: AuthoringOptions) {
         try {
           if (!options.capture)
             return failure("not-found", "", "No capture backend configured: inject capture in createAuthoring().");
-          const { index, files } = await capture(url, { ...input, backend: options.capture, maxCells: 12 });
+          const { index, files } = await capture(url, {
+            ...input,
+            backend: options.capture,
+            maxCells: maxCaptureCells,
+          });
           return success(
             index.cells.map(({ scenario, width, theme, designSystem, errors, snapshot, png }) => ({
               scenario,
@@ -389,7 +398,13 @@ export function createAuthoring(options: AuthoringOptions) {
             })),
           );
         } catch (error) {
-          return failure(error instanceof CaptureError ? error.kind : "render-failed", "", message(error));
+          return failure(
+            error instanceof CaptureError ? error.kind : "render-failed",
+            "",
+            error instanceof CaptureError && error.kind === "limit-exceeded"
+              ? `maxCaptureCells: ${maxCaptureCells}. ${message(error)}`
+              : message(error),
+          );
         }
       });
     },

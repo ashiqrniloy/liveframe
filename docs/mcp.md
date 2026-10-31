@@ -36,7 +36,7 @@ try {
 }
 ```
 
-All eight methods return `Promise<Result<T>>`, with the same errors and bounds as the tools below. Their names are `listPrimitives`, `listVocabulary`, `listCapabilities`, `generatedTypes`, `packDraft`, `renderScenarios`, `setState` and `capturePreview`. A single-scenario render returns a tree of at most 256 KiB; an all-scenario render returns statuses with shared errors deduplicated. Capture returns at most 12 cells, each with `scenario`, `width`, `theme`, `designSystem`, `errors`, `aria: string | null` and `png: Uint8Array`. There are no output files or base64 conversions.
+All eight methods return `Promise<Result<T>>`, with the same errors and bounds as the tools below. Their names are `listPrimitives`, `listVocabulary`, `listCapabilities`, `generatedTypes`, `packDraft`, `renderScenarios`, `setState` and `capturePreview`. A single-scenario render returns a tree of at most 256 KiB; an all-scenario render returns statuses with shared errors deduplicated. Capture returns at most `maxCaptureCells` cells (default 12, maximum 48), each with `scenario`, `width`, `theme`, `designSystem`, `errors`, `aria: string | null` and `png: Uint8Array`. There are no output files or base64 conversions.
 
 The runner is required and remains owned by your host. This subpath loads neither the MCP SDK nor Playwright. Capture needs both your `preview(binding)` factory and an injected `CaptureBackend`; missing configuration returns `not-found`. The factory starts lazily on the first capture, is reused after success and retried after failure. `close()` waits for queued draft operations and closes the bound page. The four draft methods share one queue; catalog reads stay concurrent. `exposeMeta` defaults to `false`, as in the CLI config.
 
@@ -87,6 +87,13 @@ export default config;
   It must name an existing directory; relative roots resolve from the server's
   working directory. Startup canonicalizes it and reports `invalid-document` at
   `/draftRoot` with exit 2 if invalid. Omit it to keep inline-only transport.
+- `maxCaptureCells` sets the per-call capture bound: an integer from 1 to 48,
+  default 12. For example, add `maxCaptureCells: 36` to the config above.
+  Invalid values report `invalid-document` at `/maxCaptureCells` and exit 2.
+  The same option on `createAuthoring()` throws `LiveframeFailure` at construction
+  if invalid. The tool description advertises the configured bound.
+  This bounds cell count, not response bytes: tall or dense pages can exceed a
+  client's transport limit, so narrow axes or configure a lower bound as needed.
 - `exposeMeta` (default `false`) shows host `meta` to the agent: capability `meta`
   in `list_capabilities` and the manifest's `meta` in the `pack_draft` result.
   `meta` is the host's annotation, so an agent sees it only when you opt in; the
@@ -141,7 +148,7 @@ and omit `structuredContent`.
 | `pack_draft` | `{ files, entry, manifest, scenarios }` or `{ dir, entry? }` | `{ hash, id, version, description?, scenarios }` (plus `meta` with `exposeMeta`) |
 | `render_scenarios` | `{ scenario?, state?, context?, outcomes? }` | One scenario's tree (at most 256 KiB), or scenario statuses and each distinct error once; `outcomes: true` expands source outcomes and always returns statuses |
 | `set_state` | `{ origin: { nodeId, event }, value? }` | Applies an offered state event and returns its new tree (at most 256 KiB); refuses actions |
-| `capture_preview` | `{ scenarios?, widths?, themes?, designSystems? }` | Each cell's coordinates, errors, accessibility snapshot and PNG |
+| `capture_preview` | `{ scenarios?, widths?, themes?, designSystems? }` | Each cell's coordinates, errors, accessibility snapshot and PNG; default 12 cells, configurable up to 48 |
 
 The structured values follow the Result column: `list_primitives` is a definition
 array, `list_vocabulary` is `{ catalogId, vocabulary }`, `list_capabilities` is the
@@ -284,7 +291,7 @@ snapshot text alongside its PNG. Captures use the returned bytes directly,
 without temporary files. Untagged backend errors become `render-failed`.
 
 `capture_preview` captures every declared cell unless an argument narrows an
-axis, at most 12 cells per call. The first block lists the cells, then each
+axis, at most `maxCaptureCells` cells per call (default 12, maximum 48). The first block lists the cells, then each
 cell's accessibility snapshot and its PNG as an image block:
 
 ```json
@@ -296,7 +303,7 @@ Its failures are typed too, so an agent can tell a typo from a limit:
 | Kind | When |
 |---|---|
 | `unknown-name` | An axis value the page does not declare; the message lists what it does |
-| `limit-exceeded` | More than 12 cells; the message names every axis you can narrow |
+| `limit-exceeded` | More than `maxCaptureCells` cells; refused before any screenshot, naming the bound, config field and every axis you can narrow |
 | `not-found` | Capturing before `pack_draft`, no `preview()` in the config, an unreachable page or one that never became ready, Playwright or Chromium missing (with the install command) |
 | `render-failed` | Anything else, such as a file-system failure while writing cells |
 

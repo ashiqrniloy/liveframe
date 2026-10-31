@@ -1066,3 +1066,47 @@ test("pack_dir_joins_arrival_order_before_render", async () => {
     expect(rendered.text).toContain("directory-draft-marker");
   });
 }, 30000);
+
+test("mcp_capture_bound_rejects_invalid_config", () => {
+  for (const value of [0, 1.5, 49, null, "16"]) {
+    const run = cli([`${fixtures}/mcp-capture.config.ts`], undefined, { LF_MAX_CAPTURE_CELLS: JSON.stringify(value) });
+    expect(run.exitCode).toBe(2);
+    expect(run.stdout.toString()).toBe("");
+    expect(JSON.parse(run.stderr.toString())).toMatchObject([
+      { kind: "invalid-document", pointer: "/maxCaptureCells" },
+    ]);
+  }
+});
+
+test("mcp_capture_bound_defaults_and_configured_description", async () => {
+  for (const max of [undefined, 16, 48]) {
+    await withClient(
+      async (client) => {
+        const bound = max ?? 12;
+        const tools = await client.listTools();
+        expect(tools.tools.find((tool) => tool.name === "capture_preview")?.description).toContain(
+          `at most ${bound} per call`,
+        );
+        expect((await call(client, "pack_draft", drafts[0] as unknown as Record<string, unknown>)).isError).toBe(false);
+        const refused = await call(client, "capture_preview");
+        expect(refused.isError).toBe(true);
+        expect(refused.json()).toMatchObject([
+          { kind: "limit-exceeded", message: expect.stringContaining(`maxCaptureCells: ${bound}`) },
+        ]);
+        const count = max === 16 ? 13 : bound;
+        const accepted = await call(client, "capture_preview", {
+          widths: Array.from({ length: count }, (_, i) => 360 + i),
+        });
+        expect(accepted.isError).toBe(false);
+        expect(accepted.json()).toHaveLength(count);
+      },
+      {
+        config: `${fixtures}/mcp-capture.config.ts`,
+        env: {
+          LF_CAPTURE_WIDTHS: String((max ?? 12) + 1),
+          ...(max === undefined ? {} : { LF_MAX_CAPTURE_CELLS: String(max) }),
+        },
+      },
+    );
+  }
+});
