@@ -142,15 +142,17 @@ const packSchema = {
   type: "object",
   properties: {
     files: {
-      description: 'Source files by path: a non-empty object of file path to module source. See "$defs".',
+      description: 'Required. Source files by path: a non-empty object of file path to module source. See "$defs".',
     },
-    entry: { description: "The entry file path: one of `files`' keys." },
-    manifest: { description: 'The widget manifest. Its published schema is "$defs" (urn:liveframe:manifest:1).' },
+    entry: { description: "Required. The entry file path: one of `files`' keys." },
+    manifest: {
+      description: 'Required. The widget manifest. Its published schema is "$defs" (urn:liveframe:manifest:1).',
+    },
     scenarios: {
-      description: 'One to 64 scenarios: name, params, context, optional state and data sources. See "$defs.scenario".',
+      description:
+        'Required. One to 64 scenarios: name, params, context, optional state and data sources. See "$defs.scenario".',
     },
   },
-  required: ["files", "entry", "manifest", "scenarios"],
   // `json` is byte-identical in both published schemas, so one copy serves both.
   $defs: { ...(manifestDoc.$defs as JsonObject), ...(packageDoc.$defs as JsonObject) },
 };

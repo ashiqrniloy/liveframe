@@ -242,12 +242,15 @@ the manifest arrived as an argument:
 ```
 
 `pack_draft` and `render_scenarios` declare a permissive top-level object on
-purpose — the required keys, a description per argument, and the published
+purpose — a description per argument and the published
 schemas in `$defs` for reference — so that a malformed nested document reaches
 the handler and comes back as these errors instead of the MCP layer's bare
 string. The cost is that `tools/list` does not machine-validate a draft's
-nested fields; read `$defs` for the shapes. Only a missing required key or a
-non-object argument still fails before the handler, in the client's own words.
+nested fields; read `$defs` for the shapes. Each required `pack_draft` property
+says "Required" in its description. Missing keys return `invalid-document` at
+`/files`, `/entry`, `/manifest` or `/scenarios`, with every missing key reported.
+Omitted arguments behave as an empty object. Non-object `arguments` (null,
+arrays, strings or numbers) are protocol errors rejected before the handler.
 
 A render or pack failure looks the same:
 

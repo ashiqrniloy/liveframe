@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
+import { CallToolResultSchema } from "@modelcontextprotocol/core";
 import { McpSdkMissing, checkAll, mcp } from "../cli/mcp.ts";
 import { createAuthoring } from "../authoring/index.ts";
 import type { Result } from "../errors.ts";
@@ -458,16 +459,65 @@ test("pack_draft_schema_embeds_the_published_schemas", async () => {
   const tools = await withClient(async (client) => (await client.listTools()).tools);
   const schema = tools.find((tool) => tool.name === "pack_draft")?.inputSchema as unknown as {
     properties: Record<string, object>;
-    required: string[];
+    required?: string[];
     $defs: Record<string, unknown>;
   };
   // The handler validates the nested documents, so the argument object stays permissive and documented.
-  expect(schema.required).toEqual(["files", "entry", "manifest", "scenarios"]);
+  expect(schema.required ?? []).toEqual([]);
   expect(Object.keys(schema.properties).sort()).toEqual(["entry", "files", "manifest", "scenarios"]);
   for (const shape of Object.values(schema.properties)) expect(Object.keys(shape)).toEqual(["description"]);
   // The published shapes stay visible to an agent reading `tools/list`.
   expect(schema.$defs.scenario).toEqual(packageDoc.$defs.scenario);
   expect(schema.$defs.schema).toEqual(manifestDoc.$defs.schema);
+}, 30000);
+
+test("pack_missing_key_is_a_liveframe_error", async () => {
+  await withClient(async (client) => {
+    for (const key of ["files", "entry", "manifest", "scenarios"]) {
+      const input: Record<string, unknown> = { ...agentHome };
+      delete input[key];
+      const result = await call(client, "pack_draft", input);
+      expect(result.isError).toBe(true);
+      expect(result.json()).toContainEqual(
+        expect.objectContaining({ kind: "invalid-document", pointer: `/${key}`, message: expect.any(String) }),
+      );
+    }
+  });
+}, 30000);
+
+test("pack_missing_keys_reports_each", async () => {
+  await withClient(async (client) => {
+    for (const params of [{ name: "pack_draft", arguments: {} }, { name: "pack_draft" }]) {
+      const result = await client.callTool(params);
+      expect(result.isError).toBe(true);
+      const [block] = result.content as [{ type: "text"; text: string }];
+      const errors = JSON.parse(block.text) as LiveframeError[];
+      expect([...new Set(errors.map(({ pointer }) => pointer))].sort()).toEqual([
+        "/entry",
+        "/files",
+        "/manifest",
+        "/scenarios",
+      ]);
+      for (const error of errors) expect(error.kind).toBe("invalid-document");
+    }
+  });
+}, 30000);
+
+test("tools_list_describes_required_keys", async () => {
+  const tools = await withClient(async (client) => (await client.listTools()).tools);
+  const properties = tools.find((tool) => tool.name === "pack_draft")?.inputSchema.properties;
+  for (const key of ["files", "entry", "manifest", "scenarios"])
+    expect((properties?.[key] as { description?: string } | undefined)?.description).toContain("Required");
+}, 30000);
+
+test("pack_non_object_arguments_are_protocol_errors", async () => {
+  await withClient(async (client) => {
+    for (const args of [null, [], "invalid", 1]) {
+      await expect(
+        client.request({ method: "tools/call", params: { name: "pack_draft", arguments: args } }, CallToolResultSchema),
+      ).rejects.toMatchObject({ code: -32602 });
+    }
+  });
 }, 30000);
 
 test("default_runner_warns_on_stderr", async () => {

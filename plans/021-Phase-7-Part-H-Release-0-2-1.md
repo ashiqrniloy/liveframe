@@ -1125,7 +1125,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Added an outcome-source config fixture and the three named regression tests. Discovery failed before the schema edit; parity and typed rejection already passed. MCP and library results match for all seeds and an explicitly selected seed.
     - Verification: the focused CLI MCP, authoring and guide suites passed (43 tests). `timeout 900s bun run check` passed: build, generated-file checks, typechecks, lint, formatting and 885 tests; 4 existing skips, 0 failures. No spec meaning changed beyond advertising the already-supported argument; no findings affect later tasks.
 
-- [ ] Task 14.3: Report a missing `pack_draft` argument as a `LiveframeError` (M2)
+- [x] Task 14.3: Report a missing `pack_draft` argument as a `LiveframeError` (M2)
   - Acceptance Criteria:
     - Functional:
       - `pack_draft` with any of `files`, `entry`, `manifest` or `scenarios` missing returns `isError: true` and a `LiveframeError[]` with `invalid-document` at that key's pointer, never the SDK's `Input validation error` string. A call missing several keys reports each one.
@@ -1156,6 +1156,10 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - `pack_missing_key_is_a_liveframe_error`: each key omitted in turn gives a typed error at its pointer. Fails if `required` returns.
     - `pack_missing_keys_reports_each`: `{}` reports all four pointers.
     - `tools_list_describes_required_keys`: each property description contains "Required".
+  - Notes (executed 2026-10-31):
+    - Removed `pack_draft`'s top-level `required` and marked each property description "Required". Existing handler validation now reports missing arguments as `invalid-document` at their document-root pointers, including every missing key for empty or omitted arguments. Published reference schemas and pack validation are unchanged.
+    - Added the three named regression tests and `pack_non_object_arguments_are_protocol_errors`, which pins stdio rejection of null, arrays, strings and numbers as protocol error -32602. Updated the published-schema test, spec §13 and the MCP guide, and closed the backlog residual. No new decision or finding affects later tasks.
+    - Rechecked SDK 2.4.0 `fromJsonSchema` and protocol validation through Context7. Before implementation, the missing-key, multiple-key, required-description and schema assertions failed; the protocol test already passed. `timeout 900s bun run check` passed build, generated-file checks, typechecks, lint, formatting and **889 tests**, with 4 existing skips and 0 failures (893 tests across 109 files; test phase 306.12 s).
 
 - [ ] Task 14.4: Return every `liveframe gen` module from `generated_types` (M3)
   - Acceptance Criteria:
