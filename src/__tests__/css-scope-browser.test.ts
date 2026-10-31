@@ -230,6 +230,30 @@ test("nested_surfaces_are_a_recorded_limitation", async () => {
   }
 });
 
+test("defer_offscreen_content_stays_focusable", async () => {
+  const page = await browser.newPage({ viewport: { width: 800, height: 600 } });
+  try {
+    const deferred = styleDeclarations({ deferOffscreen: "size.rail" }, catalog).style;
+    await page.setContent(`<style>${sheets}</style><section ${scope("rack")} class="lf_surface">
+      <div style="height:3000px"></div><div id="row" class="lf_box_rule_root"><button id="inner">Inner</button></div>
+    </section>`);
+    const state = await page.evaluate(async (style) => {
+      const row = document.querySelector<HTMLElement>("#row");
+      const inner = document.querySelector<HTMLElement>("#inner");
+      if (!row || !inner) throw new Error("Missing row");
+      Object.assign(row.style, style);
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      const visibility = getComputedStyle(row).contentVisibility;
+      inner.focus();
+      return { visibility, focused: document.activeElement === inner, tabIndex: inner.tabIndex };
+    }, deferred);
+    expect(state).toEqual({ visibility: "auto", focused: true, tabIndex: 0 });
+    expect(await page.evaluate(() => scrollY)).toBeGreaterThan(0);
+  } finally {
+    await page.close();
+  }
+});
+
 test("switching_fixture_loads_primitive_css", async () => {
   const page = await browser.newPage({ viewport: { width: 1700, height: 1000 } });
   try {

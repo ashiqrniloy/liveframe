@@ -2,6 +2,12 @@
 
 All notable changes to `@arnilo/liveframe` are recorded here. The project follows the compatibility policy in [`docs/compatibility.md`](docs/compatibility.md).
 
+## 0.2.1 — unreleased
+
+Added:
+
+- **Styling (CL-16):** the `deferOffscreen` style prop takes a `space.*` or `size.*` placeholder height. It projects to `content-visibility: auto` and `contain-intrinsic-block-size`, so a design-system switch on a long surface restyles and lays out only what is on screen. Existing trees are unchanged. A tree that uses it needs a 0.2.1 validator, because 0.2.0 rejects the unknown style prop.
+
 ## 0.2.0 — 2026-10-30
 
 This section shipped as `0.2.0-rc.4` first. `0.2.0-rc.1` and `0.2.0-rc.2` were tagged but never published: CI's `demo:test` ran on Bun 1.4.2, where `bun add --no-save` kept the registry `0.1.0` instead of the packed archive, and `scripts/demo-test.ts` now points the demo's dependency at the archive for the run. `0.2.0-rc.3` published without the four security reminders in the migration guide; `0.2.0-rc.4` adds them. No change to the package between any of the rounds.

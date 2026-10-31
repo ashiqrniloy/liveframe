@@ -214,12 +214,25 @@ Widget authors never touch colour or recipes. They choose a primitive's **varian
 | `grow`, `shrink`, `basis` | Bounded numbers |
 | `columns`, `rows`, `area` (grid) | Bounded track lists, or area names; each track a fraction, `space.*` or `size.*` |
 | `position`, `inset*` | `static` or `sticky`; `space.*` |
+| `deferOffscreen` | `space.*` or `size.*`: the placeholder block size while the element is offscreen |
 | `surface` (box) | A theme surface role, such as `surface.raised` |
 | `fill` (box) | A non-surface role the app declares fillable, such as a status or identity role, for small indicators |
 | `radius` (box) | A declared `radius.*` name, or `full` |
 | `textStyle`, `tone` (text) | A declared typography role; a declared tone, which the vocabulary maps to a colour role (§6.5) |
 
 **Responsive values.** Any style prop may take an object keyed by the breakpoint names the app declares, `base` first, such as `columns={{ base: ["1fr"], "bp.md": ["2fr", "1fr"] }}`. Each value must be valid for that prop, and an unknown key is an error. A value set at one breakpoint **holds at every wider one**, so a prop needs only the breakpoints where it changes; the projection chains each value through all narrower breakpoints rather than letting a wider key's absence reset it. Breakpoints are design-system container widths, so the layout follows the container the widget is placed in, not the viewport.
+
+**Deferred offscreen content.** `deferOffscreen` projects to `content-visibility: auto` and `contain-intrinsic-block-size: auto <value>`. The engine may skip layout and paint of the element's contents while it is offscreen, and it uses the value as the element's block size until the element first renders. Setting it is an author's choice for long repeated content, and it accepts these consequences:
+
+- Paint containment clips overflow: focus rings with an outside offset, shadows, the pressed offset and unportaled overlays. Top-layer elements and Liveframe portals escape.
+- The element is the containing block for absolute and fixed descendants and an independent formatting context, and it has no baseline.
+- Placeholder and remembered sizes stay stale after a switch until the element renders.
+- The work is deferred to scroll-in, not removed. WebKit still recalculates style for skipped content.
+- Script geometry reads on skipped nodes force rendering.
+- Content stays focusable, selectable, in tab order and findable.
+- Engines without support ignore the property.
+
+It is what keeps a long surface's switch inside the budget (§6.4, `decision-logs/2026-10-31-1438-webkit-switching-cost-remedies.md`).
 
 `paddingLeft`/`paddingRight` and `marginLeft`/`marginRight` mean inline start/end in left-to-right text and project to logical properties, mirroring under `dir="rtl"`. Top and bottom remain physical. Field names stay unchanged.
 

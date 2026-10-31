@@ -112,6 +112,19 @@ under `dir="rtl"`; top and bottom remain physical.
 project to `min-height` and `max-height`, as `height` projects to `height`. A
 percentage height resolves only against a parent with a definite height; with an
 auto-height parent it behaves as `auto`, so prefer a `size.*` value there.
+`deferOffscreen` marks long repeated content, such as list rows, that the
+engine may skip while it is offscreen. It takes a `space.*` or `size.*` value
+and projects to `content-visibility: auto` plus
+`contain-intrinsic-block-size: auto var(--lf-v-…)`; the value is the
+placeholder height until the element first renders, after which the engine
+remembers the rendered size. A design-system switch then restyles and lays
+out only what is on screen, which keeps a long surface's switch inside
+16.67 ms. Each marked element clips its overflow, becomes the containing
+block for absolutely positioned descendants and loses its baseline, so mark
+self-contained blocks only. Keep focus rings inset, and render overlays
+through the portal. Its content stays focusable, in tab order and findable;
+reading geometry from a skipped node forces it to render. Engines without
+`content-visibility` ignore it.
 When a system mixes `px` and `rem` breakpoint units, ordering currently assumes
 a 16px root font size; use one unit for consistent ordering at other root sizes.
 

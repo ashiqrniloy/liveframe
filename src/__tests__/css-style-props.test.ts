@@ -47,6 +47,7 @@ const cases = {
   position: ["sticky", "position", "sticky"],
   insetTop: [space, "top", "var(--lf-v-space_0)"],
   insetBottom: [space, "bottom", "var(--lf-v-space_0)"],
+  deferOffscreen: ["size.rail", "containIntrinsicBlockSize", "auto var(--lf-v-size_rail)"],
   textAlign: ["start", "textAlign", "start"],
   textStyle: [
     catalog.vocabulary.typographyRoles[0]!,
@@ -72,6 +73,21 @@ test("every_style_prop_maps", () => {
       catalog,
     ).style,
   ).toMatchObject({ width: "minmax(0, 2fr)" });
+});
+
+test("defer_offscreen_projects_content_visibility", () => {
+  expect(styleDeclarations({ deferOffscreen: "space.7" }, catalog).style).toEqual({
+    contentVisibility: "auto",
+    containIntrinsicBlockSize: "auto var(--lf-v-space_7)",
+  });
+  const responsive = styleDeclarations({ deferOffscreen: { base: "space.7", "bp.md": "size.rail" } }, catalog);
+  expect(responsive.classes).toEqual(["lf_r_deferOffscreen"]);
+  expect(responsive.style).toMatchObject({
+    "--lf-r-deferOffscreen__base__contentVisibility": "auto",
+    "--lf-r-deferOffscreen__bp_md__containIntrinsicBlockSize": "auto var(--lf-v-size_rail)",
+  });
+  for (const value of ["90px", "size.missing", "fill", 7])
+    expect(() => styleDeclarations({ deferOffscreen: value }, catalog)).toThrow();
 });
 
 test("tones_come_from_the_vocabulary", () => {

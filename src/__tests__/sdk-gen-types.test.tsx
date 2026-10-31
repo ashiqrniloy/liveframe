@@ -1,7 +1,7 @@
 /** @jsxImportSource @arnilo/liveframe/sdk */
 import { expect, test } from "bun:test";
 import { action, state } from "@arnilo/liveframe/sdk";
-import { Button, Checkbox, Grid, Scroll, Select, Stack, Text, TextField } from "./fixtures/widgets/ui.gen.ts";
+import { Box, Button, Checkbox, Grid, Scroll, Select, Stack, Text, TextField } from "./fixtures/widgets/ui.gen.ts";
 
 test("generated_types_reject_wrong_props", () => {
   const valid = [
@@ -16,8 +16,9 @@ test("generated_types_reject_wrong_props", () => {
     <Grid key="case-6" columns={["1fr", "size.rail"]} width="56ch" />,
     <Select key="case-7" label="Pick" value="a" options={[{ value: "a", label: "A" }]} />,
     <Scroll key="case-8" label="List" minHeight="size.rail" maxHeight={{ base: "50%", "bp.sm": "24ch" }} />,
+    <Box key="case-9" deferOffscreen={{ base: "space.7", "bp.sm": "size.rail" }} />,
   ];
-  expect(valid).toHaveLength(9);
+  expect(valid).toHaveLength(10);
 
   // @ts-expect-error: non-nullable generated props reject null
   const nullable = <Text text={null} />;
@@ -56,5 +57,9 @@ test("generated_types_reject_wrong_props", () => {
   // @ts-expect-error: heights stay inside the dimension domain
   const rawHeight = <Scroll label="List" maxHeight="13px" />;
   expect([gap, variant, callback, implicit, bound, children, missing, breakpoint, base, fill, nested]).toHaveLength(11);
-  expect([maxHeight, rawHeight]).toHaveLength(2);
+  // @ts-expect-error: the deferred placeholder is a design value, never a raw length
+  const rawDefer = <Box deferOffscreen="12px" />;
+  // @ts-expect-error: stack does not declare deferOffscreen
+  const undeclaredDefer = <Stack deferOffscreen="space.7" />;
+  expect([maxHeight, rawHeight, rawDefer, undeclaredDefer]).toHaveLength(4);
 });

@@ -65,6 +65,7 @@ export const Box = {
     "position",
     "insetTop",
     "insetBottom",
+    "deferOffscreen",
     "surface",
     "fill",
     "radius",

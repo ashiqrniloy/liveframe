@@ -213,6 +213,7 @@ describe("compiled node validator", () => {
       fill: catalog.vocabulary.fillableRoles[0],
       radius: catalog.vocabulary.radius[0],
       position: "sticky",
+      deferOffscreen: "size.rail",
       textAlign: "end",
       textStyle: catalog.vocabulary.typographyRoles[0],
       tone: Object.keys(catalog.vocabulary.tones)[0],
@@ -234,6 +235,10 @@ describe("compiled node validator", () => {
       { gap: "space.missing" },
       { radius: "radius.missing" },
       { textStyle: "missing" },
+      { deferOffscreen: "90px" },
+      { deferOffscreen: "size.missing" },
+      { deferOffscreen: true },
+      { deferOffscreen: "fill" },
     ])
       expect(check({ style }).length).toBeGreaterThan(0);
   });

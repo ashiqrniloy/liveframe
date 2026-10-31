@@ -1,6 +1,6 @@
-import { LiveframeFailure, type LiveframeError } from "../errors.ts";
-import type { Catalog } from "../formats/catalog.ts";
+import { type LiveframeError, LiveframeFailure } from "../errors.ts";
 import { isRecord } from "../formats/capabilities.ts";
+import type { Catalog } from "../formats/catalog.ts";
 import { styleProps } from "../formats/fixed.ts";
 import { compileStyles } from "../validate/style.ts";
 import { colourVar, cssString, typographyVar, valueVar } from "./names.ts";
@@ -76,6 +76,11 @@ const mappings = {
   position: single("position"),
   insetTop: single("top", token),
   insetBottom: single("bottom", token),
+  // Skips offscreen layout and paint until needed; the token is the placeholder block size (spec §6.3).
+  deferOffscreen: {
+    properties: ["contentVisibility", "containIntrinsicBlockSize"],
+    value: (value, _catalog, property) => (property === "contentVisibility" ? "auto" : `auto ${token(value)}`),
+  },
   textAlign: single("textAlign"),
   textStyle: {
     properties: typography,

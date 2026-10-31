@@ -780,7 +780,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - All 33 tests in both files pass in Chromium and Firefox. In WebKit only the two switching assertions fail; Tasks 13.3 and 13.4 close them. See [the Task 14 record](evidence/021-task-14-switching.md).
     - `timeout 900s bun run check` passed: **879 passed, 4 skipped, 0 failed**, 883 tests across 109 files (339.44 s). The default-engine check does not cover the WebKit gate, which stays red until Task 13.4.
 
-- [ ] Task 13.3: Add the `deferOffscreen` style prop (R2)
+- [x] Task 13.3: Add the `deferOffscreen` style prop (R2)
   - Acceptance Criteria:
     - Functional:
       - `deferOffscreen` joins the fixed style-prop set (`src/formats/fixed.ts:25`). It accepts the `space.*` or `size.*` names the app declares, and it may take responsive values.
@@ -789,7 +789,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       - The JSON Schema (`schemas/style-record.json`, where it lists props), the TS types, the generated SDK types (`gen:check`), the elements schema and MCP `list_primitives` all carry it.
       - The proof catalog declares it on `box`.
       - Spec §6.3 gains the row and the consequences paragraph from Task 13.1's log. `docs/styling.md` documents when to use it and what it changes.
-      - The conformance suite gains a case showing a deferred box renders its content and stays focusable and findable.
+      - A browser test in every engine shows that a deferred offscreen box projects `content-visibility: auto`, and that its content stays focusable and in tab order. This replaces the planned conformance case, because the conformance suites test app primitive implementations and `deferOffscreen` is projected by the library.
     - Performance: validation and render benches stay within budget. Projection adds no rule to the design-system sheet, because the prop is inline style.
     - Code Quality: one mapping entry in `src/css/style-props.ts`, plus the value rule in `src/validate/style.ts`. No new abstraction.
     - Security: law 3. It takes design values only; a raw length or any CSS text fails closed.
@@ -813,16 +813,28 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       // { contentVisibility: "auto", containIntrinsicBlockSize: "auto var(--lf-v-size_row)" }
       ```
     - Files to Create/Edit:
-      - `src/formats/fixed.ts`; `src/validate/style.ts`; `src/css/style-props.ts`; `schemas/*.json` (tentative: whichever enumerate style props)
+      - `src/formats/fixed.ts`; `src/validate/style.ts`; `src/css/style-props.ts`; `src/sdk/gen.ts`; `schemas/catalog.json` (regenerated with `bun scripts/schemas.ts`)
       - `src/__tests__/fixtures/proof/catalog.json`; generated `src/__tests__/fixtures/widgets/ui.gen.ts`, `ui.definitions.gen.ts`, `elements.schema.json`
-      - `src/conformance/*` (the style-prop case); `docs/spec.md` §6.3; `docs/styling.md`; `CHANGELOG.md` (0.2.1, unreleased)
-      - Tests: `css-style-props.test.ts`, `validator-node.test.ts` and a SDK type test
+      - `docs/spec.md` §6.3; `docs/styling.md`; `CHANGELOG.md` (0.2.1, unreleased)
+      - Tests: `css-style-props.test.ts`, `validator-node.test.ts`, `sdk-gen-types.test.tsx`, `css-scope-browser.test.ts`
   - Test Cases to Write:
     - `defer_offscreen_projects_content_visibility`: fails if the mapping or the token variable is wrong.
     - `defer_offscreen_rejects_raw_and_undeclared`: covers a raw `px`, an undeclared name and an undeclaring definition.
     - `defer_offscreen_responsive`: a breakpoint value projects through the responsive layer.
     - A type test: `deferOffscreen="12px"` fails to compile.
-    - A conformance case: deferred content is focusable and in tab order.
+    - `defer_offscreen_content_stays_focusable` (browser, every engine): computed `content-visibility` is `auto`, focusing the offscreen button works and scrolls it into view, and `tabIndex` is 0.
+  - Notes (executed 2026-10-31):
+    - `deferOffscreen` now appears everywhere a style prop must:
+      - the fixed style-prop list, after `insetBottom`;
+      - the validator: a declared `space.*` or `size.*`, responsive allowed;
+      - the projection: inline `contentVisibility: "auto"` and `containIntrinsicBlockSize: "auto var(--lf-v-…)"`, plus the responsive layer through the shared chain;
+      - the SDK generator (`_Length`) and the published catalog schema, where `styleProps` `maxItems` goes from 40 to 41;
+      - the proof catalog's `box`.
+    - Regenerated `ui.gen.ts`, `ui.definitions.gen.ts` and `elements.schema.json`.
+    - Spec §6.3 gains the row and the consequences paragraph. `docs/styling.md` and a new `CHANGELOG.md` 0.2.1 (unreleased) entry document it, including that 0.2.0 validators reject trees that use it.
+    - The conformance case became a browser test (see the Functional criteria). It passes in Chromium, Firefox and WebKit. The type test rejects a raw length and the prop on `Stack`. Validator tests reject `90px`, an undeclared name, `true` and `fill`.
+    - The first check run caught a hand edit to `schemas/catalog.json`. The schema is regenerated by `scripts/schemas.ts`, so the hand edit was replaced. After that, `timeout 900s bun run check` passed: **881 passed, 4 skipped, 0 failed**, 885 tests across 109 files (278.60 s).
+    - The benches were not run here: the change adds one entry to the style table and no tree uses the prop yet. Task 13.4 runs them on the opted-in tree.
 
 - [ ] Task 13.4: Defer the agent-home queue rows and re-prove parity (R2)
   - Acceptance Criteria:

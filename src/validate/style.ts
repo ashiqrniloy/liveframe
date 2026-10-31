@@ -94,6 +94,7 @@ export function compileStyles(vocabulary: Vocabulary): ReadonlyMap<StyleProp, Sc
     gap: space,
     insetTop: space,
     insetBottom: space,
+    deferOffscreen: choices([...vocabulary.space, ...vocabulary.size]),
     direction: choices(["horizontal", "vertical"]),
     align: choices(["start", "center", "end", "stretch", "baseline"]),
     justify: choices(["start", "center", "end", "between", "around", "evenly"]),

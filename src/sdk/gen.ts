@@ -94,6 +94,7 @@ export function generate(catalog: Catalog): string {
     gap: "_Space",
     insetTop: "_Space",
     insetBottom: "_Space",
+    deferOffscreen: "_Length",
     direction: union(["horizontal", "vertical"]),
     align: union(["start", "center", "end", "stretch", "baseline"]),
     justify: union(["start", "center", "end", "between", "around", "evenly"]),

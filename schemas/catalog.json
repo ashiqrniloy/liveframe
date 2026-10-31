@@ -69,7 +69,7 @@
             }
           },
           "styleProps": {
-            "maxItems": 40,
+            "maxItems": 41,
             "type": "array",
             "items": {
               "maxLength": 64,
@@ -111,6 +111,7 @@
                 "position",
                 "insetTop",
                 "insetBottom",
+                "deferOffscreen",
                 "textAlign",
                 "textStyle",
                 "tone"

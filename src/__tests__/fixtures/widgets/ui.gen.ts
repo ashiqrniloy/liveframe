@@ -128,6 +128,7 @@ export const Box = primitive<{
   readonly position?: _Responsive<"static" | "sticky">;
   readonly insetTop?: _Responsive<_Space>;
   readonly insetBottom?: _Responsive<_Space>;
+  readonly deferOffscreen?: _Responsive<_Length>;
   readonly surface?: _Responsive<_Surface>;
   readonly fill?: _Responsive<_Fill>;
   readonly radius?: _Responsive<_Radius>;

@@ -60,6 +60,7 @@ export const styleProps = [
   "position",
   "insetTop",
   "insetBottom",
+  "deferOffscreen",
   "textAlign",
   "textStyle",
   "tone",
