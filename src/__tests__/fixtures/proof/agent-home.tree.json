@@ -701,7 +701,8 @@
                                 "props": {},
                                 "variant": "rule",
                                 "style": {
-                                  "surface": "surface.well"
+                                  "surface": "surface.well",
+                                  "deferOffscreen": "space.7"
                                 },
                                 "children": [
                                   {
@@ -845,6 +846,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-1/grid",
@@ -987,6 +991,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-2/grid",
@@ -1129,6 +1136,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-3/grid",
@@ -1271,6 +1281,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-4/grid",
@@ -1413,6 +1426,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-5/grid",
@@ -1555,6 +1571,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-6/grid",
@@ -1697,6 +1716,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-7/grid",
@@ -1839,6 +1861,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-8/grid",
@@ -1981,6 +2006,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-9/grid",
@@ -2123,6 +2151,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-10/grid",
@@ -2265,6 +2296,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-11/grid",
@@ -2407,6 +2441,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-12/grid",
@@ -2549,6 +2586,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-13/grid",
@@ -2691,6 +2731,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-14/grid",
@@ -2833,6 +2876,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-15/grid",
@@ -2975,6 +3021,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-16/grid",
@@ -3117,6 +3166,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-17/grid",
@@ -3259,6 +3311,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-18/grid",
@@ -3401,6 +3456,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-19/grid",
@@ -3543,6 +3601,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-20/grid",
@@ -3685,6 +3746,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-21/grid",
@@ -3827,6 +3891,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-22/grid",
@@ -3969,6 +4036,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-23/grid",
@@ -4111,6 +4181,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-24/grid",
@@ -4253,6 +4326,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-25/grid",
@@ -4395,6 +4471,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-26/grid",
@@ -4537,6 +4616,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-27/grid",
@@ -4679,6 +4761,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-28/grid",
@@ -4821,6 +4906,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-29/grid",
@@ -4963,6 +5051,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-30/grid",
@@ -5105,6 +5196,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-31/grid",
@@ -5247,6 +5341,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-32/grid",
@@ -5389,6 +5486,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-33/grid",
@@ -5531,6 +5631,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-34/grid",
@@ -5673,6 +5776,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-35/grid",
@@ -5815,6 +5921,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-36/grid",
@@ -5957,6 +6066,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-37/grid",
@@ -6099,6 +6211,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-38/grid",
@@ -6241,6 +6356,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-39/grid",
@@ -6383,6 +6501,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-40/grid",
@@ -6525,6 +6646,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-41/grid",
@@ -6667,6 +6791,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-42/grid",
@@ -6809,6 +6936,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-43/grid",
@@ -6951,6 +7081,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-44/grid",
@@ -7093,6 +7226,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-45/grid",
@@ -7235,6 +7371,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-46/grid",
@@ -7377,6 +7516,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-47/grid",
@@ -7519,6 +7661,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-48/grid",
@@ -7661,6 +7806,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/tasks/task-49/grid",

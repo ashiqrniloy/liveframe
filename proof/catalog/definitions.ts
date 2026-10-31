@@ -68,7 +68,7 @@ export const definitions = [
     events: {},
     variants: ["default", "plate", "rule", "callout"],
     slots: ["root", "rail"],
-    styleProps: [...layout, "surface", "fill", "radius"],
+    styleProps: [...layout, "deferOffscreen", "surface", "fill", "radius"],
     a11y: { role: "generic" },
   },
   {

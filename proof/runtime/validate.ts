@@ -104,6 +104,7 @@ function checkStyle(key: string, value: unknown, path: string): void {
   }
   let valid = false;
   if (/^(padding|margin|gap|insetTop|insetBottom)/.test(key)) valid = declared(valueNames.space, value);
+  else if (key === "deferOffscreen") valid = declared(valueNames.space, value) || declared(valueNames.size, value);
   else if (Object.hasOwn(enums, key)) valid = declared(enums[key] ?? [], value);
   else if (["width", "height", "minWidth", "maxWidth", "minHeight", "maxHeight"].includes(key))
     valid = dimension(value);

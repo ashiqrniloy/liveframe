@@ -1,5 +1,15 @@
 # Agent-home queue parity evidence
 
+Re-measured by Plan 021 Task 13.4, 2026-10-31, after the 50 queue rows opted into `deferOffscreen`. Measured with `bun proof/scripts/parity.ts`, using the snapshots restored locally from `synapta-core@fc6df4b3` and removed afterwards, and with only the row widget changed between the two runs:
+
+| Viewport width | Before (rows not deferred) | After | Pixel bar (≤ 1%) |
+| --- | --- | --- | --- |
+| 1440px | 9353 / 1345728, 0.70% | 10545 / 1345728, **0.78%** | Pass |
+| 1024px | 6729 / 938880, 0.72% | 7921 / 938880, **0.84%** | Pass |
+| 390px | 5265 / 576380, 0.91% | 5802 / 576380, **1.007%** | Over by 0.007 points; accepted by the owner as cause 11 |
+
+Both runs report 285 positional DOM paths, 32 style values and no diagnostics. The rise from 281 to 285 DOM paths predates this task. A widget-to-widget diff of the two captures shows changes only in row text. Zoomed crops show identical glyphs, with no clipping or geometry change: anti-aliasing differs because each contained row now paints as its own layer. On 2026-10-31 the owner chose "Accept, record as cause 11" for the 390 px result.
+
 Re-proved by Plan 008 Task 7, 2026-10-24, using SDK widget packages, the
 in-process runner and the published `/react` renderer. The pixel counts, 281
 positional DOM differences and 32 sampled style differences exactly match the
@@ -62,6 +72,7 @@ Diagnostics (unsupported APIs, failed fonts, console errors): empty at every wid
 | 8 | **A button's label sits in its own slot** | `button "Next"` | `button > span "Next"` | Accepted: the `label` slot carries the button's typography role |
 | 9 | **Widget options are a menu popup** | `details > summary + a` | `button[aria-expanded][aria-haspopup="true"]` | Accepted: the `menu` primitive is React Aria, so tier-1 open/arrow-key behaviour is exercised. The `disclosure` primitive covers the card's Reference row |
 | 10 | **Marker spans carry `role="img"`** (rows and kickers) | `span[aria-hidden]` | `span[aria-hidden][role=img]` | Accepted: the icon primitive's contract, as cause 2 |
+| 11 | **Queue rows are deferred offscreen** (plan 021 Task 13.4) | an ordinary row | `content-visibility: auto` with a `space.7` placeholder | Accepted by the owner, 2026-10-31: the rows paint as contained layers, so row-text anti-aliasing differs (+0.08 to +0.12 points of pixel mismatch, 390 px at 1.007%), with no geometry change. This keeps the design-system switch inside 16.67 ms on WebKit (`decision-logs/2026-10-31-1438-webkit-switching-cost-remedies.md`) |
 
 Row markers and the kicker glyph now take their tones (G30, plan 016 Task 6), so they are tinted as the artifact's are.
 

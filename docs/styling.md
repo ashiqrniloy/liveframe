@@ -120,7 +120,9 @@ placeholder height until the element first renders, after which the engine
 remembers the rendered size. A design-system switch then restyles and lays
 out only what is on screen, which keeps a long surface's switch inside
 16.67 ms. Each marked element clips its overflow, becomes the containing
-block for absolutely positioned descendants and loses its baseline, so mark
+block for absolutely positioned descendants, becomes a stacking context that
+paints above earlier `z-index: auto` positioned siblings, and loses its
+baseline, so mark
 self-contained blocks only. Keep focus rings inset, and render overlays
 through the portal. Its content stays focusable, in tab order and findable;
 reading geometry from a skipped node forces it to render. Engines without

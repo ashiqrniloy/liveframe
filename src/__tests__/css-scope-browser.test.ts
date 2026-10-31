@@ -230,6 +230,14 @@ test("nested_surfaces_are_a_recorded_limitation", async () => {
   }
 });
 
+test("agent_home_rows_defer_offscreen", () => {
+  const rows = markup.match(/<[a-z]+ class="lf_box_rule_root"[^>]*>/g) ?? [];
+  const deferred = rows.filter((tag) => tag.includes("content-visibility:auto"));
+  // The 50 queue rows defer; the two non-row rules keep ordinary rendering.
+  expect(deferred).toHaveLength(50);
+  expect(rows).toHaveLength(52);
+});
+
 test("defer_offscreen_content_stays_focusable", async () => {
   const page = await browser.newPage({ viewport: { width: 800, height: 600 } });
   try {

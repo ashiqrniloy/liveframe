@@ -411,7 +411,8 @@ test("overlay_content_receives_pointer_events", async () => {
     await page.locator("#a [data-lf-portal]").evaluate((el) => el.replaceChildren());
     const host = page.locator("#a > :not([data-lf-portal])").getByRole("button").first();
     await host.evaluate((el) => {
-      el.setAttribute("style", "position:fixed;top:900px;left:10px");
+      // Above the deferred queue rows, which are stacking contexts; the portal still spans the viewport.
+      el.setAttribute("style", "position:fixed;top:10px;left:10px");
       el.addEventListener("click", () => el.setAttribute("data-clicked", "true"));
     });
     await host.click();

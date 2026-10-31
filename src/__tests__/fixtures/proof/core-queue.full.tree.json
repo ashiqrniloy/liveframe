@@ -575,7 +575,8 @@
                                 "props": {},
                                 "variant": "rule",
                                 "style": {
-                                  "surface": "surface.well"
+                                  "surface": "surface.well",
+                                  "deferOffscreen": "space.7"
                                 },
                                 "children": [
                                   {
@@ -674,6 +675,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-1/grid",
@@ -771,6 +775,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-2/grid",
@@ -868,6 +875,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-3/grid",
@@ -965,6 +975,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-4/grid",
@@ -1062,6 +1075,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-5/grid",
@@ -1159,6 +1175,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-6/grid",
@@ -1256,6 +1275,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-7/grid",
@@ -1353,6 +1375,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-8/grid",
@@ -1450,6 +1475,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-9/grid",
@@ -1547,6 +1575,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-10/grid",
@@ -1644,6 +1675,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-11/grid",
@@ -1741,6 +1775,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-12/grid",
@@ -1838,6 +1875,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-13/grid",
@@ -1935,6 +1975,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-14/grid",
@@ -2032,6 +2075,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-15/grid",
@@ -2129,6 +2175,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-16/grid",
@@ -2226,6 +2275,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-17/grid",
@@ -2323,6 +2375,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-18/grid",
@@ -2420,6 +2475,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-19/grid",
@@ -2517,6 +2575,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-20/grid",
@@ -2614,6 +2675,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-21/grid",
@@ -2711,6 +2775,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-22/grid",
@@ -2808,6 +2875,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-23/grid",
@@ -2905,6 +2975,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-24/grid",
@@ -3002,6 +3075,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-25/grid",
@@ -3099,6 +3175,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-26/grid",
@@ -3196,6 +3275,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-27/grid",
@@ -3293,6 +3375,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-28/grid",
@@ -3390,6 +3475,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-29/grid",
@@ -3487,6 +3575,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-30/grid",
@@ -3584,6 +3675,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-31/grid",
@@ -3681,6 +3775,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-32/grid",
@@ -3778,6 +3875,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-33/grid",
@@ -3875,6 +3975,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-34/grid",
@@ -3972,6 +4075,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-35/grid",
@@ -4069,6 +4175,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-36/grid",
@@ -4166,6 +4275,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-37/grid",
@@ -4263,6 +4375,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-38/grid",
@@ -4360,6 +4475,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-39/grid",
@@ -4457,6 +4575,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-40/grid",
@@ -4554,6 +4675,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-41/grid",
@@ -4651,6 +4775,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-42/grid",
@@ -4748,6 +4875,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-43/grid",
@@ -4845,6 +4975,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-44/grid",
@@ -4942,6 +5075,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-45/grid",
@@ -5039,6 +5175,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-46/grid",
@@ -5136,6 +5275,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-47/grid",
@@ -5233,6 +5375,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-48/grid",
@@ -5330,6 +5475,9 @@
                                 "kind": "box",
                                 "props": {},
                                 "variant": "rule",
+                                "style": {
+                                  "deferOffscreen": "space.7"
+                                },
                                 "children": [
                                   {
                                     "id": "root/stack/ready/columns/rows/stack/decisions/decision-49/grid",

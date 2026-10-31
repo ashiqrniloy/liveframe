@@ -54,6 +54,7 @@ export type StyleProp =
   | "position"
   | "insetTop"
   | "insetBottom"
+  | "deferOffscreen"
   | "textAlign"
   | "textStyle"
   | "tone";

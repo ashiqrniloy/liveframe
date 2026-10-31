@@ -84,3 +84,23 @@ and only the two switching assertions fail, as Task 13.1's evidence predicts.
 R1 removes the unrealistic-page cost but not the switch's own layout work,
 which Tasks 13.3 and 13.4 address. Raw logs are local-only in
 `evidence/021-task-14/13.2-{chromium,firefox,webkit}.log`.
+
+## After Task 13.4 (R2: the agent-home queue rows defer offscreen)
+
+The 50 queue rows set `deferOffscreen="space.7"`. Both switching fixtures
+use the regenerated agent-home tree and markup. Three consecutive focused
+WebKit runs at 15:11 local, at load 2.4, gave these sorted warm span A samples (ms):
+
+| Run | CSS fixture | Surface fixture |
+| --- | --- | --- |
+| 1 | 8 8 8 8 9 9 9 9 9 10 | 10 10 10 11 11 11 11 13 13 14 |
+| 2 | 8 8 9 9 9 9 9 10 10 11 | 10 11 11 11 11 11 11 13 13 14 |
+| 3 | 8 8 8 8 8 9 9 9 9 9 | 11 11 11 11 12 12 12 12 13 13 |
+
+Chromium medians/maxima were 3.8/5.8 ms (CSS) and 3.9/5.8 ms (Surface).
+Firefox's were 5/6 ms and 4/4 ms. Every engine passes span A ≤ 16.67 ms.
+The WebKit maximum stays at or below Task 13.6's 14 ms gate in all three
+runs. After R1 alone, WebKit's maxima were 20 ms (CSS) and 17 ms (Surface),
+which is what the Task 14 mutant (removing `deferOffscreen` from the rows)
+reverts to. Raw logs are local-only in
+`evidence/021-task-14/13.4-{webkit-1,webkit-2,webkit-3,chromium,firefox}.log`.

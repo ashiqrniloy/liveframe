@@ -225,7 +225,7 @@ Widget authors never touch colour or recipes. They choose a primitive's **varian
 **Deferred offscreen content.** `deferOffscreen` projects to `content-visibility: auto` and `contain-intrinsic-block-size: auto <value>`. The engine may skip layout and paint of the element's contents while it is offscreen, and it uses the value as the element's block size until the element first renders. Setting it is an author's choice for long repeated content, and it accepts these consequences:
 
 - Paint containment clips overflow: focus rings with an outside offset, shadows, the pressed offset and unportaled overlays. Top-layer elements and Liveframe portals escape.
-- The element is the containing block for absolute and fixed descendants and an independent formatting context, and it has no baseline.
+- The element is the containing block for absolute and fixed descendants, an independent formatting context and a stacking context, and it has no baseline. As a stacking context it paints above earlier positioned siblings that have `z-index: auto`.
 - Placeholder and remembered sizes stay stale after a switch until the element renders.
 - The work is deferred to scroll-in, not removed. WebKit still recalculates style for skipped content.
 - Script geometry reads on skipped nodes force rendering.

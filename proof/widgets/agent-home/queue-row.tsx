@@ -26,7 +26,8 @@ export function QueueRow({
   selected: boolean;
 }) {
   return (
-    <Box {...(selected ? { surface: "surface.well" } : {})} variant="rule">
+    // Rows are the repeated offscreen content; skipping them keeps a design-system switch inside budget.
+    <Box {...(selected ? { surface: "surface.well" } : {})} variant="rule" deferOffscreen="space.7">
       {/* Retain the empty trailing grid gap when there is no folded-alert flag. */}
       <Inline key="grid" gap="space.3" align="start" paddingRight={foldedAlerts ? "space.0" : "space.3"}>
         <Icon key="marker" name={markers[category].name} tone={markers[category].tone} width="space.4" shrink={0} />

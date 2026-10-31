@@ -93,6 +93,7 @@ test("definitions_admit_no_colour_or_raw_style_props", () => {
     "position",
     "insetTop",
     "insetBottom",
+    "deferOffscreen",
     "textAlign",
     "textStyle",
     "tone",
