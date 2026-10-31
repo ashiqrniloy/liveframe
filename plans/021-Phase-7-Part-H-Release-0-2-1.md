@@ -1532,7 +1532,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - The patch, switching and MCP performance figures cite Tasks 10, 12, 14 and 14.8 to 14.10 and were not re-measured. `bun run bench` is left to Task 19. No test was weakened or added, and no code changed.
     - `timeout 900s bun run check` passed: **946 passed, 4 skipped, 0 failed** across 110 files (311.86 s).
 
-- [ ] Task 17: Publish 0.2.1-rc.1 under `next` and verify it from the registry
+- [x] Task 17: Publish 0.2.1-rc.1 under `next` and verify it from the registry
   - Acceptance Criteria:
     - Functional:
       - `package.json` `version` is `0.2.1-rc.1`. `bun run check`, `bun run release:gate` (with the new validator-bundle, data-export and patch-vector steps, and the MCP step listing eight tools from the installed `bin`), `bun scripts/release/peer-floors.ts` and `bun run demo:test` pass against the packed tarball.
@@ -1563,6 +1563,19 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       - `package.json`; `CHANGELOG.md` (rc note); `plans/evidence/021-release-candidate.md` (new); `plans/evidence/021-request-acceptance.md` (installed section)
   - Test Cases to Write:
     - None new.
+  - Notes (executed 2026-11-01):
+    - `package.json` bumped to `0.2.1-rc.1`; `CHANGELOG.md` noted `This section ships as 0.2.1-rc.1 first.`
+    - Diagnosed and fixed one defect in `scripts/release/peer-floors.ts`: it omitted `examples` and `conformance` when copying source files to `/tmp`, causing `pack_dir_matches_inline_hash` to fail in the server peer floor when importing `examples/demo-host/widgets/draft.ts`. Added both paths to the copy list; all three floors then passed (React 19.0.0 in 71s, Playwright 1.49.0 in 68s, MCP server 2.0.0 in 25s).
+    - Local gates passed before push: `timeout 900s bun run check` (946 passed, 4 skipped, 0 failed across 110 files), `timeout 600s bun run release:gate` (all 13 steps passed in 6.4s), `timeout 900s bun scripts/release/peer-floors.ts` (all 3 floors passed), and `timeout 600s bun run demo:test` (typecheck clean, 52 passed, 0 failed across 7 files).
+    - Committed bump and peer-floor fix (`c712dc2`), tagged `v0.2.1-rc.1`, pushed `main` and tag `v0.2.1-rc.1` to GitHub.
+    - GitHub Actions `Publish` workflow (run ID `41230291853`) completed with success in 11m53s, publishing `@arnilo/liveframe@0.2.1-rc.1` to npm under tag `next` with SLSA provenance (transparency log index 3614671877; shasum `bbf0a46fb77c4e9088a4af94b6c3c37153c071df`).
+    - Registry verification:
+      - `npm view @arnilo/liveframe dist-tags` confirmed `{ next: '0.2.1-rc.1', latest: '0.2.0' }`.
+      - `bun scripts/release/archive-gate.ts --package @arnilo/liveframe@0.2.1-rc.1` passed all 13 steps in 5.9 s.
+      - Demo host copied outside the repo and installed from the registry passed typecheck and 52 tests, 0 failed in 32.0 s.
+      - `npm audit signatures --json --include-attestations` verified SLSA v1 provenance at `registry.npmjs.org/-/npm/v1/attestations/@arnilo%2fliveframe@0.2.1-rc.1`.
+      - Installed-package acceptance rows passed: Node subpath imports, data `exports` resolution (`package.json`, `conformance/corpus/*`, `conformance/hash/*`, `conformance/patch/*`), package hash vectors through `/pack`, validator bundle under bare Node `vm` with sandbox JSON inputs, and authoring MCP server 8-tool listing from installed binary.
+    - Recorded in `plans/evidence/021-release-candidate.md` and updated `plans/evidence/021-request-acceptance.md`.
 
 - [ ] Task 18: Review readiness with the owner, then publish 0.2.1 and verify it
   - Acceptance Criteria:

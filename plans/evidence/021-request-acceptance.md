@@ -115,4 +115,4 @@ No other bullet is left without evidence, so nothing is deferred.
 
 ## Installed release candidate
 
-The installed-package rows (CL-10.1, CL-10.3, CL-11.2, CL-13.1, CL-15.3, M4.2's eight-tool list) are proven here by the release gate on the packed tarball. They are re-run against `@arnilo/liveframe@0.2.1-rc.1` from the registry in Task 17, which adds its section to this file.
+The installed-package rows (CL-10.1, CL-10.3, CL-11.2, CL-13.1, CL-15.3, M4.2's eight-tool list) were re-run against `@arnilo/liveframe@0.2.1-rc.1` from the registry; see [021-release-candidate.md](021-release-candidate.md). The archive gate passed all 13 steps in 5.9 s, the demo host from the registry passed clean typecheck and 52 tests, provenance was verified with SLSA v1 attestation, the validator bundle executed under bare Node `vm`, data exports resolved, and package vectors matched. The remaining rows are tests on the source tree and have no installed form.
