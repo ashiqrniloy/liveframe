@@ -117,6 +117,31 @@ test("tools_list_has_the_eight_tools", async () => {
   ]);
 }, 30000);
 
+test("tools_carry_approved_annotations", async () => {
+  const tools = await withClient(async (client) => (await client.listTools()).tools);
+  expect(
+    tools
+      .map(({ name, title, annotations }) => [
+        name,
+        title,
+        annotations?.readOnlyHint,
+        annotations?.destructiveHint,
+        annotations?.idempotentHint,
+        annotations?.openWorldHint,
+      ])
+      .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
+  ).toEqual([
+    ["capture_preview", "Capture preview", true, false, true, false],
+    ["generated_types", "Generate catalog module", true, false, true, false],
+    ["list_capabilities", "List capabilities", true, false, true, false],
+    ["list_primitives", "List primitives", true, false, true, false],
+    ["list_vocabulary", "List vocabulary", true, false, true, false],
+    ["pack_draft", "Pack draft", false, false, true, false],
+    ["render_scenarios", "Render scenarios", false, false, true, false],
+    ["set_state", "Apply offered state event", false, false, false, false],
+  ]);
+}, 30000);
+
 test("set_state_tool_validates_and_applies_offered_events", async () => {
   await withClient(async (client) => {
     const input = drafts[4]!;

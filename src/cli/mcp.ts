@@ -106,6 +106,8 @@ function registerCatalogTools(sdk: Sdk, server: Server, authoring: Authoring): v
   server.registerTool(
     "list_primitives",
     {
+      title: "List primitives",
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       description:
         "The catalog's component definitions — props schema, children, events, variants, slots, style props, description and deprecation — so a draft uses only valid kinds, props and events. Pass `kinds` to narrow it.",
       inputSchema: sdk.fromJsonSchema<{ kinds?: string[] }>(kindsSchema),
@@ -115,22 +117,28 @@ function registerCatalogTools(sdk: Sdk, server: Server, authoring: Authoring): v
   server.registerTool(
     "list_vocabulary",
     {
+      title: "List vocabulary",
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       description:
         "The catalog's id and closed vocabulary — colour, surface, fillable and typography roles, tones, surfaceTypography, and the space, radius, size and bp names — so style props, recipes and themes use installed names, and a manifest names the catalog it was authored against.",
     },
-    async (input) => mapped(await authoring.listVocabulary()),
+    async () => mapped(await authoring.listVocabulary()),
   );
   server.registerTool(
     "list_capabilities",
     {
+      title: "List capabilities",
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       description:
         "Every declared source's params and result schemas and every action's args schema, so a draft reads and dispatches only declared capabilities. Declarations only: nothing is resolved or called.",
     },
-    async (input) => mapped(await authoring.listCapabilities()),
+    async () => mapped(await authoring.listCapabilities()),
   );
   server.registerTool(
     "generated_types",
     {
+      title: "Generate catalog module",
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       description:
         "A generated catalog module, byte-identical to `liveframe gen` output: types (default), implementations or elementsSchema. The result's note names the file to save.",
       inputSchema: sdk.fromJsonSchema<Parameters<Authoring["generatedTypes"]>[0]>({
@@ -213,6 +221,8 @@ function registerDraftTools(sdk: Sdk, server: Server, authoring: Authoring): voi
   server.registerTool(
     "pack_draft",
     {
+      title: "Pack draft",
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       description:
         "Packs a draft — inline files, entry, manifest and scenarios, or dir beneath config.draftRoot with optional entry — through the same packer production uses, and returns its hash plus manifest id, version, description and scenario names. A failed pack returns its LiveframeErrors and keeps the previous draft current.",
       inputSchema: sdk.fromJsonSchema<PackInput>(schema(packSchema)),
@@ -222,6 +232,8 @@ function registerDraftTools(sdk: Sdk, server: Server, authoring: Authoring): voi
   server.registerTool(
     "set_state",
     {
+      title: "Apply offered state event",
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       description:
         "Applies an offered setState event from the current single-scenario render and returns its new tree (at most 256 KiB). Origin requires nodeId and event. Literal values are preserved; otherwise value completes the event. Actions are refused. Call render_scenarios with a scenario first.",
       inputSchema: sdk.fromJsonSchema<Parameters<Authoring["setState"]>[0]>({
@@ -239,6 +251,8 @@ function registerDraftTools(sdk: Sdk, server: Server, authoring: Authoring): voi
   server.registerTool(
     "render_scenarios",
     {
+      title: "Render scenarios",
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       description:
         "Renders the packed draft through the app's runner. With `scenario`, returns that scenario's UI tree (at most 256 KiB) or its LiveframeErrors, optionally overridden by `state` and `context`. Without it, returns every scenario's status — ok with its node count — plus each distinct error once, listing the scenarios that share it. With `outcomes: true`, expands sourceOutcome sources and always returns statuses, even with `scenario`.",
       inputSchema: sdk.fromJsonSchema<RenderInput>(schema(renderSchema)),
@@ -264,6 +278,8 @@ function registerCaptureTool(sdk: Sdk, server: Server, authoring: Authoring): vo
   server.registerTool(
     "capture_preview",
     {
+      title: "Capture preview",
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       description:
         "Captures the bound preview page's cells — at most 12 per call — and returns each cell's coordinates, LiveframeErrors and accessibility snapshot as text with its PNG as an image. Omit an axis to keep every value the page declares.",
       inputSchema: sdk.fromJsonSchema<CaptureInput>(captureSchema as Parameters<Sdk["fromJsonSchema"]>[0]),

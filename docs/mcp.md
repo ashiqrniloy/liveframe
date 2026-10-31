@@ -134,6 +134,27 @@ registered. Log to stderr only: stdout carries the protocol.
 | `set_state` | `{ origin: { nodeId, event }, value? }` | Applies an offered state event and returns its new tree (at most 256 KiB); refuses actions |
 | `capture_preview` | `{ scenarios?, widths?, themes?, designSystems? }` | Each cell's coordinates, errors, accessibility snapshot and PNG |
 
+Each tool advertises a display title and four behavior hints:
+
+| Tool | Title | readOnlyHint | destructiveHint | idempotentHint | openWorldHint |
+| --- | --- | --- | --- | --- | --- |
+| `list_primitives` | List primitives | true | false | true | false |
+| `list_vocabulary` | List vocabulary | true | false | true | false |
+| `list_capabilities` | List capabilities | true | false | true | false |
+| `generated_types` | Generate catalog module | true | false | true | false |
+| `pack_draft` | Pack draft | false | false | true | false |
+| `render_scenarios` | Render scenarios | false | false | true | false |
+| `capture_preview` | Capture preview | true | false | true | false |
+| `set_state` | Apply offered state event | false | false | false | false |
+
+Annotations never change execution and are not a security boundary. All tools
+operate in the configured app's authoring environment (`openWorldHint: false`);
+the host's runner and capture backend retain their own authority. Packing replaces
+the in-memory draft, and rendering changes the current selection. Idempotence means
+repeating the same logical operation without intervening changes, not identical
+revisions or screenshot bytes. `set_state` is conservative because rendering may
+change the offered event.
+
 `generated_types` keeps the generated content in `types` for every module; its
 `note` names the file to save (`ui.gen.ts`, `ui.definitions.gen.ts` or
 `elements.schema.json`). Omitting `module` preserves the original response.

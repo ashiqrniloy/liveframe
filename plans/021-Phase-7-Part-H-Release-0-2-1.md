@@ -1283,7 +1283,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Included reads in the CLI arrival-order queue with packing, rendering, state and capture; shutdown drains it before closing authoring. Tests cover demo-reader hash parity, relative-root resolution, ignored unrelated/nested files, in-root directory symlinks, every named rejection, exact read-bound acceptance, no execution while packing, and pack-before-render ordering. Updated discovery expectations, the public config type, spec §13 and the MCP guide; closed the disk-path backlog entry and confirmed D5's existing amendment. No new decision was needed beyond approved M5.
     - Checked Bun filesystem documentation through Context7 (the available versioned docs were 1.4.2; execution used Bun 1.4.4). The 21 initial regression tests failed before implementation. Focused authoring/MCP/guide suites passed 76 tests; the final directory-focused run passed 22 tests, including queue ordering. `timeout 900s bun run check` passed build, generation, typechecks, lint, formatting and **921 tests**, with 4 existing skips and 0 failures (925 tests across 109 files; test phase 296.77 s). An initial check caught the reader's complexity lint limit; a small path-validation predicate resolved it without suppressing the rule. The release/archive gate and publishing remain later tasks. Directories remain host-controlled as approved; protection against concurrent local file replacement is outside this reader's contract.
 
-- [ ] Task 14.7: Annotate every tool (M6)
+- [x] Task 14.7: Annotate every tool (M6)
   - Acceptance Criteria:
     - Functional:
       - All eight tools in `tools/list` carry a `title` and the four hints from Task 14.1's table.
@@ -1311,6 +1311,11 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       - `src/cli/mcp.ts`; `src/__tests__/cli-mcp.test.ts`; `docs/spec.md` §13; `docs/mcp.md`
   - Test Cases to Write:
     - `tools_carry_approved_annotations`: `tools/list` equals the approved table. Fails if a hint changes.
+  - Notes (executed 2026-10-31):
+    - Added the approved M6 titles and all four explicit hints directly to all eight `registerTool` configs. Removed the unused parameters from `list_vocabulary` and `list_capabilities`; `list_primitives` still needs its input for `kinds` filtering.
+    - Added the exact eight-row `tools/list` regression table, observed it fail before implementation and pass afterward. Rechecked SDK 2.4.0 `registerTool` title/annotations through Context7's versioned `docs/servers/tools.md`.
+    - Documented the per-tool titles/hints and their idempotence meaning in `docs/mcp.md`; spec §13 states that annotations never change execution or enforce permissions/isolation. This implements the approved M6 decision without changing handlers' behavior or text results.
+    - `timeout 900s bun run check` passed: 922 tests passed, 4 skipped, 0 failed, including existing MCP calls, agent loop and capture coverage. `git diff --check` passed.
 
 - [ ] Task 14.8: Return `structuredContent` against an `outputSchema` from every tool (M7)
   - Acceptance Criteria:
