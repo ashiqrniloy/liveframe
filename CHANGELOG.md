@@ -4,6 +4,8 @@ All notable changes to `@arnilo/liveframe` are recorded here. The project follow
 
 ## 0.2.1 — unreleased
 
+This section ships as `0.2.1-rc.1` first.
+
 [`docs/adopters-0.2.md`](docs/adopters-0.2.md#021--clay-review-and-authoring-additions) maps Clay's 0.2.0 review requests (CL-10 to CL-16) and the authoring MCP review to what shipped. Under the [compatibility policy](docs/compatibility.md#021) (R15), every new export, error kind, corpus case, hash vector, optional format (`liveframe/tree-patch/1`), style prop (`deferOffscreen`) and MCP capability in 0.2.1 is additive: existing exports, format meanings, corpus expectations, hash vectors and whole-tree transport are unchanged. One visible MCP error-behaviour fix applies (Task 14.1 M2): a missing inline `pack_draft` key (`files`, `entry`, `manifest` or `scenarios`) now returns `isError: true` with a typed `LiveframeError[]` at that key's pointer instead of the MCP SDK's `Input validation error` string; non-object protocol `arguments` still fail at the protocol layer before the handler.
 
 Added:
