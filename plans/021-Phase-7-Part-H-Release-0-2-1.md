@@ -1499,7 +1499,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Added a short `diffTrees`/`applyPatch` example to `README.md`, typed `tree: UiTree` in `src/__tests__/fixtures/readme-quickstart.tsx`, and extended `src/__tests__/readme-guide.test.tsx` and `src/__tests__/renderer-guide.test.tsx` to verify and execute both patch snippets. Updated `docs/security.md` (§ Arrival) to match `docs/renderer.md` on whole-tree validation of patched trees and `checkOffered` on dispatch.
     - `timeout 900s bun run check` passed: **946 passed, 4 skipped, 0 failed** across 110 files (321.62 s), including `docs-links`, `docs-wording`, `readme-guide` and `renderer-guide`. No spec meaning changed.
 
-- [ ] Task 16: Prove every acceptance bullet against the checkout
+- [x] Task 16: Prove every acceptance bullet against the checkout
   - Acceptance Criteria:
     - Functional: `plans/evidence/021-request-acceptance.md` lists every acceptance bullet of CL-10 to CL-16 and of Task 14.1's M1 to M9, each with a named passing test, gate step or evidence record. Every named test passes in one saved run (`plans/evidence/021-request-acceptance.log`, local-only).
     - Performance: the CL-15 and CL-16 rows cite the numbers from Tasks 12 and 14.
@@ -1524,6 +1524,13 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       - `plans/evidence/021-request-acceptance.md` (new)
   - Test Cases to Write:
     - None new.
+  - Notes (executed 2026-11-01):
+    - Wrote [the acceptance record](evidence/021-request-acceptance.md) in plan 020's table shape. It maps every acceptance bullet of CL-10 to CL-16 and the M1 to M9 items of Task 14.1 to named tests, gate steps or records, plus the documentation bullets, a performance table and a re-check of the four laws.
+    - One invocation of 102 name patterns gave **120 pass, 0 fail**, 889 filtered out, 3132 `expect()` calls, 40.2 s (`bun test --conditions liveframe:source -t '<alternation>'`, local-only `evidence/021-request-acceptance.log`). Every pattern has a `(pass)` line, and there are no failures or skips. A separate WebKit run of the two switching files passed 35/35, with warm span A max 11 ms (CSS) and 14 ms (Surface) at load 3.6 to 4.4. `timeout 600s bun run release:gate` passed all 13 steps in 6.4 s. Both logs are local-only.
+    - **Finding: CL-14.1 cannot be proven from the checkout.** Its acceptance is the registry's dist-tags after publishing. The record names the checklist and workflow step (Task 8) and leaves the proof to Task 18, so the task's "every bullet has a passing test or record" holds for every other bullet and this one is explicitly deferred to Task 18, with no task added.
+    - Finding: about a dozen plan-time test names were merged or renamed while tasks ran (for example `apply_patch_rejects_stale_base` is now `apply_patch_rejects_stale_base_and_is_all_or_nothing`). The record uses the real titles. Coverage is complete.
+    - The patch, switching and MCP performance figures cite Tasks 10, 12, 14 and 14.8 to 14.10 and were not re-measured. `bun run bench` is left to Task 19. No test was weakened or added, and no code changed.
+    - `timeout 900s bun run check` passed: **946 passed, 4 skipped, 0 failed** across 110 files (311.86 s).
 
 - [ ] Task 17: Publish 0.2.1-rc.1 under `next` and verify it from the registry
   - Acceptance Criteria:
