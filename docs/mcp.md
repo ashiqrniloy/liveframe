@@ -124,10 +124,18 @@ registered. Log to stderr only: stdout carries the protocol.
 | `list_primitives` | `{ kinds? }` | Every definition in full, or the named kinds |
 | `list_vocabulary` | — | `{ catalogId, vocabulary }`: the id a manifest must name, then colours, surfaces, typography, tones and the `space`/`radius`/`size`/`bp` names |
 | `list_capabilities` | — | Each source's params and result schema and each action's args schema (capability `meta` only with `exposeMeta`) |
-| `generated_types` | — | The typed component module (`liveframe gen` without `--implementations`), byte-identical |
+| `generated_types` | `{ module? }` | `{ note, types }`: byte-identical `liveframe gen` output for `"types"` (default), `"implementations"` (`--implementations`) or `"elementsSchema"` (`--elements-schema`) |
 | `pack_draft` | `{ files, entry, manifest, scenarios }` | `{ hash, id, version, description?, scenarios }` (plus `meta` with `exposeMeta`) |
 | `render_scenarios` | `{ scenario?, state?, context?, outcomes? }` | One scenario's tree (at most 256 KiB), or scenario statuses and each distinct error once; `outcomes: true` expands source outcomes and always returns statuses |
 | `capture_preview` | `{ scenarios?, widths?, themes?, designSystems? }` | Each cell's coordinates, errors, accessibility snapshot and PNG |
+
+`generated_types` keeps the generated content in `types` for every module; its
+`note` names the file to save (`ui.gen.ts`, `ui.definitions.gen.ts` or
+`elements.schema.json`). Omitting `module` preserves the original response.
+An unknown selector returns `invalid-document` at `/module`, with all three
+accepted values in `expected`. In-process callers use
+`authoring.generatedTypes({ module: "implementations" })`, or omit the argument
+for the typed components.
 
 `pack_draft` takes the same input as `session.update()`. A failed pack returns
 the errors and keeps the previous package, so the agent can fix a draft without

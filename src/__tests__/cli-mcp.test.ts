@@ -189,6 +189,55 @@ test("generated_types_equals_liveframe_gen_output", async () => {
   expect(note).toContain("ui.gen.ts");
 }, 30000);
 
+test("generated_modules_match_cli_bytes", async () => {
+  const dir = await temp();
+  try {
+    await withClient(async (client) => {
+      const tool = (await client.listTools()).tools.find((tool) => tool.name === "generated_types");
+      const description = (tool?.inputSchema.properties?.module as { description: string } | undefined)?.description;
+      for (const [module, flag, filename] of [
+        ["types", undefined, "ui.gen.ts"],
+        ["implementations", "--implementations", "ui.definitions.gen.ts"],
+        ["elementsSchema", "--elements-schema", "elements.schema.json"],
+      ] as const) {
+        expect(description).toContain(module);
+        const out = join(dir, filename);
+        const proc = Bun.spawnSync([
+          "bun",
+          "src/cli/liveframe.ts",
+          "gen",
+          `${fixtures}/proof/catalog.json`,
+          "--out",
+          out,
+          ...(flag ? [flag] : []),
+        ]);
+        expect(proc.exitCode).toBe(0);
+        const result = await call(client, "generated_types", { module });
+        expect(result.isError).toBe(false);
+        expect(result.json()).toEqual({ note: expect.stringContaining(filename), types: await Bun.file(out).text() });
+      }
+    });
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}, 30000);
+
+test("generated_types_rejects_unknown_module", async () => {
+  await withClient(async (client) => {
+    for (const module of ["unknown", null, 42, {}, []]) {
+      const result = await call(client, "generated_types", { module });
+      expect(result.isError).toBe(true);
+      expect(result.json()).toEqual([
+        expect.objectContaining({
+          kind: "invalid-document",
+          pointer: "/module",
+          expected: '"types", "implementations", "elementsSchema"',
+        }),
+      ]);
+    }
+  });
+}, 30000);
+
 const agentHome = drafts[0];
 if (!agentHome) throw new Error("Missing agent-home draft");
 const agentManifest = agentHome.manifest as Record<string, unknown>;

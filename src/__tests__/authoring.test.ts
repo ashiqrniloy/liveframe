@@ -5,13 +5,40 @@ import { obj, sourceOutcome, str, validateCapabilities } from "@arnilo/liveframe
 import { createAuthoring } from "@arnilo/liveframe/authoring";
 import type { PreviewBinding } from "@arnilo/liveframe/preview";
 import { inProcessRunner } from "@arnilo/liveframe/preview";
-import { generate } from "@arnilo/liveframe/sdk/gen";
+import { generate, generateDefinitions, generateElementsSchema } from "@arnilo/liveframe/sdk/gen";
 import { validateManifestShape } from "../formats/manifest.ts";
 import { fakeCapture } from "./fixtures/capture-backend.ts";
 import { drafts, packageOptions, value } from "./fixtures/widgets/drafts.ts";
 
 const draft = { ...drafts[0]!, manifest: value(validateManifestShape(drafts[0]!.manifest)) };
 const options = () => ({ ...packageOptions, runner: inProcessRunner() });
+
+test("generated_types_default_unchanged", async () => {
+  const a = createAuthoring(options());
+  try {
+    const expected = {
+      note: 'Save this as ui.gen.ts beside the widget and import from "./ui.gen".',
+      types: generate(packageOptions.catalog),
+    };
+    expect(value(await a.generatedTypes())).toEqual(expected);
+    expect(value(await a.generatedTypes({ module: "types" }))).toEqual(expected);
+    expect(value(await a.generatedTypes({ module: "implementations" })).types).toBe(
+      generateDefinitions(packageOptions.catalog),
+    );
+    expect(value(await a.generatedTypes({ module: "elementsSchema" })).types).toBe(
+      generateElementsSchema(packageOptions.catalog),
+    );
+    for (const module of ["unknown", null, 42, {}, []])
+      expect(await a.generatedTypes({ module } as never)).toMatchObject({
+        ok: false,
+        errors: [
+          { kind: "invalid-document", pointer: "/module", expected: '"types", "implementations", "elementsSchema"' },
+        ],
+      });
+  } finally {
+    await a.close();
+  }
+});
 
 test("authoring_operations_match_mcp_tools", async () => {
   const a = createAuthoring(options());

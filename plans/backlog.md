@@ -295,6 +295,8 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 ## Offer generated implementation definitions to MCP clients
 
+- Status (closed 2026-10-31, plan 021 Task 14.4): `generated_types({ module? })` and `/authoring` `generatedTypes({ module? })` now return typed components, implementation definitions or the elements schema, byte-identically to the CLI. The default response is unchanged; invalid selectors return a typed error at `/module`.
+
 - Section: Phase 8 follow-up (spec §7.2, §13)
 - Priority: P4
 - Source: plans/017-Phase-7-Part-D-Renderer-And-Preview-Host-Integration.md Task 8 (F4), plans/evidence/017-impact-analysis.md

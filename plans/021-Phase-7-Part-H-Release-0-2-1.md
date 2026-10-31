@@ -1161,7 +1161,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Added the three named regression tests and `pack_non_object_arguments_are_protocol_errors`, which pins stdio rejection of null, arrays, strings and numbers as protocol error -32602. Updated the published-schema test, spec §13 and the MCP guide, and closed the backlog residual. No new decision or finding affects later tasks.
     - Rechecked SDK 2.4.0 `fromJsonSchema` and protocol validation through Context7. Before implementation, the missing-key, multiple-key, required-description and schema assertions failed; the protocol test already passed. `timeout 900s bun run check` passed build, generated-file checks, typechecks, lint, formatting and **889 tests**, with 4 existing skips and 0 failures (893 tests across 109 files; test phase 306.12 s).
 
-- [ ] Task 14.4: Return every `liveframe gen` module from `generated_types` (M3)
+- [x] Task 14.4: Return every `liveframe gen` module from `generated_types` (M3)
   - Acceptance Criteria:
     - Functional:
       - `generated_types({ module })` returns, byte for byte, the module that `liveframe gen <catalog> --out f` writes (for `"types"` and when `module` is omitted), that `--implementations` writes, and that `--elements-schema` writes. Its result shape `{ note, types }` keeps the key `types` for every module, and `note` names the file to save it as.
@@ -1192,6 +1192,10 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - `generated_modules_match_cli_bytes`: each of the three modules equals the CLI's output for the fixture catalog. Fails if a mode is mis-mapped.
     - `generated_types_default_unchanged`: no argument returns the 0.2.0 value.
     - `generated_types_rejects_unknown_module`.
+  - Notes (executed 2026-10-31):
+    - Added optional `module` selection to `/authoring` and the MCP tool, reusing `generate`, `generateDefinitions` and `generateElementsSchema`. Every mode returns `{ note, types }` with its suggested filename; the omitted/default selector preserves the original response. The permissive MCP argument description advertises all three choices while handler validation returns `invalid-document` at `/module` with the accepted values for unknown or non-string selectors.
+    - Added byte-for-byte tests against actual CLI output for all three modes, library generator/default-response assertions and typed rejection coverage over both APIs. The new tests failed before implementation. Updated spec §13 and the MCP guide and closed the implementation-definitions backlog entry. `docs/sdk.md` does not name the MCP codegen route, so it needed no edit. This implements the approved M3 decision; no new decision or finding affects later tasks.
+    - Verification: focused authoring, CLI MCP and guide suites passed all 50 tests. `timeout 900s bun run check` passed build, generated-file checks, typechecks, lint, formatting and **892 tests**, with 4 existing skips and 0 failures (896 tests across 109 files; test phase 287.47 s). `git diff --check` passed.
 
 - [ ] Task 14.5: Add the `set_state` tool (M4)
   - Acceptance Criteria:

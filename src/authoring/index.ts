@@ -12,7 +12,7 @@ import { type CaptureBackend, CaptureError, capture } from "../preview/capture/i
 import type { Runner } from "../preview/runner.ts";
 import { createPreview } from "../preview/session.ts";
 import { isLanguageSchema, sourceOutcome } from "../schema.ts";
-import { generate } from "../sdk/gen.ts";
+import { generate, generateDefinitions, generateElementsSchema } from "../sdk/gen.ts";
 import { checkAll, type ScenarioStatus } from "./checks.ts";
 
 export type AuthoringOptions = {
@@ -236,7 +236,22 @@ export function createAuthoring(options: AuthoringOptions) {
     async listCapabilities() {
       return success(exposeMeta ? capabilities : withoutMeta(capabilities));
     },
-    async generatedTypes() {
+    async generatedTypes({ module = "types" }: { module?: "types" | "implementations" | "elementsSchema" } = {}) {
+      if (module === "implementations")
+        return success({
+          note: 'Save this as ui.definitions.gen.ts and import from "./ui.definitions.gen".',
+          types: generateDefinitions(catalog),
+        });
+      if (module === "elementsSchema")
+        return success({
+          note: "Save this as elements.schema.json to validate agent-authored elements.",
+          types: generateElementsSchema(catalog),
+        });
+      if (module !== "types")
+        return {
+          ok: false as const,
+          errors: [at("/module", "Unknown generated module", '"types", "implementations", "elementsSchema"')],
+        };
       return success({
         note: 'Save this as ui.gen.ts beside the widget and import from "./ui.gen".',
         types: generate(catalog),

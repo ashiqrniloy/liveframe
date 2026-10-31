@@ -117,9 +117,18 @@ function registerCatalogTools(sdk: Sdk, server: Server, authoring: Authoring): v
     "generated_types",
     {
       description:
-        'The typed component module for this catalog, byte-identical to `liveframe gen` output. Save it as ui.gen.ts beside the widget and import the types from "./ui.gen".',
+        "A generated catalog module, byte-identical to `liveframe gen` output: types (default), implementations or elementsSchema. The result's note names the file to save.",
+      inputSchema: sdk.fromJsonSchema<Parameters<Authoring["generatedTypes"]>[0]>({
+        type: "object",
+        properties: {
+          module: {
+            description:
+              'Optional module: "types" (default, ui.gen.ts), "implementations" (--implementations, ui.definitions.gen.ts) or "elementsSchema" (--elements-schema, elements.schema.json).',
+          },
+        },
+      }),
     },
-    async (input) => mapped(await authoring.generatedTypes()),
+    async (input) => mapped(await authoring.generatedTypes(input)),
   );
 }
 
