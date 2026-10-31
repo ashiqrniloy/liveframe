@@ -923,7 +923,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - **No trim is kept. `src/css/*` is unchanged**, so no projection test was added. The probe passed Biome.
     - Two check runs under external load (load average 13–17: a QEMU VM, podman and Java) failed only on load-sensitive tests: the React browser file timed out in one run, and the timing gates failed in the other, with the Chromium switch at 18.6 ms. Alone, the React browser file passed 26/26. At load 1.9, `timeout 900s bun run check` passed: **882 passed, 4 skipped, 0 failed**, 886 tests across 109 files (309.15 s).
 
-- [ ] Task 13.6: Replace container queries with a renderer breakpoint attribute (R4, only if Task 13.5 misses its margin)
+- [x] Task 13.6: Replace container queries with a renderer breakpoint attribute (R4, only if Task 13.5 misses its margin)
   - Acceptance Criteria:
     - Functional:
       - This task runs only if, after Task 13.5, WebKit span A max exceeds 14 ms in any of three consecutive focused runs. Otherwise its note records "not needed" with those numbers, and it is ticked.
@@ -952,6 +952,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
   - Notes (executed 2026-10-31):
     - **Not needed. The gate did not trip.** After Task 13.4, three consecutive focused WebKit runs measured span A maxima of 10/11/9 ms (CSS) and 14/14/13 ms (Surface). None exceeds 14 ms ([Task 14 record](evidence/021-task-14-switching.md)). Task 13.5 changed nothing that could raise them.
     - Container queries and their script-free responsiveness stay as they are. No code, spec or docs changed. If a later WebKit regression trips the gate, this task's approach still applies.
+    - Covered by Task 13.5's green check (882 passed, 4 skipped, 0 failed); this task changed only plan text.
 
 - [ ] Task 14: Assert the switching budget on the library's measurement in WebKit (CL-16)
   - Depends on: Tasks 13.1 to 13.6.
