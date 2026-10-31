@@ -1000,7 +1000,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - **Closed 2026-10-31 20:35.** With the VM stopped (load 1.4–2.0), three consecutive WebKit runs passed 35/35: CSS max 10, 10, 10 ms and Surface max 13, 12, 11 ms. Chromium and Firefox pass. The mutant still fails WebKit. The backlog deferral is closed with this evidence, and the 0.2.1 changelog answers the 0.2.0 limitation. See [the Task 14 record](evidence/021-task-14-switching.md).
     - CI runs WebKit on shared runners, so this strict gate may flake there under load. Fallbacks, each needing an owner decision: a median assertion, or cutting more work.
 
-- [ ] Task 14.1: Record the authoring MCP server's 0.2.1 surface (decision log)
+- [x] Task 14.1: Record the authoring MCP server's 0.2.1 surface (decision log)
   - Acceptance Criteria:
     - Functional:
       - A decision log records the owner's scope instruction verbatim, with the date 2026-10-31: "I want fix all of the issues and ship with 0.2.1". It also records the review that found the issues: the server works and its suites pass, but it has the gaps below. It fixes M1 to M9, each with its rejected alternatives, and the owner approves it before Tasks 14.2 to 14.10 start:
@@ -1011,7 +1011,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
           - whether the bound preview page and a later `capture_preview` see the new state (recommended: yes, because they share the session, so an agent can capture the state it set);
           - whether a raw `{ key, value }` with no origin is accepted (recommended: no; `render_scenarios`' `state` override already covers arbitrary state, and an origin is what tests the widget's own wiring);
           - spec §13's new law-4 sentence: "its only intent path, `set_state`, applies an offered `setState`; no tool runs, logs or dispatches an action".
-        - **M5 draft directories.** `AuthoringConfig` gains an optional `draftRoot`. When it is set, `pack_draft` also accepts `{ dir, entry? }` instead of `files`, `entry`, `manifest` and `scenarios`. The CLI reads `<draftRoot>/<dir>`'s top-level `.ts` and `.tsx` files, `manifest.json` and `scenarios.json`, which is the layout `examples/demo-host/widgets/draft.ts` already reads, and `entry` defaults to `entry.tsx`. Any other shape is refused with a typed error at `/dir`: an absolute `dir`, any `..` segment, a path whose real path (symlinks resolved) leaves the root's real path, a missing file, more than the packer's file and byte bounds, or `dir` together with `files`. Without `draftRoot`, `dir` is `not-found`, naming the config field. The reader lives in the CLI (host APIs allowed), and `/authoring` stays inline-only and host-API-free. This reverses D5 (`decision-logs/2026-10-24-2330-authoring-mcp-server-contract.md`) for opted-in hosts only, and the log says so.
+        - **M5 draft directories.** `AuthoringConfig` gains an optional `draftRoot`. When it is set, `pack_draft` also accepts `{ dir, entry? }` instead of `files`, `entry`, `manifest` and `scenarios`. The CLI reads `<draftRoot>/<dir>`'s top-level `.ts` and `.tsx` files, `manifest.json` and `scenarios.json`, which is the layout `examples/demo-host/widgets/draft.ts` already reads, and `entry` defaults to `entry.tsx`. Any other shape is refused with a typed error at `/dir`: an absolute `dir`, any `..` segment, a path whose real path (symlinks resolved) leaves the root's real path, a missing file, more than the directory reader's 128-source-file or 1048576 aggregate-byte bound (the packer independently bounds emitted code), or `dir` together with `files`. Without `draftRoot`, `dir` is `not-found`, naming the config field. The reader lives in the CLI (host APIs allowed), and `/authoring` stays inline-only and host-API-free. This reverses D5 (`decision-logs/2026-10-24-2330-authoring-mcp-server-contract.md`) for opted-in hosts only, and the log says so.
         - **M6 annotations.** Every tool gets a `title`, plus `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint` (all `openWorldHint: false`: no tool reaches outside the app). The recommended values are listed in this table; the owner confirms each row:
 
           | Tool | readOnly | destructive | idempotent |
@@ -1078,8 +1078,16 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       - `decision-logs/2026-10-31-HHMM-authoring-mcp-server-0-2-1-surface.md` (new)
       - `docs/compatibility.md` (§ 0.2.1)
       - `decision-logs/2026-10-24-2330-authoring-mcp-server-contract.md` (a "D5 amended" note pointing at the new log, as D3's note does)
+      - `plans/evidence/021-task-14-1-mcp-surface.ts` (new: assert protocol behavior, measure full-tree output validation and a real 48-cell proof-host capture)
+      - This plan (execution notes and evidence-based Task 14.5/14.6/14.9 corrections); `roadmap.md` §3 (execution status)
   - Test Cases to Write:
     - None. The log fixes what Tasks 14.2 to 14.10 test. `docs-links` and `docs-wording` cover the compatibility edit.
+  - Notes (executed 2026-10-31):
+    - Recorded [the approved M1–M9 surface](../decision-logs/2026-10-31-2057-authoring-mcp-server-0-2-1-surface.md), including the owner's verbatim scope instruction and this task's explicit completion instruction as approval evidence. Fixed generated module choices, offered-only state changes, directory error/path rules, all eight annotation rows, structured schemas and legacy envelopes, the 12-default/48-maximum capture bound, and optional structural layout plus `--layout`. Updated compatibility §0.2.1 and added D5's amendment pointer. Tasks 14.2–14.10 remain unimplemented and unchecked; their spec edits ship with implementation.
+    - Rechecked SDK 2.4.0 through Context7. [The regeneration probe](evidence/021-task-14-1-mcp-surface.ts) asserts that non-object protocol arguments are rejected and a schema without `required` accepts `{}`. Full published-schema validation of the 679-node tree measured 0.831 ms median over ten warm validations. Task 14.8 still must prove its separate ≤5 ms added tool-round-trip budget and the 2025-11-25 envelope.
+    - Captured 48 real proof-host cells with the existing capture core: four scenarios × three widths × two themes × two design systems, all without render errors. Measured 9.34 s, 4845517 PNG bytes and 6581786 MCP-shaped JSON bytes with structured metadata. No images are committed. The ceiling bounds cells, not payload bytes; Task 14.9 must measure the implemented tool and document client limits.
+    - Corrected Task 14.5: host snapshot readers call `session.render()` and currently reset state, so the approved opt-in `preserveState` flag and proof/demo callers are necessary for set-state-then-capture. Corrected Task 14.6: the packer bounds emitted code, not source-file count; the CLI reader gets explicit 128-source-file/1 MiB aggregate read bounds and per-file symlink containment. Task 14.9 uses the existing startup `LiveframeFailure` convention instead of changing `createAuthoring()`'s return type. Made the approved capture-state assertion and `--layout` work unconditional in their implementation tasks.
+    - `timeout 900s bun run check` passed build, generation, typecheck, lint, formatting and all tests: **882 passed, 4 skipped, 0 failed** (886 tests, 109 files; test phase 291.11 s). The focused documentation checks passed (3 tests), the probe passed Biome, all eight decision-record local links resolved, and `git diff --check` passed. No production code or new runtime tests were needed for this decision task.
 
 - [ ] Task 14.2: Advertise `outcomes` on `render_scenarios` (M1)
   - Acceptance Criteria:
@@ -1185,7 +1193,8 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
         - an `action` event is refused with a typed error, and `session.intents()` does not grow;
         - no current single-scenario render is `not-found`;
         - an invalid `value` is the intent's own validation error.
-      - `set_state` joins the arrival-order queue with the other draft tools. After it, `capture_preview` shows the new state, if Task 14.1 says so.
+      - `set_state` joins the arrival-order queue with the other draft tools. After it, `capture_preview` of the selected scenario shows the new state, as Task 14.1's approved M4 requires.
+      - The bound page and capture of the selected scenario preserve the state set by the tool. Add optional `PreviewSession.render({ preserveState?: boolean })`, default false; true retains state/context for the same selected scenario unless explicitly overridden. A different scenario starts from its normal initial selection. Proof/demo snapshot readers opt in; existing callers retain reset-on-render behavior. Sharing the session alone is insufficient because today's snapshot readers call `render()` and reset it.
       - `tools/list` holds eight tools. Every place that names the tool count says eight: spec §13 (`:786,819,827`), `docs/mcp.md:39,119`, `README.md:156,181,193`, `docs/adopters-0.2.md:25` (left as the 0.2.0 record, with a 0.2.1 note), `scripts/release/fixtures/step4-mcp.ts` (expected list and message), and the renamed test `tools_list_has_the_eight_tools`, which now asserts the exact list.
       - Spec §13's law-4 sentence is rewritten as Task 14.1 drafts it. `docs/security.md` names the tool. The backlog entry "Add a setState intent tool to the authoring MCP server" is closed.
     - Performance: one render per call, the same path as `render_scenarios({ scenario })`.
@@ -1210,10 +1219,12 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       - `src/authoring/index.ts`; `src/cli/mcp.ts`; `src/__tests__/authoring.test.ts`; `src/__tests__/cli-mcp.test.ts`; `scripts/release/fixtures/step4-mcp.ts`; `proof/tests/mcp-agent-loop.test.ts` (its exact tool list, `:192-200`)
       - `docs/spec.md` §13; `docs/mcp.md`; `docs/security.md`; `README.md`; `docs/adopters-0.2.md`; `plans/backlog.md`
       - A fixture draft with a `setState` event: reuse one in `src/__tests__/fixtures/widgets/drafts.ts` if it has one (tentative).
+      - `src/preview/authoring.ts`; `src/preview/session.ts`; `src/__tests__/preview-session.test.ts`; `proof/host/preview.ts`; `examples/demo-host/preview.ts` (opt-in state preservation and its host callers); `proof/tests/mcp-capture.test.ts`; `docs/spec.md` §7.5; `docs/preview.md`
   - Test Cases to Write:
     - `set_state_applies_offered_event`: the tree changes as the widget's state wiring says.
     - `set_state_refuses_unoffered_event`; `set_state_refuses_action_event` (`intents()` unchanged); `set_state_before_render_says_to_render`.
-    - `set_state_then_capture_shows_state` (if Task 14.1 says so).
+    - `set_state_then_capture_shows_state`: required by Task 14.1's approved M4; exercise the real host snapshot path.
+    - `render_preserve_state_is_opt_in`: same-scenario snapshots retain changed state/context only when opted in; scenario changes reset and explicit overrides win. Existing reset-on-render tests stay unchanged.
     - `tools_list_has_the_eight_tools`: the exact list. Fails if a tool is added or dropped.
 
 - [ ] Task 14.6: Read `pack_draft` drafts from a directory under an opt-in root (M5)
@@ -1222,7 +1233,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       - With `draftRoot` configured, `pack_draft({ dir, entry? })` packs exactly what `readDraft(<root>/<dir>)` in the demo host packs, so the result's hash equals an inline `pack_draft` of the same files.
       - Each rejection Task 14.1 M5 lists has its own typed error at `/dir`: absolute path, `..`, a symlink escaping the root, a missing `manifest.json` or `scenarios.json`, over the bounds, and `dir` together with `files`. `dir` without `draftRoot` is `not-found`, naming `draftRoot`.
       - `AuthoringConfig.draftRoot` is documented in its type (`src/preview/authoring.ts`), spec §13 and `docs/mcp.md` § Write the config module. `loadConfig` validates that it is a string naming an existing directory, and the server refuses to start otherwise (exit 2). The backlog entry "Accept draft files from disk paths in pack_draft" is closed, and D5's amendment note is in place (Task 14.1).
-    - Performance: n/a — file reads bounded by the packer's limits.
+    - Performance: directory reads are bounded before packing: at most 128 top-level source files and 1048576 aggregate bytes across sources, `manifest.json` and `scenarios.json`. The packer's independent emitted-code bound remains 1 MiB; it has no existing source-file-count bound.
     - Code Quality: one small CLI module (`src/cli/draft-dir.ts`) that turns a directory into `PackInput`, then the existing inline path. `/authoring` is unchanged, and the host-API-free scan still passes.
     - Security: law 1 — no draft code runs during reading. Every path rejection has a test, and the real-path containment check runs after symlinks are resolved.
   - Approach:
@@ -1231,7 +1242,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Library Documentation to Check Before Implementation:
       - Bun 1.4.4 `node:fs/promises` (`realpath`, `readdir` with `withFileTypes`).
     - Documentation Reviewed:
-      - `examples/demo-host/widgets/draft.ts`; `src/cli/mcp.ts:58-73` (`loadConfig`); `src/pack/` file and byte bounds.
+      - `examples/demo-host/widgets/draft.ts`; `src/cli/mcp.ts:58-73` (`loadConfig`); `src/pack/bundle.ts:198-244` (no source-file-count bound); `src/formats/package.ts:65-76` (emitted-code byte bound); Task 14.1's M5 (new CLI read bounds and per-file real-path checks).
     - Options Considered:
       - Per-file `paths: string[]`. Rejected: the agent would still send the manifest and scenarios inline, and a directory matches the layout the demo host and `liveframe gen` users already have.
     - Chosen Approach:
@@ -1247,6 +1258,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - `pack_dir_matches_inline_hash`.
     - `pack_dir_rejects_absolute`, `_dotdot`, `_symlink_escape`, `_missing_manifest`, `_with_files`. Each fails if its check is removed.
     - `pack_dir_without_root_names_draftRoot`; `config_rejects_missing_draft_root` (exit 2).
+    - `pack_dir_rejects_file_symlink_escape`, `_missing_scenarios`, `_missing_entry`, `_malformed_json`, `_nonregular_file`, `_source_count_bound`, `_aggregate_byte_bound`, `_conflicting_inline_fields`: each reader error is typed at `/dir`; bounds reject before unbounded content reads. A sibling path sharing the root's prefix is not contained.
 
 - [ ] Task 14.7: Annotate every tool (M6)
   - Acceptance Criteria:
@@ -1318,10 +1330,10 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Functional:
       - `maxCaptureCells` in `AuthoringConfig` and `createAuthoring()` sets the per-call cell bound. Omitted, it is 12 and every 0.2.0 call behaves as before.
       - A call over the bound is refused before any cell is captured, as today (`src/preview/capture/index.ts:113`). The `limit-exceeded` message names the bound and `maxCaptureCells`.
-      - An invalid value fails as Task 14.1 M8 fixes: exit 2 from `liveframe mcp`, a typed error from `createAuthoring()`.
+      - An invalid value fails as Task 14.1 M8 fixes: exit 2 from `liveframe mcp`, with `invalid-document` at `/maxCaptureCells`; `createAuthoring()` throws `LiveframeFailure` carrying that error, preserving its synchronous object-returning API. The maximum is 48.
       - The `capture_preview` description states the configured bound.
       - Spec §13 (the library line `:819` and the tool line), `docs/mcp.md` (§ Write the config module and the tool table) and the `AuthoringConfig` doc comment agree. The backlog entry "Let an app raise the capture cell bound" is closed.
-    - Performance: record the byte size and wall time of a call at the maximum on the proof host in this task's notes. They must agree with the number Task 14.1 fixed.
+    - Performance: record the byte size and wall time of an actual 48-cell tool call on the proof host. Compare with Task 14.1's core-capture baseline (9.34 s, 6581786 JSON bytes including structured metadata); timings and PNG sizes may vary. The ceiling bounds cell count, not bytes, so document that a client may require narrower axes.
     - Code Quality: one option replaces the literal. No per-axis bounds.
     - Security: n/a — a transport bound with a hard ceiling, which fails closed.
   - Approach:
@@ -1345,7 +1357,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
   - Test Cases to Write:
     - `capture_bound_defaults_to_twelve`: 13 cells are refused with no config. Fails if the default changes.
     - `capture_bound_raised_by_config`: 13 cells pass with `maxCaptureCells: 16`, and 17 are refused naming the field.
-    - `capture_bound_rejects_invalid_config`: 0, 1.5 and over the maximum each refuse to start (exit 2), and `createAuthoring()` returns the typed error.
+    - `capture_bound_rejects_invalid_config`: 0, 1.5 and over the maximum each refuse to start (exit 2), and `createAuthoring()` throws `LiveframeFailure` with the typed error.
 
 - [ ] Task 14.10: Report each captured cell's layout structurally (M9)
   - Acceptance Criteria:
@@ -1360,7 +1372,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       - The size bound from Task 14.1 is enforced with `limit-exceeded`, naming the cell.
       - The proof agent loop's layout step asserts structure, not pixel height, and the 133 px threshold and its comment are removed. The pixel-height helper `pngSize` goes too, if nothing else uses it.
       - Capture's `outputSchema` (Task 14.8) gains the optional `layout` field, and `structured_content_matches_text` covers it.
-      - Spec §13 (capture tool and `/preview/capture` row), §7.5 if it describes capture output, `docs/mcp.md` and `docs/preview.md` (capture section, plus `--layout` if Task 14.1 adds it) agree. The backlog entry "Prove layout mistakes structurally, not by pixel height" is closed.
+      - Spec §13 (capture tool and `/preview/capture` row), §7.5 if it describes capture output, `docs/mcp.md` and `docs/preview.md` (capture section and the approved `--layout` flag) agree. The backlog entry "Prove layout mistakes structurally, not by pixel height" is closed.
     - Performance: `layout: true` adds at most 100 ms per cell on the 679-node agent-home scenario at width 360, as a median over 10 cells, recorded in this task's notes.
     - Code Quality:
       - The geometry code is one function evaluated in the page, in `playwright.ts`. `capture()` only orchestrates it, as it does for screenshots.
@@ -1391,7 +1403,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       ```
     - Files to Create/Edit:
       - `src/preview/capture/index.ts`; `src/preview/capture/playwright.ts`; `src/authoring/index.ts`; `src/cli/mcp.ts`
-      - `src/cli/capture.ts` and `src/cli/liveframe.ts` (only if Task 14.1 adds `--layout`)
+      - `src/cli/capture.ts` and `src/cli/liveframe.ts` (the approved valueless `--layout` flag and returned layout files)
       - `src/__tests__/capture*.test.ts` (tentative: the existing capture suites; confirm with `graft grep "ariaSnapshot"`); `src/__tests__/cli-mcp.test.ts`; `proof/tests/mcp-agent-loop.test.ts`; `proof/tests/mcp-capture.test.ts`
       - `docs/spec.md` §13 (and §7.5 if needed); `docs/mcp.md`; `docs/preview.md`; `plans/backlog.md`
   - Test Cases to Write:

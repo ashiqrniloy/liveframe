@@ -14,6 +14,8 @@ explicitly_approved_by_user: true
 
 > **D3 superseded (2026-10-29):** `decision-logs/2026-10-29-1244-runner-kit-capture-and-authoring-library.md` adds `/preview/capture` and `AuthoringConfig.capture?: CaptureBackend`, keeping the core host-API-free by injecting the backend. D1, D2, D4, D5 and D6 remain in force.
 
+> **D5 amended (2026-10-31):** [The 0.2.1 MCP surface decision](2026-10-31-2057-authoring-mcp-server-0-2-1-surface.md), M5, adds CLI-only directory drafts under an opt-in `draftRoot`, with path containment and bounded reads. Inline drafts remain supported; `/authoring` remains inline-only and host-API-free. M4 also replaces the no-intent-tool restriction with offered `setState` only; actions remain prohibited.
+
 ## Context
 
 `decision-logs/2026-10-22-0902-authoring-mcp-server-for-coding-agents.md` fixed the scope (authoring only, after v1) and `decision-logs/2026-10-22-1836-mcp-server-in-0-1-0.md` moved it into 0.1.0 with preview capture added. The preview contracts are in `decision-logs/2026-10-24-0306-phase-4-renderer-and-preview-contracts.md`, which also allows the CLI to lazily load command-specific optional peers (its decision 6). What neither record settles is how the server reaches a preview page, how a host configures it, where capture lives, and what exactly the tools take and return.
