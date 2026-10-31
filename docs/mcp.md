@@ -36,7 +36,7 @@ try {
 }
 ```
 
-All eight methods return `Promise<Result<T>>`, with the same errors and bounds as the tools below. Their names are `listPrimitives`, `listVocabulary`, `listCapabilities`, `generatedTypes`, `packDraft`, `renderScenarios`, `setState` and `capturePreview`. A single-scenario render returns a tree of at most 256 KiB; an all-scenario render returns statuses with shared errors deduplicated. Capture returns at most `maxCaptureCells` cells (default 12, maximum 48), each with `scenario`, `width`, `theme`, `designSystem`, `errors`, `aria: string | null` and `png: Uint8Array`. There are no output files or base64 conversions.
+All eight methods return `Promise<Result<T>>`, with the same errors and bounds as the tools below. Their names are `listPrimitives`, `listVocabulary`, `listCapabilities`, `generatedTypes`, `packDraft`, `renderScenarios`, `setState` and `capturePreview`. A single-scenario render returns a tree of at most 256 KiB; an all-scenario render returns statuses with shared errors deduplicated. Capture returns at most `maxCaptureCells` cells (default 12, maximum 48), each with `scenario`, `width`, `theme`, `designSystem`, `errors`, `aria: string | null` and `png: Uint8Array` and, with `layout: true`, `layout`. There are no output files or base64 conversions.
 
 The runner is required and remains owned by your host. This subpath loads neither the MCP SDK nor Playwright. Capture needs both your `preview(binding)` factory and an injected `CaptureBackend`; missing configuration returns `not-found`. The factory starts lazily on the first capture, is reused after success and retried after failure. `close()` waits for queued draft operations and closes the bound page. The four draft methods share one queue; catalog reads stay concurrent. `exposeMeta` defaults to `false`, as in the CLI config.
 
@@ -148,14 +148,14 @@ and omit `structuredContent`.
 | `pack_draft` | `{ files, entry, manifest, scenarios }` or `{ dir, entry? }` | `{ hash, id, version, description?, scenarios }` (plus `meta` with `exposeMeta`) |
 | `render_scenarios` | `{ scenario?, state?, context?, outcomes? }` | One scenario's tree (at most 256 KiB), or scenario statuses and each distinct error once; `outcomes: true` expands source outcomes and always returns statuses |
 | `set_state` | `{ origin: { nodeId, event }, value? }` | Applies an offered state event and returns its new tree (at most 256 KiB); refuses actions |
-| `capture_preview` | `{ scenarios?, widths?, themes?, designSystems? }` | Each cell's coordinates, errors, accessibility snapshot and PNG; default 12 cells, configurable up to 48 |
+| `capture_preview` | `{ scenarios?, widths?, themes?, designSystems?, layout? }` | Each cell's coordinates, errors, accessibility snapshot and PNG, plus its box layout with `layout: true`; default 12 cells, configurable up to 48 |
 
 The structured values follow the Result column: `list_primitives` is a definition
 array, `list_vocabulary` is `{ catalogId, vocabulary }`, `list_capabilities` is the
 capabilities document, `generated_types` is `{ note, types }`, and `pack_draft`
 is the draft summary. `render_scenarios` is a UI tree or a scenario-status array;
 `set_state` is a UI tree. Capture's structured value is only the cell-metadata
-array (`scenario`, `width`, `theme`, `designSystem`, `errors`); accessibility text
+array (`scenario`, `width`, `theme`, `designSystem`, `errors`, and `layout` when requested); accessibility text
 and PNG image blocks stay in `content`. `exposeMeta` governs both text and
 structured results.
 
@@ -298,12 +298,27 @@ cell's accessibility snapshot and its PNG as an image block:
 [{ "scenario": "loading", "width": 360, "theme": "certified@1.0.0", "designSystem": "rack@1.0.0", "errors": [] }]
 ```
 
+Pass `layout: true` to also get each cell's box layout in that metadata, so a
+layout fix is checked by numbers rather than image height:
+
+```json
+{ "scenario": "ready", "width": 360, "theme": "certified@1.0.0", "designSystem": "rack@1.0.0", "errors": [],
+  "layout": { "width": 360, "height": 96, "overflowX": false, "overflowing": [],
+              "nodes": [{ "id": "n1", "x": 0, "y": 0, "width": 360, "height": 40 }] } }
+```
+
+Boxes are integer CSS pixels relative to the cell; a node's box is the union of
+its children, a node with no box has zero width and height, and `overflowing`
+lists the ids that cross the cell's right edge. Inline buttons share one `y`; a
+stack's `y` increases. `layout` is `null` when the capture backend cannot
+measure. See [the preview guide](preview.md#measure-layout-not-pixels).
+
 Its failures are typed too, so an agent can tell a typo from a limit:
 
 | Kind | When |
 |---|---|
 | `unknown-name` | An axis value the page does not declare; the message lists what it does |
-| `limit-exceeded` | More than `maxCaptureCells` cells; refused before any screenshot, naming the bound, config field and every axis you can narrow |
+| `limit-exceeded` | More than `maxCaptureCells` cells; refused before any screenshot, naming the bound, config field and every axis you can narrow. A `layout` record over 262144 bytes also fails here, at `/layout`, naming the cell |
 | `not-found` | Capturing before `pack_draft`, no `preview()` in the config, an unreachable page or one that never became ready, Playwright or Chromium missing (with the install command) |
 | `render-failed` | Anything else, such as a file-system failure while writing cells |
 

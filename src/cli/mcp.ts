@@ -252,6 +252,37 @@ const outputSchemas = {
         theme: stringSchema,
         designSystem: stringSchema,
         errors: { type: "array", items: errorSchema },
+        layout: {
+          anyOf: [
+            { type: "null" },
+            {
+              type: "object",
+              properties: {
+                width: { type: "number" },
+                height: { type: "number" },
+                overflowX: { type: "boolean" },
+                overflowing: { type: "array", items: stringSchema },
+                nodes: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      id: stringSchema,
+                      x: { type: "number" },
+                      y: { type: "number" },
+                      width: { type: "number" },
+                      height: { type: "number" },
+                    },
+                    required: ["id", "x", "y", "width", "height"],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ["width", "height", "overflowX", "overflowing", "nodes"],
+              additionalProperties: false,
+            },
+          ],
+        },
       },
       required: ["scenario", "width", "theme", "designSystem", "errors"],
       additionalProperties: false,
@@ -367,6 +398,7 @@ const captureSchema = {
     widths: { type: "array", items: { type: "integer" } },
     themes: { type: "array", items: { type: "string" } },
     designSystems: { type: "array", items: { type: "string" } },
+    layout: { type: "boolean" },
   },
   additionalProperties: false,
 };
@@ -380,19 +412,20 @@ function registerCaptureTool(sdk: Sdk, server: Server, authoring: Authoring, max
       title: "Capture preview",
       outputSchema: sdk.fromJsonSchema(outputSchemas.capture_preview),
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
-      description: `Captures the bound preview page's cells — at most ${maxCaptureCells} per call — and returns each cell's coordinates, LiveframeErrors and accessibility snapshot as text with its PNG as an image. Omit an axis to keep every value the page declares.`,
+      description: `Captures the bound preview page's cells — at most ${maxCaptureCells} per call — and returns each cell's coordinates, LiveframeErrors and accessibility snapshot as text with its PNG as an image. Omit an axis to keep every value the page declares. With \`layout: true\`, each cell also carries its layout — \`{ width, height, overflowX, overflowing, nodes: [{ id, x, y, width, height }] }\` in CSS pixels relative to the cell, or null when the capture backend cannot measure — so a row and a stack, or an overflowing row, are told apart by numbers rather than by image height.`,
       inputSchema: sdk.fromJsonSchema<CaptureInput>(captureSchema as Parameters<Sdk["fromJsonSchema"]>[0]),
     },
     async (input) => {
       const result = await authoring.capturePreview(input);
       if (!result.ok) return failure(result.errors);
       const response = structured(
-        result.value.map(({ scenario, width, theme, designSystem, errors }) => ({
+        result.value.map(({ scenario, width, theme, designSystem, errors, layout }) => ({
           scenario,
           width,
           theme,
           designSystem,
           errors,
+          ...(layout === undefined ? {} : { layout }),
         })),
       );
       const content: Content[] = response.content;

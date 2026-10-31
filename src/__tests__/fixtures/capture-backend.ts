@@ -1,4 +1,4 @@
-import type { CaptureAxes, CaptureBackend } from "../../preview/capture/index.ts";
+import type { CaptureAxes, CaptureBackend, CellLayout } from "../../preview/capture/index.ts";
 
 export function fakeCapture(
   axes: CaptureAxes = {
@@ -8,6 +8,7 @@ export function fakeCapture(
     designSystems: ["plain"],
   },
   snapshot: string | null = '- text "Hello"',
+  layout?: (width: number) => CellLayout | null,
 ) {
   const opened: string[] = [];
   const waited: string[] = [];
@@ -48,6 +49,7 @@ export function fakeCapture(
         async ariaSnapshot() {
           return snapshot;
         },
+        ...(layout && { layout: async (width: number) => layout(width) }),
         async close() {
           closed.push(url);
         },

@@ -1,5 +1,5 @@
 import type * as Playwright from "playwright";
-import { CaptureError, type CaptureAxes, type CaptureBackend } from "./index.ts";
+import { CaptureError, type CaptureAxes, type CaptureBackend, type CellLayout } from "./index.ts";
 
 /** Uses the caller's Playwright module; importing this adapter never loads the peer. */
 export function playwrightBackend(playwright: typeof Playwright): CaptureBackend<Playwright.Locator> {
@@ -54,6 +54,47 @@ export function playwrightBackend(playwright: typeof Playwright): CaptureBackend
         },
         screenshot: (cell) => cell.screenshot({ type: "png" }),
         ariaSnapshot: (cell) => cell.ariaSnapshot(),
+        layout: (cell) =>
+          cell.evaluate((root): CellLayout => {
+            const origin = root.getBoundingClientRect();
+            // A `display: contents` wrapper has no box: measure its nearest boxed descendants instead.
+            const boxes = (element: Element): DOMRect[] =>
+              [...element.children].flatMap((child) =>
+                getComputedStyle(child).display === "contents"
+                  ? boxes(child)
+                  : child.getClientRects().length > 0
+                    ? [child.getBoundingClientRect()]
+                    : [],
+              );
+            const none = { x: 0, y: 0, width: 0, height: 0 };
+            const nodes = [...root.querySelectorAll("[data-lf-node]")].map((wrapper) => {
+              const found = boxes(wrapper);
+              const left = Math.min(...found.map((box) => box.left));
+              const top = Math.min(...found.map((box) => box.top));
+              const right = Math.max(...found.map((box) => box.right));
+              const bottom = Math.max(...found.map((box) => box.bottom));
+              return {
+                id: wrapper.getAttribute("data-lf-node") ?? "",
+                crosses: found.length > 0 && right > origin.right,
+                ...(found.length === 0
+                  ? none
+                  : {
+                      x: Math.round(left - origin.left),
+                      y: Math.round(top - origin.top),
+                      width: Math.round(right - left),
+                      height: Math.round(bottom - top),
+                    }),
+              };
+            });
+            const overflowing = nodes.filter((node) => node.crosses).map((node) => node.id);
+            return {
+              width: Math.round(origin.width),
+              height: Math.round(origin.height),
+              overflowX: root.scrollWidth > root.clientWidth || overflowing.length > 0,
+              overflowing,
+              nodes: nodes.map(({ id, x, y, width, height }) => ({ id, x, y, width, height })),
+            };
+          }),
         close: () => page.close(),
       };
     },

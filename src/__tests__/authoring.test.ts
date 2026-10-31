@@ -544,3 +544,56 @@ test("capture_bound_rejects_invalid_config", () => {
     }
   }
 });
+
+test("capture_layout_is_returned_only_when_requested", async () => {
+  const layout = { width: 360, height: 50, overflowX: false, overflowing: [], nodes: [] };
+  const a = createAuthoring({
+    ...options(),
+    capture: fakeCapture(undefined, null, () => layout).backend,
+    preview: async () => ({ url: "https://example.test", async close() {} }),
+  });
+  try {
+    value(await a.packDraft(draft));
+    const plain = value(await a.capturePreview({ widths: [360] }));
+    expect(plain.every((cell) => !("layout" in cell))).toBe(true);
+    const measured = value(await a.capturePreview({ widths: [360], layout: true }));
+    expect(measured.length).toBeGreaterThan(0);
+    expect(measured.every((cell) => JSON.stringify(cell.layout) === JSON.stringify(layout))).toBe(true);
+    expect(await a.capturePreview({ layout: "yes" } as never)).toMatchObject({
+      ok: false,
+      errors: [{ kind: "invalid-document", pointer: "/layout" }],
+    });
+  } finally {
+    await a.close();
+  }
+});
+
+test("capture_layout_without_backend_support_is_null_and_oversize_names_the_layout", async () => {
+  const preview = async () => ({ url: "https://example.test", async close() {} });
+  const without = createAuthoring({ ...options(), capture: fakeCapture().backend, preview });
+  const huge = createAuthoring({
+    ...options(),
+    capture: fakeCapture(undefined, null, (width) => ({
+      width,
+      height: 1,
+      overflowX: false,
+      overflowing: [],
+      nodes: Array.from({ length: 6000 }, (_, i) => ({ id: `node-${i}`, x: 0, y: i, width, height: 1 })),
+    })).backend,
+    preview,
+  });
+  try {
+    value(await without.packDraft(draft));
+    expect(
+      value(await without.capturePreview({ widths: [360], layout: true })).every((cell) => cell.layout === null),
+    ).toBe(true);
+    value(await huge.packDraft(draft));
+    expect(await huge.capturePreview({ widths: [360], layout: true })).toMatchObject({
+      ok: false,
+      errors: [{ kind: "limit-exceeded", pointer: "/layout" }],
+    });
+  } finally {
+    await without.close();
+    await huge.close();
+  }
+});

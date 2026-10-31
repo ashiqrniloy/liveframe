@@ -256,3 +256,52 @@ test("capture_preserves_page_cookies_across_scenarios", async () => {
     await rm(dir, { recursive: true, force: true });
   }
 }, 30000);
+
+test("layout_files_hold_node_boxes_from_the_real_host", async () => {
+  const dir = await temp();
+  try {
+    const index = await capture(page(), { out: dir, scenarios: ["ready"], widths: [360], layout: true });
+    expect(index.cells.length).toBeGreaterThan(0);
+    for (const cell of index.cells) {
+      expect(cell.layout).toBe(cell.png.replace(/\.png$/, ".layout.json"));
+      const layout = await Bun.file(join(dir, cell.layout as string)).json();
+      expect(layout.width).toBe(360);
+      expect(layout.nodes.length).toBeGreaterThan(0);
+      expect(layout.nodes.some((node: { height: number }) => node.height > 0)).toBe(true);
+    }
+    const plain = await capture(page(), { out: dir, scenarios: ["ready"], widths: [360] });
+    expect(plain.cells.every((cell) => !("layout" in cell))).toBe(true);
+  } finally {
+    await rm(dir, { recursive: true });
+  }
+}, 120000);
+
+test("cli_layout_flag_writes_layout_files", async () => {
+  const dir = await temp();
+  try {
+    const run = Bun.spawn(
+      [
+        "bun",
+        "--conditions",
+        "liveframe:source",
+        "src/cli/liveframe.ts",
+        "preview",
+        "capture",
+        page(),
+        "--out",
+        dir,
+        "--scenario",
+        "ready",
+        "--width",
+        "360",
+        "--layout",
+      ],
+      { stdout: "pipe", stderr: "pipe" },
+    );
+    expect(await run.exited).toBe(0);
+    expect((await readdir(dir)).filter((name) => name.endsWith(".layout.json")).length).toBeGreaterThan(0);
+    expect((await Bun.file(join(dir, "index.json")).json()).cells[0].layout).toMatch(/\.layout\.json$/);
+  } finally {
+    await rm(dir, { recursive: true });
+  }
+}, 120000);

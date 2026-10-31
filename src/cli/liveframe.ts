@@ -4,13 +4,19 @@ import { generate, generateDefinitions, generateElementsSchema } from "../sdk/ge
 import { CaptureError } from "./capture.ts";
 
 const captureUsage =
-  "Usage: liveframe preview capture <url> --out <dir> [--scenario <a,b>] [--width <n,m>] [--theme <id@v,…>] [--design-system <id@v,…>]";
+  "Usage: liveframe preview capture <url> --out <dir> [--scenario <a,b>] [--width <n,m>] [--theme <id@v,…>] [--design-system <id@v,…>] [--layout]";
 
 async function previewCapture(args: string[]): Promise<number> {
   const [url, ...flags] = args;
   const values = new Map<string, string>();
+  let layout = false;
   for (let i = 0; i < flags.length; i += 2) {
     const name = flags[i];
+    if (name === "--layout" && !layout) {
+      layout = true;
+      i--;
+      continue;
+    }
     const value = flags[i + 1];
     if (
       !["--out", "--scenario", "--width", "--theme", "--design-system"].includes(name ?? "") ||
@@ -33,6 +39,7 @@ async function previewCapture(args: string[]): Promise<number> {
       widths,
       themes: list("--theme"),
       designSystems: list("--design-system"),
+      ...(layout && { layout }),
     });
     const failed = index.cells.filter((cell) => cell.errors.length > 0);
     for (const cell of failed) console.error(`${cell.png}: ${cell.errors.length} render error(s)`);

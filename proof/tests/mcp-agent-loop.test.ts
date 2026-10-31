@@ -12,12 +12,16 @@ type ToolResult = Awaited<ReturnType<Client["callTool"]>>;
 const texts = (result: ToolResult) =>
   (result.content as Block[]).flatMap((b) => (b.type === "text" ? [b.text ?? ""] : []));
 const json = (result: ToolResult) => JSON.parse(texts(result).join("\n"));
-const images = (result: ToolResult) =>
-  (result.content as Block[]).flatMap((b) => (b.type === "image" ? [b.data ?? ""] : []));
-const pngSize = (base64: string) => {
-  const bytes = Buffer.from(base64, "base64");
-  return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+type Layout = {
+  overflowX: boolean;
+  overflowing: string[];
+  nodes: { id: string; x: number; y: number; width: number; height: number }[];
 };
+type TreeNode = { id: string; kind: string; children?: TreeNode[] };
+const buttonIds = (node: TreeNode): string[] => [
+  ...(node.kind === "button" ? [node.id] : []),
+  ...(node.children ?? []).flatMap(buttonIds),
+];
 
 const manifest = (catalogId: string, action: string) => ({
   format: "liveframe-manifest/1",
@@ -177,17 +181,24 @@ test("scripted_agent_writes_fixes_and_lays_out_a_widget_through_mcp_tools_only",
       await ask("pack_draft", draft({ layout, gap: fixedGap, action: allowedAction, declared: allowedAction }));
       const rendered = json(await ask("render_scenarios")) as { ok: boolean }[];
       expect(rendered.every((entry) => entry.ok)).toBe(true);
-      const result = await ask("capture_preview", { scenarios: ["ready"], widths: [360] });
+      // The agent reads geometry, not pixels: it finds the buttons in the tree, then where each one landed.
+      const tree = json(await ask("render_scenarios", { scenario: "ready" })) as { root: TreeNode };
+      const buttons = buttonIds(tree.root);
+      expect(buttons).toHaveLength(3);
+      const result = await ask("capture_preview", { scenarios: ["ready"], widths: [360], layout: true });
       await scan();
-      const heights = images(result).map((png) => pngSize(png).height);
-      return { heights, max: Math.max(...heights), result };
+      const cells = JSON.parse(texts(result)[0] ?? "null") as { layout: Layout }[];
+      expect(cells.length).toBeGreaterThan(0);
+      return cells.map(({ layout }) => {
+        expect(layout.overflowX).toBe(false);
+        expect(layout.overflowing).toEqual([]);
+        return buttons.map((id) => layout.nodes.find((node) => node.id === id)?.y);
+      });
     };
     const stacked = await capture("Stack");
     const inline = await capture("Inline");
-    // Measured when this test was written: inline cells 102–113 px, stacked 163–177 px at width 360.
-    const oneRowMax = 113 + 20;
-    expect(inline.max).toBeLessThanOrEqual(oneRowMax);
-    expect(stacked.max).toBeGreaterThan(oneRowMax);
+    for (const [first, ...rest] of inline) for (const y of rest) expect(y).toBe(first);
+    for (const ys of stacked) for (const [i, y] of ys.entries()) if (i > 0) expect(y).toBeGreaterThan(ys[i - 1]!);
 
     // The whole tool surface: adding or renaming a tool needs a spec change.
     expect(await tools()).toEqual([

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { capture, CaptureError, type CaptureAxes } from "@arnilo/liveframe/preview/capture";
+import { capture, CaptureError, type CaptureAxes, type CellLayout } from "@arnilo/liveframe/preview/capture";
 import { fakeCapture } from "./fixtures/capture-backend.ts";
 
 const axes: CaptureAxes = {
@@ -119,4 +119,69 @@ test("capture_closes_backend_when_open_fails", async () => {
   };
   await expect(capture(url, { backend: fake.backend })).rejects.toThrow("cannot open");
   expect(fake.backendClosed).toBe(1);
+});
+
+const layoutOf = (width: number): CellLayout => ({
+  width,
+  height: 100,
+  overflowX: false,
+  overflowing: [],
+  nodes: [{ id: "n1", x: 0, y: 0, width, height: 40 }],
+});
+const decode = (bytes: Uint8Array | undefined) => JSON.parse(new TextDecoder().decode(bytes));
+
+test("layout_off_results_unchanged", async () => {
+  const withMethod = await capture(url, { backend: fakeCapture(axes, '- text "Hello"', layoutOf).backend });
+  const without = await capture(url, { backend: fakeCapture(axes).backend });
+  expect(withMethod.index).toEqual(without.index);
+  expect([...withMethod.files.keys()]).toEqual([...without.files.keys()]);
+  expect(withMethod.index.cells.every((cell) => !("layout" in cell))).toBe(true);
+});
+
+test("layout_on_writes_a_file_per_cell", async () => {
+  const result = await capture(url, {
+    backend: fakeCapture(axes, '- text "Hello"', layoutOf).backend,
+    scenarios: ["a b"],
+    widths: [360],
+    themes: ["light"],
+    designSystems: ["plain"],
+    layout: true,
+  });
+  expect(result.index.cells).toEqual([expect.objectContaining({ layout: "a-b_360_light_plain.layout.json" })]);
+  expect(decode(result.files.get("a-b_360_light_plain.layout.json"))).toEqual(layoutOf(360));
+  expect(decode(result.files.get("index.json"))).toEqual(result.index);
+});
+
+test("custom_backend_without_layout_gives_null", async () => {
+  const result = await capture(url, { backend: fakeCapture(axes).backend, layout: true });
+  expect(result.index.cells.every((cell) => cell.layout === null)).toBe(true);
+  expect([...result.files.keys()].some((name) => name.endsWith(".layout.json"))).toBe(false);
+});
+
+test("layout_over_bound_is_limit_exceeded", async () => {
+  const huge = (width: number): CellLayout => ({
+    ...layoutOf(width),
+    nodes: Array.from({ length: 6000 }, (_, i) => ({ id: `node-${i}`, x: 0, y: i, width, height: 1 })),
+  });
+  const error = await capture(url, {
+    backend: fakeCapture(axes, null, huge).backend,
+    scenarios: ["a b"],
+    widths: [360],
+    themes: ["light"],
+    designSystems: ["plain"],
+    layout: true,
+  }).catch((e: unknown) => e);
+  expect(error).toBeInstanceOf(CaptureError);
+  expect(error).toMatchObject({ kind: "limit-exceeded", pointer: "/layout" });
+  expect((error as Error).message).toContain("a b 360 light plain");
+});
+
+test.each([
+  ["a non-finite number", { ...layoutOf(1), height: Number.NaN }],
+  ["a missing field", { width: 1, height: 1, overflowX: false, nodes: [] }],
+  ["an extra field", { ...layoutOf(1), text: "page content" }],
+  ["a node with an extra field", { ...layoutOf(1), nodes: [{ id: "n", x: 0, y: 0, width: 1, height: 1, text: "t" }] }],
+])("layout_rejects_malformed_backend_result: %s", async (_name, bad) => {
+  const fake = fakeCapture(axes, null, () => bad as unknown as CellLayout);
+  await expect(capture(url, { backend: fake.backend, layout: true })).rejects.toThrow(/layout/i);
 });

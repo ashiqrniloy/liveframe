@@ -170,7 +170,8 @@ and rejects a request for any other (see below).
 
 ```sh
 liveframe preview capture <url> --out <dir> \
-  [--scenario a,b] [--width 360,768] [--theme id@v,...] [--design-system id@v,...]
+  [--scenario a,b] [--width 360,768] [--theme id@v,...] [--design-system id@v,...] \
+  [--layout]
 ```
 
 The command opens your preview page in headless Chromium, reads the axes that
@@ -219,11 +220,32 @@ const { index, files } = await capture(url, {
 The library writes nothing and takes no `out`. Importing it does not load
 Playwright. Supply any `CaptureBackend<Handle>`: `open(url)` returns a session
 with `waitReady(selector)`, `axes()`, `cells()`, `screenshot(handle)`,
-`ariaSnapshot(handle)` and `close()`. Cells carry their opaque handle,
+`ariaSnapshot(handle)`, optional `layout(handle)` and `close()`. Cells carry their opaque handle,
 coordinates and errors; axes carry `shown` for a controlled preview. Capture
 closes each session and calls the optional `backend.close()` even on failure.
 Use a backend per call; the Playwright backend reuses one Chromium instance
 across that call's scenarios.
+
+### Measure layout, not pixels
+
+Add `--layout` (library: `layout: true`) and each cell also gets
+`<dir>/<cell>.layout.json`, named by a `layout` field on its `index.json`
+record:
+
+```json
+{ "width": 360, "height": 96, "overflowX": false, "overflowing": [],
+  "nodes": [{ "id": "n1", "x": 0, "y": 0, "width": 360, "height": 40 }] }
+```
+
+Boxes are integer CSS pixels relative to the cell. A node's box is the union of
+its `data-lf-node` wrapper's children (the wrapper has no box of its own), so a
+row of buttons shares one `y` and a stack's `y` increases. A node with no box
+(hidden, or no children) is listed with zero width and height. `overflowing`
+holds the ids of nodes whose box crosses the cell's right edge, and `overflowX`
+is true when any does or the cell scrolls sideways. The record has numbers and
+node ids only, never page text. A backend without a `layout(handle)` method
+records `layout: null`, and a record over 262144 bytes fails the capture with
+`limit-exceeded` naming the cell. Without the flag, output is unchanged.
 
 Snapshots use Playwright's default `locator.ariaSnapshot()` YAML format
 (`playwright ^1.49.0`), kept as opaque text rather than parsed data. A backend

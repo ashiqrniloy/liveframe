@@ -346,6 +346,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phase 8 follow-up (agent authoring)
 - Priority: P4
+- Status: closed 2026-10-31 in plan 021 Task 14.10: `capture_preview({ layout: true })`, `capture(url, { layout: true })` and `liveframe preview capture --layout` return each cell's node boxes and right-edge overflow; the proof loop now asserts that `Inline` buttons share a `y` and `Stack` buttons' `y` increases, with no pixel threshold.
 - Source: plans/011-Phase-8-Authoring-MCP-Server.md Task 7 (loop 3), Task 9 (F5)
 - What: the layout proof measures a captured cell's PNG height at width 360 and asserts a threshold fixed at 133 px (`Inline` cells 102–113 px, `Stack` cells 163–177 px). It catches the shipped mistake, but it says nothing about a row that is too wide, and the margin is machine-sensitive. If adopters rely on layout iteration, consider a structural assertion instead — for example a tool that returns each node's box, or a cell-width check for overflow — rather than thresholds.
 - Why: a pixel threshold proves one layout at one width; it is a proof of the loop, not a general layout check, and no tool today reports geometry.

@@ -1110,3 +1110,47 @@ test("mcp_capture_bound_defaults_and_configured_description", async () => {
     );
   }
 });
+
+test("mcp_capture_layout_in_text_and_structured_content", async () => {
+  await withClient(
+    async (client) => {
+      await call(client, "pack_draft", drafts[0] as unknown as Record<string, unknown>);
+      const plain = await client.callTool({
+        name: "capture_preview",
+        arguments: { scenarios: ["ready"], widths: [360] },
+      });
+      expect(JSON.parse((plain.content[0] as { text: string }).text)[0]).not.toHaveProperty("layout");
+      const result = await client.callTool({
+        name: "capture_preview",
+        arguments: { scenarios: ["ready"], widths: [360], layout: true },
+      });
+      expect(result.isError).not.toBe(true);
+      const cells = JSON.parse((result.content[0] as { text: string }).text);
+      expect(cells[0].layout).toEqual({
+        width: 360,
+        height: 100,
+        overflowX: false,
+        overflowing: [],
+        nodes: [{ id: "node-0", x: 0, y: 0, width: 360, height: 1 }],
+      });
+      expect(result.structuredContent).toEqual({ result: cells });
+      const tool = (await client.listTools()).tools.find((t) => t.name === "capture_preview");
+      expect(JSON.stringify(tool?.outputSchema)).toContain("overflowing");
+      const bad = await client.callTool({ name: "capture_preview", arguments: { layout: "yes" } });
+      expect(bad.isError).toBe(true);
+    },
+    { config: `${fixtures}/mcp-capture.config.ts`, protocolVersion: "2025-11-25" },
+  );
+}, 30000);
+
+test("mcp_capture_layout_over_bound_is_limit_exceeded", async () => {
+  await withClient(
+    async (client) => {
+      await call(client, "pack_draft", drafts[0] as unknown as Record<string, unknown>);
+      const result = await call(client, "capture_preview", { scenarios: ["ready"], widths: [360], layout: true });
+      expect(result.isError).toBe(true);
+      expect(result.json()).toEqual([expect.objectContaining({ kind: "limit-exceeded", pointer: "/layout" })]);
+    },
+    { config: `${fixtures}/mcp-capture.config.ts`, env: { LF_HUGE_LAYOUT: "1" } },
+  );
+}, 30000);

@@ -8,7 +8,13 @@ import type { Json, UiNode, UiTree } from "../formats/tree.ts";
 import { canonicalJson, utf8 } from "../pack/hash.ts";
 import { outcomeScenarios } from "../pack/outcome.ts";
 import type { PreviewBinding, PreviewSession } from "../preview/authoring.ts";
-import { type CaptureBackend, CaptureError, capture } from "../preview/capture/index.ts";
+import {
+  type CaptureBackend,
+  CaptureError,
+  capture,
+  type CapturedCell,
+  type CellLayout,
+} from "../preview/capture/index.ts";
 import type { Runner } from "../preview/runner.ts";
 import { createPreview } from "../preview/session.ts";
 import { isLanguageSchema, sourceOutcome } from "../schema.ts";
@@ -37,7 +43,14 @@ export type PackedDraft = {
   scenarios: readonly string[];
 };
 
-export type CaptureInput = { scenarios?: string[]; widths?: number[]; themes?: string[]; designSystems?: string[] };
+export type CaptureInput = {
+  scenarios?: string[];
+  widths?: number[];
+  themes?: string[];
+  designSystems?: string[];
+  /** Also measure each cell's layout (`layout` on the result). Default false. */
+  layout?: boolean;
+};
 export type AuthoringCaptureCell = {
   scenario: string;
   width: number;
@@ -46,6 +59,8 @@ export type AuthoringCaptureCell = {
   errors: readonly LiveframeError[];
   aria: string | null;
   png: Uint8Array;
+  /** Present only when requested; null when the capture backend cannot measure. */
+  layout?: CellLayout | null;
 };
 
 /** Host `meta` is the host's own annotation; an agent sees it only when the config opts in. */
@@ -148,6 +163,31 @@ const failure = (kind: LiveframeError["kind"], pointer: string, message: string)
   ok: false,
   errors: [{ kind, pointer, message }],
 });
+const decodeLayout = (bytes: Uint8Array): CellLayout => JSON.parse(new TextDecoder().decode(bytes));
+const authoringCell = (
+  { scenario, width, theme, designSystem, errors, snapshot, png, layout }: CapturedCell,
+  files: ReadonlyMap<string, Uint8Array>,
+): AuthoringCaptureCell => ({
+  scenario,
+  width,
+  theme,
+  designSystem,
+  errors,
+  aria: snapshot === null ? null : new TextDecoder().decode(files.get(snapshot)),
+  png: files.get(png)!,
+  ...(layout === undefined ? {} : { layout: layout === null ? null : decodeLayout(files.get(layout)!) }),
+});
+
+/** Only the cell-count refusal names the config field; a layout refusal names its cell. */
+function captureFailure(error: unknown, bound: number): Result<never> {
+  if (!(error instanceof CaptureError)) return failure("render-failed", "", message(error));
+  const cellCount = error.kind === "limit-exceeded" && error.pointer === "";
+  return failure(
+    error.kind,
+    error.pointer,
+    cellCount ? `maxCaptureCells: ${bound}. ${message(error)}` : message(error),
+  );
+}
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
 let nextAuthoring = 0;
 
@@ -363,6 +403,8 @@ export function createAuthoring(options: AuthoringOptions) {
     capturePreview(input: CaptureInput = {}): Promise<Result<AuthoringCaptureCell[]>> {
       return exclusive(async () => {
         if (!packed) return failure("not-found", "", "Call pack_draft before capture_preview");
+        if (input.layout !== undefined && typeof input.layout !== "boolean")
+          return failure("invalid-document", "/layout", "Expected a boolean");
         let url: string;
         try {
           if (!options.preview)
@@ -386,25 +428,9 @@ export function createAuthoring(options: AuthoringOptions) {
             backend: options.capture,
             maxCells: maxCaptureCells,
           });
-          return success(
-            index.cells.map(({ scenario, width, theme, designSystem, errors, snapshot, png }) => ({
-              scenario,
-              width,
-              theme,
-              designSystem,
-              errors,
-              aria: snapshot === null ? null : new TextDecoder().decode(files.get(snapshot)),
-              png: files.get(png)!,
-            })),
-          );
+          return success(index.cells.map((cell) => authoringCell(cell, files)));
         } catch (error) {
-          return failure(
-            error instanceof CaptureError ? error.kind : "render-failed",
-            "",
-            error instanceof CaptureError && error.kind === "limit-exceeded"
-              ? `maxCaptureCells: ${maxCaptureCells}. ${message(error)}`
-              : message(error),
-          );
+          return captureFailure(error, maxCaptureCells);
         }
       });
     },
