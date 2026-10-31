@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
-import { rm } from "node:fs/promises";
+import { mkdir, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { CallToolResultSchema } from "@modelcontextprotocol/core";
@@ -546,7 +546,7 @@ test("pack_draft_schema_embeds_the_published_schemas", async () => {
   };
   // The handler validates the nested documents, so the argument object stays permissive and documented.
   expect(schema.required ?? []).toEqual([]);
-  expect(Object.keys(schema.properties).sort()).toEqual(["entry", "files", "manifest", "scenarios"]);
+  expect(Object.keys(schema.properties).sort()).toEqual(["dir", "entry", "files", "manifest", "scenarios"]);
   for (const shape of Object.values(schema.properties)) expect(Object.keys(shape)).toEqual(["description"]);
   // The published shapes stay visible to an agent reading `tools/list`.
   expect(schema.$defs.scenario).toEqual(packageDoc.$defs.scenario);
@@ -782,3 +782,165 @@ test("mcp_capture_without_snapshot", async () => {
     { config: `${fixtures}/mcp-capture.config.ts`, env: { LF_NULL_SNAPSHOT: "1" } },
   );
 });
+
+async function withDraftDirectory(work: (root: string, client: Client) => Promise<void>) {
+  const root = await temp();
+  try {
+    await Bun.write(
+      join(root, "widget", "entry.tsx"),
+      "throw new Error('directory-draft-marker'); export default () => null;",
+    );
+    await Bun.write(join(root, "widget", "manifest.json"), JSON.stringify(agentManifest));
+    await Bun.write(join(root, "widget", "scenarios.json"), JSON.stringify(drafts[0]!.scenarios));
+    await withClient((client) => work(root, client), {
+      config: `${fixtures}/mcp-draft-root.config.ts`,
+      env: { LIVEFRAME_TEST_DRAFT_ROOT: relative(process.cwd(), root) },
+    });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+    await rm(`${root}-sibling`, { recursive: true, force: true });
+  }
+}
+
+test("pack_dir_matches_inline_hash", async () => {
+  await withDraftDirectory(async (root, client) => {
+    const { readDraft } = await import("../../examples/demo-host/widgets/draft.ts");
+    const inline = await call(client, "pack_draft", await readDraft(join(root, "widget")));
+    expect(inline.isError).toBe(false);
+    await Bun.write(join(root, "widget/ignored.txt"), "ignored");
+    await Bun.write(join(root, "widget/nested/ignored.ts"), "invalid syntax ignored");
+    await symlink(join(root, "widget"), join(root, "alias"));
+    const directory = await call(client, "pack_draft", { dir: "alias" });
+    expect(directory.isError).toBe(false);
+    expect(directory.json()).toEqual(inline.json());
+    await Bun.write(join(root, "widget/helper.ts"), "throw new Error('packing must not execute this');");
+    expect((await call(client, "pack_draft", { dir: "widget" })).isError).toBe(false);
+    await rm(join(root, "widget/helper.ts"));
+    expect((await call(client, "pack_draft", { dir: "widget", entry: "entry.tsx" })).json()).toEqual(inline.json());
+    const tools = (await client.listTools()).tools;
+    expect(tools.find((tool) => tool.name === "pack_draft")?.inputSchema.properties).toHaveProperty("dir");
+  });
+}, 30000);
+
+const directoryCases: Record<
+  string,
+  { args?: Record<string, unknown>; kind: string; prepare?: (root: string) => Promise<unknown> }
+> = {
+  absolute: { args: { dir: "/tmp" }, kind: "invalid-document" },
+  dotdot: { args: { dir: "widget/../widget" }, kind: "invalid-document" },
+  empty: { args: { dir: "" }, kind: "invalid-document" },
+  nonstring: { args: { dir: 42 }, kind: "invalid-document" },
+  missing_directory: { args: { dir: "absent" }, kind: "not-found" },
+  missing_manifest: { kind: "not-found", prepare: (root) => rm(join(root, "widget/manifest.json")) },
+  missing_scenarios: { kind: "not-found", prepare: (root) => rm(join(root, "widget/scenarios.json")) },
+  missing_entry: { args: { dir: "widget", entry: "absent.tsx" }, kind: "not-found" },
+  malformed_json: { kind: "invalid-document", prepare: (root) => Bun.write(join(root, "widget/manifest.json"), "{") },
+  nonregular_file: {
+    kind: "invalid-document",
+    prepare: async (root) => {
+      await mkdir(join(root, "widget/directory.ts"));
+    },
+  },
+  source_count_bound: {
+    kind: "limit-exceeded",
+    prepare: async (root) => {
+      for (let i = 0; i < 129; i++) await Bun.write(join(root, `widget/source${i}.ts`), "");
+    },
+  },
+  aggregate_byte_bound: {
+    kind: "limit-exceeded",
+    prepare: (root) => Bun.write(join(root, "widget/large.ts"), " ".repeat(1048576)),
+  },
+  with_files: { args: { dir: "widget", files: {} }, kind: "invalid-document" },
+  with_manifest: { args: { dir: "widget", manifest: {} }, kind: "invalid-document" },
+  with_scenarios: { args: { dir: "widget", scenarios: [] }, kind: "invalid-document" },
+  symlink_escape: {
+    args: { dir: "escape" },
+    kind: "invalid-document",
+    prepare: (root) => symlink(tmpdir(), join(root, "escape")),
+  },
+  file_symlink_escape: {
+    kind: "invalid-document",
+    prepare: async (root) => {
+      await rm(join(root, "widget/manifest.json"));
+      await symlink(join(process.cwd(), "package.json"), join(root, "widget/manifest.json"));
+    },
+  },
+  sibling_prefix_escape: {
+    args: { dir: "escape" },
+    kind: "invalid-document",
+    prepare: async (root) => {
+      const sibling = `${root}-sibling`;
+      await mkdir(sibling);
+      await symlink(sibling, join(root, "escape"));
+    },
+  },
+};
+for (const [name, { args = { dir: "widget" }, kind, prepare }] of Object.entries(directoryCases)) {
+  test(`pack_dir_rejects_${name}`, async () => {
+    await withDraftDirectory(async (root, client) => {
+      await prepare?.(root);
+      const result = await call(client, "pack_draft", args);
+      expect(result.isError).toBe(true);
+      expect(result.json()).toEqual([expect.objectContaining({ kind, pointer: "/dir" })]);
+    });
+  }, 30000);
+}
+
+test("pack_dir_without_root_names_draftRoot", async () => {
+  const result = await withClient((client) => call(client, "pack_draft", { dir: "widget" }));
+  expect(result.isError).toBe(true);
+  expect(result.json()).toEqual([
+    expect.objectContaining({ kind: "not-found", pointer: "/dir", message: expect.stringContaining("draftRoot") }),
+  ]);
+});
+
+test("config_rejects_missing_draft_root", () => {
+  for (const root of ["/liveframe-missing-draft-root", "package.json"]) {
+    const result = cli([`${fixtures}/mcp-draft-root.config.ts`], undefined, { LIVEFRAME_TEST_DRAFT_ROOT: root });
+    expect(result.exitCode).toBe(2);
+    expect(JSON.parse(result.stderr.toString())).toEqual([
+      expect.objectContaining({ kind: "invalid-document", pointer: "/draftRoot" }),
+    ]);
+  }
+});
+
+test("pack_dir_accepts_exact_read_bounds", async () => {
+  await withDraftDirectory(async (root, client) => {
+    for (let i = 0; i < 127; i++) await Bun.write(join(root, `widget/source${i}.ts`), "");
+    const jsonBytes =
+      Bun.file(join(root, "widget/manifest.json")).size + Bun.file(join(root, "widget/scenarios.json")).size;
+    const source = "export default () => null;";
+    await Bun.write(join(root, "widget/entry.tsx"), source + " ".repeat(1048576 - jsonBytes - source.length));
+    expect((await call(client, "pack_draft", { dir: "widget" })).isError).toBe(false);
+  });
+}, 30000);
+
+test("config_rejects_nonstring_draft_root", async () => {
+  const root = await temp();
+  try {
+    const path = join(root, "config.ts");
+    await Bun.write(
+      path,
+      `import config from ${JSON.stringify(join(process.cwd(), config))}; export default { ...config, draftRoot: 42 };`,
+    );
+    const result = cli([path]);
+    expect(result.exitCode).toBe(2);
+    expect(JSON.parse(result.stderr.toString())).toEqual([
+      expect.objectContaining({ kind: "invalid-document", pointer: "/draftRoot" }),
+    ]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("pack_dir_joins_arrival_order_before_render", async () => {
+  await withDraftDirectory(async (_root, client) => {
+    const packing = call(client, "pack_draft", { dir: "widget" });
+    const rendering = call(client, "render_scenarios", { scenario: agentScenario });
+    expect((await packing).isError).toBe(false);
+    const rendered = await rendering;
+    expect(rendered.isError).toBe(true);
+    expect(rendered.text).toContain("directory-draft-marker");
+  });
+}, 30000);

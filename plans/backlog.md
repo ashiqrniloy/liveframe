@@ -317,6 +317,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Phase 8 follow-up (spec §13)
 - Priority: P4
+- Status: closed 2026-10-31 in plan 021 Task 14.6: CLI-only opt-in `draftRoot`, canonical directory/file containment, bounded top-level reads and typed `/dir` errors. Inline transport remains available.
 - Source: plans/011-Phase-8-Authoring-MCP-Server.md (not in this plan, D5), Task 8 handoff
 - What: `pack_draft` takes inline file contents, which suits an agent without a file system but makes a human-driven client paste every file. If a client needs paths, add them behind an explicit opt-in in the config, with the path checks (`..`, symlinks, allowed roots) that D5 rejected for v1.
 - Why: rejection recorded in `decision-logs/2026-10-24-2330-authoring-mcp-server-contract.md`; revisit only when an adopter asks.

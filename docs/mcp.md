@@ -83,6 +83,10 @@ export default config;
 - `runner` is the runner production uses. Omit it and the server uses
   `workerRunner()`, which needs the `Worker` global (Bun has it). Preview and
   production must agree, so pass your own if you have one.
+- `draftRoot` optionally allows `pack_draft({ dir, entry? })` to read files from disk.
+  It must name an existing directory; relative roots resolve from the server's
+  working directory. Startup canonicalizes it and reports `invalid-document` at
+  `/draftRoot` with exit 2 if invalid. Omit it to keep inline-only transport.
 - `exposeMeta` (default `false`) shows host `meta` to the agent: capability `meta`
   in `list_capabilities` and the manifest's `meta` in the `pack_draft` result.
   `meta` is the host's annotation, so an agent sees it only when you opt in; the
@@ -125,7 +129,7 @@ registered. Log to stderr only: stdout carries the protocol.
 | `list_vocabulary` | — | `{ catalogId, vocabulary }`: the id a manifest must name, then colours, surfaces, typography, tones and the `space`/`radius`/`size`/`bp` names |
 | `list_capabilities` | — | Each source's params and result schema and each action's args schema (capability `meta` only with `exposeMeta`) |
 | `generated_types` | `{ module? }` | `{ note, types }`: byte-identical `liveframe gen` output for `"types"` (default), `"implementations"` (`--implementations`) or `"elementsSchema"` (`--elements-schema`) |
-| `pack_draft` | `{ files, entry, manifest, scenarios }` | `{ hash, id, version, description?, scenarios }` (plus `meta` with `exposeMeta`) |
+| `pack_draft` | `{ files, entry, manifest, scenarios }` or `{ dir, entry? }` | `{ hash, id, version, description?, scenarios }` (plus `meta` with `exposeMeta`) |
 | `render_scenarios` | `{ scenario?, state?, context?, outcomes? }` | One scenario's tree (at most 256 KiB), or scenario statuses and each distinct error once; `outcomes: true` expands source outcomes and always returns statuses |
 | `set_state` | `{ origin: { nodeId, event }, value? }` | Applies an offered state event and returns its new tree (at most 256 KiB); refuses actions |
 | `capture_preview` | `{ scenarios?, widths?, themes?, designSystems? }` | Each cell's coordinates, errors, accessibility snapshot and PNG |
@@ -154,7 +158,31 @@ For page snapshots, call `session.render({ scenario, preserveState: true })`
 so the same scenario retains changed state/context through reload and capture.
 Explicit overrides win; choosing a different scenario starts from its initial state.
 
-`pack_draft` takes the same input as `session.update()`. A failed pack returns
+With `draftRoot: "./widgets"` in the CLI config, call:
+
+```json
+{ "name": "pack_draft", "arguments": { "dir": "hello", "entry": "entry.tsx" } }
+```
+
+`entry` defaults to `entry.tsx`. The reader loads top-level `.ts`/`.tsx` sources,
+`manifest.json` and `scenarios.json`, then uses the same inline packer, with the
+same hash for the same input. It ignores other files and does not recurse or run
+code. It accepts at most 128 source files and 1048576 aggregate bytes including
+the JSON documents; this read limit is separate from the packer's emitted-code
+limit. Reads stay in arrival order with rendering and capture.
+
+`dir` must be a non-empty relative path without `..` segments. Both the directory
+and every selected file must resolve beneath the configured root, so escaping
+symlinks are refused. Selected files must be regular files. Do not combine `dir`
+with `files`, `manifest` or `scenarios`. Reader errors point to `/dir`:
+`invalid-document` for those invalid inputs or malformed JSON, `not-found` for a
+missing root configuration, directory, required JSON file or entry, and
+`limit-exceeded` for read limits. Once read, document errors retain pointers such
+as `/manifest/id`. These directories must be host-controlled: the reader is not
+a sandbox against a local process replacing files concurrently. `/authoring`
+continues to accept inline drafts only.
+
+`pack_draft` takes the same inline input as `session.update()`. A failed pack returns
 the errors and keeps the previous package, so the agent can fix a draft without
 losing the page it was looking at.
 

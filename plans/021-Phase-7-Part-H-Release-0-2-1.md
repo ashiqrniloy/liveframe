@@ -1245,7 +1245,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Updated the spec (§7.5 and §13), security and outsider guides, README, adopter note, backlog closure and all eight-tool lists, including the guide/demo test expectations found during execution. No further spec decision was needed beyond approved M4.
     - `timeout 900s bun run check` passed: 897 tests passed, 4 skipped, 0 failed. The focused MCP/capture run passed 52 tests. `timeout 900s bun run demo:test tests/preview.test.ts` passed the packed archive's demo typecheck and all 4 preview tests. One earlier full run hit the existing runner warm-overhead timing gate at 0.112 ms against 0.1 ms; the unchanged final rerun passed without relaxing the assertion. The full release/archive gate and publishing remain later plan tasks.
 
-- [ ] Task 14.6: Read `pack_draft` drafts from a directory under an opt-in root (M5)
+- [x] Task 14.6: Read `pack_draft` drafts from a directory under an opt-in root (M5)
   - Acceptance Criteria:
     - Functional:
       - With `draftRoot` configured, `pack_draft({ dir, entry? })` packs exactly what `readDraft(<root>/<dir>)` in the demo host packs, so the result's hash equals an inline `pack_draft` of the same files.
@@ -1264,19 +1264,24 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Options Considered:
       - Per-file `paths: string[]`. Rejected: the agent would still send the manifest and scenarios inline, and a directory matches the layout the demo host and `liveframe gen` users already have.
     - Chosen Approach:
-      - Task 14.1's M5.
+      - Task 14.1's M5. Keep the filesystem read in the CLI's arrival-order queue before forwarding the resulting inline input to `/authoring`.
     - API Notes and Examples:
       ```ts
       export default { catalog, capabilities, draftRoot: "./widgets" } satisfies AuthoringConfig;
       ```
     - Files to Create/Edit:
       - `src/cli/draft-dir.ts` (new); `src/cli/mcp.ts`; `src/preview/authoring.ts`; `src/__tests__/cli-mcp.test.ts`; `src/__tests__/fixtures/mcp-draft-root.config.ts` (new)
-      - `docs/spec.md` §13; `docs/mcp.md`; `plans/backlog.md`
+      - `docs/spec.md` §13; `docs/mcp.md`; `plans/backlog.md`; `roadmap.md` §3 (execution status)
   - Test Cases to Write:
     - `pack_dir_matches_inline_hash`.
     - `pack_dir_rejects_absolute`, `_dotdot`, `_symlink_escape`, `_missing_manifest`, `_with_files`. Each fails if its check is removed.
     - `pack_dir_without_root_names_draftRoot`; `config_rejects_missing_draft_root` (exit 2).
     - `pack_dir_rejects_file_symlink_escape`, `_missing_scenarios`, `_missing_entry`, `_malformed_json`, `_nonregular_file`, `_source_count_bound`, `_aggregate_byte_bound`, `_conflicting_inline_fields`: each reader error is typed at `/dir`; bounds reject before unbounded content reads. A sibling path sharing the root's prefix is not contained.
+
+  - Notes (executed 2026-10-31):
+    - Added CLI-only `draftRoot` configuration, canonicalized from the server working directory and validated as an existing directory at startup. Invalid roots report `invalid-document` at `/draftRoot` and exit 2. Added the bounded top-level directory reader; it checks canonical directory and per-file containment, regular files, 128-source and 1048576-byte aggregate limits before content allocation, and bounds actual reads too. Reader errors stay at `/dir`; ordinary pack/document validation is unchanged. `/authoring` remains inline-only and host-API-free.
+    - Included reads in the CLI arrival-order queue with packing, rendering, state and capture; shutdown drains it before closing authoring. Tests cover demo-reader hash parity, relative-root resolution, ignored unrelated/nested files, in-root directory symlinks, every named rejection, exact read-bound acceptance, no execution while packing, and pack-before-render ordering. Updated discovery expectations, the public config type, spec §13 and the MCP guide; closed the disk-path backlog entry and confirmed D5's existing amendment. No new decision was needed beyond approved M5.
+    - Checked Bun filesystem documentation through Context7 (the available versioned docs were 1.4.2; execution used Bun 1.4.4). The 21 initial regression tests failed before implementation. Focused authoring/MCP/guide suites passed 76 tests; the final directory-focused run passed 22 tests, including queue ordering. `timeout 900s bun run check` passed build, generation, typechecks, lint, formatting and **921 tests**, with 4 existing skips and 0 failures (925 tests across 109 files; test phase 296.77 s). An initial check caught the reader's complexity lint limit; a small path-validation predicate resolved it without suppressing the rule. The release/archive gate and publishing remain later tasks. Directories remain host-controlled as approved; protection against concurrent local file replacement is outside this reader's contract.
 
 - [ ] Task 14.7: Annotate every tool (M6)
   - Acceptance Criteria:

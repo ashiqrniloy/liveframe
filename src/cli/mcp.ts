@@ -1,5 +1,6 @@
 import { type CaptureInput, createAuthoring, type PackInput, type RenderInput } from "../authoring/index.ts";
 
+import { lstat, realpath } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import pkg from "../../package.json" with { type: "json" };
@@ -13,6 +14,7 @@ import type { CaptureBackend } from "../preview/capture/index.ts";
 import type { Runner } from "../preview/runner.ts";
 import { workerRunner } from "../preview/worker/index.ts";
 import { defaultCaptureBackend } from "./capture.ts";
+import { readDraftDirectory } from "./draft-dir.ts";
 
 // Kept for existing internal consumers; business logic lives in /authoring.
 export { checkAll } from "../authoring/checks.ts";
@@ -69,6 +71,19 @@ async function loadConfig(path: string): Promise<ConfigResult> {
   if (!catalog.ok) return { ok: false, errors: catalog.errors };
   const capabilities = validateCapabilities(config.capabilities);
   if (!capabilities.ok) return { ok: false, errors: capabilities.errors };
+  if (config.draftRoot !== undefined) {
+    try {
+      if (typeof config.draftRoot !== "string" || !config.draftRoot) throw new Error("Expected a directory path");
+      const draftRoot = await realpath(resolve(config.draftRoot));
+      if (!(await lstat(draftRoot)).isDirectory()) throw new Error("Expected a directory");
+      return { ok: true, config: { ...config, draftRoot }, catalog: catalog.value, capabilities: capabilities.value };
+    } catch (error) {
+      return {
+        ok: false,
+        errors: [{ ...invalid(error instanceof Error ? error.message : String(error)), pointer: "/draftRoot" }],
+      };
+    }
+  }
   return { ok: true, config, catalog: catalog.value, capabilities: capabilities.value };
 }
 
@@ -150,16 +165,25 @@ const packageDefs = packageSchema.$defs as JsonObject;
 const packSchema = {
   type: "object",
   properties: {
-    files: {
-      description: 'Required. Source files by path: a non-empty object of file path to module source. See "$defs".',
+    dir: {
+      description:
+        "Optional directory beneath config.draftRoot. Reads top-level .ts/.tsx, manifest.json and scenarios.json; entry defaults to entry.tsx. Cannot combine with files, manifest or scenarios.",
     },
-    entry: { description: "Required. The entry file path: one of `files`' keys." },
+    files: {
+      description:
+        'Required for inline drafts. Source files by path: a non-empty object of file path to module source. See "$defs".',
+    },
+    entry: {
+      description:
+        "Required for inline drafts; defaults to entry.tsx with dir. The entry file path: one of `files`' keys.",
+    },
     manifest: {
-      description: 'Required. The widget manifest. Its published schema is "$defs" (urn:liveframe:manifest:1).',
+      description:
+        'Required for inline drafts. The widget manifest. Its published schema is "$defs" (urn:liveframe:manifest:1).',
     },
     scenarios: {
       description:
-        'Required. One to 64 scenarios: name, params, context, optional state and data sources. See "$defs.scenario".',
+        'Required for inline drafts. One to 64 scenarios: name, params, context, optional state and data sources. See "$defs.scenario".',
     },
   },
   // `json` is byte-identical in both published schemas, so one copy serves both.
@@ -190,7 +214,7 @@ function registerDraftTools(sdk: Sdk, server: Server, authoring: Authoring): voi
     "pack_draft",
     {
       description:
-        "Packs a draft — files, entry, manifest and scenarios — through the same packer production uses, and returns its hash plus manifest id, version, description and scenario names. A failed pack returns its LiveframeErrors and keeps the previous draft current.",
+        "Packs a draft — inline files, entry, manifest and scenarios, or dir beneath config.draftRoot with optional entry — through the same packer production uses, and returns its hash plus manifest id, version, description and scenario names. A failed pack returns its LiveframeErrors and keeps the previous draft current.",
       inputSchema: sdk.fromJsonSchema<PackInput>(schema(packSchema)),
     },
     async (input) => mapped(await authoring.packDraft(input)),
@@ -311,9 +335,28 @@ export async function mcp(path: string, load: () => Promise<Sdk> = loadSdk): Pro
     runner,
     capture: config.capture ?? lazyCaptureBackend(),
   });
+  // Include disk reads in arrival order, before the host-free authoring queue.
+  let pending: Promise<unknown> = Promise.resolve();
+  const queued = <T>(work: () => Promise<T>): Promise<T> => {
+    const next = pending.then(work, work);
+    pending = next.catch(() => {});
+    return next;
+  };
+  const drafts: Authoring = {
+    ...authoring,
+    packDraft: (input) =>
+      queued(async () => {
+        if (!Object.hasOwn(input, "dir")) return authoring.packDraft(input);
+        const read = await readDraftDirectory(config.draftRoot, input);
+        return read.ok ? authoring.packDraft(read.value) : read;
+      }),
+    renderScenarios: (input) => queued(() => authoring.renderScenarios(input)),
+    setState: (input) => queued(() => authoring.setState(input)),
+    capturePreview: (input) => queued(() => authoring.capturePreview(input)),
+  };
   registerCatalogTools(sdk, server, authoring);
-  registerDraftTools(sdk, server, authoring);
-  registerCaptureTool(sdk, server, authoring);
+  registerDraftTools(sdk, server, drafts);
+  registerCaptureTool(sdk, server, drafts);
   await server.connect(new sdk.StdioServerTransport());
   await new Promise<void>((resolveStop) => {
     const stop = () => resolveStop();
@@ -323,6 +366,7 @@ export async function mcp(path: string, load: () => Promise<Sdk> = loadSdk): Pro
     process.stdin.once("close", stop);
   });
   await server.close().catch(() => {});
+  await pending;
   await authoring.close();
   if (owned) runner.close?.();
   return 0;

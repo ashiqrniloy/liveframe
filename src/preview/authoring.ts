@@ -32,6 +32,8 @@ export type AuthoringConfig = {
   readonly catalog: unknown;
   /** A capabilities document, validated on start. */
   readonly capabilities: unknown;
+  /** CLI only: allow draft directories beneath this existing root, resolved from the server working directory. */
+  readonly draftRoot?: string;
   /** The app's runner. Defaults to `workerRunner()`. */
   readonly runner?: Runner;
   /** Capture engine; the CLI lazily defaults to Playwright when omitted. */
