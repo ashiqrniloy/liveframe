@@ -5,7 +5,7 @@
   - Bun 1.4.4, Node 26.11.1, Ryzen 9 PRO 7940HS.
   - Every check ran against the installed archive, not this repository. The scripts and their output are in Clay's `test-plan/artifacts/205-liveframe/release-review/`.
 - **Date:** 2026-10-30
-- **Delivery status (2026-10-31):** CL-10 to CL-16 are implemented for `@arnilo/liveframe@0.2.1` (CL-14's registry dist-tag check completes on publish in plan 021 Task 18). [`docs/adopters-0.2.md`](../../docs/adopters-0.2.md#021--clay-review-and-authoring-additions) records, per ID, the shipped API, its spec section and its limitation; this document stays the request record.
+- **Delivery status (2026-11-01):** CL-10 to CL-16 are delivered and verified in `@arnilo/liveframe@0.2.1`, published to npm under `latest` with `next` kept at or above `latest`. [`docs/adopters-0.2.md`](../../docs/adopters-0.2.md#021--clay-review-and-authoring-additions) records, per ID, the shipped API, its spec section and its limitation; this document stays the request record.
 - **Status:** requests, not decisions. Settle each one with a decision log and a plan before building it.
 - **Release target:** **0.2.1**, as the owner directed. Two policy questions need the owner's answer (R15):
   - `docs/compatibility.md` allows bug fixes and documentation in a patch. It lists added cases, vectors and exports under § Growth as additive, but does not name them as patch content. That reading covers CL-10, CL-11 and CL-13.

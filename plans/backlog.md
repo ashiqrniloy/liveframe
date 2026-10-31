@@ -460,6 +460,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 ## Design tree patches for streaming agent surfaces
 
+- Status: closed 2026-11-01 by plan 021 (CL-15; decision-logs/2026-10-30-2212-tree-patch-format-and-operations.md, Tasks 9–12, released in 0.2.1). Optional `liveframe/tree-patch/1` format, `diffTrees`, `applyPatch` and `<Surface>` identity-keyed subtree reuse meet the LF-17 targets at 228 B gzip median and 2.7 ms arrival validation plus commit.
 - Disposition: deferred 2026-10-29 after plan 019 Task 7. The approved streaming decision warrants patches; the patch format and API need the owner's explicit approval before a plan task is written.
 - Section: Agent surfaces (spec §9)
 - Priority: P2
@@ -469,6 +470,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 ## Ship the post-0.2.0 documentation corrections
 
+- Status: closed 2026-11-01 by plan 021 Task 15 and Task 18, released in 0.2.1. F1–F4 documentation corrections shipped in the 0.2.1 release.
 - Disposition: added 2026-10-30 with the owner's approval in plan 020 Task 10 (`plans/evidence/020-impact-analysis.md`). These are factual corrections found after the `v0.2.0` tag, so the published archive still carries the earlier wording.
 - Section: Phase 7 follow-up (docs and spec, spec §13)
 - Priority: P2
