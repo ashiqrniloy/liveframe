@@ -1,9 +1,10 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import type { Browser } from "playwright";
 import { renderToString } from "react-dom/server";
+import { primitiveCss } from "../../proof/renderer/primitives/base.ts";
 import { baseCss, designSystemCss, themeCss } from "../css/index.ts";
 import type { Catalog, DesignSystem, Result, Theme } from "../index.ts";
-import { browserName, launchBrowser } from "./fixtures/browser.ts";
+import { launchBrowser, measureSwitching } from "./fixtures/browser.ts";
 import { hydrationTree, renderer, surfaceProps } from "./fixtures/react-surface.tsx";
 
 const read = (name: string) => Bun.file(new URL(`./fixtures/proof/${name}.json`, import.meta.url)).json();
@@ -148,7 +149,7 @@ beforeAll(async () => {
       return new URL(request.url).pathname === "/client.js"
         ? new Response(bundle, { headers: { "Content-Type": "text/javascript" } })
         : new Response(
-            `<!doctype html><html lang="en"><head><title>Surface tests</title><style>${sheets.join("\n")}</style><style>
+            `<!doctype html><html lang="en"><head><title>Surface tests</title><style>${primitiveCss}${sheets.join("\n")}</style><style>
               #app:has(section){display:flex;gap:16px}section{position:relative;width:760px;flex-shrink:0}
               [role=dialog]{position:absolute;top:40px;left:40px;z-index:2}
               .lf_dialog_default_backdrop{position:absolute;inset:0;z-index:1}
@@ -650,33 +651,11 @@ test("sibling_surfaces_switch_independently", async () => {
 test("switch_under_budget_with_blur_through_surface", async () => {
   const page = await mountSwitching();
   try {
-    const result = await page.evaluate(async () => {
-      const nodes = [...document.querySelectorAll("#b *")];
-      const samples: number[] = [];
-      let cold = 0;
-      for (let i = 0; i < 11; i++) {
-        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-        const start = performance.now();
-        window.surfaceTest.switchStyles(1, i % 2 ? "rack" : "certified");
-        for (const el of nodes) {
-          const s = getComputedStyle(el);
-          void s.fontSize;
-          void s.backgroundColor;
-          void s.backdropFilter;
-          void s.display;
-        }
-        const elapsed = performance.now() - start;
-        if (i === 0) cold = elapsed;
-        else samples.push(elapsed);
-        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-      }
-      return { cold, samples, nodes: nodes.length };
-    });
+    const result = await measureSwitching(page, "surface");
     console.log(`Surface two-surface switch with blur: ${JSON.stringify(result)}`);
     expect(result.nodes).toBeGreaterThan(500);
     expect(result.samples).toHaveLength(10);
-    // WebKit's headless frame pacing adds a few milliseconds; record the engine difference, not a library budget.
-    expect(Math.max(...result.samples)).toBeLessThanOrEqual(browserName === "webkit" ? 25.1 : 16.67);
+    expect(Math.max(...result.samples.map((sample) => sample.library))).toBeLessThanOrEqual(16.67);
   } finally {
     await page.close();
   }

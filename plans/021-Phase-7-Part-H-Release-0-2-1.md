@@ -741,7 +741,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - The probe passed Biome after formatting. No production code, threshold or spec meaning changed.
     - `timeout 900s bun run check` passed: **878 passed, 4 skipped, 0 failed**, 882 tests across 109 files (366.77 s, under VM load).
 
-- [ ] Task 13.2: Load the trusted primitive CSS in both switching fixtures (R1)
+- [x] Task 13.2: Load the trusted primitive CSS in both switching fixtures (R1)
   - Acceptance Criteria:
     - Functional:
       - `css-scope-browser.test.ts` and `react-browser.test.tsx` load the proof's `primitiveCss` before the projected sheets, as a host does. The CSS fixture's switched section measures a realistic height: icons are sized and flex layout applies. A test asserts that icon roots are no larger than their `1rem` box.
@@ -770,6 +770,15 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       - `plans/evidence/021-task-14-switching.md` (numbers after R1)
   - Test Cases to Write:
     - `switching_fixture_loads_primitive_css`: icon roots are at most 16 px. It fails if the fixture drops `primitiveCss`.
+  - Notes (executed 2026-10-31):
+    - Both switching pages now load `primitiveCss` before the projected sheets: `css-scope-browser.test.ts` through its shared `sheets`, and `react-browser.test.tsx` in the served page head.
+    - Added `switching_fixture_loads_primitive_css`. Kept the Task 14 work-in-progress `measureSwitching` helper, which both tests use, asserting span A at 16.67 ms in every engine with B and C logged. It is committed here.
+    - Warm span A, median/max (load 4.4, VM running):
+      - Chromium: CSS 6.5/7.5 ms, Surface 6.6/7.4 ms;
+      - Firefox: CSS 8/10 ms, Surface 6/9 ms;
+      - WebKit: CSS 14.5/20 ms (from 25 ms before R1), Surface 16/17 ms.
+    - All 33 tests in both files pass in Chromium and Firefox. In WebKit only the two switching assertions fail; Tasks 13.3 and 13.4 close them. See [the Task 14 record](evidence/021-task-14-switching.md).
+    - `timeout 900s bun run check` passed: **879 passed, 4 skipped, 0 failed**, 883 tests across 109 files (339.44 s). The default-engine check does not cover the WebKit gate, which stays red until Task 13.4.
 
 - [ ] Task 13.3: Add the `deferOffscreen` style prop (R2)
   - Acceptance Criteria:

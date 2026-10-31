@@ -1,9 +1,10 @@
 // Regenerate the static server-rendered fixture: timeout 30s bun proof/scripts/capture-css-scope.ts
 import { afterAll, beforeAll, expect, test } from "bun:test";
-import type { Browser, Page } from "playwright";
 import { baseCss, designSystemCss, styleDeclarations, themeCss } from "@arnilo/liveframe/css";
+import type { Browser, Page } from "playwright";
+import { primitiveCss } from "../../proof/renderer/primitives/base.ts";
 import type { Catalog, DesignSystem, Result, Theme } from "../index.ts";
-import { browserName, launchBrowser } from "./fixtures/browser.ts";
+import { launchBrowser, measureSwitching } from "./fixtures/browser.ts";
 
 const read = (name: string) => Bun.file(new URL(`./fixtures/proof/${name}.json`, import.meta.url)).json();
 const catalog: Catalog = await read("catalog");
@@ -13,7 +14,9 @@ function css(result: Result<string>) {
   if (!result.ok) throw new Error(JSON.stringify(result.errors));
   return result.value;
 }
+// Hosts ship trusted primitive CSS before the projected sheets; without it the page is not one a host renders.
 const sheets = [
+  primitiveCss,
   css(baseCss(catalog)),
   ...themes.map((theme) => css(themeCss(theme, catalog))),
   ...systems.map((system) => css(designSystemCss(system, { catalog, registry: {} }))),
@@ -227,6 +230,22 @@ test("nested_surfaces_are_a_recorded_limitation", async () => {
   }
 });
 
+test("switching_fixture_loads_primitive_css", async () => {
+  const page = await browser.newPage({ viewport: { width: 1700, height: 1000 } });
+  try {
+    await mount(page);
+    const icons = await page
+      .locator("#b .lf_icon_default_root")
+      .evaluateAll((els) =>
+        els.map((el) => Math.max(el.getBoundingClientRect().width, el.getBoundingClientRect().height)),
+      );
+    expect(icons.length).toBeGreaterThan(0);
+    expect(Math.max(...icons)).toBeLessThanOrEqual(16);
+  } finally {
+    await page.close();
+  }
+});
+
 test("switch_under_budget_with_blur", async () => {
   const page = await browser.newPage({ viewport: { width: 1700, height: 1000 } });
   try {
@@ -234,42 +253,11 @@ test("switch_under_budget_with_blur", async () => {
     expect(await page.locator("#b .backdrop").evaluate((el) => getComputedStyle(el).backdropFilter)).toBe(
       "blur(2px) saturate(1)",
     );
-    const result = await page.locator("#b").evaluate(async (root) => {
-      const nodes = [root, ...root.querySelectorAll("*")];
-      const samples: number[] = [];
-      let cold = 0;
-      for (let i = 0; i < 11; i++) {
-        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-        const name = i % 2 ? "rack" : "certified";
-        const start = performance.now();
-        root.setAttribute("data-lf-switching", "");
-        root.setAttribute("data-lf-theme", `${name}@1.0.0`);
-        root.setAttribute("data-lf-ds", `${name}@1.0.0`);
-        // Resolve the whole realistic surface, including backdrop and overlay slots.
-        for (const el of nodes) {
-          const s = getComputedStyle(el);
-          void s.fontSize;
-          void s.backgroundColor;
-          void s.backdropFilter;
-          void s.display;
-        }
-        const elapsed = performance.now() - start;
-        if (i === 0) cold = elapsed;
-        else samples.push(elapsed);
-        await new Promise<void>((resolve) =>
-          requestAnimationFrame(() => {
-            root.removeAttribute("data-lf-switching");
-            resolve();
-          }),
-        );
-      }
-      return { cold, samples, nodes: nodes.length };
-    });
+    const result = await measureSwitching(page, "css");
     console.log(`Two-surface CSS switch with blur: ${JSON.stringify(result)}`);
     expect(result.nodes).toBeGreaterThan(500);
     expect(result.samples).toHaveLength(10);
-    // WebKit's headless frame pacing adds a few milliseconds; record the engine difference, not a library budget.
-    expect(Math.max(...result.samples)).toBeLessThanOrEqual(browserName === "webkit" ? 25.1 : 16.67);
+    expect(Math.max(...result.samples.map((sample) => sample.library))).toBeLessThanOrEqual(16.67);
   } finally {
     await page.close();
   }
