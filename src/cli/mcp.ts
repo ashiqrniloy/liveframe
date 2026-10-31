@@ -4,8 +4,11 @@ import { lstat, realpath } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import pkg from "../../package.json" with { type: "json" };
+import capabilitiesDoc from "../../schemas/capabilities.json" with { type: "json" };
+import catalogDoc from "../../schemas/catalog.json" with { type: "json" };
 import manifestDoc from "../../schemas/manifest.json" with { type: "json" };
 import packageDoc from "../../schemas/widget-package.json" with { type: "json" };
+import treeDoc from "../../schemas/ui-tree.json" with { type: "json" };
 import { type Capabilities, validateCapabilities } from "../formats/capabilities.ts";
 import { type Catalog, validateCatalog } from "../formats/catalog.ts";
 import type { LiveframeError, Result } from "../index.ts";
@@ -88,6 +91,7 @@ async function loadConfig(path: string): Promise<ConfigResult> {
 }
 
 const text = (value: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(value) }] });
+const structured = (value: unknown) => ({ ...text(value), structuredContent: value });
 const failure = (value: unknown) => ({ ...text(value), isError: true });
 
 const kindsSchema = {
@@ -100,7 +104,7 @@ const kindsSchema = {
 } as const;
 
 type Authoring = ReturnType<typeof createAuthoring>;
-const mapped = <T>(result: Result<T>) => (result.ok ? text(result.value) : failure(result.errors));
+const mapped = <T>(result: Result<T>) => (result.ok ? structured(result.value) : failure(result.errors));
 
 function registerCatalogTools(sdk: Sdk, server: Server, authoring: Authoring): void {
   server.registerTool(
@@ -111,6 +115,7 @@ function registerCatalogTools(sdk: Sdk, server: Server, authoring: Authoring): v
       description:
         "The catalog's component definitions — props schema, children, events, variants, slots, style props, description and deprecation — so a draft uses only valid kinds, props and events. Pass `kinds` to narrow it.",
       inputSchema: sdk.fromJsonSchema<{ kinds?: string[] }>(kindsSchema),
+      outputSchema: sdk.fromJsonSchema(outputSchemas.list_primitives),
     },
     async (input) => mapped(await authoring.listPrimitives(input)),
   );
@@ -118,6 +123,7 @@ function registerCatalogTools(sdk: Sdk, server: Server, authoring: Authoring): v
     "list_vocabulary",
     {
       title: "List vocabulary",
+      outputSchema: sdk.fromJsonSchema(outputSchemas.list_vocabulary),
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       description:
         "The catalog's id and closed vocabulary — colour, surface, fillable and typography roles, tones, surfaceTypography, and the space, radius, size and bp names — so style props, recipes and themes use installed names, and a manifest names the catalog it was authored against.",
@@ -128,6 +134,7 @@ function registerCatalogTools(sdk: Sdk, server: Server, authoring: Authoring): v
     "list_capabilities",
     {
       title: "List capabilities",
+      outputSchema: sdk.fromJsonSchema(outputSchemas.list_capabilities),
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       description:
         "Every declared source's params and result schemas and every action's args schema, so a draft reads and dispatches only declared capabilities. Declarations only: nothing is resolved or called.",
@@ -138,6 +145,7 @@ function registerCatalogTools(sdk: Sdk, server: Server, authoring: Authoring): v
     "generated_types",
     {
       title: "Generate catalog module",
+      outputSchema: sdk.fromJsonSchema(outputSchemas.generated_types),
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       description:
         "A generated catalog module, byte-identical to `liveframe gen` output: types (default), implementations or elementsSchema. The result's note names the file to save.",
@@ -162,6 +170,94 @@ const strip = (schema: JsonObject, keys: readonly string[]) =>
 const manifestSchema = manifestDoc as JsonObject;
 const packageSchema = packageDoc as JsonObject;
 const packageDefs = packageSchema.$defs as JsonObject;
+
+const stringSchema = { type: "string" };
+const stringsSchema = { type: "array", items: stringSchema };
+const errorProperties = {
+  kind: stringSchema,
+  pointer: stringSchema,
+  message: stringSchema,
+  expected: stringSchema,
+  nodeId: stringSchema,
+};
+const errorSchema = {
+  type: "object",
+  properties: errorProperties,
+  required: ["kind", "pointer", "message"],
+  additionalProperties: false,
+};
+const statusesSchema = {
+  type: "array",
+  items: {
+    anyOf: [
+      {
+        type: "object",
+        properties: { scenario: stringSchema, ok: { const: true }, nodes: { type: "integer", minimum: 1 } },
+        required: ["scenario", "ok", "nodes"],
+        additionalProperties: false,
+      },
+      {
+        type: "object",
+        properties: { ...errorProperties, ok: { const: false }, scenarios: stringsSchema },
+        required: ["kind", "pointer", "message", "ok", "scenarios"],
+        additionalProperties: false,
+      },
+    ],
+  },
+};
+
+// Each output is self-contained; lift tree definitions so union branches retain local references.
+const outputSchemas = {
+  list_primitives: { type: "array", items: catalogDoc.properties.definitions.items, $defs: catalogDoc.$defs },
+  list_vocabulary: {
+    type: "object",
+    properties: { catalogId: catalogDoc.properties.catalogId, vocabulary: catalogDoc.properties.vocabulary },
+    required: ["catalogId", "vocabulary"],
+    additionalProperties: false,
+    $defs: catalogDoc.$defs,
+  },
+  list_capabilities: strip(capabilitiesDoc, ["$id", "$schema"]),
+  generated_types: {
+    type: "object",
+    properties: { note: stringSchema, types: stringSchema },
+    required: ["note", "types"],
+    additionalProperties: false,
+  },
+  pack_draft: {
+    type: "object",
+    properties: {
+      hash: packageDoc.properties.hash,
+      id: manifestDoc.properties.id,
+      version: manifestDoc.properties.version,
+      description: manifestDoc.properties.description,
+      meta: manifestDoc.properties.meta,
+      scenarios: { type: "array", items: packageDoc.$defs.scenario.properties.name },
+    },
+    required: ["hash", "id", "version", "scenarios"],
+    additionalProperties: false,
+    $defs: { json: manifestDoc.$defs.json },
+  },
+  render_scenarios: {
+    anyOf: [strip(treeDoc, ["$id", "$schema", "$defs"]), statusesSchema],
+    $defs: treeDoc.$defs,
+  },
+  set_state: strip(treeDoc, ["$id", "$schema"]),
+  capture_preview: {
+    type: "array",
+    items: {
+      type: "object",
+      properties: {
+        scenario: stringSchema,
+        width: { type: "integer" },
+        theme: stringSchema,
+        designSystem: stringSchema,
+        errors: { type: "array", items: errorSchema },
+      },
+      required: ["scenario", "width", "theme", "designSystem", "errors"],
+      additionalProperties: false,
+    },
+  },
+} satisfies Record<string, Parameters<Sdk["fromJsonSchema"]>[0]>;
 
 /**
  * `pack_draft` and `render_scenarios` take a permissive top-level object: the
@@ -222,6 +318,7 @@ function registerDraftTools(sdk: Sdk, server: Server, authoring: Authoring): voi
     "pack_draft",
     {
       title: "Pack draft",
+      outputSchema: sdk.fromJsonSchema(outputSchemas.pack_draft),
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       description:
         "Packs a draft — inline files, entry, manifest and scenarios, or dir beneath config.draftRoot with optional entry — through the same packer production uses, and returns its hash plus manifest id, version, description and scenario names. A failed pack returns its LiveframeErrors and keeps the previous draft current.",
@@ -233,6 +330,7 @@ function registerDraftTools(sdk: Sdk, server: Server, authoring: Authoring): voi
     "set_state",
     {
       title: "Apply offered state event",
+      outputSchema: sdk.fromJsonSchema(outputSchemas.set_state),
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       description:
         "Applies an offered setState event from the current single-scenario render and returns its new tree (at most 256 KiB). Origin requires nodeId and event. Literal values are preserved; otherwise value completes the event. Actions are refused. Call render_scenarios with a scenario first.",
@@ -252,6 +350,7 @@ function registerDraftTools(sdk: Sdk, server: Server, authoring: Authoring): voi
     "render_scenarios",
     {
       title: "Render scenarios",
+      outputSchema: sdk.fromJsonSchema(outputSchemas.render_scenarios),
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       description:
         "Renders the packed draft through the app's runner. With `scenario`, returns that scenario's UI tree (at most 256 KiB) or its LiveframeErrors, optionally overridden by `state` and `context`. Without it, returns every scenario's status — ok with its node count — plus each distinct error once, listing the scenarios that share it. With `outcomes: true`, expands sourceOutcome sources and always returns statuses, even with `scenario`.",
@@ -279,6 +378,7 @@ function registerCaptureTool(sdk: Sdk, server: Server, authoring: Authoring): vo
     "capture_preview",
     {
       title: "Capture preview",
+      outputSchema: sdk.fromJsonSchema(outputSchemas.capture_preview),
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       description:
         "Captures the bound preview page's cells — at most 12 per call — and returns each cell's coordinates, LiveframeErrors and accessibility snapshot as text with its PNG as an image. Omit an axis to keep every value the page declares.",
@@ -287,17 +387,16 @@ function registerCaptureTool(sdk: Sdk, server: Server, authoring: Authoring): vo
     async (input) => {
       const result = await authoring.capturePreview(input);
       if (!result.ok) return failure(result.errors);
-      const content: Content[] = [
-        text(
-          result.value.map(({ scenario, width, theme, designSystem, errors }) => ({
-            scenario,
-            width,
-            theme,
-            designSystem,
-            errors,
-          })),
-        ).content[0]!,
-      ];
+      const response = structured(
+        result.value.map(({ scenario, width, theme, designSystem, errors }) => ({
+          scenario,
+          width,
+          theme,
+          designSystem,
+          errors,
+        })),
+      );
+      const content: Content[] = response.content;
       for (const cell of result.value) {
         content.push({
           type: "text",
@@ -306,7 +405,7 @@ ${cell.aria ?? ""}`,
         });
         content.push({ type: "image", data: Buffer.from(cell.png).toString("base64"), mimeType: "image/png" });
       }
-      return { content };
+      return { ...response, content };
     },
   );
 }

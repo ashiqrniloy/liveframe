@@ -20,6 +20,7 @@ import catalog from "./fixtures/proof/catalog.json" with { type: "json" };
 import manifestDoc from "../../schemas/manifest.json" with { type: "json" };
 import packageDoc from "../../schemas/widget-package.json" with { type: "json" };
 import outcomesConfig from "./fixtures/mcp-outcomes.config.ts";
+import mcpTexts from "./fixtures/mcp-texts.json" with { type: "json" };
 
 const fixtures = "src/__tests__/fixtures";
 const config = `${fixtures}/mcp.config.ts`;
@@ -55,9 +56,12 @@ if (!firstDefinition || !secondDefinition) throw new Error("The proof catalog ne
 
 async function withClient<T>(
   fn: (client: Client) => Promise<T>,
-  options: { config?: string; env?: Record<string, string> } = {},
+  options: { config?: string; env?: Record<string, string>; protocolVersion?: string } = {},
 ): Promise<T> {
-  const client = new Client({ name: "cli-mcp-test", version: "0" });
+  const client = new Client(
+    { name: "cli-mcp-test", version: "0" },
+    options.protocolVersion ? { supportedProtocolVersions: [options.protocolVersion] } : undefined,
+  );
   const environment = options.env ? { ...(process.env as Record<string, string>), ...options.env } : undefined;
   await client.connect(
     new StdioClientTransport({
@@ -77,7 +81,13 @@ async function withClient<T>(
 async function call(client: Client, name: string, args: Record<string, unknown> = {}) {
   const result = await client.callTool({ name, arguments: args });
   const [block] = result.content as [{ type: "text"; text: string }];
-  return { isError: result.isError === true, text: block.text, json: () => JSON.parse(block.text) as unknown };
+  if (result.isError) expect(result.structuredContent).toBeUndefined();
+  return {
+    isError: result.isError === true,
+    structuredContent: result.structuredContent,
+    text: block.text,
+    json: () => JSON.parse(block.text) as unknown,
+  };
 }
 
 async function temp(): Promise<string> {
@@ -85,6 +95,88 @@ async function temp(): Promise<string> {
   await Bun.write(join(dir, ".keep"), "");
   return dir;
 }
+
+async function resultSamples(client: Client) {
+  const results: Record<string, Awaited<ReturnType<Client["callTool"]>>> = {};
+  const sample = async (key: string, name = key, args: Record<string, unknown> = {}) => {
+    const result = await client.callTool({ name, arguments: args });
+    expect(result.isError).not.toBe(true);
+    results[key] = result;
+    return JSON.parse((result.content[0] as { text: string }).text);
+  };
+  for (const name of ["list_primitives", "list_vocabulary", "list_capabilities", "generated_types"]) await sample(name);
+  for (const module of ["implementations", "elementsSchema"])
+    await sample(`generated_${module}`, "generated_types", { module });
+  await sample("pack_draft", "pack_draft", drafts[4]!);
+  const tree = await sample("render_scenarios", "render_scenarios", { scenario: drafts[4]!.scenarios[0]!.name });
+  const findQuery = (node: import("../formats/tree.ts").UiNode): import("../formats/tree.ts").UiNode | undefined =>
+    node.props.label === "Query" ? node : node.children?.map(findQuery).find(Boolean);
+  await sample("set_state", "set_state", {
+    origin: { nodeId: findQuery(tree.root)!.id, event: "onChange" },
+    value: "changed",
+  });
+  await sample("statuses", "render_scenarios");
+  await sample("outcomes", "render_scenarios", { outcomes: true });
+  await sample("capture_preview", "capture_preview", { scenarios: ["ready"], widths: [360] });
+  const throwing = {
+    ...drafts[4]!,
+    files: { "entry.tsx": 'export default () => { throw new Error("sample failure"); };' },
+    entry: "entry.tsx",
+  };
+  await sample("throwing_pack", "pack_draft", throwing);
+  await sample("failed_statuses", "render_scenarios");
+  results.error = await client.callTool({
+    name: "render_scenarios",
+    arguments: { scenario: throwing.scenarios[0]!.name },
+  });
+  expect(results.error.isError).toBe(true);
+  return results;
+}
+
+test("text_results_unchanged_from_0_2_0", async () => {
+  await withClient(
+    async (client) => {
+      const results = await resultSamples(client);
+      const texts = Object.fromEntries(Object.entries(results).map(([name, result]) => [name, result.content]));
+      expect<unknown>(texts).toEqual(mcpTexts);
+    },
+    { config: `${fixtures}/mcp-capture.config.ts` },
+  );
+}, 30000);
+
+test("structured_content_matches_text_2025_11_25_and_output_schemas_resolve", async () => {
+  const protocolVersion = "2025-11-25";
+  await withClient(
+    async (client) => {
+      expect(client.getNegotiatedProtocolVersion()).toBe(protocolVersion);
+      const tools = (await client.listTools()).tools;
+      expect(tools).toHaveLength(8);
+      for (const tool of tools) {
+        expect(tool.outputSchema).toBeDefined();
+        const refs = JSON.stringify(tool.outputSchema).matchAll(/"\$ref":"([^"]+)"/g);
+        for (const [, ref] of refs) expect(ref!.startsWith("#/")).toBe(true);
+      }
+      const results = await resultSamples(client);
+      for (const [name, result] of Object.entries(results)) {
+        if (result.isError) {
+          expect(result.structuredContent).toBeUndefined();
+          continue;
+        }
+        const value = JSON.parse((result.content[0] as { text: string }).text);
+        const enveloped = [
+          "list_primitives",
+          "render_scenarios",
+          "statuses",
+          "outcomes",
+          "failed_statuses",
+          "capture_preview",
+        ].includes(name);
+        expect(result.structuredContent).toEqual(enveloped ? { result: value } : value);
+      }
+    },
+    { config: `${fixtures}/mcp-capture.config.ts`, protocolVersion },
+  );
+}, 30000);
 
 test("tools_list_descriptions_and_kinds", async () => {
   const tools = await withClient(async (client) => (await client.listTools()).tools);
@@ -232,12 +324,14 @@ test("list_capabilities_hides_meta_by_default", async () => {
     config: `${fixtures}/mcp-meta.config.ts`,
   });
   expect(hidden.text).not.toContain("tier");
+  expect(hidden.structuredContent).toEqual(proofCapabilities);
   expect(hidden.json()).toEqual(proofCapabilities);
   const shown = await withClient((client) => call(client, "list_capabilities"), {
     config: `${fixtures}/mcp-meta-exposed.config.ts`,
   });
   expect(shown.text).toContain('"meta":{"tier":"gold"}');
   expect(shown.text).toContain('"meta":{"tier":"silver"}');
+  expect(shown.structuredContent).toEqual(shown.json());
 }, 30000);
 
 test("generated_types_equals_liveframe_gen_output", async () => {
@@ -375,10 +469,13 @@ test("pack_draft_shows_description_and_hides_meta_unless_exposed", async () => {
   expect(hidden.isError).toBe(false);
   expect(hidden.json()).toMatchObject({ description: "Pending decisions." });
   expect(hidden.text).not.toContain("tier");
+  expect(hidden.structuredContent).toEqual(hidden.json());
+  expect(hidden.structuredContent).not.toHaveProperty("meta");
   const shown = await withClient((client) => call(client, "pack_draft", described), {
     config: `${fixtures}/mcp-meta-exposed.config.ts`,
   });
   expect(shown.json()).toMatchObject({ description: "Pending decisions.", meta: { sizes: ["m"] } });
+  expect(shown.structuredContent).toEqual(shown.json());
 }, 30000);
 
 test("pack_errors_keep_the_previous_package", async () => {

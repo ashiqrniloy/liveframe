@@ -123,6 +123,15 @@ registered. Log to stderr only: stdout carries the protocol.
 `tools/list` holds exactly eight tools. Each returns JSON in one text block
 (images excepted), and `isError: true` for a rejected call.
 
+Every tool advertises a self-contained `outputSchema`. Successful results add
+`structuredContent` equal to the JSON value in the first text block; all existing
+text blocks remain byte-identical. On protocol `2025-11-25`, the SDK wraps
+non-object-root schemas and structured values as `{ result: value }`:
+`list_primitives`, `render_scenarios` (including its single-tree branch) and
+`capture_preview`. Object-root results stay unwrapped. The `2026-07-28` codec
+returns values directly. Rejected calls keep their error text and `isError: true`
+and omit `structuredContent`.
+
 | Tool | Arguments | Result |
 |---|---|---|
 | `list_primitives` | `{ kinds? }` | Every definition in full, or the named kinds |
@@ -133,6 +142,15 @@ registered. Log to stderr only: stdout carries the protocol.
 | `render_scenarios` | `{ scenario?, state?, context?, outcomes? }` | One scenario's tree (at most 256 KiB), or scenario statuses and each distinct error once; `outcomes: true` expands source outcomes and always returns statuses |
 | `set_state` | `{ origin: { nodeId, event }, value? }` | Applies an offered state event and returns its new tree (at most 256 KiB); refuses actions |
 | `capture_preview` | `{ scenarios?, widths?, themes?, designSystems? }` | Each cell's coordinates, errors, accessibility snapshot and PNG |
+
+The structured values follow the Result column: `list_primitives` is a definition
+array, `list_vocabulary` is `{ catalogId, vocabulary }`, `list_capabilities` is the
+capabilities document, `generated_types` is `{ note, types }`, and `pack_draft`
+is the draft summary. `render_scenarios` is a UI tree or a scenario-status array;
+`set_state` is a UI tree. Capture's structured value is only the cell-metadata
+array (`scenario`, `width`, `theme`, `designSystem`, `errors`); accessibility text
+and PNG image blocks stay in `content`. `exposeMeta` governs both text and
+structured results.
 
 Each tool advertises a display title and four behavior hints:
 

@@ -1317,7 +1317,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Documented the per-tool titles/hints and their idempotence meaning in `docs/mcp.md`; spec §13 states that annotations never change execution or enforce permissions/isolation. This implements the approved M6 decision without changing handlers' behavior or text results.
     - `timeout 900s bun run check` passed: 922 tests passed, 4 skipped, 0 failed, including existing MCP calls, agent loop and capture coverage. `git diff --check` passed.
 
-- [ ] Task 14.8: Return `structuredContent` against an `outputSchema` from every tool (M7)
+- [x] Task 14.8: Return `structuredContent` against an `outputSchema` from every tool (M7)
   - Acceptance Criteria:
     - Functional:
       - Every tool declares the `outputSchema` from Task 14.1, and every successful call returns `structuredContent` that deep-equals `JSON.parse` of its first text block. For capture, that is the cell-metadata array.
@@ -1347,11 +1347,19 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       const structured = (value: unknown) => ({ ...text(value), structuredContent: value });
       ```
     - Files to Create/Edit:
-      - `src/cli/mcp.ts`; `src/__tests__/cli-mcp.test.ts`; `src/__tests__/fixtures/mcp-texts.json` (new, the 0.2.0 text baseline); `docs/spec.md` §13; `docs/mcp.md`
+      - `src/cli/mcp.ts`; `src/__tests__/cli-mcp.test.ts`; `src/__tests__/fixtures/mcp-texts.json` (new, the 0.2.0 text baseline); `docs/spec.md` §13; `docs/mcp.md`; `plans/evidence/021-task-14-8-roundtrip.ts` (new, repeatable 679-node round-trip measurement)
   - Test Cases to Write:
     - `structured_content_matches_text`: for every tool. Fails if they diverge.
     - `text_results_unchanged_from_0_2_0`: compares against the recorded baseline.
     - `structured_meta_hidden_without_expose`; `error_results_have_no_structured_content`; `tools_list_output_schemas_resolve`.
+
+
+  - Notes (executed 2026-10-31):
+    - Added one `structured()` result helper and all eight approved output schemas. Catalog definitions/vocabulary, capabilities, tree branches and draft-summary fields reuse the published documents; definitions stay local and no external `$ref` remains. The full tree schema fits the budget, so the lighter fallback was not needed. No `/authoring` API or export changed.
+    - Recorded `src/__tests__/fixtures/mcp-texts.json` against pre-change revision `d8e0f24` before changing the adapter. Regression coverage preserves complete content blocks across all eight tools, all generated modules, tree/status/outcome branches, failed statuses, errors and capture ARIA/PNG blocks. Structured results match the first text JSON, errors omit structured output, and capability/draft metadata remains opt-in in both representations.
+    - Pinned the stdio client's negotiated protocol to `2025-11-25`, checking `{ result }` for definitions, capture metadata and the tree/status union (including its tree branch). All eight advertised schemas resolve and validate successful wire results. The existing stdio connection uses the legacy handshake; modern transport negotiation was not added or exercised. Rechecked SDK 2.4.0's structured-output and per-era codec documentation through Context7. Spec §13 and `docs/mcp.md` now describe the output values, byte-identical text rule and protocol envelopes.
+    - Round-trip evidence: `timeout 60s bun --conditions liveframe:source plans/evidence/021-task-14-8-roundtrip.ts`, on the 679-node agent-home `ready` scenario over stdio protocol `2025-11-25`, ten warm-ups then ten measured calls per revision, upper-middle median: **5.206 ms before → 7.061 ms after**, **+1.855 ms**, within the **≤ 5 ms** added-cost bound. The script asserts node count and successful results on every call.
+    - `timeout 900s bun run check` passed: **924 passed, 4 skipped, 0 failed** across 109 files. The focused source-condition MCP suite also passed all 69 tests. An initial direct `bun test` omitted the repository's `liveframe:source` condition and failed two existing library-vs-subprocess comparisons; rerunning with the configured condition passed without code changes. No spec meaning changed beyond implementing the approved M7 result contract.
 
 - [ ] Task 14.9: Let an app raise the capture cell bound (M8)
   - Acceptance Criteria:
