@@ -5,6 +5,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 ## Phase 1 performance gate: 3 µs per node
 
 - Disposition: existing P1 retained by the owner on 2026-10-25 (plan 002 Task 9 carry-over F2; plans/evidence/002-impact-analysis.md).
+- Closed 2026-10-31 (plan 021 Task 14): the WebKit switching budget is met. `deferOffscreen` on the agent-home rows, the primitive CSS in the fixtures and the span-A statement in spec §6.4/§12 bring WebKit span A to max 10 ms (CSS) and 11–13 ms (Surface) over three consecutive runs on a quiet machine; both tests assert ≤ 16.67 ms in every engine. Evidence: `plans/evidence/021-task-14-switching.md`; decision: `decision-logs/2026-10-31-1438-webkit-switching-cost-remedies.md`. The deferral below is historical.
 - Release-specific deferral (2026-10-30, plan 020 Task 8 R1): owner answered, verbatim, "Fix the migration guide omissions. Defer the webkit switching budget issue". Headless WebKit on Linux measured 18–22 ms for switching; its tests permit 25.1 ms and therefore do not prove the normative ≤16.67 ms budget. Investigate and remeasure this path under controlled conditions before claiming the budget is met; retain the 16.67 ms specification and existing Chromium gate. Evidence: `plans/evidence/019-engines.md`, `plans/evidence/020-release-readiness-review.md`; decision: `decision-logs/2026-10-30-0430-webkit-switching-budget-deferral.md`. The 0.2.0 changelog discloses the limitation; this deferral is not final release approval.
 - Section: Phase 1 (spec §10, §12)
 - Priority: P1

@@ -104,3 +104,58 @@ runs. After R1 alone, WebKit's maxima were 20 ms (CSS) and 17 ms (Surface),
 which is what the Task 14 mutant (removing `deferOffscreen` from the rows)
 reverts to. Raw logs are local-only in
 `evidence/021-task-14/13.4-{webkit-1,webkit-2,webkit-3,chromium,firefox}.log`.
+
+## Task 14 runs, 2026-10-31 evening (strict max gate, owner's choice)
+
+The owner chose to keep the strict assertion: the max of 10 warm samples
+must be ≤ 16.67 ms in every engine, with WebKit evidence taken on a quiet
+machine. Results so far:
+
+- **Mutant** (the 50 rows' `deferOffscreen` stripped from both fixtures,
+  then restored): WebKit fails both tests. Sorted samples, ms:
+  - CSS: `13 13 14 15 15 15 15 15 15 17`
+  - Surface: `14 14 15 15 16 18 19 19 20 21`
+- **Chromium and Firefox**, full files: 35/35 pass. Medians/maxima were at
+  most 6 / 8 ms.
+- **WebKit, full files.** Seven runs from 17:38 to 19:10 local, all with the
+  QEMU VM active (load 2.6–6.8, rising during the runs):
+  - CSS max: 14–17 ms;
+  - Surface max: 20–25 ms, medians 15–16.5 ms.
+
+  Every run failed the Surface assertion. Call-to-layout adds only about
+  1 ms over span A, so React's commit is not the cost. The whole WebKit
+  process slows: probe B rose to 7–10 ms (it also forces skipped rows to
+  render) and frames to 61–171 ms.
+- **Rows are deferred** in both fixtures: 50 of 52 rule boxes compute
+  `content-visibility: auto` in WebKit (CSS section 5,455 px, Surface
+  3,653 px).
+
+**The gate is unmet on this machine while the VM runs.** Task 13.4's
+passing runs (load 2.4: CSS max 9–11 ms, Surface max 13–14 ms) remain the
+only quiet-window evidence. Raw logs are local-only in `evidence/021-task-14/`:
+`14-mutant-webkit.log`, `14-final-*.log`, `14-filtered-webkit-*.log`,
+`14-quiet-webkit-*.log`.
+
+## Task 14 closing runs, 2026-10-31 20:35 local (VM stopped)
+
+With the QEMU VM stopped (load 1.4–2.0), three consecutive WebKit runs of
+`css-scope-browser.test.ts` and `react-browser.test.tsx` passed 35/35, 0 fail.
+Warm span A, max of 10 ms:
+
+| Run | CSS max | Surface max |
+| --- | --- | --- |
+| 1 | 10 | 13 |
+| 2 | 10 | 12 |
+| 3 | 10 | 11 |
+
+Medians were 8 ms (CSS) and 10–11 ms (Surface). Command:
+
+```sh
+LIVEFRAME_BROWSER=webkit PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1 \
+  timeout 300s bun test --conditions liveframe:source \
+  src/__tests__/css-scope-browser.test.ts src/__tests__/react-browser.test.tsx
+```
+
+The earlier failures were machine load, not the library: the same code
+fails at 20–25 ms with the VM active. The mutant (rows without
+`deferOffscreen`) still fails WebKit.

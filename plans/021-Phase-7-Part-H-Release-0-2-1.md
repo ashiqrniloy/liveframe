@@ -954,7 +954,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Container queries and their script-free responsiveness stay as they are. No code, spec or docs changed. If a later WebKit regression trips the gate, this task's approach still applies.
     - Covered by Task 13.5's green check (882 passed, 4 skipped, 0 failed); this task changed only plan text.
 
-- [ ] Task 14: Assert the switching budget on the library's measurement in WebKit (CL-16)
+- [x] Task 14: Assert the switching budget on the library's measurement in WebKit (CL-16)
   - Depends on: Tasks 13.1 to 13.6.
   - Acceptance Criteria:
     - Functional:
@@ -991,7 +991,14 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Added a shared measurement helper and changed both switching tests to assert span A at 16.67 ms in every engine, with no WebKit-only ceiling. The helper records one cold and ten warm samples, logs B/C and call-start-through-layout separately, and rejects missing attribute marks or invalid timings.
     - The stricter tests reproduce the unresolved library cost: CSS/Surface warm maxima are 6.9/6.7 ms in Chromium, 10/6 ms in Firefox and **25/17 ms in WebKit**. See [the Task 14 attempt record](evidence/021-task-14-switching.md) for commands and local logs. No production CSS optimization has been retained.
     - `timeout 1200s bun run check` passed with default Chromium: **878 passed, 4 skipped, 0 failed**, 882 tests across 109 files (279.98 s). Build, generated-code checks, typecheck, lint and formatting passed. The focused documentation tests passed (3 tests), as did focused lint/format and `git diff --check`. This does not override the separate failing WebKit gate.
-    - **Task 14 is not complete.** WebKit still fails the normative limit. The CSS/switching optimization, passing all-engine gate, selector-work mutant, backlog closure and 0.2.1 changelog resolution remain outstanding. The WebKit deferral remains open; these assertion changes are uncommitted work in progress.
+    - Continued 2026-10-31, after Tasks 13.1–13.6. The owner chose the strict max-of-10 gate with quiet-machine WebKit evidence. Since then:
+      - the replacement mutant (rows without `deferOffscreen`) fails WebKit;
+      - Chromium and Firefox pass 35/35;
+      - spec §6.4 and §12 name span A;
+      - the 0.2.1 changelog answers the 0.2.0 limitation (uncommitted, with this task).
+    - Seven WebKit runs with the host VM active (load 2.6–6.8) failed the Surface assertion at 20–25 ms max. Task 13.4's runs at load 2.4 had passed at 13–14 ms.
+    - **Closed 2026-10-31 20:35.** With the VM stopped (load 1.4–2.0), three consecutive WebKit runs passed 35/35: CSS max 10, 10, 10 ms and Surface max 13, 12, 11 ms. Chromium and Firefox pass. The mutant still fails WebKit. The backlog deferral is closed with this evidence, and the 0.2.1 changelog answers the 0.2.0 limitation. See [the Task 14 record](evidence/021-task-14-switching.md).
+    - CI runs WebKit on shared runners, so this strict gate may flake there under load. Fallbacks, each needing an owner decision: a median assertion, or cutting more work.
 
 - [ ] Task 14.1: Record the authoring MCP server's 0.2.1 surface (decision log)
   - Acceptance Criteria:

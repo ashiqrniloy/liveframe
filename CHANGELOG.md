@@ -6,6 +6,7 @@ All notable changes to `@arnilo/liveframe` are recorded here. The project follow
 
 Added:
 
+- **Switching budget (CL-16).** This answers 0.2.0's "Headless WebKit switching exceeds the 16.67 ms budget". The 16.67 ms budget is unchanged, and it now names its span: from the switching attribute change through style and layout of the switch frame (spec §6.4). The WebKit-only 25.1 ms test ceiling is gone, and every engine asserts 16.67 ms. Two changes made this hold in WebKit: the switching fixtures now load the app primitive CSS a host ships, and the agent-home queue rows defer offscreen rendering. On a quiet Linux machine, WebKit's slowest warm switch measured 9–11 ms on the CSS fixture and 13–14 ms through `<Surface>`. Under heavy concurrent load the WebKit tail still exceeds the budget.
 - **Styling (CL-16):** the `deferOffscreen` style prop takes a `space.*` or `size.*` placeholder height. It projects to `content-visibility: auto` and `contain-intrinsic-block-size`, so a design-system switch on a long surface restyles and lays out only what is on screen. Existing trees are unchanged. A tree that uses it needs a 0.2.1 validator, because 0.2.0 rejects the unknown style prop.
 
 ## 0.2.0 — 2026-10-30
