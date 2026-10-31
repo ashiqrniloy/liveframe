@@ -51,7 +51,7 @@ Paths are relative to `@arnilo/liveframe`; `.` is the root export. The `sdk` row
 A catalog, its React implementations and a validator are all a surface needs. `compileValidator` takes the validated catalog, capabilities and manifest for one widget; `createRenderer` returns the `<Surface>` that draws a tree it has validated.
 
 ```tsx
-import { type Catalog, compileValidator, defineComponent, obj, str } from "@arnilo/liveframe";
+import { type Catalog, compileValidator, defineComponent, obj, str, type UiTree } from "@arnilo/liveframe";
 import { createRenderer, implement } from "@arnilo/liveframe/react";
 
 const text = defineComponent({
@@ -129,7 +129,7 @@ export function Hello({
   );
 }
 
-export const tree = {
+export const tree: UiTree = {
   format: "liveframe/1",
   catalogId: catalog.catalogId,
   surfaceId: "hello",
@@ -140,16 +140,33 @@ export const tree = {
 
 Widgets are authored separately with the [SDK](docs/sdk.md), which exports `render()` and the JSX runtime and emits the tree `Hello` receives. The [preview guide](docs/preview.md) shows the backend runners that execute widget code, and the [package guide](docs/packages.md) shows how a rendered widget becomes an immutable package a host stores and places.
 
+For streaming updates, `diffTrees(prev, next)` emits an optional `liveframe/tree-patch/1` patch on the backend, and the browser host applies it with `applyPatch(base, patch)` and passes the patched tree to `<Surface>` (which validates the whole tree on arrival):
+
+```ts
+import { applyPatch, diffTrees } from "@arnilo/liveframe";
+
+const next = {
+  ...tree,
+  revision: 2,
+  root: { id: "root", kind: "text", props: { value: "Hello again" } },
+};
+const patch = diffTrees(tree, next);
+if (patch.ok) {
+  const updated = applyPatch(tree, patch.value);
+  if (updated.ok) Hello({ tree: updated.value, onIntent: () => {} });
+}
+```
+
 ## What is in the package
 
 | Import | Holds |
 |---|---|
-| `@arnilo/liveframe` | Definition, catalog, theme and design-system formats; the validator; the recipe resolver; `LiveframeFailure` and `LiveframeError` |
+| `@arnilo/liveframe` | Definition, catalog, theme, design-system, UI-tree and tree-patch formats; `validateTreePatch`, `diffTrees` and `applyPatch`; the validator; the recipe resolver; `LiveframeFailure` and `LiveframeError` |
 | `@arnilo/liveframe/sdk` | The JSX runtime (`/sdk/jsx-runtime`, `/sdk/jsx-dev-runtime`), intent helpers and `render()` |
-| `@arnilo/liveframe/sdk/gen` | The host-side emitters behind `liveframe gen`: `generate()` and `generateDefinitions()` |
+| `@arnilo/liveframe/sdk/gen` | The host-side emitters behind `liveframe gen`: `generate()`, `generateDefinitions()` and `generateElementsSchema()` |
 | `@arnilo/liveframe/react` | The renderer: `createRenderer()`, `<Surface>` and `implement()` |
 | `@arnilo/liveframe/css` | The scoped CSS projection and the class, style, scope and variable helpers; the host inserts sheets |
-| `@arnilo/liveframe/pack` | Package and scenario formats, structural validators, `pack()` and `verifyPackage()` |
+| `@arnilo/liveframe/pack` | Package and scenario formats, structural validators, `pack()`, `verifyPackage()`, `canonicalJson()` and `packageHash()` |
 | `@arnilo/liveframe/store` | Record formats, the `Store` interface, `memoryStore()` and `loadPlacement()` |
 | `@arnilo/liveframe/store/fs` | `fileStore(dir)`, which reads and writes the file system |
 | `@arnilo/liveframe/preview` | The `Runner` interface, `inProcessRunner()` and `createPreview()` |
@@ -197,7 +214,7 @@ The client starts the server itself. The [MCP guide](docs/mcp.md) covers the eig
 
 ## Status
 
-Pre-1.0 (`0.2.0` is the current release). The public API, the formats and the on-disk `fileStore` layout are described by the [compatibility policy](docs/compatibility.md); the [release notes](CHANGELOG.md) list the known limitations of this release.
+Pre-1.0 (`0.2.1` is the current release). The public API, the formats and the on-disk `fileStore` layout are described by the [compatibility policy](docs/compatibility.md); the [release notes](CHANGELOG.md) list the known limitations of this release.
 
 ## Development
 

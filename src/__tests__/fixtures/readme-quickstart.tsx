@@ -1,4 +1,4 @@
-import { type Catalog, compileValidator, defineComponent, obj, str } from "@arnilo/liveframe";
+import { type Catalog, compileValidator, defineComponent, obj, str, type UiTree } from "@arnilo/liveframe";
 import { createRenderer, implement } from "@arnilo/liveframe/react";
 
 const text = defineComponent({
@@ -76,7 +76,7 @@ export function Hello({
   );
 }
 
-export const tree = {
+export const tree: UiTree = {
   format: "liveframe/1",
   catalogId: catalog.catalogId,
   surfaceId: "hello",
