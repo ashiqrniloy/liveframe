@@ -35,32 +35,32 @@ export function installConfirmation(root: Root) {
       reject = no;
     });
   };
+  const tree = withRoot({
+    id: "root",
+    kind: "stack",
+    props: {},
+    children: [
+      {
+        id: "root/confirm",
+        kind: "button",
+        props: { label: "Confirm" },
+        events: { onPress: { type: "action", name: "tasks.escalate", args: { id: "t1", reason: "review" } } },
+      },
+      {
+        id: "root/direct",
+        kind: "button",
+        props: { label: "Direct" },
+        events: { onPress: { type: "action", name: "tasks.claim", args: { id: "t1" } } },
+      },
+      {
+        id: "root/state",
+        kind: "button",
+        props: { label: "State" },
+        events: { onPress: { type: "setState", key: "reason", value: "changed" } },
+      },
+    ],
+  });
   function draw(enabled = true) {
-    const tree = withRoot({
-      id: "root",
-      kind: "stack",
-      props: {},
-      children: [
-        {
-          id: "root/confirm",
-          kind: "button",
-          props: { label: "Confirm" },
-          events: { onPress: { type: "action", name: "tasks.escalate", args: { id: "t1", reason: "review" } } },
-        },
-        {
-          id: "root/direct",
-          kind: "button",
-          props: { label: "Direct" },
-          events: { onPress: { type: "action", name: "tasks.claim", args: { id: "t1" } } },
-        },
-        {
-          id: "root/state",
-          kind: "button",
-          props: { label: "State" },
-          events: { onPress: { type: "setState", key: "reason", value: "changed" } },
-        },
-      ],
-    });
     flushSync(() =>
       root.render(
         <StrictMode>

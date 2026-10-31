@@ -832,3 +832,141 @@ test("origin_for_portal_nodes_uses_the_accepted_revision", async () => {
     await page.close();
   }
 });
+
+test("patched_render_skips_unchanged_nodes_and_preserves_local_state_focus_scroll", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    await page.evaluate(() => {
+      const tree = window.surfaceTest.tree();
+      window.surfaceTest.update({
+        ...tree,
+        root: {
+          ...tree.root,
+          children: [
+            tree.root.children![0],
+            {
+              id: "root/second",
+              kind: "button",
+              props: { label: "Counter" },
+              events: { onPress: { type: "setState", key: "reason", value: "saved" } },
+            },
+            { id: "root/field", kind: "textField", props: { label: "Draft" } },
+            {
+              id: "root/action",
+              kind: "button",
+              props: { label: "Claim" },
+              events: { onPress: { type: "action", name: "tasks.claim", args: { id: "t1" } } },
+            },
+          ],
+        },
+      });
+    });
+    await page.getByRole("button", { name: "Counter 0" }).click();
+    await page.getByRole("textbox", { name: "Draft" }).fill("local draft");
+    const result = await page.evaluate(() => {
+      const wrapper = document.querySelector<HTMLElement>(".lf_surface")!;
+      wrapper.style.cssText = "height:20px;overflow:auto";
+      wrapper.scrollTop = 10;
+      const scroll = wrapper.scrollTop;
+      const focused = document.activeElement;
+      window.surfaceTest.patch({
+        format: "liveframe/tree-patch/1",
+        catalogId: window.surfaceTest.tree().catalogId,
+        surfaceId: "test",
+        base: 1,
+        revision: 2,
+        ops: [{ op: "set", id: "root/first", kind: "text", props: { text: "Patched" } }],
+      });
+      return {
+        ...window.surfaceTest.reuse(),
+        focus: document.activeElement === focused,
+        scroll,
+        retainedScroll: wrapper.scrollTop,
+      };
+    });
+    expect(result.renders).toMatchObject({ stack: 1, text: 1, button: 0, textField: 0 });
+    expect(result.items).toBe(true);
+    expect(result.elements).toBe(true);
+    expect(result.focus).toBe(true);
+    expect(result.scroll).toBeGreaterThan(0);
+    expect(result.retainedScroll).toBe(result.scroll);
+    expect(await page.getByRole("textbox", { name: "Draft" }).inputValue()).toBe("local draft");
+    expect(await page.getByRole("button", { name: "Counter 1" }).count()).toBe(1);
+    await page.evaluate(() => window.surfaceTest.replaceIntentHandler());
+    await page.getByRole("button", { name: "Counter 1" }).click();
+    await page.getByRole("button", { name: "Claim 0" }).click();
+    expect(await page.evaluate(() => window.surfaceTest.intents())).toEqual([
+      { type: "setState", key: "reason", value: "saved" },
+      { type: "action", name: "tasks.claim", args: { id: "t1" } },
+    ]);
+    expect(
+      await page.evaluate(() =>
+        window.surfaceTest
+          .origins()
+          .slice(-2)
+          .map((origin) => origin.revision),
+      ),
+    ).toEqual([2, 2]);
+    const resetRenders = await page.evaluate(() => {
+      const before = window.surfaceTest.reuse().renders;
+      window.surfaceTest.replaceValidator();
+      const after = window.surfaceTest.reuse().renders;
+      return Object.fromEntries(Object.entries(after).map(([kind, count]) => [kind, count - (before[kind] ?? 0)]));
+    });
+    expect(resetRenders).toMatchObject({ stack: 1, text: 1, button: 2, textField: 1 });
+    await page.evaluate(() => {
+      window.surfaceTest.patch({
+        format: "liveframe/tree-patch/1",
+        catalogId: window.surfaceTest.tree().catalogId,
+        surfaceId: "test",
+        base: 2,
+        revision: 3,
+        ops: [],
+      });
+      window.surfaceTest.update(window.surfaceTest.tree(1));
+    });
+    await page.getByRole("button", { name: "Claim 1" }).click();
+    expect(await page.evaluate(() => window.surfaceTest.origins().at(-1)?.revision)).toBe(3);
+  } finally {
+    await page.close();
+  }
+});
+
+test("reused_nodes_follow_confirmation_fallback_and_diagnostics_changes", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    await page.evaluate(() => {
+      const tree = window.surfaceTest.tree();
+      window.surfaceTest.update({
+        ...tree,
+        root: {
+          ...tree.root,
+          children: [{ id: "root/first", kind: "text", props: { text: "throw" } }, ...tree.root.children!.slice(1)],
+        },
+      });
+      window.surfaceTest.presentation("New fallback", [
+        { kind: "invalid-prop", pointer: "/root", message: "Review", nodeId: "root/second" },
+      ]);
+    });
+    expect(await page.getByText("New fallback").count()).toBe(1);
+    expect(await page.locator('[data-lf-node="root/second"][data-lf-error]').count()).toBe(1);
+    await page.evaluate(() => window.surfaceTest.presentation("Latest fallback", []));
+    expect(await page.getByText("Latest fallback").count()).toBe(1);
+    expect(await page.locator("[data-lf-error]").count()).toBe(0);
+    await page.evaluate(() => {
+      window.confirmationTest.mount(false);
+      window.confirmationTest.mount(true);
+    });
+    await page.getByRole("button", { name: "Confirm 0" }).click();
+    expect(await page.evaluate(() => window.confirmationTest.requests().length)).toBe(1);
+    expect(await page.evaluate(() => window.confirmationTest.emissions())).toEqual([]);
+    await page.evaluate(() => window.confirmationTest.approve(true));
+    await page.waitForFunction(() => window.confirmationTest.emissions().length === 1);
+  } finally {
+    await page.close();
+  }
+});

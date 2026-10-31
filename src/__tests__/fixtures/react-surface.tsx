@@ -47,6 +47,14 @@ export function renderer(observe: (kind: string, props: ImplementationProps) => 
         observe(definition.kind, input);
         if (input.props.text === "throw") throw new Error("Broken primitive");
         const className = input.slot(input.props.text === "bad-slot" ? "undeclared" : "root");
+        if (definition.kind === "textField")
+          return (
+            <input
+              aria-label={String(input.props.label)}
+              className={className}
+              defaultValue={String(input.props.value ?? "")}
+            />
+          );
         if (definition.kind === "button")
           return (
             <button

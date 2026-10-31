@@ -563,7 +563,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - A whole-tree control using the same driver, temporarily redirecting only its evidence destination to local `evidence/021-task-11-whole-control.md`, reproduced the historical JSON/gzip medians exactly (**117,985 / 5,099 bytes**) and measured **10.300 ms** validation plus Profiler work (historical 12.100 ms). The temporary driver was removed. `019-streaming-bench.md` is byte-for-byte unchanged. Regenerate the control with the standard whole-tree command in a disposable checkout to preserve that historical record.
     - `timeout 1200s bun run check` passed: **876 passed, 4 skipped, 0 failed**, 880 tests across 109 files (282.09 s); build, generated-code checks, typecheck, lint and formatting passed. Full output is local-only at `evidence/021-task-11-check.log`. The browser client separately passed a strict TypeScript check. An exploratory strict check including the host benchmark (excluded by the existing project tsconfig) still reports its pre-existing fixture/assert typing issues; that unrelated typing cleanup was not added to this measurement task.
 
-- [ ] Task 12: Keep unchanged subtrees out of the React commit (CL-15, if Task 11's arrival validation plus commit misses)
+- [x] Task 12: Keep unchanged subtrees out of the React commit (CL-15, if Task 11's arrival validation plus commit misses)
   - Acceptance Criteria:
     - Functional:
       - `<Surface>` reuses each node's context and rendered element when the node object is `===` the previous tree's node (which `applyPatch` guarantees), so React bails out of unchanged subtrees.
@@ -581,23 +581,33 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Library Documentation to Check Before Implementation:
       - React 19.x reconciliation ("Preserving and resetting state") and element-reference bailout.
     - Documentation Reviewed:
-      - `src/react/renderer.tsx:140-300`; `docs/spec.md` §11 (`:651-681`); Task 11 evidence.
+      - `src/react/renderer.tsx:140-323`; `docs/spec.md` §11; Task 11 evidence.
+      - React 19.3.1 in the checkout; official React [useMemo: memoizing individual JSX nodes](https://react.dev/reference/react/useMemo#memoizing-individual-jsx-nodes) and [preserving and resetting state](https://react.dev/learn/preserving-and-resetting-state), fetched through Context7 (`/reactjs/react.dev`).
       - Backlog "Profile production browser selection costs before optimizing the renderer" (P2).
     - Options Considered:
       - `React.memo` per node with a custom comparator. Rejected: it repeats work the identity check already gives.
       - Patch application inside `<Surface>`. Rejected in Task 2.
     - Chosen Approach:
-      - Identity-keyed reuse of the existing `Item`s.
+      - Identity-keyed reuse of the existing `Item`s and rendered elements. Reset on validator, fallback, portal or diagnostics changes; implementations belong to the renderer factory. Publish the accepted tree and latest callbacks to reused handlers in a layout effect, so an abandoned render cannot change origins. Keep the original origin and callback for an already pending confirmation.
     - API Notes and Examples:
       - n/a (internal).
     - Files to Create/Edit:
-      - `src/react/renderer.tsx`; `src/__tests__/react-surface.test.tsx`; `src/__tests__/react-browser.test.tsx`; `src/__tests__/react-intents.test.tsx`
+      - `src/react/renderer.tsx`; `src/__tests__/react-browser.test.tsx`
+      - `src/__tests__/fixtures/react-client.tsx`; `src/__tests__/fixtures/react-surface.tsx`; `src/__tests__/fixtures/confirmation.tsx` (browser reuse counters, local input and shared confirmation nodes). Existing surface and intent tests are run unchanged.
       - `docs/spec.md` §11; `docs/renderer.md` (patch streaming example); `plans/evidence/021-streaming-patches.md`
   - Test Cases to Write:
-    - `patched_render_skips_unchanged_nodes`: an implementation render counter shows only the changed row's subtree re-renders. Fails if reuse is lost.
-    - `origin_names_current_revision_for_reused_node`: an intent from an unchanged node after a patch carries the new revision. Fails if the origin is captured per build.
-    - `local_state_and_focus_survive_patch` (browser): a focused text field in an unchanged row keeps focus and value.
-    - `validator_change_resets_reuse`: a new validator re-renders everything. Fails if the cache leaks across validators.
+    - `patched_render_skips_unchanged_nodes_and_preserves_local_state_focus_scroll`: render counters and strict item/element identity prove unchanged siblings bail out, a focused text field retains its draft, scroll and button state survive, reused setState/action origins follow the accepted revision even after an empty patch and stale arrival, replacement callbacks are used, and a new validator re-renders every node.
+    - `reused_nodes_follow_confirmation_fallback_and_diagnostics_changes`: retained node identities respect replacement fallback/diagnostics and a newly enabled confirmation hook.
+    - Existing confirmation tests now advance revisions with shared nodes, covering single-flight, original pending origins, failed confirmation and unmount behavior. Existing surface/intent suites cover metadata, collection contexts, completion and invalid-event rejection.
+
+
+  - Notes (executed 2026-10-31):
+    - Added one identity-keyed `WeakMap<UiNode, Item>` per surface generation, reusing both contexts and rendered elements. Validator, fallback, portal and diagnostics changes reset the cache; implementations remain factory-owned. No new component layer, memo wrapper, dependency or public API. A layout effect publishes the accepted tree and latest callbacks to reused handlers; pending confirmations keep their original origin and callback.
+    - The browser reuse regression failed before the fix (both unchanged buttons and the local text field rendered again). It now proves strict item/element reuse, changed-node-only rendering, focused draft/scroll/local-state survival, current setState/action origins after patches and stale arrivals, current callbacks and validator invalidation. A second regression covers fallback, diagnostics and enabling confirmation on retained nodes. Confirmation fixtures now share nodes across revisions; existing intent/surface tests pass unchanged. Updated spec §11 and the renderer guide with host-side patch application, whole-tree validation and dispatch checks.
+    - The unchanged patch benchmark passes both medians: **228 B gzip** and **2.7 ms arrival validation plus React work** (previously 9.1 ms); commit-only/Profiler render-work median **1.3 ms**, flushSync wall **3.7 ms**, parse/apply/flushSync **4.2 ms**. Whole-tree control improves from **12.1 ms** to **10.7 ms** validation plus React work, with the same **5099 B gzip**. [The evidence](evidence/021-streaming-patches.md) records samples, machine/build/load, the original Task 11 medians, whole-tree comparison and the distinction between Profiler render work and DOM commit/paint. The original `019-streaming-bench.md` is unchanged.
+    - `timeout 1200s bun run check` passed build, generated-code checks, typecheck, lint and formatting; its test run reported **867 passed, 4 skipped, 11 failed, one between-test error** (882 tests/109 files, 616.78 s) while system load reached 61.56 on 16 logical CPUs. All eleven failed tests passed unchanged in focused reruns (nine tests together, the capture-readiness case and the theme-projection case); the browser hydration timeout caused the shared-browser error and downstream failures. The two new regressions passed both the full run and focused runs. No timeout or assertion was relaxed.
+    - The owner explicitly instructed: “Keep working with the current load. Document failures that are caused by system load but do not block tasks because of it”. Task completion uses that task-specific exception to the usual green full-check requirement. The evidence documents each failure and rerun rather than claiming the full check passed.
+    - `bun run bench` stopped twice at unchanged validator timing gates, which do not import the changed renderer. Its patch application/diff medians still passed (**0.1372/0.6047 ms** in the second run). Running the remaining scripts separately passed the unchanged SDK render gates (**1.3296 ms**, **1.958 µs/node** for agent-home; element path **2.423 µs/node**), CSS gates and whole-tree streaming control. The final documentation checks also passed (four tests: renderer guide, links and wording), and `git diff --check` passed. No load-sensitive failure blocks completion under the owner's instruction; Tasks 13–14 remain unchanged.
 
 - [ ] Task 13: Split and diagnose the WebKit switching measurement (CL-16)
   - Acceptance Criteria:

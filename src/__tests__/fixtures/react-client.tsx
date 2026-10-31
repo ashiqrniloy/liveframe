@@ -1,6 +1,6 @@
 import { createPortal, flushSync } from "react-dom";
 import { createRoot, hydrateRoot } from "react-dom/client";
-import { compileValidator, type Intent, type UiTree } from "../../index.ts";
+import { applyPatch, compileValidator, type Intent, type TreePatch, type UiTree } from "../../index.ts";
 import type { ImplementationProps } from "../../react/index.ts";
 import { createRenderer, implement } from "../../react/index.ts";
 import * as form from "./object-events.ts";
@@ -77,10 +77,16 @@ const styles: {
 ];
 let switching = false;
 let normalStyle = styles[0];
+let fallback = surfaceProps.fallback;
+let diagnostics: readonly import("../../index.ts").LiveframeError[] | undefined;
 
 const firstPortals: Record<string, boolean> = {};
 let button: ImplementationProps | undefined;
+const nodeRenders: Record<string, number> = {};
+let rootItems: readonly import("../../react/index.ts").Item[] = [];
 const { Surface } = renderer((kind, props) => {
+  nodeRenders[kind] = (nodeRenders[kind] ?? 0) + 1;
+  if (kind === "stack") rootItems = props.items;
   firstPortals[kind] ??= props.portal !== undefined;
   if (kind === "button") button = props;
 });
@@ -111,7 +117,14 @@ let currentValidator = checkedValidator;
 const root = mode
   ? hydrateRoot(
       container,
-      <Surface {...surfaceProps} validator={currentValidator} tree={input} onIntent={onIntent} />,
+      <Surface
+        {...surfaceProps}
+        validator={currentValidator}
+        tree={input}
+        onIntent={onIntent}
+        fallback={fallback}
+        {...(diagnostics ? { diagnostics } : {})}
+      />,
       { onCaughtError: () => {}, onRecoverableError: (error) => hydrationErrors.push(String(error)) },
     )
   : createRoot(container, { onCaughtError: () => {} });
@@ -137,13 +150,24 @@ function draw() {
   }
   flushSync(() =>
     root.render(
-      <Surface {...surfaceProps} {...normalStyle} validator={currentValidator} tree={input} onIntent={onIntent} />,
+      <Surface
+        {...surfaceProps}
+        {...normalStyle}
+        validator={currentValidator}
+        tree={input}
+        onIntent={onIntent}
+        fallback={fallback}
+        {...(diagnostics ? { diagnostics } : {})}
+      />,
     ),
   );
 }
 declare global {
   interface Window {
     surfaceTest: {
+      presentation(message: string, errors?: readonly import("../../index.ts").LiveframeError[]): void;
+      patch(value: TreePatch): void;
+      reuse(): { renders: Record<string, number>; items: boolean; elements: boolean };
       update(value: unknown): void;
       redraw(): void;
       replaceValidator(): void;
@@ -164,7 +188,26 @@ declare global {
     };
   }
 }
+let previousItems = rootItems;
 window.surfaceTest = {
+  presentation(message, errors) {
+    fallback = <p>{message}</p>;
+    diagnostics = errors;
+    draw();
+  },
+  patch(value) {
+    previousItems = rootItems;
+    for (const key of Object.keys(nodeRenders)) nodeRenders[key] = 0;
+    const result = applyPatch(input as UiTree, value);
+    if (!result.ok) throw new Error(JSON.stringify(result.errors));
+    input = result.value;
+    draw();
+  },
+  reuse: () => ({
+    renders: { ...nodeRenders },
+    items: rootItems.slice(1).every((item, i) => item === previousItems[i + 1]),
+    elements: rootItems.slice(1).every((item, i) => item.render() === previousItems[i + 1]?.render()),
+  }),
   mountForm() {
     const { Surface: FormSurface } = createRenderer({
       catalog: form.catalog,

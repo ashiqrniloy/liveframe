@@ -209,16 +209,22 @@ export function createRenderer({
         clear();
       };
     }, [requestedScope, portal]);
+    const current = useRef({ tree: accepted.tree, onIntent, confirm });
+    useLayoutEffect(() => {
+      current.current = { tree: arrival.ok ? accepted.tree : undefined, onIntent, confirm };
+    }, [accepted.tree, arrival.ok, onIntent, confirm]);
+    // biome-ignore lint/correctness/useExhaustiveDependencies: Cached contexts capture these generation inputs.
+    const contexts = useMemo(() => new WeakMap<UiNode, Item>(), [accepted.validator, fallback, portal, diagnostics]);
     const root = useMemo(() => {
       const tree = accepted.tree;
       if (!tree) return null;
-      const { surfaceId, revision } = tree;
       const actions = actionFacts(accepted.validator);
       function raiseIntent(
         intent: Intent,
         origin: IntentOrigin,
         meta: { confirm: boolean; irreversible: boolean } | undefined,
       ) {
+        const { onIntent, confirm } = current.current;
         if (!confirm || !meta?.confirm) {
           onIntent(intent, origin);
           return;
@@ -239,6 +245,8 @@ export function createRenderer({
         })();
       }
       function context(node: UiNode): Item {
+        const cached = contexts.get(node);
+        if (cached) return cached;
         const implementation = registry.get(node.kind);
         if (!implementation) throw new Error(`Missing implementation: ${node.kind}`);
         const { definition } = implementation[binding];
@@ -272,7 +280,8 @@ export function createRenderer({
           },
           style: projected.style,
           emit(event, value) {
-            if (!node.events || !Object.hasOwn(node.events, event)) return;
+            const acceptedTree = current.current.tree;
+            if (!acceptedTree || !node.events || !Object.hasOwn(node.events, event)) return;
             const intent = node.events[event];
             if (!intent) return;
             const carries = definition.events[event]?.carries;
@@ -281,8 +290,8 @@ export function createRenderer({
               throw new Error(`Invalid event value: ${node.kind}.${event}`);
             const completed = complete(intent, value);
             const origin = Object.freeze({
-              surfaceId,
-              revision,
+              surfaceId: acceptedTree.surfaceId,
+              revision: acceptedTree.revision,
               nodeId: node.id,
               event,
             });
@@ -291,26 +300,28 @@ export function createRenderer({
           children: items.map((child) => child.render()),
           items,
           portal: portal ?? undefined,
-          render: () => (
-            <Boundary key={node.id} node={node} fallback={fallback}>
-              {diagnostics ? (
-                <div
-                  style={{ display: "contents" }}
-                  data-lf-node={node.id}
-                  data-lf-error={diagnostics.some((error) => error.nodeId === node.id) ? "" : undefined}
-                >
-                  <Node item={item} implementation={implementation} />
-                </div>
-              ) : (
-                <Node item={item} implementation={implementation} />
-              )}
-            </Boundary>
-          ),
+          render: () => element,
         };
+        const element = (
+          <Boundary key={node.id} node={node} fallback={fallback}>
+            {diagnostics ? (
+              <div
+                style={{ display: "contents" }}
+                data-lf-node={node.id}
+                data-lf-error={diagnostics.some((error) => error.nodeId === node.id) ? "" : undefined}
+              >
+                <Node item={item} implementation={implementation} />
+              </div>
+            ) : (
+              <Node item={item} implementation={implementation} />
+            )}
+          </Boundary>
+        );
+        contexts.set(node, item);
         return item;
       }
       return context(tree.root).render();
-    }, [accepted.tree, accepted.validator, portal, fallback, onIntent, diagnostics, confirm]);
+    }, [accepted.tree, accepted.validator, contexts, portal, fallback, diagnostics]);
     const scope = surfaceAttributes({ ...appliedScope, tree: accepted.tree ?? emptyTree });
     return (
       <>

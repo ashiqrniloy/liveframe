@@ -134,6 +134,28 @@ operations the manifest does not name while preserving validator behaviour;
 handle its typed errors before sending. See [capability pruning](formats.md#capabilities).
 Backend validation does not replace browser validation: the transport is untrusted.
 
+For patch streaming, apply patches in the browser host and pass the resulting whole
+tree to `Surface`. Arrival validation still checks the complete tree. Keep served
+trees immutable: `applyPatch` shares untouched nodes, and `Surface` reuses their
+contexts and React elements. Unchanged primitives can still update their own local
+state; their events name the currently accepted revision. Replacing the validator,
+fallback, portal container or diagnostics resets the node cache.
+
+```ts
+import { applyPatch, type TreePatch, type UiTree } from "@arnilo/liveframe";
+
+function receivePatch(current: UiTree, patch: TreePatch) {
+  const result = applyPatch(current, patch);
+  if (!result.ok) return requestWholeTree();
+  const checked = validator.validateTree(result.value);
+  if (!checked.ok) return requestWholeTree();
+  setTree(checked.value); // host state passed to <Surface tree={...} />
+}
+```
+
+Here `requestWholeTree` and `setTree` are host callbacks. Keep using
+`checkOffered` against the accepted served tree before dispatching any intent.
+
 Mount `<GuideSurface tree={tree} onIntent={sendIntent} />` in your app's React root;
 `sendIntent` is your host transport, described below. Load the matching CSS before
 displaying it. The example's server markup includes:
