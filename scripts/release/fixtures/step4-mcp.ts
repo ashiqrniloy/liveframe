@@ -11,6 +11,7 @@ const expected = [
   "list_vocabulary",
   "pack_draft",
   "render_scenarios",
+  "set_state",
 ];
 const bin = new URL("../node_modules/.bin/liveframe", import.meta.url).pathname;
 const config = new URL("../liveframe.config.ts", import.meta.url).pathname;
@@ -36,4 +37,4 @@ try {
 } finally {
   await client.close();
 }
-console.log("MCP server listed seven tools, packed and rendered a draft");
+console.log("MCP server listed eight tools, packed and rendered a draft");

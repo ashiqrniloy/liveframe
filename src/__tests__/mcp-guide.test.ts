@@ -31,6 +31,7 @@ test("mcp_guide_config_starts_and_lists_the_tools", async () => {
       "list_vocabulary",
       "pack_draft",
       "render_scenarios",
+      "set_state",
     ]);
     const capabilities = await client.callTool({ name: "list_capabilities", arguments: {} });
     expect(capabilities.isError).toBeUndefined();

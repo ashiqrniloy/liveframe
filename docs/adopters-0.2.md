@@ -55,3 +55,8 @@ Where a row says a limitation, it is part of the release, not a to-do. The row i
 - **Native Windows forced-colours and assistive-technology audit (G29).** The checklist exists at `plans/evidence/020-g29-audit.md`, and the owner waived the run for this release. The [known limitations](../CHANGELOG.md) repeat it.
 - **Tree patches (`§9`).** The LF-17 measurement warrants them; designing the format and API needs its own owner approval, so none ships yet.
 - **An authorisation model, an approval flow, a storage backend or a layout shell.** None ship, in 0.2.0 or before: they stay the app's.
+
+In 0.2.1, `/authoring` and MCP add an eighth operation: `setState()` /
+`set_state` applies an offered state event and returns the new tree; actions
+are refused. Preview snapshot readers can opt into `preserveState: true`
+to retain that state during page reloads and capture.

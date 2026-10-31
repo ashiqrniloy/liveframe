@@ -14,7 +14,7 @@ function view(session: PreviewSession, pkg: () => WidgetPackage) {
     session,
     snapshot: async (scenario: string) => ({
       scenario,
-      result: await session.render({ scenario }),
+      result: await session.render({ scenario, preserveState: true }),
       manifest: pkg().manifest,
       scenarios: pkg().scenarios.map((entry) => entry.name),
       intents: session.intents(),

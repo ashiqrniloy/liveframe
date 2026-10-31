@@ -65,10 +65,13 @@ export { filtered, log, pkg, store, tree };
   update keeps the previous package and session state, so the page keeps working
   while the author fixes errors. A successful update resets the selected
   scenario, state and intent log.
-- `render({ scenario, context?, state? })` selects a scenario and returns
+- `render({ scenario, context?, state?, preserveState? })` selects a scenario and returns
   `Promise<Result<UiTree>>`. State comes from the argument, then the scenario,
   then the manifest's `initialState`. Errors that belong to a node carry its
   `nodeId`.
+  For host snapshots, opt in with `preserveState: true`: the same selected
+  scenario retains state/context unless explicitly overridden. The default
+  resets them, and switching scenario always uses its normal initial selection.
 - `intent(intent, origin?)` takes what a cell emits. A `setState` is checked against the
   manifest's state schema and re-renders. An action is checked against the
   manifest and the capability's argument schema, then logged; the tree is

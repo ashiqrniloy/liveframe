@@ -196,6 +196,23 @@ function registerDraftTools(sdk: Sdk, server: Server, authoring: Authoring): voi
     async (input) => mapped(await authoring.packDraft(input)),
   );
   server.registerTool(
+    "set_state",
+    {
+      description:
+        "Applies an offered setState event from the current single-scenario render and returns its new tree (at most 256 KiB). Origin requires nodeId and event. Literal values are preserved; otherwise value completes the event. Actions are refused. Call render_scenarios with a scenario first.",
+      inputSchema: sdk.fromJsonSchema<Parameters<Authoring["setState"]>[0]>({
+        type: "object",
+        properties: {
+          origin: { description: "Required. An object with nodeId and event from the current tree's own events." },
+          value: {
+            description: "Optional JSON value carried by the event; ignored when the intent has a literal value.",
+          },
+        },
+      }),
+    },
+    async (input) => mapped(await authoring.setState(input)),
+  );
+  server.registerTool(
     "render_scenarios",
     {
       description:

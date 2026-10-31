@@ -36,9 +36,9 @@ try {
 }
 ```
 
-All seven methods return `Promise<Result<T>>`, with the same errors and bounds as the tools below. Their names are `listPrimitives`, `listVocabulary`, `listCapabilities`, `generatedTypes`, `packDraft`, `renderScenarios` and `capturePreview`. A single-scenario render returns a tree of at most 256 KiB; an all-scenario render returns statuses with shared errors deduplicated. Capture returns at most 12 cells, each with `scenario`, `width`, `theme`, `designSystem`, `errors`, `aria: string | null` and `png: Uint8Array`. There are no output files or base64 conversions.
+All eight methods return `Promise<Result<T>>`, with the same errors and bounds as the tools below. Their names are `listPrimitives`, `listVocabulary`, `listCapabilities`, `generatedTypes`, `packDraft`, `renderScenarios`, `setState` and `capturePreview`. A single-scenario render returns a tree of at most 256 KiB; an all-scenario render returns statuses with shared errors deduplicated. Capture returns at most 12 cells, each with `scenario`, `width`, `theme`, `designSystem`, `errors`, `aria: string | null` and `png: Uint8Array`. There are no output files or base64 conversions.
 
-The runner is required and remains owned by your host. This subpath loads neither the MCP SDK nor Playwright. Capture needs both your `preview(binding)` factory and an injected `CaptureBackend`; missing configuration returns `not-found`. The factory starts lazily on the first capture, is reused after success and retried after failure. `close()` waits for queued draft operations and closes the bound page. The three draft methods share one queue; catalog reads stay concurrent. `exposeMeta` defaults to `false`, as in the CLI config.
+The runner is required and remains owned by your host. This subpath loads neither the MCP SDK nor Playwright. Capture needs both your `preview(binding)` factory and an injected `CaptureBackend`; missing configuration returns `not-found`. The factory starts lazily on the first capture, is reused after success and retried after failure. `close()` waits for queued draft operations and closes the bound page. The four draft methods share one queue; catalog reads stay concurrent. `exposeMeta` defaults to `false`, as in the CLI config.
 
 `renderScenarios({ outcomes: true })` checks all five outcomes of each scenario with one `sourceOutcome` source. Add `scenario` to select a single seed, and optionally `state` or `context` to override its render inputs. Scenarios with no outcome source are checked once; two outcome sources in one scenario return `invalid-document` at `/scenarios/<index>`, so split the seeds. Invalid expansion returns errors before any scenario renders. Expanded renders use the injected runner without changing the page's current selection, state, intents or packed package. With `outcomes: true` the result is always scenario statuses.
 
@@ -116,7 +116,7 @@ registered. Log to stderr only: stdout carries the protocol.
 
 ## The tools
 
-`tools/list` holds exactly seven tools. Each returns JSON in one text block
+`tools/list` holds exactly eight tools. Each returns JSON in one text block
 (images excepted), and `isError: true` for a rejected call.
 
 | Tool | Arguments | Result |
@@ -127,6 +127,7 @@ registered. Log to stderr only: stdout carries the protocol.
 | `generated_types` | `{ module? }` | `{ note, types }`: byte-identical `liveframe gen` output for `"types"` (default), `"implementations"` (`--implementations`) or `"elementsSchema"` (`--elements-schema`) |
 | `pack_draft` | `{ files, entry, manifest, scenarios }` | `{ hash, id, version, description?, scenarios }` (plus `meta` with `exposeMeta`) |
 | `render_scenarios` | `{ scenario?, state?, context?, outcomes? }` | One scenario's tree (at most 256 KiB), or scenario statuses and each distinct error once; `outcomes: true` expands source outcomes and always returns statuses |
+| `set_state` | `{ origin: { nodeId, event }, value? }` | Applies an offered state event and returns its new tree (at most 256 KiB); refuses actions |
 | `capture_preview` | `{ scenarios?, widths?, themes?, designSystems? }` | Each cell's coordinates, errors, accessibility snapshot and PNG |
 
 `generated_types` keeps the generated content in `types` for every module; its
@@ -136,6 +137,22 @@ An unknown selector returns `invalid-document` at `/module`, with all three
 accepted values in `expected`. In-process callers use
 `authoring.generatedTypes({ module: "implementations" })`, or omit the argument
 for the typed components.
+
+After `render_scenarios({ scenario: "ready" })`, call
+`set_state({ origin: { nodeId, event }, value? })` using the node id and event
+from that tree. In process, use `authoring.setState()` with the same input.
+The server fills the current surface and revision, preserves literal intent
+values and otherwise fills the event value, then checks the offered intent.
+Unknown nodes/events fail at `/origin/nodeId` or `/origin/event`; invalid values
+keep the intent validation error. Missing origin is `invalid-document`; actions
+are `invalid-prop` at `/origin/event` and never enter the intent log. With no
+current single-scenario render, it returns `not-found` and asks you to call
+`render_scenarios` with a scenario first. Checks and outcome expansion preserve
+the selection; successful repacking clears it, failed packing retains it.
+The operation shares the draft queue and returns one tree capped at 256 KiB.
+For page snapshots, call `session.render({ scenario, preserveState: true })`
+so the same scenario retains changed state/context through reload and capture.
+Explicit overrides win; choosing a different scenario starts from its initial state.
 
 `pack_draft` takes the same input as `session.update()`. A failed pack returns
 the errors and keeps the previous package, so the agent can fix a draft without

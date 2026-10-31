@@ -109,15 +109,23 @@ export function createPreview({
       scenario,
       state,
       context,
+      preserveState = false,
     }: {
       scenario: string;
       state?: Json;
       context?: Json;
+      preserveState?: boolean;
     }): Promise<Result<UiTree>> {
       if (!pkg) return failure("not-found", "", "No draft has been packed");
       const found = pkg.scenarios.find((entry) => entry.name === scenario);
       if (!found) return failure("not-found", "/scenario", "Unknown scenario");
-      current = selection(pkg, found, state, context);
+      const previous = preserveState && current?.scenario === found ? current : undefined;
+      current = selection(
+        pkg,
+        found,
+        state === undefined ? previous?.state : state,
+        context === undefined ? previous?.context : context,
+      );
       return run(pkg, current);
     },
     async intent(intent: Intent, origin?: IntentOrigin): Promise<Result<UiTree>> {

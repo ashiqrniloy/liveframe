@@ -167,6 +167,32 @@ function setup() {
   return { session, calls, runner };
 }
 
+test("render_preserve_state_is_opt_in", async () => {
+  const { session, calls } = setup();
+  value(session.update(draft));
+  value(await session.render({ scenario: "first", context: { size: "full" } }));
+  value(await session.intent({ type: "setState", key: "query", value: "kept" }));
+  value(await session.render({ scenario: "first", preserveState: true }));
+  expect(calls.at(-1)?.inputs.state).toEqual({ ...(base.manifest.initialState as object), query: "kept" });
+  expect(calls.at(-1)?.inputs.context).toEqual({ size: "full" });
+  value(
+    await session.render({
+      scenario: "first",
+      preserveState: true,
+      state: { selected: "x", query: "override" },
+      context: { size: "medium" },
+    }),
+  );
+  expect(calls.at(-1)?.inputs.state).toEqual({ selected: "x", query: "override" });
+  expect(calls.at(-1)?.inputs.context).toEqual({ size: "medium" });
+  value(await session.render({ scenario: "second", preserveState: true }));
+  expect(calls.at(-1)?.inputs.state).toEqual(draft.scenarios[1]?.state);
+  expect(calls.at(-1)?.inputs.context).toEqual({ size: "large" });
+  value(await session.intent({ type: "setState", key: "query", value: "changed" }));
+  value(await session.render({ scenario: "second" }));
+  expect(calls.at(-1)?.inputs.state).toEqual(draft.scenarios[1]?.state);
+});
+
 test("empty_session_and_unknown_scenario_return_not_found", async () => {
   const { session } = setup();
   rejects(await session.render({ scenario: "first" }), "not-found");

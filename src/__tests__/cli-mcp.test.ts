@@ -86,7 +86,7 @@ async function temp(): Promise<string> {
   return dir;
 }
 
-test("tools_list_has_the_six_tools", async () => {
+test("tools_list_descriptions_and_kinds", async () => {
   const tools = await withClient(async (client) => (await client.listTools()).tools);
   expect(tools.map((tool) => tool.name)).toEqual(
     expect.arrayContaining([
@@ -96,13 +96,14 @@ test("tools_list_has_the_six_tools", async () => {
       "list_vocabulary",
       "pack_draft",
       "render_scenarios",
+      "set_state",
     ]),
   );
   for (const tool of tools) expect(tool.description?.length ?? 0).toBeGreaterThan(20);
   expect(JSON.stringify(tools.find((tool) => tool.name === "list_primitives")?.inputSchema)).toContain('"kinds"');
 }, 30000);
 
-test("tools_list_is_exactly_the_authoring_set", async () => {
+test("tools_list_has_the_eight_tools", async () => {
   const tools = await withClient(async (client) => (await client.listTools()).tools);
   expect(tools.map((tool) => tool.name).sort()).toEqual([
     "capture_preview",
@@ -112,7 +113,39 @@ test("tools_list_is_exactly_the_authoring_set", async () => {
     "list_vocabulary",
     "pack_draft",
     "render_scenarios",
+    "set_state",
   ]);
+}, 30000);
+
+test("set_state_tool_validates_and_applies_offered_events", async () => {
+  await withClient(async (client) => {
+    const input = drafts[4]!;
+    expect((await call(client, "set_state")).json()).toMatchObject([{ kind: "not-found" }]);
+    expect((await call(client, "pack_draft", input)).isError).toBe(false);
+    const rendered = await call(client, "render_scenarios", { scenario: input.scenarios[0]!.name });
+    const tree = rendered.json() as import("../formats/tree.ts").UiTree;
+    const nodes = (node: typeof tree.root): (typeof tree.root)[] => [node, ...(node.children ?? []).flatMap(nodes)];
+    const query = nodes(tree.root).find((n) => n.props.label === "Query")!;
+    const action = nodes(tree.root).find((n) => n.props.label === "Bound reason")!;
+    for (const [args, kind, pointer] of [
+      [{}, "invalid-document", "/origin"],
+      [{ origin: { nodeId: query.id } }, "invalid-document", "/origin/event"],
+      [{ origin: { nodeId: action.id, event: "onCommit" } }, "invalid-prop", "/origin/event"],
+      [{ origin: { nodeId: query.id, event: "onChange" }, value: false }, "invalid-prop", "/value"],
+    ] as const) {
+      const result = await call(client, "set_state", args);
+      expect(result.isError).toBe(true);
+      expect(result.json()).toMatchObject([{ kind, pointer }]);
+    }
+    const next = await call(client, "set_state", {
+      origin: { nodeId: query.id, event: "onChange" },
+      value: "MCP changed",
+    });
+    expect(next.isError).toBe(false);
+    expect(nodes((next.json() as typeof tree).root).find((n) => n.props.label === "Query")?.props.value).toBe(
+      "MCP changed",
+    );
+  });
 }, 30000);
 
 test("tools_list_advertises_outcomes", async () => {

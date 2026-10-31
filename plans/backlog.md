@@ -305,6 +305,8 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 ## Add a setState intent tool to the authoring MCP server
 
+- Status: closed by plan 021 Task 14.5 (2026-10-31): offered-state-only tool and matching `/authoring` operation, typed rejections and state-preserving preview capture.
+
 - Section: Phase 8 follow-up (spec §7.5, §13)
 - Priority: P4
 - Source: plans/011-Phase-8-Authoring-MCP-Server.md (not in this plan), Task 8 handoff

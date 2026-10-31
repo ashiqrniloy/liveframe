@@ -198,6 +198,7 @@ test("scripted_agent_writes_fixes_and_lays_out_a_widget_through_mcp_tools_only",
       "list_vocabulary",
       "pack_draft",
       "render_scenarios",
+      "set_state",
     ]);
   });
   console.log("agent loop:", (performance.now() - start).toFixed(0), "ms");

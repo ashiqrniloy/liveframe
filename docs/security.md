@@ -23,6 +23,11 @@ Widget-authored schemas may not use `pattern` (`params`, `state` and `context` i
 - **URL-valued props are the catalog's problem.** The library passes prop values through. A `link.href` or `image.src` that takes a URL must be constrained by a catalog `pattern` or sanitised by the implementation that renders it; nothing in the renderer interprets a string as a URL.
 - **Passing the conformance kit does not prove isolation or authorisation** ([spec §14](spec.md#14-non-goals-for-v1)). The kit tests the app's side of the catalog, styling, renderer and store contracts — not sandboxing, approval flows or tenancy. See the [conformance guide](conformance.md).
 
+The authoring `set_state` tool applies only an offered `setState` event from
+the current single-scenario render, checked by `checkOffered` with its current
+surface and revision. It refuses action events before logging or dispatch.
+The bound preview page receives trees only.
+
 ## Reporting a vulnerability
 
 See [`SECURITY.md`](../SECURITY.md) for the private reporting route.

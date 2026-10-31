@@ -49,7 +49,7 @@ test("demo_preview_captures_every_cell", async () => {
   );
 }, 120000);
 
-test("demo_mcp_lists_seven_tools_and_captures", async () => {
+test("demo_mcp_lists_eight_tools_and_captures", async () => {
   const client = new Client({ name: "demo", version: "0" });
   await client.connect(
     new StdioClientTransport({ command: "bun", args: [liveframe, "mcp", "mcp.config.ts"], cwd: root }),
@@ -64,6 +64,7 @@ test("demo_mcp_lists_seven_tools_and_captures", async () => {
       "list_vocabulary",
       "pack_draft",
       "render_scenarios",
+      "set_state",
     ]);
     const packed = await client.callTool({ name: "pack_draft", arguments: await hello() });
     expect(packed.isError).toBeFalsy();

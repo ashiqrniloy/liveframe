@@ -9,8 +9,8 @@ import type { Runner } from "./runner.ts";
 export type PreviewSession = {
   /** Pack a draft; on success it becomes the session's current package. */
   update(draft: Parameters<typeof pack>[0]): Result<WidgetPackage>;
-  /** Render one scenario, with optional state and context overrides. */
-  render(options: { scenario: string; state?: Json; context?: Json }): Promise<Result<UiTree>>;
+  /** Render one scenario. Opt in to retain same-scenario state/context unless overridden. */
+  render(options: { scenario: string; state?: Json; context?: Json; preserveState?: boolean }): Promise<Result<UiTree>>;
   /** Apply `setState` or a declared action to the current render. */
   intent(intent: Intent, origin?: IntentOrigin): Promise<Result<UiTree>>;
   /** Every intent applied since the current package was packed. */

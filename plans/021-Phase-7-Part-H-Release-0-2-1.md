@@ -1197,7 +1197,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Added byte-for-byte tests against actual CLI output for all three modes, library generator/default-response assertions and typed rejection coverage over both APIs. The new tests failed before implementation. Updated spec §13 and the MCP guide and closed the implementation-definitions backlog entry. `docs/sdk.md` does not name the MCP codegen route, so it needed no edit. This implements the approved M3 decision; no new decision or finding affects later tasks.
     - Verification: focused authoring, CLI MCP and guide suites passed all 50 tests. `timeout 900s bun run check` passed build, generated-file checks, typechecks, lint, formatting and **892 tests**, with 4 existing skips and 0 failures (896 tests across 109 files; test phase 287.47 s). `git diff --check` passed.
 
-- [ ] Task 14.5: Add the `set_state` tool (M4)
+- [x] Task 14.5: Add the `set_state` tool (M4)
   - Acceptance Criteria:
     - Functional:
       - `set_state({ origin: { nodeId, event }, value? })` and `/authoring` `setState()` behave as Task 14.1 M4 fixes:
@@ -1229,16 +1229,21 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       authoring.setState({ origin: { nodeId: "root/filters/open", event: "press" } }); // Promise<Result<UiTree>>
       ```
     - Files to Create/Edit:
-      - `src/authoring/index.ts`; `src/cli/mcp.ts`; `src/__tests__/authoring.test.ts`; `src/__tests__/cli-mcp.test.ts`; `scripts/release/fixtures/step4-mcp.ts`; `proof/tests/mcp-agent-loop.test.ts` (its exact tool list, `:192-200`)
+      - `src/authoring/index.ts`; `src/cli/mcp.ts`; `src/__tests__/authoring.test.ts`; `src/__tests__/cli-mcp.test.ts`; `src/__tests__/mcp-guide.test.ts` (the guide's exact tool list); `scripts/release/fixtures/step4-mcp.ts`; `proof/tests/mcp-agent-loop.test.ts` (its exact tool list, `:192-200`)
       - `docs/spec.md` §13; `docs/mcp.md`; `docs/security.md`; `README.md`; `docs/adopters-0.2.md`; `plans/backlog.md`
       - A fixture draft with a `setState` event: reuse one in `src/__tests__/fixtures/widgets/drafts.ts` if it has one (tentative).
-      - `src/preview/authoring.ts`; `src/preview/session.ts`; `src/__tests__/preview-session.test.ts`; `proof/host/preview.ts`; `examples/demo-host/preview.ts` (opt-in state preservation and its host callers); `proof/tests/mcp-capture.test.ts`; `docs/spec.md` §7.5; `docs/preview.md`
+      - `src/preview/authoring.ts`; `src/preview/session.ts`; `src/__tests__/preview-session.test.ts`; `proof/host/preview.ts`; `examples/demo-host/preview.ts` (opt-in state preservation and its host callers); `examples/demo-host/tests/preview.test.ts` (the demo's exact tool list); `proof/tests/mcp-capture.test.ts`; `docs/spec.md` §7.5; `docs/preview.md`
   - Test Cases to Write:
     - `set_state_applies_offered_event`: the tree changes as the widget's state wiring says.
     - `set_state_refuses_unoffered_event`; `set_state_refuses_action_event` (`intents()` unchanged); `set_state_before_render_says_to_render`.
     - `set_state_then_capture_shows_state`: required by Task 14.1's approved M4; exercise the real host snapshot path.
     - `render_preserve_state_is_opt_in`: same-scenario snapshots retain changed state/context only when opted in; scenario changes reset and explicit overrides win. Existing reset-on-render tests stay unchanged.
     - `tools_list_has_the_eight_tools`: the exact list. Fails if a tool is added or dropped.
+  - Notes (executed 2026-10-31):
+    - Added queued `/authoring` `setState()` and MCP `set_state`. The operation reads the current tree's own offered event, refuses actions before the session can log them, completes literal/event-carried values with the shared helper, and calls `session.intent` with the current surface/revision. Unknown origins and invalid values retain typed errors; output reuses the 262144-byte tree bound. Successful repacking clears the selection; failed packing, scenario checks and outcome expansion preserve it. Reused the harness draft, with no new dependency or format.
+    - Added opt-in `preserveState` to preview rendering and enabled it in proof/demo snapshot readers. Bound snapshots refresh the tool's origin revision, so another state call works after capture. Ordinary `render_scenarios` explicitly retains reset behavior even if a caller supplies an extra `preserveState` argument. Session tests cover retained context/state, overrides and scenario changes; the real proof capture test applies and captures state twice.
+    - Updated the spec (§7.5 and §13), security and outsider guides, README, adopter note, backlog closure and all eight-tool lists, including the guide/demo test expectations found during execution. No further spec decision was needed beyond approved M4.
+    - `timeout 900s bun run check` passed: 897 tests passed, 4 skipped, 0 failed. The focused MCP/capture run passed 52 tests. `timeout 900s bun run demo:test tests/preview.test.ts` passed the packed archive's demo typecheck and all 4 preview tests. One earlier full run hit the existing runner warm-overhead timing gate at 0.112 ms against 0.1 ms; the unchanged final rerun passed without relaxing the assertion. The full release/archive gate and publishing remain later plan tasks.
 
 - [ ] Task 14.6: Read `pack_draft` drafts from a directory under an opt-in root (M5)
   - Acceptance Criteria:

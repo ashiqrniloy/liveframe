@@ -4,7 +4,7 @@ import type { Catalog, Definition } from "../formats/catalog.ts";
 import { validateJson } from "../formats/json.ts";
 import { validateManifestShape } from "../formats/manifest.ts";
 import { type Scenario, validateScenario, type WidgetPackage } from "../formats/package.ts";
-import type { Json, UiTree } from "../formats/tree.ts";
+import type { Json, UiNode, UiTree } from "../formats/tree.ts";
 import { canonicalJson, utf8 } from "../pack/hash.ts";
 import { outcomeScenarios } from "../pack/outcome.ts";
 import type { PreviewBinding, PreviewSession } from "../preview/authoring.ts";
@@ -13,6 +13,7 @@ import type { Runner } from "../preview/runner.ts";
 import { createPreview } from "../preview/session.ts";
 import { isLanguageSchema, sourceOutcome } from "../schema.ts";
 import { generate, generateDefinitions, generateElementsSchema } from "../sdk/gen.ts";
+import { complete } from "../validate/complete.ts";
 import { checkAll, type ScenarioStatus } from "./checks.ts";
 
 export type AuthoringOptions = {
@@ -70,6 +71,20 @@ const key = (path: string) => path.replaceAll("~", "~0").replaceAll("/", "~1");
 
 export type PackInput = Parameters<PreviewSession["update"]>[0];
 export type RenderInput = { scenario?: string; state?: Json; context?: Json; outcomes?: boolean };
+export type SetStateInput = { origin: { nodeId: string; event: string }; value?: Json };
+
+function setStateArguments(input: unknown): Result<SetStateInput> {
+  if (!isRecord(input) || !isRecord(input.origin))
+    return { ok: false, errors: [at("/origin", "Expected an origin with nodeId and event")] };
+  for (const field of ["nodeId", "event"] as const)
+    if (typeof input.origin[field] !== "string" || !input.origin[field].length)
+      return { ok: false, errors: [at(`/origin/${field}`, "Expected a non-empty string")] };
+  if (input.value !== undefined) {
+    const checked = validateJson(input.value);
+    if (!checked.ok) return { ok: false, errors: rooted("/value", checked.errors) };
+  }
+  return { ok: true, value: input as SetStateInput };
+}
 
 /** `pack_draft`'s arguments, checked before the packer so its error set is the whole answer. */
 function packArguments(input: unknown): Result<PackInput> {
@@ -143,10 +158,10 @@ export function createAuthoring(options: AuthoringOptions) {
   const surfaceId = `authoring-${++nextAuthoring}`;
   let revision = 0;
   let packed: WidgetPackage | undefined;
+  let current: { scenario: string; tree: UiTree } | undefined;
   let bound: Promise<{ readonly url: string; close(): Promise<void> }> | undefined;
 
-  async function renderOne(input: RenderInput): Promise<Result<UiTree>> {
-    const result = await session.render({ ...input, scenario: input.scenario! });
+  function bounded(result: Result<UiTree>, scenario: string): Result<UiTree> {
     if (!result.ok) return result;
     const size = utf8(JSON.stringify(result.value)).byteLength;
     if (size > MAX_TREE_BYTES)
@@ -156,13 +171,42 @@ export function createAuthoring(options: AuthoringOptions) {
           {
             kind: "limit-exceeded",
             pointer: "/scenario",
-            message: `Scenario "${input.scenario}" rendered ${size} bytes, over the ${MAX_TREE_BYTES}-byte limit`,
+            message: `Scenario "${scenario}" rendered ${size} bytes, over the ${MAX_TREE_BYTES}-byte limit`,
             expected: `a tree of at most ${MAX_TREE_BYTES} bytes`,
           },
         ],
       };
     return result;
   }
+
+  function remember(result: Result<UiTree>, scenario: string): Result<UiTree> {
+    const checked = bounded(result, scenario);
+    current = checked.ok ? { scenario, tree: checked.value } : undefined;
+    return checked;
+  }
+
+  async function renderOne(input: RenderInput): Promise<Result<UiTree>> {
+    return remember(
+      await session.render({ ...input, scenario: input.scenario!, preserveState: false }),
+      input.scenario!,
+    );
+  }
+
+  // Page snapshots advance revisions too; keep the tool's origin tied to the served tree.
+  const boundSession: PreviewSession = {
+    ...session,
+    async render(input) {
+      const result = await session.render(input);
+      if (current?.scenario === input.scenario) remember(result, input.scenario);
+      else current = undefined;
+      return result;
+    },
+    async intent(intent, origin) {
+      const result = await session.intent(intent, origin);
+      if (current && result.ok) remember(result, current.scenario);
+      return result;
+    },
+  };
 
   async function renderOutcomes(input: RenderInput): Promise<Result<ScenarioStatus[]>> {
     const pkg = packed!;
@@ -264,6 +308,7 @@ export function createAuthoring(options: AuthoringOptions) {
         const result = session.update(checked.value);
         if (!result.ok) return result;
         packed = result.value;
+        current = undefined;
         const { manifest, scenarios, hash } = packed;
         return success({
           hash,
@@ -286,6 +331,30 @@ export function createAuthoring(options: AuthoringOptions) {
         return results.ok ? success(checkAll(results.value)) : results;
       });
     },
+    setState(input: SetStateInput): Promise<Result<UiTree>> {
+      return exclusive(async () => {
+        if (!current) return failure("not-found", "", "Call render_scenarios with a scenario first");
+        const checked = setStateArguments(input);
+        if (!checked.ok) return checked;
+        const { tree, scenario } = current;
+        const find = (node: UiNode): UiNode | undefined =>
+          node.id === input.origin.nodeId ? node : node.children?.map(find).find(Boolean);
+        const node = find(tree.root);
+        if (!node) return failure("not-found", "/origin/nodeId", "Unknown origin node");
+        const offered =
+          node.events && Object.hasOwn(node.events, input.origin.event) ? node.events[input.origin.event] : undefined;
+        if (!offered) return failure("undeclared-event", "/origin/event", "Event was not offered by this node");
+        if (offered.type !== "setState")
+          return failure("invalid-prop", "/origin/event", "Expected an offered setState event; actions are refused");
+        const result = await session.intent(complete(offered, input.value), {
+          surfaceId: tree.surfaceId,
+          revision: tree.revision,
+          nodeId: input.origin.nodeId,
+          event: input.origin.event,
+        });
+        return result.ok ? remember(result, scenario) : result;
+      });
+    },
     capturePreview(input: CaptureInput = {}): Promise<Result<AuthoringCaptureCell[]>> {
       return exclusive(async () => {
         if (!packed) return failure("not-found", "", "Call pack_draft before capture_preview");
@@ -295,7 +364,7 @@ export function createAuthoring(options: AuthoringOptions) {
             throw new Error(
               "The config module names no preview(): add `preview: async (binding) => ({ url, close })` to serve the app's own page.",
             );
-          bound ??= options.preview({ session, package: () => packed! });
+          bound ??= options.preview({ session: boundSession, package: () => packed! });
           const bridge = await bound.catch((error: unknown) => {
             bound = undefined;
             throw error;

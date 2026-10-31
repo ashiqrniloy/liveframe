@@ -153,7 +153,7 @@ Widgets are authored separately with the [SDK](docs/sdk.md), which exports `rend
 | `@arnilo/liveframe/store` | Record formats, the `Store` interface, `memoryStore()` and `loadPlacement()` |
 | `@arnilo/liveframe/store/fs` | `fileStore(dir)`, which reads and writes the file system |
 | `@arnilo/liveframe/preview` | The `Runner` interface, `inProcessRunner()` and `createPreview()` |
-| `@arnilo/liveframe/authoring` | Seven typed authoring operations without MCP; the host supplies its runner |
+| `@arnilo/liveframe/authoring` | Eight typed authoring operations without MCP; the host supplies its runner |
 | `@arnilo/liveframe/runner-kit` | `renderModule()` and `linkPackage()`, the in-sandbox half of a runner |
 | `@arnilo/liveframe/runner-kit.bundle.js` | The kit, SDK and validator as one import-free ES module for isolates |
 | `@arnilo/liveframe/validator.bundle.js` | The root exports as one import-free ES module for hosts that validate without rendering |
@@ -178,7 +178,7 @@ The [spec](docs/spec.md#13-tech-stack-and-packages) defines each subpath's contr
 { "mcpServers": { "liveframe": { "command": "bunx", "args": ["liveframe", "mcp", "./mcp.config.ts"] } } }
 ```
 
-The client starts the server itself. The [MCP guide](docs/mcp.md) covers the seven tools, captures and errors.
+The client starts the server itself. The [MCP guide](docs/mcp.md) covers the eight tools, captures and errors.
 
 ## Guides
 
@@ -190,7 +190,7 @@ The client starts the server itself. The [MCP guide](docs/mcp.md) covers the sev
 - [Packages, stores and runners](docs/packages.md) — `pack()`, `fileStore`, `inProcessRunner`, `workerRunner`
 - [Preview and capture](docs/preview.md) — preview sessions, `<Preview>` and `liveframe preview capture`
 - [Conformance](docs/conformance.md) — the test kit for an app's catalog, styling, renderer and store
-- [Agent authoring over MCP](docs/mcp.md) — `liveframe mcp` and its seven tools
+- [Agent authoring over MCP](docs/mcp.md) — `liveframe mcp` and its eight tools
 - [Agent walkthrough for the demo](docs/demo-agent.md) — author, capture, install and place a draft
 - [Security model](docs/security.md) — what is validated where, and what is not a sandbox
 - [Compatibility](docs/compatibility.md) — what a version bump may change

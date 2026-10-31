@@ -23,7 +23,7 @@ const json = (body: unknown, status = 200) => Response.json(body, { status, head
 export async function previewRoutes({ session, package: pkg }: { session: PreviewSession; package(): WidgetPackage }) {
   const bundle = await clientBundle;
   const snapshot = async (scenario: string) => ({
-    result: await session.render({ scenario }),
+    result: await session.render({ scenario, preserveState: true }),
     manifest: pkg().manifest,
     scenarios: pkg().scenarios.map((entry) => entry.name),
     intents: session.intents(),

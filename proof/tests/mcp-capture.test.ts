@@ -49,6 +49,31 @@ const call = (client: Client, name: string, args: Record<string, unknown>) =>
 const texts = (content: Content[]) => content.flatMap((block) => (block.type === "text" ? [block.text ?? ""] : []));
 const images = (content: Content[]) => content.flatMap((block) => (block.type === "image" ? [block.data ?? ""] : []));
 
+test("set_state_then_capture_shows_state", async () => {
+  await withClient(proofConfig, async (client) => {
+    const input = drafts[4]!;
+    expect((await call(client, "pack_draft", input)).isError).toBeFalsy();
+    const scenario = input.scenarios[0]!.name;
+    const result = await call(client, "render_scenarios", { scenario });
+    const tree = JSON.parse(texts(result.content as Content[])[0]!) as import("@arnilo/liveframe").UiTree;
+    const nodes = (node: typeof tree.root): (typeof tree.root)[] => [node, ...(node.children ?? []).flatMap(nodes)];
+    const query = nodes(tree.root).find((n) => n.props.label === "Query")!;
+    // The capture navigates and re-reads the real proof host's snapshot route.
+    for (const marker of ["SetStateCaptureOne", "SetStateCaptureTwo"]) {
+      const changed = await call(client, "set_state", {
+        origin: { nodeId: query.id, event: "onChange" },
+        value: marker,
+      });
+      expect(changed.isError).toBeFalsy();
+      const captured = await call(client, "capture_preview", { scenarios: [scenario], widths: [360] });
+      expect(captured.isError).toBeFalsy();
+      const snapshots = texts(captured.content as Content[]).slice(1);
+      expect(snapshots).toHaveLength(4);
+      for (const snapshot of snapshots) expect(snapshot).toContain(marker);
+    }
+  });
+}, 180000);
+
 test("capture_returns_png_snapshot_and_errors_per_cell", async () => {
   const result = await withClient(proofConfig, async (client) => {
     expect((await call(client, "pack_draft", agentHome)).isError ?? false).toBe(false);

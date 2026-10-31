@@ -1,7 +1,7 @@
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { expect, test } from "bun:test";
-import { obj, sourceOutcome, str, validateCapabilities } from "@arnilo/liveframe";
+import { obj, sourceOutcome, str, type UiNode, type UiTree, validateCapabilities } from "@arnilo/liveframe";
 import { createAuthoring } from "@arnilo/liveframe/authoring";
 import type { PreviewBinding } from "@arnilo/liveframe/preview";
 import { inProcessRunner } from "@arnilo/liveframe/preview";
@@ -12,6 +12,119 @@ import { drafts, packageOptions, value } from "./fixtures/widgets/drafts.ts";
 
 const draft = { ...drafts[0]!, manifest: value(validateManifestShape(drafts[0]!.manifest)) };
 const options = () => ({ ...packageOptions, runner: inProcessRunner() });
+
+test("set_state_applies_offered_event_and_refuses_invalid_origins_and_actions", async () => {
+  let binding!: PreviewBinding;
+  let renders = 0;
+  const delegate = inProcessRunner();
+  const a = createAuthoring({
+    ...options(),
+    runner: {
+      render(...args) {
+        renders++;
+        return delegate.render(...args);
+      },
+    },
+    capture: fakeCapture().backend,
+    preview: async (b) => {
+      binding = b;
+      return { url: "https://example.test", async close() {} };
+    },
+  });
+  const input = drafts[4]!;
+  const beforeRender = () =>
+    expect(a.setState({ origin: { nodeId: "root", event: "onPress" } })).resolves.toMatchObject({
+      ok: false,
+      errors: [{ kind: "not-found", message: "Call render_scenarios with a scenario first" }],
+    });
+  try {
+    await beforeRender();
+    value(await a.packDraft(input));
+    await a.renderScenarios();
+    await beforeRender();
+    const tree = value(await a.renderScenarios({ scenario: input.scenarios[0]!.name })) as UiTree;
+    const nodes = (node: UiNode): UiNode[] => [node, ...(node.children ?? []).flatMap(nodes)];
+    const all = nodes(tree.root);
+    const query = all.find((n) => n.props.label === "Query")!;
+    const literal = all.find((n) => n.props.label === "Select task:0")!;
+    const action = all.find((n) => n.props.label === "Bound reason")!;
+    await a.capturePreview();
+    const log = binding.session.intents();
+    for (const [input, kind, pointer] of [
+      [{}, "invalid-document", "/origin"],
+      [{ key: "query", value: "forged" }, "invalid-document", "/origin"],
+      [{ origin: { nodeId: query.id } }, "invalid-document", "/origin/event"],
+      [{ origin: { nodeId: "missing", event: "onChange" } }, "not-found", "/origin/nodeId"],
+      [{ origin: { nodeId: query.id, event: "toString" } }, "undeclared-event", "/origin/event"],
+      [{ origin: { nodeId: action.id, event: "onCommit" }, value: "reason" }, "invalid-prop", "/origin/event"],
+      [{ origin: { nodeId: query.id, event: "onChange" }, value: 42 }, "invalid-prop", "/value"],
+    ] as const) {
+      expect(await a.setState(input as never)).toMatchObject({ ok: false, errors: [{ kind, pointer }] });
+      expect(binding.session.intents()).toEqual(log);
+    }
+    // These calls share the draft queue, including checks that must not change selection.
+    const count = renders;
+    const next = value(await a.setState({ origin: { nodeId: query.id, event: "onChange" }, value: "kept" }));
+    expect(renders).toBe(count + 1);
+    const changed = a.setState({ origin: { nodeId: query.id, event: "onChange" }, value: "queued" });
+    const checked = a.renderScenarios({ outcomes: true });
+    value(await changed);
+    expect(nodes(next.root).find((n) => n.props.label === "Query")?.props.value).toBe("kept");
+    await checked;
+    expect((await a.packDraft({ ...input, files: {} } as never)).ok).toBe(false);
+    const selected = value(await a.setState({ origin: { nodeId: literal.id, event: "onPress" }, value: "ignored" }));
+    expect(nodes(selected.root).some((n) => n.props.text === "Selected: task:0")).toBe(true);
+    const snapshot = value(await binding.session.render({ scenario: input.scenarios[0]!.name, preserveState: true }));
+    expect(nodes(snapshot.root).find((n) => n.props.label === "Query")?.props.value).toBe("queued");
+    value(await a.setState({ origin: { nodeId: query.id, event: "onChange" }, value: "after snapshot" }));
+    const reset = value(
+      await a.renderScenarios({ scenario: input.scenarios[0]!.name, preserveState: true } as never),
+    ) as UiTree;
+    expect(nodes(reset.root).find((n) => n.props.label === "Query")?.props.value).toBe("");
+    value(await a.packDraft(input));
+    await beforeRender();
+  } finally {
+    await a.close();
+  }
+});
+
+test("set_state_bounds_the_rerendered_tree", async () => {
+  const delegate = inProcessRunner();
+  let large = false;
+  const a = createAuthoring({
+    ...options(),
+    runner: {
+      async render(...args) {
+        const result = await delegate.render(...args);
+        if (!large || !result.ok) return result;
+        return {
+          ok: true,
+          value: { ...result.value, root: { ...result.value.root, props: { text: "😀".repeat(70000) } } },
+        };
+      },
+    },
+  });
+  try {
+    const input = drafts[4]!;
+    value(await a.packDraft(input));
+    const tree = value(await a.renderScenarios({ scenario: input.scenarios[0]!.name })) as UiTree;
+    const find = (node: UiNode): UiNode | undefined =>
+      node.props.label === "Query" ? node : node.children?.map(find).find(Boolean);
+    large = true;
+    expect(
+      await a.setState({ origin: { nodeId: find(tree.root)!.id, event: "onChange" }, value: "large" }),
+    ).toMatchObject({
+      ok: false,
+      errors: [{ kind: "limit-exceeded", pointer: "/scenario" }],
+    });
+    expect(await a.setState({ origin: { nodeId: "root", event: "onChange" } })).toMatchObject({
+      ok: false,
+      errors: [{ kind: "not-found" }],
+    });
+  } finally {
+    await a.close();
+  }
+});
 
 test("generated_types_default_unchanged", async () => {
   const a = createAuthoring(options());
