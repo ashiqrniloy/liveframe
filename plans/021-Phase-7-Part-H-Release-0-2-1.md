@@ -609,7 +609,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - The owner explicitly instructed: “Keep working with the current load. Document failures that are caused by system load but do not block tasks because of it”. Task completion uses that task-specific exception to the usual green full-check requirement. The evidence documents each failure and rerun rather than claiming the full check passed.
     - `bun run bench` stopped twice at unchanged validator timing gates, which do not import the changed renderer. Its patch application/diff medians still passed (**0.1372/0.6047 ms** in the second run). Running the remaining scripts separately passed the unchanged SDK render gates (**1.3296 ms**, **1.958 µs/node** for agent-home; element path **2.423 µs/node**), CSS gates and whole-tree streaming control. The final documentation checks also passed (four tests: renderer guide, links and wording), and `git diff --check` passed. No load-sensitive failure blocks completion under the owner's instruction; Tasks 13–14 remain unchanged.
 
-- [ ] Task 13: Split and diagnose the WebKit switching measurement (CL-16)
+- [x] Task 13: Split and diagnose the WebKit switching measurement (CL-16)
   - Acceptance Criteria:
     - Functional:
       - A committed script (`plans/evidence/021-task-13/switch-split.ts`) measures the two-surface switch from `css-scope-browser.test.ts` and the `<Surface>` switch from `react-browser.test.tsx` with `performance.mark`/`measure`, in three spans:
@@ -634,18 +634,28 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       - `src/__tests__/css-scope-browser.test.ts:230-276`; `src/__tests__/react-browser.test.tsx:~640-680`.
       - `src/react/renderer.tsx:190-210`; `docs/spec.md` §6.4 switching sequence (`:256`) and §12 budget (`:725`).
       - `plans/evidence/019-engines.md` (WebKit 27.2 host workarounds); `decision-logs/2026-10-30-0430-webkit-switching-budget-deferral.md`.
+      - Context7 `/microsoft/playwright`: headed Linux launch/display requirements, exercised on Playwright 1.64.1; [User Timing Level 3](https://www.w3.org/TR/user-timing/): marks, measures and explicit mark timestamps.
     - Options Considered:
       - Raise the WebKit ceiling. Rejected by the deferral log, which keeps the 16.67 ms budget.
     - Chosen Approach:
       - Split the spans, then rank the causes with numbers.
+      - Reproduce both test fixtures, reusing the actual React browser client; record a separate legacy switch-plus-probe control. A starts at the first switching attribute mutation and ends after the forced root layout; also record call-start-through-layout. C uses the second rAF timestamp as a rendering-opportunity proxy, not proof of physical paint. Use headed GTK under Xvfb when the live tiling display rejects the fixed viewport.
     - API Notes and Examples:
       ```sh
-      LIVEFRAME_BROWSER=webkit bun plans/evidence/021-task-13/switch-split.ts --headed
+      LIVEFRAME_BROWSER=webkit timeout 180s bun --conditions liveframe:source plans/evidence/021-task-13/switch-split.ts --headed
       ```
     - Files to Create/Edit:
       - `plans/evidence/021-task-13/switch-split.ts` (new); `plans/evidence/021-webkit-switching.md` (new)
+      - This plan (diagnosis and execution notes); `roadmap.md` §3 (execution status).
   - Test Cases to Write:
     - None. A diagnosis. Task 14 turns its verdict into tests.
+    - The evidence script asserts >500 nodes, ten warm samples per mode and finite nonnegative timings; a missing attribute mark fails measurement.
+  - Notes (executed 2026-10-31):
+    - Added [the committed split-measurement script](evidence/021-task-13/switch-split.ts) and [the diagnosis record](evidence/021-webkit-switching.md). Reproduced the CSS fixture (956 nodes) and reused the real React browser client (686 nodes), with one cold and ten warm samples for each legacy/split mode in Chromium and WebKit, headless and headed. The record includes machine, load, versions, span boundaries, median/max results, regeneration commands and the local raw-output location. The script asserts sample counts and finite timings; it is evidence tooling and is not shipped.
+    - **Task 14 must take the CSS/switching optimization branch.** WebKit CSS-only A (attribute change through forced layout) is **17/21 ms median/max headless** and **18.5/20 ms headed**, already above 16.67 ms; B adds only **1/2 ms**. React A is **13/17 ms headless** and **12/12 ms headed**. Chromium A maxima are **6.6/8.8 ms headless** and **7.1/6.2 ms headed** (CSS/React). The evidence localizes the dominant cost to style/layout resolution; no individual selector is yet established as the cause. No threshold or spec meaning changed, and redefining the measurement alone would not meet the budget.
+    - Confirmed that neither existing timed test window awaits rAF: both start after the first awaited frame and end before the next. Their "headless frame pacing" comments are unsupported causal claims. The renderer schedules its layout read in rAF; the diagnostic forces that work synchronously and records double-rAF timing separately as a rendering-opportunity proxy, not proof of physical paint.
+    - Headed GTK needed the same ICU/XML/flite compatibility libraries already used by headless WPE on unsupported CachyOS. Its fixed viewport failed under the live tiling desktop, so both recorded headed runs used isolated Xvfb; the record documents setup and limitations. Clay's plan 205 Tasks 24/34 real-window measurements have not arrived; recheck before Task 17. No production code, exports or browser test assertion changed.
+    - `timeout 1200s bun run check` passed: **878 passed, 4 skipped, 0 failed**, 882 tests across 109 files (284.48 s). Build, generated-code checks, typecheck, lint and formatting passed. All four diagnostic browser/mode runs passed their fixture/sample assertions; final script lint/format and `git diff --check` passed. No load exception was needed. Task 14 remains unchecked.
 
 - [ ] Task 14: Assert the switching budget on the library's measurement in WebKit (CL-16)
   - Acceptance Criteria:
