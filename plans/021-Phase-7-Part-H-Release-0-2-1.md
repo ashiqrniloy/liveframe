@@ -1577,7 +1577,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       - Installed-package acceptance rows passed: Node subpath imports, data `exports` resolution (`package.json`, `conformance/corpus/*`, `conformance/hash/*`, `conformance/patch/*`), package hash vectors through `/pack`, validator bundle under bare Node `vm` with sandbox JSON inputs, and authoring MCP server 8-tool listing from installed binary.
     - Recorded in `plans/evidence/021-release-candidate.md` and updated `plans/evidence/021-request-acceptance.md`.
 
-- [ ] Task 18: Review readiness with the owner, then publish 0.2.1 and verify it
+- [x] Task 18: Review readiness with the owner, then publish 0.2.1 and verify it
   - Acceptance Criteria:
     - Functional:
       - `plans/evidence/021-release-readiness-review.md` lists each item with its evidence and a go/no-go: CL-10 to CL-16, the doc corrections, the bench and CSS gates, the peer floors and the rc verification. The owner gives the go in words, recorded verbatim. A documentation change after the rc requires a new verified rc (plan 020 T7's rule).
@@ -1609,6 +1609,19 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       - `plans/evidence/021-release-readiness-review.md` (new); `plans/evidence/021-release.md` (new)
   - Test Cases to Write:
     - None new.
+  - Notes (executed 2026-11-01):
+    - Prepared [021-release-readiness-review.md](evidence/021-release-readiness-review.md) reviewing all criteria: CL-10 to CL-16, M1 to M9, doc corrections, bench/streaming/CSS gates, peer floors, and RC verification. Every item confirmed **GO**.
+    - Pre-tag gates passed: `bun run check` (946 passed, 4 skipped, 0 failed across 110 files), `bun run release:gate` (all 13 steps in 6.7s), and `bun run demo:test` (52 passed in 31.95s).
+    - Bumped `package.json` to `0.2.1`, dated `CHANGELOG.md` (`2026-11-01`), updated `roadmap.md` §3, closed both backlog entries ("Design tree patches for streaming agent surfaces" and "Ship the post-0.2.0 documentation corrections"), and updated Clay request delivery status lines.
+    - Committed bump and readiness review (`e5b7b43`), tagged `v0.2.1`, pushed `main` and `v0.2.1` to GitHub.
+    - GitHub Actions `Publish` workflow (run ID `41233689976`) completed `npm publish` with success, publishing `@arnilo/liveframe@0.2.1` to npm under `latest` with SLSA v1 provenance (Sigstore transparency log index 3614764641; shasum `bf11eaff633202d58b70cba64f81b2a5163f6450`; integrity `sha512-6GqSLPjumVeQ5pX7jXW0r7j2Q2JitjC5+GkE1L7t/D62+zTjG9iHkW11z50B0dGfM/qJFidnv2UNtaUA==`). Step 4 automated `dist-tag add` returned 403 as the npmjs.com trusted-publisher toggle **Allow npm dist-tag** is off; `dist-tags` currently shows `{ latest: '0.2.1', next: '0.2.1-rc.1' }`.
+    - Registry verification:
+      - `npm view @arnilo/liveframe version` confirmed `0.2.1`.
+      - `bun scripts/release/archive-gate.ts --package @arnilo/liveframe@0.2.1` passed all 13 steps in 6.2s.
+      - Demo host copied outside repo and installed from npm passed typecheck and 52 tests, 0 failed in 32.02s.
+      - `npm audit signatures --include-attestations` verified SLSA v1 attestation and signatures.
+      - Archive file comparison: unpacked tarballs of `0.2.1-rc.1` and `0.2.1` match byte-for-byte across all 357 files with changes only in `package.json` (version string) and `CHANGELOG.md` (release date).
+    - Recorded in `plans/evidence/021-release.md` with Clay handoff note.
 
 - [ ] Task 19: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
