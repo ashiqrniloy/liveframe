@@ -884,7 +884,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       No pre-change bench was run. The budgets are the gate. The bench rewrote `plans/evidence/019-streaming-bench.md`, which was restored.
     - `timeout 900s bun run check` passed: **882 passed, 4 skipped, 0 failed**, 886 tests across 109 files (276.02 s).
 
-- [ ] Task 13.5: Trim measured projection overhead (R3)
+- [x] Task 13.5: Trim measured projection overhead (R3)
   - Acceptance Criteria:
     - Functional:
       - Each candidate is measured with the interleaved probe, against the tree as of Task 13.4, in WebKit, Chromium and Firefox:
@@ -913,6 +913,15 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       - `src/css/*` (tentative, kept wins only); `src/__tests__/css-*.test.ts` (tentative); `plans/evidence/021-task-13-remedies.md`
   - Test Cases to Write:
     - For each kept change, a projection test that fails if the change is reverted.
+  - Notes (executed 2026-10-31):
+    - Added upper-bound variants to [the interleaved probe](evidence/021-task-13/interleave.ts): each candidate removed outright. Ran 50 interleaved samples per variant in WebKit, Chromium and Firefox, on the tree with deferred rows.
+    - WebKit span A medians: as shipped 12 ms; no `container-type` 11; no reset 13; no slot typography 11; floor 7. Chromium gains at most 0.3 ms, Firefox none. See [the remedies record](evidence/021-task-13-remedies.md#task-135-trim-candidates-upper-bounds).
+    - No styling-preserving form of any candidate can reach the 0.5 ms keep rule:
+      - the reset gains nothing and is required styling;
+      - typography deduplication needs parent roles a per-slot projection cannot know, and is bounded at timer resolution;
+      - `lf_container` is already conditional on responsive values.
+    - **No trim is kept. `src/css/*` is unchanged**, so no projection test was added. The probe passed Biome.
+    - Two check runs under external load (load average 13–17: a QEMU VM, podman and Java) failed only on load-sensitive tests: the React browser file timed out in one run, and the timing gates failed in the other, with the Chromium switch at 18.6 ms. Alone, the React browser file passed 26/26. At load 1.9, `timeout 900s bun run check` passed: **882 passed, 4 skipped, 0 failed**, 886 tests across 109 files (309.15 s).
 
 - [ ] Task 13.6: Replace container queries with a renderer breakpoint attribute (R4, only if Task 13.5 misses its margin)
   - Acceptance Criteria:
@@ -940,6 +949,9 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       - `src/css/style-props.ts`; `src/css/base.ts`; `src/react/renderer.tsx`; `docs/spec.md`; `docs/styling.md` (all tentative, run only if the gate trips)
   - Test Cases to Write:
     - If it runs: `responsive_values_follow_surface_width`, at three widths in all engines, and `responsive_values_hold_after_switch`.
+  - Notes (executed 2026-10-31):
+    - **Not needed. The gate did not trip.** After Task 13.4, three consecutive focused WebKit runs measured span A maxima of 10/11/9 ms (CSS) and 14/14/13 ms (Surface). None exceeds 14 ms ([Task 14 record](evidence/021-task-14-switching.md)). Task 13.5 changed nothing that could raise them.
+    - Container queries and their script-free responsiveness stay as they are. No code, spec or docs changed. If a later WebKit regression trips the gate, this task's approach still applies.
 
 - [ ] Task 14: Assert the switching budget on the library's measurement in WebKit (CL-16)
   - Depends on: Tasks 13.1 to 13.6.

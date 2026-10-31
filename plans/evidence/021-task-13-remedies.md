@@ -123,3 +123,35 @@ LIVEFRAME_BROWSER=firefox timeout 300s bun --conditions liveframe:source plans/e
 
 Pass variant names to run a subset, and set `ROUNDS` to change the sample
 count (5 samples per round). The host caveats are as in Task 13.
+
+## Task 13.5: trim candidates (upper bounds)
+
+Run on 2026-10-31 at 15:51 local, at load 2.4 rising to 4.7, on the tree with
+deferred rows. Each variant has 50 interleaved samples, and the logs are
+local-only in `evidence/021-task-13/trims-{webkit,chromium,firefox}.log`.
+Each candidate is removed outright, which bounds the gain any
+styling-preserving rewrite could reach. Span A, p50 / p90 / max ms:
+
+| Variant | WebKit | Chromium | Firefox |
+| --- | --- | --- | --- |
+| `prim` (as shipped) | 12 / 15 / 27 | 4.0 / 4.8 / 7.0 | 5 / 7 / 9 |
+| `prim-nocq`: no `container-type` | 11 / 14 / 23 | 3.8 / 5.3 / 6.3 | 5 / 6 / 7 |
+| `prim-noreset`: no universal reset or `font:inherit` | 13 / 15 / 26 | 4.0 / 5.1 / 7.2 | 5 / 6 / 8 |
+| `prim-notype`: no typography in any slot rule | 11 / 14 / 16 | 3.7 / 4.9 / 5.1 | 5 / 6 / 8 |
+| `prim-floor` | 7 / 9 / 11 | 3.6 / 4.6 / 6.3 | 4 / 5 / 8 |
+
+The keep rule requires a WebKit median gain of at least 0.5 ms with no
+regression. No styling-preserving form of any candidate can meet it:
+
+- **The reset and `font:inherit`.** Removing them gains nothing, and they are
+  required styling.
+- **Duplicated typography.** Removing *all* slot typography gains 1 ms, which
+  is WebKit's timer resolution. Deduplicating only the slots that repeat their
+  surface's role needs the tree's parent roles, which a per-slot projection
+  cannot know, and it would remove only part of that bound.
+- **`container-type` without responsive rules.** `surfaceAttributes` already
+  adds `lf_container` only when the tree has responsive values, and this tree
+  does. Removing it gains 1 ms but breaks responsive values; that is R4,
+  which stays gated.
+
+**No trim is kept,** and `src/css/*` is unchanged.

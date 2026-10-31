@@ -36,6 +36,25 @@ const variants: Record<string, { css: string; cls: string }> = {
     cls: "lf_surface",
   },
   "prim-cv": { css: primitiveCss + library + rows, cls: "lf_surface lf_container" },
+  // Task 13.5 upper bounds: removing a rule outright bounds what any styling-preserving rewrite could gain.
+  "prim-noreset": {
+    css:
+      primitiveCss +
+      library
+        .replace(":where([data-lf-ds]) *{box-sizing:border-box;margin:0;border:0 solid}", "")
+        .replace(":where([data-lf-ds]) :where(button,input,select,textarea){font:inherit}", ""),
+    cls: "lf_surface lf_container",
+  },
+  "prim-notype": {
+    css:
+      primitiveCss +
+      library.replace(/(\.lf_[\w-]+(?::where\([^{}]*\))?[^{}]*)\{([^{}]*)\}/g, (_, selector: string, body: string) =>
+        selector.startsWith(".lf_surface")
+          ? `${selector}{${body}}`
+          : `${selector}{${body.replace(/(?:font-[\w-]+|line-height|letter-spacing|text-transform):[^;{}]+;?/g, "")}}`,
+      ),
+    cls: "lf_surface lf_container",
+  },
   "prim-floor": { css: primitiveCss + floor, cls: "" },
   floor: { css: floor, cls: "" },
 };
