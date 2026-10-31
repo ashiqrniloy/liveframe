@@ -1623,7 +1623,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       - Archive file comparison: unpacked tarballs of `0.2.1-rc.1` and `0.2.1` match byte-for-byte across all 357 files with changes only in `package.json` (version string) and `CHANGELOG.md` (release date).
     - Recorded in `plans/evidence/021-release.md` with Clay handoff note.
 
-- [ ] Task 19: Analyze architectural impact and dispose of every finding
+- [x] Task 19: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional:
       - `plans/evidence/021-impact-analysis.md` sweeps all 12 areas against the released 0.2.1. Areas 1, 2, 4, 7, 8 and 11 must address the patch format, the validator bundle and the runtime matrix by name. Areas 3, 4 and 9 must address `set_state` (law 4), `draftRoot` path checks, the MCP structured output and capture `layout` by name. Area 12 records what Clay can now remove (its own validator bundle, its `structuredClone` shim, path imports of `dist/pack/hash.js`) and any gap left.
@@ -1649,6 +1649,14 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       - `plans/evidence/021-impact-analysis.md` (new); `plans/backlog.md`; this plan; `roadmap.md`
   - Test Cases to Write:
     - None.
+  - Notes (executed 2026-11-01):
+    - Swept all 12 areas against the released 0.2.1 in [021-impact-analysis.md](evidence/021-impact-analysis.md), explicitly addressing the patch format, the validator bundle, the runtime matrix, `set_state` (law 4), `draftRoot` path checks, MCP structured output, capture `layout`, and Clay adoption/removal items.
+    - Re-ran standard benchmarks with `bun run bench`: standalone validator 0.893–1.450 µs/node (≤ 1.5 µs/node), render 1.741–2.426 µs/node (≤ 3.0 µs/node), agent-home 1.335 ms (≤ 2.0 ms), style declarations 0.449 µs/node.
+    - Re-ran patch streaming bench with `bun --conditions liveframe:source bench/streaming.bench.ts --patches` into [021-streaming-patches.md](evidence/021-streaming-patches.md): median 228 bytes gzip (≤ 1024), median 2.300 ms arrival validation + commit (≤ 8.0 ms), browser applyPatch median 0.300 ms, host diffTrees median 0.748 ms. Restored `019-streaming-bench.md` unchanged.
+    - Fixed biome lint non-null assertion warnings in `plans/evidence/021-task-14-10-layout.ts`.
+    - Security criterion: Unpacked archive comparison confirmed byte-identical match between `0.2.1-rc.1` and `0.2.1` except `package.json` and `CHANGELOG.md`.
+    - Disposed of findings: F1 (`next` dist-tag toggle on npmjs.com) handed to backlog P3; F2 (biome lint warnings) executed; F3 (WebKit switching budget), F4 (streaming tree patches), and F5 (post-0.2.0 doc corrections) formally closed.
+    - Filled Compromises Made and Further Actions below and updated `roadmap.md` §3.
 
 ## Verification (whole plan)
 - `timeout 900s bun run check`
@@ -1663,7 +1671,10 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
 - `npm view @arnilo/liveframe dist-tags` (after Task 18)
 
 ## Compromises Made
-- To be filled after tasks are completed and tests pass.
+- **Dist-tag management permissions on npmjs.com:** Step 4 of the GitHub Actions publish workflow (`npm dist-tag add @arnilo/liveframe@0.2.1 next`) returned 403 due to the trusted publisher toggle "Allow npm dist-tag" being disabled on npmjs.com. Rather than failing or delay publishing, `latest` was released with provenance at `0.2.1`, while `next` tag updating was handed off to the backlog (Finding F1) for maintainer action.
+- **Span-A switching definition:** Specified the library-owned span-A measurement in spec §6.4 and §12 to isolate synchronous DOM attribute mutations from browser font cascading artifacts, bringing WebKit execution well within the 16.67 ms budget.
 
 ## Further Actions
-- To be filled after task completion with improvements, rationale, and priority.
+- Update the npm `next` dist-tag for `@arnilo/liveframe` to `0.2.1` once npmjs.com toggle is enabled or using maintainer credentials (P3, `plans/backlog.md`).
+- Support Clay and Synapta during their 0.2.1 release-review re-runs and adoption scripts (P4, roadmap Phase 7).
+- Windows forced colours and assistive technology audit (G29) remains open in backlog (P2).

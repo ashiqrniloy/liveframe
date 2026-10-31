@@ -5,7 +5,7 @@ import { drafts } from "../../src/__tests__/fixtures/widgets/drafts.ts";
 import { playwrightBackend } from "../../src/preview/capture/index.ts";
 import { startHost } from "../../proof/host/server.ts";
 
-const median = (values: number[]) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)]!;
+const median = (values: number[]) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)] ?? 0;
 const server = await startHost(0);
 const backend = playwrightBackend(playwright);
 try {
@@ -25,15 +25,17 @@ try {
   const layout: number[] = [];
   let nodes = 0;
   for (let i = 0; i < 10; i++) {
-    const cell = cells[i % cells.length]!;
+    const cell = cells[i % cells.length];
+    assert(cell);
     let start = performance.now();
     await page.screenshot(cell.handle);
     shot.push(performance.now() - start);
     start = performance.now();
     const measured = await page.layout(cell.handle);
     layout.push(performance.now() - start);
-    nodes = measured!.nodes.length;
-    assert(measured!.nodes.some((node) => node.height > 0));
+    assert(measured);
+    nodes = measured.nodes.length;
+    assert(measured.nodes.some((node) => node.height > 0));
   }
   console.log(
     JSON.stringify({

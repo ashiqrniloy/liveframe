@@ -477,3 +477,12 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Source: plans/evidence/020-impact-analysis.md (F1–F5)
 - What: the published 0.2.0 archive predates four corrections now in the repository: `docs/spec.md` §13's `/sdk/gen` row names `generateElementsSchema()` (F1); `docs/compatibility.md` §0.2.0 states the release in the present tense instead of "the next planned release" and "not shipped yet" (F2); `docs/adopters-0.2.md` states that the LF-17 measurement warrants tree patches and that the design needs separate approval, instead of saying the measurement "decided against" them (F3); `README.md` names `0.2.0` as the current release (F4). Ship them in the next patch release (0.2.1) or alongside the next fix, and re-run `bun run check`, `docs-links` and `docs-wording`.
 - Why: the adopter-facing guide and the compatibility policy are the two documents an outsider reads before migrating, and both currently misstate the shipped release. No runtime, format, export or threshold changes, so a patch release is enough and no new candidate is needed for correctness — only the archive's docs change.
+
+## Enable trusted-publisher dist-tag management on npmjs.com or update next tag
+
+- Section: Release automation (spec §13)
+- Priority: P3
+- Source: plans/021-Phase-7-Part-H-Release-0-2-1.md Task 18, plans/evidence/021-impact-analysis.md (F1)
+- What: Step 4 of the GitHub Actions publish workflow (`npm dist-tag add @arnilo/liveframe@0.2.1 next`) returned 403 because npmjs.com's trusted publisher configuration requires explicitly enabling "Allow npm dist-tag". As a result, `dist-tags` currently shows `{ latest: '0.2.1', next: '0.2.1-rc.1' }`. Either enable the "Allow npm dist-tag" toggle in package publishing settings on npmjs.com, or run `npm dist-tag add @arnilo/liveframe@0.2.1 next` manually using maintainer credentials.
+- Why: CL-14 and `docs/compatibility.md` § Release process step 4 state that `next` should remain at or above `latest` so installations referencing the prerelease tag do not resolve older code than the default release.
+
