@@ -13,6 +13,16 @@ Depends on: plan [020](020-Phase-7-Part-G-Release-0-2-0.md) complete (0.2.0 publ
   - an optional, versioned tree-patch format with `diffTrees` and `applyPatch`, measured against LF-17's fixed subject and thresholds (CL-15);
   - a diagnosed WebKit switching cost, with the 16.67 ms budget asserted on the library's measurement in WebKit (CL-16).
 - Ship the four post-0.2.0 documentation corrections (backlog "Ship the post-0.2.0 documentation corrections").
+- Fix every gap the 2026-10-31 review of the authoring MCP server found (Tasks 14.1 to 14.10):
+  - `render_scenarios` advertises `outcomes`;
+  - a missing argument is a `LiveframeError`, not the SDK's bare string;
+  - `generated_types` returns every `liveframe gen` module;
+  - a `set_state` tool fires an offered `setState` event (no action path);
+  - `pack_draft` reads a draft directory under an opt-in root;
+  - every tool carries behaviour annotations;
+  - every tool returns `structuredContent` against an `outputSchema`;
+  - an app can raise the 12-cell capture bound up to a documented maximum;
+  - `capture_preview` can report each cell's node boxes and overflow, so layout is checked by structure, not pixel height.
 - Publish `0.2.1-rc.N` under `next` and verify it from the registry, review readiness with the owner, then publish `0.2.1` as `latest` and verify it so Clay can re-run its release-review scripts.
 
 ## Expected Outcome
@@ -22,9 +32,10 @@ Depends on: plan [020](020-Phase-7-Part-G-Release-0-2-0.md) complete (0.2.0 publ
 - `conformance/corpus/package/` runs through `verifyPackage` and includes a `hash-mismatch` case and a `forbidden-import` case. `conformance/hash/packages.json` pins package hashes, and both are checked through the public exports.
 - `liveframe/tree-patch/1` has a TS type, a published JSON Schema, a spec section, corpus cases and vectors. For matching catalog/surface and increasing revisions, `applyPatch(prev, diffTrees(prev, next))` deep-equals `next` for every supported corpus tree pair; explicit empty children receive the approved `invalid-document` rejection and whole-tree fallback. The LF-17 subject streamed as patches is at or under 1 KiB gzip and 8 ms arrival validation plus commit per update (median).
 - A WebKit test asserts the switching budget at 16.67 ms on the measurement the diagnosis shows to be the library's, with no WebKit-only ceiling above it.
+- `liveframe mcp` lists eight tools, each with annotations and an `outputSchema`, and its text results are unchanged for 0.2.0 clients. Every argument it accepts appears in `tools/list`, and every argument error is a `LiveframeError[]`. `/authoring` exposes the same eight operations. `capture_preview` takes `layout: true` and honours `maxCaptureCells`, and the proof agent loop checks layout structurally. The six MCP backlog entries the review named are closed.
 - `CHANGELOG.md` has a 0.2.1 entry, `docs/adopters-0.2.md` maps CL-10 to CL-16 to what shipped, and `plans/evidence/021-request-acceptance.md` names a passing test or record for every acceptance bullet.
 
-This plan answers Clay's review of the installed 0.2.0 archive. It belongs to roadmap Phase 7 (reference hosts) as its first patch release, and follows plan 020's release process (`docs/compatibility.md` § "Release process"). The owner set the release target to 0.2.1 and, on 2026-10-30, answered the review's two R15 policy questions. First, additive exports, corpus cases and vectors may ship in a patch ("Yes, additive in patch"). Second, tree patches ride 0.2.1 in this one plan ("0.2.1, one plan"). Task 1 records both answers in a decision log. The tree-patch tasks (9 to 12) lift a spec §14 non-goal, so they wait for Task 2's design log and its separate owner approval. Nothing here changes an existing export, format meaning, corpus expectation or hash vector, and whole trees keep working unchanged. Publishing cannot be undone, so no tag is pushed without the owner's explicit go. Spec sections touched: §7.3 (package hash), §9 (wire format), §10 (validation), §11 (renderer), §12 (switching budget), §13 (packages, runtime matrix, conformance) and §14 (non-goals).
+This plan answers Clay's review of the installed 0.2.0 archive. It belongs to roadmap Phase 7 (reference hosts) as its first patch release, and follows plan 020's release process (`docs/compatibility.md` § "Release process"). The owner set the release target to 0.2.1 and, on 2026-10-30, answered the review's two R15 policy questions. First, additive exports, corpus cases and vectors may ship in a patch ("Yes, additive in patch"). Second, tree patches ride 0.2.1 in this one plan ("0.2.1, one plan"). Task 1 records both answers in a decision log. The tree-patch tasks (9 to 12) lift a spec §14 non-goal, so they wait for Task 2's design log and its separate owner approval. Nothing here changes an existing export, format meaning, corpus expectation or hash vector, and whole trees keep working unchanged. On 2026-10-31 the owner added the MCP server review's findings to this release: "I want fix all of the issues and ship with 0.2.1". Tasks 14.1 to 14.10 carry them, numbered so the existing task references stay valid. Tasks 13.1 to 13.6 carry the WebKit switching remedies that Task 13's diagnosis and the follow-up decomposition call for. Task 13.1's decision log must be approved before Tasks 13.2 to 13.6 build anything, and Task 14 asserts the budget after them. Task 14.1's decision log must be approved before Tasks 14.2 to 14.10 build anything. These tasks reverse two earlier decisions on purpose: spec §13's "no intent tool" (for `setState` only, never actions) and D5's inline-only drafts (behind an opt-in root). Each MCP change is additive, and every 0.2.0 tool call keeps its text result. Publishing cannot be undone, so no tag is pushed without the owner's explicit go. Spec sections touched: §7.3 (package hash), §9 (wire format), §10 (validation), §11 (renderer), §12 (switching budget), §13 (packages, runtime matrix, conformance) and §14 (non-goals).
 
 ## Tasks
 
@@ -657,7 +668,242 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Headed GTK needed the same ICU/XML/flite compatibility libraries already used by headless WPE on unsupported CachyOS. Its fixed viewport failed under the live tiling desktop, so both recorded headed runs used isolated Xvfb; the record documents setup and limitations. Clay's plan 205 Tasks 24/34 real-window measurements have not arrived; recheck before Task 17. No production code, exports or browser test assertion changed.
     - `timeout 1200s bun run check` passed: **878 passed, 4 skipped, 0 failed**, 882 tests across 109 files (284.48 s). Build, generated-code checks, typecheck, lint and formatting passed. All four diagnostic browser/mode runs passed their fixture/sample assertions; final script lint/format and `git diff --check` passed. No load exception was needed. Task 14 remains unchecked.
 
+- [x] Task 13.1: Record the WebKit switching-cost remedies (decision log)
+  - Acceptance Criteria:
+    - Functional:
+      - `plans/evidence/021-task-13-remedies.md` records the 2026-10-31 interleaved decomposition that follows Task 13, with machine, load, versions and regeneration commands. WebKit span A, as p50/p90/max over 40 interleaved warm samples:
+        - the CSS fixture as tested: 17/19/20 ms;
+        - with the trusted primitive CSS: 11/14/17 ms;
+        - with primitive CSS and `content-visibility:auto` on the queue rows: 8/10/12 ms;
+        - the same DOM and font switch with no Liveframe CSS (the engine floor): 9/9/10 ms.
+      - The record also states:
+        - a no-change re-match of every rule costs about 1 ms over the floor, so selector work is not the cost;
+        - a colour-only switch has no layout cost, and any typography change forces a full restyle and relayout;
+        - removing `var()`, `font-size-adjust` or `@scope` changes nothing measurable;
+        - container queries cost 1–4 ms.
+      - The record names the fixture defect. `css-scope-browser.test.ts` loads no trusted primitive CSS, so 102 icons render at 760×984 px, the switched section is about 106,000 px tall and no flex layout applies. The proof host and Clay both ship that CSS (`proof/renderer/primitives/base.ts:22`).
+      - The probe is committed as `plans/evidence/021-task-13/interleave.ts`. It uses relative imports and runs variants round-robin in one browser.
+      - A decision log records the remedies with their rejected alternatives. The owner approves it before Tasks 13.2 to 13.6 start:
+        - **R1 realistic fixture.** Both switching fixtures load the same trusted primitive CSS a host ships. This corrects the measured subject and does not weaken the budget.
+        - **R2 deferred offscreen rendering.** A new style prop, recommended name `deferOffscreen`, takes a `space.*` or `size.*` placeholder block size. It projects to `content-visibility:auto` and `contain-intrinsic-block-size:auto <value>`, and it may be responsive like every style prop. A catalog opts a primitive in by declaring it, which the proof catalog does for `box`. The log records every consequence the author accepts by setting it:
+          - paint containment clips overflow (focus rings, shadows, the pressed offset, unportaled overlays); top-layer elements and Liveframe portals escape;
+          - the element becomes the containing block for absolute and fixed descendants, an independent formatting context, and has no baseline;
+          - placeholder and remembered heights are stale after a switch until a row renders;
+          - the work is deferred to scroll-in, not removed, and WebKit still restyles skipped rows;
+          - script geometry reads on skipped nodes force rendering;
+          - engines without support ignore the property and behave as today.
+        - **R3 projection trims.** Each trim is kept only on interleaved A/B evidence, under Task 13.5's rule.
+        - **R4 container-query replacement.** Task 13.6 is gated: it runs only if Task 13.5 leaves less margin than its threshold. The log records the cost if it runs. CSS-only and server-rendered output lose responsive values until script runs, and each resize costs an extra style and layout pass.
+        - **Patch reading.** `deferOffscreen` is additive. Existing trees are unchanged, and a tree that uses it is rejected by 0.2.0 validators. The log states whether the owner accepts that in 0.2.1 (`docs/compatibility.md`: "Optional fields may be added").
+        - **Budget statement.** Spec §12 and §6.4 say the 16.67 ms bounds span A, the frame of the switch. For a surface whose long repeated content is not marked `deferOffscreen`, no engine-independent bound is promised. CL-16's answer to Clay says the same.
+        - **Mutant.** Task 14's "a CSS mutant that doubles selector work must fail under WebKit" is replaced. Selector work is about 1 ms, so doubling it is within noise. The replacement is a mutant that removes `deferOffscreen` from the fixture rows, which must fail Task 14's WebKit assertion.
+        - **Bench subject.** `bench/css.bench.ts` and the render benches keep their budgets on the opted-in tree. Task 13.4 records before/after numbers.
+    - Performance: n/a — a decision record. Its evidence is the measurement above.
+    - Code Quality: the log follows `create-decision-log`. The probe is evidence tooling and is not shipped.
+    - Security: law 3. `deferOffscreen` takes a design value only, never a raw length or CSS.
+  - Approach:
+    - Skills to Use:
+      - `create-decision-log`: it adds a style prop and changes the meaning of spec §12, so it needs owner approval.
+      - `find-docs`: MDN `content-visibility` and `contain-intrinsic-size`, read 2026-10-31 (Context7 `/mdn/content`).
+    - Library Documentation to Check Before Implementation:
+      - MDN "Using CSS containment" § `content-visibility`, and `contain-intrinsic-size` § auto.
+    - Documentation Reviewed:
+      - `plans/evidence/021-webkit-switching.md`; `plans/evidence/021-task-14-switching.md`; `decision-logs/2026-10-30-0430-webkit-switching-budget-deferral.md`.
+      - `docs/spec.md` §6.3 (`:205-224`), §6.4 (`:256`), §12 (`:766`); `docs/compatibility.md:7,60`.
+      - `src/css/style-props.ts:36-86`; `src/css/base.ts:26-37`; `src/css/design-system.ts:220-240`; `proof/renderer/primitives/base.ts`.
+    - Options Considered:
+      - Selector or projection rewrites alone. Rejected: their total measured headroom is about 2 ms.
+      - A blanket `content-visibility` rule on a variant in app CSS. Rejected: it applies to every instance, including ones where clipping harms, and puts the library's proof outside its own validation.
+      - Time-sliced switching, or a prerendered second copy. Rejected: spec §6.4 requires an atomic switch that changes no node.
+      - A floor-relative or median assertion. Kept as the fallback if Task 14 still misses after Task 13.6; it would need its own owner decision.
+    - Chosen Approach:
+      - Fix the subject (R1), then reduce the synchronous work (R2), then trim what remains (R3, R4).
+    - API Notes and Examples:
+      ```tsx
+      <Box variant="rule" deferOffscreen="size.row">…</Box>
+      // content-visibility:auto; contain-intrinsic-block-size:auto var(--lf-v-size_row)
+      ```
+    - Files to Create/Edit:
+      - `decision-logs/2026-10-31-…-webkit-switching-cost-remedies.md` (new)
+      - `plans/evidence/021-task-13-remedies.md` (new); `plans/evidence/021-task-13/interleave.ts` (new)
+      - This plan: Tasks 13.2–13.6 and Task 14 adjusted to the approved log.
+  - Test Cases to Write:
+    - None. A decision record. The probe asserts at least 500 nodes, 40 samples per variant and finite timings.
+  - Notes (executed 2026-10-31):
+    - Added [the decomposition record](evidence/021-task-13-remedies.md) and [the interleaved probe](evidence/021-task-13/interleave.ts), and ran it in WebKit, Chromium and Firefox.
+    - The quieter run (load 4.5) gave WebKit span A p50/p90/max of:
+      - `test` 17/19/20 ms;
+      - `prim` 11/14/17 ms;
+      - `prim-cv` 8/10/12 ms;
+      - the no-Liveframe floor 9/9/10 ms.
+    - A run under VM load (5.1 to 8.3) roughly doubled every engine's values but kept the ordering. Both runs are recorded and labelled. Raw logs are local-only in `evidence/021-task-13/`.
+    - The owner approved R1–R4 as written, with R4 gated at 14 ms; `deferOffscreen` as the name; and shipping it in 0.2.1. Recorded in [the decision log](../decision-logs/2026-10-31-1438-webkit-switching-cost-remedies.md). Task 14's mutant criterion was updated in the same change.
+    - The probe passed Biome after formatting. No production code, threshold or spec meaning changed.
+    - `timeout 900s bun run check` passed: **878 passed, 4 skipped, 0 failed**, 882 tests across 109 files (366.77 s, under VM load).
+
+- [ ] Task 13.2: Load the trusted primitive CSS in both switching fixtures (R1)
+  - Acceptance Criteria:
+    - Functional:
+      - `css-scope-browser.test.ts` and `react-browser.test.tsx` load the proof's `primitiveCss` before the projected sheets, as a host does. The CSS fixture's switched section measures a realistic height: icons are sized and flex layout applies. A test asserts that icon roots are no larger than their `1rem` box.
+      - The shared `measureSwitching` helper from the Task 14 work in progress is kept, and both switching tests use it. Spans B and C are logged.
+      - The scope, overlay, transparency and switching tests in both files still pass in Chromium, Firefox and WebKit, except the WebKit switching assertion, which Task 14 closes. The evidence records the WebKit numbers after this task.
+    - Performance: Chromium and Firefox span A show no regression against `plans/evidence/021-task-14-switching.md`.
+    - Code Quality: a single import of `primitiveCss`, with no copied CSS text.
+    - Security: law 3 unchanged. Primitive CSS is trusted app CSS and was already shipped by the proof host.
+  - Approach:
+    - Skills to Use:
+      - `liveframe-execution`: test placement and the style chores.
+    - Library Documentation to Check Before Implementation:
+      - none — local code: `proof/renderer/primitives/base.ts`, both test files' page setup (`css-scope-browser.test.ts:35`, `react-browser.test.tsx:151`).
+    - Documentation Reviewed:
+      - Task 13.1's evidence.
+    - Options Considered:
+      - Size icons alone. Rejected: it fixes one symptom and still measures a page without primitive layout.
+    - Chosen Approach:
+      - Load the CSS hosts actually load.
+    - API Notes and Examples:
+      ```ts
+      import { primitiveCss } from "../../proof/renderer/primitives/base.ts";
+      ```
+    - Files to Create/Edit:
+      - `src/__tests__/css-scope-browser.test.ts`; `src/__tests__/react-browser.test.tsx`; `src/__tests__/fixtures/browser.ts`
+      - `plans/evidence/021-task-14-switching.md` (numbers after R1)
+  - Test Cases to Write:
+    - `switching_fixture_loads_primitive_css`: icon roots are at most 16 px. It fails if the fixture drops `primitiveCss`.
+
+- [ ] Task 13.3: Add the `deferOffscreen` style prop (R2)
+  - Acceptance Criteria:
+    - Functional:
+      - `deferOffscreen` joins the fixed style-prop set (`src/formats/fixed.ts:25`). It accepts the `space.*` or `size.*` names the app declares, and it may take responsive values.
+      - The validator rejects a raw length, an undeclared name, a non-string, and the prop on a definition that does not declare it, each with the existing typed style errors and pointers.
+      - `styleDeclarations` projects it to `contentVisibility: "auto"` and `containIntrinsicBlockSize: "auto var(--lf-v-…)"`, including through the responsive layer.
+      - The JSON Schema (`schemas/style-record.json`, where it lists props), the TS types, the generated SDK types (`gen:check`), the elements schema and MCP `list_primitives` all carry it.
+      - The proof catalog declares it on `box`.
+      - Spec §6.3 gains the row and the consequences paragraph from Task 13.1's log. `docs/styling.md` documents when to use it and what it changes.
+      - The conformance suite gains a case showing a deferred box renders its content and stays focusable and findable.
+    - Performance: validation and render benches stay within budget. Projection adds no rule to the design-system sheet, because the prop is inline style.
+    - Code Quality: one mapping entry in `src/css/style-props.ts`, plus the value rule in `src/validate/style.ts`. No new abstraction.
+    - Security: law 3. It takes design values only; a raw length or any CSS text fails closed.
+  - Approach:
+    - Skills to Use:
+      - `liveframe-execution`: the "new or changed format" and "new SDK surface" chores.
+      - `typescript-advanced-types`: the catalog-derived prop type.
+    - Library Documentation to Check Before Implementation:
+      - MDN `content-visibility`, `contain-intrinsic-block-size` (Context7 `/mdn/content`).
+      - React 19 inline-style support for `contentVisibility` and `containIntrinsicBlockSize` (via `find-docs`).
+    - Documentation Reviewed:
+      - `src/css/style-props.ts:20-86,102-164`; `src/formats/fixed.ts`; `src/validate/style.ts`; `src/__tests__/css-style-props.test.ts`; `src/__tests__/validator-node.test.ts`.
+    - Options Considered:
+      - A boolean prop with a library-fixed placeholder. Rejected: placeholder height belongs to the design system.
+      - A new primitive (`DeferredBox`). Rejected: the problem is a layout behaviour, not a new kind, and new primitives need a gap record.
+    - Chosen Approach:
+      - One token-constrained style prop, following the existing dimension props.
+    - API Notes and Examples:
+      ```ts
+      styleDeclarations({ deferOffscreen: "size.row" }, catalog).style
+      // { contentVisibility: "auto", containIntrinsicBlockSize: "auto var(--lf-v-size_row)" }
+      ```
+    - Files to Create/Edit:
+      - `src/formats/fixed.ts`; `src/validate/style.ts`; `src/css/style-props.ts`; `schemas/*.json` (tentative: whichever enumerate style props)
+      - `src/__tests__/fixtures/proof/catalog.json`; generated `src/__tests__/fixtures/widgets/ui.gen.ts`, `ui.definitions.gen.ts`, `elements.schema.json`
+      - `src/conformance/*` (the style-prop case); `docs/spec.md` §6.3; `docs/styling.md`; `CHANGELOG.md` (0.2.1, unreleased)
+      - Tests: `css-style-props.test.ts`, `validator-node.test.ts` and a SDK type test
+  - Test Cases to Write:
+    - `defer_offscreen_projects_content_visibility`: fails if the mapping or the token variable is wrong.
+    - `defer_offscreen_rejects_raw_and_undeclared`: covers a raw `px`, an undeclared name and an undeclaring definition.
+    - `defer_offscreen_responsive`: a breakpoint value projects through the responsive layer.
+    - A type test: `deferOffscreen="12px"` fails to compile.
+    - A conformance case: deferred content is focusable and in tab order.
+
+- [ ] Task 13.4: Defer the agent-home queue rows and re-prove parity (R2)
+  - Acceptance Criteria:
+    - Functional:
+      - The agent-home queue row `Box` sets `deferOffscreen` in both widget copies (`proof/widgets/agent-home/queue-row.tsx`, `src/__tests__/fixtures/widgets/agent-home/queue-row.tsx`). The placeholder is a design value close to a row's measured height.
+      - `agent-home.tree.json` and `css/agent-home.html` are regenerated (`proof/scripts/capture-css-scope.ts`), and the validator tests that read them still pass.
+      - Parity holds: pixel mismatch stays at or below 1% at 1440, 1024 and 390 px, with the evidence updated. Focus rings and shadows inside rows are checked for clipping, and any clipped cue is fixed in the recipe or row padding.
+      - WebKit span A for both fixtures is recorded in `plans/evidence/021-task-14-switching.md`.
+    - Performance: render and CSS benches stay within budget, with before/after numbers recorded. The target is WebKit span A max ≤ 14 ms over three consecutive focused runs.
+    - Code Quality: widget changes only; no library code.
+    - Security: law 3. The value is a token.
+  - Approach:
+    - Skills to Use:
+      - `liveframe-execution`: widget and proof chores.
+    - Library Documentation to Check Before Implementation:
+      - none beyond Task 13.3.
+    - Documentation Reviewed:
+      - `proof/scripts/capture-css-scope.ts`; `proof/PARITY.md`; both `queue-row.tsx` files.
+    - Options Considered:
+      - Defer the whole aside. Rejected: it is mostly on screen, and the rows are the repeated offscreen content.
+    - Chosen Approach:
+      - Defer the repeated unit.
+    - API Notes and Examples:
+      - As Task 13.1.
+    - Files to Create/Edit:
+      - Both `queue-row.tsx` files; `src/__tests__/fixtures/proof/agent-home.tree.json` (how it is regenerated is confirmed during execution); `src/__tests__/fixtures/css/agent-home.html`
+      - `proof/PARITY.md` and its evidence; `plans/evidence/021-task-14-switching.md`
+  - Test Cases to Write:
+    - The existing parity and validator tests on the regenerated fixtures.
+    - `agent_home_rows_defer_offscreen`: the captured markup carries `content-visibility:auto` on every row. It fails if the prop is dropped.
+
+- [ ] Task 13.5: Trim measured projection overhead (R3)
+  - Acceptance Criteria:
+    - Functional:
+      - Each candidate is measured with the interleaved probe, against the tree as of Task 13.4, in WebKit, Chromium and Firefox:
+        - the `:where([data-lf-ds]) *` reset and `font:inherit` rules;
+        - duplicated typography declarations where a slot repeats its surface's role;
+        - `container-type` on surfaces with no responsive rule in force.
+      - A candidate is kept only if it improves WebKit span A by at least 0.5 ms median and regresses no engine. Rejected candidates are recorded with their numbers.
+      - Every kept change passes the completeness and "no colour outside the theme" checks, and leaves the conformance projections unchanged.
+    - Performance: CSS bench within budget.
+    - Code Quality: changes stay in `src/css/*`. No speculative options.
+    - Security: law 3 unchanged.
+  - Approach:
+    - Skills to Use:
+      - `liveframe-execution`: style-change chores.
+    - Library Documentation to Check Before Implementation:
+      - none — measured, not documented, behaviour.
+    - Documentation Reviewed:
+      - `src/css/base.ts`; `src/css/recipe.ts`; `src/css/design-system.ts`; Task 13.1 evidence.
+    - Options Considered:
+      - Applying trims without A/B evidence. Rejected: earlier trials changed nothing measurable.
+    - Chosen Approach:
+      - Measure each candidate; keep only proven wins.
+    - API Notes and Examples:
+      - n/a.
+    - Files to Create/Edit:
+      - `src/css/*` (tentative, kept wins only); `src/__tests__/css-*.test.ts` (tentative); `plans/evidence/021-task-13-remedies.md`
+  - Test Cases to Write:
+    - For each kept change, a projection test that fails if the change is reverted.
+
+- [ ] Task 13.6: Replace container queries with a renderer breakpoint attribute (R4, only if Task 13.5 misses its margin)
+  - Acceptance Criteria:
+    - Functional:
+      - This task runs only if, after Task 13.5, WebKit span A max exceeds 14 ms in any of three consecutive focused runs. Otherwise its note records "not needed" with those numbers, and it is ticked.
+      - If it runs, `<Surface>` measures its width with a ResizeObserver and sets `data-lf-bp` on the scope element. The responsive layer selects on that attribute instead of `@container`. Responsive values still hold at every wider breakpoint (spec §6.3).
+      - CSS-only hosts get a documented helper or attribute contract. Spec §6.3 and §6.4 and `docs/styling.md` record the change and the loss of script-free responsiveness.
+    - Performance: span A improves by the measured container cost. A resize costs at most one extra style and layout pass.
+    - Code Quality: the observer lives in `/react` only; `/css` stays host-API-free.
+    - Security: n/a — no new input.
+  - Approach:
+    - Skills to Use:
+      - `liveframe-execution`; `create-decision-log` (if it runs, its spec change is confirmed against Task 13.1's log).
+    - Library Documentation to Check Before Implementation:
+      - ResizeObserver timing relative to rendering (MDN, via `find-docs`).
+    - Documentation Reviewed:
+      - `src/css/style-props.ts:137-164`; `src/css/base.ts:29`; `src/react/renderer.tsx`.
+    - Options Considered:
+      - Viewport media queries. Rejected: they break the container-width semantics in spec §6.3.
+    - Chosen Approach:
+      - Keep container-width semantics and move evaluation into the renderer.
+    - API Notes and Examples:
+      - n/a until run.
+    - Files to Create/Edit:
+      - `src/css/style-props.ts`; `src/css/base.ts`; `src/react/renderer.tsx`; `docs/spec.md`; `docs/styling.md` (all tentative, run only if the gate trips)
+  - Test Cases to Write:
+    - If it runs: `responsive_values_follow_surface_width`, at three widths in all engines, and `responsive_values_hold_after_switch`.
+
 - [ ] Task 14: Assert the switching budget on the library's measurement in WebKit (CL-16)
+  - Depends on: Tasks 13.1 to 13.6.
   - Acceptance Criteria:
     - Functional:
       - If span (A) exceeds 16.67 ms on WebKit, the CSS projection or the switching sequence is fixed until (A) is ≤ 16.67 ms. Likely areas are selector cost in the projected sheets and the attribute set; the file list is tentative until the diagnosis. Chromium and Firefox show no regression.
@@ -687,14 +933,423 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       - `docs/spec.md` §6.4, §12 (measurement branch only); `decision-logs/…-switching-budget-measurement.md` (measurement branch only)
       - `plans/backlog.md`
   - Test Cases to Write:
-    - `switch_under_budget_with_blur` and `switch_under_budget_with_blur_through_surface`, now asserting span (A) ≤ 16.67 ms in every engine. A CSS mutant that doubles selector work must fail under WebKit.
+    - `switch_under_budget_with_blur` and `switch_under_budget_with_blur_through_surface`, now asserting span (A) ≤ 16.67 ms in every engine. The mutant is the one Task 13.1's log fixes: removing `deferOffscreen` from the fixture rows must fail under WebKit. Selector work is about 1 ms, so a selector-doubling mutant cannot fail reliably.
+
+  - Notes (attempted 2026-10-31; incomplete):
+    - Added a shared measurement helper and changed both switching tests to assert span A at 16.67 ms in every engine, with no WebKit-only ceiling. The helper records one cold and ten warm samples, logs B/C and call-start-through-layout separately, and rejects missing attribute marks or invalid timings.
+    - The stricter tests reproduce the unresolved library cost: CSS/Surface warm maxima are 6.9/6.7 ms in Chromium, 10/6 ms in Firefox and **25/17 ms in WebKit**. See [the Task 14 attempt record](evidence/021-task-14-switching.md) for commands and local logs. No production CSS optimization has been retained.
+    - `timeout 1200s bun run check` passed with default Chromium: **878 passed, 4 skipped, 0 failed**, 882 tests across 109 files (279.98 s). Build, generated-code checks, typecheck, lint and formatting passed. The focused documentation tests passed (3 tests), as did focused lint/format and `git diff --check`. This does not override the separate failing WebKit gate.
+    - **Task 14 is not complete.** WebKit still fails the normative limit. The CSS/switching optimization, passing all-engine gate, selector-work mutant, backlog closure and 0.2.1 changelog resolution remain outstanding. The WebKit deferral remains open; these assertion changes are uncommitted work in progress.
+
+- [ ] Task 14.1: Record the authoring MCP server's 0.2.1 surface (decision log)
+  - Acceptance Criteria:
+    - Functional:
+      - A decision log records the owner's scope instruction verbatim, with the date 2026-10-31: "I want fix all of the issues and ship with 0.2.1". It also records the review that found the issues: the server works and its suites pass, but it has the gaps below. It fixes M1 to M9, each with its rejected alternatives, and the owner approves it before Tasks 14.2 to 14.10 start:
+        - **M1 `outcomes`.** `render_scenarios` advertises the `outcomes` boolean that `/authoring` already accepts and the tool already passes through (verified 2026-10-31: `outcomes: "yes"` over stdio returns the handler's `invalid-document` at `/outcomes`). Spec §13's tool line gains it, so the library and the tool match again.
+        - **M2 envelope errors.** `pack_draft` drops its top-level `required` (`src/cli/mcp.ts:153`). Each property's `description` says it is required, and the handler's existing `packArguments` checks report a missing key as `invalid-document` at `/files`, `/entry`, `/manifest` or `/scenarios`. Before building, the log records what the SDK does with a non-object `arguments`. `CallToolRequest` types `arguments` as an object, so that case is a protocol error the server cannot reach. If the SDK does reject it before the tool, spec §13 names that one protocol-level exception and nothing else.
+        - **M3 `generated_types({ module? })`.** `module` is one of `"types"` (the default, byte-identical to today), `"implementations"` and `"elementsSchema"`. These match the CLI's `--implementations` and `--elements-schema` output byte for byte (`src/cli/liveframe.ts:65-96`, `generateDefinitions` at `src/sdk/gen.ts:216` and `generateElementsSchema` at `:338`). `/authoring`'s `generatedTypes()` takes the same argument. The log records whether `elementsSchema` is included: the recommendation is yes, because it costs one enum value and stops the tool falling behind the CLI again.
+        - **M4 `set_state`.** One new tool, `set_state({ origin: { nodeId, event }, value? })`, and a matching `/authoring` `setState()` operation. They take the `setState` intent that the current render's node `nodeId` offers on `event`, apply `value` where the event carries one, and send it through `session.intent(intent, origin)` (`src/preview/session.ts:123`). The server fills `surfaceId` and `revision` from the current render, so `checkOffered` verifies the event is offered. The tool returns the re-rendered tree under the 256 KiB bound. An `action` event is refused with a typed error and never dispatched or logged (law 4). Calling it with no current single-scenario render is `not-found`, with "Call render_scenarios with a scenario first". The log also settles:
+          - whether the bound preview page and a later `capture_preview` see the new state (recommended: yes, because they share the session, so an agent can capture the state it set);
+          - whether a raw `{ key, value }` with no origin is accepted (recommended: no; `render_scenarios`' `state` override already covers arbitrary state, and an origin is what tests the widget's own wiring);
+          - spec §13's new law-4 sentence: "its only intent path, `set_state`, applies an offered `setState`; no tool runs, logs or dispatches an action".
+        - **M5 draft directories.** `AuthoringConfig` gains an optional `draftRoot`. When it is set, `pack_draft` also accepts `{ dir, entry? }` instead of `files`, `entry`, `manifest` and `scenarios`. The CLI reads `<draftRoot>/<dir>`'s top-level `.ts` and `.tsx` files, `manifest.json` and `scenarios.json`, which is the layout `examples/demo-host/widgets/draft.ts` already reads, and `entry` defaults to `entry.tsx`. Any other shape is refused with a typed error at `/dir`: an absolute `dir`, any `..` segment, a path whose real path (symlinks resolved) leaves the root's real path, a missing file, more than the packer's file and byte bounds, or `dir` together with `files`. Without `draftRoot`, `dir` is `not-found`, naming the config field. The reader lives in the CLI (host APIs allowed), and `/authoring` stays inline-only and host-API-free. This reverses D5 (`decision-logs/2026-10-24-2330-authoring-mcp-server-contract.md`) for opted-in hosts only, and the log says so.
+        - **M6 annotations.** Every tool gets a `title`, plus `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint` (all `openWorldHint: false`: no tool reaches outside the app). The recommended values are listed in this table; the owner confirms each row:
+
+          | Tool | readOnly | destructive | idempotent |
+          |---|---|---|---|
+          | `list_primitives`, `list_vocabulary`, `list_capabilities`, `generated_types` | true | false | true |
+          | `pack_draft` | false (replaces the session draft) | false (in memory, and a failed pack keeps the previous one) | true |
+          | `render_scenarios` | false (sets the session's current render, which `set_state` and the page read) | false | true |
+          | `capture_preview` | true | false | true |
+          | `set_state` | false | false | false |
+        - **M7 structured output.** Every tool declares an `outputSchema` and returns the same value as `structuredContent`. The text block stays byte-identical to 0.2.0, so a client that reads text sees no change.
+          - Schemas come from the published documents, inlined under `$defs` because SDK 2.4.0 does not dereference absolute `$ref`s: `catalog.json` definitions, `capabilities.json`, `ui-tree.json`, and a status-array schema for the all-scenario result. Capture's structured value is the per-cell metadata array its first text block already holds, and the PNGs stay image content.
+          - Non-object roots (arrays, and `render_scenarios`' tree-or-statuses) rely on SDK 2.4.0's per-era codec, which wraps them in `{ result }` for 2025-era clients. The log records that envelope.
+          - `isError` results carry no `structuredContent`, and the SDK skips output validation on them.
+          - The log records the validation cost on the 679-node tree (Task 14.8's budget), and the fallback if it is too slow: a lighter tree `outputSchema` (`format`, `catalogId`, `surfaceId`, `revision`, `root` as an object), because the tree was already validated by the runner.
+        - **M8 capture cell bound.** `AuthoringConfig` and `createAuthoring()` gain an optional `maxCaptureCells`. The default stays 12, so 0.2.0 behaviour is unchanged, and there is a documented maximum. The recommended maximum is 48: four widths × three themes × four design systems, about 48 PNGs per tool result. The log records how large a 48-cell result is on the proof host before fixing the number.
+          - A value that is not an integer from 1 to the maximum stops the server at start (exit 2) and is a typed error from `createAuthoring()`.
+          - The `capture_preview` description states the configured bound, and the over-bound `limit-exceeded` message names `maxCaptureCells`.
+          - This replaces the literal `maxCells: 12` (`src/authoring/index.ts`, `capturePreview`) and spec §13's "at most 12 per call".
+        - **M9 structural layout.** `capture_preview({ layout: true })` returns, per cell, a `layout` record instead of leaving layout to pixel heights:
+          - `{ width, height, overflowX, nodes: [{ id, x, y, width, height }] }`, with CSS-pixel boxes relative to the cell, rounded to integers;
+          - `overflowX` is true when the cell's content is wider than the cell, and the record lists the ids of nodes whose box crosses the cell's right edge;
+          - a node's box is the union of its `data-lf-node` wrapper's child element boxes. The wrapper is `display: contents` and has no box of its own (`src/react/renderer.tsx:310`, `docs/renderer.md` § diagnostics), so `<Preview>`'s diagnostics wrappers are what make node ids measurable. No renderer change is needed.
+          - `/preview/capture` gains an optional `CaptureSession.layout?(cell)` and `CaptureOptions.layout?: boolean`. `CapturedCell` gains an optional `layout` file (`<cell>.layout.json`). A custom backend without `layout` returns `layout: null`, so existing backends keep working. `playwrightBackend` implements it with one `evaluate` per cell.
+          - The log settles whether `liveframe preview capture` gains a matching `--layout` flag (recommended: yes, because `capture()` already writes the file) and the size bound: the recommendation is the existing 256 KiB result bound, with `limit-exceeded` naming the cell.
+          - `layout` defaults to false, so 0.2.0 results are unchanged. Capture's structured output (M7) includes `layout` when it is requested.
+          - The proof agent loop (`proof/tests/mcp-agent-loop.test.ts:174-190`) replaces the 133 px threshold with a structural assertion: the `Inline` row's buttons share one `y`, the `Stack`'s buttons have increasing `y`, and neither overflows at 360 px.
+      - The log states the patch-release reading: one new tool, new optional arguments, a new optional config field, annotations and output schemas are all additive. No 0.2.0 call changes its text result or its error kinds, except a missing `pack_draft` key, which changes from the SDK string to a typed error. That is the documented fix, and the log names it as the one visible behaviour change.
+      - `docs/compatibility.md` § 0.2.1 lists the MCP additions and that behaviour change.
+    - Performance: n/a — a decision record. Budgets are fixed here and asserted in Tasks 14.8 to 14.10.
+    - Code Quality: the log follows `create-decision-log`. No speculative tools: nothing beyond M1 to M9, and M9 adds an argument, not a tool.
+    - Security: laws 1 and 4. M4 adds the first agent-to-session intent path, so the log shows it is tier 2 only and checked by `checkOffered`. M5 adds the first agent-named file path, so the log lists every rejected path shape. Both fail closed with typed errors. M9 reads geometry from the host's own page and returns numbers and node ids only, never DOM text or attributes beyond `data-lf-node`.
+  - Approach:
+    - Skills to Use:
+      - `create-decision-log`: reverses D5 and a spec §13 sentence, so it needs explicit owner approval.
+      - `liveframe-execution`: the four laws and the placement rules for the CLI and `/authoring`.
+    - Library Documentation to Check Before Implementation:
+      - `@modelcontextprotocol/server` 2.4.0 (Context7 `/modelcontextprotocol/typescript-sdk/v2.4.0`), read on 2026-10-31:
+        - `docs/servers/tools.md`: `registerTool` `title`, `annotations` and `outputSchema`, and "the SDK validates `structuredContent` against `outputSchema`";
+        - `docs/servers/errors.md`: "skips `outputSchema` validation on any `isError` result";
+        - `docs/migration/upgrade-to-v2.md` (SEP-1613/2106): non-object `outputSchema` roots, the `{result}` envelope for 2025-era clients, and that external `$ref` is not dereferenced.
+    - Documentation Reviewed:
+      - `src/cli/mcp.ts` (schemas `:78-205`, registrations `:91-245`); `src/authoring/index.ts:131-318`; `src/preview/authoring.ts:9-45`; `src/preview/session.ts:123-134`.
+      - `docs/spec.md` §13 (`:819-836`) and §7.5; `docs/mcp.md` § The tools; `decision-logs/2026-10-24-2330-authoring-mcp-server-contract.md` (D4, D5); `decision-logs/2026-10-25-0231-release-0-1-0-hardening-and-api-freeze.md` (R13).
+      - `plans/backlog.md`: "Offer generated implementation definitions to MCP clients", "Add a setState intent tool to the authoring MCP server", "Accept draft files from disk paths in pack_draft", the residual on "Give the MCP tools one error shape", "Let an app raise the capture cell bound" and "Prove layout mistakes structurally, not by pixel height".
+      - `src/preview/capture/index.ts:20-51,89-150` (session interface and cell loop); `src/preview/capture/playwright.ts:46-56`; `src/preview/react/preview.tsx:155-174` (cells and diagnostics); `proof/tests/mcp-agent-loop.test.ts:174-190`.
+    - Options Considered:
+      - Defer M2 to M9 to 0.3.0. Rejected by the owner.
+      - M4 as a general `send_intent` that also logs actions. Rejected: law 4, and the backlog entry says to keep actions out.
+      - M5 in `/authoring`. Rejected: it needs `node:fs`, and `/authoring` is host-API-free.
+      - M7 by changing the text block to the structured value. Rejected: it would change every 0.2.0 client's parsed result in a patch.
+      - M8 with no maximum. Rejected: the cap exists to bound one tool result's PNG payload.
+      - M9 as a separate `measure_layout` tool. Rejected: it would open the page a second time for the same cells, and the layout belongs with the capture it describes.
+      - M9 as an overflow flag only. Rejected: it cannot tell a row from a stack, which is the layout mistake the proof loop catches.
+    - Chosen Approach:
+      - One log for the whole MCP surface, so spec §13 is rewritten once and Tasks 14.2 to 14.10 only implement.
+    - API Notes and Examples:
+      ```ts
+      // set_state, after render_scenarios({ scenario: "ready" })
+      { origin: { nodeId: "root/filters/open", event: "press" } }
+      // pack_draft with config.draftRoot = "./widgets"
+      { dir: "agent-home", entry: "entry.tsx" }
+      ```
+    - Files to Create/Edit:
+      - `decision-logs/2026-10-31-HHMM-authoring-mcp-server-0-2-1-surface.md` (new)
+      - `docs/compatibility.md` (§ 0.2.1)
+      - `decision-logs/2026-10-24-2330-authoring-mcp-server-contract.md` (a "D5 amended" note pointing at the new log, as D3's note does)
+  - Test Cases to Write:
+    - None. The log fixes what Tasks 14.2 to 14.10 test. `docs-links` and `docs-wording` cover the compatibility edit.
+
+- [ ] Task 14.2: Advertise `outcomes` on `render_scenarios` (M1)
+  - Acceptance Criteria:
+    - Functional:
+      - `renderSchema` (`src/cli/mcp.ts:158`) gains `outcomes`, with a description that names the five `sourceOutcome` statuses, the one-outcome-source rule and the always-statuses result. The tool description mentions it.
+      - `outcomes: true` over MCP returns the same statuses as `createAuthoring().renderScenarios({ outcomes: true })` on the same draft. `outcomes: "yes"` returns `invalid-document` at `/outcomes`.
+      - Spec §13's `render_scenarios` line, and the `docs/mcp.md` tool table and its § on all-scenario results, name `outcomes`. The library and tool argument lists match.
+    - Performance: n/a — no render-path change.
+    - Code Quality: a schema and description change only. No new handler code, because `renderArguments` already checks it.
+    - Security: n/a — no new authority; outcome expansion renders through the same runner.
+  - Approach:
+    - Skills to Use:
+      - `liveframe-execution`.
+    - Library Documentation to Check Before Implementation:
+      - none beyond Task 14.1.
+    - Documentation Reviewed:
+      - `src/authoring/index.ts:96-110` (`renderArguments`), `:162-206` (`renderOutcomes`); `docs/mcp.md:43`; `docs/spec.md:820,834`.
+    - Options Considered:
+      - n/a — Task 14.1 settles it.
+    - Chosen Approach:
+      - Advertise what already works.
+    - API Notes and Examples:
+      ```json
+      { "name": "render_scenarios", "arguments": { "scenario": "ready", "outcomes": true } }
+      ```
+    - Files to Create/Edit:
+      - `src/cli/mcp.ts`; `src/__tests__/cli-mcp.test.ts`; `docs/spec.md` §13; `docs/mcp.md`
+  - Test Cases to Write:
+    - `tools_list_advertises_outcomes`: `render_scenarios`' input schema contains `outcomes`. Fails if the property is dropped.
+    - `render_outcomes_over_mcp_matches_library`: an outcome-source draft gives deep-equal statuses over MCP and through `createAuthoring`. Fails if the MCP layer strips the argument.
+    - `render_outcomes_rejects_non_boolean`: `invalid-document` at `/outcomes`.
+
+- [ ] Task 14.3: Report a missing `pack_draft` argument as a `LiveframeError` (M2)
+  - Acceptance Criteria:
+    - Functional:
+      - `pack_draft` with any of `files`, `entry`, `manifest` or `scenarios` missing returns `isError: true` and a `LiveframeError[]` with `invalid-document` at that key's pointer, never the SDK's `Input validation error` string. A call missing several keys reports each one.
+      - `tools/list` still says which keys are required, through each property's `description`.
+      - The non-object `arguments` case behaves as Task 14.1 recorded, and a test pins that behaviour.
+      - Spec §13 drops "only a missing required key or a non-object argument still fails before the handler", or keeps only the protocol-level case Task 14.1 names. `docs/mcp.md` § Errors and exit codes agrees. The backlog residual on "Give the MCP tools one error shape" is closed.
+    - Performance: n/a.
+    - Code Quality: removes `required` and edits descriptions. `packArguments` already checks each key.
+    - Security: n/a — validation is unchanged, only where it reports.
+  - Approach:
+    - Skills to Use:
+      - `liveframe-execution`; `surgical-patch`.
+    - Library Documentation to Check Before Implementation:
+      - SDK 2.4.0 `fromJsonSchema` behaviour with no `required` (Context7, as in Task 14.1).
+    - Documentation Reviewed:
+      - `src/cli/mcp.ts:131-156`; `src/authoring/index.ts:73-94`; `docs/spec.md:836`; `plans/backlog.md` "Give the MCP tools one error shape" (residual).
+    - Options Considered:
+      - Keep the documented exception. Rejected by the owner ("fix all").
+    - Chosen Approach:
+      - The backlog's first option, as plan 012 R13 chose for every other argument error.
+    - API Notes and Examples:
+      ```json
+      [{ "kind": "invalid-document", "pointer": "/entry", "message": "Expected the entry file path", "expected": "one of the keys of files" }]
+      ```
+    - Files to Create/Edit:
+      - `src/cli/mcp.ts`; `src/__tests__/cli-mcp.test.ts`; `docs/spec.md` §13; `docs/mcp.md`; `plans/backlog.md`
+  - Test Cases to Write:
+    - `pack_missing_key_is_a_liveframe_error`: each key omitted in turn gives a typed error at its pointer. Fails if `required` returns.
+    - `pack_missing_keys_reports_each`: `{}` reports all four pointers.
+    - `tools_list_describes_required_keys`: each property description contains "Required".
+
+- [ ] Task 14.4: Return every `liveframe gen` module from `generated_types` (M3)
+  - Acceptance Criteria:
+    - Functional:
+      - `generated_types({ module })` returns, byte for byte, the module that `liveframe gen <catalog> --out f` writes (for `"types"` and when `module` is omitted), that `--implementations` writes, and that `--elements-schema` writes. Its result shape `{ note, types }` keeps the key `types` for every module, and `note` names the file to save it as.
+      - An unknown `module` is `invalid-document` at `/module`, with `expected` listing the three values.
+      - `/authoring` `generatedTypes({ module? })` matches, and calling it with no argument returns exactly what 0.2.0 returned.
+      - Spec §13 (the tool and library lines), `docs/mcp.md` and `docs/sdk.md` (the codegen section, if it names the MCP route) agree. The backlog entry "Offer generated implementation definitions to MCP clients" is closed.
+    - Performance: n/a — generation runs on demand, as the CLI does.
+    - Code Quality: one argument mapped to the three existing generators. No new generator.
+    - Security: n/a — read-only output derived from the catalog.
+  - Approach:
+    - Skills to Use:
+      - `liveframe-execution`.
+    - Library Documentation to Check Before Implementation:
+      - none.
+    - Documentation Reviewed:
+      - `src/sdk/gen.ts:76,216,338`; `src/cli/liveframe.ts:65-100`; `src/authoring/index.ts:239-244`.
+    - Options Considered:
+      - A second tool per module. Rejected: two more tools for one choice of output.
+    - Chosen Approach:
+      - One enum argument that mirrors the CLI flags.
+    - API Notes and Examples:
+      ```json
+      { "name": "generated_types", "arguments": { "module": "implementations" } }
+      ```
+    - Files to Create/Edit:
+      - `src/authoring/index.ts`; `src/cli/mcp.ts`; `src/__tests__/authoring.test.ts`; `src/__tests__/cli-mcp.test.ts`; `docs/spec.md` §13; `docs/mcp.md`; `plans/backlog.md`
+  - Test Cases to Write:
+    - `generated_modules_match_cli_bytes`: each of the three modules equals the CLI's output for the fixture catalog. Fails if a mode is mis-mapped.
+    - `generated_types_default_unchanged`: no argument returns the 0.2.0 value.
+    - `generated_types_rejects_unknown_module`.
+
+- [ ] Task 14.5: Add the `set_state` tool (M4)
+  - Acceptance Criteria:
+    - Functional:
+      - `set_state({ origin: { nodeId, event }, value? })` and `/authoring` `setState()` behave as Task 14.1 M4 fixes:
+        - an offered `setState` event re-renders and returns the tree under 256 KiB;
+        - an event that is not offered on that node fails as `checkOffered` does;
+        - an `action` event is refused with a typed error, and `session.intents()` does not grow;
+        - no current single-scenario render is `not-found`;
+        - an invalid `value` is the intent's own validation error.
+      - `set_state` joins the arrival-order queue with the other draft tools. After it, `capture_preview` shows the new state, if Task 14.1 says so.
+      - `tools/list` holds eight tools. Every place that names the tool count says eight: spec §13 (`:786,819,827`), `docs/mcp.md:39,119`, `README.md:156,181,193`, `docs/adopters-0.2.md:25` (left as the 0.2.0 record, with a 0.2.1 note), `scripts/release/fixtures/step4-mcp.ts` (expected list and message), and the renamed test `tools_list_has_the_eight_tools`, which now asserts the exact list.
+      - Spec §13's law-4 sentence is rewritten as Task 14.1 drafts it. `docs/security.md` names the tool. The backlog entry "Add a setState intent tool to the authoring MCP server" is closed.
+    - Performance: one render per call, the same path as `render_scenarios({ scenario })`.
+    - Code Quality: the tool maps one-to-one onto `session.intent`, with no intent logic in the CLI. The origin lookup reads the node's own `events` from the current tree.
+    - Security: law 4. The action refusal and the no-origin refusal each have a test. Law 1: the page still receives only trees.
+  - Approach:
+    - Skills to Use:
+      - `liveframe-execution` (laws, interaction tiers); `typescript-advanced-types` only if the intent narrowing needs it.
+    - Library Documentation to Check Before Implementation:
+      - none beyond Task 14.1.
+    - Documentation Reviewed:
+      - `src/preview/session.ts:123-134`; `src/validate/offered.ts` (`checkOffered`); `src/formats/tree.ts:8-26` (`setState` intent, `IntentOrigin`); `proof/tests/preview-agent-loop.test.ts` (intent flow).
+    - Options Considered:
+      - As in Task 14.1 (M4).
+    - Chosen Approach:
+      - Task 14.1's M4.
+    - API Notes and Examples:
+      ```ts
+      authoring.setState({ origin: { nodeId: "root/filters/open", event: "press" } }); // Promise<Result<UiTree>>
+      ```
+    - Files to Create/Edit:
+      - `src/authoring/index.ts`; `src/cli/mcp.ts`; `src/__tests__/authoring.test.ts`; `src/__tests__/cli-mcp.test.ts`; `scripts/release/fixtures/step4-mcp.ts`; `proof/tests/mcp-agent-loop.test.ts` (its exact tool list, `:192-200`)
+      - `docs/spec.md` §13; `docs/mcp.md`; `docs/security.md`; `README.md`; `docs/adopters-0.2.md`; `plans/backlog.md`
+      - A fixture draft with a `setState` event: reuse one in `src/__tests__/fixtures/widgets/drafts.ts` if it has one (tentative).
+  - Test Cases to Write:
+    - `set_state_applies_offered_event`: the tree changes as the widget's state wiring says.
+    - `set_state_refuses_unoffered_event`; `set_state_refuses_action_event` (`intents()` unchanged); `set_state_before_render_says_to_render`.
+    - `set_state_then_capture_shows_state` (if Task 14.1 says so).
+    - `tools_list_has_the_eight_tools`: the exact list. Fails if a tool is added or dropped.
+
+- [ ] Task 14.6: Read `pack_draft` drafts from a directory under an opt-in root (M5)
+  - Acceptance Criteria:
+    - Functional:
+      - With `draftRoot` configured, `pack_draft({ dir, entry? })` packs exactly what `readDraft(<root>/<dir>)` in the demo host packs, so the result's hash equals an inline `pack_draft` of the same files.
+      - Each rejection Task 14.1 M5 lists has its own typed error at `/dir`: absolute path, `..`, a symlink escaping the root, a missing `manifest.json` or `scenarios.json`, over the bounds, and `dir` together with `files`. `dir` without `draftRoot` is `not-found`, naming `draftRoot`.
+      - `AuthoringConfig.draftRoot` is documented in its type (`src/preview/authoring.ts`), spec §13 and `docs/mcp.md` § Write the config module. `loadConfig` validates that it is a string naming an existing directory, and the server refuses to start otherwise (exit 2). The backlog entry "Accept draft files from disk paths in pack_draft" is closed, and D5's amendment note is in place (Task 14.1).
+    - Performance: n/a — file reads bounded by the packer's limits.
+    - Code Quality: one small CLI module (`src/cli/draft-dir.ts`) that turns a directory into `PackInput`, then the existing inline path. `/authoring` is unchanged, and the host-API-free scan still passes.
+    - Security: law 1 — no draft code runs during reading. Every path rejection has a test, and the real-path containment check runs after symlinks are resolved.
+  - Approach:
+    - Skills to Use:
+      - `liveframe-execution` (placement: host APIs only in the CLI); `find-docs` for Bun `node:fs/promises` `realpath`/`lstat` behaviour on 1.4.4.
+    - Library Documentation to Check Before Implementation:
+      - Bun 1.4.4 `node:fs/promises` (`realpath`, `readdir` with `withFileTypes`).
+    - Documentation Reviewed:
+      - `examples/demo-host/widgets/draft.ts`; `src/cli/mcp.ts:58-73` (`loadConfig`); `src/pack/` file and byte bounds.
+    - Options Considered:
+      - Per-file `paths: string[]`. Rejected: the agent would still send the manifest and scenarios inline, and a directory matches the layout the demo host and `liveframe gen` users already have.
+    - Chosen Approach:
+      - Task 14.1's M5.
+    - API Notes and Examples:
+      ```ts
+      export default { catalog, capabilities, draftRoot: "./widgets" } satisfies AuthoringConfig;
+      ```
+    - Files to Create/Edit:
+      - `src/cli/draft-dir.ts` (new); `src/cli/mcp.ts`; `src/preview/authoring.ts`; `src/__tests__/cli-mcp.test.ts`; `src/__tests__/fixtures/mcp-draft-root.config.ts` (new)
+      - `docs/spec.md` §13; `docs/mcp.md`; `plans/backlog.md`
+  - Test Cases to Write:
+    - `pack_dir_matches_inline_hash`.
+    - `pack_dir_rejects_absolute`, `_dotdot`, `_symlink_escape`, `_missing_manifest`, `_with_files`. Each fails if its check is removed.
+    - `pack_dir_without_root_names_draftRoot`; `config_rejects_missing_draft_root` (exit 2).
+
+- [ ] Task 14.7: Annotate every tool (M6)
+  - Acceptance Criteria:
+    - Functional:
+      - All eight tools in `tools/list` carry a `title` and the four hints from Task 14.1's table.
+      - The handlers that ignore their arguments drop the unused `input` parameter (`src/cli/mcp.ts:106,114,122`).
+      - `docs/mcp.md` § The tools shows the hints per tool, and spec §13 states that the tools are annotated and that annotations never change execution.
+    - Performance: n/a.
+    - Code Quality: the annotations sit in each `registerTool` config, and the test is one table compared against `tools/list`.
+    - Security: n/a. The annotations are hints, and the decision log notes that clients must not treat them as a security boundary.
+  - Approach:
+    - Skills to Use:
+      - `liveframe-execution`.
+    - Library Documentation to Check Before Implementation:
+      - SDK 2.4.0 `registerTool` `title` and `annotations` (Task 14.1's read).
+    - Documentation Reviewed:
+      - `src/cli/mcp.ts:91-245`.
+    - Options Considered:
+      - As in Task 14.1 (M6).
+    - Chosen Approach:
+      - Task 14.1's table.
+    - API Notes and Examples:
+      ```ts
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false }
+      ```
+    - Files to Create/Edit:
+      - `src/cli/mcp.ts`; `src/__tests__/cli-mcp.test.ts`; `docs/spec.md` §13; `docs/mcp.md`
+  - Test Cases to Write:
+    - `tools_carry_approved_annotations`: `tools/list` equals the approved table. Fails if a hint changes.
+
+- [ ] Task 14.8: Return `structuredContent` against an `outputSchema` from every tool (M7)
+  - Acceptance Criteria:
+    - Functional:
+      - Every tool declares the `outputSchema` from Task 14.1, and every successful call returns `structuredContent` that deep-equals `JSON.parse` of its first text block. For capture, that is the cell-metadata array.
+      - Every 0.2.0 text block is byte-identical: a regression test records today's texts before the change and compares them after.
+      - A 2025-era client receives `{ result }` for non-object roots, as Task 14.1 records. The test pins the protocol version the SDK negotiates with the test client, and names it.
+      - An `isError` result has no `structuredContent`.
+      - Each `outputSchema` resolves with no external `$ref`, and `tools/list` does not throw `MissingRefError` for any tool.
+      - Spec §13 and `docs/mcp.md` state the structured result per tool, and the text-compatibility rule.
+    - Performance:
+      - The median `render_scenarios({ scenario })` round trip on the 679-node agent-home tree grows by at most 5 ms over the pre-change median (10 warm calls each, recorded in this task's notes).
+      - If it grows more, take Task 14.1's lighter tree schema and re-measure.
+    - Code Quality: one `structured(value)` result helper beside `text()`/`failure()` (`src/cli/mcp.ts:75-76`). The schemas are built from the published `schemas/*.json` documents, as `packSchema` already is, never hand-copied.
+    - Security: n/a — output only; no new data leaves (capability `meta` is still omitted unless `exposeMeta` is set, and a test checks `structuredContent` too).
+  - Approach:
+    - Skills to Use:
+      - `liveframe-execution`; `find-docs` (re-check the SDK 2.4.0 per-era codec page if the envelope test surprises).
+    - Library Documentation to Check Before Implementation:
+      - SDK 2.4.0 `docs/migration/support-2026-07-28.md` § Per-era wire codecs; `docs/servers/tools.md` § Return structured output.
+    - Documentation Reviewed:
+      - `src/cli/mcp.ts:75-245`; `schemas/catalog.json`, `capabilities.json`, `ui-tree.json`.
+    - Options Considered:
+      - As in Task 14.1 (M7).
+    - Chosen Approach:
+      - Task 14.1's M7.
+    - API Notes and Examples:
+      ```ts
+      const structured = (value: unknown) => ({ ...text(value), structuredContent: value });
+      ```
+    - Files to Create/Edit:
+      - `src/cli/mcp.ts`; `src/__tests__/cli-mcp.test.ts`; `src/__tests__/fixtures/mcp-texts.json` (new, the 0.2.0 text baseline); `docs/spec.md` §13; `docs/mcp.md`
+  - Test Cases to Write:
+    - `structured_content_matches_text`: for every tool. Fails if they diverge.
+    - `text_results_unchanged_from_0_2_0`: compares against the recorded baseline.
+    - `structured_meta_hidden_without_expose`; `error_results_have_no_structured_content`; `tools_list_output_schemas_resolve`.
+
+- [ ] Task 14.9: Let an app raise the capture cell bound (M8)
+  - Acceptance Criteria:
+    - Functional:
+      - `maxCaptureCells` in `AuthoringConfig` and `createAuthoring()` sets the per-call cell bound. Omitted, it is 12 and every 0.2.0 call behaves as before.
+      - A call over the bound is refused before any cell is captured, as today (`src/preview/capture/index.ts:113`). The `limit-exceeded` message names the bound and `maxCaptureCells`.
+      - An invalid value fails as Task 14.1 M8 fixes: exit 2 from `liveframe mcp`, a typed error from `createAuthoring()`.
+      - The `capture_preview` description states the configured bound.
+      - Spec §13 (the library line `:819` and the tool line), `docs/mcp.md` (§ Write the config module and the tool table) and the `AuthoringConfig` doc comment agree. The backlog entry "Let an app raise the capture cell bound" is closed.
+    - Performance: record the byte size and wall time of a call at the maximum on the proof host in this task's notes. They must agree with the number Task 14.1 fixed.
+    - Code Quality: one option replaces the literal. No per-axis bounds.
+    - Security: n/a — a transport bound with a hard ceiling, which fails closed.
+  - Approach:
+    - Skills to Use:
+      - `liveframe-execution`.
+    - Library Documentation to Check Before Implementation:
+      - none.
+    - Documentation Reviewed:
+      - `src/authoring/index.ts` (`capturePreview`, `maxCells: 12`); `src/cli/mcp.ts` (`loadConfig`, the capture description); `src/preview/authoring.ts:29-45`.
+    - Options Considered:
+      - As in Task 14.1 (M8).
+    - Chosen Approach:
+      - Task 14.1's M8.
+    - API Notes and Examples:
+      ```ts
+      export default { catalog, capabilities, preview, maxCaptureCells: 36 } satisfies AuthoringConfig;
+      ```
+    - Files to Create/Edit:
+      - `src/authoring/index.ts`; `src/cli/mcp.ts`; `src/preview/authoring.ts`; `src/__tests__/authoring.test.ts`; `src/__tests__/cli-mcp.test.ts`; `src/__tests__/fixtures/mcp-capture.config.ts` (or a new fixture with a raised bound)
+      - `docs/spec.md` §13; `docs/mcp.md`; `plans/backlog.md`
+  - Test Cases to Write:
+    - `capture_bound_defaults_to_twelve`: 13 cells are refused with no config. Fails if the default changes.
+    - `capture_bound_raised_by_config`: 13 cells pass with `maxCaptureCells: 16`, and 17 are refused naming the field.
+    - `capture_bound_rejects_invalid_config`: 0, 1.5 and over the maximum each refuse to start (exit 2), and `createAuthoring()` returns the typed error.
+
+- [ ] Task 14.10: Report each captured cell's layout structurally (M9)
+  - Acceptance Criteria:
+    - Functional:
+      - `capture_preview({ layout: true })` and `/authoring` `capturePreview({ layout: true })` return each cell's layout record as Task 14.1 M9 fixes. Without `layout`, results are byte-identical to before this task.
+      - `capture(url, { layout: true })` writes `<cell>.layout.json` and sets `CapturedCell.layout`. A backend without `CaptureSession.layout` gives `layout: null`, and a test proves an existing custom backend still type-checks and runs.
+      - Layout is correct on known fixtures:
+        - a node's box is the union of its wrapper's children;
+        - nested `display: contents` wrappers resolve to their nearest boxed descendants;
+        - a node with no box (hidden, or no children) is reported with zero width and height, never omitted;
+        - `overflowX` and the crossing node ids are right for a deliberately too-wide row.
+      - The size bound from Task 14.1 is enforced with `limit-exceeded`, naming the cell.
+      - The proof agent loop's layout step asserts structure, not pixel height, and the 133 px threshold and its comment are removed. The pixel-height helper `pngSize` goes too, if nothing else uses it.
+      - Capture's `outputSchema` (Task 14.8) gains the optional `layout` field, and `structured_content_matches_text` covers it.
+      - Spec §13 (capture tool and `/preview/capture` row), §7.5 if it describes capture output, `docs/mcp.md` and `docs/preview.md` (capture section, plus `--layout` if Task 14.1 adds it) agree. The backlog entry "Prove layout mistakes structurally, not by pixel height" is closed.
+    - Performance: `layout: true` adds at most 100 ms per cell on the 679-node agent-home scenario at width 360, as a median over 10 cells, recorded in this task's notes.
+    - Code Quality:
+      - The geometry code is one function evaluated in the page, in `playwright.ts`. `capture()` only orchestrates it, as it does for screenshots.
+      - `/preview/capture` stays host-API-free: geometry comes from the injected backend.
+      - No renderer or `<Preview>` change.
+    - Security: law 1 — the page receives only trees, as before. The layout record holds numbers and node ids only. Host page content beyond `data-lf-node` never reaches the agent through it.
+  - Approach:
+    - Skills to Use:
+      - `liveframe-execution`; `find-docs` for Playwright 1.64 `Locator.evaluate` and `Element.getClientRects` on `display: contents`.
+    - Library Documentation to Check Before Implementation:
+      - Playwright 1.64 `Locator.evaluate`/`evaluateAll` (Context7 `/microsoft/playwright`).
+      - CSSOM View `getBoundingClientRect` for `display: contents` elements (empty rect), which is why the union of the children's boxes is used.
+    - Documentation Reviewed:
+      - `src/preview/capture/index.ts:20-150`; `src/preview/capture/playwright.ts:46-56`; `src/react/renderer.tsx:305-316`; `src/preview/react/preview.tsx:150-175`; `proof/tests/mcp-agent-loop.test.ts:14-20,174-190`; `docs/renderer.md` § diagnostics.
+    - Options Considered:
+      - As in Task 14.1 (M9).
+    - Chosen Approach:
+      - Task 14.1's M9.
+    - API Notes and Examples:
+      ```ts
+      type CellLayout = {
+        width: number;
+        height: number;
+        overflowX: boolean;
+        overflowing: string[];
+        nodes: { id: string; x: number; y: number; width: number; height: number }[];
+      };
+      ```
+    - Files to Create/Edit:
+      - `src/preview/capture/index.ts`; `src/preview/capture/playwright.ts`; `src/authoring/index.ts`; `src/cli/mcp.ts`
+      - `src/cli/capture.ts` and `src/cli/liveframe.ts` (only if Task 14.1 adds `--layout`)
+      - `src/__tests__/capture*.test.ts` (tentative: the existing capture suites; confirm with `graft grep "ariaSnapshot"`); `src/__tests__/cli-mcp.test.ts`; `proof/tests/mcp-agent-loop.test.ts`; `proof/tests/mcp-capture.test.ts`
+      - `docs/spec.md` §13 (and §7.5 if needed); `docs/mcp.md`; `docs/preview.md`; `plans/backlog.md`
+  - Test Cases to Write:
+    - `layout_boxes_union_wrapper_children`; `layout_nested_contents_wrappers`; `layout_reports_boxless_nodes`; `layout_flags_overflowing_row`. Each fails if the union, recursion, zero-box or overflow rule breaks.
+    - `layout_off_results_unchanged`; `custom_backend_without_layout_gives_null`.
+    - `layout_over_bound_is_limit_exceeded`.
+    - Proof loop: `Inline` buttons share one `y` and `Stack` buttons' `y` increases. Fails if the agent's layout fix is not visible structurally.
 
 - [ ] Task 15: Write the 0.2.1 documentation
   - Acceptance Criteria:
     - Functional:
       - The four post-0.2.0 corrections (020 impact F1 to F4) are confirmed present in `docs/spec.md` §13, `docs/compatibility.md`, `docs/adopters-0.2.md` and `README.md`, and the backlog entry is closed once Task 18 ships them.
       - `docs/adopters-0.2.md` gains a 0.2.1 section mapping CL-10 to CL-16 to the shipped API, spec section and limitation. Its LF-17 text says patches shipped.
-      - `CHANGELOG.md` has `## 0.2.1`, with Added (validator bundle, `canonicalJson`/`packageHash`, data `exports`, tree patches, `stale-patch`), Fixed (`structuredClone`, runtime matrix, realm message, package corpus hash, WebKit switching), and the R15 note that every addition is additive.
+      - `CHANGELOG.md` has `## 0.2.1`, with:
+        - Added: validator bundle, `canonicalJson`/`packageHash`, data `exports`, tree patches, `stale-patch`, and the MCP server's `set_state` tool, `generated_types` modules, `draftRoot` directories, annotations, structured output, `maxCaptureCells` and capture `layout`;
+        - Fixed: `structuredClone`, runtime matrix, realm message, package corpus hash, WebKit switching, the unadvertised `outcomes` argument, and the missing-key error shape;
+        - the R15 note that every addition is additive, and Task 14.1's one visible MCP behaviour change (a missing `pack_draft` key is now a `LiveframeError`).
       - `README.md` names 0.2.1 as the current release and shows the patch path in one short example.
       - `plans/requests/clay-0.2.1-requests.md` gains a status line pointing at the adoption notes.
     - Performance: n/a.
@@ -720,7 +1375,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
 
 - [ ] Task 16: Prove every acceptance bullet against the checkout
   - Acceptance Criteria:
-    - Functional: `plans/evidence/021-request-acceptance.md` lists every acceptance bullet of CL-10 to CL-16, each with a named passing test, gate step or evidence record. Every named test passes in one saved run (`plans/evidence/021-request-acceptance.log`, local-only).
+    - Functional: `plans/evidence/021-request-acceptance.md` lists every acceptance bullet of CL-10 to CL-16 and of Task 14.1's M1 to M9, each with a named passing test, gate step or evidence record. Every named test passes in one saved run (`plans/evidence/021-request-acceptance.log`, local-only).
     - Performance: the CL-15 and CL-16 rows cite the numbers from Tasks 12 and 14.
     - Code Quality: the same table shape as `plans/evidence/020-request-acceptance.md`.
     - Security: n/a.
@@ -747,7 +1402,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
 - [ ] Task 17: Publish 0.2.1-rc.1 under `next` and verify it from the registry
   - Acceptance Criteria:
     - Functional:
-      - `package.json` `version` is `0.2.1-rc.1`. `bun run check`, `bun run release:gate` (with the new validator-bundle, data-export and patch-vector steps), `bun scripts/release/peer-floors.ts` and `bun run demo:test` pass against the packed tarball.
+      - `package.json` `version` is `0.2.1-rc.1`. `bun run check`, `bun run release:gate` (with the new validator-bundle, data-export and patch-vector steps, and the MCP step listing eight tools from the installed `bin`), `bun scripts/release/peer-floors.ts` and `bun run demo:test` pass against the packed tarball.
       - After the owner's explicit go, `v0.2.1-rc.1` is pushed. The workflow publishes under `next` with provenance.
       - From the registry, `bun scripts/release/archive-gate.ts --package @arnilo/liveframe@0.2.1-rc.1` passes. The demo host installed from the registry passes, and the installed-package rows of the acceptance matrix pass: the validator bundle under bare `vm`, corpus resolution through `exports`, and package vectors through `/pack`.
       - A defect produces a fix and `rc.N+1`.
@@ -812,7 +1467,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
 - [ ] Task 19: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional:
-      - `plans/evidence/021-impact-analysis.md` sweeps all 12 areas against the released 0.2.1. Areas 1, 2, 4, 7, 8 and 11 must address the patch format, the validator bundle and the runtime matrix by name. Area 12 records what Clay can now remove (its own validator bundle, its `structuredClone` shim, path imports of `dist/pack/hash.js`) and any gap left.
+      - `plans/evidence/021-impact-analysis.md` sweeps all 12 areas against the released 0.2.1. Areas 1, 2, 4, 7, 8 and 11 must address the patch format, the validator bundle and the runtime matrix by name. Areas 3, 4 and 9 must address `set_state` (law 4), `draftRoot` path checks, the MCP structured output and capture `layout` by name. Area 12 records what Clay can now remove (its own validator bundle, its `structuredClone` shim, path imports of `dist/pack/hash.js`) and any gap left.
       - The findings are presented to the owner in one table, each with a recommended disposition, and the owner's answer is recorded. `execute` items become tasks above this one, and `backlog` items go to `plans/backlog.md` and Further Actions.
       - Compromises Made and Further Actions are filled and handed off to the backlog.
     - Performance: `bun run bench` is re-run and recorded. The patch bench is re-run into `021-streaming-patches.md`, never into `019-streaming-bench.md`.
@@ -841,6 +1496,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
 - `timeout 600s bun run bench`
 - `timeout 300s bun --conditions liveframe:source bench/streaming.bench.ts --patches`
 - `LIVEFRAME_BROWSER=webkit timeout 600s bun test --conditions liveframe:source src/__tests__/css-scope-browser.test.ts src/__tests__/react-browser.test.tsx`
+- `timeout 600s bun test --conditions liveframe:source src/__tests__/cli-mcp.test.ts src/__tests__/authoring.test.ts src/__tests__/mcp-guide.test.ts proof/tests/mcp-capture.test.ts`
 - `timeout 600s bun run release:gate`
 - `timeout 900s bun scripts/release/peer-floors.ts`
 - `timeout 600s bun run demo:test`
