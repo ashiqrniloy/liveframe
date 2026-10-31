@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { McpSdkMissing, checkAll, mcp } from "../cli/mcp.ts";
+import { createAuthoring } from "../authoring/index.ts";
 import type { Result } from "../errors.ts";
 import { type Capabilities, validateCapabilities } from "../formats/capabilities.ts";
 import { type Catalog, validateCatalog } from "../formats/catalog.ts";
@@ -17,6 +18,7 @@ import capabilities from "./fixtures/widgets/capabilities.json" with { type: "js
 import catalog from "./fixtures/proof/catalog.json" with { type: "json" };
 import manifestDoc from "../../schemas/manifest.json" with { type: "json" };
 import packageDoc from "../../schemas/widget-package.json" with { type: "json" };
+import outcomesConfig from "./fixtures/mcp-outcomes.config.ts";
 
 const fixtures = "src/__tests__/fixtures";
 const config = `${fixtures}/mcp.config.ts`;
@@ -112,6 +114,18 @@ test("tools_list_is_exactly_the_authoring_set", async () => {
   ]);
 }, 30000);
 
+test("tools_list_advertises_outcomes", async () => {
+  const tools = await withClient(async (client) => (await client.listTools()).tools);
+  const render = tools.find((tool) => tool.name === "render_scenarios");
+  const properties = render?.inputSchema.properties;
+  expect(Object.keys(properties ?? {}).sort()).toEqual(["context", "outcomes", "scenario", "state"]);
+  const outcomes = properties?.outcomes as { description: string };
+  for (const status of ["ok", "unauthorized", "unavailable", "stale", "failed"])
+    expect(outcomes.description).toContain(status);
+  expect(outcomes.description).toContain("boolean");
+  expect(render?.description).toContain("outcomes");
+}, 30000);
+
 test("mcp_server_imports_no_store", async () => {
   const source = await Bun.file("src/cli/mcp.ts").text();
   expect(source).not.toMatch(/from ".*\/store/);
@@ -179,6 +193,53 @@ if (!agentHome) throw new Error("Missing agent-home draft");
 const agentManifest = agentHome.manifest as Record<string, unknown>;
 const agentScenario = agentHome.scenarios[0]?.name;
 if (!agentScenario) throw new Error("The agent-home draft needs a scenario");
+
+test("render_outcomes_over_mcp_matches_library", async () => {
+  const input = {
+    ...agentHome,
+    files: {
+      "entry.ts":
+        'import { jsx, primitive } from "@arnilo/liveframe/sdk"; export default ({ data }) => jsx(primitive("text"), { text: data.result.status });',
+    },
+    entry: "entry.ts",
+    manifest: { ...agentManifest, sources: { result: { source: "outcome", params: {} } } },
+    scenarios: [{ ...agentHome.scenarios[0]!, data: { result: { status: "ok", value: "ready" } } }],
+  };
+  const authoring = createAuthoring({
+    catalog: proofCatalog,
+    capabilities: valid(validateCapabilities(outcomesConfig.capabilities)),
+    runner: inProcessRunner(),
+  });
+  try {
+    valid(await authoring.packDraft(input));
+    await withClient(
+      async (client) => {
+        expect((await call(client, "pack_draft", input)).isError).toBe(false);
+        for (const args of [{ outcomes: true }, { scenario: agentScenario, outcomes: true }]) {
+          const result = await call(client, "render_scenarios", args);
+          expect(result.isError).toBe(false);
+          expect(result.json()).toEqual(valid(await authoring.renderScenarios(args)));
+          expect(result.json()).toEqual(
+            ["ok", "unauthorized", "unavailable", "stale", "failed"].map((status) => ({
+              scenario: `${agentScenario}.${status}`,
+              ok: true,
+              nodes: 1,
+            })),
+          );
+        }
+      },
+      { config: `${fixtures}/mcp-outcomes.config.ts` },
+    );
+  } finally {
+    await authoring.close();
+  }
+}, 30000);
+
+test("render_outcomes_rejects_non_boolean", async () => {
+  const result = await withClient((client) => call(client, "render_scenarios", { outcomes: "yes" }));
+  expect(result.isError).toBe(true);
+  expect(result.json()).toMatchObject([{ kind: "invalid-document", pointer: "/outcomes" }]);
+}, 30000);
 
 function countNodes(node: { children?: readonly unknown[] }): number {
   const children = node.children ?? [];

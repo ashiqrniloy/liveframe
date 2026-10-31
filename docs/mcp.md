@@ -126,7 +126,7 @@ registered. Log to stderr only: stdout carries the protocol.
 | `list_capabilities` | — | Each source's params and result schema and each action's args schema (capability `meta` only with `exposeMeta`) |
 | `generated_types` | — | The typed component module (`liveframe gen` without `--implementations`), byte-identical |
 | `pack_draft` | `{ files, entry, manifest, scenarios }` | `{ hash, id, version, description?, scenarios }` (plus `meta` with `exposeMeta`) |
-| `render_scenarios` | `{ scenario?, state?, context? }` | One scenario's tree (at most 256 KiB), or every scenario's status and each distinct error once |
+| `render_scenarios` | `{ scenario?, state?, context?, outcomes? }` | One scenario's tree (at most 256 KiB), or scenario statuses and each distinct error once; `outcomes: true` expands source outcomes and always returns statuses |
 | `capture_preview` | `{ scenarios?, widths?, themes?, designSystems? }` | Each cell's coordinates, errors, accessibility snapshot and PNG |
 
 `pack_draft` takes the same input as `session.update()`. A failed pack returns
@@ -151,6 +151,14 @@ one's node count; with one, it returns the tree or the errors:
 ```json
 [{ "scenario": "ready", "ok": true, "nodes": 679 }, { "scenario": "empty", "ok": true, "nodes": 10 }]
 ```
+
+Set `outcomes: true` to check `ok`, `unauthorized`, `unavailable`, `stale` and
+`failed` for each selected scenario's single `sourceOutcome` source. Add
+`scenario` to select one seed; the result still contains statuses, never a tree.
+Scenarios with no outcome source render once; more than one returns
+`invalid-document` at `/scenarios/<index>`. A non-boolean `outcomes` returns
+`invalid-document` at `/outcomes`. This matches `renderScenarios({ outcomes: true })`
+above and preserves the preview selection and state.
 
 The same error often hits every scenario, so the all-scenarios form reports each
 distinct `kind`/`pointer`/`message`/`expected` once and lists the scenarios that share it,

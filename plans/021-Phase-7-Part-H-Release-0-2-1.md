@@ -1089,7 +1089,7 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
     - Corrected Task 14.5: host snapshot readers call `session.render()` and currently reset state, so the approved opt-in `preserveState` flag and proof/demo callers are necessary for set-state-then-capture. Corrected Task 14.6: the packer bounds emitted code, not source-file count; the CLI reader gets explicit 128-source-file/1 MiB aggregate read bounds and per-file symlink containment. Task 14.9 uses the existing startup `LiveframeFailure` convention instead of changing `createAuthoring()`'s return type. Made the approved capture-state assertion and `--layout` work unconditional in their implementation tasks.
     - `timeout 900s bun run check` passed build, generation, typecheck, lint, formatting and all tests: **882 passed, 4 skipped, 0 failed** (886 tests, 109 files; test phase 291.11 s). The focused documentation checks passed (3 tests), the probe passed Biome, all eight decision-record local links resolved, and `git diff --check` passed. No production code or new runtime tests were needed for this decision task.
 
-- [ ] Task 14.2: Advertise `outcomes` on `render_scenarios` (M1)
+- [x] Task 14.2: Advertise `outcomes` on `render_scenarios` (M1)
   - Acceptance Criteria:
     - Functional:
       - `renderSchema` (`src/cli/mcp.ts:158`) gains `outcomes`, with a description that names the five `sourceOutcome` statuses, the one-outcome-source rule and the always-statuses result. The tool description mentions it.
@@ -1115,10 +1115,15 @@ This plan answers Clay's review of the installed 0.2.0 archive. It belongs to ro
       ```
     - Files to Create/Edit:
       - `src/cli/mcp.ts`; `src/__tests__/cli-mcp.test.ts`; `docs/spec.md` §13; `docs/mcp.md`
+      - `src/__tests__/fixtures/mcp-outcomes.config.ts`: outcome-source capabilities shared by the MCP and library parity test.
   - Test Cases to Write:
     - `tools_list_advertises_outcomes`: `render_scenarios`' input schema contains `outcomes`. Fails if the property is dropped.
     - `render_outcomes_over_mcp_matches_library`: an outcome-source draft gives deep-equal statuses over MCP and through `createAuthoring`. Fails if the MCP layer strips the argument.
     - `render_outcomes_rejects_non_boolean`: `invalid-document` at `/outcomes`.
+  - Notes (executed 2026-10-31):
+    - Added the optional boolean's description to the permissive `renderSchema` and mentioned expansion in the tool description. It names all five statuses, the single-outcome-source rule and the always-statuses result. Handler validation and rendering are unchanged. Updated spec §13 and the MCP guide's tool table and all-scenario results section.
+    - Added an outcome-source config fixture and the three named regression tests. Discovery failed before the schema edit; parity and typed rejection already passed. MCP and library results match for all seeds and an explicitly selected seed.
+    - Verification: the focused CLI MCP, authoring and guide suites passed (43 tests). `timeout 900s bun run check` passed: build, generated-file checks, typechecks, lint, formatting and 885 tests; 4 existing skips, 0 failures. No spec meaning changed beyond advertising the already-supported argument; no findings affect later tasks.
 
 - [ ] Task 14.3: Report a missing `pack_draft` argument as a `LiveframeError` (M2)
   - Acceptance Criteria:

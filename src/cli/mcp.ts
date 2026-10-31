@@ -165,6 +165,10 @@ const renderSchema = {
     context: {
       description: 'Optional context override for this render: any JSON value. "$defs.json" is the value schema.',
     },
+    outcomes: {
+      description:
+        "Optional boolean: true expands each selected scenario's single sourceOutcome source into ok, unauthorized, unavailable, stale and failed. Scenarios with no outcome source render once; more than one is an error. Always returns scenario statuses when true, even with scenario.",
+    },
   },
   $defs: { json: (packageDoc.$defs as JsonObject).json },
 };
@@ -184,7 +188,7 @@ function registerDraftTools(sdk: Sdk, server: Server, authoring: Authoring): voi
     "render_scenarios",
     {
       description:
-        "Renders the packed draft through the app's runner. With `scenario`, returns that scenario's UI tree (at most 256 KiB) or its LiveframeErrors, optionally overridden by `state` and `context`. Without it, returns every scenario's status — ok with its node count — plus each distinct error once, listing the scenarios that share it.",
+        "Renders the packed draft through the app's runner. With `scenario`, returns that scenario's UI tree (at most 256 KiB) or its LiveframeErrors, optionally overridden by `state` and `context`. Without it, returns every scenario's status — ok with its node count — plus each distinct error once, listing the scenarios that share it. With `outcomes: true`, expands sourceOutcome sources and always returns statuses, even with `scenario`.",
       inputSchema: sdk.fromJsonSchema<RenderInput>(schema(renderSchema)),
     },
     async (input) => mapped(await authoring.renderScenarios(input)),
