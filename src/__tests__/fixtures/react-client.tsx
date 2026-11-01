@@ -76,6 +76,7 @@ const styles: {
   { theme: { id: "rack", version: "1.0.0" }, designSystem: { id: "rack", version: "1.0.0" } },
 ];
 let switching = false;
+let continuity = false;
 let normalStyle = styles[0];
 let fallback = surfaceProps.fallback;
 let diagnostics: readonly import("../../index.ts").LiveframeError[] | undefined;
@@ -129,6 +130,7 @@ const root = mode
         tree={input}
         onIntent={onIntent}
         fallback={fallback}
+        focusContinuity={continuity}
         {...(diagnostics ? { diagnostics } : {})}
       />,
       { onCaughtError: () => {}, onRecoverableError: (error) => hydrationErrors.push(String(error)) },
@@ -163,6 +165,7 @@ function draw() {
         tree={input}
         onIntent={onIntent}
         fallback={fallback}
+        focusContinuity={continuity}
         {...(diagnostics ? { diagnostics } : {})}
       />,
     ),
@@ -175,6 +178,7 @@ declare global {
       patch(value: TreePatch): void;
       arrive(value: unknown): void;
       failText(broken: boolean): void;
+      setFocusContinuity(on: boolean): void;
       reuse(): { renders: Record<string, number>; items: boolean; elements: boolean };
       update(value: unknown): void;
       redraw(): void;
@@ -213,6 +217,10 @@ window.surfaceTest = {
   },
   failText(broken) {
     failing.text = broken;
+  },
+  setFocusContinuity(on) {
+    continuity = on;
+    draw();
   },
   reuse: () => ({
     renders: { ...nodeRenders },

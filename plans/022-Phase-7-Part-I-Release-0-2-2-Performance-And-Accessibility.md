@@ -362,7 +362,7 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
     - The full check was green at 974 pass / 4 skip / 0 fail. Two earlier runs failed only the Playwright switch cases in `proof/tests/switch.test.ts` at load average 12–15, one in each run; both passed standalone and in the green run, the load-sensitive pattern already recorded in `plans/backlog.md`.
     - Docs: spec §6.5 gained a "Recipe-derived audit" paragraph, `docs/styling.md` documents the rules and thresholds with an example, and `docs/conformance.md` names the opt-in option.
 
-- [ ] Task 7: Add opt-in focus continuity to `<Surface>`
+- [x] Task 7: Add opt-in focus continuity to `<Surface>`
   - Acceptance Criteria:
     - Functional:
       - With `<Surface focusContinuity>`, if the element focused inside the wrapper or portal container is disconnected by a tree update, focus moves to:
@@ -407,7 +407,16 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
     - `focus_outside_surface_is_left_alone`.
     - `portal_focus_is_continued`.
     - `default_surface_drops_focus_as_in_0_2_1`: proves the default did not change.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-01):
+    - `src/react/renderer.tsx` now holds a `FocusContinuity` class component with `getSnapshotBeforeUpdate` (the last moment the pre-update DOM is readable, per React's `Component` reference) and `componentDidUpdate`. It is rendered only under the prop, so a surface without it does no snapshot, adds no attribute and installs no listener — the existing suite renders with `focusContinuity={false}` and the default test asserts no `tabindex` on the wrapper and focus dropped to `<body>`, as in 0.2.1.
+    - Tabbables are `a[href], area[href], button, input, select, textarea, iframe, object, embed, summary, [tabindex]`, filtered by `tabIndex < 0` (which already excludes a div or an anchor without `href`), `disabled`, `type=hidden`, an `[inert]` ancestor, computed `visibility: hidden`/`display: none`, and a zero-length client rect list. The rect read costs no flush because layout is clean at the snapshot. Candidate order is the whole document, as the acceptance criteria word it, so a successor outside the surface wins over the wrapper; the predecessor list is reversed so "previous" means nearest.
+    - A candidate is only trusted once `document.activeElement` reports it, so an element that cannot take focus (closed `<details>`, zero-size box) falls through to the wrapper instead of swallowing the move. Restoration is skipped when the snapshot's element is still connected and when anything other than `<body>` holds focus at the end of the commit: focus the host or a primitive has placed elsewhere is never taken back.
+    - `Node.compareDocumentPosition`'s bitmasks are named `FOLLOWING`/`PRECEDING` at module scope. `globalThis.Node` would have been the obvious spelling, but `src_is_host_api_free`/`compiled_output_is_host_api_free` forbid `globalThis` in shipped modules, and the local `Node` primitive wrapper shadows the DOM interface name.
+    - Cost, 679-node agent-home selection update with 52 tabbables in the document, median of 50 updates over three runs at load ~15: 2.5–2.7 ms with the prop off, 2.6–3.1 ms with it on and a button focused, i.e. the snapshot costs about 0.1–0.4 ms, which is inside the run-to-run spread. Once-only cost: the wrapper gets `tabIndex={-1}`, which keeps it out of the tab order.
+    - Tests: `removed_focused_row_moves_focus_to_next_row`, `last_row_removed_moves_focus_to_previous` (this one caught the reversed-predecessor bug: neighbours must be taken nearest-first), `empty_surface_focuses_wrapper`, `focus_outside_surface_is_left_alone`, `portal_focus_is_continued` (the portal button is the last tabbable in document order, so it continues to the wrapper's last row), `default_surface_drops_focus_as_in_0_2_1`. The fixture gained `surfaceTest.setFocusContinuity`.
+    - Register: `widened` for `./react createRenderer`, because `SurfaceProps` is printed as a helper declaration of that export, not as an export of its own; naming `SurfaceProps` failed the register check as a stale entry. `hostAction: none`.
+    - Docs: spec §11 gained a bullet after the reuse rule, and `docs/renderer.md` a "Keep focus in the surface when a row disappears" section with the prop's rules, the off-by-default note and the `preventScroll` behaviour.
+    - The full check was green at 980 pass / 4 skip / 0 fail. `proof/tests/mcp-capture.test.ts` (`concurrent_captures_bind_the_page_once`) failed once in an earlier run at 63 s, within its own timeout under parallel load, and passes standalone; `src/__tests__/portability.test.ts::compiled_output_is_host_api_free` reads the built output, so `bun run build` must run after a renderer edit.
 
 - [ ] Task 8: Add the `pending`, `mixed`, `current` and `readonly` recipe states
   - Acceptance Criteria:

@@ -1064,3 +1064,179 @@ test("reused_nodes_follow_confirmation_fallback_and_diagnostics_changes", async 
     await page.close();
   }
 });
+
+const focusRows = (revision: number, labels: readonly string[]) => ({
+  format: "liveframe/1",
+  catalogId: surfaceTree().catalogId,
+  surfaceId: "test",
+  revision,
+  root: {
+    id: "root",
+    kind: "stack",
+    props: {},
+    children: labels.map((label) => ({
+      id: `root/row-${label}`,
+      kind: "button",
+      variant: "primary",
+      props: { label: `Row ${label}` },
+    })),
+  },
+});
+
+const focusTree = (revision: number, labels: readonly string[], open = false) => ({
+  ...focusRows(revision, labels),
+  root: {
+    ...focusRows(revision, labels).root,
+    children: [
+      ...focusRows(revision, labels).root.children,
+      ...(open
+        ? [
+            {
+              id: "root/dialog",
+              kind: "dialog",
+              props: { label: "Overlay", open: true },
+              children: [{ id: "root/dialog/one", kind: "button", props: { label: "Overlay one" } }],
+            },
+          ]
+        : []),
+    ],
+  },
+});
+
+/** What carries focus now, as the test can see it from inside the page. */
+function focused(page: { evaluate: <T>(fn: () => T) => Promise<T> }) {
+  return page.evaluate(() => {
+    const element = document.activeElement as HTMLElement | null;
+    return {
+      text: element?.textContent ?? null,
+      tag: element?.tagName ?? null,
+      tabindex: element?.getAttribute("tabindex") ?? null,
+      wrapper: element === document.querySelector("#app > .lf_surface"),
+    };
+  });
+}
+
+test("removed_focused_row_moves_focus_to_next_row", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    await page.evaluate(
+      (value: unknown) => {
+        window.surfaceTest.setFocusContinuity(true);
+        window.surfaceTest.arrive(value);
+      },
+      focusRows(1, ["a", "b", "c"]),
+    );
+    await page.getByRole("button", { name: /^Row b/ }).focus();
+    await page.evaluate((value: unknown) => window.surfaceTest.arrive(value), focusRows(2, ["a", "c"]));
+    expect((await focused(page)).text).toBe("Row c 0");
+  } finally {
+    await page.close();
+  }
+});
+
+test("last_row_removed_moves_focus_to_previous", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    await page.evaluate(
+      (value: unknown) => {
+        window.surfaceTest.setFocusContinuity(true);
+        window.surfaceTest.arrive(value);
+      },
+      focusRows(1, ["a", "b", "c"]),
+    );
+    await page.getByRole("button", { name: /^Row c/ }).focus();
+    await page.evaluate((value: unknown) => window.surfaceTest.arrive(value), focusRows(2, ["a", "b"]));
+    expect((await focused(page)).text).toBe("Row b 0");
+  } finally {
+    await page.close();
+  }
+});
+
+test("empty_surface_focuses_wrapper", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    await page.evaluate(
+      (value: unknown) => {
+        window.surfaceTest.setFocusContinuity(true);
+        window.surfaceTest.arrive(value);
+      },
+      focusRows(1, ["a"]),
+    );
+    await page.getByRole("button", { name: /^Row a/ }).focus();
+    await page.evaluate((value: unknown) => window.surfaceTest.arrive(value), focusRows(2, []));
+    expect(await focused(page)).toMatchObject({ tag: "DIV", tabindex: "-1", wrapper: true });
+  } finally {
+    await page.close();
+  }
+});
+
+test("focus_outside_surface_is_left_alone", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    await page.evaluate(
+      (value: unknown) => {
+        window.surfaceTest.setFocusContinuity(true);
+        window.surfaceTest.arrive(value);
+      },
+      focusRows(1, ["a", "b"]),
+    );
+    await page.getByRole("button", { name: /^Row b/ }).focus();
+    await page.evaluate(() => {
+      const outside = document.createElement("button");
+      outside.id = "outside";
+      outside.textContent = "Outside";
+      document.body.append(outside);
+      outside.focus();
+    });
+    await page.evaluate((value: unknown) => window.surfaceTest.arrive(value), focusRows(2, ["a"]));
+    expect(await focused(page)).toMatchObject({ text: "Outside", tag: "BUTTON" });
+  } finally {
+    await page.close();
+  }
+});
+
+test("portal_focus_is_continued", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    await page.evaluate(
+      (value: unknown) => {
+        window.surfaceTest.setFocusContinuity(true);
+        window.surfaceTest.arrive(value);
+      },
+      focusTree(1, ["a"], true),
+    );
+    await page.getByRole("button", { name: "Overlay one" }).focus();
+    expect((await focused(page)).text).toBe("Overlay one 0");
+    await page.evaluate((value: unknown) => window.surfaceTest.arrive(value), focusRows(2, ["a"]));
+    expect((await focused(page)).text).toBe("Row a 0");
+  } finally {
+    await page.close();
+  }
+});
+
+test("default_surface_drops_focus_as_in_0_2_1", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    await page.evaluate((value: unknown) => window.surfaceTest.arrive(value), focusRows(1, ["a", "b", "c"]));
+    await page.getByRole("button", { name: /^Row b/ }).focus();
+    await page.evaluate((value: unknown) => window.surfaceTest.arrive(value), focusRows(2, ["a", "c"]));
+    expect(await focused(page)).toMatchObject({ tag: "BODY" });
+    expect(await page.evaluate(() => document.querySelector("#app > .lf_surface")?.hasAttribute("tabindex"))).toBe(
+      false,
+    );
+  } finally {
+    await page.close();
+  }
+});

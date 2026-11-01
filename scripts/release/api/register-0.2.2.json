@@ -38,5 +38,13 @@
     "reason": "Optional contrast: true | { minimums } turns audit findings into failures",
     "hostAction": "none",
     "task": 6
+  },
+  {
+    "subpath": "./react",
+    "name": "createRenderer",
+    "change": "widened",
+    "reason": "SurfaceProps gains an optional focusContinuity boolean; focus is kept in the surface when an update removes the focused element",
+    "hostAction": "none",
+    "task": 7
   }
 ]

@@ -51,6 +51,7 @@ type SurfaceProps = {
   readonly wrapperProps?: HostProps;
   readonly portalProps?: HostProps;
   readonly transparency?: "auto" | "reduced";
+  readonly focusContinuity?: boolean;
   readonly confirm?: (intent: Intent, meta: Readonly<{ confirm: boolean; irreversible: boolean }>) => Promise<boolean>;
 };
 
@@ -82,6 +83,82 @@ class Boundary extends Component<{
 function Node({ item, implementation }: { item: Item; implementation: Implementation }) {
   const { Component } = implementation[binding];
   return <Component {...item} />;
+}
+
+/**
+ * Sequential focus navigation order (HTML, "tabindex processing"): the elements a Tab key reaches.
+ * `tabIndex` already reads -1 for a div or an anchor without `href`, so the filter only drops what
+ * is unreachable: disabled, inert, hidden or not rendered. Layout is up to date when the snapshot
+ * is taken, so the rect read costs no flush of its own.
+ */
+const tabbableSelector =
+  "a[href], area[href], button, input, select, textarea, iframe, object, embed, summary, [tabindex]";
+// `Node.compareDocumentPosition` bitmasks. The local `Node` is a primitive wrapper, and the module
+// may not reach the DOM interface through a global, so the two bits are named here.
+const FOLLOWING = 4;
+const PRECEDING = 2;
+
+function tabbables(): HTMLElement[] {
+  const found: HTMLElement[] = [];
+  for (const element of document.querySelectorAll<HTMLElement>(tabbableSelector)) {
+    if (element.tabIndex < 0 || element.hasAttribute("disabled")) continue;
+    if (element.getAttribute("type") === "hidden" || element.closest("[inert]")) continue;
+    const style = getComputedStyle(element);
+    if (style.visibility === "hidden" || style.display === "none" || element.getClientRects().length === 0) continue;
+    found.push(element);
+  }
+  return found;
+}
+
+type FocusSnapshot = {
+  readonly focused: HTMLElement;
+  readonly after: readonly HTMLElement[];
+  readonly before: readonly HTMLElement[];
+};
+
+/**
+ * Keeps focus in the surface when a tree update removes the focused element. The snapshot is taken
+ * in `getSnapshotBeforeUpdate`, the last moment the pre-update DOM is readable, and restored after
+ * the commit. Rendered only under `focusContinuity`, so the default surface does no work at all.
+ */
+class FocusContinuity extends Component<{
+  readonly scope: () => readonly (Element | null)[];
+  readonly wrapper: () => HTMLElement | null;
+  readonly children: ReactNode;
+}> {
+  getSnapshotBeforeUpdate(): FocusSnapshot | undefined {
+    const focused = document.activeElement;
+    if (!(focused instanceof HTMLElement)) return undefined;
+    if (!this.props.scope().some((element) => element?.contains(focused))) return undefined;
+    const order = tabbables().filter((element) => element !== focused);
+    return {
+      focused,
+      after: order.filter((element) => focused.compareDocumentPosition(element) & FOLLOWING),
+      before: order.filter((element) => focused.compareDocumentPosition(element) & PRECEDING),
+    };
+  }
+
+  componentDidUpdate(_prevProps: unknown, _prevState: unknown, snapshot: FocusSnapshot | undefined) {
+    // A connected element keeps its focus; a host or a primitive that took focus during the commit
+    // stays where it is. Only the element the browser dropped is ours to replace.
+    if (!snapshot || snapshot.focused.isConnected) return;
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && active !== document.body) {
+      const scope = this.props.scope();
+      if (scope.some((element) => element?.contains(active))) return;
+    }
+    // Nearest in each direction: the first still-connected successor, else the closest predecessor.
+    for (const candidate of [...snapshot.after, ...snapshot.before.slice().reverse()]) {
+      if (!candidate.isConnected) continue;
+      candidate.focus({ preventScroll: true });
+      if (document.activeElement === candidate) return;
+    }
+    this.props.wrapper()?.focus({ preventScroll: true });
+  }
+
+  render() {
+    return this.props.children;
+  }
 }
 
 export function createRenderer({
@@ -148,6 +225,7 @@ export function createRenderer({
     wrapperProps,
     portalProps,
     transparency,
+    focusContinuity,
   }: SurfaceProps) {
     const mounted = useRef(false);
     const [failed] = useState(() => new WeakSet<UiNode>());
@@ -320,8 +398,20 @@ export function createRenderer({
     const scope = surfaceAttributes({ ...appliedScope, tree: accepted.tree ?? emptyTree });
     return (
       <>
-        <div {...mergeHostProps(scope, wrapperProps)} ref={wrapper}>
-          {arrival.ok ? <Fragment key={accepted.tree?.surfaceId}>{root}</Fragment> : fallback}
+        <div {...mergeHostProps(scope, wrapperProps)} ref={wrapper} tabIndex={focusContinuity ? -1 : undefined}>
+          {arrival.ok ? (
+            <Fragment key={accepted.tree?.surfaceId}>
+              {focusContinuity ? (
+                <FocusContinuity scope={() => [wrapper.current, portal]} wrapper={() => wrapper.current}>
+                  {root}
+                </FocusContinuity>
+              ) : (
+                root
+              )}
+            </Fragment>
+          ) : (
+            fallback
+          )}
         </div>
         <div {...mergeHostProps(scope, portalProps)} data-lf-portal="" ref={setPortal} />
       </>
