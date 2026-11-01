@@ -15,9 +15,15 @@ declare global {
     measureSelection: (
       before: Snapshot,
       after: Snapshot,
-    ) => { validation: number[]; render: number[]; commit: number[]; synchronous: number };
+    ) => Promise<{ validation: number[]; render: number[]; commit: number[]; synchronous: number }>;
+    measureSelectionWall: (
+      before: Snapshot,
+      after: Snapshot,
+      rounds?: number,
+    ) => Promise<{ samples: { validation: number; react: number; wall: number }[]; production: boolean }>;
   }
 }
+const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
 const container = document.getElementById("app");
 if (!container) throw new Error("Missing test container");
 window.intents = [];
@@ -46,7 +52,7 @@ window.switchSystem = (system) => {
 };
 window.ready = true;
 
-window.measureSelection = (before, after) => {
+window.measureSelection = async (before, after) => {
   const checked = validateCapabilities(capabilities);
   if (!checked.ok) throw new Error(JSON.stringify(checked.errors));
   const compiled = compileValidator({ catalog, capabilities: checked.value, manifest: before.manifest });
@@ -84,7 +90,64 @@ window.measureSelection = (before, after) => {
   );
   flushSync(() => root.render(measured(before)));
   validation.length = render.length = commit.length = 0;
+  await nextFrame();
+  // Layout and paint of the update happen on the next frame, so the trace window
+  // opens after the setup render settles and closes after the update's frame.
+  performance.mark("lf-recorded-start");
   const start = performance.now();
   flushSync(() => root.render(measured(after)));
-  return { validation, render, commit, synchronous: performance.now() - start };
+  const synchronous = performance.now() - start;
+  await nextFrame();
+  performance.mark("lf-recorded-end");
+  return { validation, render, commit, synchronous };
+};
+
+// Production-mode measurement: no Profiler, React work is the flushSync wall span
+// net of arrival validation. The transition is repeated so warm samples only count.
+window.measureSelectionWall = async (before, after, rounds = 10) => {
+  const checked = validateCapabilities(capabilities);
+  if (!checked.ok) throw new Error(JSON.stringify(checked.errors));
+  const compiled = compileValidator({ catalog, capabilities: checked.value, manifest: before.manifest });
+  const validation: number[] = [];
+  const validateTree = compiled.validateTree;
+  const validator = Object.assign(compiled, {
+    validateTree: (...args: Parameters<typeof compiled.validateTree>) => {
+      const start = performance.now();
+      const result = validateTree(...args);
+      validation.push(performance.now() - start);
+      if (!result.ok) throw new Error(JSON.stringify(result.errors));
+      return result;
+    },
+  });
+  const measured = (snapshot: Snapshot) => (
+    <Surface
+      {...scope}
+      validator={validator}
+      tree={snapshot.tree}
+      theme={themes[designSystem]}
+      designSystem={systems[designSystem]}
+      fallback={fallback}
+      onIntent={onIntent}
+    />
+  );
+  flushSync(() => root.render(measured(before)));
+  flushSync(() => root.render(measured(after)));
+  await nextFrame();
+  // Fresh object graphs per round, like whole-tree arrivals; cloning stays outside the timed span.
+  const arrivals = Array.from({ length: rounds }, () => structuredClone(after.tree));
+  const samples: { validation: number; react: number; wall: number }[] = [];
+  performance.mark("lf-recorded-start");
+  for (let round = 0; round < rounds; round++) {
+    const arrival = arrivals[round];
+    if (!arrival) throw new Error("Missing arrival");
+    validation.length = 0;
+    const start = performance.now();
+    flushSync(() => root.render(measured({ ...after, tree: arrival })));
+    const wall = performance.now() - start;
+    const checkedMs = validation.reduce((sum, value) => sum + value, 0);
+    samples.push({ validation: checkedMs, react: Math.max(0, wall - checkedMs), wall });
+    await nextFrame();
+  }
+  performance.mark("lf-recorded-end");
+  return { samples, production: process.env.NODE_ENV === "production" };
 };

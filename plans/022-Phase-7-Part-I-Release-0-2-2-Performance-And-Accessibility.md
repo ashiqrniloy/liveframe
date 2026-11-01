@@ -97,7 +97,7 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
     - Documented the gate in `docs/compatibility.md` under "How 0.2.x stays compatible".
     - `bun run check` passed clean (952 pass, 4 skip, 0 fail; typecheck, lint, and format checks green). No spec changes required.
 
-- [ ] Task 2: Profile browser costs on a production React build
+- [x] Task 2: Profile browser costs on a production React build
   - Acceptance Criteria:
     - Functional:
       - `bench/streaming.bench.ts` and the renderer selection measurement in `proof/tests/renderer-browser.test.tsx` (`selection_rerender_cost_is_recorded`) gain a production mode. The client bundle is built with `NODE_ENV=production`, without Profiler instrumentation, and timed with `performance.now()` around `flushSync`.
@@ -130,7 +130,13 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
       - `plans/evidence/022-browser-profile.md`; `plans/backlog.md` (close the P2 entry)
   - Test Cases to Write:
     - n/a. This is evidence. The existing bench assertions (final-tree equality, every arrival validated) run in production mode too, and fail if the production bundle draws a different tree.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-01):
+    - `bench/streaming.bench.ts` takes `--production` (bundle with `process.env.NODE_ENV=production`, no Profiler element in the client) and `--out <file>`; without them it keeps writing the 019/021 evidence files, so `bun run bench` is unchanged. `bench/streaming-client.tsx` exposes `mount`/`step`/`tree` instead of one paced `run`, because a single long `Runtime.evaluate` produced no Layout/Paint trace events. The bench drives one CDP call per revision, warms with 20 untimed revisions, then marks `lf-recorded-start`/`lf-recorded-end` around the 100 recorded revisions. `bench/trace.ts` (new) starts a Chromium `devtools.timeline,blink.user_timing` trace and sums `Layout` and `Paint` durations inside those marks; the trailing frame is awaited before the end mark.
+    - The streaming page now receives the proof stylesheets. Without CSS a status change never changes pixels and Chromium emits no layout or paint at all.
+    - `proof/tests/renderer-browser.test.tsx`: `selection_rerender_cost_is_recorded` keeps its assertions and now also records the trace split; the new `selection_rerender_cost_is_recorded_in_production` hydrates the same SSR page from a production bundle (`?prod`) and calls `window.measureSelectionWall`, which has no Profiler, times `flushSync` with `performance.now()` and repeats 10 fresh-tree arrivals.
+    - Result (`plans/evidence/022-browser-profile.md`; per-revision tables in `022-streaming{,-patches}-{development,production}.md`): whole-tree arrival 9.8 ms development, 5.8 ms production; patches 2.3 ms development, 1.6 ms production; per-update layout plus paint 0.06 ms (only the ~7 visible rows of 50 are laid out, `deferOffscreen` skips the rest). 679-node selection: development validation 2.5 ms, Profiler render 55.9/52.7 ms, layout plus paint 4.73/3.71 ms, synchronous update 94.0/86.8 ms; production validation 1.9 ms, React 12.5/12.1 ms, layout plus paint 0.29/0.28 ms, update 14.5/14.0 ms (certified/rack). Machine, browser, builds, commands and load averages (4.8–9.3 from an unrelated cluster on the same host) are in the record.
+    - Finding: React work is the dominant cost for whole-tree arrival (87% development, 76% production) and for the selection update (86% production), so Tasks 3 and 4 keep their order and targets. Patch mode is validation-bound in production (validation 1.2 ms of a 1.6 ms update) and stays a no-regression check. No later task is amended.
+    - Backlog P2 "Profile production browser selection costs before optimizing the renderer" is closed with a link to the record; its preview-matrix follow-up is explicitly left open because this profile does not cover it. No spec change.
 
 - [ ] Task 3: Reuse unchanged nodes when a whole tree arrives
   - Acceptance Criteria:

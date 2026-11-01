@@ -1,6 +1,8 @@
 import { strict as assert } from "node:assert";
 import { cpus, loadavg, platform, release } from "node:os";
 import { chromium } from "playwright";
+import { proofSheets } from "../proof/css/sheets.ts";
+import { startRenderTrace, stopRenderTrace, TRACE_MARKS } from "./trace.ts";
 import { toElements } from "../scripts/fixtures/elements.ts";
 import { browserHost } from "../src/__tests__/fixtures/conformance-browser-host.ts";
 import catalog from "../src/__tests__/fixtures/proof/catalog.json" with { type: "json" };
@@ -12,8 +14,12 @@ import { renderElements } from "../src/sdk/elements.ts";
 import { render } from "../src/sdk/render.ts";
 
 const patches = Bun.argv.includes("--patches");
+const production = Bun.argv.includes("--production");
+const outFlag = Bun.argv.indexOf("--out");
+const explicitOut = outFlag >= 0 ? Bun.argv[outFlag + 1] : undefined;
 const initialLoad = loadavg();
 const REVISIONS = 100;
+const WARMUP_REVISIONS = 20;
 const INTERVAL_MS = 100;
 const MAX_GZIP_BYTES = 1024;
 const MAX_VALIDATION_AND_COMMIT_MS = 8;
@@ -92,21 +98,66 @@ for (let index = 0; index < REVISIONS; index++) {
   previous = tree;
 }
 
-const server = await browserHost(new URL("./streaming-client.tsx", import.meta.url).pathname);
+const server = await browserHost(new URL("./streaming-client.tsx", import.meta.url).pathname, proofSheets, production);
 const browser = await chromium.launch({ headless: true });
+type Sample = Record<
+  "parseMs" | "validationMs" | "profilerMs" | "commitMs" | "wallMs" | "applyMs" | "endToEndMs",
+  number
+>;
 try {
   const page = await browser.newPage();
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(String(error)));
   await page.goto(server.url.href);
   await page.waitForFunction(() => !!window.streamTest);
-  const outcome = await page.evaluate((payload) => window.streamTest.run(payload.revisions, payload.initial), {
-    revisions: revisions.map((entry) => entry.json),
-    initial: initialTree ? JSON.stringify(initialTree) : null,
-  });
+  const initialJson = initialTree ? JSON.stringify(initialTree) : null;
+  const mount = () => page.evaluate((initial: string | null) => window.streamTest.mount(initial), initialJson);
+  const step = (json: string) =>
+    page.evaluate((input: [string, boolean]) => window.streamTest.step(input[0], input[1]), [json, patches] as [
+      string,
+      boolean,
+    ]) as Promise<Sample>;
+  // One CDP call per revision keeps the renderer's frames observable in the trace;
+  // a single long evaluate produced no Layout/Paint events.
+  const drive = async (count = REVISIONS) => {
+    const samples: Sample[] = [];
+    const started = performance.now();
+    let next = started;
+    for (let index = 0; index < count; index++) {
+      const entry = revisions[index];
+      assert(entry, `revision ${index} missing`);
+      next += INTERVAL_MS;
+      samples.push(await step(entry.json));
+      const remaining = next - performance.now();
+      if (remaining > 0) await Bun.sleep(remaining);
+    }
+    return { samples, elapsedMs: performance.now() - started };
+  };
+  const cdp = await page.context().newCDPSession(page);
+  await startRenderTrace(cdp);
+  // One untimed pass warms the bundle, the JIT and React before the recorded samples.
+  await mount();
+  await drive(WARMUP_REVISIONS);
+  // Reset to the same base, let the mount settle, then record only the marked window.
+  await mount();
+  await Bun.sleep(INTERVAL_MS);
+  await page.evaluate(() => performance.mark("lf-recorded-start"));
+  const outcome = await drive();
+  // The last update's layout and paint happen on the next frame.
+  await page.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(null)))),
+  );
+  await page.evaluate(() => performance.mark("lf-recorded-end"));
+  const trace = await stopRenderTrace(cdp, TRACE_MARKS);
+  const finalTree = patches ? await page.evaluate(() => window.streamTest.tree()) : undefined;
+  const client = await page.evaluate(() => ({
+    reactVersion: window.streamTest.reactVersion,
+    production: window.streamTest.production,
+  }));
+  assert.equal(client.production, production, "bundle build mode");
   assert.equal(errors.length, 0, errors.join("\n"));
   assert.equal(outcome.samples.length, REVISIONS);
-  if (patches) assert.deepEqual(outcome.finalTree, previous, "browser reconstructed final tree");
+  if (patches) assert.deepEqual(finalTree, previous, "browser reconstructed final tree");
 
   const median = (values: readonly number[]) => {
     const sorted = [...values].sort((a, b) => a - b);
@@ -124,6 +175,10 @@ try {
   const commit = axis("commitMs");
   const bytes = revisions.map((entry) => entry.bytes);
   const achieved = ((REVISIONS - 1) / outcome.elapsedMs) * 1000;
+  const build = production ? "production" : "development";
+  const reactMeasure = production
+    ? "React work ms (flushSync wall, net of validation)"
+    : "React commit ms (Profiler, net of validation)";
 
   const lines = [
     patches
@@ -133,21 +188,25 @@ try {
     `- Generated: ${new Date().toISOString()}`,
     `- Machine: ${platform()} ${release()}; ${cpus()[0]?.model}; ${cpus().length} logical CPUs`,
     `- Bun: ${Bun.version}; Playwright Chromium: ${browser.version()}`,
-    `- Command: \`bun --conditions liveframe:source bench/streaming.bench.ts${patches ? " --patches" : ""}\``,
+    `- Build: React ${client.reactVersion}, ${build} (\`process.env.NODE_ENV=${build}\`); ${production ? "no Profiler instrumentation" : "Profiler instrumentation included"}.`,
+    `- Command: \`bun --conditions liveframe:source bench/streaming.bench.ts${patches ? " --patches" : ""}${production ? " --production" : ""}\``,
     `- Subject: agent-home, 679 nodes, 50 rows; ${REVISIONS} revisions at a ${1000 / INTERVAL_MS}/s target; one row's status changes per revision, ${patches ? "patches sent after a separately mounted revision-0 whole tree" : "whole trees sent"}.`,
+    `- Warm: one untimed pass of ${WARMUP_REVISIONS} revisions precedes the recorded pass, so the timed first revision does not include mount; each measure below is repeated ${REVISIONS} times. A longer traced warm-up captured no render events, so the warm pass is kept short.`,
     ...(patches
       ? [
           `- Load average at start: ${initialLoad.join(", ")}`,
-          `- React: ${outcome.reactVersion}, development; Playwright: ${(await import("playwright/package.json")).default.version}; Chromium headless.`,
+          `- React: ${client.reactVersion}, ${build}; Playwright: ${(await import("playwright/package.json")).default.version}; Chromium headless.`,
           "- Bootstrap is outside the 100 timed updates and byte summaries; updates are revisions 1–100. The original revision generator is unchanged (each row status overrides the ready fixture for that revision).",
           "- Host diff timing excludes rendering, serialization and round-trip assertions. Every patch round-trips exactly; browser final-tree equality and every arrival validation are asserted.",
           "- The historical LF-17 metric calls Profiler actualDuration minus validation ‘commit’; React documents actualDuration as render work, not DOM commit or paint. That metric is retained unchanged; flushSync wall and parse + apply + flushSync end-to-end spans are also reported, excluding network, decompression and pacing.",
-          "- Bootstrap mount is excluded in patch mode; LF-17 whole-tree mode still includes mount as its first sample. Both use the development build and the same 100 ms pacing.",
+          `- Timings are browser-side, one sample per revision. ${production ? "No Profiler overhead: the React span is flushSync wall time." : "Chromium runs React's development build, so Profiler overhead is included."}`,
         ]
-      : []),
-    `- Timings are browser-side, one sample per revision; Chromium runs React's development build, so Profiler overhead is included; ${patches ? "bootstrap mount is excluded" : "the first revision includes mount"}.`,
+      : [
+          `- Timings are browser-side, one sample per revision. ${production ? "No Profiler overhead: the React span is flushSync wall time." : "Chromium runs React's development build, so Profiler overhead is included."}`,
+        ]),
     "- Changed-value bytes sum changed leaf values only and assume no patch format.",
     `- Patch thresholds fixed before measuring: gzipped ${patches ? "patch" : "whole-tree"} update above ${MAX_GZIP_BYTES} bytes, or arrival validation plus React commit above ${MAX_VALIDATION_AND_COMMIT_MS} ms.`,
+    `- Layout plus paint: ${trace.layoutPaintMs.toFixed(3)} ms total across ${trace.events} trace events (Chromium devtools.timeline \`Layout\` and \`Paint\`) inside the \`lf-recorded-start\`/\`lf-recorded-end\` marks around the recorded pass, ${(trace.layoutPaintMs / REVISIONS).toFixed(3)} ms mean per update. The trace is a window total, not a per-sample split.`,
     "",
     "## Summary",
     "",
@@ -167,9 +226,10 @@ try {
       : []),
     `| JSON parse ms | ${median(axis("parseMs")).toFixed(3)} | ${p95(axis("parseMs")).toFixed(3)} | ${Math.max(...axis("parseMs")).toFixed(3)} |`,
     `| Arrival validation ms | ${median(validation).toFixed(3)} | ${p95(validation).toFixed(3)} | ${Math.max(...validation).toFixed(3)} |`,
-    `| React commit ms (Profiler, net of validation) | ${median(commit).toFixed(3)} | ${p95(commit).toFixed(3)} | ${Math.max(...commit).toFixed(3)} |`,
-    `| Arrival validation + React commit ms | ${median(update).toFixed(3)} | ${p95(update).toFixed(3)} | ${Math.max(...update).toFixed(3)} |`,
+    `| ${reactMeasure} | ${median(commit).toFixed(3)} | ${p95(commit).toFixed(3)} | ${Math.max(...commit).toFixed(3)} |`,
+    `| Arrival validation + React work ms | ${median(update).toFixed(3)} | ${p95(update).toFixed(3)} | ${Math.max(...update).toFixed(3)} |`,
     `| Wall time around flushSync ms | ${median(axis("wallMs")).toFixed(3)} | ${p95(axis("wallMs")).toFixed(3)} | ${Math.max(...axis("wallMs")).toFixed(3)} |`,
+    `| Layout plus paint, mean per update ms | ${(trace.layoutPaintMs / REVISIONS).toFixed(3)} | — | — |`,
     "",
     `Achieved update rate: ${achieved.toFixed(2)}/s over ${outcome.elapsedMs.toFixed(0)} ms.`,
     "",
@@ -183,7 +243,7 @@ try {
       : []),
     "## Per revision",
     "",
-    `| # | JSON bytes | gzip bytes | changed bytes | parse ms | arrival validation ms | React commit ms | validation + commit ms |${patches ? " diff ms | apply ms | end-to-end ms |" : ""}`,
+    `| # | JSON bytes | gzip bytes | changed bytes | parse ms | arrival validation ms | React work ms | validation + React ms |${patches ? " diff ms | apply ms | end-to-end ms |" : ""}`,
     `|---:|---:|---:|---:|---:|---:|---:|---:|${patches ? "---:|---:|---:|" : ""}`,
     ...revisions.map((entry, index) => {
       const sample = outcome.samples[index];
@@ -194,10 +254,16 @@ try {
     `Load average at end: ${loadavg().join(", ")}`,
     "",
   ];
-  const evidence = new URL(
-    patches ? "../plans/evidence/021-streaming-patches.md" : "../plans/evidence/019-streaming-bench.md",
-    import.meta.url,
-  );
+  const evidence = explicitOut
+    ? new URL(explicitOut, `file://${process.cwd()}/`)
+    : new URL(
+        production
+          ? `../plans/evidence/022-streaming${patches ? "-patches" : ""}-production.md`
+          : patches
+            ? "../plans/evidence/021-streaming-patches.md"
+            : "../plans/evidence/019-streaming-bench.md",
+        import.meta.url,
+      );
   await Bun.write(evidence, lines.join("\n"));
   console.log(lines.slice(0, 25).join("\n"));
   console.log(`Wrote ${evidence.pathname}`);

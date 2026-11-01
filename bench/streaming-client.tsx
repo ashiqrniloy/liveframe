@@ -14,9 +14,26 @@ type Sample = {
   readonly endToEndMs: number;
 };
 
+const production = process.env.NODE_ENV === "production";
 const root = createRoot(document.body);
 const { Surface } = renderer();
 let validationMs = 0;
+
+// Production React runs without Profiler instrumentation and never calls onRender,
+// so the timed span there is flushSync wall time.
+function render(tree: UiTree, onRender?: (duration: number) => void) {
+  flushSync(() =>
+    root.render(
+      production ? (
+        <Surface {...surfaceProps} validator={validator} tree={tree} />
+      ) : (
+        <Profiler id="stream" onRender={(_id, _phase, actualDuration) => onRender?.(actualDuration)}>
+          <Surface {...surfaceProps} validator={validator} tree={tree} />
+        </Profiler>
+      ),
+    ),
+  );
+}
 const validateTree = validator.validateTree;
 (validator as { validateTree: typeof validator.validateTree }).validateTree = (tree, options) => {
   const started = performance.now();
@@ -29,74 +46,60 @@ const validateTree = validator.validateTree;
   }
 };
 
-async function run(revisions: readonly string[], initial: string | null) {
-  const samples: Sample[] = [];
-  let previous: UiTree | undefined;
-  if (initial !== null) {
-    previous = JSON.parse(initial) as UiTree;
-    flushSync(() =>
-      root.render(
-        <Profiler id="stream" onRender={() => {}}>
-          <Surface {...surfaceProps} validator={validator} tree={previous} />
-        </Profiler>,
-      ),
-    );
+let previous: UiTree | undefined;
+
+function mount(initial: string | null) {
+  previous = initial === null ? undefined : (JSON.parse(initial) as UiTree);
+  if (previous) render(previous, () => {});
+}
+
+function step(json: string, patchMode: boolean): Sample {
+  const parseStarted = performance.now();
+  const parsed: unknown = JSON.parse(json);
+  const parseMs = performance.now() - parseStarted;
+  let tree = parsed as UiTree;
+  let applyMs = 0;
+  if (patchMode) {
+    if (!previous) throw new Error("Missing patch base");
+    const applyStarted = performance.now();
+    const applied = applyPatch(previous, parsed);
+    applyMs = performance.now() - applyStarted;
+    if (!applied.ok) throw new Error(JSON.stringify(applied.errors));
+    tree = applied.value;
   }
-  const started = performance.now();
-  let next = started;
-  for (const json of revisions) {
-    next += 100;
-    const parseStarted = performance.now();
-    const parsed: unknown = JSON.parse(json);
-    const parseMs = performance.now() - parseStarted;
-    let tree = parsed as UiTree;
-    let applyMs = 0;
-    if (initial !== null) {
-      if (!previous) throw new Error("Missing patch base");
-      const applyStarted = performance.now();
-      const applied = applyPatch(previous, parsed);
-      applyMs = performance.now() - applyStarted;
-      if (!applied.ok) throw new Error(JSON.stringify(applied.errors));
-      tree = applied.value;
-    }
-    validationMs = 0;
-    let profilerMs: number | undefined;
-    const commitStarted = performance.now();
-    flushSync(() =>
-      root.render(
-        <Profiler
-          id="stream"
-          onRender={(_id, _phase, actualDuration) => {
-            profilerMs = actualDuration;
-          }}
-        >
-          <Surface {...surfaceProps} validator={validator} tree={tree} />
-        </Profiler>,
-      ),
-    );
-    const wallMs = performance.now() - commitStarted;
-    const endToEndMs = performance.now() - parseStarted;
-    previous = tree;
-    if (initial !== null && profilerMs === undefined) throw new Error("Missing development Profiler sample");
-    const measured = profilerMs ?? wallMs;
-    samples.push({
-      parseMs,
-      validationMs,
-      profilerMs: measured,
-      commitMs: Math.max(0, measured - validationMs),
-      wallMs,
-      applyMs,
-      endToEndMs,
-    });
-    const remaining = next - performance.now();
-    if (remaining > 0) await new Promise((resolve) => setTimeout(resolve, remaining));
+  validationMs = 0;
+  let profilerMs: number | undefined;
+  const commitStarted = performance.now();
+  render(tree, (duration) => {
+    profilerMs = duration;
+  });
+  const wallMs = performance.now() - commitStarted;
+  const endToEndMs = performance.now() - parseStarted;
+  previous = tree;
+  if (!production && patchMode && profilerMs === undefined) {
+    throw new Error("Missing development Profiler sample");
   }
-  return { samples, elapsedMs: performance.now() - started, finalTree: previous, reactVersion };
+  const measured = profilerMs ?? wallMs;
+  return {
+    parseMs,
+    validationMs,
+    profilerMs: measured,
+    commitMs: Math.max(0, measured - validationMs),
+    wallMs,
+    applyMs,
+    endToEndMs,
+  };
 }
 
 declare global {
   interface Window {
-    streamTest: { run: typeof run };
+    streamTest: {
+      mount: typeof mount;
+      step: typeof step;
+      tree: () => UiTree | undefined;
+      reactVersion: string;
+      production: boolean;
+    };
   }
 }
-window.streamTest = { run };
+window.streamTest = { mount, step, tree: () => previous, reactVersion, production };

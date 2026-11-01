@@ -201,6 +201,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 ## Profile production browser selection costs before optimizing the renderer
 
+- Closed 2026-11-01 by [plan 022](022-Phase-7-Part-I-Release-0-2-2-Performance-And-Accessibility.md) Task 2: `plans/evidence/022-browser-profile.md` records development and production builds under both proof design systems, warm and repeated, split into JSON parse, arrival validation, React work and layout plus paint from a Chromium trace. Production 679-node selection: validation 1.9 ms, React 12.5/12.1 ms, layout plus paint 0.29/0.28 ms, update 14.5/14.0 ms (certified/rack). Whole-tree streaming: development 9.8 ms, production 5.8 ms; patches 2.3 / 1.6 ms. React work dominates whole-tree arrival (87% / 76%) and the selection update (86%); patch mode is validation-bound in production. The preview follow-up below is not covered by that profile and stays open.
 - Section: Renderer performance investigation (spec §7.1, §11)
 - Priority: P2
 - Source: plans/008-Phase-4-Part-A-React-Renderer.md Task 11 (F2), plans/evidence/008-impact-analysis.md

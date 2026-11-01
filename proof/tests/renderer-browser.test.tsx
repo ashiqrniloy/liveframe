@@ -3,6 +3,7 @@ import type { UiNode, UiTree } from "@arnilo/liveframe";
 import { type Browser, chromium, type Page } from "playwright";
 import { renderToString } from "react-dom/server";
 import { base, proofSheets, systemSheets, themeSheets } from "../css/sheets.ts";
+import { startRenderTrace, stopRenderTrace, TRACE_MARKS } from "../../bench/trace.ts";
 import { openPage } from "../host/pages.ts";
 import { primitiveCss } from "../renderer/primitives/base.ts";
 import { certifiedTheme } from "../styles/certified/theme.ts";
@@ -144,27 +145,38 @@ const certified = [base, primitiveCss, themeSheets.certified, systemSheets.certi
 const rack = [base, primitiveCss, themeSheets.rack, systemSheets.rack].join("\n");
 let server: ReturnType<typeof Bun.serve>;
 let browser: Browser;
-beforeAll(async () => {
+async function buildBundle(production: boolean): Promise<string> {
   const build = await Bun.build({
     entrypoints: [new URL("./fixtures/renderer-client.tsx", import.meta.url).pathname],
     target: "browser",
     conditions: ["liveframe:source"],
+    define: { "process.env.NODE_ENV": JSON.stringify(production ? "production" : "development") },
   });
   if (!build.success) throw new AggregateError(build.logs);
   const output = build.outputs[0];
   if (!output) throw new Error("Missing browser bundle");
-  const bundle = await output.text();
+  return output.text();
+}
+beforeAll(async () => {
+  const bundle = await buildBundle(false);
+  const productionBundle = await buildBundle(true);
   const html = renderToString(<Surface tree={initial} {...scope} fallback={<p>Unavailable</p>} onIntent={() => {}} />);
   server = Bun.serve({
     port: 0,
     hostname: "127.0.0.1",
-    fetch: (request) =>
-      new URL(request.url).pathname === "/client.js"
-        ? new Response(bundle, { headers: { "Content-Type": "text/javascript" } })
-        : new Response(
-            `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Renderer test</title><style>${proofSheets}</style></head><body><div id="app" class="lf_surface" data-lf-theme="certified@1.0.0" data-lf-ds="certified@1.0.0">${html}</div><script type="application/json" id="tree">${JSON.stringify(initial).replaceAll("<", "\\u003c")}</script><script type="module" src="/client.js"></script></body></html>`,
-            { headers: { "Content-Type": "text/html; charset=utf-8" } },
-          ),
+    fetch: (request) => {
+      const url = new URL(request.url);
+      const production = url.searchParams.has("prod");
+      if (url.pathname === "/client.js") {
+        return new Response(production ? productionBundle : bundle, {
+          headers: { "Content-Type": "text/javascript" },
+        });
+      }
+      return new Response(
+        `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Renderer test</title><style>${proofSheets}</style></head><body><div id="app" class="lf_surface" data-lf-theme="certified@1.0.0" data-lf-ds="certified@1.0.0">${html}</div><script type="application/json" id="tree">${JSON.stringify(initial).replaceAll("<", "\\u003c")}</script><script type="module" src="/client.js${production ? "?prod" : ""}"></script></body></html>`,
+        { headers: { "Content-Type": "text/html; charset=utf-8" } },
+      );
+    },
   });
   browser = await chromium.launch({ headless: true });
 }, 30000);
@@ -212,6 +224,19 @@ async function openDialog(page: Page) {
   await page.getByRole("dialog", { name: "Confirm", exact: true }).waitFor();
 }
 
+async function openProductionPage() {
+  const page = await browser.newPage();
+  page.setDefaultTimeout(5000);
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  await page.goto(`${server.url}?prod`);
+  await page.waitForFunction(() => window.ready);
+  return { page, errors };
+}
+
 test("selection_rerender_cost_is_recorded", async () => {
   const session = await openPage("full", "agent-home", "ready");
   const before = session.snapshot();
@@ -219,20 +244,55 @@ test("selection_rerender_cost_is_recorded", async () => {
   expect(count(before.tree.root)).toBe(679);
   const after = await session.dispatch(1, { type: "setState", key: "selected", value: "task-1" });
   await visit(async (page) => {
+    const cdp = await page.context().newCDPSession(page);
+    await startRenderTrace(cdp);
     const timing = await page.evaluate((json) => {
       const { before, after } = JSON.parse(json);
       return window.measureSelection(before, after);
     }, JSON.stringify({ before, after }));
+    const trace = await stopRenderTrace(cdp, TRACE_MARKS);
     expect(timing.validation).toHaveLength(1);
     expect(timing.render.length).toBeGreaterThan(0);
     expect(timing.commit.length).toBeGreaterThan(0);
     expect(timing.synchronous).toBeGreaterThan(0);
     console.log(
-      `679-node selection ${await page.locator("#app > div").first().getAttribute("data-lf-ds")}: ${JSON.stringify(timing)} ms`,
+      `679-node selection ${await page.locator("#app > div").first().getAttribute("data-lf-ds")} development: ${JSON.stringify(timing)} ms; layout+paint ${trace.layoutPaintMs.toFixed(3)} ms (${trace.events} trace events)`,
     );
     await page.getByRole("heading", { name: "Synthetic task 1", exact: true }).waitFor();
   });
 }, 20000);
+
+test("selection_rerender_cost_is_recorded_in_production", async () => {
+  const session = await openPage("full", "agent-home", "ready");
+  const before = session.snapshot();
+  const count = (node: UiNode): number => 1 + (node.children ?? []).reduce((sum, child) => sum + count(child), 0);
+  expect(count(before.tree.root)).toBe(679);
+  const after = await session.dispatch(1, { type: "setState", key: "selected", value: "task-1" });
+  const rounds = 10;
+  for (const system of ["certified", "rack"] as const) {
+    const { page, errors } = await openProductionPage();
+    try {
+      await page.evaluate((value) => window.switchSystem(value), system);
+      const cdp = await page.context().newCDPSession(page);
+      await startRenderTrace(cdp);
+      const outcome = await page.evaluate((json) => {
+        const { before, after } = JSON.parse(json);
+        return window.measureSelectionWall(before, after, 10);
+      }, JSON.stringify({ before, after }));
+      const trace = await stopRenderTrace(cdp, TRACE_MARKS);
+      console.log(
+        `679-node selection ${system} production: ${JSON.stringify(outcome.samples)} ms; layout+paint ${trace.layoutPaintMs.toFixed(3)} ms over ${rounds} updates (${trace.events} trace events)`,
+      );
+      expect(outcome.production).toBe(true);
+      expect(outcome.samples).toHaveLength(rounds);
+      expect(outcome.samples.every((sample) => sample.react > 0 && sample.validation > 0)).toBe(true);
+      await page.getByRole("heading", { name: "Synthetic task 1", exact: true }).waitFor();
+      expect(errors).toEqual([]);
+    } finally {
+      await page.close();
+    }
+  }
+}, 30000);
 
 test(
   "dialog_exit_animates_then_unmounts_and_reduced_motion_skips_exit",
