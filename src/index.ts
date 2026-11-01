@@ -20,7 +20,7 @@ export {
   validateDesignSystem,
 } from "./formats/design-system.ts";
 export { recipeProperties, semantics, states, styleProps } from "./formats/fixed.ts";
-export { type Manifest, validateManifest } from "./formats/manifest.ts";
+export { bindSources, type Manifest, validateManifest } from "./formats/manifest.ts";
 export { type Theme, validateTheme } from "./formats/theme.ts";
 export type { Intent, IntentOrigin, Json, UiNode, UiTree } from "./formats/tree.ts";
 export { type PatchOp, type TreePatch, validateTreePatch } from "./formats/tree-patch.ts";

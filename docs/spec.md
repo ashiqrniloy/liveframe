@@ -367,7 +367,7 @@ A widget **manifest** declares:
 - `id` and `version`
 - the `catalogId` it targets
 - schemas for `params` (set where the widget is placed), `state` (changed by `setState`) and `context` (host-provided, for example `size`), none of which may use `pattern` (§5)
-- the **data sources** it reads: `sources: Record<dataKey, { source, params }>`. Each `source` names a declared capability, and each of its params is bound to a literal or to `{ from: "params" | "state" | "context", path }`, checked against the source's params schema. `data[dataKey]` holds the source's result
+- the **data sources** it reads: `sources: Record<dataKey, { source, params }>`. Each `source` names a declared capability, and each of its params is bound to a literal or to `{ from: "params" | "state" | "context", path }`, checked against the source's params schema. `data[dataKey]` holds the source's result. The root export's `bindSources(manifest, capabilities, { params, state, context })` performs that request-time evaluation: it returns each key's `{ source, params }`, omits an absent optional binding, reports an absent required one as `invalid-prop` at `/sources/<key>/params/<name>`, and resolves no data and runs no action
 - the **actions** it may invoke, each a declared capability
 - the **initial `state`**, valid against its schema, used for a new placement and when a stored state no longer fits (§7.4)
 
@@ -577,7 +577,7 @@ Rules:
 - **Confirmation is UI, authorisation is the host's.** `confirm` gates the renderer's optional confirmation hook; `irreversible` is presentation and never gates emission. Neither grants authority: the host still applies its own confirmation policy and authorisation on dispatch (§11).
 - **The app re-checks every intent.** The intent must be declared by the widget's manifest, and its args must match the action's schema in the app's capabilities. The validator checks this on every render; the app checks it again on dispatch. Intents carry no authority.
 - **State is owned by the app.** Widget state is persisted per placement and host scope, in the app's store (§7.4), or supplied explicitly by the host. The widget only ever receives it as input.
-- **Re-runs are cacheable.** A widget is pure, so the same widget version and the same inputs always produce the same tree. A host may skip a re-run, and the transfer, when the hash of the package (§7.3), `catalogId`, params, state, data and context is unchanged.
+- **Re-runs are cacheable.** A widget is pure, so the same widget version and the same inputs always produce the same tree. A host may skip a re-run, and the transfer, when the hash of the package (§7.3), `catalogId`, params, state, data and context is unchanged; `/pack` publishes that key as `renderKey`, the SHA-256 of those inputs in canonical JSON, so inputs that differ only in key order share it.
 
 ## 9. The UI tree (wire format)
 

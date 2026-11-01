@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { schemaDocument } from "../formats/registry.ts";
-import { validateManifestShape } from "../formats/manifest.ts";
+import { LiveframeFailure } from "../errors.ts";
+import { bindSources, validateManifestShape } from "../formats/manifest.ts";
 import {
   arr,
   bool,
@@ -432,4 +433,123 @@ test("published_manifest_schema_rejects_patterns", () => {
   const args = obj({ id: str({ maxLength: 8, pattern: "^t-" }) });
   const capabilityOracle = ajv.compile(schemaDocument("capabilities"));
   expect(capabilityOracle({ ...capabilities, actions: { "tasks.claim": { description: "Claim", args } } })).toBe(true);
+});
+
+const sourceCapabilities: Capabilities = {
+  format: "liveframe-capabilities/1",
+  actions: {},
+  sources: {
+    "tasks.queue": {
+      description: "Read tasks",
+      params: obj({ cursor: text, limit: text }, { size: text }),
+      result: text,
+    },
+  },
+};
+const sourceManifest: Manifest = {
+  ...manifest,
+  actions: [],
+  sources: {
+    queue: {
+      source: "tasks.queue",
+      params: {
+        cursor: { from: "state", path: "cursors.tasks" },
+        limit: { from: "params", path: "limit" },
+        size: { from: "context", path: "size" },
+      },
+    },
+    literal: { source: "tasks.queue", params: { cursor: "fixed", limit: "10" } },
+  },
+};
+const withSources = (sources: Manifest["sources"]): Manifest => ({ ...sourceManifest, sources });
+const bound = (m: unknown, c: unknown, inputs: Parameters<typeof bindSources>[2]) => {
+  const result = bindSources(m, c, inputs);
+  if (!result.ok) throw new Error(JSON.stringify(result.errors));
+  return result.value;
+};
+const boundErrors = (m: unknown, c: unknown, inputs: Parameters<typeof bindSources>[2]) => {
+  const result = bindSources(m, c, inputs);
+  if (result.ok) throw new Error("Expected bindSources to fail");
+  return result.errors.map(({ kind, pointer }) => `${kind} ${pointer}`);
+};
+
+test("binds_literals_params_state_and_context_paths", () => {
+  expect(
+    bound(sourceManifest, sourceCapabilities, {
+      params: { limit: "5" },
+      state: { cursors: { tasks: "t1" }, flag: false },
+      context: { size: "md" },
+    }),
+  ).toEqual({
+    queue: { source: "tasks.queue", params: { cursor: "t1", limit: "5", size: "md" } },
+    literal: { source: "tasks.queue", params: { cursor: "fixed", limit: "10" } },
+  });
+  // An absent input leaves its bindings unbound instead of reading through a missing object.
+  expect(
+    bound(sourceManifest, sourceCapabilities, { params: { limit: "5" }, state: { cursors: { tasks: "t1" } } }),
+  ).toEqual({
+    queue: { source: "tasks.queue", params: { cursor: "t1", limit: "5" } },
+    literal: { source: "tasks.queue", params: { cursor: "fixed", limit: "10" } },
+  });
+});
+
+test("missing_optional_binding_is_omitted_and_missing_required_is_invalid_prop", () => {
+  const optional = withSources({
+    queue: {
+      source: "tasks.queue",
+      params: { cursor: "c", limit: "1", size: { from: "context", path: "size" } },
+    },
+  });
+  expect(bound(optional, sourceCapabilities, {})).toEqual({
+    queue: { source: "tasks.queue", params: { cursor: "c", limit: "1" } },
+  });
+  expect(bound(optional, sourceCapabilities, { context: { size: "md" } })).toEqual({
+    queue: { source: "tasks.queue", params: { cursor: "c", limit: "1", size: "md" } },
+  });
+  expect(boundErrors(sourceManifest, sourceCapabilities, { params: {}, state: {}, context: { size: "md" } })).toEqual([
+    "invalid-prop /sources/queue/params/cursor",
+    "invalid-prop /sources/queue/params/limit",
+  ]);
+});
+
+test("bound_params_are_checked_against_the_source_schema", () => {
+  const types = ["invalid-document /sources/queue/params/cursor"];
+  expect(
+    boundErrors(
+      withSources({ queue: { source: "tasks.queue", params: { cursor: 7, limit: "5" } } }),
+      sourceCapabilities,
+      {},
+    ),
+  ).toEqual(types);
+  expect(
+    boundErrors(
+      withSources({
+        queue: { source: "tasks.queue", params: { cursor: { from: "state", path: "flag" }, limit: "5" } },
+      }),
+      sourceCapabilities,
+      { state: { flag: true } },
+    ),
+  ).toEqual(types);
+  expect(boundErrors(withSources({ queue: { source: "missing", params: {} } }), sourceCapabilities, {})).toEqual([
+    "unknown-name /sources/queue/source",
+  ]);
+});
+
+test("non_json_input_fails_closed", () => {
+  const cyclic: Record<string, unknown> = {};
+  cyclic.self = cyclic;
+  expect(boundErrors(sourceManifest, sourceCapabilities, { params: { limit: () => "x" } })).toEqual([
+    "invalid-document /params/limit",
+  ]);
+  expect(boundErrors(sourceManifest, sourceCapabilities, { params: { limit: Number.NaN } })).toEqual([
+    "invalid-document /params/limit",
+  ]);
+  expect(boundErrors(sourceManifest, sourceCapabilities, { state: { cursors: { tasks: 1n } } })).toEqual([
+    "invalid-document /state/cursors/tasks",
+  ]);
+  expect(boundErrors(sourceManifest, sourceCapabilities, { context: cyclic })).toEqual([
+    "invalid-document /context/self",
+  ]);
+  expect(() => bindSources(sourceManifest, { format: "liveframe-capabilities/1" }, {})).toThrow(LiveframeFailure);
+  expect(() => bindSources({ format: "liveframe-manifest/1" }, sourceCapabilities, {})).toThrow(LiveframeFailure);
 });

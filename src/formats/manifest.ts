@@ -1,4 +1,4 @@
-import type { Result } from "../errors.ts";
+import { LiveframeFailure, type Result } from "../errors.ts";
 import { arr, bool, checkValue, type Infer, type LanguageSchema, obj, str } from "../schema.ts";
 import {
   at,
@@ -10,6 +10,7 @@ import {
   namedMap,
   type ObjectSchema,
   shell,
+  validateCapabilities,
 } from "./capabilities.ts";
 import { validateJson } from "./json.ts";
 import type { Catalog } from "./catalog.ts";
@@ -253,4 +254,85 @@ export function validateManifestShape(doc: unknown): Result<Manifest> {
     });
   }
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: doc as Manifest };
+}
+
+/** Walks a dotted binding path through one input; anything absent answers undefined. */
+function boundValue(input: unknown, path: string): unknown {
+  let value = input;
+  for (const segment of path.split(".")) {
+    if (!isRecord(value) || !Object.hasOwn(value, segment)) return undefined;
+    value = value[segment];
+  }
+  return value;
+}
+
+/** One source entry's resolved parameters, or undefined when a required binding is absent. */
+function bindSourceParams(
+  entry: Manifest["sources"][string],
+  source: Source,
+  present: Record<string, unknown>,
+  pointer: string,
+  c: Checks,
+): Readonly<Record<string, Json>> | undefined {
+  const params: Record<string, unknown> = {};
+  let unbound = false;
+  for (const [name, input] of Object.entries(entry.params)) {
+    if (c.errors.length >= 20) break;
+    if (!isRecord(input) || typeof input.from !== "string" || typeof input.path !== "string") {
+      params[name] = input;
+      continue;
+    }
+    const value = boundValue(present[input.from], input.path);
+    if (value !== undefined) params[name] = value;
+    else if (source.params.required.includes(name)) {
+      // One clear error per required binding beats the schema's own "required" complaint too.
+      unbound = true;
+      c.reject(at(at(pointer, "params"), name), "Expected a bound source parameter", "invalid-prop");
+    }
+  }
+  if (unbound) return undefined;
+  c.collect(checkValue(source.params, params), at(pointer, "params"));
+  return params as Readonly<Record<string, Json>>;
+}
+
+/**
+ * A manifest's source bindings evaluated for one render's inputs (spec §7.1). Pure: it reads the
+ * inputs and never resolves a source or runs an action, so the host still authorises each read as
+ * the viewer. A binding to an absent value is omitted when its parameter is optional and
+ * `invalid-prop` when it is required; the resolved parameters then face the source's schema.
+ */
+export function bindSources(
+  manifest: unknown,
+  capabilities: unknown,
+  // One render's inputs, the values a binding path walks; an absent input leaves its bindings unbound.
+  inputs: { readonly params?: unknown; readonly state?: unknown; readonly context?: unknown },
+): Result<Readonly<Record<string, { readonly source: string; readonly params: Json }>>> {
+  const install = validateCapabilities(capabilities);
+  if (!install.ok) throw new LiveframeFailure(install.errors);
+  // No catalog here, so the manifest gets its shape check; installing it is what checks the
+  // catalog. Both throw like compileValidator does, so a host fails at the same place either way.
+  const shape = validateManifestShape(manifest);
+  if (!shape.ok) throw new LiveframeFailure(shape.errors);
+  const sources = install.value.sources;
+  const present: Record<string, unknown> = {};
+  for (const key of ["params", "state", "context"] as const) {
+    if (inputs[key] !== undefined) present[key] = inputs[key];
+  }
+  const c = documentChecks();
+  // Cycles, accessors, functions and non-finite numbers in any input are rejected here, at the
+  // pointer of the offending member, so later reads only ever see JSON.
+  c.collect(validateJson(present), "");
+  if (c.errors.length) return { ok: false, errors: c.errors };
+  const bound: Record<string, { source: string; params: Json }> = {};
+  for (const [key, entry] of Object.entries(shape.value.sources)) {
+    if (c.errors.length >= 20) break;
+    const pointer = at("/sources", key);
+    if (!Object.hasOwn(sources, entry.source)) {
+      c.reject(at(pointer, "source"), "Undeclared source", "unknown-name", "a declared source");
+      continue;
+    }
+    const params = bindSourceParams(entry, sources[entry.source] as Source, present, pointer, c);
+    if (params) bound[key] = { source: entry.source, params };
+  }
+  return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: bound };
 }

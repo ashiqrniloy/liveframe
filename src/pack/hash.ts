@@ -148,6 +148,29 @@ export function sha256(bytes: Uint8Array): string {
   return Array.from(hash, (value) => value.toString(16).padStart(8, "0")).join("");
 }
 
+/**
+ * The re-run cache key of one render (spec §8): SHA-256 over the package hash, the catalog id and
+ * the render's inputs in canonical JSON, so equal inputs in any key order give the same key. A host
+ * that finds the key unchanged may skip the re-run and the transfer.
+ */
+export function renderKey({
+  hash,
+  catalogId,
+  params,
+  state,
+  data,
+  context,
+}: {
+  readonly hash: string;
+  readonly catalogId: string;
+  readonly params: unknown;
+  readonly state: unknown;
+  readonly data: unknown;
+  readonly context: unknown;
+}): string {
+  return sha256(utf8(canonicalJson({ hash, catalogId, params, state, data, context })));
+}
+
 export function packageHash({ format, manifest, code, scenarios }: Omit<WidgetPackage, "hash">): string {
   return `sha256-${sha256(utf8(canonicalJson({ format, manifest, code, scenarios })))}`;
 }

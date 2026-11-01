@@ -606,6 +606,34 @@ the keyword. Use `enum`, or an app capability that checks the value where it is
 trusted. Catalog definitions and capabilities keep `pattern`: they are the app's
 documents. Source parameters accept literals checked against the capability's parameter schema, or `{ from: "params" | "state" | "context", path }`. An object with a `from` field is interpreted as a binding. Paths traverse object properties only, with at most eight identifier segments; array indices and expressions are rejected. A binding's schema type must equal the destination type. Bound values still need checking against the destination's bounds when the host resolves them. Every required source parameter must be supplied; extra parameters are errors.
 
+`bindSources(manifest, capabilities, { params, state, context })` from
+`@arnilo/liveframe` performs the request-time evaluation of those bindings. It
+returns each data key's `{ source, params }`: literals copied, `{ from, path }`
+read from that render's inputs, an absent value omitted when the parameter is
+optional and `invalid-prop` at `/sources/<key>/params/<name>` when it is
+required, and the resolved parameters checked against the capability's parameter
+schema at `/sources/<key>/params`. An undeclared source is `unknown-name`. It
+validates the capabilities and the manifest's shape and throws `LiveframeFailure`
+on either, like `compileValidator`; with no catalog in hand it cannot check the
+manifest's catalog identity, which installing it already did. Inputs that are not
+JSON — an accessor, a function, a cycle, `NaN` — fail closed as `invalid-document`
+at the offending member rather than throw. The helper resolves no data and runs
+no action, so the host still resolves each source and authorises it as the
+viewer.
+
+```ts
+const bound = bindSources(manifest, capabilities, { params, state, context });
+if (!bound.ok) return fail(bound.errors);
+const data = Object.fromEntries(
+  await Promise.all(
+    Object.entries(bound.value).map(async ([key, { source, params }]) => [
+      key,
+      await resolve(source, params, viewer), // the host's own authorised read
+    ]),
+  ),
+);
+```
+
 A manifest may carry an optional `description` (at most 500 code points) and an optional `meta`. Capability actions and sources take the same optional `meta`. `meta` is any JSON value of at most 8 levels of nesting and 4096 bytes of compact UTF-8 JSON; an over-bound value is `limit-exceeded` at the pointer (`/meta`, or the level that is too deep), and a value that is not JSON is `invalid-document`. The published schemas check that `meta` is JSON; the bounds need the validators. `meta` grants nothing: the library never interprets it, `validateManifest`, `validateManifestShape` and `verifyPackage` check it on every load, and a host should treat it as untrusted. The package hash covers a manifest's `description` and `meta`, so changing either changes the hash; capabilities are not packaged, so capability `meta` does not.
 
 Manifest ids start with a lowercase letter and contain letters, digits, dots or hyphens (128 characters maximum). Versions are nonempty bounded strings, with no enforced versioning scheme. Source keys follow capability naming rules; there are at most 512 sources and 512 distinct actions. The catalog id must match exactly. A manifest describes requests and never grants permission.

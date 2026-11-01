@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { canonicalJson, packageHash, sha256, utf8 } from "../pack/hash.ts";
+import { canonicalJson, packageHash, renderKey, sha256, utf8 } from "../pack/hash.ts";
 import type { Manifest } from "../formats/manifest.ts";
 import manifestDoc from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 
@@ -120,4 +120,29 @@ test("package_hash_1_mib_under_50_ms", () => {
   expect(hash).toMatch(/^sha256-[0-9a-f]{64}$/);
   expect(elapsed).toBeLessThan(50);
   console.info(`1 MiB package hash: ${elapsed.toFixed(2)} ms`);
+});
+
+test("render_key_ignores_key_order_and_changes_with_any_input", () => {
+  const inputs = {
+    hash: "sha256-abc",
+    catalogId: manifest.catalogId,
+    params: { b: 1, a: [2, 3] },
+    state: { cursors: { tasks: "t1" }, flag: false },
+    data: { queue: { rows: [] } },
+    context: { size: "md" },
+  };
+  const key = renderKey(inputs);
+  expect(key).toMatch(/^[0-9a-f]{64}$/);
+  expect(key).toBe(oracle(canonicalJson(inputs)));
+  expect(renderKey({ ...inputs, params: { a: [2, 3], b: 1 } })).toBe(key);
+  expect(renderKey({ ...inputs, state: { flag: false, cursors: { tasks: "t1" } } })).toBe(key);
+  for (const [field, value] of [
+    ["hash", "sha256-def"],
+    ["catalogId", "other.ui@1"],
+    ["params", { a: [3, 2], b: 1 }],
+    ["state", { cursors: { tasks: "t2" }, flag: false }],
+    ["data", { queue: { rows: [{}] } }],
+    ["context", { size: "lg" }],
+  ] as const)
+    expect(renderKey({ ...inputs, [field]: value })).not.toBe(key);
 });

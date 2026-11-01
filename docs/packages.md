@@ -269,6 +269,21 @@ It returns `{ package, params, state, reset? }` inside a successful result:
 Loading does not resolve production data or context; the host supplies those
 inputs for each render. Loading also does not execute the package.
 
+Two pure helpers cover that per-render glue; neither resolves data or grants
+authority. `bindSources(manifest, capabilities, { params, state, context })` from
+the root export returns each data key's `{ source, params }` with its bindings
+resolved and checked against the source's parameter schema, ready for the host's
+own authorised read ([format guide](formats.md#manifest)). `renderKey({ hash,
+catalogId, params, state, data, context })` from `/pack` is the re-run cache key
+of spec §8: the SHA-256 of those inputs in canonical JSON, so a key that is
+unchanged lets the host skip the re-run and the transfer.
+
+```ts
+const bound = value(bindSources(pkg.manifest, capabilities, { params, state, context }));
+const data = await resolveAll(bound, viewer); // the host's own resolver
+const key = renderKey({ hash: pkg.hash, catalogId: catalog.catalogId, params, state, data, context });
+```
+
 ## Runner limits and ownership
 
 `Runner` and `RunnerOptions` are types from `/preview`. A custom runner implements

@@ -1,6 +1,8 @@
 import { strict as assert } from "node:assert";
 import { cpus, loadavg, platform, release } from "node:os";
 import { countNodes, renderWorkloads } from "../src/__tests__/fixtures/render-workloads.ts";
+import { proofWidgets } from "../src/__tests__/fixtures/widgets/index.ts";
+import { canonicalJson, renderKey } from "../src/pack/hash.ts";
 import { renderElements } from "../src/sdk/elements.ts";
 import { toElements } from "../scripts/fixtures/elements.ts";
 
@@ -110,5 +112,21 @@ if (elementsPerNode > 3) {
   console.error("agent-home elements: failed render budget");
   failed = true;
 }
+// Informational: the re-run cache key (spec §8) over the agent-home render's real inputs.
+const home = proofWidgets.find((widget) => widget.name === "agent-home");
+assert(home, "agent-home widget missing");
+const homeScenario = home.scenarios.find((scenario) => scenario.name === "default") ?? home.scenarios[0];
+assert(homeScenario, "agent-home scenario missing");
+const keyInputs = {
+  hash: `sha256-${"0".repeat(64)}`,
+  catalogId: home.manifest.catalogId,
+  params: homeScenario.params,
+  state: homeScenario.state,
+  data: homeScenario.data,
+  context: homeScenario.context,
+};
+const keyBytes = canonicalJson(keyInputs).length;
+const keyMs = measure(() => renderKey(keyInputs));
+console.log(`agent-home renderKey: ${keyBytes} canonical bytes; ${keyMs.toFixed(4)} ms per key`);
 console.log(`Load average at end: ${loadavg().join(", ")}`);
 if (failed) process.exitCode = 1;

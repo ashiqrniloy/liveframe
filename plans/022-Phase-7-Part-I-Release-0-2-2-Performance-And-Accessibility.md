@@ -242,7 +242,7 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
     - Worker budget (closes backlog P4): host re-validation is 0.907 ms median and 2.256 ms p95 per render of the 679-node agent-home tree, about 15% of a 5.9 ms worker round trip, and `docs/packages.md` states it. `docs/formats.md` and `docs/packages.md` document the reuse; spec §10's "compiled per catalog" describes behaviour that is unchanged.
     - No API change, no register entry: `compileValidator`, its thrown errors and per-call identity are unchanged, `/pack`'s `canonicalJson` export is untouched, and the only additions are internal module exports.
 
-- [ ] Task 5: Add `bindSources()` and `renderKey()`
+- [x] Task 5: Add `bindSources()` and `renderKey()`
   - Acceptance Criteria:
     - Functional:
       - `bindSources(manifest, capabilities, { params, state, context })` (root export) returns `Result<Readonly<Record<string, { source: string; params: Json }>>>`, with one entry per `manifest.sources` data key. It applies the following rules:
@@ -288,7 +288,16 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
     - `bound_params_are_checked_against_the_source_schema`.
     - `non_json_input_fails_closed`.
     - `render_key_ignores_key_order_and_changes_with_any_input`.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-01):
+    - `bindSources` is in `src/formats/manifest.ts` beside the binding grammar, `renderKey` in `src/pack/hash.ts` over `canonicalJson` + `utf8` + `sha256`. Both are pure and host-API-free; the portability scan covers `.` and `pack` unchanged.
+    - Public signatures carry their types inline. The plan's compatibility line promises exactly two `added` register entries, and exporting `BoundSource`, `SourceInputs` or `RenderKeyInputs` would have been three more `added` entries for names a host never has to say: `bindSources(manifest, capabilities, { params, state, context })` and `renderKey({ … })` are called with object literals, and `ReturnType`/`Parameters` reach the types when a host wants them. The api-surface check failed on those three types before they were inlined, which is how the rule surfaced.
+    - Validation without a catalog: `bindSources` runs `validateCapabilities` and `validateManifestShape`, and throws `LiveframeFailure` from either, as `compileValidator` does. It cannot check the manifest's `catalogId`, because no catalog is passed; installing the manifest already did. It does check which capability each source names (`unknown-name` at `/sources/<key>/source`) and the resolved parameters against the source's schema, both of which `validateManifestShape` cannot know.
+    - Order of checks: the inputs are validated with `validateJson` first (cycles, accessors, functions, `NaN`, foreign realms, all at the offending member), so every later read only sees JSON and no read can throw. A required binding that is absent gets one `invalid-prop` at `/sources/<key>/params/<name>` and its source's schema check is skipped, so the host does not also see the schema's "required" complaint for the same parameter. Resolved-parameter schema failures keep `checkValue`'s `invalid-document` kind, the kind `validateManifest` already uses for source parameters.
+    - The result is one entry per `manifest.sources` data key, `{ source, params }`, with literals copied and `{ from, path }` walked through the frozen input; an absent optional parameter is omitted from `params`.
+    - `renderKey` picks the six fields explicitly rather than hashing its argument, so a caller's extra key cannot change the key. It throws `TypeError` on a non-JSON input, like `canonicalJson`.
+    - `bench/render.bench.ts` records the informational cost on the agent-home scenario's real inputs: 33,899 canonical bytes, 0.84–2.22 ms per key across runs (canonicalJson 0.48–1.18 ms of it) on a machine whose load average ranged 5–16 during the measurements. No gate, as the plan says.
+    - Tests: `binds_literals_params_state_and_context_paths`, `missing_optional_binding_is_omitted_and_missing_required_is_invalid_prop`, `bound_params_are_checked_against_the_source_schema`, `non_json_input_fails_closed`, `render_key_ignores_key_order_and_changes_with_any_input`. The export lists in `exports.test.ts` gained `bindSources` (root) and `renderKey` (`/pack`), and `scripts/release/api/register-0.2.2.json` carries the two `added` entries.
+    - Docs: spec §7.1 names `bindSources` in the sources bullet and §8 names `renderKey` in the re-run bullet; `docs/formats.md` (Manifest) documents the rules with a resolver example; `docs/packages.md` (Loading) shows both helpers in the host's per-render glue.
 
 - [ ] Task 6: Add an opt-in, recipe-derived contrast audit
   - Acceptance Criteria:

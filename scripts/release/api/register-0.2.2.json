@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "subpath": ".",
+    "name": "bindSources",
+    "change": "added",
+    "reason": "Pure request-time evaluation of a manifest's source bindings",
+    "hostAction": "Call it before resolving sources; it resolves no data and grants no authority.",
+    "task": 5
+  },
+  {
+    "subpath": "./pack",
+    "name": "renderKey",
+    "change": "added",
+    "reason": "Stable re-run cache key over a render's inputs",
+    "hostAction": "Optional: skip a re-run and the transfer when the key is unchanged.",
+    "task": 5
+  }
+]
