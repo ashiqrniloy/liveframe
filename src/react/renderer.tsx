@@ -45,7 +45,9 @@ type SurfaceProps = {
   readonly validator: CompiledValidator;
   readonly theme: { readonly id: string; readonly version: string };
   readonly designSystem: { readonly id: string; readonly version: string };
-  readonly onIntent: (intent: Intent, origin: IntentOrigin) => void;
+  // `unknown` keeps 0.2.1's tolerance for any return — an arrow that pushes and returns a number, a
+  // `() => void`, or a promise the renderer can hand back through `emit`.
+  readonly onIntent: (intent: Intent, origin: IntentOrigin) => unknown;
   readonly fallback: ReactNode;
   readonly diagnostics?: readonly LiveframeError[];
   readonly wrapperProps?: HostProps;
@@ -292,20 +294,28 @@ export function createRenderer({
       const tree = accepted.tree;
       if (!tree) return null;
       const actions = actionFacts(accepted.validator);
+      /**
+       * The host's promise, when it returns one, with rejection contained: a failed intent must not
+       * surface as an unhandled rejection from a primitive's `emit`.
+       */
+      function settled(result: unknown): Promise<void> | undefined {
+        if (typeof (result as Promise<unknown> | undefined)?.then !== "function") return undefined;
+        return Promise.resolve(result).then(
+          () => undefined,
+          () => undefined,
+        );
+      }
       function raiseIntent(
         intent: Intent,
         origin: IntentOrigin,
         meta: { confirm: boolean; irreversible: boolean } | undefined,
-      ) {
+      ): Promise<void> | undefined {
         const { onIntent, confirm } = current.current;
-        if (!confirm || !meta?.confirm) {
-          onIntent(intent, origin);
-          return;
-        }
-        if (confirming.current) return;
+        if (!confirm || !meta?.confirm) return settled(onIntent(intent, origin));
+        if (confirming.current) return undefined;
         confirming.current = true;
         const confirmationMeta = Object.freeze({ confirm: meta.confirm, irreversible: meta.irreversible });
-        void (async () => {
+        return (async () => {
           let approved = false;
           try {
             approved = await confirm(intent, confirmationMeta);
@@ -314,7 +324,12 @@ export function createRenderer({
           } finally {
             confirming.current = false;
           }
-          if (approved && mounted.current) onIntent(intent, origin);
+          if (!approved || !mounted.current) return;
+          try {
+            await onIntent(intent, origin);
+          } catch {
+            // The host's failure is not the primitive's: `emit`'s promise never rejects.
+          }
         })();
       }
       function context(node: UiNode): Item {
@@ -368,7 +383,7 @@ export function createRenderer({
               nodeId: node.id,
               event,
             });
-            raiseIntent(completed, origin, events[event]);
+            return raiseIntent(completed, origin, events[event]);
           },
           children: items.map((child) => child.render()),
           items,

@@ -1,9 +1,17 @@
 import { expect, test } from "bun:test";
+import { createHash } from "node:crypto";
+import { stateSelectors } from "../css/design-system.ts";
 import { designSystemCss, slotClass } from "../css/index.ts";
 import { recipeDeclarations } from "../css/recipe.ts";
 import { recipeProperties } from "../formats/fixed.ts";
 import type { RecipeKey } from "../formats/design-system.ts";
-import { type Catalog, type DesignSystem, type ResolvedRecipe, resolveRecipes } from "../index.ts";
+import {
+  type Catalog,
+  type DesignSystem,
+  type ResolvedRecipe,
+  resolveRecipes,
+  validateDesignSystem,
+} from "../index.ts";
 
 const read = (name: string) => Bun.file(new URL(`./fixtures/proof/${name}.json`, import.meta.url)).json();
 const catalog: Catalog = await read("catalog");
@@ -167,6 +175,59 @@ test("states_equal_to_rest_emit_no_rule", () => {
     );
     for (const [key] of different)
       expect(css).toContain(`.${slotClass(...(key.split(".").slice(0, 3) as [string, string, string]))}`);
+  }
+});
+
+test("new_states_validate_and_project_in_order", () => {
+  const base = systems[0]!;
+  // Give each new state, and its two neighbours, a rule that differs from rest.
+  const backgrounds = {
+    selected: "surface.module",
+    current: "surface.hover",
+    mixed: "surface.base",
+    pending: "surface.module",
+    readonly: "surface.hover",
+    invalid: "surface.base",
+  } as const;
+  const system: DesignSystem = {
+    ...base,
+    recipes: {
+      ...base.recipes,
+      ...Object.fromEntries(
+        Object.entries(backgrounds).map(([state, role]) => [`button.primary.root.${state}`, { borderColor: role }]),
+      ),
+    },
+  };
+  expect(validateDesignSystem(system, { catalog, registry: {} }).ok).toBe(true);
+  const css = sheet(system);
+  const at = (state: keyof typeof stateSelectors) => css.indexOf(`:where(${stateSelectors[state]})`);
+  const ordered = (Object.keys(backgrounds) as (keyof typeof stateSelectors)[]).map(at);
+  expect(ordered.every((index) => index > 0)).toBe(true);
+  expect(ordered).toEqual([...ordered].sort((a, b) => a - b));
+  // Pending suppresses hover and press the same way disabled does.
+  expect(css).toContain(`:where(:not(${stateSelectors.pending}))`);
+  // The forced-colours table restores each new state that differs from rest.
+  const forced = css.split("@media (forced-colors:active){")[1] ?? "";
+  for (const cue of [
+    "outline:2px solid Highlight",
+    "background-color:Highlight;color:HighlightText",
+    "outline:1px dashed CanvasText",
+    "border-color:GrayText",
+  ])
+    expect(forced).toContain(cue);
+});
+
+test("unused_new_states_leave_css_byte_identical", () => {
+  // The 0.2.1 projection of the proof catalog with each proof design system, hashed before the
+  // vocabulary widened. Plan 022's other tasks touched no CSS projection.
+  const baseline: Record<string, { bytes: number; sha256: string }> = {
+    certified: { bytes: 152019, sha256: "4a51241934091e31a808bd2b0920eb54bbcfa9b960e62926548311b0daafddb3" },
+    rack: { bytes: 164152, sha256: "1fc1d0e59ad9dca98c608ae7fb54e8fe85327c39f3b2242d7de81eed67f437c2" },
+  };
+  for (const [i, name] of ["certified", "rack"].entries()) {
+    const css = sheet(systems[i]!);
+    expect({ bytes: css.length, sha256: createHash("sha256").update(css).digest("hex") }).toEqual(baseline[name]!);
+    expect(css).not.toContain(stateSelectors.pending.split(",")[0]!);
   }
 });
 

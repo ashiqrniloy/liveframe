@@ -59,6 +59,22 @@ test("events_type_keyed_by_definition", () => {
   ).toBeDefined();
 });
 
+test("emit_result_is_optional_and_void_compatible", () => {
+  expect(
+    implement(field, ({ emit }) => {
+      // 0.2.1 code that ignores the result, or hands `emit` to a void-returning type, still compiles.
+      const ignored: (...args: Parameters<typeof emit>) => void = emit;
+      ignored("onPress");
+      const pending: Promise<void> | undefined = emit("onPress");
+      pending?.finally(() => undefined);
+      emit("onChange", "text");
+      // @ts-expect-error the event name is still checked
+      emit("onMissing");
+      return null;
+    }),
+  ).toBeDefined();
+});
+
 test("implement_types_follow_const_definitions", () => {
   const binding: Implementation = implement(field, ({ props, slot, emit, style, children, items, portal }) => {
     const label: string = props.label;

@@ -72,3 +72,25 @@ test("placeholder_only_state_requires_a_fixture", async () => {
     expect((error as ConformanceFailure).details.join("\n")).toContain("textField.default.focus");
   }
 });
+
+test("new_states_require_fixtures_when_a_system_styles_them", async () => {
+  const designSystems = pageOptions.designSystems.map((system) => ({
+    ...system,
+    recipes: {
+      ...system.recipes,
+      "button.primary.root.pending": { opacity: 0.5 },
+      "button.primary.root.mixed": { opacity: 0.5 },
+      "button.primary.root.current": { outlineWidth: { value: 2, unit: "px" } },
+      "button.primary.root.readonly": { opacity: 0.5 },
+    },
+  })) as typeof pageOptions.designSystems;
+  try {
+    await styledStates({ ...pageOptions, designSystems }, undefined, noPage, rule, unused, unused);
+    throw new Error("Styled new states needed no fixtures");
+  } catch (error) {
+    expect(error).toBeInstanceOf(ConformanceFailure);
+    const details = (error as ConformanceFailure).details.join("\n");
+    for (const state of ["pending", "mixed", "current", "readonly"])
+      expect(details).toContain(`button.primary.${state}`);
+  }
+});

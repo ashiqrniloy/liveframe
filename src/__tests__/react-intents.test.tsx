@@ -278,3 +278,75 @@ test("origin_for_nested_and_collection_nodes", () => {
   ]);
   expect(intents).toHaveLength(1);
 });
+
+test("emit_returns_host_promise_and_undefined_otherwise", async () => {
+  const node: UiNode = {
+    id: "root",
+    kind: "button",
+    props: { label: "Load" },
+    events: { onPress: { type: "setState", key: "reason", value: "saved" } },
+  };
+  for (const host of ["void", "promise"] as const) {
+    const contexts = new Map<string, ImplementationProps>();
+    const { Surface } = renderer((kind, props) => contexts.set(kind, props));
+    let settle: (() => void) | undefined;
+    renderToString(
+      <Surface
+        {...surfaceProps}
+        tree={withRoot(node)}
+        onIntent={() => {
+          if (host === "void") return;
+          return new Promise<void>((resolve) => {
+            settle = resolve;
+          });
+        }}
+      />,
+    );
+    const emit = contexts.get("button")?.emit;
+    if (!emit) throw new Error("Missing emit");
+    const result = emit("onPress");
+    if (host === "void") {
+      expect(result).toBeUndefined();
+      continue;
+    }
+    expect(result).toBeInstanceOf(Promise);
+    let done = false;
+    void result?.then(() => {
+      done = true;
+    });
+    await Promise.resolve();
+    expect(done).toBe(false);
+    settle?.();
+    await result;
+    expect(done).toBe(true);
+  }
+});
+
+test("emit_rejection_is_contained", async () => {
+  const contexts = new Map<string, ImplementationProps>();
+  const { Surface } = renderer((kind, props) => contexts.set(kind, props));
+  const rejections: unknown[] = [];
+  const onUnhandled = (reason: unknown) => rejections.push(reason);
+  process.on("unhandledRejection", onUnhandled);
+  try {
+    renderToString(
+      <Surface
+        {...surfaceProps}
+        tree={withRoot({
+          id: "root",
+          kind: "button",
+          props: { label: "Load" },
+          events: { onPress: { type: "setState", key: "reason", value: "saved" } },
+        })}
+        onIntent={() => Promise.reject(new Error("host failed"))}
+      />,
+    );
+    const emit = contexts.get("button")?.emit;
+    if (!emit) throw new Error("Missing emit");
+    await emit("onPress");
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(rejections).toEqual([]);
+  } finally {
+    process.off("unhandledRejection", onUnhandled);
+  }
+});

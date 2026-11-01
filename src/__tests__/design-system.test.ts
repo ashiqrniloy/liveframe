@@ -183,6 +183,22 @@ test("recipe_keys_and_properties_are_closed", () => {
   ])
     expect(validateDesignSystem(recipe(properties), context).ok).toBe(false);
 });
+test("new_states_validate_and_unknown_states_are_rejected", () => {
+  for (const state of ["pending", "mixed", "current", "readonly"])
+    expect(
+      validateDesignSystem(
+        { ...system, recipes: { ...system.recipes, [`button.*.root.${state}`]: { opacity: 0.5 } } },
+        context,
+      ).ok,
+    ).toBe(true);
+  for (const state of ["busy", "checked", "currents", "PENDING"])
+    rejects(
+      { ...system, recipes: { ...system.recipes, [`button.*.root.${state}`]: { opacity: 0.5 } } },
+      "unknown-name",
+      `/recipes/button.*.root.${state}`,
+    );
+});
+
 test("design_system_structure_agrees_with_schema", () => {
   const validate = new Ajv2020({ strict: true, multipleOfPrecision: 8 }).compile(schemaDocument("design-system"));
   for (const doc of [
@@ -196,6 +212,9 @@ test("design_system_structure_agrees_with_schema", () => {
     recipe({ opacity: 2 }),
     recipe({ transitionTiming: [0, 2, 1, -2] }),
     recipe({ borderRadius: { value: 9999, unit: "px" } }),
+    // The schema's state pattern follows the fixed vocabulary.
+    { ...system, recipes: { ...system.recipes, "button.*.root.pending": { opacity: 0.5 } } },
+    { ...system, recipes: { ...system.recipes, "button.*.root.busy": { opacity: 0.5 } } },
   ])
     expect(validate(doc)).toBe(validateDesignSystem(doc, context).ok);
 });
@@ -276,7 +295,8 @@ test("rack_validates_and_resolves_under_50ms", async () => {
     true,
   );
   const table = resolveRecipes(doc, options);
-  expect(Object.keys(table)).toHaveLength(624);
+  // 624 rest-and-overlay recipes over the eight 0.2.1 states, re-resolved for all twelve.
+  expect(Object.keys(table)).toHaveLength(936);
   expect(table["button.default.root.rest"]?.transitionTiming).toEqual([0.16, 1, 0.3, 1]);
   expect(table["button.default.root.rest"]?.gap).toEqual({ value: 8, unit: "px" });
   for (let i = 0; i < 5; i++) {

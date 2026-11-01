@@ -251,7 +251,7 @@ arrival validation still establishes the contract either way.
 | `props` | Read validated data; produce accessible native elements or app behaviour components. |
 | `slot(name)` | Attach its stable recipe class to that slot. An undeclared name throws. The root slot also includes style-prop classes. |
 | `style` | Forward the projected inline declarations to the primitive root. These contain token-constrained layout, not arbitrary widget CSS. |
-| `emit(event, value?)` | Report the declared event with its carried value; do not invent or dispatch an action yourself. |
+| `emit(event, value?)` | Report the declared event with its carried value; do not invent or dispatch an action yourself. It returns the host's promise when `onIntent` returns one, and `undefined` otherwise, so a primitive can set `aria-busy` until the host settles; a rejection is contained and never becomes an unhandled rejection. |
 | `events` | Read offered event metadata: `{ type, confirm, irreversible }`. Keys follow the definition's events; absent offers have no entry. Both flags are false for `setState`. No action names, arguments or host `meta` are exposed. |
 | `children` | Render the already rendered child nodes once for an ordinary container. |
 | `items` | For collections, use each child's context: `id`, `kind`, `variant`, `props`, `slot`, `style`, `events`, `children`, `emit` and `render()`. Metadata belongs to that child. |
@@ -279,13 +279,20 @@ styling contract:
 | focus | `:focus-visible`, `[data-focus-visible]`, `:has(:focus-visible)` |
 | open | `[open]`, `[data-open]`, `[data-expanded]`, `[aria-expanded=true]`, `:popover-open` |
 | selected | `[data-selected]`, `[aria-selected=true]`, `[aria-checked=true]` |
+| current | `[aria-current]:not([aria-current=false])`, `[data-current]` |
+| mixed | `[aria-checked=mixed]`, `[aria-pressed=mixed]`, `:indeterminate`, `[data-mixed]` |
+| pending | `[aria-busy=true]`, `[data-pending]` |
+| readonly | `[aria-readonly=true]`, `[readonly]`, `[data-readonly]` |
 | invalid | `:user-invalid`, `[data-invalid]`, `[aria-invalid=true]` |
 | disabled | `:disabled`, `[data-disabled]`, `[aria-disabled=true]` |
 
 Presence attributes such as `data-disabled` must be absent when false: the string
 `"false"` still matches. ARIA attributes must describe the actual accessible
 state. Keep the root class on the primitive root so states reach descendant slots.
-State precedence is `rest < hover < focus < active < open < selected < invalid < disabled`.
+State precedence is
+`rest < hover < focus < active < open < selected < current < mixed < pending < readonly < invalid < disabled`.
+A pending root suppresses hover and press like a disabled one, once the system
+styles `pending`.
 A behaviour library can handle accessibility and state attributes; Liveframe does
 not supply that behaviour.
 

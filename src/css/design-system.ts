@@ -29,6 +29,10 @@ export const stateSelectors = {
   active: ":active,[data-pressed]",
   open: "[open],[data-open],[data-expanded],[aria-expanded=true],:popover-open",
   selected: "[data-selected],[aria-selected=true],[aria-checked=true]",
+  current: "[aria-current]:not([aria-current=false]),[data-current]",
+  mixed: "[aria-checked=mixed],[aria-pressed=mixed],:indeterminate,[data-mixed]",
+  pending: "[aria-busy=true],[data-pending]",
+  readonly: "[aria-readonly=true],[readonly],[data-readonly]",
   invalid: ":user-invalid,[data-invalid],[aria-invalid=true]",
   disabled: ":disabled,[data-disabled],[aria-disabled=true]",
 } as const;
@@ -39,12 +43,27 @@ export function stateDeclarations(recipe: Parameters<typeof recipeDeclarations>[
   return body === rest ? undefined : body;
 }
 
-function selector(scope: string, cls: string, root: string, condition: string, guarded: boolean, pseudo = ""): string {
-  const disabled = stateSelectors.disabled;
-  // A slot's own hover/press must also be suppressed when its root is disabled.
-  const guard = guarded ? `:where(:not(${disabled})):where(:not(${root}:is(${disabled}) *))` : "";
-  const own = `${scope} ${cls}:where(${condition})${guard}${pseudo}`;
-  return cls === root ? own : `${own},${scope} :where(${root}:is(${condition})) ${cls}${guard}${pseudo}`;
+/**
+ * The states that cancel hover and press: a disabled control does nothing, and neither does a
+ * pending one. `pending` joins the list only when the design system styles it, so a system without
+ * the new states projects exactly the CSS it did in 0.2.1.
+ */
+function suppressed(styled: ReadonlySet<string>): readonly string[] {
+  return styled.has("pending") ? [stateSelectors.disabled, stateSelectors.pending] : [stateSelectors.disabled];
+}
+
+function selector(
+  scope: string,
+  cls: string,
+  root: string,
+  condition: string,
+  guard: readonly string[],
+  pseudo = "",
+): string {
+  // A slot's own hover/press must also be suppressed when its root is suppressed.
+  const where = guard.map((state) => `:where(:not(${state})):where(:not(${root}:is(${state}) *))`).join("");
+  const own = `${scope} ${cls}:where(${condition})${where}${pseudo}`;
+  return cls === root ? own : `${own},${scope} :where(${root}:is(${condition})) ${cls}${where}${pseudo}`;
 }
 
 /** Installed spacing, radius and size values as CSS custom properties. */
@@ -86,15 +105,16 @@ function placeholderRules(
   rules: string[],
   reduced: string[],
   recoverAlpha: boolean,
+  guard: readonly string[],
 ): void {
   const body = placeholderDeclarations(recipe);
   if (!body || (state !== "rest" && body === placeholderDeclarations(restRecipe))) return;
   const reducedBody = recoverAlpha ? placeholderDeclarations(unmodifiedColours(recipe)) : "";
-  const guarded = state === "hover" || state === "active";
+  const suppressing = state === "hover" || state === "active" ? guard : [];
   const pseudo = "::placeholder";
   const targets = [
-    state === "rest" ? `${scope} ${cls}${pseudo}` : selector(scope, cls, root, condition, guarded, pseudo),
-    ...(state === "hover" ? [`@media (hover:hover){${selector(scope, cls, root, ":hover", true, pseudo)}`] : []),
+    state === "rest" ? `${scope} ${cls}${pseudo}` : selector(scope, cls, root, condition, suppressing, pseudo),
+    ...(state === "hover" ? [`@media (hover:hover){${selector(scope, cls, root, ":hover", guard, pseudo)}`] : []),
   ];
   for (const [i, target] of targets.entries()) {
     const close = i === 0 ? "" : "}";
@@ -116,6 +136,7 @@ function slotRules(
   forced: string[],
   reduced: string[],
   alphaSlots: ReadonlySet<string>,
+  guard: readonly string[],
 ): void {
   const key = `${definition.kind}.${variant}.${slot}` as const;
   const root = `.${slotClass(definition.kind, variant, "root")}`;
@@ -134,6 +155,7 @@ function slotRules(
     rules,
     reduced,
     alphaSlots.has(key),
+    guard,
   );
   if (body === undefined) return;
   const reducedBody = alphaSlots.has(key)
@@ -149,22 +171,22 @@ function slotRules(
       forced.push(`${scope} ${cls}::placeholder{${forcedPlaceholderDeclarations}}`);
     return;
   }
-  const guarded = state === "hover" || state === "active";
-  const target = selector(scope, cls, root, condition, guarded);
+  const suppressing = state === "hover" || state === "active" ? guard : [];
+  const target = selector(scope, cls, root, condition, suppressing);
   rules.push(`${target}{${body}}`);
   if (reducedBody) reduced.push(`${target}{${reducedBody}}`);
   const cue = forcedStateDeclarations[state as keyof typeof forcedStateDeclarations];
   forced.push(`${target}{${cue}}`);
   if (state === "open") {
-    const target = selector(scope, cls, root, condition, false);
+    const target = selector(scope, cls, root, condition, []);
     rules.push(`@starting-style{${target}{${rest}}}`);
     if (reducedBody) reduced.push(`@starting-style{${target}{${recipeDeclarations(unmodifiedColours(restRecipe))}}}`);
   }
   if (state === "hover") {
-    rules.push(`@media (hover:hover){${selector(scope, cls, root, ":hover", true)}{${body}}}`);
+    rules.push(`@media (hover:hover){${selector(scope, cls, root, ":hover", guard)}{${body}}}`);
     if (reducedBody)
-      reduced.push(`@media (hover:hover){${selector(scope, cls, root, ":hover", true)}{${reducedBody}}}`);
-    forced.push(`@media (hover:hover){${selector(scope, cls, root, ":hover", true)}{${cue}}}`);
+      reduced.push(`@media (hover:hover){${selector(scope, cls, root, ":hover", guard)}{${reducedBody}}}`);
+    forced.push(`@media (hover:hover){${selector(scope, cls, root, ":hover", guard)}{${cue}}}`);
   }
 }
 
@@ -176,6 +198,7 @@ function stateRules(
   rules: string[],
   forced: string[],
   reduced: string[],
+  guard: readonly string[],
 ): void {
   const alphaSlots = new Set(
     Object.entries(resolved)
@@ -193,7 +216,20 @@ function stateRules(
     for (const definition of definitions)
       for (const variant of [...definition.variants].sort())
         for (const slot of [...definition.slots].sort())
-          slotRules(scope, definition, variant, slot, state, condition, resolved, rules, forced, reduced, alphaSlots);
+          slotRules(
+            scope,
+            definition,
+            variant,
+            slot,
+            state,
+            condition,
+            resolved,
+            rules,
+            forced,
+            reduced,
+            alphaSlots,
+            guard,
+          );
 }
 
 /** Sorted breakpoint widths for the responsive layer. */
@@ -228,7 +264,8 @@ export function designSystemCss(system: DesignSystem, context: DesignSystemConte
   const rules = [`${scope}{${tokenVariables(prepared.value, vocabulary).join(";")}}`];
   const forced: string[] = [];
   const reduced: string[] = [];
-  stateRules(scope, context, resolved, rules, forced, reduced);
+  const declared = new Set(Object.keys(prepared.value.recipes).map((key) => key.slice(key.lastIndexOf(".") + 1)));
+  stateRules(scope, context, resolved, rules, forced, reduced, suppressed(declared));
   if (reduced.length) {
     const block = reduced.join("");
     rules.push(`@media (prefers-reduced-transparency:reduce){${block}}`);

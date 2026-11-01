@@ -62,6 +62,11 @@ access named scopes; stop scoped writes before rolling back.
   vocabulary-declared WCAG contrast minimum, maximum or strict pair ordering.
   Its message identifies the roles and measured ratios; declarations are optional.
 
+- **`states` is a growing vocabulary.** The fixed state list gains names in a minor
+  release — 0.2.2 adds `current`, `mixed`, `pending` and `readonly`. A recipe key
+  is still `kind.variant.slot.state`; a design system that styles none of the new
+  states projects the same CSS. A `Record<(typeof states)[number], …>` map written
+  against an older list needs `Partial` or a default branch, as `styleProps` did.
 - **Error kinds may be added.** `LiveframeError["kind"]` is an open union in practice: a new release can report a new kind for a case that previously produced a different one or none. Switch on the kinds you act on and treat the rest generically; do not fail on an unknown kind.
 - **Optional fields may be added** to results and documents, and exports may be added. Removing or renaming an export, a kind or a field is a minor (or, after `1.0.0`, major) change.
 

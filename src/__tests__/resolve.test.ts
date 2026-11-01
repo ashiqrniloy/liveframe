@@ -54,7 +54,8 @@ test("cascade_order", () => {
   expect(table["button.default.root.hover"]?.opacity).toBe(0.3);
   expect(table["button.primary.root.open"]?.opacity).toBe(0.2);
   expect(table["button.primary.root.focus"]?.outlineColor).toBe("focus");
-  expect(Object.keys(table)).toHaveLength(32);
+  // Four slots over the twelve fixed states.
+  expect(Object.keys(table)).toHaveLength(48);
 });
 test("extends_merges_properties_and_resolves_child_values", () => {
   const child = {

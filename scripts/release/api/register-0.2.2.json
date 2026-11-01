@@ -43,8 +43,32 @@
     "subpath": "./react",
     "name": "createRenderer",
     "change": "widened",
-    "reason": "SurfaceProps gains an optional focusContinuity boolean; focus is kept in the surface when an update removes the focused element",
+    "reason": "SurfaceProps gains an optional focusContinuity boolean (task 7) and its onIntent return widens from void to unknown (task 8), so a host callback may return a promise emit hands back",
     "hostAction": "none",
-    "task": 7
+    "task": 8
+  },
+  {
+    "subpath": ".",
+    "name": "states",
+    "change": "widened",
+    "reason": "gains current, mixed, pending and readonly, placed between selected and invalid in source order",
+    "hostAction": "Use Partial, or a default branch, for exhaustive Record<(typeof states)[number], ...> maps; a system styling none of the new states projects the same CSS.",
+    "task": 8
+  },
+  {
+    "subpath": "./schemas/*",
+    "name": "design-system.json",
+    "change": "widened",
+    "reason": "Recipe key pattern accepts the four new states",
+    "hostAction": "none",
+    "task": 8
+  },
+  {
+    "subpath": "./react",
+    "name": "ImplementationProps",
+    "change": "widened",
+    "reason": "Emit returns Promise<void> | undefined, the host's promise when onIntent returns one",
+    "hostAction": "none: ignoring the result, or assigning emit to a void-returning function type, still compiles.",
+    "task": 8
   }
 ]

@@ -1,7 +1,25 @@
 /** Library-fixed vocabulary (spec §5–§6); role and design-value names belong to apps. */
 export const noPaint = "none";
 
-export const states = ["rest", "hover", "active", "focus", "disabled", "selected", "invalid", "open"] as const;
+/**
+ * The fixed state vocabulary, in source order: `rest` first, then the overlays in cascade order
+ * (spec §6.2). `current`, `mixed`, `pending` and `readonly` sit between `selected` and `invalid`;
+ * apps cannot add states, only style these.
+ */
+export const states = [
+  "rest",
+  "hover",
+  "active",
+  "focus",
+  "disabled",
+  "selected",
+  "current",
+  "mixed",
+  "pending",
+  "readonly",
+  "invalid",
+  "open",
+] as const;
 
 export const semantics = [
   "section",

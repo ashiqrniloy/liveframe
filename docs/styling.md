@@ -180,13 +180,20 @@ to the string `"false"`. ARIA attributes retain their accessibility semantics.
 | focus | `:focus-visible`, `[data-focus-visible]`, `:has(:focus-visible)` |
 | open | `[open]`, `[data-open]`, `[data-expanded]`, `[aria-expanded=true]`, `:popover-open` |
 | selected | `[data-selected]`, `[aria-selected=true]`, `[aria-checked=true]` |
+| current | `[aria-current]:not([aria-current=false])`, `[data-current]` |
+| mixed | `[aria-checked=mixed]`, `[aria-pressed=mixed]`, `:indeterminate`, `[data-mixed]` |
+| pending | `[aria-busy=true]`, `[data-pending]` |
+| readonly | `[aria-readonly=true]`, `[readonly]`, `[data-readonly]` |
 | invalid | `:user-invalid`, `[data-invalid]`, `[aria-invalid=true]` |
 | disabled | `:disabled`, `[data-disabled]`, `[aria-disabled=true]` |
 
-Precedence is `rest < hover < focus < active < open < selected < invalid < disabled`.
+Precedence is
+`rest < hover < focus < active < open < selected < current < mixed < pending < readonly < invalid < disabled`.
 Recipe selectors have one class of specificity; source order decides between
 states. Equal-to-rest states emit no extra rule. Disabled roots suppress hover
-and active on themselves and their slots. A behaviour library can provide the
+and active on themselves and their slots; once a system styles `pending`, a
+pending root suppresses them the same way. A system with no `pending` recipe
+projects exactly the CSS it did in 0.2.1. A behaviour library can provide the
 state attributes; the projection supplies no interaction or accessibility logic.
 
 Keep overlays inside the surface's scope. A top-layer dialog or popover can

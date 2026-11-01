@@ -6,6 +6,10 @@ export const forcedStateDeclarations = {
   active: "outline:1px solid Highlight",
   open: "outline:1px solid Highlight",
   selected: "background-color:Highlight;color:HighlightText",
+  current: "outline:2px solid Highlight",
+  mixed: "background-color:Highlight;color:HighlightText",
+  pending: "outline:1px dashed CanvasText",
+  readonly: "border-color:GrayText",
   invalid: "outline:2px dashed CanvasText",
   disabled: "color:GrayText",
 } as const;

@@ -87,7 +87,7 @@ const audit = (recipes: Record<string, Record<string, unknown>> = {}, options: R
 };
 const ratio = (foreground: number, background: number) =>
   contrastRatio(toSrgb(rgb(foreground)), toSrgb(rgb(background)));
-/** Every state inherits a rest declaration, so an unreadable rest pair fails in all eight. */
+/** Every state inherits a rest declaration, so an unreadable rest pair fails in every state. */
 const keys = (findings: readonly ContrastFinding[]) => findings.map((finding) => finding.key);
 const labelKeys = (slot = "label") => states.map((state) => `button.default.${slot}.${state}`);
 
@@ -112,7 +112,7 @@ test("large_text_uses_three_to_one", () => {
   // 24 px passes at 3:1 (quiet on paper is 3.43:1); 18.66 px at weight 700 also counts as large.
   expect(finding("large")).toEqual([]);
   expect(finding("bold")).toEqual([]);
-  expect(finding("body")).toHaveLength(8);
+  expect(finding("body")).toHaveLength(states.length);
   expect(finding("body")[0]).toMatchObject({ kind: "text", minimum: 4.5 });
   const underweight = { ...theme, typography: { ...theme.typography, bold: typography(18.66, 600) } } as Theme;
   const result = auditContrast({

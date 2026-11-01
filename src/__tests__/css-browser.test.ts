@@ -777,6 +777,10 @@ test.skipIf(browserName === "webkit")("every_state_differs_from_rest_in_forced_c
           active: "data-pressed",
           open: "data-open",
           selected: "data-selected",
+          current: "data-current",
+          mixed: "data-mixed",
+          pending: "data-pending",
+          readonly: "data-readonly",
           invalid: "data-invalid",
           disabled: "data-disabled",
         };
@@ -851,6 +855,58 @@ test.skipIf(browserName === "webkit")("background_edges_survive_forced_colours",
         [true, "auto"],
       ]);
     }
+  } finally {
+    await page.close();
+  }
+});
+
+test.skipIf(browserName === "webkit")("forced_colours_rows_for_new_states", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.emulateMedia({ forcedColors: "active" });
+    await mount(page, {
+      "button.default.root.current": { borderColor: colours[3] },
+      "button.default.root.mixed": { textColor: colours[3] },
+      "button.default.root.pending": { borderColor: colours[3] },
+      "button.default.root.readonly": { borderColor: colours[3] },
+    });
+    const set = (attr: string | undefined) =>
+      page.locator("#root").evaluate((el, attr) => {
+        for (const name of ["data-current", "data-mixed", "data-pending", "data-readonly"]) el.removeAttribute(name);
+        if (attr) el.setAttribute(attr, "");
+      }, attr);
+    const cue = (properties: readonly string[]) =>
+      page.locator("#root").evaluate((el, properties) => {
+        const style = getComputedStyle(el);
+        return properties.map((property) => style.getPropertyValue(property));
+      }, properties);
+    // System colours are compared against a reference declaration, as the other forced-colour tests do.
+    const reference = (declarations: string, properties: readonly string[]) =>
+      page.locator("section").evaluate(
+        (surface, { declarations, properties }) => {
+          const el = document.createElement("div");
+          el.style.cssText = declarations;
+          surface.append(el);
+          const style = getComputedStyle(el);
+          return properties.map((property) => style.getPropertyValue(property));
+        },
+        { declarations, properties },
+      );
+    await set("data-current");
+    expect(await cue(["outline-width", "outline-style"])).toEqual(["2px", "solid"]);
+    expect(await cue(["outline-color"])).toEqual(await reference("outline-color:Highlight", ["outline-color"]));
+    await set("data-mixed");
+    expect(await cue(["background-color", "color"])).toEqual(
+      await reference("background-color:Highlight;color:HighlightText", ["background-color", "color"]),
+    );
+    await set("data-pending");
+    expect(await cue(["outline-width", "outline-style"])).toEqual(["1px", "dashed"]);
+    expect(await cue(["outline-color"])).toEqual(await reference("outline-color:CanvasText", ["outline-color"]));
+    await set("data-readonly");
+    expect(await cue(["border-top-color"])).toEqual(await reference("border-color:GrayText", ["border-top-color"]));
+    // A state the system does not style gets no forced cue.
+    await set(undefined);
+    expect(await cue(["outline-style"])).toEqual(["none"]);
   } finally {
     await page.close();
   }

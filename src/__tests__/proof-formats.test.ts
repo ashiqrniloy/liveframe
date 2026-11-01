@@ -109,7 +109,8 @@ test("proof_recipes_round_trip", async () => {
     const ds: DesignSystem = await read(`${name}.design-system`);
     const table = resolveRecipes(ds, { catalog, registry: {} });
     expect(table).toEqual(await read(`${name}.resolved-recipes`));
-    expect(Object.keys(table)).toHaveLength(624);
+    // 624 entries over the eight 0.2.1 states, plus one per new state for every slot.
+    expect(Object.keys(table)).toHaveLength(936);
     expect(table["button.default.root.rest"]?.transitionTiming).toEqual([0.16, 1, 0.3, 1]);
     expect(table["button.default.root.active"]?.translateY).toEqual({ value: 1, unit: "px" });
   }
