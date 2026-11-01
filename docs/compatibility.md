@@ -2,6 +2,10 @@
 
 What a version bump of `@arnilo/liveframe` may change. The policy is [decision R15](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-10-25-0231-release-0-1-0-hardening-and-api-freeze.md); the formats themselves are normative in the [spec](spec.md).
 
+## How 0.2.x stays compatible
+
+`scripts/release/api/0.2.1.json` freezes the 0.2.1 public surface: every exported declaration of every typed subpath, plus a SHA-256 of each file under `schemas/`, `conformance/corpus/`, `conformance/hash/` and `conformance/patch/`. `src/__tests__/api-stability.test.ts` compares the built package against it on every `bun run check`. Each addition or widening needs an entry in `scripts/release/api/register-0.2.2.json` (`subpath`, `name`, `change`, `reason`, `hostAction`, `task`). The test fails on a removed export, an unregistered declaration or schema change, a register entry whose change did not happen, any change to an existing corpus, hash or patch file, and any `deferred` entry whose change shipped anyway.
+
 ## Versions
 
 - **Patch (`0.x.y`)** never breaks the public API, the formats or the on-disk `fileStore` layout. Bug fixes, documentation, additive exports, error kinds, corpus cases, hash vectors and new optional format versions can ship here, as can widening a peer range (only with the proof the [release task](https://github.com/ashiqrniloy/liveframe/blob/main/plans/013-Phase-6-Part-B-Packaging-Demo-And-Release.md) describes). Existing format meanings, corpus expectations and hash vectors remain fixed under the rules below.

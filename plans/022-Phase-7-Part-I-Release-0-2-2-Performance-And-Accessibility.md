@@ -44,7 +44,7 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
 
 ## Tasks
 
-- [ ] Task 1: Freeze the 0.2.1 API surface and gate every change through a register
+- [x] Task 1: Freeze the 0.2.1 API surface and gate every change through a register
   - Acceptance Criteria:
     - Functional:
       - `scripts/release/api-surface.ts <packageRoot> [--out <file>]` emits a deterministic JSON document. For every `exports` subpath with `types`, it lists each exported name with its normalised declaration text, read through the TypeScript compiler API from that subpath's `.d.ts`. It also lists a SHA-256 for each file under `schemas/`, `conformance/corpus/`, `conformance/hash/` and `conformance/patch/`.
@@ -89,7 +89,13 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
   - Test Cases to Write:
     - `baseline_matches_the_checkout_before_any_022_change`: with an empty register the test passes on the plan's starting commit. It fails if the baseline was generated from the wrong tag.
     - `removed_export_fails`, `changed_declaration_without_entry_fails`, `stale_register_entry_fails`, `changed_corpus_file_fails`, `deferred_entry_with_shipped_change_fails`: each runs the comparator on in-memory fixtures and fails if that rule is skipped.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-01):
+    - Implemented `scripts/release/api-surface.ts` using TypeScript's async compiler API (`typescript/unstable/async` and `typescript/unstable/ast`) to extract normalized declaration texts for all typed subpath exports along with transitive local helper declarations, plus SHA-256 hashes for all files in `schemas/`, `conformance/corpus/`, `conformance/hash/` and `conformance/patch/`.
+    - Generated the baseline `scripts/release/api/0.2.1.json` from a temporary git worktree at `v0.2.1` with `bun install` and `bun run build`.
+    - Initialized `scripts/release/api/register-0.2.2.json` as an empty array (`[]`).
+    - Added `src/__tests__/api-stability.test.ts` testing matching baseline against current checkout (runs in ~450ms) and all failure modes on in-memory fixtures (removed exports, unrecorded declaration changes, stale entries, schema changes, tampering with corpus/hash/patch, and shipped deferred changes).
+    - Documented the gate in `docs/compatibility.md` under "How 0.2.x stays compatible".
+    - `bun run check` passed clean (952 pass, 4 skip, 0 fail; typecheck, lint, and format checks green). No spec changes required.
 
 - [ ] Task 2: Profile browser costs on a production React build
   - Acceptance Criteria:
