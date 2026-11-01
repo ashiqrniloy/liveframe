@@ -14,6 +14,52 @@ export function frozenJsonCopy<T extends Json>(value: T): T {
   ) as T;
 }
 
+const isContainer = (value: unknown): value is object => value !== null && typeof value === "object";
+
+/** Queue a pair for comparison; answers whether the two values could still be equal. */
+function defer(left: unknown, right: unknown, pending: unknown[]): boolean {
+  if (left === right) return true;
+  if (!isContainer(left) || !isContainer(right)) return false;
+  pending.push(left, right);
+  return true;
+}
+
+/** Compare one level's members, queuing the containers among them. */
+function sameLevel(left: object, right: object, pending: unknown[]): boolean {
+  if (Array.isArray(left)) {
+    if (!Array.isArray(right) || left.length !== right.length) return false;
+    for (let i = 0; i < left.length; i++) if (!defer(left[i], right[i], pending)) return false;
+    return true;
+  }
+  if (Array.isArray(right)) return false;
+  const keys = Object.keys(left);
+  if (keys.length !== Object.keys(right).length) return false;
+  const members = right as Record<string, unknown>;
+  for (const key of keys) {
+    if (!Object.hasOwn(right, key)) return false;
+    if (!defer((left as Record<string, unknown>)[key], members[key], pending)) return false;
+  }
+  return true;
+}
+
+/**
+ * Whether two JSON values are equal: object key order is irrelevant, array order is not.
+ * Iterative and short-circuiting, and it compares each level's primitives before descending into
+ * containers, so a near miss is rejected at the shallowest difference. It is how a cache asks
+ * "is this the content the canonical text would spell?" without paying for the canonical text.
+ */
+export function sameJson(left: unknown, right: unknown): boolean {
+  const pending: unknown[] = [left, right];
+  while (pending.length) {
+    const b = pending.pop();
+    const a = pending.pop();
+    if (a === b) continue;
+    if (!isContainer(a) || !isContainer(b)) return false;
+    if (!sameLevel(a, b, pending)) return false;
+  }
+  return true;
+}
+
 /** Children pushed last-first, so popping walks them in document order. */
 function pushChildren(value: object, pointer: string, pending: Entry[]): void {
   if (Array.isArray(value)) {

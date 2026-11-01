@@ -10,7 +10,7 @@ import {
   type Manifest,
   type UiTree,
 } from "@arnilo/liveframe";
-import { pack, verifyPackage } from "@arnilo/liveframe/pack";
+import { pack, verifyPackage, type WidgetPackage } from "@arnilo/liveframe/pack";
 import { createPreview } from "@arnilo/liveframe/preview";
 import { workerRunner } from "@arnilo/liveframe/preview/worker";
 import { loadPlacement, validatePlacement } from "@arnilo/liveframe/store";
@@ -32,6 +32,15 @@ const clientBundle = Bun.build({
 // The first render also starts the worker, so the demo allows more than the 100 ms default.
 const timeoutMs = 5000;
 const documents = { catalog, capabilities };
+/** One validator per installed package: a re-render reuses its compiled catalog, not a fresh compile. */
+const validators = new Map<string, CompiledValidator>();
+function validatorFor(pkg: WidgetPackage): CompiledValidator {
+  const cached = validators.get(pkg.hash);
+  if (cached) return cached;
+  const validator = compileValidator({ ...documents, manifest: pkg.manifest });
+  validators.set(pkg.hash, validator);
+  return validator;
+}
 const dataDirectory = new URL("./.data/", import.meta.url).pathname;
 
 type Request<P extends string> = Bun.BunRequest<P>;
@@ -88,7 +97,7 @@ export async function startHost({ dataDir = dataDirectory, port = 3300 }: { data
       tree: tree.value,
       manifest: pkg.manifest,
       state,
-      validator: compileValidator({ ...documents, manifest: pkg.manifest }),
+      validator: validatorFor(pkg),
     };
     served.set(id, current);
     return { ok: true as const, ...current };

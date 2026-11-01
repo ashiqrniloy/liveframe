@@ -23,7 +23,8 @@ import { complete } from "../validate/complete.ts";
 import { actionFacts } from "../validate/compile.ts";
 import { compileSchema } from "../validate/schema.ts";
 import { binding, type Implementation, type Item } from "./implement.ts";
-import { sameDefinition, shareNodes } from "./share.ts";
+import { sameJson } from "../formats/json.ts";
+import { shareNodes } from "./share.ts";
 
 /** The registry check's failures, with the diagnostics the other install-time APIs throw. */
 export class RendererError extends LiveframeFailure {
@@ -117,8 +118,7 @@ export function createRenderer({
     registry.set(definition.kind, implementation);
     const expected = definitions.find((entry) => entry.kind === definition.kind);
     if (!expected) reject(pointer, `Kind outside catalog: ${definition.kind}`);
-    else if (!sameDefinition(expected, definition))
-      reject(pointer, `Definition differs from catalog: ${definition.kind}`);
+    else if (!sameJson(expected, definition)) reject(pointer, `Definition differs from catalog: ${definition.kind}`);
   }
   for (const [i, definition] of definitions.entries()) {
     if (!registry.has(definition.kind))

@@ -4,6 +4,7 @@ import { compileValidator, type Result, validateCapabilities, validateCatalog } 
 import { packageHash } from "../pack/hash.ts";
 import { pack, type WidgetPackage } from "../pack/index.ts";
 import { workerRunner } from "../preview/worker/index.ts";
+import { cachedValidatorCount } from "../runner-kit/cache.ts";
 import type { WorkerMessage } from "../preview/worker/protocol.ts";
 import catalogDoc from "./fixtures/proof/catalog.json" with { type: "json" };
 import capabilitiesDoc from "./fixtures/widgets/capabilities.json" with { type: "json" };
@@ -363,6 +364,20 @@ export default () => __lf_sdk0.jsx(__lf_sdk0.primitive("text"), { text: String(+
     // The third distinct hash restarts the worker, so loaded modules start over.
     expect(await text(third)).toBe("1");
     expect(await text(first)).toBe("1");
+  } finally {
+    runner.close();
+  }
+});
+
+test("worker_runner_reuses_validator_per_package_hash", async () => {
+  const runner = workerRunner({ timeoutMs: 10000 });
+  const before = cachedValidatorCount(catalog, capabilities);
+  try {
+    expect((await runner.render(base, inputs, options)).ok).toBe(true);
+    const cached = cachedValidatorCount(catalog, capabilities);
+    expect(cached - before).toBeLessThanOrEqual(1);
+    expect((await runner.render(base, inputs, options)).ok).toBe(true);
+    expect(cachedValidatorCount(catalog, capabilities)).toBe(cached);
   } finally {
     runner.close();
   }

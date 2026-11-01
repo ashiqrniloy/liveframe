@@ -306,7 +306,11 @@ objects when their contracts change.
   worker and fails the pending render with `render-failed`. A tree the host
   rejects returns the host validator's errors and starts a fresh worker. It
   restarts the worker once `maxPackages` distinct hashes have been loaded (64 by
-  default), because loaded modules cannot be unloaded. One worker still serves
+  default), because loaded modules cannot be unloaded. Host re-validation costs
+  0.9 ms median (2.3 ms p95) on the 679-node agent-home tree, about 15% of a
+  5.9 ms worker render on the same machine: budget it per render, and note that
+  the host keeps one compiled validator per package hash, so repeated renders
+  re-validate only. One worker still serves
   every package, so a hostile widget can answer a later render with a tree valid
   for that render's manifest: run hostile drafts in your own isolated runner.
 

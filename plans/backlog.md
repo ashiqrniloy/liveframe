@@ -399,7 +399,8 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Preview runners (spec §7.5)
 - Priority: P4
-- Source: plans/evidence/012-impact-analysis.md F7, plan 012 Task 3 notes
+- Status: closed 2026-11-01 by [plan 022](022-Phase-7-Part-I-Release-0-2-2-Performance-And-Accessibility.md) Task 4.
+- Resolution: both accepted paths are done. `compileValidator` now reuses catalog-level work across manifests (`plans/evidence/022-validator-reuse.md`), and the worker's host cost is stated as a per-render budget in `docs/packages.md`: 0.907 ms median and 2.256 ms p95 on the 679-node agent-home tree, about 15% of a 5.9 ms worker render, with one compiled validator kept per package hash so repeat renders only re-validate. The 0.2.1 note's ~2 ms against 1.8 ms of render no longer holds, because the compile left the per-render path.
 - What: re-validating every worker result on the host costs ~2 ms/render against 1.8 ms of render (4.19 ms overhead, plan 012 Task 3), above that task's 1 ms target. The cost is the price of law 2 for code outside the host's realm, and it stays inside the 100 ms default timeout. Either state the overhead as the runner's budget in `docs/packages.md`/spec §7.5, or cache the validator per `(catalog, capabilities, manifest)` so repeat renders of one package stop recompiling — the validator cache exists but is keyed for the in-process path.
 - Why: a security control with an unrecorded price gets removed the first time someone measures it, and the same package re-rendered in a loop currently compiles its validator on every call.
 

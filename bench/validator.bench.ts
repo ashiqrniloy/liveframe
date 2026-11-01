@@ -143,3 +143,50 @@ console.log(
   `diffTrees: 679 nodes, 50 rows, one row status per revision; 200 warm-ups, 1000 samples; median ${diffMedian.toFixed(4)} ms (<= 1.5 ms)`,
 );
 assert(diffMedian <= 1.5, "diffTrees exceeded 1.5 ms median");
+
+// Plan 022 Task 4: catalog-level work is reused across manifests; a first compile stays the cost.
+const catalogDocument = (await Bun.file(
+  new URL("../src/__tests__/fixtures/proof/catalog.json", import.meta.url),
+).json()) as Record<string, unknown>;
+const capabilitiesDocument = await Bun.file(
+  new URL("../src/__tests__/fixtures/proof/capabilities.json", import.meta.url),
+).json();
+const manifestDocument = (await Bun.file(
+  new URL("../src/__tests__/fixtures/proof/agent-home.manifest.json", import.meta.url),
+).json()) as Record<string, unknown>;
+const catalogWith = (version: number) => ({
+  catalog: { ...catalogDocument, catalogId: `proof.ui@${version}` },
+  capabilities: capabilitiesDocument,
+  manifest: { ...manifestDocument, catalogId: `proof.ui@${version}` },
+});
+const { compileValidator } = await import("../src/validate/compile.ts");
+const secondManifest = { ...manifestDocument, version: "1.0.1" };
+compileValidator({ catalog: catalogDocument, capabilities: capabilitiesDocument, manifest: manifestDocument });
+const hits: number[] = [];
+for (let i = 0; i < 1_200; i++) {
+  const start = performance.now();
+  compileValidator({ catalog: catalogDocument, capabilities: capabilitiesDocument, manifest: secondManifest });
+  if (i >= 200) hits.push(performance.now() - start);
+}
+hits.sort((a, b) => a - b);
+const hitMedian = hits[Math.floor(hits.length / 2)];
+assert(hitMedian !== undefined);
+for (let i = 0; i < 5; i++) compileValidator(catalogWith(50 + i)); // warm the compile path itself
+const colds: number[] = [];
+for (let i = 0; i < 20; i++) {
+  const start = performance.now();
+  compileValidator(catalogWith(100 + i));
+  colds.push(performance.now() - start);
+}
+colds.sort((a, b) => a - b);
+const coldMedian = colds[Math.floor(colds.length / 2)];
+assert(coldMedian !== undefined);
+console.log(
+  `compileValidator: same catalog and capabilities, different manifest; 200 warm-ups, 1000 samples; median ${hitMedian.toFixed(4)} ms (<= 0.25 ms)`,
+);
+console.log(`compileValidator: first compile of an unseen catalog; 20 samples; median ${coldMedian.toFixed(4)} ms`);
+if (hitMedian > 0.25) {
+  console.error("compileValidator: reused-catalog call exceeded 0.25 ms median");
+  failed = true;
+}
+console.log(`Load average at end: ${loadavg().join(", ")}`);

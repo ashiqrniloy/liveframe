@@ -1,11 +1,12 @@
 import { LiveframeFailure } from "../errors.ts";
 import { at, type Capabilities, isRecord, validateCapabilities } from "../formats/capabilities.ts";
-import { type Catalog, validateCatalog } from "../formats/catalog.ts";
+import { type Catalog, type Definition, validateCatalog } from "../formats/catalog.ts";
+import { sameJson } from "../formats/json.ts";
 import { type Manifest, validateManifest } from "../formats/manifest.ts";
 import type { LanguageSchema } from "../schema.ts";
 import { closed, field, reject } from "./checks.ts";
 import { compileIntents } from "./intent.ts";
-import { offeredChecks } from "./offered.ts";
+import { type OfferedEvent, offeredChecks } from "./offered.ts";
 import { compileSchema, type SchemaCheck, type SchemaSink } from "./schema.ts";
 import { type ChildRules, type CompiledStructure, compileStructure } from "./structure.ts";
 import { compileStyles } from "./style.ts";
@@ -75,6 +76,22 @@ type NodeCheckSpec = {
   readonly variantExpected: string;
 };
 
+/** The event-to-intent check for one kind; `events` is already bound to this call's manifest. */
+function eventMapCheck(events: ReadonlyMap<string, SchemaCheck>, eventExpected: string): SchemaCheck {
+  return (value, path, sink) => {
+    if (!isRecord(value)) return reject(sink, path, "an event-to-intent object");
+    let valid = true;
+    for (const key in value) {
+      if (!Object.hasOwn(value, key)) continue;
+      const check = events.get(key);
+      if (!check) valid = reject(sink, at("", key), eventExpected, "undeclared-event");
+      else if (!field(check, value[key], sink, key)) valid = false;
+      if (!valid && sink.errors.length >= sink.maxErrors) break;
+    }
+    return valid;
+  };
+}
+
 /** One kind's node check; the dispatcher has already checked the node object and its kind. */
 function nodeCheck(spec: NodeCheckSpec): SchemaCheck {
   return (value, _path, sink) => {
@@ -112,35 +129,102 @@ function rebaseErrors(sink: SchemaSink, start: number, path: string, node: unkno
 
 const fields = new Set(["id", "kind", "variant", "props", "style", "events", "children"]);
 
+/** Catalog-level work: everything a validator needs that depends only on the catalog and capabilities. */
+type CatalogKind = {
+  readonly props: SchemaCheck;
+  readonly style: SchemaCheck;
+  readonly variants: ReadonlySet<string>;
+  readonly variantExpected: string;
+  readonly carries: ReadonlyMap<string, Definition["events"][string]["carries"]>;
+  readonly eventExpected: string;
+  readonly facts: KindFacts;
+};
+type CatalogWork = {
+  readonly catalog: Catalog;
+  readonly capabilities: Capabilities;
+  readonly structure: CompiledStructure;
+  readonly kinds: ReadonlyMap<string, CatalogKind>;
+  readonly offered: ReadonlyMap<string, ReadonlyMap<string, OfferedEvent>>;
+};
+
+/**
+ * Catalog work kept per equal `(catalog, capabilities)`, least recently used evicted first. A host
+ * installs a handful of catalogs, and every lookup compares content, so the bound is also the cost
+ * of a miss with a full cache.
+ */
+const MAX_CATALOGS = 8;
+type CatalogEntry = {
+  readonly catalog: string;
+  readonly capabilities: string;
+  readonly work: CatalogWork;
+  /** The keys parsed back, kept after the first hit so later hits compare without parsing. */
+  parsed?: { readonly catalog: unknown; readonly capabilities: unknown };
+};
+const catalogs: CatalogEntry[] = [];
+
+/** @internal For tests only; counts catalog-level compiles, not the validators built from them. */
+export function catalogCompileCount(): number {
+  return catalogCompiles;
+}
+let catalogCompiles = 0;
+
+/** The canonical key without the cost: equal JSON content always spells the same text. */
+function key(value: unknown): string | undefined {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return undefined; // A cycle or a BigInt: leave caching out of the failure path.
+  }
+}
+
+/**
+ * Catalog-level work, keyed by the text of the two documents: a stored string cannot be changed by
+ * a later mutation of the caller's object, and re-reading it proves the hit is the content that
+ * compiled. The entry holds no copy of the documents, so a first compile pays only the key. Two
+ * equal documents whose keys were written in a different order miss and compile again.
+ */
+function catalogWork(catalog: unknown, capabilities: unknown): CatalogWork {
+  const catalogKey = key(catalog);
+  const capabilitiesKey = key(capabilities);
+  if (catalogKey === undefined || capabilitiesKey === undefined) return compileCatalog(catalog, capabilities);
+  for (let i = 0; i < catalogs.length; i++) {
+    const entry = catalogs[i];
+    if (!entry || entry.catalog !== catalogKey || entry.capabilities !== capabilitiesKey) continue;
+    entry.parsed ??= { catalog: JSON.parse(catalogKey), capabilities: JSON.parse(capabilitiesKey) };
+    if (!sameJson(entry.parsed.catalog, catalog) || !sameJson(entry.parsed.capabilities, capabilities)) continue;
+    if (i > 0) {
+      catalogs.splice(i, 1);
+      catalogs.unshift(entry);
+    }
+    return entry.work;
+  }
+  const work = compileCatalog(catalog, capabilities);
+  catalogCompiles++;
+  catalogs.unshift({ catalog: catalogKey, capabilities: capabilitiesKey, work });
+  if (catalogs.length > MAX_CATALOGS) catalogs.pop();
+  return work;
+}
+
 /** Validate installed documents once, then compile specialised per-kind checks. */
 export function compileValidator(options: CompileValidatorOptions): CompiledValidator {
-  const catalogResult = validateCatalog(options.catalog);
+  const work = catalogWork(options.catalog, options.capabilities);
+  const manifestResult = validateManifest(options.manifest, work);
+  if (!manifestResult.ok) throw new LiveframeFailure(manifestResult.errors);
+  return compile(work, manifestResult.value);
+}
+
+function compileCatalog(catalogDoc: unknown, capabilitiesDoc: unknown): CatalogWork {
+  const catalogResult = validateCatalog(catalogDoc);
   if (!catalogResult.ok) throw new LiveframeFailure(catalogResult.errors);
-  const capabilitiesResult = validateCapabilities(options.capabilities);
+  const capabilitiesResult = validateCapabilities(capabilitiesDoc);
   if (!capabilitiesResult.ok) throw new LiveframeFailure(capabilitiesResult.errors);
   const { value: catalog } = catalogResult;
   const { value: capabilities } = capabilitiesResult;
-  const manifestResult = validateManifest(options.manifest, { catalog, capabilities });
-  if (!manifestResult.ok) throw new LiveframeFailure(manifestResult.errors);
-  return compile(catalog, capabilities, manifestResult.value);
-}
-
-function compile(catalog: Catalog, capabilities: Capabilities, manifest: Manifest): CompiledValidator {
   const styles = compileStyles(catalog.vocabulary);
-  const intent = compileIntents(capabilities, manifest);
   const structure = compileStructure(catalog);
-  const kinds = new Map<string, SchemaCheck>();
-  const facts = new Map<string, KindFacts>();
+  const kinds = new Map<string, CatalogKind>();
   for (const definition of catalog.definitions) {
-    const props = compileSchema(definition.props);
     const variants = new Set(definition.variants);
-    facts.set(definition.kind, {
-      variants,
-      styleProps: new Set(definition.styleProps),
-      events: new Set(Object.keys(definition.events)),
-      children: structure.children.get(definition.kind),
-    });
-    const variantExpected = `one of: ${definition.variants.join(", ")}`;
     const allowedStyles = new Map(definition.styleProps.map((prop) => [prop, styles.get(prop)]));
     const styleExpected = `a declared style prop: ${definition.styleProps.join(", ") || "none"}`;
     const style: SchemaCheck = (value, path, sink) => {
@@ -155,31 +239,56 @@ function compile(catalog: Catalog, capabilities: Capabilities, manifest: Manifes
       }
       return valid;
     };
-    const events = new Map(Object.entries(definition.events).map(([name, event]) => [name, intent(event.carries)]));
-    const eventExpected = `a declared event: ${[...events.keys()].join(", ") || "none"}`;
-    const eventMap: SchemaCheck = (value, path, sink) => {
-      if (!isRecord(value)) return reject(sink, path, "an event-to-intent object");
-      let valid = true;
-      for (const key in value) {
-        if (!Object.hasOwn(value, key)) continue;
-        const check = events.get(key);
-        if (!check) valid = reject(sink, at("", key), eventExpected, "undeclared-event");
-        else if (!field(check, value[key], sink, key)) valid = false;
-        if (!valid && sink.errors.length >= sink.maxErrors) break;
-      }
-      return valid;
-    };
-    kinds.set(
+    kinds.set(definition.kind, {
+      props: compileSchema(definition.props),
+      style,
+      variants,
+      variantExpected: `one of: ${definition.variants.join(", ")}`,
+      carries: new Map(Object.entries(definition.events).map(([name, event]) => [name, event.carries])),
+      eventExpected: `a declared event: ${Object.keys(definition.events).join(", ") || "none"}`,
+      facts: {
+        variants,
+        styleProps: new Set(definition.styleProps),
+        events: new Set(Object.keys(definition.events)),
+        children: structure.children.get(definition.kind),
+      },
+    });
+  }
+  const offered = new Map(
+    catalog.definitions.map((definition) => [
       definition.kind,
+      new Map(
+        Object.entries(definition.events).map(([name, { carries }]) => [
+          name,
+          { carries, check: typeof carries === "object" ? compileSchema(carries.object) : undefined },
+        ]),
+      ),
+    ]),
+  );
+  return { catalog, capabilities, structure, kinds, offered };
+}
+
+function compile(work: CatalogWork, manifest: Manifest): CompiledValidator {
+  const { catalog } = work;
+  const intent = compileIntents(work.capabilities, manifest);
+  const kinds = new Map<string, SchemaCheck>();
+  const facts = new Map<string, KindFacts>();
+  for (const [kind, spec] of work.kinds) {
+    kinds.set(
+      kind,
       nodeCheck({
         fields,
-        props,
-        style,
-        events: eventMap,
-        variants,
-        variantExpected,
+        props: spec.props,
+        style: spec.style,
+        events: eventMapCheck(
+          new Map([...spec.carries].map(([name, carries]) => [name, intent(carries)])),
+          spec.eventExpected,
+        ),
+        variants: spec.variants,
+        variantExpected: spec.variantExpected,
       }),
     );
+    facts.set(kind, spec.facts);
   }
   const kindExpected = `a catalog kind: ${[...kinds.keys()].join(", ")}`;
   const checkNode: SchemaCheck = (node, path, sink) => {
@@ -196,15 +305,18 @@ function compile(catalog: Catalog, capabilities: Capabilities, manifest: Manifes
   const dataProperties: Record<string, LanguageSchema> = {};
   for (const key of Object.keys(manifest.sources)) {
     const declared = manifest.sources[key];
-    const source = declared ? capabilities.sources[declared.source] : undefined;
+    const source = declared ? work.capabilities.sources[declared.source] : undefined;
     if (source) dataProperties[key] = source.result;
   }
-  const validator: CompiledValidator = { checkNode, validateTree: compileTree(catalog, checkNode, structure) };
+  const validator: CompiledValidator = {
+    checkNode,
+    validateTree: compileTree(catalog, checkNode, work.structure),
+  };
   actions.set(
     validator,
     new Map(
       manifest.actions.map((name) => {
-        const action = capabilities.actions[name];
+        const action = work.capabilities.actions[name];
         return [
           name,
           Object.freeze({ confirm: action?.confirm === true, irreversible: action?.irreversible === true }),
@@ -212,27 +324,11 @@ function compile(catalog: Catalog, capabilities: Capabilities, manifest: Manifes
       }),
     ),
   );
-  offeredChecks.set(validator, {
-    intent: intent("none"),
-    events: new Map(
-      catalog.definitions.map((definition) => [
-        definition.kind,
-        new Map(
-          Object.entries(definition.events).map(([name, { carries }]) => [
-            name,
-            {
-              carries,
-              check: typeof carries === "object" ? compileSchema(carries.object) : undefined,
-            },
-          ]),
-        ),
-      ]),
-    ),
-  });
+  offeredChecks.set(validator, { intent: intent("none"), events: work.offered });
   builds.set(validator, {
     catalogId: catalog.catalogId,
     kinds: facts,
-    structure,
+    structure: work.structure,
     inputs: {
       params: compileSchema(manifest.params),
       state: compileSchema(manifest.state),

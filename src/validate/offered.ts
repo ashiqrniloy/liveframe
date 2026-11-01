@@ -8,13 +8,13 @@ import { complete } from "./complete.ts";
 import { difference } from "./difference.ts";
 import type { SchemaCheck } from "./schema.ts";
 
-type EventCheck = { carries: Definition["events"][string]["carries"]; check: SchemaCheck | undefined };
+export type OfferedEvent = { carries: Definition["events"][string]["carries"]; check: SchemaCheck | undefined };
 /** @internal Schema context stays attached to the explicit validator, never to transported JSON. */
 export const offeredChecks = new WeakMap<
   CompiledValidator,
   {
     intent: SchemaCheck;
-    events: ReadonlyMap<string, ReadonlyMap<string, EventCheck>>;
+    events: ReadonlyMap<string, ReadonlyMap<string, OfferedEvent>>;
   }
 >();
 const indexes = new WeakMap<UiTree, Map<string, UiNode>>();
@@ -77,7 +77,7 @@ export function checkOffered(
   return checkCompletion(offered, event, intent);
 }
 
-function checkCompletion(offered: Intent, event: EventCheck, intent: Intent): Result<void> {
+function checkCompletion(offered: Intent, event: OfferedEvent, intent: Intent): Result<void> {
   const errors: LiveframeError[] = [];
   let value: Json | undefined;
   let pointer = "/value";
