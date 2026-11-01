@@ -141,6 +141,14 @@ contexts and React elements. Unchanged primitives can still update their own loc
 state; their events name the currently accepted revision. Replacing the validator,
 fallback, portal container or diagnostics resets the node cache.
 
+Whole-tree transport gets the same reuse without a patch. After validation,
+`Surface` replaces every subtree whose value is unchanged since the accepted tree
+of the same `surfaceId` with that tree's node, so React skips it. Send fresh node
+objects and let this run; nothing changes on the wire. A node whose implementation
+threw is retried on the next arrival instead of being reused, together with its
+ancestors, so an error clears as soon as the implementation recovers. Reuse only
+substitutes deep-equal values, so the drawn tree is always the validated arrival.
+
 ```ts
 import { applyPatch, type TreePatch, type UiTree } from "@arnilo/liveframe";
 

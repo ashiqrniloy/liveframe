@@ -23,6 +23,7 @@ import { complete } from "../validate/complete.ts";
 import { actionFacts } from "../validate/compile.ts";
 import { compileSchema } from "../validate/schema.ts";
 import { binding, type Implementation, type Item } from "./implement.ts";
+import { sameDefinition, shareNodes } from "./share.ts";
 
 /** The registry check's failures, with the diagnostics the other install-time APIs throw. */
 export class RendererError extends LiveframeFailure {
@@ -52,7 +53,12 @@ type SurfaceProps = {
   readonly confirm?: (intent: Intent, meta: Readonly<{ confirm: boolean; irreversible: boolean }>) => Promise<boolean>;
 };
 
-class Boundary extends Component<{ node: UiNode; fallback: ReactNode; children: ReactNode }> {
+class Boundary extends Component<{
+  node: UiNode;
+  fallback: ReactNode;
+  children: ReactNode;
+  failed: WeakSet<UiNode>;
+}> {
   state = { node: this.props.node, failed: false };
 
   static getDerivedStateFromProps(props: { node: UiNode }, state: { node: UiNode }) {
@@ -63,6 +69,10 @@ class Boundary extends Component<{ node: UiNode; fallback: ReactNode; children: 
     return { failed: true };
   }
 
+  componentDidCatch() {
+    this.props.failed.add(this.props.node);
+  }
+
   render() {
     return this.state.failed ? this.props.fallback : this.props.children;
   }
@@ -71,22 +81,6 @@ class Boundary extends Component<{ node: UiNode; fallback: ReactNode; children: 
 function Node({ item, implementation }: { item: Item; implementation: Implementation }) {
   const { Component } = implementation[binding];
   return <Component {...item} />;
-}
-
-// Compare JSON structurally: object key order is irrelevant; array order is not.
-function sameDefinition(left: unknown, right: unknown): boolean {
-  if (left === right) return true;
-  if (left === null || right === null || typeof left !== "object" || typeof right !== "object") return false;
-  if (Array.isArray(left) !== Array.isArray(right)) return false;
-  const keys = Object.keys(left);
-  return (
-    keys.length === Object.keys(right).length &&
-    keys.every(
-      (key) =>
-        Object.hasOwn(right, key) &&
-        sameDefinition((left as Record<string, unknown>)[key], (right as Record<string, unknown>)[key]),
-    )
-  );
 }
 
 export function createRenderer({
@@ -156,6 +150,7 @@ export function createRenderer({
     transparency,
   }: SurfaceProps) {
     const mounted = useRef(false);
+    const [failed] = useState(() => new WeakSet<UiNode>());
     const confirming = useRef(false);
     useLayoutEffect(() => {
       mounted.current = true;
@@ -173,7 +168,7 @@ export function createRenderer({
         validator,
         tree:
           next && !(previous && previous.surfaceId === next.surfaceId && previous.revision > next.revision)
-            ? next
+            ? shareNodes(previous, next, failed)
             : previous,
       });
     }
@@ -303,7 +298,7 @@ export function createRenderer({
           render: () => element,
         };
         const element = (
-          <Boundary key={node.id} node={node} fallback={fallback}>
+          <Boundary key={node.id} node={node} fallback={fallback} failed={failed}>
             {diagnostics ? (
               <div
                 style={{ display: "contents" }}
@@ -321,7 +316,7 @@ export function createRenderer({
         return item;
       }
       return context(tree.root).render();
-    }, [accepted.tree, accepted.validator, contexts, portal, fallback, diagnostics]);
+    }, [accepted.tree, accepted.validator, contexts, portal, fallback, diagnostics, failed]);
     const scope = surfaceAttributes({ ...appliedScope, tree: accepted.tree ?? emptyTree });
     return (
       <>

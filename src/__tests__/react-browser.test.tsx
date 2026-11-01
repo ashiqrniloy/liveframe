@@ -5,7 +5,7 @@ import { primitiveCss } from "../../proof/renderer/primitives/base.ts";
 import { baseCss, designSystemCss, themeCss } from "../css/index.ts";
 import type { Catalog, DesignSystem, Result, Theme } from "../index.ts";
 import { launchBrowser, measureSwitching } from "./fixtures/browser.ts";
-import { hydrationTree, renderer, surfaceProps } from "./fixtures/react-surface.tsx";
+import { hydrationTree, renderer, surfaceProps, tree as surfaceTree } from "./fixtures/react-surface.tsx";
 
 const read = (name: string) => Bun.file(new URL(`./fixtures/proof/${name}.json`, import.meta.url)).json();
 const catalog: Catalog = await read("catalog");
@@ -909,6 +909,120 @@ test("patched_render_skips_unchanged_nodes_and_preserves_local_state_focus_scrol
     });
     await page.getByRole("button", { name: "Claim 1" }).click();
     expect(await page.evaluate(() => window.surfaceTest.origins().at(-1)?.revision)).toBe(3);
+  } finally {
+    await page.close();
+  }
+});
+
+const eventTree = (revision: number, text: string) => ({
+  format: "liveframe/1",
+  catalogId: surfaceTree().catalogId,
+  surfaceId: "test",
+  revision,
+  root: {
+    id: "root",
+    kind: "stack",
+    props: {},
+    children: [
+      { id: "root/first", kind: "text", props: { text } },
+      {
+        id: "root/second",
+        kind: "button",
+        variant: "primary",
+        props: { label: "Counter" },
+        events: { onPress: { type: "setState", key: "reason", value: "saved" } },
+      },
+    ],
+  },
+});
+
+test("whole_tree_arrival_reuses_unchanged_nodes", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    await page.evaluate((value: unknown) => window.surfaceTest.arrive(value), eventTree(1, "Revision 1"));
+    const changed = await page.evaluate(
+      (value: unknown) => {
+        window.surfaceTest.arrive(value);
+        return window.surfaceTest.reuse();
+      },
+      eventTree(2, "Revision 2"),
+    );
+    expect(changed.renders).toMatchObject({ stack: 1, text: 1, button: 0 });
+    const identical = await page.evaluate(
+      (value: unknown) => {
+        window.surfaceTest.arrive(value);
+        return window.surfaceTest.reuse();
+      },
+      eventTree(2, "Revision 2"),
+    );
+    expect(identical.renders).toMatchObject({ stack: 0, text: 0, button: 0 });
+    expect(identical.elements).toBe(true);
+    await page.getByRole("button", { name: "Counter 0" }).click();
+    expect(await page.evaluate(() => window.surfaceTest.origins().at(-1))).toEqual({
+      surfaceId: "test",
+      revision: 2,
+      nodeId: "root/second",
+      event: "onPress",
+    });
+  } finally {
+    await page.close();
+  }
+});
+
+test("failed_node_retries_on_next_arrival", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    const failed = await page.evaluate(() => {
+      window.surfaceTest.failText(true);
+      window.surfaceTest.arrive(window.surfaceTest.tree(2));
+      return {
+        renders: window.surfaceTest.reuse().renders,
+        fallback: document.body.textContent?.includes("Unavailable"),
+      };
+    });
+    expect(failed.renders.button).toBe(0);
+    expect(failed.renders.stack).toBeGreaterThan(0);
+    expect(failed.renders.text).toBeGreaterThan(0);
+    expect(failed.fallback).toBe(true);
+    const retried = await page.evaluate(() => {
+      window.surfaceTest.failText(false);
+      window.surfaceTest.arrive(structuredClone(window.surfaceTest.tree(2)));
+      return {
+        renders: window.surfaceTest.reuse().renders,
+        fallback: document.body.textContent?.includes("Unavailable"),
+        text: document.body.textContent?.includes("Revision 2"),
+      };
+    });
+    expect(retried.renders.button).toBe(0);
+    expect(retried.renders.stack).toBeGreaterThan(0);
+    expect(retried.renders.text).toBeGreaterThan(0);
+    expect(retried.fallback).toBe(false);
+    expect(retried.text).toBe(true);
+  } finally {
+    await page.close();
+  }
+});
+
+test("different_surface_or_validator_reuses_nothing", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    const surface = await page.evaluate(() => {
+      window.surfaceTest.arrive({ ...window.surfaceTest.tree(2), surfaceId: "other" });
+      return window.surfaceTest.reuse().renders;
+    });
+    expect(surface).toMatchObject({ stack: 1, text: 1, button: 1 });
+    const validator = await page.evaluate(() => {
+      window.surfaceTest.replaceValidator();
+      window.surfaceTest.arrive(window.surfaceTest.tree(3));
+      return window.surfaceTest.reuse().renders;
+    });
+    expect(validator).toMatchObject({ stack: 1, text: 1, button: 1 });
   } finally {
     await page.close();
   }

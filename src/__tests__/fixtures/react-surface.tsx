@@ -9,6 +9,7 @@ import rawCatalog from "./proof/catalog.json" with { type: "json" };
 export const catalog = rawCatalog as Catalog;
 export const validator = compileValidator({ catalog, capabilities, manifest });
 export const identity = { id: "certified", version: "1.0.0" };
+export const failing = { text: false };
 export const surfaceProps = {
   validator,
   theme: identity,
@@ -45,7 +46,8 @@ export function renderer(observe: (kind: string, props: ImplementationProps) => 
       implement(definition, function Primitive(input) {
         const [count, setCount] = useState(0);
         observe(definition.kind, input);
-        if (input.props.text === "throw") throw new Error("Broken primitive");
+        if (input.props.text === "throw" || (failing.text && definition.kind === "text"))
+          throw new Error("Broken primitive");
         const className = input.slot(input.props.text === "bad-slot" ? "undeclared" : "root");
         if (definition.kind === "textField")
           return (

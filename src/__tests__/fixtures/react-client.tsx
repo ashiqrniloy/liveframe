@@ -9,7 +9,7 @@ import { installConfirmation } from "./confirmation.tsx";
 import agentHome from "./proof/agent-home.tree.json" with { type: "json" };
 import capabilities from "./proof/capabilities.json" with { type: "json" };
 import manifest from "./proof/agent-home.manifest.json" with { type: "json" };
-import { catalog, hydrationTree, renderer, surfaceProps, tree, validator } from "./react-surface.tsx";
+import { catalog, failing, hydrationTree, renderer, surfaceProps, tree, validator } from "./react-surface.tsx";
 
 let renders = 0;
 const switchingRenderer = createRenderer({
@@ -113,6 +113,12 @@ function countingValidator() {
 }
 const checkedValidator = countingValidator();
 let input: unknown = mode ? hydrationTree(mode) : tree();
+function begin(value: unknown) {
+  previousItems = rootItems;
+  for (const key of Object.keys(nodeRenders)) nodeRenders[key] = 0;
+  input = value;
+  draw();
+}
 let currentValidator = checkedValidator;
 const root = mode
   ? hydrateRoot(
@@ -167,6 +173,8 @@ declare global {
     surfaceTest: {
       presentation(message: string, errors?: readonly import("../../index.ts").LiveframeError[]): void;
       patch(value: TreePatch): void;
+      arrive(value: unknown): void;
+      failText(broken: boolean): void;
       reuse(): { renders: Record<string, number>; items: boolean; elements: boolean };
       update(value: unknown): void;
       redraw(): void;
@@ -196,12 +204,15 @@ window.surfaceTest = {
     draw();
   },
   patch(value) {
-    previousItems = rootItems;
-    for (const key of Object.keys(nodeRenders)) nodeRenders[key] = 0;
     const result = applyPatch(input as UiTree, value);
     if (!result.ok) throw new Error(JSON.stringify(result.errors));
-    input = result.value;
-    draw();
+    begin(result.value);
+  },
+  arrive(value) {
+    begin(value);
+  },
+  failText(broken) {
+    failing.text = broken;
   },
   reuse: () => ({
     renders: { ...nodeRenders },

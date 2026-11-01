@@ -3,6 +3,7 @@ import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { renderer, surfaceProps, validator } from "../src/__tests__/fixtures/react-surface.tsx";
 import { applyPatch, type UiTree } from "../src/index.ts";
+import { shareNodes } from "../src/react/share.ts";
 
 type Sample = {
   readonly parseMs: number;
@@ -12,6 +13,7 @@ type Sample = {
   readonly wallMs: number;
   readonly applyMs: number;
   readonly endToEndMs: number;
+  readonly reuseMs: number;
 };
 
 const production = process.env.NODE_ENV === "production";
@@ -47,6 +49,7 @@ const validateTree = validator.validateTree;
 };
 
 let previous: UiTree | undefined;
+const noneFailed = { has: () => false };
 
 function mount(initial: string | null) {
   previous = initial === null ? undefined : (JSON.parse(initial) as UiTree);
@@ -68,6 +71,10 @@ function step(json: string, patchMode: boolean): Sample {
     tree = applied.value;
   }
   validationMs = 0;
+  // The renderer runs this same pass inside flushSync; timing it here isolates its cost.
+  const reuseStarted = performance.now();
+  if (previous) shareNodes(previous, tree, noneFailed);
+  const reuseMs = performance.now() - reuseStarted;
   let profilerMs: number | undefined;
   const commitStarted = performance.now();
   render(tree, (duration) => {
@@ -88,6 +95,7 @@ function step(json: string, patchMode: boolean): Sample {
     wallMs,
     applyMs,
     endToEndMs,
+    reuseMs,
   };
 }
 

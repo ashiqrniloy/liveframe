@@ -2,7 +2,42 @@ import { expect, test } from "bun:test";
 import { renderToString } from "react-dom/server";
 import { slotClass, styleDeclarations, surfaceAttributes } from "../css/index.ts";
 import type { ImplementationProps, Item } from "../react/index.ts";
+import { shareNodes } from "../react/share.ts";
+import validTree from "../../conformance/corpus/ui-tree/docs/valid.json" with { type: "json" };
+import type { UiTree } from "../index.ts";
 import { catalog, identity, renderer, surfaceProps, tree, withRoot } from "./fixtures/react-surface.tsx";
+
+test("reused_tree_deep_equals_the_arrival", () => {
+  const base = tree(1);
+  const corpus = validTree as UiTree;
+  const children = base.root.children ?? [];
+  const pairs: [UiTree, UiTree][] = [
+    [corpus, structuredClone(corpus)],
+    [base, base],
+    [base, tree(2)],
+    [base, { ...base, revision: 9 }],
+    [base, { ...base, root: { ...base.root, children: [...children].reverse() } }],
+    [base, { ...base, root: { ...base.root, children: children.slice(0, 1) } }],
+    [
+      base,
+      withRoot({ ...base.root, children: [...children, { id: "root/third", kind: "text", props: { text: "Third" } }] }),
+    ],
+    [base, { ...base, root: { ...base.root, children: [children[0]!, { ...children[1]!, variant: "primary" }] } }],
+  ];
+  for (const [previous, next] of pairs) expect(shareNodes(previous, next, new Set())).toEqual(next);
+
+  const shared = shareNodes(base, tree(2), new Set());
+  expect(shared.root.children?.[1]).toBe(base.root.children?.[1]);
+  expect(shared.root.children?.[0]).not.toBe(base.root.children?.[0]);
+
+  const first = tree(1);
+  const second = tree(1);
+  const blocked = shareNodes(first, second, new Set([first.root.children![1]!]));
+  expect(blocked).toEqual(second);
+  expect(blocked.root.children?.[1]).not.toBe(first.root.children?.[1]);
+  expect(blocked.root.children?.[0]).toBe(first.root.children?.[0]);
+  expect(blocked.root).not.toBe(first.root);
+});
 
 test("surface_renders_slot_classes_styles_and_scope", () => {
   const { Surface } = renderer();

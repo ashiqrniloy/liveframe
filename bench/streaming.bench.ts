@@ -101,7 +101,7 @@ for (let index = 0; index < REVISIONS; index++) {
 const server = await browserHost(new URL("./streaming-client.tsx", import.meta.url).pathname, proofSheets, production);
 const browser = await chromium.launch({ headless: true });
 type Sample = Record<
-  "parseMs" | "validationMs" | "profilerMs" | "commitMs" | "wallMs" | "applyMs" | "endToEndMs",
+  "parseMs" | "validationMs" | "profilerMs" | "commitMs" | "wallMs" | "applyMs" | "endToEndMs" | "reuseMs",
   number
 >;
 try {
@@ -206,6 +206,7 @@ try {
         ]),
     "- Changed-value bytes sum changed leaf values only and assume no patch format.",
     `- Patch thresholds fixed before measuring: gzipped ${patches ? "patch" : "whole-tree"} update above ${MAX_GZIP_BYTES} bytes, or arrival validation plus React commit above ${MAX_VALIDATION_AND_COMMIT_MS} ms.`,
+    `- Reuse pass: \`shareNodes\` runs a second time on the same previous/arrival pair outside the measured render span to time the pass alone; the renderer runs the same pass inside \`flushSync\`, so its cost is part of React work.`,
     `- Layout plus paint: ${trace.layoutPaintMs.toFixed(3)} ms total across ${trace.events} trace events (Chromium devtools.timeline \`Layout\` and \`Paint\`) inside the \`lf-recorded-start\`/\`lf-recorded-end\` marks around the recorded pass, ${(trace.layoutPaintMs / REVISIONS).toFixed(3)} ms mean per update. The trace is a window total, not a per-sample split.`,
     "",
     "## Summary",
@@ -226,6 +227,7 @@ try {
       : []),
     `| JSON parse ms | ${median(axis("parseMs")).toFixed(3)} | ${p95(axis("parseMs")).toFixed(3)} | ${Math.max(...axis("parseMs")).toFixed(3)} |`,
     `| Arrival validation ms | ${median(validation).toFixed(3)} | ${p95(validation).toFixed(3)} | ${Math.max(...validation).toFixed(3)} |`,
+    `| Reuse pass ms | ${median(axis("reuseMs")).toFixed(3)} | ${p95(axis("reuseMs")).toFixed(3)} | ${Math.max(...axis("reuseMs")).toFixed(3)} |`,
     `| ${reactMeasure} | ${median(commit).toFixed(3)} | ${p95(commit).toFixed(3)} | ${Math.max(...commit).toFixed(3)} |`,
     `| Arrival validation + React work ms | ${median(update).toFixed(3)} | ${p95(update).toFixed(3)} | ${Math.max(...update).toFixed(3)} |`,
     `| Wall time around flushSync ms | ${median(axis("wallMs")).toFixed(3)} | ${p95(axis("wallMs")).toFixed(3)} | ${Math.max(...axis("wallMs")).toFixed(3)} |`,

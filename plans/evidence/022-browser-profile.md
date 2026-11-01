@@ -105,3 +105,38 @@ the second term from growing. No task is re-ordered or amended on this evidence.
 
 The whole-tree production baseline for Task 3 is 5.8 ms median (validation plus React work) and the
 patch production baseline is 1.6 ms; the development targets in the plan are unchanged.
+
+## After: node reuse (Task 3)
+
+Same machine, builds, commands and subjects; re-measured after `<Surface>` substitutes the accepted
+tree's node objects for unchanged subtrees. Per-revision tables in the same four
+`022-streaming-*` files, which now also report the reuse pass separately (`shareNodes` called on the
+same previous/arrival pair outside the measured render span; the renderer runs the same pass inside
+`flushSync`).
+
+| Build | Mode | Arrival validation | Reuse pass | React work | Layout + paint | Validation + React |
+|---|---|---:|---:|---:|---:|---:|
+| development | whole tree | 1.9 | 0.3 | 1.8 | 0.057 | 3.4 (was 9.8) |
+| production | whole tree | 1.4 | 0.2 | 0.7 | 0.057 | 2.1 (was 5.8) |
+| development | patch | 1.3 | 0.1 | 1.6 | 0.060 | 2.8 (was 2.3) |
+| production | patch | 1.2 | 0.1 | 0.7 | 0.064 | 1.9 (was 1.6) |
+
+Whole-tree arrival falls by 65% in development and 64% in production, and the reuse pass itself is
+0.3 ms median at 679 nodes (0.2–1.2 ms across runs; the plan allows 1.0 ms). Patch mode rises by
+0.3–0.5 ms because the compare also runs on patched arrivals, which already shared their nodes
+through `applyPatch`; it stays inside the plan's 2.7 ms + 10% gate at 2.8 ms and remains dominated by
+validation. Layout plus paint is unchanged, as expected: reuse removes React work, not the rendering
+of the changed row.
+
+Selection, 679 nodes, medians over the recorded updates (same harnesses as above):
+
+| Build | System | Arrival validation | React work | Layout + paint | Update total |
+|---|---|---:|---:|---:|---:|
+| development | certified | 2.6 | 10.3 (Profiler render) | 4.39 | 14.8 (was 94.0) |
+| development | rack | 2.8 | 13.6 (Profiler render) | 4.04 | 16.1 (was 86.8) |
+| production | certified | 2.3 | 0.9 (flushSync wall, net) | 0.33 | 2.9 (was 14.5) |
+| production | rack | 2.1 | 0.9 (flushSync wall, net) | 0.29 | 3.0 (was 14.0) |
+
+The selection update is now dominated by arrival validation plus layout and paint: React work is
+0.9 ms of the 2.9 ms production update. Task 4 (compiled-catalog reuse) targets exactly that
+remaining term, so its place in the order is unchanged; Task 3's targets are met.
