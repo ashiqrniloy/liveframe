@@ -260,6 +260,7 @@ test("root_export_surface", () => {
       "LIVEFRAME_FORMAT",
       "LiveframeFailure",
       "applyPatch",
+      "auditContrast",
       "diffTrees",
       "validateTreePatch",
       "arr",

@@ -9,7 +9,7 @@ The package is pre-1.0; install it and use the subpaths it exports.
 | --- | --- | --- |
 | `storeSuite` | Empty/missing records, keyed placement reads, immutable package versions (typed rejection), every valid id including long and non-ASCII ones, copy isolation, sorted placements, state isolation by placement and scope, scope bounds with typed rejection, deletion across every scope, style keys, loadable records and a malformed sibling not blocking a load; persistence when `reopen` is supplied | Transactions, concurrent writers, tenant boundaries, authorization and durability under crashes |
 | `catalogSuite` | Catalog, capabilities and manifest install; valid examples cover every kind/variant; version compatibility when `published` is supplied | The library's validator algorithm, SDK internals and whether your primitives are accessible |
-| `designSystemSuite` | Themes/design systems install, inheritance and recipe completeness, CSS projection, and no literal colour in supplied app sheets | External imported sheets, pixel parity, native platform/assistive-technology audits and the library's CSS selector/preference algorithms |
+| `designSystemSuite` | Themes/design systems install, inheritance and recipe completeness, CSS projection, no literal colour in supplied app sheets, and (opt-in) recipe-derived contrast pairs | External imported sheets, pixel parity, native platform/assistive-technology audits and the library's CSS selector/preference algorithms |
 | `rendererSuite` | Complete implementation registry, successful server rendering for each example × theme × design system, root slot/style output, and fallback-only invalid arrivals with no implementation calls | Content deferred until client mount, browser interactions and the renderer's internal caching/error-boundary machinery |
 | `rendererBrowserSuite` | Hydration, arrival rejection/recovery, expected complete intents, focus/scroll/draft survival, switching without renders, styled-state reachability, declared overlay lifecycle and text bounds | Undeclared overlay/input roles, unprovided interaction scenarios, timing budgets, production authorization and unsupported nested surfaces |
 
@@ -152,6 +152,11 @@ const cases = [
 ];
 for (const c of cases) test(c.name, c.run, c.timeout);
 ```
+
+Pass `contrast: true` to `designSystemSuite` to also fail on the
+[recipe-derived contrast audit](styling.md#generate-three-independent-sheets), or
+`contrast: { minimums: { text, largeText, nonText } }` to change its thresholds.
+Without the option the suite is unchanged.
 
 Use `import { test } from "vitest"` for Vitest, or
 `import { test } from "@jest/globals"` for Jest; the registration loop is the

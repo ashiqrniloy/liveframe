@@ -14,5 +14,29 @@
     "reason": "Stable re-run cache key over a render's inputs",
     "hostAction": "Optional: skip a re-run and the transfer when the key is unchanged.",
     "task": 5
+  },
+  {
+    "subpath": ".",
+    "name": "auditContrast",
+    "change": "added",
+    "reason": "Recipe-derived contrast audit over the catalogue's resolved pairs",
+    "hostAction": "Optional: run it at install time and gate the result; it changes no installation.",
+    "task": 6
+  },
+  {
+    "subpath": ".",
+    "name": "ContrastFinding",
+    "change": "added",
+    "reason": "The audit's finding type",
+    "hostAction": "none",
+    "task": 6
+  },
+  {
+    "subpath": "./conformance",
+    "name": "designSystemSuite",
+    "change": "widened",
+    "reason": "Optional contrast: true | { minimums } turns audit findings into failures",
+    "hostAction": "none",
+    "task": 6
   }
 ]

@@ -48,6 +48,33 @@ compositing and optional upper bounds/orderings. A failure returns
 `contrastBase` is invalid theme data. These checks run when installing/generating
 styles; cache installed inputs and sheets to avoid repeating them per render.
 
+Vocabulary pairs are declared by hand, so they miss pairs only the recipes create:
+`textColor` on a `backgroundColor`, a `placeholderColor`, a border or a focus
+outline. `auditContrast({ theme, designSystem, catalog, registry?, minimums? })`
+from `@arnilo/liveframe` closes that gap. It resolves every `(kind, variant,
+slot, state)` through the same cascade and reports each pair below its
+threshold: text and placeholder colours against the effective background
+(the slot's, else its kind's root slot's, else the vocabulary's `contrastBase`)
+at 4.5:1, or 3:1 for large text from the resolved typography role (18 pt, or
+14 pt at weight 700 or more, WCAG 2.2 §1.4.3); and, for kinds that declare
+events, `borderColor` at rest and `outlineColor` at focus at 3:1 (WCAG 2.2
+§1.4.11). Alpha composites the way §6.5 defines it — theme alpha, role alpha
+and `backgroundOpacity` once each — and a pair whose background cannot be
+resolved is reported as `unresolved-background` rather than measured against a
+guess. Each finding names the recipe key, both roles, the ratio to two decimals
+and the threshold. It is an install-time audit, never part of a render, and it
+grants nothing: it reads the theme's roles and introduces no colour.
+
+```ts
+const audit = auditContrast({ theme, designSystem, catalog, registry });
+if (!audit.ok) report(audit.errors); // the same typed errors the install validators give
+else for (const finding of audit.value) report(finding); // key, foreground, background, ratio, minimum
+```
+
+Opt in to failing on findings with the conformance kit:
+`designSystemSuite({ catalog, themes, designSystems, contrast: true })`, or
+`contrast: { minimums: { text, largeText, nonText } }` to override thresholds.
+
 | Sheet | Contents | Regenerate when |
 | --- | --- | --- |
 | Base | Generic reset, surface typography, optional containment, preference and switching overrides | The catalog changes |

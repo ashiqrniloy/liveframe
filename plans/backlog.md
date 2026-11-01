@@ -488,3 +488,11 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - What: Step 4 of the GitHub Actions publish workflow (`npm dist-tag add @arnilo/liveframe@0.2.1 next`) returned 403 because npmjs.com's trusted publisher configuration requires explicitly enabling "Allow npm dist-tag". As a result, `dist-tags` currently shows `{ latest: '0.2.1', next: '0.2.1-rc.1' }`. Either enable the "Allow npm dist-tag" toggle in package publishing settings on npmjs.com, or run `npm dist-tag add @arnilo/liveframe@0.2.1 next` manually using maintainer credentials.
 - Why: CL-14 and `docs/compatibility.md` § Release process step 4 state that `next` should remain at or above `latest` so installations referencing the prerelease tag do not resolve older code than the default release.
 
+
+## Proof styles fail the opt-in contrast audit
+
+- Section: Styling (spec §6.2, §6.5)
+- Priority: P3
+- Source: plans/022-Phase-7-Part-I-Release-0-2-2-Performance-And-Accessibility.md Task 6
+- What: `auditContrast` reports nine non-text findings across the two shipped proof design systems, all boundaries rather than text. Certified (3): `button.primary.root.rest` border `accent.fill` on its own fill (1:1), and `select.default.list.rest` / `dialog.default.content.rest` border `border.subtle` on `surface.module` (1.65:1). Rack (6): `border.hairline` on `surface.base` / `surface.well` at 1.35:1 for button, text-field, tabs and disclosure, and `focus.ring` on `accent.primary` (1:1) and on `diagnostic.error` (1.3:1) at focus. WCAG 2.2 §1.4.11 asks for 3:1. Raise the implicated roles or declare the boundaries as `none` where the fill alone identifies the control, then turn on `designSystemSuite({ contrast: true })` in the repository's own proof test.
+- Why: the audit is opt-in, so nothing fails today, and the proof fixtures are what adopters copy. The vocabulary's declared pairs pass because they only cover text; these are exactly the recipe-only pairs the audit was added to find.

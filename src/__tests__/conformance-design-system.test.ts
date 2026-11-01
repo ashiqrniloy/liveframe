@@ -106,3 +106,38 @@ test("conformance_theme_contrast_case_checks_every_installed_theme", async () =>
     expect.objectContaining({ kind: "insufficient-contrast", message: expect.stringContaining("text.primary") }),
   );
 });
+
+test("suite_without_contrast_option_is_unchanged", async () => {
+  expect(designSystemSuite(input).map((c) => c.name)).toEqual([
+    "every_theme_installs",
+    "every_design_system_installs",
+    "every_theme_and_design_system_projects",
+  ]);
+  await Promise.all(designSystemSuite(input).map((c) => c.run()));
+});
+
+test("suite_with_contrast_option_fails_on_finding", async () => {
+  // The proof systems report three real findings, so opting in fails on the first of them.
+  const cases = designSystemSuite({ ...input, contrast: true });
+  expect(cases.map((c) => c.name)).toContain("every_recipe_pair_meets_contrast");
+  const failure = await (async () => {
+    const c = cases.find((entry) => entry.name === "every_recipe_pair_meets_contrast");
+    if (!c) throw new Error("Missing audit case");
+    try {
+      await c.run();
+      return undefined;
+    } catch (error) {
+      return error as ConformanceFailure;
+    }
+  })();
+  expect(failure).toBeInstanceOf(ConformanceFailure);
+  expect(failure?.spec).toBe("§6.5");
+  expect(failure?.details).toContainEqual(
+    expect.stringMatching(/button.primary.root.rest: accent.fill on accent.fill is 1/),
+  );
+
+  // A raised threshold turns a passing pair into a finding without touching installation.
+  const strict = designSystemSuite({ ...input, contrast: { minimums: { text: 21.5 } } });
+  const raised = strict.find((entry) => entry.name === "every_recipe_pair_meets_contrast");
+  await expect(raised?.run()).rejects.toBeInstanceOf(ConformanceFailure);
+});

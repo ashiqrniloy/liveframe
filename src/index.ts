@@ -40,6 +40,7 @@ export {
   str,
   union,
 } from "./schema.ts";
+export { auditContrast, type ContrastFinding } from "./formats/audit.ts";
 export { type CompiledValidator, type CompileValidatorOptions, compileValidator } from "./validate/compile.ts";
 export { checkOffered } from "./validate/offered.ts";
 export { applyPatch, diffTrees } from "./validate/patch.ts";

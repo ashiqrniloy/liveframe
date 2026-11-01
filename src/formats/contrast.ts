@@ -168,7 +168,8 @@ export function contrastRatio(foreground: Triple, background: Triple): number {
     b = luminance(background);
   return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 }
-const over = (rgb: Triple, alpha: number, base: Triple): Triple => [
+/** Encoded-sRGB source-over (§6.5): the alpha is applied exactly once. */
+export const over = (rgb: Triple, alpha: number, base: Triple): Triple => [
   alpha * rgb[0] + (1 - alpha) * base[0],
   alpha * rgb[1] + (1 - alpha) * base[1],
   alpha * rgb[2] + (1 - alpha) * base[2],

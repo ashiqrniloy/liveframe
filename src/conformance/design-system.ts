@@ -1,6 +1,21 @@
-import { validateCatalog, validateTheme, validateDesignSystem, type DesignSystem, type Result } from "../index.ts";
+import {
+  auditContrast,
+  validateCatalog,
+  validateTheme,
+  validateDesignSystem,
+  type ContrastFinding,
+  type DesignSystem,
+  type Result,
+} from "../index.ts";
 import { baseCss, themeCss, designSystemCss } from "../css/index.ts";
 import { check, type ConformanceCase } from "./case.ts";
+
+/** One audit finding as a test-runner message: the recipe, the pair, the ratio and the threshold. */
+function finding({ key, foreground, background, ratio, minimum }: ContrastFinding): string {
+  return minimum === undefined || ratio === undefined
+    ? `${key}: ${foreground} has no resolvable background`
+    : `${key}: ${foreground} on ${background ?? "unresolved"} is ${ratio}, expected ${minimum}`;
+}
 
 // CSS named and system colours; keywords such as currentColor and transparent introduce no colour.
 const colourNames = new Set(
@@ -48,11 +63,16 @@ export function designSystemSuite({
   themes,
   designSystems,
   sheets,
+  contrast,
 }: {
   readonly catalog: unknown;
   readonly themes: readonly unknown[];
   readonly designSystems: readonly unknown[];
   readonly sheets?: readonly string[];
+  /** Opt in to the recipe-derived contrast audit; thresholds default to WCAG 2.2's 4.5, 3 and 3. */
+  readonly contrast?:
+    | true
+    | { readonly minimums?: { readonly text?: number; readonly largeText?: number; readonly nonText?: number } };
 }): ConformanceCase[] {
   function value<T>(result: Result<T>, rule: string, spec: string): T {
     check(result.ok, rule, spec, result.ok ? [] : result.errors);
@@ -102,6 +122,29 @@ export function designSystemSuite({
       },
     },
   ];
+  if (contrast !== undefined)
+    cases.push({
+      name: "every_recipe_pair_meets_contrast",
+      async run() {
+        const rule = "every_recipe_pair_meets_contrast";
+        const options = context(rule);
+        const minimums = contrast === true ? undefined : contrast.minimums;
+        for (const theme of themes) {
+          const installed = value(validateTheme(theme, options.catalog.vocabulary), rule, "§6.1");
+          for (const system of designSystems) {
+            const audit = auditContrast({
+              theme: installed,
+              designSystem: system,
+              catalog: options.catalog,
+              registry: options.registry,
+              ...(minimums === undefined ? {} : { minimums }),
+            });
+            check(audit.ok, rule, "§6.5", audit.ok ? [] : audit.errors);
+            check(!audit.value.length, rule, "§6.5", audit.value.map(finding));
+          }
+        }
+      },
+    });
   if (sheets !== undefined)
     cases.push({
       name: "app_sheets_set_no_colour",

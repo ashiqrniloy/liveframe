@@ -1,6 +1,6 @@
 import type { Result } from "../errors.ts";
 import { type Catalog, validateCatalog } from "../formats/catalog.ts";
-import type { Colour, Typography } from "../formats/dtcg.ts";
+import { type Colour, fontWeights, type Typography } from "../formats/dtcg.ts";
 import { type Theme, validateTheme } from "../formats/theme.ts";
 import { colourVar, cssString, typographyVar } from "./names.ts";
 
@@ -19,27 +19,6 @@ const genericFamilies = new Set([
   "math",
   "fangsong",
 ]);
-const fontWeights = {
-  thin: 100,
-  hairline: 100,
-  "extra-light": 200,
-  "ultra-light": 200,
-  light: 300,
-  normal: 400,
-  regular: 400,
-  book: 400,
-  medium: 500,
-  "semi-bold": 600,
-  "demi-bold": 600,
-  bold: 700,
-  "extra-bold": 800,
-  "ultra-bold": 800,
-  black: 900,
-  heavy: 900,
-  "extra-black": 950,
-  "ultra-black": 950,
-} satisfies Record<Exclude<Typography["fontWeight"], number>, number>;
-
 function colour(value: Colour): string {
   const { colorSpace, components, alpha } = value;
   const body =
