@@ -128,3 +128,36 @@
 - **Acceptance.**
   - A WebKit test asserts the budget at 16.67 ms on the measurement the diagnosis shows to be the library's, with no WebKit-only ceiling above the budget.
   - The evidence file records machine, engine versions, headless or headed, and the split timings.
+
+---
+
+## Release review of 0.2.1 (Clay, 2026-11-01)
+
+- **Source:** Clay plan 205 task 1a. `npm pack @arnilo/liveframe@0.2.1` into an empty directory, then `bun add` of that archive into a scratch project (Bun 1.4.4, Node 26.11.1, Ryzen 9 PRO 7940HS). Every check ran against the installed archive. Scripts and output: Clay's `test-plan/artifacts/205-liveframe/release-review-0.2.1/`.
+- **Release:** integrity `sha512-6GqSLPju…2UNtaUA==` matches the tarball, and `npm audit signatures` verifies SLSA v1 provenance from `publish.yml` at `refs/tags/v0.2.1`, commit `e5b7b43`.
+- **Regression:** corpus 53/53 under Bun and Node, hash vectors 45/45, package vectors 2/2, diff vectors 9/9, and Clay's 0.2.0 probes 44/44.
+
+| ID | Result |
+|---|---|
+| CL-10 | Met. `validator.bundle.js` runs in a bare `vm` with no globals added; `validateTree` matches the root export and `checkOffered` needs no shim. |
+| CL-11 | Met. Package cases run through `verifyPackage`; `packages.json` matches the public `packageHash` and an independent hash over `canonicalJson`. |
+| CL-12 | Partly met: see CL-17. |
+| CL-13 | Met under Bun and Node. |
+| CL-14 | **Not met.** `next` is `0.2.1-rc.1`. Publish run `41233689976` failed after publishing: `npm dist-tag add` returned `E403 … This trusted publisher cannot manage dist-tags. Ask a package maintainer to enable Allow npm dist-tag.` The delivery-status line above says `next` was kept at or above `latest`; the registry says otherwise. |
+| CL-15 | Met. On Clay-shaped trees a one-row change is a 185 B patch (158 B gzip) at 193 nodes and 187 B at 1,501 nodes. The patched tree still costs a whole-tree `validateTree` (p95 0.38 ms and 2.38 ms), as the adopter notes state. |
+| CL-16 | Met as scoped. Not re-run (needs a browser); Clay measures WebKitGTK in plan 205 tasks 24 and 34. |
+
+### CL-14 follow-up
+
+- **Owner action:** enable **Allow npm dist-tag** for the trusted publisher on npmjs.com, then `npm dist-tag add @arnilo/liveframe@0.2.1 next`. Correct the delivery-status line.
+- **Acceptance:** `npm view @arnilo/liveframe dist-tags` shows `next` at or above `latest`, and the next stable publish run is green.
+
+## CL-17 · Bug (consistency) · Foreign-realm inputs are handled three different ways
+
+- **Clay priority:** P4. Clay creates every input inside its isolate, so it is not affected.
+- **Problem.** With `validator.bundle.js` loaded in a `vm` context and documents parsed in the outer realm:
+  - `validateTreePatch` and `renderModule` reject with the new message: "Expected a JSON value created in this realm; this object was created in another realm (parse it inside the sandbox)".
+  - A compiled validator's `validateTree` rejects with the old, generic error: `invalid-prop` at `""`, "Expected a plain JSON object". This is the call a host is most likely to make with a foreign tree.
+  - `validateCatalog`, `validateManifest` and `compileValidator` accept the foreign objects. `docs/adopters-0.2.md` (CL-12 row) says foreign-realm objects "are still rejected, never accepted by shape, because a crafted cross-realm prototype can carry accessors".
+- **Proposal.** Pick one rule for every entry point that takes a document. Either reject foreign-realm objects everywhere with the realm message, or document which entry points accept them and why accessors are not a risk there. In both cases `validateTree` should report the realm message.
+- **Acceptance.** A `vm` test passes an outer-realm document to each public validator in `validator.bundle.js` and gets the documented behaviour; `validateTree` names the realm.
