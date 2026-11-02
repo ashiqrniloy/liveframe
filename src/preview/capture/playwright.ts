@@ -1,5 +1,5 @@
 import type * as Playwright from "playwright";
-import { CaptureError, type CaptureAxes, type CaptureBackend, type CellLayout } from "./index.ts";
+import { type CaptureAxes, type CaptureBackend, CaptureError, type CaptureMedia, type CellLayout } from "./index.ts";
 
 /** Uses the caller's Playwright module; importing this adapter never loads the peer. */
 export function playwrightBackend(playwright: typeof Playwright): CaptureBackend<Playwright.Locator> {
@@ -31,6 +31,23 @@ export function playwrightBackend(playwright: typeof Playwright): CaptureBackend
             throw new CaptureError("not-found", `${url} never became ready: is it a <Preview> page?`);
           });
           await page.locator("html").evaluate((element) => element.ownerDocument.fonts.ready);
+        },
+        async emulate({ textScale, forcedColors, reducedMotion }: CaptureMedia) {
+          // Playwright emulates both through the same call; the contrast axis needs 1.51, above the
+          // ^1.49.0 peer floor, so it is not offered.
+          const emulated: Parameters<Playwright.Page["emulateMedia"]>[0] = {};
+          if (forcedColors !== undefined) emulated.forcedColors = forcedColors;
+          if (reducedMotion !== undefined) emulated.reducedMotion = reducedMotion;
+          if (forcedColors !== undefined || reducedMotion !== undefined) await page.emulateMedia(emulated);
+          // WCAG 1.4.4 text resizing is what this exercises, and a root font-size is how a page
+          // expresses it; Playwright has no zoom emulation.
+          if (textScale !== undefined)
+            await page.locator("html").evaluate(
+              (element, percent) => {
+                element.style.fontSize = `${percent}%`;
+              },
+              Math.round(textScale * 100),
+            );
         },
         async axes() {
           const axes: CaptureAxes | null = JSON.parse(

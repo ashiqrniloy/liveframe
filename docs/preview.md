@@ -171,7 +171,7 @@ and rejects a request for any other (see below).
 ```sh
 liveframe preview capture <url> --out <dir> \
   [--scenario a,b] [--width 360,768] [--theme id@v,...] [--design-system id@v,...] \
-  [--layout]
+  [--layout] [--text-scale 1,1.5,2] [--forced-colors none,active] [--reduced-motion reduce]
 ```
 
 The command opens your preview page in headless Chromium, reads the axes that
@@ -220,8 +220,10 @@ const { index, files } = await capture(url, {
 The library writes nothing and takes no `out`. Importing it does not load
 Playwright. Supply any `CaptureBackend<Handle>`: `open(url)` returns a session
 with `waitReady(selector)`, `axes()`, `cells()`, `screenshot(handle)`,
-`ariaSnapshot(handle)`, optional `layout(handle)` and `close()`. Cells carry their opaque handle,
-coordinates and errors; axes carry `shown` for a controlled preview. Capture
+`ariaSnapshot(handle)`, optional `layout(handle)`, optional `emulate(media)` and
+`close()`. Cells carry their opaque handle, coordinates, errors and — when media was
+requested — the media point they were captured under; axes carry `shown` for a
+controlled preview. Capture
 closes each session and calls the optional `backend.close()` even on failure.
 Use a backend per call; the Playwright backend reuses one Chromium instance
 across that call's scenarios.
@@ -246,6 +248,43 @@ is true when any does or the cell scrolls sideways. The record has numbers and
 node ids only, never page text. A backend without a `layout(handle)` method
 records `layout: null`, and a record over 262144 bytes fails the capture with
 `limit-exceeded` naming the cell. Without the flag, output is unchanged.
+
+### Capture media variants
+
+Add `--text-scale 1,2` (library: `media: { textScale: [1, 2] }`),
+`--forced-colors none,active` or `--reduced-motion no-preference,reduce` and each
+requested value multiplies the cells. Every combination is captured: the flags
+above give four cells per coordinate.
+
+```ts
+const { index } = await capture(url, {
+  backend: playwrightBackend(playwright),
+  scenarios: ["ready"],
+  widths: [360],
+  media: { textScale: [1, 2], forcedColors: ["active"] },
+});
+```
+
+`textScale` sets the root `font-size` to that percentage (`2` is `200%`, the
+WCAG 1.4.4 text-resize case); the other two emulate the media features of the
+same names, so `@media (forced-colors: active)` and
+`@media (prefers-reduced-motion: reduce)` apply. An axis you leave out is not
+touched. Each cell records its own point, and filenames gain it, so
+`index.json` says which variant a screenshot shows:
+
+```json
+{ "scenario": "ready", "width": 360, "theme": "certified@1",
+  "designSystem": "certified@1", "media": { "textScale": 2, "forcedColors": "active" },
+  "png": "ready_360_certified@1_certified@1_text2_forced-active.png", "snapshot": "...", "errors": [] }
+```
+
+A call without media writes no `media` field, never calls `emulate`, and is
+otherwise unchanged. `maxCells` bounds the product, so a media request that
+cannot fit is refused before any cell is captured. A backend without
+`emulate(media)` refuses a call that requests media with `not-found` naming the
+axes; the Playwright backend applies media after the page loads and before
+readiness. `contrast` is not offered: it needs Playwright 1.51 and the peer floor
+is `^1.49.0`.
 
 Snapshots use Playwright's default `locator.ariaSnapshot()` YAML format
 (`playwright ^1.49.0`), kept as opaque text rather than parsed data. A backend

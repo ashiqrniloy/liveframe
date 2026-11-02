@@ -3,7 +3,7 @@ import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { drafts } from "../../src/__tests__/fixtures/widgets/drafts.ts";
-import { capture, CaptureError, PlaywrightMissing } from "../../src/cli/capture.ts";
+import { CaptureError, capture, PlaywrightMissing } from "../../src/cli/capture.ts";
 import { startHost } from "../host/server.ts";
 
 let server: Awaited<ReturnType<typeof startHost>>;
@@ -123,6 +123,65 @@ test("cells_whose_names_sanitise_alike_keep_distinct_files", async () => {
     await rm(dir, { recursive: true });
   }
 }, 120000);
+
+test("cli_media_flags_multiply_the_cells", async () => {
+  const dir = await temp();
+  try {
+    const plain = await capture(page(), { out: dir, scenarios: ["ready"], widths: [360] });
+    const run = Bun.spawn(
+      [
+        "bun",
+        "--conditions",
+        "liveframe:source",
+        "src/cli/liveframe.ts",
+        "preview",
+        "capture",
+        page(),
+        "--out",
+        dir,
+        "--scenario",
+        "ready",
+        "--width",
+        "360",
+        "--text-scale",
+        "1,2",
+        "--forced-colors",
+        "active",
+      ],
+      { stdout: "pipe", stderr: "pipe" },
+    );
+    expect(await run.exited).toBe(0);
+    const index = await Bun.file(join(dir, "index.json")).json();
+    expect(index.cells).toHaveLength(plain.cells.length * 2);
+    expect(new Set(index.cells.map((cell: { media: unknown }) => JSON.stringify(cell.media))).size).toBe(2);
+    expect(index.cells.every((cell: { media: { forcedColors: string } }) => cell.media.forcedColors === "active")).toBe(
+      true,
+    );
+    expect(index.cells.every((cell: { png: string }) => /_text(1|2)_forced-active\.png$/.test(cell.png))).toBe(true);
+  } finally {
+    await rm(dir, { recursive: true });
+  }
+}, 180000);
+
+test("cli_rejects_an_unknown_media_value", () => {
+  const run = Bun.spawnSync(
+    [
+      "bun",
+      "--conditions",
+      "liveframe:source",
+      "src/cli/liveframe.ts",
+      "preview",
+      "capture",
+      page(),
+      "--out",
+      "x",
+      "--forced-colors",
+      "auto",
+    ],
+    { stderr: "pipe" },
+  );
+  expect(run.exitCode).toBe(2);
+});
 
 test("missing_playwright_reports_how_to_install", async () => {
   const error = await capture("http://127.0.0.1:1/", { out: "unused" }, () => Promise.reject(new Error("no"))).catch(

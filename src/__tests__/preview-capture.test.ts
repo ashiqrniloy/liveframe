@@ -1,5 +1,11 @@
-import { expect, test } from "bun:test";
-import { capture, CaptureError, type CaptureAxes, type CellLayout } from "@arnilo/liveframe/preview/capture";
+import { afterAll, expect, test } from "bun:test";
+import {
+  type CaptureAxes,
+  CaptureError,
+  type CellLayout,
+  capture,
+  playwrightBackend,
+} from "@arnilo/liveframe/preview/capture";
 import { fakeCapture } from "./fixtures/capture-backend.ts";
 
 const axes: CaptureAxes = {
@@ -10,6 +16,10 @@ const axes: CaptureAxes = {
   urlKey: "draft",
 };
 const url = "https://example.test/preview?keep=yes";
+const servers: ReturnType<typeof Bun.serve>[] = [];
+afterAll(() => {
+  for (const server of servers) server.stop(true);
+});
 test("capture_with_fake_backend_covers_contract", async () => {
   const fake = fakeCapture(axes);
   const result = await capture(url, {
@@ -185,3 +195,138 @@ test.each([
   const fake = fakeCapture(axes, null, () => bad as unknown as CellLayout);
   await expect(capture(url, { backend: fake.backend, layout: true })).rejects.toThrow(/layout/i);
 });
+
+test("media_axes_multiply_cells_and_respect_max_cells", async () => {
+  const fake = fakeCapture(axes);
+  const { index, files } = await capture(url, {
+    backend: fake.backend,
+    scenarios: ["a b"],
+    widths: [360],
+    themes: ["light"],
+    designSystems: ["plain"],
+    media: { textScale: [1, 2], forcedColors: ["none", "active"] },
+  });
+  expect(index.cells.map((cell) => cell.media)).toEqual([
+    { textScale: 1, forcedColors: "none" },
+    { textScale: 1, forcedColors: "active" },
+    { textScale: 2, forcedColors: "none" },
+    { textScale: 2, forcedColors: "active" },
+  ]);
+  expect(index.cells.map((cell) => cell.png)).toEqual([
+    "a-b_360_light_plain_text1_forced-none.png",
+    "a-b_360_light_plain_text1_forced-active.png",
+    "a-b_360_light_plain_text2_forced-none.png",
+    "a-b_360_light_plain_text2_forced-active.png",
+  ]);
+  expect([...files.keys()].filter((name) => name.endsWith(".png"))).toHaveLength(4);
+  // One session per media point, plus the discovery session that stays on the page defaults.
+  expect(fake.opened).toHaveLength(5);
+  expect(fake.emulated).toEqual(index.cells.map((cell) => cell.media!));
+  const bounded = fakeCapture(axes);
+  await expect(
+    capture(url, {
+      backend: bounded.backend,
+      scenarios: ["a b"],
+      widths: [360],
+      themes: ["light"],
+      designSystems: ["plain"],
+      media: { textScale: [1, 2], forcedColors: ["none", "active"] },
+      maxCells: 3,
+    }),
+  ).rejects.toMatchObject({ kind: "limit-exceeded" });
+  expect(bounded.shots).toBe(0);
+  expect(bounded.emulated).toEqual([]);
+});
+
+test("media_absent_calls_are_unchanged", async () => {
+  const fake = fakeCapture(axes);
+  const { index } = await capture(url, { backend: fake.backend, scenarios: ["a b"], widths: [360] });
+  expect(index.cells.every((cell) => !("media" in cell))).toBe(true);
+  expect(fake.emulated).toEqual([]);
+  expect(fake.opened).toHaveLength(2);
+});
+
+test("backend_without_emulate_refuses_media_with_typed_error", async () => {
+  const fake = fakeCapture(axes);
+  const open = fake.backend.open;
+  fake.backend.open = async (target) => {
+    const { emulate: _, ...session } = await open(target);
+    return session;
+  };
+  await expect(
+    capture(url, { backend: fake.backend, media: { textScale: [2], forcedColors: ["active"] } }),
+  ).rejects.toMatchObject({
+    kind: "not-found",
+    pointer: "/media",
+    message: expect.stringContaining("textScale, forcedColors"),
+  });
+  expect(fake.shots).toBe(0);
+  expect(fake.closed).toEqual(fake.opened);
+  expect(fake.backendClosed).toBe(1);
+});
+
+test("invalid_media_values_are_unknown_name", async () => {
+  for (const media of [
+    { textScale: [0] },
+    { textScale: ["2"] },
+    { forcedColors: ["auto"] },
+    { reducedMotion: [] },
+  ] as never[]) {
+    const fake = fakeCapture(axes);
+    await expect(capture(url, { backend: fake.backend, media })).rejects.toMatchObject({ kind: "unknown-name" });
+    expect(fake.shots).toBe(0);
+  }
+});
+
+test("text_scale_two_doubles_root_font", async () => {
+  const page = previewPage();
+  const backend = playwrightBackend(await import("playwright"));
+  try {
+    const session = await backend.open(page);
+    await session.emulate?.({ textScale: 2 });
+    await session.waitReady("[data-lf-ready]");
+    const [cell] = await session.cells();
+    const size = await cell!.handle.evaluate(() => getComputedStyle(document.documentElement).fontSize);
+    expect(size).toBe("32px");
+    await session.close();
+  } finally {
+    await backend.close?.();
+  }
+}, 60000);
+
+test("forced_colors_cell_differs_and_reports_media", async () => {
+  const page = previewPage();
+  const backend = playwrightBackend(await import("playwright"));
+  try {
+    const { index, files } = await capture(page, {
+      backend,
+      scenarios: ["one"],
+      widths: [360],
+      themes: ["light"],
+      designSystems: ["plain"],
+      media: { forcedColors: ["none", "active"] },
+    });
+    expect(index.cells.map((cell) => cell.media)).toEqual([{ forcedColors: "none" }, { forcedColors: "active" }]);
+    const pngs = index.cells.map((cell) => Buffer.from(files.get(cell.png)!).toString("base64"));
+    expect(new Set(pngs).size).toBe(2);
+  } finally {
+    await backend.close?.();
+  }
+}, 60000);
+
+/** A page whose background flips under forced colours, so the two cells must differ. */
+function previewPage(): string {
+  const axes = { scenarios: ["one"], widths: [360], themes: ["light"], designSystems: ["plain"] };
+  const cell = { scenario: "one", width: 360, theme: "light", designSystem: "plain" };
+  const server = Bun.serve({
+    port: 0,
+    fetch: () =>
+      new Response(
+        `<!doctype html><style>[data-lf-cell]{background:#fff;forced-color-adjust:none}@media (forced-colors: active){[data-lf-cell]{background:#000}}</style>
+<main data-lf-ready data-lf-preview='${JSON.stringify(axes)}'><div data-lf-cell='${JSON.stringify(cell)}'>Hello</div></main>`,
+        { headers: { "content-type": "text/html" } },
+      ),
+  });
+  servers.push(server);
+  return server.url.href;
+}

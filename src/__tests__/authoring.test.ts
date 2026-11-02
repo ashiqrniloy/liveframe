@@ -1,5 +1,3 @@
-import { Client } from "@modelcontextprotocol/client";
-import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { expect, test } from "bun:test";
 import {
   LiveframeFailure,
@@ -14,6 +12,8 @@ import { createAuthoring } from "@arnilo/liveframe/authoring";
 import type { PreviewBinding } from "@arnilo/liveframe/preview";
 import { inProcessRunner } from "@arnilo/liveframe/preview";
 import { generate, generateDefinitions, generateElementsSchema } from "@arnilo/liveframe/sdk/gen";
+import { Client } from "@modelcontextprotocol/client";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { validateManifestShape } from "../formats/manifest.ts";
 import { fakeCapture } from "./fixtures/capture-backend.ts";
 import { drafts, packageOptions, value } from "./fixtures/widgets/drafts.ts";
@@ -562,6 +562,36 @@ test("capture_layout_is_returned_only_when_requested", async () => {
     expect(await a.capturePreview({ layout: "yes" } as never)).toMatchObject({
       ok: false,
       errors: [{ kind: "invalid-document", pointer: "/layout" }],
+    });
+  } finally {
+    await a.close();
+  }
+});
+
+test("capture_media_is_returned_only_when_requested", async () => {
+  const fake = fakeCapture();
+  const a = createAuthoring({
+    ...options(),
+    capture: fake.backend,
+    preview: async () => ({ url: "https://example.test", async close() {} }),
+  });
+  try {
+    value(await a.packDraft(draft));
+    const plain = value(await a.capturePreview({ widths: [360], scenarios: ["ready"] }));
+    expect(plain.every((cell) => !("media" in cell))).toBe(true);
+    expect(fake.emulated).toEqual([]);
+    const scaled = value(
+      await a.capturePreview({
+        widths: [360],
+        scenarios: ["ready"],
+        media: { textScale: [2], reducedMotion: ["reduce"] },
+      }),
+    );
+    expect(scaled.map((cell) => cell.media)).toEqual([{ textScale: 2, reducedMotion: "reduce" }]);
+    expect(fake.emulated).toEqual([{ textScale: 2, reducedMotion: "reduce" }]);
+    expect(await a.capturePreview({ media: { forcedColors: ["auto"] } } as never)).toMatchObject({
+      ok: false,
+      errors: [{ kind: "unknown-name", pointer: "/media/forcedColors" }],
     });
   } finally {
     await a.close();

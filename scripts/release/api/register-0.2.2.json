@@ -94,5 +94,69 @@
     "reason": "Optional refProps name list per definition; ships with ref() in 0.3.0",
     "hostAction": "none until 0.3.0",
     "task": 9
+  },
+  {
+    "subpath": "./preview/capture",
+    "name": "CaptureMedia",
+    "change": "added",
+    "reason": "One point on the media axes: textScale, forcedColors, reducedMotion",
+    "hostAction": "none",
+    "task": 11
+  },
+  {
+    "subpath": "./preview/capture",
+    "name": "CaptureMediaOptions",
+    "change": "added",
+    "reason": "The media values a capture call asks for",
+    "hostAction": "none",
+    "task": 11
+  },
+  {
+    "subpath": "./preview/capture",
+    "name": "CaptureOptions",
+    "change": "widened",
+    "reason": "optional media axes multiplies the cells",
+    "hostAction": "none",
+    "task": 11
+  },
+  {
+    "subpath": "./preview/capture",
+    "name": "CaptureSession",
+    "change": "widened",
+    "reason": "optional emulate(media) applies media before readiness",
+    "hostAction": "none",
+    "task": 11
+  },
+  {
+    "subpath": "./preview/capture",
+    "name": "CaptureCell",
+    "change": "widened",
+    "reason": "optional media coordinates on a cell",
+    "hostAction": "none",
+    "task": 11
+  },
+  {
+    "subpath": "./preview/capture",
+    "name": "CapturedCell",
+    "change": "widened",
+    "reason": "optional media coordinates in the index record",
+    "hostAction": "none",
+    "task": 11
+  },
+  {
+    "subpath": "./authoring",
+    "name": "CaptureInput",
+    "change": "widened",
+    "reason": "optional media axes",
+    "hostAction": "none",
+    "task": 11
+  },
+  {
+    "subpath": "./authoring",
+    "name": "AuthoringCaptureCell",
+    "change": "widened",
+    "reason": "optional media coordinates",
+    "hostAction": "none",
+    "task": 11
   }
 ]

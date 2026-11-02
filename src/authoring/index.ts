@@ -1,4 +1,4 @@
-import { LiveframeFailure, type LiveframeError, type Result } from "../errors.ts";
+import { type LiveframeError, LiveframeFailure, type Result } from "../errors.ts";
 import { type Capabilities, isRecord } from "../formats/capabilities.ts";
 import type { Catalog, Definition } from "../formats/catalog.ts";
 import { validateJson } from "../formats/json.ts";
@@ -10,10 +10,12 @@ import { outcomeScenarios } from "../pack/outcome.ts";
 import type { PreviewBinding, PreviewSession } from "../preview/authoring.ts";
 import {
   type CaptureBackend,
-  CaptureError,
-  capture,
   type CapturedCell,
+  CaptureError,
+  type CaptureMedia,
+  type CaptureMediaOptions,
   type CellLayout,
+  capture,
 } from "../preview/capture/index.ts";
 import type { Runner } from "../preview/runner.ts";
 import { createPreview } from "../preview/session.ts";
@@ -50,6 +52,8 @@ export type CaptureInput = {
   designSystems?: string[];
   /** Also measure each cell's layout (`layout` on the result). Default false. */
   layout?: boolean;
+  /** Media axes to capture, e.g. `{ textScale: [2], forcedColors: ["active"] }`. Each value multiplies the cells. */
+  media?: CaptureMediaOptions;
 };
 export type AuthoringCaptureCell = {
   scenario: string;
@@ -61,6 +65,8 @@ export type AuthoringCaptureCell = {
   png: Uint8Array;
   /** Present only when requested; null when the capture backend cannot measure. */
   layout?: CellLayout | null;
+  /** This cell's media coordinates; present only when media was requested. */
+  media?: CaptureMedia;
 };
 
 /** Host `meta` is the host's own annotation; an agent sees it only when the config opts in. */
@@ -165,7 +171,7 @@ const failure = (kind: LiveframeError["kind"], pointer: string, message: string)
 });
 const decodeLayout = (bytes: Uint8Array): CellLayout => JSON.parse(new TextDecoder().decode(bytes));
 const authoringCell = (
-  { scenario, width, theme, designSystem, errors, snapshot, png, layout }: CapturedCell,
+  { scenario, width, theme, designSystem, errors, snapshot, png, layout, media }: CapturedCell,
   files: ReadonlyMap<string, Uint8Array>,
 ): AuthoringCaptureCell => ({
   scenario,
@@ -176,6 +182,7 @@ const authoringCell = (
   aria: snapshot === null ? null : new TextDecoder().decode(files.get(snapshot)),
   png: files.get(png)!,
   ...(layout === undefined ? {} : { layout: layout === null ? null : decodeLayout(files.get(layout)!) }),
+  ...(media === undefined ? {} : { media }),
 });
 
 /** Only the cell-count refusal names the config field; a layout refusal names its cell. */

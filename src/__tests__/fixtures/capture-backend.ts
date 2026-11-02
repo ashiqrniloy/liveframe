@@ -1,4 +1,4 @@
-import type { CaptureAxes, CaptureBackend, CellLayout } from "../../preview/capture/index.ts";
+import type { CaptureAxes, CaptureBackend, CaptureMedia, CellLayout } from "../../preview/capture/index.ts";
 
 export function fakeCapture(
   axes: CaptureAxes = {
@@ -12,6 +12,7 @@ export function fakeCapture(
 ) {
   const opened: string[] = [];
   const waited: string[] = [];
+  const emulated: CaptureMedia[] = [];
   const closed: string[] = [];
   let shots = 0;
   let backendClosed = 0;
@@ -24,6 +25,9 @@ export function fakeCapture(
       return {
         async waitReady(selector) {
           waited.push(selector);
+        },
+        async emulate(media: CaptureMedia) {
+          emulated.push(media);
         },
         async axes() {
           return axes;
@@ -63,6 +67,7 @@ export function fakeCapture(
     backend,
     opened,
     waited,
+    emulated,
     closed,
     get shots() {
       return shots;

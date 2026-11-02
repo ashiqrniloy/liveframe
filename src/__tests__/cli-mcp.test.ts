@@ -5,22 +5,22 @@ import { join, relative } from "node:path";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { CallToolResultSchema } from "@modelcontextprotocol/core";
-import { McpSdkMissing, checkAll, mcp } from "../cli/mcp.ts";
+import manifestDoc from "../../schemas/manifest.json" with { type: "json" };
+import packageDoc from "../../schemas/widget-package.json" with { type: "json" };
 import { createAuthoring } from "../authoring/index.ts";
+import { checkAll, McpSdkMissing, mcp } from "../cli/mcp.ts";
 import type { Result } from "../errors.ts";
 import { type Capabilities, validateCapabilities } from "../formats/capabilities.ts";
 import { type Catalog, validateCatalog } from "../formats/catalog.ts";
-import { pack } from "../pack/pack.ts";
 import type { LiveframeError } from "../index.ts";
+import { pack } from "../pack/pack.ts";
 import { inProcessRunner } from "../preview/index.ts";
 import { createPreview } from "../preview/session.ts";
-import { drafts } from "./fixtures/widgets/drafts.ts";
-import capabilities from "./fixtures/widgets/capabilities.json" with { type: "json" };
-import catalog from "./fixtures/proof/catalog.json" with { type: "json" };
-import manifestDoc from "../../schemas/manifest.json" with { type: "json" };
-import packageDoc from "../../schemas/widget-package.json" with { type: "json" };
 import outcomesConfig from "./fixtures/mcp-outcomes.config.ts";
 import mcpTexts from "./fixtures/mcp-texts.json" with { type: "json" };
+import catalog from "./fixtures/proof/catalog.json" with { type: "json" };
+import capabilities from "./fixtures/widgets/capabilities.json" with { type: "json" };
+import { drafts } from "./fixtures/widgets/drafts.ts";
 
 const fixtures = "src/__tests__/fixtures";
 const config = `${fixtures}/mcp.config.ts`;
@@ -872,6 +872,43 @@ test("mcp_capture_with_injected_backend", async () => {
     { config: `${fixtures}/mcp-capture.config.ts` },
   );
 });
+
+test("calls_without_media_are_byte_identical_and_media_is_reported", async () => {
+  await withClient(
+    async (client) => {
+      await call(client, "pack_draft", drafts[0] as unknown as Record<string, unknown>);
+      const cell = { scenario: "ready", width: 360, theme: "light", designSystem: "plain", errors: [] };
+      // 0.2.1 output: the same summary, the same snapshot block, the same image — no `media` key.
+      const plain = await client.callTool({
+        name: "capture_preview",
+        arguments: { scenarios: ["ready"], widths: [360] },
+      });
+      expect(plain.content as unknown).toEqual([
+        { type: "text", text: JSON.stringify([cell]) },
+        { type: "text", text: 'ready @360px\n- text "Hello"\n' },
+        { type: "image", data: "iVBORw==", mimeType: "image/png" },
+      ]);
+      expect(plain.structuredContent as unknown).toEqual({ result: [cell] });
+      const media = await client.callTool({
+        name: "capture_preview",
+        arguments: { scenarios: ["ready"], widths: [360], media: { textScale: [2], forcedColors: ["active"] } },
+      });
+      expect(JSON.parse((media.content[0] as { text: string }).text)).toEqual([
+        { ...cell, media: { textScale: 2, forcedColors: "active" } },
+      ]);
+      const tool = (await client.listTools()).tools.find((t) => t.name === "capture_preview");
+      expect(tool?.description).toContain("textScale");
+      expect(JSON.stringify(tool?.outputSchema)).toContain("reducedMotion");
+      expect(JSON.stringify(tool?.inputSchema)).toContain("no-preference");
+      const bad = await client.callTool({
+        name: "capture_preview",
+        arguments: { media: { forcedColors: ["auto"] } },
+      });
+      expect(bad.isError).toBe(true);
+    },
+    { config: `${fixtures}/mcp-capture.config.ts`, protocolVersion: "2025-11-25" },
+  );
+}, 30000);
 
 test("mcp_capture_maps_backend_errors", async () => {
   await withClient(

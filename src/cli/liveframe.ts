@@ -4,10 +4,20 @@ import { generate, generateDefinitions, generateElementsSchema } from "../sdk/ge
 import { CaptureError } from "./capture.ts";
 
 const captureUsage =
-  "Usage: liveframe preview capture <url> --out <dir> [--scenario <a,b>] [--width <n,m>] [--theme <id@v,…>] [--design-system <id@v,…>] [--layout]";
+  "Usage: liveframe preview capture <url> --out <dir> [--scenario <a,b>] [--width <n,m>] [--theme <id@v,…>] [--design-system <id@v,…>] [--layout] [--text-scale <n,m>] [--forced-colors <none,active>] [--reduced-motion <no-preference,reduce>]";
 
-async function previewCapture(args: string[]): Promise<number> {
-  const [url, ...flags] = args;
+/** `--name value` pairs and the bare `--layout` flag; anything repeated or unknown is a usage error. */
+function captureFlags(flags: string[]): { values: Map<string, string>; layout: boolean } {
+  const valued = [
+    "--out",
+    "--scenario",
+    "--width",
+    "--theme",
+    "--design-system",
+    "--text-scale",
+    "--forced-colors",
+    "--reduced-motion",
+  ];
   const values = new Map<string, string>();
   let layout = false;
   for (let i = 0; i < flags.length; i += 2) {
@@ -18,19 +28,42 @@ async function previewCapture(args: string[]): Promise<number> {
       continue;
     }
     const value = flags[i + 1];
-    if (
-      !["--out", "--scenario", "--width", "--theme", "--design-system"].includes(name ?? "") ||
-      values.has(name ?? "")
-    )
-      throw new Error(captureUsage);
+    if (!valued.includes(name ?? "") || values.has(name ?? "")) throw new Error(captureUsage);
     if (!value || value.startsWith("--")) throw new Error(captureUsage);
     values.set(name as string, value);
   }
+  return { values, layout };
+}
+
+/** The media axes named on the command line, validated against their declared values. */
+function captureMedia(list: (name: string) => string[] | undefined) {
+  const forced = ["none", "active"];
+  const motion = ["no-preference", "reduce"];
+  const oneOf = <T extends string>(name: string, declared: readonly T[]): readonly T[] | undefined => {
+    const values = list(name) as T[] | undefined;
+    if (values && !values.every((value) => declared.includes(value))) throw new Error(captureUsage);
+    return values;
+  };
+  const textScale = list("--text-scale")?.map(Number);
+  if (textScale?.some((scale) => !Number.isFinite(scale) || scale <= 0)) throw new Error(captureUsage);
+  const forcedColors = oneOf("--forced-colors", forced as readonly ("none" | "active")[]);
+  const reducedMotion = oneOf("--reduced-motion", motion as readonly ("no-preference" | "reduce")[]);
+  return {
+    ...(textScale && { textScale }),
+    ...(forcedColors && { forcedColors }),
+    ...(reducedMotion && { reducedMotion }),
+  };
+}
+
+async function previewCapture(args: string[]): Promise<number> {
+  const [url, ...flags] = args;
+  const { values, layout } = captureFlags(flags);
   const out = values.get("--out");
   if (!url || !out || !URL.canParse(url)) throw new Error(captureUsage);
   const list = (name: string) => values.get(name)?.split(",");
   const widths = list("--width")?.map(Number);
   if (widths?.some((width) => !Number.isInteger(width) || width <= 0)) throw new Error(captureUsage);
+  const media = captureMedia(list);
   try {
     const { capture } = await import("./capture.ts");
     const index = await capture(url, {
@@ -40,6 +73,7 @@ async function previewCapture(args: string[]): Promise<number> {
       themes: list("--theme"),
       designSystems: list("--design-system"),
       ...(layout && { layout }),
+      ...(Object.keys(media).length > 0 && { media }),
     });
     const failed = index.cells.filter((cell) => cell.errors.length > 0);
     for (const cell of failed) console.error(`${cell.png}: ${cell.errors.length} render error(s)`);

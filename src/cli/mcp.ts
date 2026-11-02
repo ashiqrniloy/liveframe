@@ -1,5 +1,3 @@
-import { type CaptureInput, createAuthoring, type PackInput, type RenderInput } from "../authoring/index.ts";
-
 import { lstat, realpath } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -7,11 +5,12 @@ import pkg from "../../package.json" with { type: "json" };
 import capabilitiesDoc from "../../schemas/capabilities.json" with { type: "json" };
 import catalogDoc from "../../schemas/catalog.json" with { type: "json" };
 import manifestDoc from "../../schemas/manifest.json" with { type: "json" };
-import packageDoc from "../../schemas/widget-package.json" with { type: "json" };
 import treeDoc from "../../schemas/ui-tree.json" with { type: "json" };
+import packageDoc from "../../schemas/widget-package.json" with { type: "json" };
+import { type CaptureInput, createAuthoring, type PackInput, type RenderInput } from "../authoring/index.ts";
 import { type Capabilities, validateCapabilities } from "../formats/capabilities.ts";
 import { type Catalog, validateCatalog } from "../formats/catalog.ts";
-import { LiveframeFailure, type LiveframeError, type Result } from "../index.ts";
+import { type LiveframeError, LiveframeFailure, type Result } from "../index.ts";
 import type { AuthoringConfig } from "../preview/authoring.ts";
 import type { CaptureBackend } from "../preview/capture/index.ts";
 import type { Runner } from "../preview/runner.ts";
@@ -252,6 +251,15 @@ const outputSchemas = {
         theme: stringSchema,
         designSystem: stringSchema,
         errors: { type: "array", items: errorSchema },
+        media: {
+          type: "object",
+          properties: {
+            textScale: { type: "number" },
+            forcedColors: { type: "string", enum: ["none", "active"] },
+            reducedMotion: { type: "string", enum: ["no-preference", "reduce"] },
+          },
+          additionalProperties: false,
+        },
         layout: {
           anyOf: [
             { type: "null" },
@@ -399,6 +407,15 @@ const captureSchema = {
     themes: { type: "array", items: { type: "string" } },
     designSystems: { type: "array", items: { type: "string" } },
     layout: { type: "boolean" },
+    media: {
+      type: "object",
+      properties: {
+        textScale: { type: "array", items: { type: "number" } },
+        forcedColors: { type: "array", items: { type: "string", enum: ["none", "active"] } },
+        reducedMotion: { type: "array", items: { type: "string", enum: ["no-preference", "reduce"] } },
+      },
+      additionalProperties: false,
+    },
   },
   additionalProperties: false,
 };
@@ -412,20 +429,21 @@ function registerCaptureTool(sdk: Sdk, server: Server, authoring: Authoring, max
       title: "Capture preview",
       outputSchema: sdk.fromJsonSchema(outputSchemas.capture_preview),
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
-      description: `Captures the bound preview page's cells — at most ${maxCaptureCells} per call — and returns each cell's coordinates, LiveframeErrors and accessibility snapshot as text with its PNG as an image. Omit an axis to keep every value the page declares. With \`layout: true\`, each cell also carries its layout — \`{ width, height, overflowX, overflowing, nodes: [{ id, x, y, width, height }] }\` in CSS pixels relative to the cell, or null when the capture backend cannot measure — so a row and a stack, or an overflowing row, are told apart by numbers rather than by image height.`,
+      description: `Captures the bound preview page's cells — at most ${maxCaptureCells} per call — and returns each cell's coordinates, LiveframeErrors and accessibility snapshot as text with its PNG as an image. Omit an axis to keep every value the page declares. With \`layout: true\`, each cell also carries its layout — \`{ width, height, overflowX, overflowing, nodes: [{ id, x, y, width, height }] }\` in CSS pixels relative to the cell, or null when the capture backend cannot measure — so a row and a stack, or an overflowing row, are told apart by numbers rather than by image height. With \`media\` — \`{ textScale?: number[], forcedColors?: ("none"|"active")[], reducedMotion?: ("no-preference"|"reduce")[] }\` — every requested value multiplies the cells and each cell reports its own \`media\` coordinates: \`textScale: [2]\` captures at a 200% root font-size (WCAG 1.4.4), and the other two emulate the media features of the same names. A backend that cannot emulate refuses the call with \`not-found\` naming the axis.`,
       inputSchema: sdk.fromJsonSchema<CaptureInput>(captureSchema as Parameters<Sdk["fromJsonSchema"]>[0]),
     },
     async (input) => {
       const result = await authoring.capturePreview(input);
       if (!result.ok) return failure(result.errors);
       const response = structured(
-        result.value.map(({ scenario, width, theme, designSystem, errors, layout }) => ({
+        result.value.map(({ scenario, width, theme, designSystem, errors, layout, media }) => ({
           scenario,
           width,
           theme,
           designSystem,
           errors,
           ...(layout === undefined ? {} : { layout }),
+          ...(media === undefined ? {} : { media }),
         })),
       );
       const content: Content[] = response.content;
