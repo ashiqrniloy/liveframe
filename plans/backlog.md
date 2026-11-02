@@ -484,7 +484,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 - Section: Release automation (spec §13)
 - Priority: P3
-- Source: plans/021-Phase-7-Part-H-Release-0-2-1.md Task 18, plans/evidence/021-impact-analysis.md (F1)
+- Source: plans/021-Phase-7-Part-H-Release-0-2-1.md Task 18, plans/evidence/021-impact-analysis.md (F1); recurred for 0.2.2 (plans/022-Phase-7-Part-I-Release-0-2-2-Performance-And-Accessibility.md Task 16, `dist-tags` `{ latest: '0.2.2', next: '0.2.2-rc.2' }`, run 41531726855): run `npm dist-tag add @arnilo/liveframe@0.2.2 next`, or enable the toggle.
 - What: Step 4 of the GitHub Actions publish workflow (`npm dist-tag add @arnilo/liveframe@0.2.1 next`) returned 403 because npmjs.com's trusted publisher configuration requires explicitly enabling "Allow npm dist-tag". As a result, `dist-tags` currently shows `{ latest: '0.2.1', next: '0.2.1-rc.1' }`. Either enable the "Allow npm dist-tag" toggle in package publishing settings on npmjs.com, or run `npm dist-tag add @arnilo/liveframe@0.2.1 next` manually using maintainer credentials.
 - Why: CL-14 and `docs/compatibility.md` § Release process step 4 state that `next` should remain at or above `latest` so installations referencing the prerelease tag do not resolve older code than the default release.
 
@@ -496,3 +496,11 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Source: plans/022-Phase-7-Part-I-Release-0-2-2-Performance-And-Accessibility.md Task 6
 - What: `auditContrast` reports nine non-text findings across the two shipped proof design systems, all boundaries rather than text. Certified (3): `button.primary.root.rest` border `accent.fill` on its own fill (1:1), and `select.default.list.rest` / `dialog.default.content.rest` border `border.subtle` on `surface.module` (1.65:1). Rack (6): `border.hairline` on `surface.base` / `surface.well` at 1.35:1 for button, text-field, tabs and disclosure, and `focus.ring` on `accent.primary` (1:1) and on `diagnostic.error` (1.3:1) at focus. WCAG 2.2 §1.4.11 asks for 3:1. Raise the implicated roles or declare the boundaries as `none` where the fill alone identifies the control, then turn on `designSystemSuite({ contrast: true })` in the repository's own proof test.
 - Why: the audit is opt-in, so nothing fails today, and the proof fixtures are what adopters copy. The vocabulary's declared pairs pass because they only cover text; these are exactly the recipe-only pairs the audit was added to find.
+
+## Re-run the full benchmark suite on a quiet host
+
+- Section: Release automation (spec §13)
+- Priority: P3
+- Source: plans/022-Phase-7-Part-I-Release-0-2-2-Performance-And-Accessibility.md Task 16, plans/evidence/022-release-readiness-review.md (Bench gates)
+- What: After the 0.2.2 first-compile fix and the cache guard, `bun run bench` failed its micro-timing gates (validator ≤ 1.5 µs/node, `applyPatch` ≤ 0.5 ms, and once the 0.25 ms reuse figure) in eight attempts at host load 6–20 from unrelated work. The `0.2.2-rc.1` code failed the same gate under the same load, and the generic baseline slowed by the same factor. Re-run `timeout 600 bun run bench` when the host is idle and record the figures in plan 022's impact analysis (Task 17, area 7).
+- Why: the release shipped on interleaved A/B evidence and an unchanged hot path, not on a clean full-suite run. The gate is load-sensitive and CI does not run it, so a quiet-host run is the only way to close it.

@@ -819,7 +819,7 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
       - Installed-package acceptance rows passed: Node subpath imports, data `exports` resolution (`package.json`, `schemas/catalog.json`, `conformance/hash/packages.json`, `conformance/patch/diff.json`), package hash vectors through `/pack`, validator bundle under bare Node `vm` with 0 imports and widened states (`pending`, `mixed`, `current`, `readonly`), and authoring MCP server 8-tool listing from installed binary.
     - Full details recorded in [`plans/evidence/022-release-candidate.md`](evidence/022-release-candidate.md).
 
-- [ ] Task 16: Review readiness with the owner, then publish 0.2.2 and verify it
+- [x] Task 16: Review readiness with the owner, then publish 0.2.2 and verify it
   - Acceptance Criteria:
     - Functional:
       - `plans/evidence/022-release-readiness-review.md` lists every register entry, every deferred item and every open finding as `fixed` with evidence or `deferred` with the owner's approval.
@@ -846,7 +846,13 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
       - `package.json`; `CHANGELOG.md`; `plans/evidence/022-release-readiness-review.md`; `plans/evidence/022-release.md`; `roadmap.md` §3
   - Test Cases to Write:
     - n/a.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-03):
+    - Readiness review: [022-release-readiness-review.md](evidence/022-release-readiness-review.md) lists all 20 register entries (17 fixed, 3 deferred), four deferred items (D1–D4) and four findings (F1–F4). The owner was asked for a go on D1–D4 and answered "Go, but fix cold compile first".
+    - F1: Task 4's first compile was 6–8% slower than 0.2.1. A CPU profile put the eager `pointerAt` pointer-string building in the schema install check first; a behaviour-neutral speedup in `src/schema.ts` plus a lighter per-kind event build brought it to 0.961–0.985 of 0.2.1 in nine interleaved paired runs. F2: the catalog cache entry aliased the first caller's catalog, so mutating it made a later equal catalog fail with "Catalog does not match"; a hit now checks the entry's documents still equal its key, else evicts (`mutating_the_compiled_catalog_never_stales_an_equal_catalog`). F3: the Task 14 record's register count is corrected to 6 added, 11 widened, 3 deferred. F4: one uncaptured demo-host failure on a first registry run under load; six reruns passed.
+    - Runtime code changed after `0.2.2-rc.1`, so the owner approved a second candidate ("Publish rc.2, then 0.2.2"). `0.2.2-rc.2` passed the four pre-tag gates, was published under `next` and verified from the registry ([022-release-candidate.md](evidence/022-release-candidate.md), Round 2).
+    - `0.2.2` was tagged at `46c04e3` after `bun run check` (1000 pass, 4 skip, 0 fail) and `release:gate` (13/13), and published by the Publish workflow (run 41531726855) under `latest` with SLSA provenance. Verified from the registry: archive gate 13/13, 0 invalid or missing signatures, 0 API diffs against the register, demo host 52/52 twice, and the final archive differs from `rc.2` only in `package.json`, `CHANGELOG.md` and `README.md`. Record: [022-release.md](evidence/022-release.md).
+    - **Not met: `next` is at `0.2.2-rc.2`, below `latest`.** The workflow's `dist-tag add` step failed with the E403 that 0.2.1 hit (the npmjs.com "Allow npm dist-tag" toggle is off), after `npm publish` had succeeded, so the run shows as failed. `npm whoami` is not logged in here. The owner must run `npm dist-tag add @arnilo/liveframe@0.2.2 next` once, or enable the toggle. Backlog P3 stays open.
+    - **Not fully re-proven: the full `bun run bench`.** The host's load average was 6–20 from unrelated work throughout; eight attempts failed the micro-timing gates (validator ≤ 1.5 µs/node, `applyPatch` 0.5 ms), and the `rc.1` code failed the same gate under the same load. Only install-time code changed since the clean Task 14 run, so the validation, patch, render and CSS figures stand; the new gates were measured with interleaved A/B runs. A clean bench on a quiet host remains. Both items are in the readiness review.
 
 - [ ] Task 17: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
