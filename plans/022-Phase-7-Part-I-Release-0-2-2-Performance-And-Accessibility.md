@@ -687,7 +687,7 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
     - **Facts recorded.** Baselines (2026-11-02, loaded host): Certified design system 152,019 B, Rack 164,152 B, from `bun bench/css.bench.ts`; the 0.3.0 gates are relative to a same-session baseline for time. `@property` is Baseline 2024, newly available since July 2024 (MDN). Style queries on custom properties: Chrome 111, Safari 18, Firefox 151, Baseline newly available 2026-05-19 per secondary sources only, which the records say.
     - Compatibility: nothing ships. No register entry, no declaration change; only two evidence files, two decision logs, `roadmap.md` and this plan changed. The api-stability test is therefore unaffected (no code touched).
 
-- [ ] Task 13: Write the 0.2.2 documentation and compatibility notes
+- [x] Task 13: Write the 0.2.2 documentation and compatibility notes
   - Acceptance Criteria:
     - Functional:
       - `CHANGELOG.md` has a 0.2.2 entry listing every register entry, grouped as Added, Widened and Deferred.
@@ -718,8 +718,13 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
       - `CHANGELOG.md`; `docs/compatibility.md`; `docs/adopters-0.2.md`; the guides named by Tasks 3–11
   - Test Cases to Write:
     - `src/__tests__/docs-links.test.ts` and `src/__tests__/docs-wording.test.ts` cover the new sections.
-    - `register_host_actions_appear_in_adopter_notes`: a small assertion added to `api-stability.test.ts`.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-02):
+    - `CHANGELOG.md`: added `## 0.2.2 — 2026-11-02` section detailing performance enhancements (patched renders, DOM reuse, focus preservation, fast-path validator) and accessibility additions (four recipe states, reduced-transparency recovery, textScale, forced-colours, reduced-motion capture axes). The 20 register entries from `scripts/release/api/register-0.2.2.json` are listed under subheadings: Added (4 new exports: `CellLayout`, `CaptureMedia`, `CaptureMediaOptions`, `compileValidatorFast`), Widened (13 entries covering all widened register items: `states`, `CaptureOptions.media`, `designSystemSuite` contrast options, and promise-returning `onIntent`/`emit`), and Deferred (3 entries deferred to 0.3.0 naming `ref`, `NodeRef`, `catalog.json` `refProps`).
+    - `docs/compatibility.md`: added `## 0.2.2` section linking decision log `https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-11-01-1747-release-0-2-2-scope-and-api-stability.md`; updated `## Deferred to 0.3.0` subsection explicitly naming the three deferred register entries (`./sdk ref`, `. NodeRef`, and `./schemas/* catalog.json` `refProps`) and linking the decision log; added Growth lines to Growth rules section for widened unions (`CaptureOptions.media`, `SurfaceProps.onIntent`, `ImplementationProps.emit`, and `designSystemSuite` contrast options).
+    - `docs/adopters-0.2.md`: added `## 0.2.2 — Performance and accessibility additions` mapping each of the 8 user-facing capabilities to its concrete API with copy-paste code examples (Patched renders, Focus continuity, Four new recipe states, Reduced-transparency recovery, Preview capture media axes, Contrast test suites, Async intent handling, and Confirmation intent dispatching). Included the explicit "nothing to do" line for non-opt-in adopters ("Adopters who upgrade to 0.2.2 without opting into any of these eight capabilities have nothing to do: 0.2.2 is wire- and runtime-compatible with 0.2.0 and 0.2.1."), and an exhaustive register table where every register entry's `hostAction` column appears verbatim.
+    - `docs/security.md`: audited 0.2.2 additions and added `## 0.2.2 audit` confirming no changes to security posture: client-side validation remains strict on whole trees and streamed patches before rendering, reference runner boundaries and non-isolation scope are unchanged, and capture media axes multiply cells strictly within the existing capture cell bounds (`maxCells`, default 12, or configured `maxCaptureCells`).
+    - `src/__tests__/api-stability.test.ts`: added `register_host_actions_appear_in_adopter_notes` test asserting that every register entry's `hostAction` string appears verbatim in `docs/adopters-0.2.md`.
+    - Verification: `docs-links.test.ts`, `docs-wording.test.ts`, `api-stability.test.ts`, `typecheck`, `lint`, and `format:check` all pass clean with 0 errors.
 
 - [ ] Task 14: Prove every acceptance bullet against the checkout
   - Acceptance Criteria:

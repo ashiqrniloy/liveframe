@@ -12,6 +12,20 @@ What a version bump of `@arnilo/liveframe` may change. The policy is [decision R
 - **Minor (`0.x`)** may break the public API. Every breaking change in `0.x` comes at a minor version, with a deprecation in an earlier release where that is feasible.
 - **`1.0.0`** changes the rule above: from then on a breaking change needs a major version.
 
+## 0.2.2
+
+The [0.2.2 scope and API stability decision](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-11-01-1747-release-0-2-2-scope-and-api-stability.md) delivers performance optimizations and host accessibility enhancements as purely additive changes under the opt-in and no-break rules.
+
+Performance improvements include whole-tree node reuse in `<Surface>` (memoizing unchanged subtrees to close the gap between whole-tree and patch arrival costs without wire changes), compiled-validator caching in `compileValidator` (reusing immutable catalog and capability closures across renders with identical identity semantics), pure request-time evaluation of manifest data sources via `bindSources()`, and stable re-run caching via `renderKey()`.
+
+Accessibility additions include:
+- `auditContrast` and `ContrastFinding`: a recipe-derived install-time contrast audit resolving every `(kind, variant, slot, state)` pair against WCAG 2.2 thresholds, with opt-in gating in `designSystemSuite({ contrast: true })`.
+- Focus continuity: `<Surface focusContinuity>` preserves keyboard focus within the surface across updates, restoring focus to the nearest connected sibling or wrapper.
+- Recipe states: four new state names (`current`, `mixed`, `pending`, `readonly`) inserted into `states`, the recipe key pattern, and design-system validation/projection, plus promise-returning `emit()` and widened `SurfaceProps.onIntent` allowing primitives to indicate busy state while asynchronous host operations complete.
+- Accessibility capture axes: `capture()` gains optional `media` (`textScale`, `forcedColors`, `reducedMotion`), implemented via `CaptureSession.emulate?(media)` and surfaced through CLI flags and MCP tool parameters.
+
+Per-request details and limitations: [`docs/adopters-0.2.md`](adopters-0.2.md#022--performance-and-accessibility-additions).
+
 ## 0.2.1
 
 The [0.2.1 scope decision](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-10-30-1914-release-0-2-1-scope-and-patch-content.md) adds a self-contained validator bundle (`/validator.bundle.js`), public `canonicalJson` and `packageHash` exports from `/pack`, package-integrity corpus cases and package-hash vectors, and resolvable `package.json` and conformance data paths (CL-10, CL-11, CL-13). Package corpus cases run through `verifyPackage`, including integrity verification and the SDK-only import rule, with `hash-mismatch` and `forbidden-import` cases. The release also includes the runtime and realm-message fixes, release-tag maintenance, the `deferOffscreen` style prop and WebKit switching-budget proof, and the post-0.2.0 documentation corrections (CL-10, CL-12, CL-14, CL-16).
@@ -56,11 +70,11 @@ access named scopes; stop scoped writes before rolling back.
 
 ## Deferred to 0.3.0
 
-- **Node references.** A widget author cannot name another node today, so `aria-describedby`,
+- **Node references (`ref`, `NodeRef`, `catalog.json` `refProps`).** A widget author cannot name another node today, so `aria-describedby`,
   `aria-labelledby`, `aria-controls` and `aria-errormessage` cannot point at a node outside the
   author's own subtree. The [deferral decision](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-11-02-1219-defer-node-references-to-0-3-0.md)
-  ratifies an additive design — `ref("anchor")` plus a tree-unique `$anchor`, an optional
-  per-definition `refProps` name list, and the resolved key-path id carried as a plain string prop
+  ratifies an additive design — `ref("anchor")` (`./sdk ref`) plus a tree-unique `$anchor`, an optional
+  per-definition `refProps` name list (`./schemas/* catalog.json`), and the resolved key-path id carried as a plain string prop with documentation type `NodeRef` (`. NodeRef`)
   — and schedules it for 0.3.0. **Before:** wire ids by hand, in a composed component that renders
   both elements (`id="hint-4812"`, `aria-describedby="hint-4812"`). **After (0.3.0):** `ref("hint")`
   in the reference prop and `$anchor="hint"` on the target; the validator reports a dangling
@@ -81,6 +95,15 @@ access named scopes; stop scoped writes before rolling back.
   is still `kind.variant.slot.state`; a design system that styles none of the new
   states projects the same CSS. A `Record<(typeof states)[number], …>` map written
   against an older list needs `Partial` or a default branch, as `styleProps` did.
+- **`CaptureOptions.media` and `CaptureInput.media` are widened with optional media axes.**
+  The `media` object accepts `textScale`, `forcedColors`, and `reducedMotion` arrays; absent
+  `media` produces unchanged captures and indexes without coordinates.
+- **`SurfaceProps.onIntent` and `ImplementationProps.emit` return types are widened for async handlers.**
+  `onIntent` accepts callbacks returning `unknown` (including promises), and `emit` widens from
+  `void` to `Promise<void> | undefined` to return the host's settled promise so primitives can track
+  pending states while remaining assignable to void callbacks.
+- **`designSystemSuite` options are widened with an opt-in `contrast` gate.**
+  Hosts pass `contrast: true` or `contrast: { minimums }` to assert recipe-derived contrast; omitting the option runs the unchanged 0.2.1 suite.
 - **Error kinds may be added.** `LiveframeError["kind"]` is an open union in practice: a new release can report a new kind for a case that previously produced a different one or none. Switch on the kinds you act on and treat the rest generically; do not fail on an unknown kind.
 - **Optional fields may be added** to results and documents, and exports may be added. Removing or renaming an export, a kind or a field is a minor (or, after `1.0.0`, major) change.
 

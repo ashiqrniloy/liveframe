@@ -28,6 +28,13 @@ the current single-scenario render, checked by `checkOffered` with its current
 surface and revision. It refuses action events before logging or dispatch.
 The bound preview page receives trees only.
 
+## 0.2.2 audit
+
+The 0.2.2 performance and accessibility additions do not alter Liveframe's security posture:
+- Client-side validation remains strict on arrival: `<Surface>` and `<Preview>` validate every whole-tree and streamed patch arrival before rendering.
+- Reference runner boundaries are unchanged: `inProcessRunner()` and `workerRunner()` retain their documented contracts and non-isolation scope.
+- Media axes for preview capture (`textScale`, `forcedColors`, `reducedMotion`) multiply cells strictly within the existing capture cell bounds (`maxCells`, default 12, or configured `maxCaptureCells`); calls exceeding the bound fail closed.
+
 ## Reporting a vulnerability
 
 See [`SECURITY.md`](../SECURITY.md) for the private reporting route.

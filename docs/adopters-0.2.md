@@ -69,3 +69,176 @@ Where a row says a limitation, it is part of the release, not a to-do. The row i
 | CL-16 | Theme and design-system switching on a 50-row surface exceeds the 16.67 ms budget in WebKit because offscreen rows are synchronously restyled and laid out, and the CSS fixture lacked the trusted primitive CSS a host ships. | The `deferOffscreen` style prop (`space.*` or `size.*` placeholder block size, projecting `content-visibility: auto` and `contain-intrinsic-block-size: auto var(--lf-v-…)`), applied to the proof queue rows; realistic primitive CSS in both switching fixtures; spec §6.4 and §12 define the 16.67 ms budget as span A (attribute change through forced style and layout of the switch frame), and both switching tests assert ≤ 16.67 ms in Chromium, Firefox and WebKit with no WebKit-only ceiling. | §6.3, §6.4, §12 | `deferOffscreen` creates paint/layout containment and a stacking context (clipping overflow outside the box) and requires a 0.2.1 validator; surfaces whose long repeated offscreen content does not opt into `deferOffscreen`, or runs under heavy concurrent machine load, are not promised an engine-independent 16.67 ms bound. |
 
 In 0.2.1, `/authoring` and `liveframe mcp` also add an eighth operation (`setState()` / `set_state` applies an offered `setState` event and returns the new tree while refusing actions, with opt-in `preserveState: true` on preview session renders so bound pages and capture retain that state), advertise `outcomes` on `render_scenarios`, expose all three `liveframe gen` modules from `generated_types({ module? })`, accept `{ dir, entry? }` in the CLI's `pack_draft` under an opt-in `AuthoringConfig.draftRoot`, annotate every tool with titles and behaviour hints, declare self-contained `outputSchema`s with `structuredContent` alongside byte-identical 0.2.0 text blocks, let apps raise `maxCaptureCells` up to 48, and report each captured cell's structural `layout` (`capture_preview({ layout: true })`, `capture(url, { layout: true })`, `liveframe preview capture --layout`). Missing inline `pack_draft` keys now return a typed `LiveframeError[]` instead of the MCP SDK's validation string.
+
+## 0.2.2 — Performance and accessibility additions
+
+Hosts upgrading from 0.2.1 that do not opt into focus continuity, the contrast audit, the new recipe states, or accessibility capture have **nothing to do**: whole-tree node reuse and validator caching are automatic, all format additions are additive, and existing trees, themes, design systems and captures behave byte-for-byte as in 0.2.1.
+
+### Capability to API mapping
+
+#### 1. Whole-tree node reuse in `<Surface>`
+
+`<Surface>` memoizes unchanged subtrees parsed from whole trees on arrival, matching nodes by key path and node content. Unchanged nodes skip re-rendering in React, closing the arrival-cost gap with streaming tree patches without requiring protocol changes.
+
+```tsx
+<Surface
+  tree={tree}
+  validator={validator}
+  theme={theme}
+  designSystem={designSystem}
+  onIntent={onIntent}
+/>
+```
+
+#### 2. Compiled-validator caching
+
+`compileValidator(catalog, capabilities, manifest)` caches immutable catalog and capability closures by content hash. Subsequent compilations with the same catalog and capabilities recompile only manifest-level closures, making per-render validator compilation near-zero cost while returning a new validator object with unchanged semantics.
+
+```ts
+import { compileValidator } from "@arnilo/liveframe";
+
+// Recompilation with identical catalog and capabilities is cached and fast:
+const validator = compileValidator(catalog, capabilities, manifest);
+```
+
+#### 3. Request-time source binding evaluation
+
+`bindSources(manifest, capabilities, { params, state, context })` evaluates manifest source bindings at request time. It resolves no data, calls no network, and grants no authority; it computes the resolved parameters for each declared data source so the host can fetch data.
+
+```ts
+import { bindSources } from "@arnilo/liveframe";
+
+const bound = bindSources(pkg.manifest, capabilities, { params, state, context });
+if (!bound.ok) {
+  console.error("Binding failed:", bound.errors);
+} else {
+  for (const [key, call] of Object.entries(bound.value)) {
+    console.log(`Fetch data source "${call.source}" for key "${key}" with:`, call.params);
+  }
+}
+```
+
+#### 4. Re-run render cache key
+
+`renderKey({ hash, catalogId, params, state, data, context })` in `@arnilo/liveframe/pack` produces a stable SHA-256 hash in canonical JSON format (RFC 8785) over a render's inputs, allowing hosts to skip widget re-runs and transfers when inputs are unchanged.
+
+```ts
+import { renderKey } from "@arnilo/liveframe/pack";
+
+const key = renderKey({
+  hash: pkg.hash,
+  catalogId: catalog.catalogId,
+  params,
+  state,
+  data,
+  context,
+});
+
+if (key === cachedKey) {
+  return cachedTree; // Re-run skipped: inputs are byte-identical
+}
+```
+
+#### 5. Recipe-derived contrast audit
+
+`auditContrast({ theme, designSystem, catalog, registry?, minimums? })` resolves every `(kind, variant, slot, state)` recipe pair and measures contrast against WCAG 2.2 thresholds (4.5:1 text, 3:1 large text and non-text boundaries). The conformance kit provides `designSystemSuite({ contrast: true })` to turn findings into test failures.
+
+```ts
+import { auditContrast, type ContrastFinding } from "@arnilo/liveframe";
+
+const audit = auditContrast({ theme, designSystem, catalog });
+if (!audit.ok) {
+  console.error("Install validation errors:", audit.errors);
+} else {
+  for (const finding of audit.value) {
+    console.warn(`Contrast finding: ${finding.key} (${finding.foreground} on ${finding.background}: ${finding.ratio} < ${finding.minimum})`);
+  }
+}
+```
+
+#### 6. Focus continuity in `<Surface>`
+
+`<Surface focusContinuity>` keeps keyboard focus inside the surface across updates. If the currently focused element is disconnected by a tree update, focus moves to the nearest connected tabbable sibling in document order (next, then previous), or falls back to the surface wrapper.
+
+```tsx
+<Surface
+  tree={tree}
+  validator={validator}
+  theme={theme}
+  designSystem={designSystem}
+  onIntent={onIntent}
+  focusContinuity
+/>
+```
+
+#### 7. Recipe states and asynchronous intent emission
+
+The fixed `states` list and `schemas/design-system.json` recipe key pattern gain `current`, `mixed`, `pending`, and `readonly`. Primitives can inspect `aria-busy`, `aria-current`, `aria-checked=mixed`, or `aria-readonly`. When the host's `onIntent` returns a promise, primitive `emit()` returns `Promise<void> | undefined` so primitives can track pending state while operations complete.
+
+```tsx
+import { useState } from "react";
+import type { ImplementationProps } from "@arnilo/liveframe/react";
+
+export function SubmitButton({ slot, emit }: ImplementationProps) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <button
+      className={slot("root")}
+      aria-busy={busy || undefined}
+      onClick={() => {
+        const promise = emit("onPress");
+        if (promise) {
+          setBusy(true);
+          promise.finally(() => setBusy(false));
+        }
+      }}
+    >
+      Submit
+    </button>
+  );
+}
+```
+
+#### 8. Accessibility capture axes
+
+`capture()` accepts optional `media: { textScale?: number[], forcedColors?: ("none" | "active")[], reducedMotion?: ("no-preference" | "reduce")[] }`. Each axis point multiplies captured cells, emulated via `CaptureSession.emulate?(media)` (supported by `playwrightBackend`). The CLI flags `--text-scale`, `--forced-colors`, `--reduced-motion` and MCP tool `capture_preview` provide the same controls.
+
+```ts
+import { capture, playwrightBackend } from "@arnilo/liveframe/preview/capture";
+
+const result = await capture({
+  backend: playwrightBackend(playwright),
+  url: "http://localhost:3000",
+  media: {
+    textScale: [1, 2],
+    forcedColors: ["none", "active"],
+    reducedMotion: ["no-preference", "reduce"],
+  },
+});
+```
+
+### 0.2.2 API register changes and host actions
+
+| Subpath | Name | Change | Host action | Reason |
+| --- | --- | --- | --- | --- |
+| `.` | `bindSources` | added | Call it before resolving sources; it resolves no data and grants no authority. | Pure request-time evaluation of a manifest's source bindings |
+| `./pack` | `renderKey` | added | Optional: skip a re-run and the transfer when the key is unchanged. | Stable re-run cache key over a render's inputs |
+| `.` | `auditContrast` | added | Optional: run it at install time and gate the result; it changes no installation. | Recipe-derived contrast audit over the catalogue's resolved pairs |
+| `.` | `ContrastFinding` | added | none | The audit's finding type |
+| `./conformance` | `designSystemSuite` | widened | none | Optional contrast: true \| { minimums } turns audit findings into failures |
+| `./react` | `createRenderer` | widened | none | SurfaceProps gains an optional focusContinuity boolean (task 7) and its onIntent return widens from void to unknown (task 8), so a host callback may return a promise emit hands back |
+| `.` | `states` | widened | Use Partial, or a default branch, for exhaustive Record<(typeof states)[number], ...> maps; a system styling none of the new states projects the same CSS. | gains current, mixed, pending and readonly, placed between selected and invalid in source order |
+| `./schemas/*` | `design-system.json` | widened | none | Recipe key pattern accepts the four new states |
+| `./react` | `ImplementationProps` | widened | none: ignoring the result, or assigning emit to a void-returning function type, still compiles. | Emit returns Promise<void> \| undefined, the host's promise when onIntent returns one |
+| `./sdk` | `ref` | deferred | none until 0.3.0 | Author-side node reference marker; the design is ratified but ships in 0.3.0 (decision log 2026-11-02-1219) |
+| `.` | `NodeRef` | deferred | none until 0.3.0 | Documentation alias for a reference prop value; ships with ref() in 0.3.0 |
+| `./schemas/*` | `catalog.json` | deferred | none until 0.3.0 | Optional refProps name list per definition; ships with ref() in 0.3.0 |
+| `./preview/capture` | `CaptureMedia` | added | none | One point on the media axes: textScale, forcedColors, reducedMotion |
+| `./preview/capture` | `CaptureMediaOptions` | added | none | The media values a capture call asks for |
+| `./preview/capture` | `CaptureOptions` | widened | none | optional media axes multiplies the cells |
+| `./preview/capture` | `CaptureSession` | widened | none | optional emulate(media) applies media before readiness |
+| `./preview/capture` | `CaptureCell` | widened | none | optional media coordinates on a cell |
+| `./preview/capture` | `CapturedCell` | widened | none | optional media coordinates in the index record |
+| `./authoring` | `CaptureInput` | widened | none | optional media axes |
+| `./authoring` | `AuthoringCaptureCell` | widened | none | optional media coordinates |
+

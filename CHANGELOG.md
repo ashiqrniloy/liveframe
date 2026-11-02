@@ -2,6 +2,31 @@
 
 All notable changes to `@arnilo/liveframe` are recorded here. The project follows the compatibility policy in [`docs/compatibility.md`](docs/compatibility.md).
 
+## 0.2.2 — 2026-11-02
+
+[`docs/adopters-0.2.md`](docs/adopters-0.2.md#022--performance-and-accessibility-additions) maps 0.2.2 capabilities to what shipped. Under the [compatibility policy](docs/compatibility.md#022) (decision [2026-11-01-1747](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-11-01-1747-release-0-2-2-scope-and-api-stability.md)), every addition and widening in 0.2.2 is additive under the opt-in and no-break rules.
+
+Performance improvements include whole-tree node reuse in `<Surface>` (memoizing unchanged subtrees between whole trees on arrival) and compiled-validator caching in `compileValidator` (caching immutable catalog and capability closures across calls).
+
+Added:
+
+- **Source binding evaluation:** `bindSources(manifest, capabilities, { params, state, context })` evaluates manifest source bindings at request time without resolving data or granting authority.
+- **Render cache key:** `renderKey({ hash, catalogId, params, state, data, context })` in `@arnilo/liveframe/pack` produces a stable SHA-256 hash in canonical JSON over a render's inputs, allowing hosts to skip re-renders and transfers when inputs are unchanged.
+- **Recipe contrast audit:** `auditContrast({ theme, designSystem, catalog, registry?, minimums? })` and `ContrastFinding` in the root export resolve every `(kind, variant, slot, state)` recipe pair and measure contrast against WCAG 2.2 thresholds at install time.
+- **Accessibility capture axes:** `CaptureMedia` and `CaptureMediaOptions` in `@arnilo/liveframe/preview/capture` define points and options on `textScale`, `forcedColors`, and `reducedMotion` media axes.
+
+Widened:
+
+- **Conformance contrast test:** `designSystemSuite` accepts optional `contrast: true | { minimums }` to fail on audit findings.
+- **Focus continuity and async intents in renderer:** `createRenderer` / `SurfaceProps` gains an optional `focusContinuity` boolean to preserve keyboard focus on DOM element disconnection, and `SurfaceProps.onIntent` return type widens from `void` to `unknown` so a host callback may return a promise `emit` hands back.
+- **Primitive async emit:** `ImplementationProps` widens `emit` to return `Promise<void> | undefined`, forwarding the host's promise when `onIntent` returns one.
+- **Recipe states:** `states` and the recipe key pattern in `schemas/design-system.json` widen to include `current`, `mixed`, `pending`, and `readonly`, positioned in source order between `selected` and `invalid`.
+- **Capture media axes:** `CaptureOptions`, `CaptureSession` (`emulate?(media)`), `CaptureCell`, `CapturedCell`, `CaptureInput` and `AuthoringCaptureCell` accept optional media axes and record media coordinates.
+
+Deferred:
+
+- **Node references:** Ratified in [decision 2026-11-02-1219](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-11-02-1219-defer-node-references-to-0-3-0.md) and [`plans/evidence/022-node-reference-design.md`](https://github.com/ashiqrniloy/liveframe/blob/main/plans/evidence/022-node-reference-design.md); deferred to 0.3.0 under the no-break rule. Covers `./sdk` `ref`, root `NodeRef`, and `./schemas/*` `catalog.json` (`refProps`).
+
 ## 0.2.1 — 2026-11-01
 
 This section shipped as `0.2.1-rc.1` first.

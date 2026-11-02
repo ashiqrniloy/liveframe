@@ -187,3 +187,10 @@ test("deferred_entry_with_shipped_change_fails", () => {
     "Deferred register entry shipped a new export: . nodeRef (task 10)",
   ]);
 });
+
+test("register_host_actions_appear_in_adopter_notes", async () => {
+  const adopters = await Bun.file(resolve(root, "docs/adopters-0.2.md")).text();
+  for (const entry of register) {
+    expect(adopters).toContain(entry.hostAction);
+  }
+});
