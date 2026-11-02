@@ -54,6 +54,20 @@ access named scopes; stop scoped writes before rolling back.
 - A conformance corpus case's expected `(kind, pointer)` set changes only with a format version. Adding a case is additive; changing an existing case's expectation is a format-version change, not a patch, because ports rely on the corpus as executable data.
 - A hash vector's expected `canonical` text or `sha256` changes only with a format version. Adding a vector is additive; changing an existing one is a format-version change, not a patch, because ports rely on the vectors as executable data.
 
+## Deferred to 0.3.0
+
+- **Node references.** A widget author cannot name another node today, so `aria-describedby`,
+  `aria-labelledby`, `aria-controls` and `aria-errormessage` cannot point at a node outside the
+  author's own subtree. The [deferral decision](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-11-02-1219-defer-node-references-to-0-3-0.md)
+  ratifies an additive design — `ref("anchor")` plus a tree-unique `$anchor`, an optional
+  per-definition `refProps` name list, and the resolved key-path id carried as a plain string prop
+  — and schedules it for 0.3.0. **Before:** wire ids by hand, in a composed component that renders
+  both elements (`id="hint-4812"`, `aria-describedby="hint-4812"`). **After (0.3.0):** `ref("hint")`
+  in the reference prop and `$anchor="hint"` on the target; the validator reports a dangling
+  reference as `not-found`. **Adopter checklist:** nothing to change for 0.2.2; a catalog declaring
+  `refProps` needs an updated port, since a 0.2.1 catalog validator rejects the field. Design:
+  [`plans/evidence/022-node-reference-design.md`](https://github.com/ashiqrniloy/liveframe/blob/main/plans/evidence/022-node-reference-design.md).
+
 ## Growth
 
 - `stale-patch` is an additive error kind for an optional tree patch whose surface or base revision differs from the supplied tree. Whole-tree transport remains valid.

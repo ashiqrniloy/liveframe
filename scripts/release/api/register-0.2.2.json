@@ -70,5 +70,29 @@
     "reason": "Emit returns Promise<void> | undefined, the host's promise when onIntent returns one",
     "hostAction": "none: ignoring the result, or assigning emit to a void-returning function type, still compiles.",
     "task": 8
+  },
+  {
+    "subpath": "./sdk",
+    "name": "ref",
+    "change": "deferred",
+    "reason": "Author-side node reference marker; the design is ratified but ships in 0.3.0 (decision log 2026-11-02-1219)",
+    "hostAction": "none until 0.3.0",
+    "task": 9
+  },
+  {
+    "subpath": ".",
+    "name": "NodeRef",
+    "change": "deferred",
+    "reason": "Documentation alias for a reference prop value; ships with ref() in 0.3.0",
+    "hostAction": "none until 0.3.0",
+    "task": 9
+  },
+  {
+    "subpath": "./schemas/*",
+    "name": "catalog.json",
+    "change": "deferred",
+    "reason": "Optional refProps name list per definition; ships with ref() in 0.3.0",
+    "hostAction": "none until 0.3.0",
+    "task": 9
   }
 ]
