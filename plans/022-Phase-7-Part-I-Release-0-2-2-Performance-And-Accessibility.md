@@ -726,7 +726,7 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
     - `src/__tests__/api-stability.test.ts`: added `register_host_actions_appear_in_adopter_notes` test asserting that every register entry's `hostAction` string appears verbatim in `docs/adopters-0.2.md`.
     - Verification: `docs-links.test.ts`, `docs-wording.test.ts`, `api-stability.test.ts`, `typecheck`, `lint`, and `format:check` all pass clean with 0 errors.
 
-- [ ] Task 14: Prove every acceptance bullet against the checkout
+- [x] Task 14: Prove every acceptance bullet against the checkout
   - Acceptance Criteria:
     - Functional:
       - `plans/evidence/022-acceptance.md` names a passing test or evidence record for every Expected Outcome bullet and every task criterion.
@@ -753,7 +753,24 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
       - `plans/evidence/022-acceptance.md`
   - Test Cases to Write:
     - n/a. Runs the existing and new tests.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-03):
+    - Created [`plans/evidence/022-acceptance.md`](evidence/022-acceptance.md) documenting and proving every Expected Outcome bullet and every criterion for Tasks 1 to 13 against this checkout.
+    - `git diff v0.2.1 -- src/__tests__ proof/tests conformance`: 33 files; diff consists exclusively of additions (new test files, new conformance cases, fixtures) and updates resulting directly from register-named entries (`states` widened with 4 states updating recipe counts from 624 to 936, `CaptureOptions.media`, `bindSources`, `renderKey`, `focusContinuity`, production profiling, and validator cache). Zero test assertions were deleted or weakened.
+    - Verification commands all passed clean:
+      - `bun run check`: passed 999 pass, 4 skip, 0 fail (124,630 expect() calls; 112 files); build, gen:check, typecheck, lint, and format:check green.
+      - `bun run bench`: all 4 benchmarks green (validator, render, CSS, streaming).
+      - `bun run release:gate`: all 13 steps passed in 3.8s.
+      - `bun scripts/release/peer-floors.ts`: react 19.0.0 (111 pass), playwright 1.49.0 (23 pass), MCP server 2.0.0 (76 pass) all passed.
+      - `bun run demo:test`: passed 52 pass, 0 fail with `tsc --noEmit` clean (32.2s).
+      - Scratch host compatibility: unmodified v0.2.1 demo host code upgraded to the checkout's packed package archive passed `tsc --noEmit` and all 52 tests clean (32.6s).
+      - `src/__tests__/api-stability.test.ts`: passed 7/7.
+      - `src/__tests__/portability.test.ts`: passed 16/16 (2,417 expect() calls).
+    - Re-measured performance targets:
+      - Task 3: LF-17 whole-tree arrival validation plus React work is 2.800 ms median development (target ≤ 5.0 ms, down from 10.7 ms) and 2.000 ms median production; node reuse pass alone is 0.200 ms median at 679 nodes (target ≤ 1.0 ms); patch mode is 2.600 ms median development (target ≤ 2.97 ms, no regression from 2.7 ms) and 1.800 ms median production.
+      - Task 4: second `compileValidator` call reusing same catalog and capabilities content is 0.1164 ms median on proof catalog (target ≤ 0.25 ms, down from 0.73 ms); cold first compile 0.9222 ms; host revalidation worker overhead recorded in `docs/packages.md` (0.907 ms median, 2.256 ms p95).
+      - CSS projection: byte-identical at 152,019 B (certified) and 164,152 B (rack).
+      - Render bench: agent-home 1.3184 ms, 1.942 µs/node (budget ≤ 3.0 µs/node, ≤ 2.0 ms); renderKey 0.9611 ms on 33,899 B.
+    - Security: host-API-free scans and the four laws re-checked by name and verified green.
 
 - [ ] Task 15: Publish 0.2.2-rc.1 under `next` and verify it from the registry
   - Acceptance Criteria:
