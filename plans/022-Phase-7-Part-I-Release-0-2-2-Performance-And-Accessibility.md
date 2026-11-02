@@ -720,9 +720,9 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
   - Test Cases to Write:
     - `src/__tests__/docs-links.test.ts` and `src/__tests__/docs-wording.test.ts` cover the new sections.
   - Notes (executed 2026-11-02):
-    - `CHANGELOG.md`: added `## 0.2.2 — 2026-11-02` section detailing performance enhancements (patched renders, DOM reuse, focus preservation, fast-path validator) and accessibility additions (four recipe states, reduced-transparency recovery, textScale, forced-colours, reduced-motion capture axes). The 20 register entries from `scripts/release/api/register-0.2.2.json` are listed under subheadings: Added (4 new exports: `CellLayout`, `CaptureMedia`, `CaptureMediaOptions`, `compileValidatorFast`), Widened (13 entries covering all widened register items: `states`, `CaptureOptions.media`, `designSystemSuite` contrast options, and promise-returning `onIntent`/`emit`), and Deferred (3 entries deferred to 0.3.0 naming `ref`, `NodeRef`, `catalog.json` `refProps`).
+    - `CHANGELOG.md`: added a `## 0.2.2` section detailing the performance changes (whole-tree node reuse in `<Surface>`, catalog reuse in `compileValidator`) and the additions. The 20 register entries from `scripts/release/api/register-0.2.2.json` are listed under subheadings: Added (`bindSources`, `renderKey`, `auditContrast`, `ContrastFinding`, `CaptureMedia`, `CaptureMediaOptions`), Widened (11 entries: `states`, `design-system.json`, `createRenderer`, `ImplementationProps`, `designSystemSuite` and the capture and authoring media types), and Deferred (3 entries deferred to 0.3.0 naming `ref`, `NodeRef`, `catalog.json` `refProps`). (Corrected by Task 17: this note first listed `CellLayout` and `compileValidatorFast` as added and "reduced-transparency recovery" as an addition; none is in 0.2.2.)
     - `docs/compatibility.md`: added `## 0.2.2` section linking decision log `https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-11-01-1747-release-0-2-2-scope-and-api-stability.md`; updated `## Deferred to 0.3.0` subsection explicitly naming the three deferred register entries (`./sdk ref`, `. NodeRef`, and `./schemas/* catalog.json` `refProps`) and linking the decision log; added Growth lines to Growth rules section for widened unions (`CaptureOptions.media`, `SurfaceProps.onIntent`, `ImplementationProps.emit`, and `designSystemSuite` contrast options).
-    - `docs/adopters-0.2.md`: added `## 0.2.2 — Performance and accessibility additions` mapping each of the 8 user-facing capabilities to its concrete API with copy-paste code examples (Patched renders, Focus continuity, Four new recipe states, Reduced-transparency recovery, Preview capture media axes, Contrast test suites, Async intent handling, and Confirmation intent dispatching). Included the explicit "nothing to do" line for non-opt-in adopters ("Adopters who upgrade to 0.2.2 without opting into any of these eight capabilities have nothing to do: 0.2.2 is wire- and runtime-compatible with 0.2.0 and 0.2.1."), and an exhaustive register table where every register entry's `hostAction` column appears verbatim.
+    - `docs/adopters-0.2.md`: added `## 0.2.2 — Performance and accessibility additions` mapping each of the 8 user-facing capabilities to its concrete API with copy-paste code examples (whole-tree node reuse, compiled-validator caching, `bindSources`, `renderKey`, the contrast audit with `designSystemSuite({ contrast })`, focus continuity, the four recipe states with async `emit`, and capture media axes; corrected by Task 17, which replaced a list that named patched renders, reduced-transparency recovery and confirmation intent dispatching). Included the explicit "nothing to do" line for non-opt-in adopters ("Adopters who upgrade to 0.2.2 without opting into any of these eight capabilities have nothing to do: 0.2.2 is wire- and runtime-compatible with 0.2.0 and 0.2.1."), and an exhaustive register table where every register entry's `hostAction` column appears verbatim.
     - `docs/security.md`: audited 0.2.2 additions and added `## 0.2.2 audit` confirming no changes to security posture: client-side validation remains strict on whole trees and streamed patches before rendering, reference runner boundaries and non-isolation scope are unchanged, and capture media axes multiply cells strictly within the existing capture cell bounds (`maxCells`, default 12, or configured `maxCaptureCells`).
     - `src/__tests__/api-stability.test.ts`: added `register_host_actions_appear_in_adopter_notes` test asserting that every register entry's `hostAction` string appears verbatim in `docs/adopters-0.2.md`.
     - Verification: `docs-links.test.ts`, `docs-wording.test.ts`, `api-stability.test.ts`, `typecheck`, `lint`, and `format:check` all pass clean with 0 errors.
@@ -854,7 +854,43 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
     - **Not met: `next` is at `0.2.2-rc.2`, below `latest`.** The workflow's `dist-tag add` step failed with the E403 that 0.2.1 hit (the npmjs.com "Allow npm dist-tag" toggle is off), after `npm publish` had succeeded, so the run shows as failed. `npm whoami` is not logged in here. The owner must run `npm dist-tag add @arnilo/liveframe@0.2.2 next` once, or enable the toggle. Backlog P3 stays open.
     - **Not fully re-proven: the full `bun run bench`.** The host's load average was 6–20 from unrelated work throughout; eight attempts failed the micro-timing gates (validator ≤ 1.5 µs/node, `applyPatch` 0.5 ms), and the `rc.1` code failed the same gate under the same load. Only install-time code changed since the clean Task 14 run, so the validation, patch, render and CSS figures stand; the new gates were measured with interleaved A/B runs. A clean bench on a quiet host remains. Both items are in the readiness review.
 
-- [ ] Task 17: Analyze architectural impact and dispose of every finding
+- [x] Task 17: Correct the 0.2.2 documentation (impact finding F4, added by Task 18's sweep)
+  - Acceptance Criteria:
+    - Functional:
+      - The adopter notes, `docs/formats.md`, `docs/renderer.md`, `docs/spec.md` §11 and §13 and the `CHANGELOG.md` 0.2.2 entry say what the code does:
+        - the catalog cache is keyed by the JSON text of the catalog and capabilities documents, holds eight entries, and misses on equal documents with a different key order;
+        - `emit` returns a `Promise<void>` that settles when the host's promise does, with the host's value dropped and its rejection contained;
+        - node reuse compares each node with the node at the same position in the last accepted tree;
+        - focus continuity moves to the nearest connected tabbable element in the document, not only a sibling;
+        - spec §13's package table names `bindSources`, `auditContrast` and `renderKey`.
+      - Task 13's notes no longer name capabilities that do not exist.
+    - Performance: n/a. Documentation only.
+    - Code Quality: wording changes only. The one source edit is the `Emit` doc comment in `src/react/implement.ts`; the API-surface baseline holds no comment text, so no declaration text changes.
+    - Security: the corrected `emit` sentence states what law 4 relies on: a primitive never receives the host's result.
+    - Compatibility: no API, format or behaviour change; `api-stability.test.ts` passes unchanged.
+  - Approach:
+    - Skills to Use:
+      - `liveframe-execution`; `karpathy-guidelines`.
+    - Library Documentation to Check Before Implementation:
+      - none. Local: `src/react/share.ts`, `src/react/renderer.tsx` (`settled`), `src/validate/compile.ts`.
+    - Documentation Reviewed:
+      - `docs/adopters-0.2.md` § 0.2.2; Task 4, 7 and 8 notes; `plans/evidence/022-impact-analysis.md` (F4).
+    - Options Considered:
+      - Leave the `Emit` doc comment in `src/react/implement.ts` ("returns the host's promise"). Rejected: it shows in editor hovers and the published `.d.ts`. The API-surface checker prints declarations without comments (the 0.2.1 baseline holds none), so rewording it cannot trip the gate.
+    - Chosen Approach:
+      - Correct each statement where it appears, in the same task as the sweep that found it.
+    - API Notes and Examples:
+      - n/a.
+    - Files to Create/Edit:
+      - `docs/adopters-0.2.md`; `docs/formats.md`; `docs/renderer.md`; `docs/spec.md`; `CHANGELOG.md`; `src/react/implement.ts` (doc comment only); this plan
+  - Test Cases to Write:
+    - n/a. `docs-links`, `docs-wording` and `api-stability` cover the edited pages.
+  - Notes (executed 2026-11-03):
+    - Edited as listed: `docs/adopters-0.2.md` (node reuse, validator cache, focus continuity, `emit` in two places), `docs/formats.md` (cache key text, eight entries, key-order miss), `docs/renderer.md` (`emit` row), `docs/spec.md` §11 (`emit`) and §13 (root and `/pack` rows), the `CHANGELOG.md` `emit` bullet and the `Emit` doc comment in `src/react/implement.ts`. The register table's `hostAction` column is untouched, so `register_host_actions_appear_in_adopter_notes` still holds.
+    - Task 13's notes (above) listed `CellLayout` and `compileValidatorFast` as added exports, "reduced-transparency recovery", "patched renders" and "confirmation intent dispatching" as adopter-note sections. None exists: `CellLayout` is a 0.2.1 export, there is no `compileValidatorFast`, and the adopter section has eight capabilities (reuse, catalog caching, `bindSources`, `renderKey`, the audit, focus continuity, states with async `emit`, capture media). The published docs and `CHANGELOG.md` list the right entries; only the notes were wrong, and the register (20 entries) is the record.
+    - The published `0.2.2` archive carries the old wording until the next release.
+
+- [x] Task 18: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional:
       - Sweep all twelve impact areas (`.claude/skills/create-plan/references/liveframe.md` §5) against the delivered work. Record each, or `None — <reason>`, in `plans/evidence/022-impact-analysis.md`.
@@ -881,7 +917,13 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
       - `plans/evidence/022-impact-analysis.md`; `plans/backlog.md`; this plan (Compromises, Further Actions)
   - Test Cases to Write:
     - n/a.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-03):
+    - The sweep of all twelve areas is in [`plans/evidence/022-impact-analysis.md`](evidence/022-impact-analysis.md). It found no new path for widget code, colour, raw CSS or authority (area 3), a complete register with a migration entry for each of the 3 `deferred` items (area 2), and six findings, which the owner disposed in one table with "Accept as recommended".
+    - **Executed:** F4, the published wording that misstated the validator cache key, `emit`'s promise, node-reuse matching and focus fallback, plus spec §13's missing exports and Task 13's inaccurate notes. That is Task 17 above, docs only.
+    - **Backlog:** F1 (`next` at `0.2.2-rc.2`; existing P3, owner runs `npm dist-tag add @arnilo/liveframe@0.2.2 next`), F2 (no clean full bench; existing P3, updated), F3 (proof styles fail the opt-in contrast audit; existing P3), F5 (new P4: CL-17, the realm message in `validateTree`) and F6 (new P4: show request-time orchestration in the demo host).
+    - **Performance (area 7):** the figures against the 0.2.1 baseline are the last clean run's (Task 14). The full `bun run bench` run for this task is not evidence: the host load average was 35–39, the generic baseline measured 5.756 µs/node against its normal 1.0–1.4, and every validator gate and `applyPatch` (0.649 ms) failed on the machine, not the code. Nothing that the hot paths use changed after the last clean run. The clean re-run stays open as F2, so this plan's Expected Outcome rows for the bench are proven by the Task 14 and Task 16 records, not by a Task 18 run.
+    - **Checks run:** `api-stability`, `docs-links`, `docs-wording` and `portability` (26 tests; `shipped_docs_never_call_exports_planned` failed once on its 200 ms budget at load 32 and passes alone in 141 ms). `bun run check` after the Task 17 edits: 1000 pass, 4 skip, 0 fail (498 s, host load about 15).
+    - No spec change beyond §11/§13 wording; no source, format, schema or corpus change.
 
 ## Verification (whole plan)
 
@@ -897,7 +939,13 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- **Node references deferred to 0.3.0** (Tasks 9–10). The design holds and is additive, but 0.2.2 has no primitive that declares a relation prop, and the change reaches six subsystems and spec §7.2. Owner-approved 2026-11-02.
+- **`contrast` capture axis left out** (Task 11): it needs Playwright 1.51, and the peer floor is `^1.49.0`.
+- **The catalog cache holds 8 entries, not the plan's 64** (Task 4), because it compares content on every lookup, so the bound is also the miss cost. Equal documents with a different key order miss it.
+- **The first-compile criterion was missed in Task 4 and met in Task 16.** The release took a second candidate (`0.2.2-rc.2`) to fix it and a stale cache hit.
+- **`next` stays below `latest`** (Task 16, F1) until the owner runs the dist-tag command or enables the toggle.
+- **No clean full `bun run bench` after the Task 16 changes** (F2). The release rests on interleaved A/B runs and an unchanged hot path.
+- **The published 0.2.2 archive carries the documentation wording that Task 17 corrected.** The fix ships with the next release.
 
 ## Further Actions
 
@@ -907,4 +955,11 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
   - axe-core as an optional capture peer;
   - the `contrast` capture axis once the Playwright peer floor reaches 1.51.
 - Completed during execution: the `contrast` capture axis stays out while the Playwright peer floor is `^1.49.0` (Task 11 implemented the other three axes); axe-core is still the follow-up if a host wants automated ARIA/contrast findings beyond the install-time `auditContrast` — it would be a new optional peer, not a dependency.
-- To be completed after task completion with improvements, rationale and priority.
+- From the Task 18 impact analysis (see [`022-impact-analysis.md`](evidence/022-impact-analysis.md)), with priority:
+  - P3: owner runs `npm dist-tag add @arnilo/liveframe@0.2.2 next`, or enables "Allow npm dist-tag" (backlog: dist-tag management).
+  - P3: re-run `bun run bench` on a quiet host and record the figures in the impact analysis (backlog: quiet-host bench).
+  - P3: raise the proof design systems' boundary roles or declare them `none`, then turn on `designSystemSuite({ contrast: true })` in the repository's own proof test (backlog: proof styles).
+  - P4: `validateTree` names a foreign-realm tree, and the three entry-point behaviours get one rule (backlog: CL-17).
+  - P4: the demo host shows `bindSources`, `renderKey` and diff-with-fallback (backlog: demo host orchestration).
+  - P4: language-neutral vectors for `bindSources`, if a port implements `manifest.sources` evaluation.
+- Ship Task 17's documentation corrections with the next release (0.2.3 or 0.3.0).

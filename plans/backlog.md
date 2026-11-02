@@ -502,5 +502,21 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Section: Release automation (spec §13)
 - Priority: P3
 - Source: plans/022-Phase-7-Part-I-Release-0-2-2-Performance-And-Accessibility.md Task 16, plans/evidence/022-release-readiness-review.md (Bench gates)
-- What: After the 0.2.2 first-compile fix and the cache guard, `bun run bench` failed its micro-timing gates (validator ≤ 1.5 µs/node, `applyPatch` ≤ 0.5 ms, and once the 0.25 ms reuse figure) in eight attempts at host load 6–20 from unrelated work. The `0.2.2-rc.1` code failed the same gate under the same load, and the generic baseline slowed by the same factor. Re-run `timeout 600 bun run bench` when the host is idle and record the figures in plan 022's impact analysis (Task 17, area 7).
+- What: After the 0.2.2 first-compile fix and the cache guard, `bun run bench` failed its micro-timing gates (validator ≤ 1.5 µs/node, `applyPatch` ≤ 0.5 ms, and once the 0.25 ms reuse figure) in eight attempts at host load 6–20 from unrelated work. The `0.2.2-rc.1` code failed the same gate under the same load, and the generic baseline slowed by the same factor. The impact analysis (plan 022 Task 18, area 7) tried once more on 2026-11-03 at load 35–39 and failed every validator gate with the generic baseline 5× slow (5.756 µs/node on `agent-home`), so that run measures the machine. Re-run `timeout 600 bun run bench` when the host is idle (1-minute load average below 2, with `uptime` recorded) and add the figures to `plans/evidence/022-impact-analysis.md` area 7.
 - Why: the release shipped on interleaved A/B evidence and an unchanged hot path, not on a clean full-suite run. The gate is load-sensitive and CI does not run it, so a quiet-host run is the only way to close it.
+
+## Name the realm mismatch in a compiled validator's `validateTree`
+
+- Section: Validation (spec §10)
+- Priority: P4
+- Source: plans/requests/clay-0.2.1-requests.md CL-17 (Clay's 0.2.1 release review, 2026-11-01), plans/022-Phase-7-Part-I-Release-0-2-2-Performance-And-Accessibility.md Task 18 (F5)
+- What: with `validator.bundle.js` in a `vm` context and a tree parsed in the outer realm, `validateTreePatch` and `renderModule` reject with the realm message ("Expected a JSON value created in this realm; … parse it inside the sandbox"), but a compiled validator's `validateTree` rejects with `invalid-prop` at `""` and "Expected a plain JSON object" (`src/validate/tree.ts:196`), while `validateCatalog`, `validateManifest` and `compileValidator` accept foreign objects. Pick one rule for every entry point that takes a document (reject everywhere with the realm message, or document which entry points accept them and why accessors are not a risk there), make `validateTree` name the realm, and add a `vm` test that passes an outer-realm document to each public validator in `validator.bundle.js`. Keep `kind` and `pointer` unchanged unless the rule requires otherwise; a rule that rejects a document 0.2.2 accepts is a 0.3.0 change.
+- Why: the three behaviours contradict `docs/adopters-0.2.md` (CL-12 row), which says foreign-realm objects are rejected, never accepted by shape. Clay creates every input inside its isolate, so nothing is blocked; it is a consistency and diagnosability fix.
+
+## Show request-time orchestration in the demo host
+
+- Section: Reference host (spec §13)
+- Priority: P4
+- Source: plans/liveframe-evaluation.md ("Host Integration Chasm"), decision-logs/2026-11-01-1747-release-0-2-2-scope-and-api-stability.md (a stateful `/host` controller rejected), plans/022-Phase-7-Part-I-Release-0-2-2-Performance-And-Accessibility.md Task 18 (F6)
+- What: `examples/demo-host/server.ts` renders with `data: {}`, its capabilities and widgets declare no `sources`, and it calls neither `bindSources` nor `renderKey` nor `diffTrees`. It does keep a served-tree map for `checkOffered` and one compiled validator per package hash. Add one source-reading widget so the demo shows: `bindSources`, the host's own resolver running as the viewer, `renderKey` skipping an unchanged re-run, and `diffTrees` with a whole-tree fallback on `stale-patch`, with `demo:test` covering each. Leave concurrent-read de-duplication and true isolation as documented host responsibilities (a library controller was rejected).
+- Why: hosts copy the demo, and 0.2.2 added the helpers that remove the hand-rolled parts, so the demo is where an outsider sees them used together. Docs already show each helper alone (`docs/packages.md`).
