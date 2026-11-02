@@ -1,0 +1,38 @@
+# 0.2.2 release candidate
+
+`@arnilo/liveframe@0.2.2-rc.1` is on npm under `next`, published by the tag workflow with SLSA provenance. `latest` stays `0.2.1`.
+
+## Rounds
+
+| Tag | Published | Why |
+| --- | --- | --- |
+| `v0.2.2-rc.1` | yes | Published on the first round from tag commit `e58a5412e87c0ffcc124feef29d06b6df522fa97`. Local pre-tag gates passed clean (`bun run check` 999 pass / 4 skip / 0 fail, `release:gate` 13/13, peer floors React 19.0.0 / Playwright 1.49.0 / MCP server 2.0.0, and `demo:test` 52 pass). |
+
+## Registry facts
+
+- `npm view @arnilo/liveframe dist-tags` → `{ next: '0.2.2-rc.1', latest: '0.2.1' }`; the version propagated within ~2 minutes of publication.
+- Published 2026-11-02T20:04:08.476Z (CI publish step finished 19:58:58Z) from tag commit `e58a5412e87c0ffcc124feef29d06b6df522fa97`; shasum `ce50298d9c0d147460da01e5e951e62eed7f0116`; integrity `sha512-tf5IDHC39VFiRo6LclV6q16kAMrgJtJPFMQuNZNhFEOeQruGuqZLYNwq2bvijSENMA4ijx0QzCltauyrGwsDoA==`. Task 16 compares the final archive against this.
+- The workflow (run ID `41513280017`) repeated `bun run check`, the archive gate (13 steps), the three peer floors (React 19.0.0, Playwright 1.49.0, MCP server 2.0.0) and `demo:test`, then published with `--tag next`. No token is stored (trusted publishing).
+
+## Registry-mode checks
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Dist-tags | `npm view @arnilo/liveframe dist-tags` | `{ next: '0.2.2-rc.1', latest: '0.2.1' }` |
+| Archive gate | `bun scripts/release/archive-gate.ts --package @arnilo/liveframe@0.2.2-rc.1` | passed all 13 steps in 6.2 s |
+| API stability comparison | `readApiSurface` and `compareApiSurface` against unpacked registry tarball | passed: 0 diffs against 0.2.1 baseline and `register-0.2.2.json` (`[]`) |
+| Demo host from the registry | demo copied outside the repo, dependency set to `0.2.2-rc.1`, `bun install`, `tsc --noEmit`, `bun test` | typecheck clean; 52 pass, 0 fail across 7 files (34.1 s) |
+| Provenance | `npm i @arnilo/liveframe@0.2.2-rc.1` in an empty project, `npm audit signatures --json --include-attestations` | registry signatures verified; attestation `https://slsa.dev/provenance/v1` at `registry.npmjs.org/-/npm/v1/attestations/@arnilo%2fliveframe@0.2.2-rc.1`; Sigstore transparency log index 3648402012 / bundle tlog index 3648497426 |
+
+## Installed-package acceptance rows
+
+Run against that npm-installed copy, with neither `@modelcontextprotocol/server` nor `playwright` installed (optional peers, absent from `node_modules`).
+
+| Row | Result |
+| --- | --- |
+| Subpath imports (LF-02.2) | `/`, `/sdk`, `/sdk/gen`, `/sdk/jsx-runtime`, `/sdk/jsx-dev-runtime`, `/pack`, `/store`, `/store/fs`, `/preview`, `/preview/worker`, `/preview/capture`, `/authoring`, `/runner-kit`, `/runner-kit.bundle.js`, `/conformance` import under Node. `/react`, `/preview/react` and `/conformance/react` need React, an optional peer not installed in this probe; the gate's consumer-types and demo steps cover them with React present. |
+| Validator bundle under bare `vm` (CL-10) | `dist/validator.bundle.js` is self-contained with no imports; executes in bare Node `vm`, exports `compileValidator`, `auditContrast`, `diffTrees`, `applyPatch`, and widened `states` including `pending`, `mixed`, `current`, `readonly`. Gate step "validator bundle packed and self-contained". |
+| Data `exports` resolution (CL-13) | `./package.json`, `./conformance/corpus/*`, `./conformance/hash/*` and `./conformance/patch/*` resolve through `exports` under Node. Gate steps "corpus packed", "hash vectors packed", "patch vectors packed" and "host-API-free subpaths under node". |
+| Package vectors through `/pack` (CL-11) | `canonicalJson` and `packageHash` match all `conformance/hash/packages.json` vectors through public exports. Gate steps "hash vectors packed" and "host-API-free subpaths under node". |
+| Tree patches and diff vectors (CL-15) | `diffTrees`, `applyPatch`, `validateTreePatch`, and `conformance/patch/diff.json` verified through public exports and gate step "patch vectors packed". |
+| Authoring MCP server tools (M4.2) | Gate step "liveframe mcp over stdio" lists all eight tools from the installed `bin`. |

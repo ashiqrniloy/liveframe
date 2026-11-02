@@ -772,7 +772,7 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
       - Render bench: agent-home 1.3184 ms, 1.942 µs/node (budget ≤ 3.0 µs/node, ≤ 2.0 ms); renderKey 0.9611 ms on 33,899 B.
     - Security: host-API-free scans and the four laws re-checked by name and verified green.
 
-- [ ] Task 15: Publish 0.2.2-rc.1 under `next` and verify it from the registry
+- [x] Task 15: Publish 0.2.2-rc.1 under `next` and verify it from the registry
   - Acceptance Criteria:
     - Functional:
       - `package.json` is `0.2.2-rc.1` and `CHANGELOG.md` has a dated rc entry.
@@ -803,7 +803,20 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
       - `package.json`; `CHANGELOG.md`; `plans/evidence/022-release-candidate.md`
   - Test Cases to Write:
     - n/a.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-03):
+    - Owner's go: recorded from explicit user instruction ("Complete - [ ] Task 15: Publish 0.2.2-rc.1 under `next` and verify it from the registry from @[plans/022-Phase-7-Part-I-Release-0-2-2-Performance-And-Accessibility.md] and update the plan once done").
+    - `package.json` bumped to `0.2.2-rc.1`; `CHANGELOG.md` gained dated rc entry `## 0.2.2-rc.1 — 2026-11-03` noting `This section ships as 0.2.2-rc.1 first.`
+    - Pre-tag gates passed clean: `bun run check` (999 pass, 4 skip, 0 fail; 405s), `bun run release:gate` (all 13 steps passed in 8.1s), `bun scripts/release/peer-floors.ts` (React 19.0.0 80s, Playwright 1.49.0 101s, MCP server 2.0.0 34s; all 3 floors passed), and `bun run demo:test` (52 pass, 0 fail across 7 files; 35.15s).
+    - Committed bump (`e58a541`), tagged `v0.2.2-rc.1`, pushed `main` and tag `v0.2.2-rc.1` to GitHub.
+    - GitHub Actions `Publish` workflow (run ID `41513280017`) completed with success in 11m1s, publishing `@arnilo/liveframe@0.2.2-rc.1` to npm under tag `next` with SLSA provenance (Sigstore transparency log index 3648402012 / bundle tlog index 3648497426; shasum `ce50298d9c0d147460da01e5e951e62eed7f0116`; integrity `sha512-tf5IDHC39VFiRo6LclV6q16kAMrgJtJPFMQuNZNhFEOeQruGuqZLYNwq2bvijSENMA4ijx0QzCltauyrGwsDoA==`).
+    - Registry verification:
+      - `npm view @arnilo/liveframe dist-tags` confirmed `{ next: '0.2.2-rc.1', latest: '0.2.1' }`.
+      - `npm audit signatures --json --include-attestations` verified SLSA v1 provenance at `registry.npmjs.org/-/npm/v1/attestations/@arnilo%2fliveframe@0.2.2-rc.1`.
+      - `bun scripts/release/archive-gate.ts --package @arnilo/liveframe@0.2.2-rc.1` passed all 13 steps in 6.2s.
+      - API stability comparison: `readApiSurface` and `compareApiSurface` against unpacked registry tarball passed with 0 diffs against 0.2.1 baseline and `register-0.2.2.json` (`[]`).
+      - Demo host copied outside the repo and installed from registry passed `tsc --noEmit` and 52 tests, 0 failed in 34.1s.
+      - Installed-package acceptance rows passed: Node subpath imports, data `exports` resolution (`package.json`, `schemas/catalog.json`, `conformance/hash/packages.json`, `conformance/patch/diff.json`), package hash vectors through `/pack`, validator bundle under bare Node `vm` with 0 imports and widened states (`pending`, `mixed`, `current`, `readonly`), and authoring MCP server 8-tool listing from installed binary.
+    - Full details recorded in [`plans/evidence/022-release-candidate.md`](evidence/022-release-candidate.md).
 
 - [ ] Task 16: Review readiness with the owner, then publish 0.2.2 and verify it
   - Acceptance Criteria:
