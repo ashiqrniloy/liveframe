@@ -544,7 +544,7 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
     - Performance and compatibility criteria were answered by the proposal rather than by measurement, as a design task requires: validation is one id-set lookup per reference after the walk (zero per-node cost for trees without references), and 0.3.0's Task carries the ≤2% `bun run bench` validator and render gate on the 679-node `agent-home` tree. Every 0.2.1 input keeps its meaning: a catalog without `refProps` declares no references, and a tree with no reference validates exactly as before.
     - Verification: `src/__tests__/api-stability.test.ts` passes 6/6 with the three `deferred` entries present (the checker fails if a deferred change ships), and format and lint are clean. The full suite ran twice while this machine carried an external load average of 9-31 with spikes past 140; both runs reported only timing and worker-timeout failures (`switch_under_budget_with_blur`, `render_smoke_budget`, `verify_agent_home_under_20_ms`, `rack_validates_and_resolves_under_50ms`, `proof_themes_validate_under_2ms`, `in_process_runner_resolves_sdk_from_other_cwd`, `in_process_warm_overhead_under_point_one_ms`, `package_hash_1_mib_under_50_ms`, the capture and runner tests, and the two browser CSS tests), with no content failure. Re-running the affected files alone at load 13.5 passes (`proof.test.ts` and `pack.test.ts` 9/9), and task 8's last quiet run was 988 pass / 4 skip / 0 fail. Task 9 changes no code, only the register, two documents and this plan.
 
-- [ ] Task 10: Add `nodeRef()` (only with Task 9's approval)
+- [x] Task 10: Add `nodeRef()` (only with Task 9's approval) — `n/a`, deferred to 0.3.0
   - Acceptance Criteria:
     - Functional: as amended by Task 9. At minimum:
       - a catalog prop declared with `nodeRef()` accepts only the id of a node in the same tree;
@@ -583,7 +583,12 @@ Every task meets these rules. Its Compatibility criterion names the parts it tou
     - `dom_ids_are_unique_across_sibling_surfaces`.
     - `field_error_described_by_is_announced`: a browser test, read from the ARIA snapshot.
     - `catalog_without_noderef_unchanged`.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-02):
+    - **`n/a — deferred to 0.3.0 (Task 9)`.** Closed without implementation, per this task's own final bullet. Task 9's approval deferred the item instead of shipping it, so the condition in this task's title ("only with Task 9's approval") was not met: the owner approved deferral, and the [decision log](../decision-logs/2026-11-02-1219-defer-node-references-to-0-3-0.md) records that with the verbatim approval.
+    - Nothing in this task's scope was built, and nothing in 0.2.2 depends on it. No file named in "Files to Create/Edit" was touched, no corpus case was added, and no schema, codegen or port changed.
+    - The gate is now active rather than merely noted: `scripts/release/api/register-0.2.2.json` carries `deferred` entries for `./sdk ref`, `. NodeRef` and `./schemas/* catalog.json`, and `src/__tests__/api-stability.test.ts` fails if any of them appears in the built surface. A deferred entry that ships is a test failure, so the item cannot leak into the release by accident.
+    - What 0.3.0 inherits from this task, exactly as written above: the five acceptance bullets, the five test cases, the ≤2% `bun run bench` validator and render gates on the 679-node `agent-home` tree, and the register entries as `added`/`widened` (`./sdk ref`, `. NodeRef`, `./schemas/* catalog.json`, plus `./react ImplementationProps` for `Item.domId`). The design is settled, so a 0.3.0 task can implement without rediscovering the shape; the one caveat it must resolve first is spec §7.2's "building and validating are one pass", which the deferred-reference step bends.
+    - Artefacts already in the tree: the ratified design ([evidence](evidence/022-node-reference-design.md)), the decision log, the compatibility section (`docs/compatibility.md` § "Deferred to 0.3.0"), and the roadmap entries (Phase 7 bullet and §3).
 
 - [ ] Task 11: Add accessibility capture axes
   - Acceptance Criteria:
