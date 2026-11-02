@@ -6,9 +6,9 @@ type Props<D extends Definition> = string extends keyof D["props"]["properties"]
   : Infer<D["props"]>;
 
 /**
- * Raising an event returns the host's promise when `onIntent` returns one, so a primitive can mark
- * itself busy until the host settles; otherwise it returns `undefined`, as in 0.2.1. A rejection is
- * contained, never thrown at the window.
+ * Raising an event returns a promise that settles when the host's does, when `onIntent` returns one,
+ * so a primitive can mark itself busy until the host finishes; otherwise it returns `undefined`, as
+ * in 0.2.1. The host's value is dropped, and a rejection is contained, never thrown at the window.
  */
 type Emit<D extends Definition> = string extends keyof D["events"]
   ? (event: string, value?: Json) => Promise<void> | undefined

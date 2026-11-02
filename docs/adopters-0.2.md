@@ -78,7 +78,7 @@ Hosts upgrading from 0.2.1 that do not opt into focus continuity, the contrast a
 
 #### 1. Whole-tree node reuse in `<Surface>`
 
-`<Surface>` memoizes unchanged subtrees parsed from whole trees on arrival, matching nodes by key path and node content. Unchanged nodes skip re-rendering in React, closing the arrival-cost gap with streaming tree patches without requiring protocol changes.
+`<Surface>` memoizes unchanged subtrees parsed from whole trees on arrival, comparing each node with the node at the same position in the last accepted tree (same `id`, `kind`, `variant`, props, style, events and children). Unchanged nodes skip re-rendering in React, closing the arrival-cost gap with streaming tree patches without requiring protocol changes.
 
 ```tsx
 <Surface
@@ -92,7 +92,7 @@ Hosts upgrading from 0.2.1 that do not opt into focus continuity, the contrast a
 
 #### 2. Compiled-validator caching
 
-`compileValidator(catalog, capabilities, manifest)` caches immutable catalog and capability closures by content hash. Subsequent compilations with the same catalog and capabilities recompile only manifest-level closures, making per-render validator compilation near-zero cost while returning a new validator object with unchanged semantics.
+`compileValidator(catalog, capabilities, manifest)` keeps the catalog-level work for the eight most recent catalog and capabilities pairs, keyed by the JSON text of the two documents. A later call whose documents have the same text compiles only the manifest's part, so per-render compilation is cheap, and it still returns a new validator object with unchanged semantics. Equal documents written with their keys in a different order do not share an entry; they compile again.
 
 ```ts
 import { compileValidator } from "@arnilo/liveframe";
@@ -158,7 +158,7 @@ if (!audit.ok) {
 
 #### 6. Focus continuity in `<Surface>`
 
-`<Surface focusContinuity>` keeps keyboard focus inside the surface across updates. If the currently focused element is disconnected by a tree update, focus moves to the nearest connected tabbable sibling in document order (next, then previous), or falls back to the surface wrapper.
+`<Surface focusContinuity>` keeps keyboard focus inside the surface across updates. If the currently focused element is disconnected by a tree update, focus moves to the nearest tabbable element in the document that is still connected (the next one in document order, then the previous one), or falls back to the surface wrapper.
 
 ```tsx
 <Surface
@@ -173,7 +173,7 @@ if (!audit.ok) {
 
 #### 7. Recipe states and asynchronous intent emission
 
-The fixed `states` list and `schemas/design-system.json` recipe key pattern gain `current`, `mixed`, `pending`, and `readonly`. Primitives can inspect `aria-busy`, `aria-current`, `aria-checked=mixed`, or `aria-readonly`. When the host's `onIntent` returns a promise, primitive `emit()` returns `Promise<void> | undefined` so primitives can track pending state while operations complete.
+The fixed `states` list and `schemas/design-system.json` recipe key pattern gain `current`, `mixed`, `pending`, and `readonly`. Primitives can inspect `aria-busy`, `aria-current`, `aria-checked=mixed`, or `aria-readonly`. When the host's `onIntent` returns a promise, primitive `emit()` returns a `Promise<void>` that settles when the host's promise does, so primitives can track pending state while operations complete. The promise carries neither the host's result nor its rejection; otherwise `emit()` returns `undefined`.
 
 ```tsx
 import { useState } from "react";
@@ -229,7 +229,7 @@ const result = await capture({
 | `./react` | `createRenderer` | widened | none | SurfaceProps gains an optional focusContinuity boolean (task 7) and its onIntent return widens from void to unknown (task 8), so a host callback may return a promise emit hands back |
 | `.` | `states` | widened | Use Partial, or a default branch, for exhaustive Record<(typeof states)[number], ...> maps; a system styling none of the new states projects the same CSS. | gains current, mixed, pending and readonly, placed between selected and invalid in source order |
 | `./schemas/*` | `design-system.json` | widened | none | Recipe key pattern accepts the four new states |
-| `./react` | `ImplementationProps` | widened | none: ignoring the result, or assigning emit to a void-returning function type, still compiles. | Emit returns Promise<void> \| undefined, the host's promise when onIntent returns one |
+| `./react` | `ImplementationProps` | widened | none: ignoring the result, or assigning emit to a void-returning function type, still compiles. | Emit returns Promise<void> \| undefined: a promise that settles when the host's does (its value is dropped and a rejection is contained) when onIntent returns one |
 | `./sdk` | `ref` | deferred | none until 0.3.0 | Author-side node reference marker; the design is ratified but ships in 0.3.0 (decision log 2026-11-02-1219) |
 | `.` | `NodeRef` | deferred | none until 0.3.0 | Documentation alias for a reference prop value; ships with ref() in 0.3.0 |
 | `./schemas/*` | `catalog.json` | deferred | none until 0.3.0 | Optional refProps name list per definition; ships with ref() in 0.3.0 |

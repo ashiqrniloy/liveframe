@@ -21,7 +21,7 @@ Widened:
 
 - **Conformance contrast test:** `designSystemSuite` accepts optional `contrast: true | { minimums }` to fail on audit findings.
 - **Focus continuity and async intents in renderer:** `createRenderer` / `SurfaceProps` gains an optional `focusContinuity` boolean to preserve keyboard focus on DOM element disconnection, and `SurfaceProps.onIntent` return type widens from `void` to `unknown` so a host callback may return a promise `emit` hands back.
-- **Primitive async emit:** `ImplementationProps` widens `emit` to return `Promise<void> | undefined`, forwarding the host's promise when `onIntent` returns one.
+- **Primitive async emit:** `ImplementationProps` widens `emit` to return `Promise<void> | undefined`: a promise that settles when the host's does when `onIntent` returns one, with the host's value dropped and a rejection contained.
 - **Recipe states:** `states` and the recipe key pattern in `schemas/design-system.json` widen to include `current`, `mixed`, `pending`, and `readonly`, positioned in source order between `selected` and `invalid`.
 - **Capture media axes:** `CaptureOptions`, `CaptureSession` (`emulate?(media)`), `CaptureCell`, `CapturedCell`, `CaptureInput` and `AuthoringCaptureCell` accept optional media axes and record media coordinates.
 

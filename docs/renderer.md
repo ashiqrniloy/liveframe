@@ -251,7 +251,7 @@ arrival validation still establishes the contract either way.
 | `props` | Read validated data; produce accessible native elements or app behaviour components. |
 | `slot(name)` | Attach its stable recipe class to that slot. An undeclared name throws. The root slot also includes style-prop classes. |
 | `style` | Forward the projected inline declarations to the primitive root. These contain token-constrained layout, not arbitrary widget CSS. |
-| `emit(event, value?)` | Report the declared event with its carried value; do not invent or dispatch an action yourself. It returns the host's promise when `onIntent` returns one, and `undefined` otherwise, so a primitive can set `aria-busy` until the host settles; a rejection is contained and never becomes an unhandled rejection. |
+| `emit(event, value?)` | Report the declared event with its carried value; do not invent or dispatch an action yourself. When `onIntent` returns a promise, it returns a `Promise<void>` that settles when the host's does (the host's value is dropped, and a rejection is contained, so it never becomes an unhandled rejection); otherwise it returns `undefined`. A primitive can set `aria-busy` until that promise settles. |
 | `events` | Read offered event metadata: `{ type, confirm, irreversible }`. Keys follow the definition's events; absent offers have no entry. Both flags are false for `setState`. No action names, arguments or host `meta` are exposed. |
 | `children` | Render the already rendered child nodes once for an ordinary container. |
 | `items` | For collections, use each child's context: `id`, `kind`, `variant`, `props`, `slot`, `style`, `events`, `children`, `emit` and `render()`. Metadata belongs to that child. |
