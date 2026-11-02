@@ -42,7 +42,7 @@ Every acceptance bullet in the [0.2.2 plan (`plans/022-Phase-7-Part-I-Release-0-
 | `scripts/release/api-surface.ts` emits deterministic JSON of exported declarations + SHA-256 file hashes | PASS | Implemented and verified via `api-surface.ts` running over all typed subpaths. |
 | `scripts/release/api/0.2.1.json` generated from `v0.2.1` tag worktree | PASS | Baseline file committed and verified with command recorded in header. |
 | `src/__tests__/api-stability.test.ts` fails on removed export, changed declaration without entry, stale register entry, schema change without entry, corpus/hash/patch edit, deferred entry shipped | PASS | `src/__tests__/api-stability.test.ts` unit tests: `removed_export_fails`, `changed_declaration_without_entry_fails`, `stale_register_entry_fails`, `changed_corpus_file_fails`, `deferred_entry_with_shipped_change_fails`. |
-| `scripts/release/api/register-0.2.2.json` tracks additions | PASS | 20 registered entries (4 added, 13 widened, 3 deferred) pass gate. |
+| `scripts/release/api/register-0.2.2.json` tracks additions | PASS | 20 registered entries (6 added, 11 widened, 3 deferred) pass gate. |
 
 ### Task 2: Profile browser costs on a production React build
 

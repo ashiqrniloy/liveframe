@@ -2,9 +2,9 @@
 
 All notable changes to `@arnilo/liveframe` are recorded here. The project follows the compatibility policy in [`docs/compatibility.md`](docs/compatibility.md).
 
-## 0.2.2-rc.2 — 2026-11-03
+## 0.2.2 — 2026-11-03
 
-This section ships as `0.2.2-rc.2` first. `0.2.2-rc.1` was superseded before release: the release review brought the first-compile cost of `compileValidator` back inside 0.2.1's and fixed a stale catalog-cache hit.
+This section shipped as `0.2.2-rc.2` first. `0.2.2-rc.1` was superseded before release: the release review brought the first-compile cost of `compileValidator` back inside 0.2.1's and fixed a stale catalog-cache hit.
 
 [`docs/adopters-0.2.md`](docs/adopters-0.2.md#022--performance-and-accessibility-additions) maps 0.2.2 capabilities to what shipped. Under the [compatibility policy](docs/compatibility.md#022) (decision [2026-11-01-1747](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-11-01-1747-release-0-2-2-scope-and-api-stability.md)), every addition and widening in 0.2.2 is additive under the opt-in and no-break rules.
 
