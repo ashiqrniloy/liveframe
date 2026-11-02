@@ -135,7 +135,7 @@ type CatalogKind = {
   readonly style: SchemaCheck;
   readonly variants: ReadonlySet<string>;
   readonly variantExpected: string;
-  readonly carries: ReadonlyMap<string, Definition["events"][string]["carries"]>;
+  readonly events: Definition["events"];
   readonly eventExpected: string;
   readonly facts: KindFacts;
 };
@@ -192,6 +192,14 @@ function catalogWork(catalog: unknown, capabilities: unknown): CatalogWork {
     if (!entry || entry.catalog !== catalogKey || entry.capabilities !== capabilitiesKey) continue;
     entry.parsed ??= { catalog: JSON.parse(catalogKey), capabilities: JSON.parse(capabilitiesKey) };
     if (!sameJson(entry.parsed.catalog, catalog) || !sameJson(entry.parsed.capabilities, capabilities)) continue;
+    // The entry reads the documents of the call that compiled it; a caller may have changed them since.
+    if (
+      !sameJson(entry.parsed.catalog, entry.work.catalog) ||
+      !sameJson(entry.parsed.capabilities, entry.work.capabilities)
+    ) {
+      catalogs.splice(i, 1);
+      break;
+    }
     if (i > 0) {
       catalogs.splice(i, 1);
       catalogs.unshift(entry);
@@ -244,7 +252,7 @@ function compileCatalog(catalogDoc: unknown, capabilitiesDoc: unknown): CatalogW
       style,
       variants,
       variantExpected: `one of: ${definition.variants.join(", ")}`,
-      carries: new Map(Object.entries(definition.events).map(([name, event]) => [name, event.carries])),
+      events: definition.events,
       eventExpected: `a declared event: ${Object.keys(definition.events).join(", ") || "none"}`,
       facts: {
         variants,
@@ -274,16 +282,15 @@ function compile(work: CatalogWork, manifest: Manifest): CompiledValidator {
   const kinds = new Map<string, SchemaCheck>();
   const facts = new Map<string, KindFacts>();
   for (const [kind, spec] of work.kinds) {
+    const events = new Map<string, SchemaCheck>();
+    for (const [name, event] of Object.entries(spec.events)) events.set(name, intent(event.carries));
     kinds.set(
       kind,
       nodeCheck({
         fields,
         props: spec.props,
         style: spec.style,
-        events: eventMapCheck(
-          new Map([...spec.carries].map(([name, carries]) => [name, intent(carries)])),
-          spec.eventExpected,
-        ),
+        events: eventMapCheck(events, spec.eventExpected),
         variants: spec.variants,
         variantExpected: spec.variantExpected,
       }),

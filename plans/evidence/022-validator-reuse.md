@@ -61,3 +61,26 @@ the per-render path and the remaining cost is the tree walk itself.
 - Every call returns a new `CompiledValidator`; manifest validation, intents, per-kind event checks,
   the dispatcher, the tree validator and the input schemas are rebuilt per call, and the validator
   keeps the same thrown `LiveframeFailure` for invalid documents.
+
+## Follow-up (2026-11-03, release readiness review, Task 16)
+
+The owner asked for the first-compile figure to be brought back within 5% of 0.2.1 before 0.2.2 ships.
+
+- **Method.** One process loads the 0.2.1 `compileValidator` (a `v0.2.1` worktree) and the checkout's, and alternates them on
+  every sample (3,000 each, 300 warm-ups, a fresh catalog id per call), so load drift hits both equally. Unpaired runs
+  on this shared host (load 6–10) swung 0.94–1.46 ms for the same code and could not resolve 5%.
+- **Where the time went.** Before: checkout/0.2.1 = 1.057–1.083. Cache-less, the restructuring itself cost +0.6%; the key
+  (two `JSON.stringify` calls plus the entry lookup) cost the rest. A CPU profile of the cold path put `pointerAt` in
+  `src/schema.ts` first (11.7%): the install check builds a JSON-pointer string per schema node even when no one asks for it.
+- **Change.** `pointerAt` skips its two `replaceAll` calls when the key has no `~` or `/`, and `isObjectKeywordsValid`
+  computes the `properties` pointer once per object instead of once per property. Output is identical. The per-kind event
+  check is built straight from `definition.events` again instead of through an intermediate map.
+- **Result.** Checkout/0.2.1 = 0.961–0.985 over nine interleaved runs: the first compile is 1.5–4% faster than 0.2.1. The
+  5% criterion is met.
+- **A defect found on the way, and fixed.** `validateCatalog` returns the caller's own object, so a cache entry read the
+  documents of the call that created it. After that caller mutated its catalog, a later, equal catalog hit the entry and was
+  rejected ("Catalog does not match"), which broke Task 4's "never stale" criterion. A hit now confirms the entry's documents
+  still equal the key (`sameJson`) and otherwise evicts the entry and compiles fresh. Test:
+  `mutating_the_compiled_catalog_never_stales_an_equal_catalog`. The hit path costs about 0.03 ms more: 0.15–0.19 ms median
+  under load, against the 0.25 ms target (0.118 ms unloaded before the guard).
+- `bun run check`: 1000 pass, 4 skip, 0 fail.

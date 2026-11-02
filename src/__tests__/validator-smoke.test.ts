@@ -51,6 +51,19 @@ test("mutated_catalog_compiles_fresh", () => {
   expect(buildFacts(second).catalogId).toBe("proof.ui@103");
 });
 
+test("mutating_the_compiled_catalog_never_stales_an_equal_catalog", () => {
+  const options = documents(105);
+  compileValidator(options);
+  const compiles = catalogCompileCount();
+  // The cache reads the documents of the call that compiled it; changing them must evict the entry,
+  // not make a later, equal catalog compile against the changed content.
+  options.catalog.catalogId = "proof.ui@106";
+  const fresh = JSON.parse(JSON.stringify(documents(105)));
+  const validator = compileValidator(fresh);
+  expect(catalogCompileCount()).toBe(compiles + 1);
+  expect(buildFacts(validator).catalogId).toBe("proof.ui@105");
+});
+
 test("invalid_catalog_never_hits_cache", () => {
   const options = documents(104);
   compileValidator(options);

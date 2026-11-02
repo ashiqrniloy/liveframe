@@ -299,16 +299,18 @@ function isObjectKeywordsValid(
 ): boolean {
   if (schema.additionalProperties !== false || !isRecord(schema.properties)) return false;
   const { properties, required } = schema;
+  const base = pointerAt(pointer, "properties");
   return (
     Array.isArray(required) &&
     required.every((key) => typeof key === "string" && Object.hasOwn(properties, key)) &&
     new Set(required).size === required.length &&
-    Object.entries(properties).every(([key, child]) => visit(child, pointerAt(pointerAt(pointer, "properties"), key)))
+    Object.entries(properties).every(([key, child]) => visit(child, pointerAt(base, key)))
   );
 }
 
 function pointerAt(pointer: string, key: string | number): string {
-  return `${pointer}/${String(key).replaceAll("~", "~0").replaceAll("/", "~1")}`;
+  const name = String(key);
+  return `${pointer}/${name.includes("~") || name.includes("/") ? name.replaceAll("~", "~0").replaceAll("/", "~1") : name}`;
 }
 
 /** Interprets a language schema and returns at most maxErrors failures (default 20). */
