@@ -146,3 +146,47 @@ test("render_key_ignores_key_order_and_changes_with_any_input", () => {
   ] as const)
     expect(renderKey({ ...inputs, [field]: value })).not.toBe(key);
 });
+
+test("sha256_matches_native_on_random_inputs", () => {
+  let seed = 0x9e3779b9;
+  const next = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0);
+  // Every padding boundary (55, 56, 63, 64, 119, 120 ...), then random lengths with random bytes.
+  for (let length = 0; length <= 200; length++) {
+    const bytes = Uint8Array.from({ length }, () => next() & 255);
+    expect(sha256(bytes)).toBe(oracle(bytes));
+  }
+  for (let i = 0; i < 10_000; i++) {
+    const bytes = Uint8Array.from({ length: next() % 4097 }, () => next() & 255);
+    expect(sha256(bytes)).toBe(oracle(bytes));
+  }
+  for (const size of [1 << 20, 16 << 20]) {
+    const bytes = new Uint8Array(size);
+    for (let i = 0; i < size; i++) bytes[i] = (i * 31 + (i >>> 8)) & 255;
+    expect(sha256(bytes)).toBe(oracle(bytes));
+  }
+});
+
+test("utf8_matches_text_encoder_and_rejects_lone_surrogates", () => {
+  const encoder = new TextEncoder();
+  for (const text of ["", "ascii only", "é", "€", "😀", "aé€😀b", "a".repeat(1000), `${"a".repeat(1000)}😀`])
+    expect(utf8(text)).toEqual(encoder.encode(text));
+  for (const text of ["\ud800", "\udc00", "a\ud800", "\ud800a", "\udc00\ud800", "é\udbff", "😀\udc00"])
+    expect(() => utf8(text)).toThrow(new TypeError("Expected Unicode without lone surrogates"));
+});
+
+test("canonical_json_errors_unchanged_for_non_json", () => {
+  const cycle: unknown[] = [];
+  cycle.push(cycle);
+  const notJson = new TypeError("Expected a JSON value");
+  const notUnicode = new TypeError("Expected Unicode without lone surrogates");
+  for (const value of [undefined, NaN, 1n, Symbol(), cycle, [undefined], { a: [{ b: new Date() }] }, [cycle]])
+    expect(() => canonicalJson(value)).toThrow(notJson);
+  for (const value of ["\ud800", { "\udc00": 1 }, ["x\ud800y"]]) expect(() => canonicalJson(value)).toThrow(notUnicode);
+  // A value that is both invalid JSON and has a lone surrogate reports the JSON error, wherever the surrogate sits.
+  expect(() => canonicalJson(["\ud800", undefined])).toThrow(notJson);
+  expect(() => canonicalJson([undefined, "\ud800"])).toThrow(notJson);
+  expect(() => canonicalJson({ "\ud800": cycle })).toThrow(notJson);
+  // A shared reference is not a cycle.
+  const shared = { a: 1 };
+  expect(canonicalJson({ x: shared, y: [shared, [shared]] })).toBe('{"x":{"a":1},"y":[{"a":1},[{"a":1}]]}');
+});

@@ -544,3 +544,11 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Source: plans/024-Phase-7-Part-K-Release-0-2-3-Performance.md Task 4 (R14), plans/evidence/024-validator-walk.md
 - What: the single-traversal tree walk measured no gain, but its count-only floor shows `walkJson`'s validity machinery (the cycle `Set`, `path.push`/`pop`, shared-context field writes) costs 8–17% of the whole-tree walk on `agent-home`. Candidate: build the error path while unwinding from a failure instead of pushing it on the way down. `render()`'s builder shares `walkJson`, so measure both users.
 - Why: it is the one part of R14's cost that a change could reach with identical errors and no new coupling between the checks and the byte count. It is only worth doing if the whole-tree figure becomes a target again.
+
+## Reach 2× on the pure-JS SHA-256 only if hashing shows up in a profile
+
+- Section: Packages (spec §7.3), re-run cache (spec §8)
+- Priority: P4
+- Source: plans/024-Phase-7-Part-K-Release-0-2-3-Performance.md Task 5 (R15), plans/evidence/024-sha256.md
+- What: Task 5 made `sha256` about 1.3–1.5× faster than 0.2.2 (A/B 0.654 and 0.825 at load 25–39), not the planned 2×. A fully unrolled 64-round form measured about 1.7× against 0.2.2 on JavaScriptCore and was not kept, because it needs a generated 64-round body for a gain still under the target. Before trying again, measure on an idle host and on V8 (the browser `/pack` path), where the ratios may differ. The verified-package cache for `loadPlacement` (plan 025 Task 7, 0.3.0) removes the hottest repeated caller, so do this only if a profile still shows hashing after that.
+- Why: `packageHash` runs on every `pack()`, `verifyPackage()` and `loadPlacement()`, but its 0.70–0.77 ratio after Task 5 may already be enough. Spend the code only on a measured need.
