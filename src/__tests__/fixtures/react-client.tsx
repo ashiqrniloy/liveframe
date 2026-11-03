@@ -79,6 +79,8 @@ let switching = false;
 let continuity = false;
 let normalStyle = styles[0];
 let fallback = surfaceProps.fallback;
+// A host that writes `fallback={<p>…</p>}` inline hands Surface a new element on every parent render.
+let inlineFallback = false;
 let diagnostics: readonly import("../../index.ts").LiveframeError[] | undefined;
 
 const firstPortals: Record<string, boolean> = {};
@@ -164,7 +166,7 @@ function draw() {
         validator={currentValidator}
         tree={input}
         onIntent={onIntent}
-        fallback={fallback}
+        fallback={inlineFallback ? <p>Unavailable</p> : fallback}
         focusContinuity={continuity}
         {...(diagnostics ? { diagnostics } : {})}
       />,
@@ -175,6 +177,7 @@ declare global {
   interface Window {
     surfaceTest: {
       presentation(message: string, errors?: readonly import("../../index.ts").LiveframeError[]): void;
+      setInlineFallback(on: boolean): void;
       patch(value: TreePatch): void;
       arrive(value: unknown): void;
       failText(broken: boolean): void;
@@ -205,7 +208,11 @@ window.surfaceTest = {
   presentation(message, errors) {
     fallback = <p>{message}</p>;
     diagnostics = errors;
+    for (const key of Object.keys(nodeRenders)) nodeRenders[key] = 0;
     draw();
+  },
+  setInlineFallback(on) {
+    inlineFallback = on;
   },
   patch(value) {
     const result = applyPatch(input as UiTree, value);

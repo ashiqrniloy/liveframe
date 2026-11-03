@@ -11,11 +11,12 @@ import { proofWidgets } from "../src/__tests__/fixtures/widgets/index.ts";
 import { applyPatch, compileValidator, diffTrees, type UiTree } from "../src/index.ts";
 import { renderElements } from "../src/sdk/elements.ts";
 import { render } from "../src/sdk/render.ts";
-import { metric } from "./metrics.ts";
+import { jsonMode, metric } from "./metrics.ts";
 import { startRenderTrace, stopRenderTrace, TRACE_MARKS } from "./trace.ts";
 
 const patches = Bun.argv.includes("--patches");
 const production = Bun.argv.includes("--production");
+const inlineFallback = Bun.argv.includes("--inline-fallback");
 const outFlag = Bun.argv.indexOf("--out");
 const explicitOut = outFlag >= 0 ? Bun.argv[outFlag + 1] : undefined;
 const initialLoad = loadavg();
@@ -109,7 +110,7 @@ try {
   const page = await browser.newPage();
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(String(error)));
-  await page.goto(server.url.href);
+  await page.goto(inlineFallback ? `${server.url.href}?inline-fallback` : server.url.href);
   await page.waitForFunction(() => !!window.streamTest);
   const initialJson = initialTree ? JSON.stringify(initialTree) : null;
   const mount = () => page.evaluate((initial: string | null) => window.streamTest.mount(initial), initialJson);
@@ -149,7 +150,13 @@ try {
     () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(null)))),
   );
   await page.evaluate(() => performance.mark("lf-recorded-end"));
-  const trace = await stopRenderTrace(cdp, TRACE_MARKS);
+  // Tracing keeps events until its buffer fills, so a heavier renderer can lose the end mark. Under
+  // `--json` that costs only the layout figure, not every other metric.
+  const trace = await stopRenderTrace(cdp, TRACE_MARKS).catch((error: unknown) => {
+    if (!jsonMode) throw error;
+    console.error(`${error}; layout and paint not measured`);
+    return { layoutPaintMs: Number.NaN, events: 0 };
+  });
   const finalTree = patches ? await page.evaluate(() => window.streamTest.tree()) : undefined;
   const client = await page.evaluate(() => ({
     reactVersion: window.streamTest.reactVersion,
@@ -186,7 +193,7 @@ try {
   metric("reactWorkMs", median(commit));
   metric("validationAndReactMs", median(update));
   metric("wallMs", median(axis("wallMs")));
-  metric("layoutPaintMs", trace.layoutPaintMs / REVISIONS);
+  if (Number.isFinite(trace.layoutPaintMs)) metric("layoutPaintMs", trace.layoutPaintMs / REVISIONS);
   if (patches) {
     metric("diffMs", median(revisions.map((entry) => entry.diffMs)));
     metric("applyMs", median(axis("applyMs")));
@@ -205,7 +212,7 @@ try {
     `- Machine: ${platform()} ${release()}; ${cpus()[0]?.model}; ${cpus().length} logical CPUs`,
     `- Bun: ${Bun.version}; Playwright Chromium: ${browser.version()}`,
     `- Build: React ${client.reactVersion}, ${build} (\`process.env.NODE_ENV=${build}\`); ${production ? "no Profiler instrumentation" : "Profiler instrumentation included"}.`,
-    `- Command: \`bun --conditions liveframe:source bench/streaming.bench.ts${patches ? " --patches" : ""}${production ? " --production" : ""}\``,
+    `- Command: \`bun --conditions liveframe:source bench/streaming.bench.ts${patches ? " --patches" : ""}${production ? " --production" : ""}${inlineFallback ? " --inline-fallback" : ""}\``,
     `- Subject: agent-home, 679 nodes, 50 rows; ${REVISIONS} revisions at a ${1000 / INTERVAL_MS}/s target; one row's status changes per revision, ${patches ? "patches sent after a separately mounted revision-0 whole tree" : "whole trees sent"}.`,
     `- Warm: one untimed pass of ${WARMUP_REVISIONS} revisions precedes the recorded pass, so the timed first revision does not include mount; each measure below is repeated ${REVISIONS} times. A longer traced warm-up captured no render events, so the warm pass is kept short.`,
     ...(patches

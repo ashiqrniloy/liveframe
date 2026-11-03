@@ -1,8 +1,10 @@
 import {
   Component,
   type CSSProperties,
+  createContext,
   Fragment,
   type ReactNode,
+  useContext,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -57,9 +59,32 @@ type SurfaceProps = {
   readonly confirm?: (intent: Intent, meta: Readonly<{ confirm: boolean; irreversible: boolean }>) => Promise<boolean>;
 };
 
+/**
+ * What the surface currently shows for a failed node, and which nodes the host flagged. Cached node
+ * elements read them through these contexts instead of capturing the props, so a host that writes
+ * `fallback={<p>…</p>}` inline, or rebuilds `diagnostics` per render, does not reset node reuse.
+ * React updates a context consumer even beneath a memoised parent.
+ */
+const FallbackContext = createContext<ReactNode>(null);
+const DiagnosedContext = createContext<ReadonlySet<string>>(new Set());
+
+/** Rendered only by a failed node, so only failed nodes subscribe to the fallback. */
+function NodeFallback() {
+  return <>{useContext(FallbackContext)}</>;
+}
+
+/** Marks a node the host flagged; the primitive inside is untouched when the flagged set changes. */
+function Diagnosed({ id, children }: { id: string; children: ReactNode }) {
+  const flagged = useContext(DiagnosedContext).has(id);
+  return (
+    <div style={{ display: "contents" }} data-lf-node={id} data-lf-error={flagged ? "" : undefined}>
+      {children}
+    </div>
+  );
+}
+
 class Boundary extends Component<{
   node: UiNode;
-  fallback: ReactNode;
   children: ReactNode;
   failed: WeakSet<UiNode>;
 }> {
@@ -78,7 +103,7 @@ class Boundary extends Component<{
   }
 
   render() {
-    return this.state.failed ? this.props.fallback : this.props.children;
+    return this.state.failed ? <NodeFallback /> : this.props.children;
   }
 }
 
@@ -288,8 +313,13 @@ export function createRenderer({
     useLayoutEffect(() => {
       current.current = { tree: arrival.ok ? accepted.tree : undefined, onIntent, confirm };
     }, [accepted.tree, arrival.ok, onIntent, confirm]);
+    const diagnosed = diagnostics !== undefined;
+    // The set is keyed on its content, so a new array naming the same nodes keeps the context value.
+    const flaggedKey = JSON.stringify(diagnostics?.map((error) => error.nodeId).sort() ?? []);
+    // biome-ignore lint/correctness/useExhaustiveDependencies: The key stands for the array's content.
+    const flagged = useMemo(() => new Set(diagnostics?.flatMap((error) => error.nodeId ?? [])), [flaggedKey]);
     // biome-ignore lint/correctness/useExhaustiveDependencies: Cached contexts capture these generation inputs.
-    const contexts = useMemo(() => new WeakMap<UiNode, Item>(), [accepted.validator, fallback, portal, diagnostics]);
+    const contexts = useMemo(() => new WeakMap<UiNode, Item>(), [accepted.validator, portal, diagnosed]);
     const root = useMemo(() => {
       const tree = accepted.tree;
       if (!tree) return null;
@@ -391,15 +421,11 @@ export function createRenderer({
           render: () => element,
         };
         const element = (
-          <Boundary key={node.id} node={node} fallback={fallback} failed={failed}>
-            {diagnostics ? (
-              <div
-                style={{ display: "contents" }}
-                data-lf-node={node.id}
-                data-lf-error={diagnostics.some((error) => error.nodeId === node.id) ? "" : undefined}
-              >
+          <Boundary key={node.id} node={node} failed={failed}>
+            {diagnosed ? (
+              <Diagnosed id={node.id}>
                 <Node item={item} implementation={implementation} />
-              </div>
+              </Diagnosed>
             ) : (
               <Node item={item} implementation={implementation} />
             )}
@@ -409,27 +435,29 @@ export function createRenderer({
         return item;
       }
       return context(tree.root).render();
-    }, [accepted.tree, accepted.validator, contexts, portal, fallback, diagnostics, failed]);
+    }, [accepted.tree, accepted.validator, contexts, portal, diagnosed, failed]);
     const scope = surfaceAttributes({ ...appliedScope, tree: accepted.tree ?? emptyTree });
     return (
-      <>
-        <div {...mergeHostProps(scope, wrapperProps)} ref={wrapper} tabIndex={focusContinuity ? -1 : undefined}>
-          {arrival.ok ? (
-            <Fragment key={accepted.tree?.surfaceId}>
-              {focusContinuity ? (
-                <FocusContinuity scope={() => [wrapper.current, portal]} wrapper={() => wrapper.current}>
-                  {root}
-                </FocusContinuity>
-              ) : (
-                root
-              )}
-            </Fragment>
-          ) : (
-            fallback
-          )}
-        </div>
-        <div {...mergeHostProps(scope, portalProps)} data-lf-portal="" ref={setPortal} />
-      </>
+      <FallbackContext value={fallback}>
+        <DiagnosedContext value={flagged}>
+          <div {...mergeHostProps(scope, wrapperProps)} ref={wrapper} tabIndex={focusContinuity ? -1 : undefined}>
+            {arrival.ok ? (
+              <Fragment key={accepted.tree?.surfaceId}>
+                {focusContinuity ? (
+                  <FocusContinuity scope={() => [wrapper.current, portal]} wrapper={() => wrapper.current}>
+                    {root}
+                  </FocusContinuity>
+                ) : (
+                  root
+                )}
+              </Fragment>
+            ) : (
+              fallback
+            )}
+          </div>
+          <div {...mergeHostProps(scope, portalProps)} data-lf-portal="" ref={setPortal} />
+        </DiagnosedContext>
+      </FallbackContext>
     );
   }
 

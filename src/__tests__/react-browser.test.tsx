@@ -1065,6 +1065,97 @@ test("reused_nodes_follow_confirmation_fallback_and_diagnostics_changes", async 
   }
 });
 
+test("inline_fallback_keeps_node_reuse", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    await page.evaluate(
+      (value: unknown) => {
+        window.surfaceTest.setInlineFallback(true);
+        window.surfaceTest.arrive(value);
+      },
+      eventTree(1, "Revision 1"),
+    );
+    // The parent re-renders with a new inline fallback element and the same tree content.
+    const same = await page.evaluate(
+      (value: unknown) => {
+        window.surfaceTest.arrive(value);
+        return window.surfaceTest.reuse();
+      },
+      eventTree(2, "Revision 1"),
+    );
+    expect(same.renders).toMatchObject({ stack: 0, text: 0, button: 0 });
+    const changed = await page.evaluate(
+      (value: unknown) => {
+        window.surfaceTest.arrive(value);
+        return window.surfaceTest.reuse();
+      },
+      eventTree(3, "Revision 3"),
+    );
+    expect(changed.renders).toMatchObject({ stack: 1, text: 1, button: 0 });
+  } finally {
+    await page.close();
+  }
+});
+
+test("replacing_fallback_updates_failed_nodes", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    await page.evaluate(() => {
+      const tree = window.surfaceTest.tree();
+      window.surfaceTest.update({
+        ...tree,
+        root: {
+          ...tree.root,
+          children: [{ id: "root/first", kind: "text", props: { text: "throw" } }, ...tree.root.children!.slice(1)],
+        },
+      });
+      window.surfaceTest.presentation("Fallback A");
+    });
+    expect(await page.getByText("Fallback A").count()).toBe(1);
+    const renders = await page.evaluate(() => {
+      window.surfaceTest.presentation("Fallback B");
+      return window.surfaceTest.reuse().renders;
+    });
+    expect(await page.getByText("Fallback B").count()).toBe(1);
+    expect(await page.getByText("Fallback A").count()).toBe(0);
+    // Only the failed node subscribed: no primitive re-rendered for the new fallback.
+    expect(renders.button ?? 0).toBe(0);
+  } finally {
+    await page.close();
+  }
+});
+
+test("same_diagnostics_content_new_array_keeps_reuse_and_changed_marks_only_the_named_nodes", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    const error = (nodeId: string) => ({ kind: "invalid-prop" as const, pointer: "/root", message: "Review", nodeId });
+    await page.evaluate((e) => window.surfaceTest.presentation("Fallback", [e]), error("root/second"));
+    expect(await page.locator("[data-lf-error]").count()).toBe(1);
+    const same = await page.evaluate((e) => {
+      window.surfaceTest.presentation("Fallback", [e]);
+      return window.surfaceTest.reuse().renders;
+    }, error("root/second"));
+    expect(same).toMatchObject({ stack: 0, text: 0, button: 0 });
+    expect(await page.locator('[data-lf-node="root/second"][data-lf-error]').count()).toBe(1);
+    const moved = await page.evaluate((e) => {
+      window.surfaceTest.presentation("Fallback", [e]);
+      return window.surfaceTest.reuse().renders;
+    }, error("root/first"));
+    // The wrappers update; the primitives inside them do not.
+    expect(moved).toMatchObject({ stack: 0, text: 0, button: 0 });
+    expect(await page.locator("[data-lf-error]").count()).toBe(1);
+    expect(await page.locator('[data-lf-node="root/first"][data-lf-error]').count()).toBe(1);
+  } finally {
+    await page.close();
+  }
+});
+
 const focusRows = (revision: number, labels: readonly string[]) => ({
   format: "liveframe/1",
   catalogId: surfaceTree().catalogId,

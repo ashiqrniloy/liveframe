@@ -21,16 +21,26 @@ const root = createRoot(document.body);
 const { Surface } = renderer();
 let validationMs = 0;
 
+// `?inline-fallback`: the parent writes `fallback={<p>…</p>}` inline, a new element per render.
+const inlineFallback = new URL(location.href).searchParams.has("inline-fallback");
 // Production React runs without Profiler instrumentation and never calls onRender,
 // so the timed span there is flushSync wall time.
 function render(tree: UiTree, onRender?: (duration: number) => void) {
+  const surface = (
+    <Surface
+      {...surfaceProps}
+      {...(inlineFallback ? { fallback: <p>Unavailable</p> } : {})}
+      validator={validator}
+      tree={tree}
+    />
+  );
   flushSync(() =>
     root.render(
       production ? (
-        <Surface {...surfaceProps} validator={validator} tree={tree} />
+        surface
       ) : (
         <Profiler id="stream" onRender={(_id, _phase, actualDuration) => onRender?.(actualDuration)}>
-          <Surface {...surfaceProps} validator={validator} tree={tree} />
+          {surface}
         </Profiler>
       ),
     ),

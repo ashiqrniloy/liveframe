@@ -138,8 +138,10 @@ For patch streaming, apply patches in the browser host and pass the resulting wh
 tree to `Surface`. Arrival validation still checks the complete tree. Keep served
 trees immutable: `applyPatch` shares untouched nodes, and `Surface` reuses their
 contexts and React elements. Unchanged primitives can still update their own local
-state; their events name the currently accepted revision. Replacing the validator,
-fallback, portal container or diagnostics resets the node cache.
+state; their events name the currently accepted revision. Replacing the validator or
+portal container, or turning diagnostics on or off, resets the node cache. A new
+`fallback` element or `diagnostics` array does not, so an inline `fallback={<p>…</p>}`
+is fine.
 
 Whole-tree transport gets the same reuse without a patch. After validation,
 `Surface` replaces every subtree whose value is unchanged since the accepted tree
