@@ -56,7 +56,7 @@ async function bundleSucrase(): Promise<void> {
       version: string;
     };
     const licence = await readFile(`${root}node_modules/${name}/LICENSE`, "utf8");
-    sections.push(`${name}@${version}\n\n${licence.trim()}\n`);
+    sections.push(`### ${name}@${version}\n\n${licence.trim()}\n`);
   }
   await Bun.write(
     `${root}dist/pack/THIRD-PARTY-LICENSES`,

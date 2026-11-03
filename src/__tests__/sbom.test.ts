@@ -2,7 +2,8 @@ import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Ajv } from "ajv";
-import { buildSbom, closure, type Lock, type PackageJson } from "../../scripts/release/sbom.ts";
+import { bundledAdvisories } from "../../scripts/release/audit-bundled.ts";
+import { buildSbom, closure, type Lock, type PackageJson, readBundled } from "../../scripts/release/sbom.ts";
 
 const root = resolve(import.meta.dir, "../..");
 const pkg = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8")) as PackageJson & {
@@ -18,6 +19,7 @@ test("sbom_lists_exactly_the_runtime_closure", () => {
   expect(listed).toContain("acorn");
   // sucrase is bundled into dist/pack at build time, so none of its dependencies reach a consumer.
   expect(listed).toEqual(["acorn"]);
+  expect(listed).not.toContain("commander");
   for (const dev of Object.keys(pkg.devDependencies)) expect(listed).not.toContain(dev);
   for (const peer of Object.keys(pkg.peerDependencies)) expect(listed).not.toContain(peer);
   // The closure is closed: every dependency of a listed package is listed, and every purl is unique.
@@ -57,8 +59,37 @@ test("sbom_is_valid_cyclonedx_1_6", () => {
   ajv.addSchema(read("spdx.schema.json"));
   ajv.addSchema(read("jsf-0.82.schema.json"));
   const validate = ajv.compile(read("bom-1.6.schema.json"));
-  const bom = buildSbom(pkg, lock, () => "MIT");
+  const bom = buildSbom(pkg, lock, () => "MIT", readBundled(root));
   expect(validate(bom), JSON.stringify(validate.errors)).toBe(true);
   // The validator is not vacuous.
   expect(validate({ ...bom, specVersion: 1.6 })).toBe(false);
+});
+
+test("sbom_inventories_the_bundled_packages", () => {
+  const bundled = readBundled(root);
+  expect(bundled.map(({ name }) => name)).toContain("sucrase");
+  const bom = buildSbom(pkg, lock, () => undefined, bundled) as {
+    components: { name: string; properties?: { name: string }[] }[];
+  };
+  const listed = names(bom);
+  for (const { name } of bundled) expect(listed).toContain(name);
+  expect(listed).toContain("acorn");
+  // Only what the bundle contains: sucrase's CLI-only dependencies are neither bundled nor shipped.
+  for (const name of ["commander", "mz", "pirates", "tinyglobby", "thenify"]) expect(listed).not.toContain(name);
+  const flagged = bom.components.filter((component) => component.properties?.[0]?.name === "liveframe:bundled");
+  expect(flagged.map(({ name }) => name).sort()).toEqual(bundled.map(({ name }) => name).sort());
+  expect(() => buildSbom(pkg, lock, () => undefined, [{ name: "sucrase", version: "0.0.0" }])).toThrow(/bundled/);
+});
+
+test("bundled_advisories_fail_only_on_high_or_critical_bundled_packages", () => {
+  const audit = {
+    sucrase: [{ severity: "high", title: "bad", url: "https://example.test/1" }],
+    "lines-and-columns": [{ severity: "moderate", title: "meh", url: "https://example.test/2" }],
+    typescript: [{ severity: "critical", title: "dev only", url: "https://example.test/3" }],
+  };
+  const failures = bundledAdvisories(audit, ["sucrase", "lines-and-columns", "ts-interface-checker"]);
+  expect(failures).toHaveLength(1);
+  expect(failures[0]).toContain("sucrase: high bad");
+  expect(bundledAdvisories({}, ["sucrase"])).toEqual([]);
+  expect(() => bundledAdvisories([], ["sucrase"])).toThrow();
 });

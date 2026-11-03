@@ -27,14 +27,16 @@ jobs:
       - name: Audit all dependencies (informational)
         run: bun audit
         continue-on-error: true
+      - run: bunx playwright install --with-deps chromium webkit firefox
+      - run: bun run check
+      - name: Audit bundled code (fails on high or critical)
+        run: bun scripts/release/audit-bundled.ts
       - name: SBOM (CycloneDX)
         run: bun scripts/release/sbom.ts --out "$RUNNER_TEMP/sbom.cdx.json"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sbom
           path: ${{ runner.temp }}/sbom.cdx.json
-      - run: bunx playwright install --with-deps chromium webkit firefox
-      - run: bun run check
       - name: Browser suites (WebKit)
         run: LIVEFRAME_BROWSER=webkit bun run test
       - name: Browser suites (Firefox)

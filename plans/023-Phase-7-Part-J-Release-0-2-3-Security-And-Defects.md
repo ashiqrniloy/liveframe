@@ -464,8 +464,15 @@ Plan 022's rules 1–6 apply as written. In addition:
     - Full `bun run check`: 1015 pass, 9 fail. Eight were wall-clock tests failing at load average 18 to 27 (other processes on this host: two VMs and other test runs). Of those, `verify_agent_home_under_20_ms`, `in_process_warm_overhead_under_point_one_ms`, `validator_smoke_under_5us_per_node`, `every_proof_scenario_passes_check` and a `switch` browser case still failed when re-run alone at load 18, and none of them runs through `dist/pack` or the bundled sucrase (the suite uses the `liveframe:source` condition). The ninth, `archive_contains_only_the_release_files`, was real and is fixed above (6 pass). A full `check` needs a re-run on a quiet host before the plan's final verification.
     - Tests are in `src/__tests__/build-pack-bundle.test.ts`: `bundled_pack_hashes_match_the_vectors`, `dist_pack_imports_no_sucrase` (also asserts `dependencies` is `["acorn"]`) and `bundled_packages_ship_their_licences`. The compatibility rules hold: no declaration, export or schema changed, and the register stays `[]`. CHANGELOG "Changed" has a line. No spec change.
 
-- [ ] Task 10: Analyze architectural impact and dispose of every finding
+- [x] Task 10: Analyze architectural impact and dispose of every finding
   - Sweep the impact areas in `.agents/skills/create-plan/references/liveframe.md` §5 against the work delivered. Record each area, or `None — <reason>`, in `plans/evidence/023-impact-analysis.md`. Present the findings with a recommended `execute`/`backlog` disposition, record the owner's answer, and execute or backlog each item. Confirm `register-0.2.3.json` is still `[]`, and that every row in this plan's disposition table is fixed, deferred with an entry, or handed to plans 024 and 025.
+  - Notes (executed 2026-11-03):
+    - `plans/evidence/023-impact-analysis.md` sweeps the twelve areas (none needed a spec correction; area 7 and 8 carry the load caveat) and disposes five findings. The owner's answers: F1 execute, F2 pre-release blocker in plan 025, F3 execute, F4 and F5 the recommended split.
+    - **F1, executed:** after Task 9 the bundled sucrase code was outside `bun audit --prod` and the SBOM. New `scripts/release/audit-bundled.ts` fails on high or critical advisories in the bundled packages; `scripts/release/sbom.ts` now also lists them (`liveframe:bundled`). Both read `dist/pack/THIRD-PARTY-LICENSES`, whose per-package heading became `### name@version`, so they run after the build; CI and `publish.yml` run them after `bun run check`. `docs/compatibility.md` § Release process says so. The SBOM test now takes the bundled list for the schema check, and `sbom_lists_exactly_the_runtime_closure` still asserts `["acorn"]` for the install closure.
+    - **F3, executed:** the official `bun-v1.4.2` binary passes `sbom.test.ts` (5 tests) and produces the same SBOM as 1.4.4.
+    - **F2** is now a bullet in plan 025 Task 9 and **F4** a bullet in plan 025 Task 8; the backlog entry "Re-run the full benchmark suite on a quiet host" lists the extra figures. **F5** is a P4 backlog entry. Those edits are in the uncommitted plan 025 file and `plans/backlog.md`.
+    - The register is `[]`; every row of the disposition table is fixed, deferred with an entry, or handed to plans 024 and 025.
+    - Whole-plan verification: `bun run check` has not passed in full on a quiet host (see F4); the targeted suites (`api-stability`, `docs-links`, `portability`, `archive`, `sbom`, `build-pack-bundle`) pass, `release:gate` passes 14 steps, `bun audit --prod --audit-level=high` and `audit-bundled.ts` pass, and `sbom.ts` writes a valid CycloneDX document.
 
 ## Verification (whole plan)
 
@@ -478,8 +485,16 @@ Plan 022's rules 1–6 apply as written. In addition:
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- Task 2 added no `limits` option, because that is a new declaration; default limits apply to custom-runner validation (F5, backlog P4).
+- Task 4 snapshots top-level references only. Mutation inside `manifest` or `scenarios` is not detected; freezing is the 0.3.0 contract.
+- Task 6 documents the `draftRoot` trust model instead of reading through a handle (backlog P4).
+- Task 7 deprecates `fr` on dimension props without rejecting it; rejection is a 0.3.0 entry.
+- Task 8: the SBOM is a workflow artifact, not in the npm archive. A tag-only `release` environment also blocks branch dry runs.
+- Task 9 checked byte-identity on the five proof widgets, because the hash vectors do not exercise the transpiler. Timing figures were taken under load.
+- `bun run check` did not pass in full on a quiet host during this plan (F4).
 
 ## Further Actions
 
-- To be filled after task completion with improvements, rationale, and priority.
+- Plan 025 Task 8: a full `check` and the pack-time comparison on a quiet host (P2, blocks the release evidence).
+- Plan 025 Task 9: create the `release` environment and configure the npm trusted publisher; choose tag-only or reviewers-only (P1, blocks the tag).
+- Backlog P4: validation `limits` for `createPreview()`/`createAuthoring()` (0.3.0); handle-based draft read.
