@@ -520,3 +520,11 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Source: plans/liveframe-evaluation.md ("Host Integration Chasm"), decision-logs/2026-11-01-1747-release-0-2-2-scope-and-api-stability.md (a stateful `/host` controller rejected), plans/022-Phase-7-Part-I-Release-0-2-2-Performance-And-Accessibility.md Task 18 (F6)
 - What: `examples/demo-host/server.ts` renders with `data: {}`, its capabilities and widgets declare no `sources`, and it calls neither `bindSources` nor `renderKey` nor `diffTrees`. It does keep a served-tree map for `checkOffered` and one compiled validator per package hash. Add one source-reading widget so the demo shows: `bindSources`, the host's own resolver running as the viewer, `renderKey` skipping an unchanged re-run, and `diffTrees` with a whole-tree fallback on `stale-patch`, with `demo:test` covering each. Leave concurrent-read de-duplication and true isolation as documented host responsibilities (a library controller was rejected).
 - Why: hosts copy the demo, and 0.2.2 added the helpers that remove the hand-rolled parts, so the demo is where an outsider sees them used together. Docs already show each helper alone (`docs/packages.md`).
+
+## Read draft directories through an open handle
+
+- Section: Phase 8 follow-up (spec §13, `liveframe mcp`)
+- Priority: P4
+- Source: plans/023-Phase-7-Part-J-Release-0-2-3-Security-And-Defects.md Task 6 (R8, the review of `main` at `9894b1d`)
+- What: `readDraftDirectory` (`src/cli/draft-dir.ts`) resolves a path with `realpath`, checks containment, then opens it by path, so a third party who can write under `draftRoot` can swap a symlink in that window. Open each file first, `fstat` the handle, and compare its `dev`/`ino` with those of the contained path (`lstat` of the realpath) before reading from the handle. Do not look for the handle's path: Bun has no portable fd-to-path call (`/proc/self/fd` is Linux-only, `F_GETPATH` macOS-only). Keep every error `kind` and `pointer`, and add a test that swaps a symlink between the check and the read.
+- Why: 0.2.3 documents the trust model instead (`draftRoot` is writable only by the agent and the host, `docs/mcp.md`), which is enough while the root is host-controlled. Hosts that share the directory with other writers need the handle-based read.

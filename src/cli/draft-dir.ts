@@ -13,6 +13,14 @@ const contained = (root: string, path: string) => {
   return fromRoot !== ".." && !fromRoot.startsWith(`..${sep}`) && !isAbsolute(fromRoot);
 };
 
+/** A read error described relative to `draftRoot`: Node's own message carries the host's absolute path. */
+function readFailure(error: unknown, dir: string, target: string | undefined): Result<never> {
+  const code = (error as { code?: unknown }).code;
+  const what = target === undefined ? `draft directory "${dir}"` : `draft file "${target}" in "${dir}"`;
+  if (code === "ENOENT") return failure("not-found", `${what} not found`);
+  return failure("invalid-document", `${what} could not be read${typeof code === "string" ? ` (${code})` : ""}`);
+}
+
 const validDirectory = (dir: unknown): dir is string =>
   typeof dir === "string" &&
   dir.length > 0 &&
@@ -31,6 +39,8 @@ export async function readDraftDirectory(
     return failure("invalid-document", "dir must be a non-empty relative path without .. segments");
   if (["files", "manifest", "scenarios"].some((key) => Object.hasOwn(input, key)))
     return failure("invalid-document", "dir cannot be combined with files, manifest or scenarios");
+  /** The file being read, or undefined while the directory itself is. Errors name it relative to `draftRoot`. */
+  let target: string | undefined;
   try {
     const directory = await realpath(join(root, dir));
     if (!contained(root, directory)) return failure("invalid-document", "Draft directory escapes draftRoot");
@@ -44,6 +54,7 @@ export async function readDraftDirectory(
     const selected: { name: string; path: string }[] = [];
     let size = 0;
     for (const name of [...sources, "manifest.json", "scenarios.json"]) {
+      target = name;
       const path = await realpath(join(directory, name));
       if (!contained(root, path)) return failure("invalid-document", `Draft file ${name} escapes draftRoot`);
       const info = await lstat(path);
@@ -55,6 +66,7 @@ export async function readDraftDirectory(
     const contents: Record<string, string> = {};
     let bytesRead = 0;
     for (const { name, path } of selected) {
+      target = name;
       // Bound actual reads too, in case a file grew after the size check.
       const bytes = await Bun.file(path)
         .slice(0, maxBytes - bytesRead + 1)
@@ -69,7 +81,6 @@ export async function readDraftDirectory(
     return { ok: true, value: { files, entry, manifest, scenarios } };
   } catch (error) {
     if (error instanceof SyntaxError) return failure("invalid-document", "Draft contains malformed JSON");
-    const missing = (error as { code?: string }).code === "ENOENT";
-    return failure(missing ? "not-found" : "invalid-document", error instanceof Error ? error.message : String(error));
+    return readFailure(error, dir, target);
   }
 }

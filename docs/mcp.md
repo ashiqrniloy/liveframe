@@ -224,9 +224,16 @@ with `files`, `manifest` or `scenarios`. Reader errors point to `/dir`:
 `invalid-document` for those invalid inputs or malformed JSON, `not-found` for a
 missing root configuration, directory, required JSON file or entry, and
 `limit-exceeded` for read limits. Once read, document errors retain pointers such
-as `/manifest/id`. These directories must be host-controlled: the reader is not
-a sandbox against a local process replacing files concurrently. `/authoring`
-continues to accept inline drafts only.
+as `/manifest/id`. Error messages name the directory and file relative to the root
+(`draft file "manifest.json" in "widget" not found`); they never carry an absolute path,
+so the agent learns nothing about the host's layout.
+
+**Trust model.** `draftRoot` must be writable only by the agent and the host. The
+reader resolves symlinks and checks containment when it reads, but it does not defend
+against a third party who swaps a symlink between that check and the read, and it is
+not a sandbox against a local process replacing files concurrently. Do not point it at
+a directory other users or services can write to. `/authoring` continues to accept
+inline drafts only.
 
 `pack_draft` takes the same inline input as `session.update()`. A failed pack returns
 the errors and keeps the previous package, so the agent can fix a draft without

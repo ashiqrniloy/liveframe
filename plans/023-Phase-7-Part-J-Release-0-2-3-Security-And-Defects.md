@@ -287,7 +287,7 @@ Plan 022's rules 1–6 apply as written. In addition:
     - CHANGELOG has two "Fixed" lines and one "Added" line for the store case. The register stays `[]`. No spec change.
     - `bun run check`: 1017 pass, 0 fail. `in_process_warm_overhead_under_point_one_ms` failed twice with the machine at load average 10 to 13 (0.108 and 0.129 ms against 0.1; the same test also failed on the baseline without these changes, and standalone runs ranged from -0.07 to 0.157 ms). It passed on the third full run. It is a wall-clock test and unrelated to this task.
 
-- [ ] Task 6: Keep absolute paths out of MCP draft errors and document the draft-root trust model (R8, patch-safe part)
+- [x] Task 6: Keep absolute paths out of MCP draft errors and document the draft-root trust model (R8, patch-safe part)
   - Acceptance Criteria:
     - Functional:
       - `src/cli/draft-dir.ts:72-73` reports errors relative to `draftRoot`, for example `not-found: draft file "widget.tsx" not found in "drafts/a"`. They no longer carry the Node error message with the absolute path. The `kind` and `pointer` are unchanged.
@@ -315,6 +315,14 @@ Plan 022's rules 1–6 apply as written. In addition:
       - `src/__tests__/cli-mcp.test.ts` (added case)
   - Test Cases to Write:
     - `draft_errors_never_contain_the_absolute_root`: the error messages for a missing file, a symlink escape and an unreadable file do not contain `realpath(draftRoot)`.
+  - Notes (executed 2026-11-03):
+    - `src/cli/draft-dir.ts`: the catch block returned Node's `error.message`, which carries the absolute path (`ENOENT: … realpath '/tmp/…/absent'`). A `readFailure(error, dir, target)` helper now builds the message from the relative `dir` and the file being read (tracked in a `target` variable): `draft directory "absent" not found`, `draft file "scenarios.json" in "widget" not found`, or `… could not be read (EACCES)`. The helper also kept `readDraftDirectory` under the lint complexity cap (27 against 25). `kind` and `pointer` are unchanged. The other reader messages (escape, missing entry, limits) never contained a path.
+    - **Amended: relative to the request's `dir`, not to `draftRoot`.** The criterion's example, `"widget.tsx" not found in "drafts/a"`, names the file and the `dir` the agent sent, which is the agent's own input. The root is never named.
+    - Test `draft_errors_never_contain_the_absolute_root` (`cli-mcp.test.ts`) checks a missing directory, a symlink escape, a missing entry, a missing `scenarios.json` and an unreadable (`chmod 000`) `manifest.json` against both `root` and `realpath(root)`, and pins the two new message shapes. The unreadable case is skipped when the process can read despite the mode (root); here it ran and returned `(EACCES)`. With `draft-dir.ts` reverted the test fails on the `ENOENT … realpath` message. The existing 22 `pack_dir_*` tests pass unedited.
+    - `docs/mcp.md` now states that errors are relative and gives the trust model: `draftRoot` writable only by the agent and the host; symlinks are resolved and contained at read time, with no defence against a third party swapping one during a read. The old sentence about concurrent replacement moved into it.
+    - Backlog: a P4 entry "Read draft directories through an open handle" (open, `fstat`, compare `dev`/`ino` with the contained path) in `plans/backlog.md`.
+    - CHANGELOG "Fixed" has a line. The register stays `[]`. No spec change.
+    - `bun run check`: lint, typecheck, format and API-stability pass. The full run, at load average 16, had two failures, both `switch_changes_computed_styles_not_dom_structure` browser timing cases (26 and 43 ms against the 16.7 ms frame budget). `proof/tests/switch.test.ts` passes alone (worst case 6.5 ms). Earlier in this plan, `in_process_warm_overhead_under_point_one_ms` failed the same way under load. Wall-clock tests on a busy host are noisy; a quiet-host run belongs with the existing benchmark backlog entry.
 
 - [ ] Task 7: Deprecate fractions on dimension style props (R9, patch-safe part)
   - Acceptance Criteria:

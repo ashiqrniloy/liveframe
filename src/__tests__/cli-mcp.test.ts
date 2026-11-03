@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mkdir, rm, symlink } from "node:fs/promises";
+import { chmod, mkdir, realpath, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { Client } from "@modelcontextprotocol/client";
@@ -1061,6 +1061,39 @@ for (const [name, { args = { dir: "widget" }, kind, prepare }] of Object.entries
     });
   }, 30000);
 }
+
+test("draft_errors_never_contain_the_absolute_root", async () => {
+  await withDraftDirectory(async (root, client) => {
+    const real = await realpath(root);
+    const unreadable = join(root, "widget/manifest.json");
+    await symlink(tmpdir(), join(root, "escape"));
+    const messages: string[] = [];
+    const run = async (args: Record<string, unknown>, mayPack = false) => {
+      const result = await call(client, "pack_draft", args);
+      // A process that can read despite the mode (root) packs the unreadable file instead.
+      if (mayPack && !result.isError) return;
+      expect(result.isError).toBe(true);
+      const text = JSON.stringify(result.json());
+      expect(text).not.toContain(real);
+      expect(text).not.toContain(root);
+      messages.push(...(result.json() as LiveframeError[]).map((error) => error.message));
+    };
+    await run({ dir: "absent" });
+    await run({ dir: "escape" });
+    await run({ dir: "widget", entry: "absent.tsx" });
+    await rm(join(root, "widget/scenarios.json"));
+    await run({ dir: "widget" });
+    await Bun.write(join(root, "widget/scenarios.json"), "[]");
+    await chmod(unreadable, 0o000);
+    try {
+      await run({ dir: "widget" }, true);
+    } finally {
+      await chmod(unreadable, 0o644);
+    }
+    expect(messages).toContain('draft directory "absent" not found');
+    expect(messages).toContain('draft file "scenarios.json" in "widget" not found');
+  });
+}, 30000);
 
 test("pack_dir_without_root_names_draftRoot", async () => {
   const result = await withClient((client) => call(client, "pack_draft", { dir: "widget" }));
