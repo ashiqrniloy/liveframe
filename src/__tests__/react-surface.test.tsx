@@ -4,7 +4,7 @@ import { slotClass, styleDeclarations, surfaceAttributes } from "../css/index.ts
 import type { ImplementationProps, Item } from "../react/index.ts";
 import { shareNodes } from "../react/share.ts";
 import validTree from "../../conformance/corpus/ui-tree/docs/valid.json" with { type: "json" };
-import type { UiTree } from "../index.ts";
+import type { UiNode, UiTree } from "../index.ts";
 import { catalog, identity, renderer, surfaceProps, tree, withRoot } from "./fixtures/react-surface.tsx";
 
 test("reused_tree_deep_equals_the_arrival", () => {
@@ -37,6 +37,43 @@ test("reused_tree_deep_equals_the_arrival", () => {
   expect(blocked.root.children?.[1]).not.toBe(first.root.children?.[1]);
   expect(blocked.root.children?.[0]).toBe(first.root.children?.[0]);
   expect(blocked.root).not.toBe(first.root);
+});
+
+const row = (index: number): UiNode => ({ id: `root/row-${index}`, kind: "text", props: { text: `Row ${index}` } });
+const rows = (indexes: number[]): UiTree =>
+  withRoot({ id: "root", kind: "stack", props: {}, children: indexes.map(row) });
+
+test("head_insert_reuses_every_existing_row", () => {
+  const base = rows(Array.from({ length: 50 }, (_, index) => index + 1));
+  const next = rows(Array.from({ length: 51 }, (_, index) => index));
+  const shared = shareNodes(base, next, new Set());
+  expect(shared).toEqual(next);
+  expect(shared.root.children?.[0]).not.toBe(base.root.children?.[0]);
+  for (let index = 1; index <= 50; index++) expect(shared.root.children?.[index]).toBe(base.root.children?.[index - 1]);
+});
+
+test("reorder_reuses_children_but_not_the_parent", () => {
+  const base = rows([1, 2, 3]);
+  const next = rows([3, 1, 2]);
+  const shared = shareNodes(base, next, new Set());
+  expect(shared).toEqual(next);
+  expect(shared.root).not.toBe(base.root);
+  expect(shared.root.children?.[0]).toBe(base.root.children?.[2]);
+  expect(shared.root.children?.[1]).toBe(base.root.children?.[0]);
+  expect(shared.root.children?.[2]).toBe(base.root.children?.[1]);
+});
+
+test("failed_child_still_blocks_its_ancestors_after_a_move", () => {
+  const base = rows([1, 2, 3]);
+  const failed = base.root.children![2]!;
+  const shared = shareNodes(base, rows([3, 1, 2]), new Set([failed]));
+  expect(shared.root.children?.[0]).not.toBe(failed);
+  expect(shared.root.children?.[1]).toBe(base.root.children?.[0]);
+  // Same order, so the parent would be equal; the failed child must still keep it from being reused.
+  const same = shareNodes(base, rows([1, 2, 3]), new Set([failed]));
+  expect(same.root).not.toBe(base.root);
+  expect(same.root.children?.[2]).not.toBe(failed);
+  expect(same.root.children?.[0]).toBe(base.root.children?.[0]);
 });
 
 test("surface_renders_slot_classes_styles_and_scope", () => {

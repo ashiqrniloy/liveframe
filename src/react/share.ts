@@ -21,9 +21,20 @@ function shareNode(previous: UiNode | undefined, next: UiNode, failed: FailedNod
     (previous.children?.length ?? 0) === (next.children?.length ?? 0);
   let blocked = previous !== undefined && failed.has(previous);
   let changed = false;
+  // Ids are unique in a validated tree, so a child's previous node is the one with its id among
+  // the previous parent's children, wherever it moved. The same position is tried first, so the
+  // map is built only once a child has moved.
+  const before = previous?.children;
+  let byId: Map<string, UiNode> | undefined;
   const children = next.children?.map((child, index) => {
-    const shared = shareNode(previous?.children?.[index], child, failed);
-    if (!shared.equal) equal = false;
+    let prior = before?.[index];
+    if (prior?.id !== child.id) {
+      byId ??= new Map(before?.map((node) => [node.id, node]));
+      prior = byId.get(child.id);
+    }
+    const shared = shareNode(prior, child, failed);
+    // The parent is unchanged only if each child is unchanged and still in the same position.
+    if (!shared.equal || prior !== before?.[index]) equal = false;
     if (shared.blocked) blocked = true;
     if (shared.node !== child) changed = true;
     return shared.node;
