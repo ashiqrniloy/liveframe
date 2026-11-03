@@ -18,6 +18,10 @@ Added (tooling, not published):
 
 - **Dependency audit and SBOM in CI:** CI and the publish job run `bun audit --prod --audit-level=high` and upload a CycloneDX 1.6 SBOM of the runtime closure (`scripts/release/sbom.ts`). A real publish now runs only from a `v*` tag, in the protected `release` environment. No published file changes.
 
+Changed:
+
+- **`sucrase` is bundled into `dist/pack/`, so a consumer no longer installs its dependencies:** `@arnilo/liveframe` now depends only on `acorn`. `commander`, `mz`, `thenify`, `pirates`, `tinyglobby` and the other packages sucrase pulled in with caret ranges no longer reach `node_modules` through Liveframe. `pack()` output is byte-identical; `dist/pack/THIRD-PARTY-LICENSES` carries the licence text of every bundled package. A project that imported `sucrase` only because Liveframe installed it must now depend on it directly.
+
 Deprecated:
 
 - **Fractions on dimension style props:** `width="2fr"` (and `height`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight`) projects to `minmax(0, 2fr)`, which browsers ignore, so it has never had an effect. It is still accepted, and validation and CSS bytes are unchanged; 0.3.0 rejects it with `invalid-prop`. Use `grow={2}` with `basis={0}`, or put the fraction in the parent's `columns`/`rows`. See [`docs/compatibility.md`](docs/compatibility.md#deferred-to-030).

@@ -7,7 +7,7 @@
  *   timeout 900s bun scripts/release/archive-gate.ts --tarball /tmp/arnilo-liveframe-0.0.0.tgz
  *   timeout 900s bun scripts/release/archive-gate.ts --package @arnilo/liveframe@next
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { cp, mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -149,6 +149,18 @@ try {
           installed.exports,
           new Set(new Bun.Glob("**/*").scanSync({ cwd: directory, onlyFiles: true })),
         );
+      },
+    ],
+    [
+      "sucrase is bundled: no CLI-only dependencies installed, licences packed",
+      () => {
+        const modules = join(dir, "node_modules");
+        for (const name of ["sucrase", "commander", "mz", "thenify", "pirates", "tinyglobby"])
+          if (existsSync(join(modules, name)))
+            throw new Error(`${name} was installed; the pack bundle must not need it`);
+        const licences = readFileSync(join(modules, "@arnilo/liveframe/dist/pack/THIRD-PARTY-LICENSES"), "utf8");
+        if (!licences.includes("sucrase@") || !licences.includes("Permission is hereby granted"))
+          throw new Error("dist/pack/THIRD-PARTY-LICENSES does not carry sucrase's licence text");
       },
     ],
     ["corpus packed", () => assertConformance("corpus")],

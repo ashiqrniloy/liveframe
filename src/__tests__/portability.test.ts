@@ -136,6 +136,22 @@ test("css_bundles_for_browser_without_host_apis", async () => {
   }
 });
 
+// Exact pinned-dependency snippets: two Buffer paths (one guarded, one in an
+// unused type checker), plus text emitted by transforms we never enable.
+const pinnedSnippets = [
+  "return Buffer.isBuffer(v);",
+  'typeof Buffer !== "undefined" ? {\n  decode(buf) {\n    const out = Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength);',
+  'this.tokens.appendCode("__reactstandin__regenerateByEval(key, code) {this[key] = eval(code);}");',
+  'this.raiseRecoverable(errorPos, "Trailing comma is not allowed in import()");',
+  `prefix += \`var \${resolvedName} = require("\${path}");\`;`,
+  `this.importsToReplace.set(path, \`require('\${path}');\`);`,
+  `let requireCode = \`var \${primaryImportName} = require('\${path}');\`;`,
+  "this.tokens.appendCode(' = require(\"flow-enums-runtime\")');",
+  "var enterModule = require('react-hot-loader').enterModule;",
+  "var reactHotLoader = require('react-hot-loader').default;",
+  "var leaveModule = require('react-hot-loader').leaveModule;",
+];
+
 async function scanHostApiFree(root: string): Promise<void> {
   const forbidden =
     /\b(?:require|eval|Function|Worker|fetch|XMLHttpRequest)\s*\(|\b(?:document|window|process|Bun|Buffer|navigator|localStorage|sessionStorage|globalThis|self)\s*[.[]/;
@@ -157,7 +173,13 @@ async function scanHostApiFree(root: string): Promise<void> {
     if (!subpath || subpath.host === "none")
       checkMatrixGlobals(transpiler.transformSync(source), subpath?.globals ?? [], path);
     // Relative specifiers such as "./in-process.ts" are not process member access.
-    const executable = source.replace(/\bfrom\s+(["'])\.\.?\/[^"'\n]+\1/g, 'from ""');
+    let executable = source.replace(/\bfrom\s+(["'])\.\.?\/[^"'\n]+\1/g, 'from ""');
+    // dist/pack/sucrase.js is the bundled sucrase transform: pinned third-party code, so its known
+    // generated-code strings are removed and the rest is scanned. The bundle may import nothing.
+    if (path === "pack/sucrase.js") {
+      expect(transpiler.scanImports(source), path).toEqual([]);
+      for (const snippet of pinnedSnippets) executable = executable.replaceAll(snippet, "");
+    }
     const checked = workerSubpath
       ? executable.replace(/\b(?:Worker|self)\b/g, "workerScope")
       : subpath?.host === "DOM"
@@ -220,21 +242,8 @@ test.each(subpaths.filter(({ host }) => host === "none"))(
     if (!output) throw new Error("Missing pack bundle output");
     let source = await output.text();
     checkMatrixGlobals(source, globals, path);
-    // Exact pinned-dependency snippets: two Buffer paths (one guarded, one in an
-    // unused type checker), plus text emitted by transforms we never enable.
-    const knownSnippets = [
-      "return Buffer.isBuffer(v);",
-      'typeof Buffer !== "undefined" ? {\n  decode(buf) {\n    const out = Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength);',
-      'this.tokens.appendCode("__reactstandin__regenerateByEval(key, code) {this[key] = eval(code);}");',
-      'this.raiseRecoverable(errorPos, "Trailing comma is not allowed in import()");',
-      `prefix += \`var \${resolvedName} = require("\${path}");\`;`,
-      `this.importsToReplace.set(path, \`require('\${path}');\`);`,
-      `let requireCode = \`var \${primaryImportName} = require('\${path}');\`;`,
-      "this.tokens.appendCode(' = require(\"flow-enums-runtime\")');",
-      "var enterModule = require('react-hot-loader').enterModule;",
-      "var reactHotLoader = require('react-hot-loader').default;",
-      "var leaveModule = require('react-hot-loader').leaveModule;",
-    ];
+    // Exact pinned-dependency snippets, see `pinnedSnippets`.
+    const knownSnippets = pinnedSnippets;
     for (const snippet of dependencies ? knownSnippets : []) {
       // Verification tree-shakes the source-map codec used only during packing.
       if (path === "store" && ![knownSnippets[0], knownSnippets[3]].includes(snippet)) continue;

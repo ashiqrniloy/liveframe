@@ -172,6 +172,7 @@
     "react": "^19.3.1",
     "react-aria-components": "^1.22.1",
     "react-dom": "^19.3.1",
+    "sucrase": "3.35.1",
     "typescript": "^7.0.2"
   },
   "peerDependencies": {
@@ -195,7 +196,6 @@
     }
   },
   "dependencies": {
-    "acorn": "8.19.0",
-    "sucrase": "3.35.1"
+    "acorn": "8.19.0"
   }
 }

@@ -105,6 +105,7 @@ const allowed = [
   /^CHANGELOG\.md$/,
   /^SECURITY\.md$/,
   /^dist\/(?:[^/]+\/)*[^/]+\.(?:js|d\.ts)$/,
+  /^dist\/pack\/THIRD-PARTY-LICENSES$/,
   /^schemas\/[^/]+\.json$/,
   /^conformance\/(?:corpus|hash|patch)\/(?:[^/]+\/)*[^/]+\.json$/,
   /^docs\/[^/]+\.md$/,
@@ -121,6 +122,8 @@ test("archive_contains_only_the_release_files", () => {
   expect(files.some((file) => file.includes("__tests__"))).toBe(false);
   expect(files.filter((file) => file.startsWith("dist/")).some((file) => file.includes("proof"))).toBe(false);
   expect(files).toContain("dist/preview/worker/entry.js");
+  // The bundled sucrase transform ships with the licence text of every package inside it.
+  expect(files).toContain("dist/pack/THIRD-PARTY-LICENSES");
   expect(files).toContain(pkg.bin.liveframe.replace(/^\.\//, ""));
 });
 

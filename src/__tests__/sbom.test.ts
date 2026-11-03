@@ -16,7 +16,8 @@ test("sbom_lists_exactly_the_runtime_closure", () => {
   const bom = buildSbom(pkg, lock) as { components: { name: string; purl: string }[]; dependencies: { ref: string }[] };
   const listed = names(bom);
   expect(listed).toContain("acorn");
-  expect(listed).toContain("sucrase");
+  // sucrase is bundled into dist/pack at build time, so none of its dependencies reach a consumer.
+  expect(listed).toEqual(["acorn"]);
   for (const dev of Object.keys(pkg.devDependencies)) expect(listed).not.toContain(dev);
   for (const peer of Object.keys(pkg.peerDependencies)) expect(listed).not.toContain(peer);
   // The closure is closed: every dependency of a listed package is listed, and every purl is unique.
