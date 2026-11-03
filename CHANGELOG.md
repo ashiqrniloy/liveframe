@@ -30,6 +30,15 @@ Added:
 
 - **Store conformance case:** `storeSuite()` gains `store_lists_only_placement_records`, which fails a store whose `listPlacements()` returns anything but records with a string `id`. Existing cases are unchanged.
 
+Performance (outputs, errors, hashes and declarations unchanged; ratios are paired interleaved runs on a loaded host, new/old):
+
+- **`<Surface>` keeps node reuse with an inline `fallback` or a new `diagnostics` array:** the node cache now resets only when the validator or portal changes or diagnostics are turned on or off. With `fallback={<p>…</p>}` written inline and a parent that re-renders per arrival, unchanged primitives no longer re-render: whole-tree arrival plus React work 121 → 8.4 ms on the 679-node subject. A failed node still shows the current fallback.
+- **Whole-tree reuse matches children by `id`:** inserting a row at the head of a list now reuses every existing row, where it used to reuse none. A reorder reuses the children but not their parent.
+- **Faster hashing:** `sha256` 1.3–1.5×, `canonicalJson` 0.65–0.68, `packageHash` (512 KiB) 0.70–0.77. Benefits `pack()`, `verifyPackage()`, `loadPlacement()` and `renderKey()`.
+- **`diffTrees` reorders in linear time:** 1,000 shuffled rows 0.57; unchanged and single-change diffs unaffected.
+- **`bundle()` walks each module once:** 0.79–0.81 on the agent-home widget.
+- **`themeCss` reuses a catalog it has already accepted:** a content-checked cache (8 entries) halves repeat calls (0.57); the first call per catalog content costs about 0.19 ms more.
+
 ## 0.2.2 — 2026-11-03
 
 This section shipped as `0.2.2-rc.2` first. `0.2.2-rc.1` was superseded before release: the release review brought the first-compile cost of `compileValidator` back inside 0.2.1's and fixed a stale catalog-cache hit.

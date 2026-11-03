@@ -281,8 +281,16 @@ This plan implements the performance part of the 0.2.3 review-fix release in roa
     - Gates: `bun run check` passed in full with items 2 and 6 (load 6–10: 1,039 pass, 4 skip, 0 fail). After item 5, the first run hit five wall-clock failures as load rose to 12 (`Render exceeded 100 ms` in `phase-2-loop.test.ts`, and `set_state_http_round_trip_under_50_ms` in `proof/tests/host.test.ts`). Neither file reaches `themeCss`, and both passed alone. The rerun at load 9–12 passed in full: 1,041 pass, 4 skip, 0 fail.
     - Testing note: run test files with `--conditions liveframe:source`, as `bun run test` does. Without it, `pack-bundle` and `preview-load` fail with "Unknown validator" because the dist and src validators get mixed, on a clean `HEAD` too.
 
-- [ ] Task 7: Analyze architectural impact and dispose of every finding
+- [x] Task 7: Analyze architectural impact and dispose of every finding
   - Sweep the impact areas in `.agents/skills/create-plan/references/liveframe.md` §5 against the work delivered. Record each area, or `None — <reason>`, in `plans/evidence/024-impact-analysis.md`. Present the findings with a recommended `execute`/`backlog` disposition, record the owner's answer, and execute or backlog each item. Confirm that `register-0.2.3.json` is still `[]`, and that `plans/evidence/024-baseline.md` and every task's A/B record carry load averages.
+  - Notes (executed 2026-11-04):
+    - Record: `plans/evidence/024-impact-analysis.md` covers all twelve areas and the R12–R16/R25 disposition table. `register-0.2.3.json` is `[]` (`api-stability` passes). Every evidence record carries load averages; Task 3's are in its notes, since it has no separate record.
+    - Owner dispositions (2026-11-04), all as recommended:
+      - **F1, executed.** `docs/spec.md` §11 still said "validator, fallback, portal or diagnostics changes reset reuse". Task 2 was wrong to say §11 did not state the rule. §11 now states Task 2's reset rule and Task 3's id matching, and `docs/renderer.md` gains the id-matching sentence.
+      - **F2, executed.** `CHANGELOG.md` Unreleased gains a Performance block with the measured ratios. Plan 025 Task 7 collects it into `## 0.2.3`.
+      - **F3, executed.** `bench/validator.bench.ts` now sets `process.exitCode` after the last gate, so the `compileValidator` 0.25 ms gate can fail the run (Task 1's finding). This is bench-only and not part of `bun run check`.
+      - **F4, handed to plan 025 Task 8.** Its performance criterion now names the fixed gate. It also says the three missed 024 targets are cited as "missed, backlogged" and re-measured against the achieved figures (see Compromises).
+    - Gates: `gen:check`, `typecheck`, `biome format` on the edited files, `docs-links` and `api-stability` pass (load about 6). The full `bun run check` ran while the load rose from 6.5 to 19: build, gen, typecheck, lint and format passed, and 1,036 tests passed, 4 were skipped and 5 failed. All five failures are wall-clock tests on plan 023's list of load failures: `verify_agent_home_under_20_ms`, `in_process_warm_overhead_under_point_one_ms`, `worker_warm_overhead_report`, `proof_themes_validate_under_2ms` and `validator_smoke_under_5us_per_node`. Run alone at load 17–23, 3 of the 5 still failed. This task changes no `src/` or test file; Task 6's tree, which has the same `src/`, passed in full at load 9–12. The full green run on an idle host is still owed (plan 025 Task 8).
 
 ## Verification (whole plan)
 
@@ -294,8 +302,15 @@ This plan implements the performance part of the 0.2.3 review-fix release in roa
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- **No quiet-host baseline or full `bun run bench`.** A long-running QEMU VM kept the host at load 4–40 throughout (`plans/evidence/024-baseline.md`). Every claim is a paired interleaved ratio instead, and the idle-host runs move to plan 025 Task 8.
+- **`sha256` 2× per MB missed.** It reached 1.3–1.5×; reaching 1.7× would need a generated, fully unrolled round body. The `packageHash` ≤ 5 ms absolute figure could not be reproduced, because 0.2.2 itself reads 68–80 ms on this host. Backlog P4.
+- **R14 single-traversal walk not built.** The measured upper bound (8–17%) is below the 15% target. Recorded as "measured, no change". Backlog P4 "Cut the validity cost inside `walkJson`".
+- **Task 3's reuse pass ratio is 1.10, exactly at its limit.** That is below the bench's 0.1 ms resolution. The absolute 1.0 ms target holds.
+- **Inline-against-stable fallback (Task 2) is one unpaired comparison:** 8.4 against 9.3 ms.
+- **`bun run check` was green in full only at Task 6** (load 6–12). Tasks 1–5 and 7 ran with wall-clock failures under load, each traced to the host and not to the change.
 
 ## Further Actions
 
-- To be filled after task completion with improvements, rationale, and priority.
+- **Plan 025 Task 8 (owner):** a quiet-host `bun run bench` and `bun run check`, the re-measure of every 024 target (missed ones against their achieved figures), and the now-effective `compileValidator` 0.25 ms gate. Priority: release blocker for 0.2.3.
+- **Plan 025 Task 7:** collect the Unreleased Performance block into `## 0.2.3`, and write the verified-package cache for `loadPlacement` (R15) as a 0.3.0 deferral. Priority: release blocker.
+- **Backlog P4:** "Cut the validity cost inside `walkJson`" (Task 4). "Reach 2× on the pure-JS SHA-256 only if hashing shows up in a profile" (Task 5). Both are worth doing only if a profile shows the cost.

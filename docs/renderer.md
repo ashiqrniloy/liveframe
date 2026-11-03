@@ -145,8 +145,10 @@ is fine.
 
 Whole-tree transport gets the same reuse without a patch. After validation,
 `Surface` replaces every subtree whose value is unchanged since the accepted tree
-of the same `surfaceId` with that tree's node, so React skips it. Send fresh node
-objects and let this run; nothing changes on the wire. A node whose implementation
+of the same `surfaceId` with that tree's node, so React skips it. Children are
+matched by `id` within their parent, so inserting, removing or reordering rows
+keeps reuse for the rows themselves. Send fresh node objects and let this run;
+nothing changes on the wire. A node whose implementation
 threw is retried on the next arrival instead of being reused, together with its
 ancestors, so an error clears as soon as the implementation recovers. Reuse only
 substitutes deep-equal values, so the drawn tree is always the validated arrival.

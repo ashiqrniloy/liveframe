@@ -85,7 +85,6 @@ metric("mixed-feed.compiledMs", feedMs);
 console.log(
   `mixed-feed: 500 elements; compiled ${feedMs.toFixed(4)} ms, ${((feedMs * 1000) / 500).toFixed(3)} µs/element`,
 );
-if (failed) process.exitCode = 1;
 
 // LF-17's 679-node, 50-row subject: time application and host diffing separately from validation.
 const subject = fixtures.find((fixture) => fixture.name === "agent-home");
@@ -201,3 +200,4 @@ if (hitMedian > 0.25) {
   failed = true;
 }
 console.log(`Load average at end: ${loadavg().join(", ")}`);
+if (failed) process.exitCode = 1;
