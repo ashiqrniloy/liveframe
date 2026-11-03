@@ -14,6 +14,10 @@ Fixed:
 - **`fileStore().listPlacements()` fails closed on a corrupt record:** a placement file that holds `null`, an array, a scalar or an object without a string `id` made the listing return it, or throw a `TypeError` while sorting. It now throws the `invalid-document` `LiveframeFailure` that `read` already throws for invalid JSON, naming the file.
 - **MCP draft-directory errors no longer leak absolute paths:** `pack_draft({ dir })` used to return Node's error message, for example `ENOENT: no such file or directory, realpath '/srv/app/drafts/a/widget.tsx'`. It now says `draft file "widget.tsx" in "a" not found`, or `draft directory "a" not found`, or `… could not be read (EACCES)`, naming only the relative `dir` and file. The `kind` and `pointer` are unchanged. `docs/mcp.md` now states the `draftRoot` trust model.
 
+Deprecated:
+
+- **Fractions on dimension style props:** `width="2fr"` (and `height`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight`) projects to `minmax(0, 2fr)`, which browsers ignore, so it has never had an effect. It is still accepted, and validation and CSS bytes are unchanged; 0.3.0 rejects it with `invalid-prop`. Use `grow={2}` with `basis={0}`, or put the fraction in the parent's `columns`/`rows`. See [`docs/compatibility.md`](docs/compatibility.md#deferred-to-030).
+
 Added:
 
 - **Store conformance case:** `storeSuite()` gains `store_lists_only_placement_records`, which fails a store whose `listPlacements()` returns anything but records with a string `id`. Existing cases are unchanged.

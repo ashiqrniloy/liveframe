@@ -210,7 +210,7 @@ Widget authors never touch colour or recipes. They choose a primitive's **varian
 |---|---|
 | `padding`, `gap`, `margin` (per side or axis) | `space.*` |
 | `direction`, `align`, `justify`, `wrap`, `textAlign` | Enums (`align` on `button` places its content) |
-| `width`, `height`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight` | `space.*`, `size.*`, `fill`, `fit`, fractions, or bounded `ch` / `%` |
+| `width`, `height`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight` | `space.*`, `size.*`, `fill`, `fit`, fractions, or bounded `ch` / `%`. Fractions are deprecated here: they project to `minmax(0, Nfr)`, which browsers ignore as a size, and 0.3.0 rejects them |
 | `grow`, `shrink`, `basis` | Bounded numbers |
 | `columns`, `rows`, `area` (grid) | Bounded track lists, or area names; each track a fraction, `space.*` or `size.*` |
 | `position`, `inset*` | `static` or `sticky`; `space.*` |

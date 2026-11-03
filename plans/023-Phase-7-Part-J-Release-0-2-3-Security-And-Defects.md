@@ -324,7 +324,7 @@ Plan 022's rules 1–6 apply as written. In addition:
     - CHANGELOG "Fixed" has a line. The register stays `[]`. No spec change.
     - `bun run check`: lint, typecheck, format and API-stability pass. The full run, at load average 16, had two failures, both `switch_changes_computed_styles_not_dom_structure` browser timing cases (26 and 43 ms against the 16.7 ms frame budget). `proof/tests/switch.test.ts` passes alone (worst case 6.5 ms). Earlier in this plan, `in_process_warm_overhead_under_point_one_ms` failed the same way under load. Wall-clock tests on a busy host are noisy; a quiet-host run belongs with the existing benchmark backlog entry.
 
-- [ ] Task 7: Deprecate fractions on dimension style props (R9, patch-safe part)
+- [x] Task 7: Deprecate fractions on dimension style props (R9, patch-safe part)
   - Acceptance Criteria:
     - Functional:
       - Spec §6.3's table row (`docs/spec.md:213`) says fractions on `width`, `height`, `minWidth`, `maxWidth`, `minHeight` and `maxHeight` are deprecated. They project to a declaration that browsers ignore (`minmax(0, Nfr)` is not a valid `width`), and 0.3.0 rejects them. Fractions in `columns`/`rows` tracks are unchanged.
@@ -358,6 +358,11 @@ Plan 022's rules 1–6 apply as written. In addition:
       - `docs/spec.md` §6.3; `docs/styling.md`; `docs/compatibility.md`; `src/__tests__/css-style-props.test.ts` (comment only)
   - Test Cases to Write:
     - n/a. Behaviour is unchanged. The existing `css-style-props` and `gen:check` assertions prove the bytes are identical.
+  - Notes (executed 2026-11-03):
+    - Docs only. `docs/spec.md` §6.3's table row now says fractions on the six dimension props are deprecated: they project to `minmax(0, Nfr)`, which browsers ignore as a size, and 0.3.0 rejects them. `columns`/`rows` tracks are unchanged. `docs/styling.md` carries the same note, after the paragraph on `minHeight`/`maxHeight`, with the `grow={2}` / `basis={0}` alternative.
+    - `docs/compatibility.md` § "Deferred to 0.3.0" has the entry: before, after (`invalid-prop` at `/style/width`) and the adopter checklist.
+    - `src/__tests__/css-style-props.test.ts` got a comment above the `width: "2fr"` assertion; the assertion is untouched. No source file changed, so CSS bytes, validation and `liveframe gen` output (`_Dimension`) are identical and the register stays `[]`.
+    - **Added a CHANGELOG "Deprecated" line** under Unreleased, which the task's file list did not name; a deprecation is something adopters look for there.
 
 - [ ] Task 8: Add a dependency audit and an SBOM to CI, and gate publishing to tags in a protected environment (R10)
   - Acceptance Criteria:

@@ -67,6 +67,7 @@ test("every_style_prop_maps", () => {
     expect(responsive.classes).toContain(`lf_r_${prop}`);
   }
   expect(styleDeclarations({ fill: cases.fill[0] }, catalog).classes).toEqual(["lf_fill"]);
+  // `fr` on a dimension prop is deprecated (spec §6.3): the declaration is inert and 0.3.0 rejects it.
   expect(
     styleDeclarations(
       { width: "2fr", radius: catalog.vocabulary.radius[0], height: catalog.vocabulary.size[0] },
