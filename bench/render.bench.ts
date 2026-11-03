@@ -1,10 +1,11 @@
 import { strict as assert } from "node:assert";
 import { cpus, loadavg, platform, release } from "node:os";
+import { toElements } from "../scripts/fixtures/elements.ts";
 import { countNodes, renderWorkloads } from "../src/__tests__/fixtures/render-workloads.ts";
 import { proofWidgets } from "../src/__tests__/fixtures/widgets/index.ts";
 import { canonicalJson, renderKey } from "../src/pack/hash.ts";
 import { renderElements } from "../src/sdk/elements.ts";
-import { toElements } from "../scripts/fixtures/elements.ts";
+import { metric } from "./metrics.ts";
 
 const runs = 1_000;
 /** Independent samples per workload; the verdict is their median, not one noisy batch. */
@@ -85,6 +86,10 @@ for (const workload of workloads) {
   const total = (renderMs * 1_000) / nodes;
   const validation = (validationMs * 1_000) / nodes;
   const other = total - validation;
+  metric(`${workload.name}.renderMs`, renderMs);
+  metric(`${workload.name}.renderUsPerNode`, total);
+  metric(`${workload.name}.validationMs`, validationMs);
+  metric(`${workload.name}.validationUsPerNode`, validation);
   console.log(
     `${workload.name}: ${nodes.toFixed(2)} mean nodes; render ${renderMs.toFixed(4)} ms, ${total.toFixed(3)} µs/node; validation ${validationMs.toFixed(4)} ms, ${validation.toFixed(3)} µs/node (${((validationMs / renderMs) * 100).toFixed(1)}%); other estimate ${other.toFixed(3)} µs/node`,
   );
@@ -105,6 +110,8 @@ const elementsMs = measure(() => {
   assert(result.ok, `agent-home elements: ${JSON.stringify(result.errors)}`);
 });
 const elementsPerNode = (elementsMs * 1_000) / agentNodes;
+metric("agent-home-elements.renderMs", elementsMs);
+metric("agent-home-elements.usPerNode", elementsPerNode);
 console.log(
   `agent-home elements: ${agentNodes} nodes; renderElements ${elementsMs.toFixed(4)} ms, ${elementsPerNode.toFixed(3)} µs/node`,
 );
@@ -127,6 +134,7 @@ const keyInputs = {
 };
 const keyBytes = canonicalJson(keyInputs).length;
 const keyMs = measure(() => renderKey(keyInputs));
+metric("agent-home-renderKey.ms", keyMs);
 console.log(`agent-home renderKey: ${keyBytes} canonical bytes; ${keyMs.toFixed(4)} ms per key`);
 console.log(`Load average at end: ${loadavg().join(", ")}`);
 if (failed) process.exitCode = 1;

@@ -2,7 +2,6 @@ import { strict as assert } from "node:assert";
 import { cpus, loadavg, platform, release } from "node:os";
 import { chromium } from "playwright";
 import { proofSheets } from "../proof/css/sheets.ts";
-import { startRenderTrace, stopRenderTrace, TRACE_MARKS } from "./trace.ts";
 import { toElements } from "../scripts/fixtures/elements.ts";
 import { browserHost } from "../src/__tests__/fixtures/conformance-browser-host.ts";
 import catalog from "../src/__tests__/fixtures/proof/catalog.json" with { type: "json" };
@@ -12,6 +11,8 @@ import { proofWidgets } from "../src/__tests__/fixtures/widgets/index.ts";
 import { applyPatch, compileValidator, diffTrees, type UiTree } from "../src/index.ts";
 import { renderElements } from "../src/sdk/elements.ts";
 import { render } from "../src/sdk/render.ts";
+import { metric } from "./metrics.ts";
+import { startRenderTrace, stopRenderTrace, TRACE_MARKS } from "./trace.ts";
 
 const patches = Bun.argv.includes("--patches");
 const production = Bun.argv.includes("--production");
@@ -176,6 +177,21 @@ try {
   const bytes = revisions.map((entry) => entry.bytes);
   const achieved = ((REVISIONS - 1) / outcome.elapsedMs) * 1000;
   const build = production ? "production" : "development";
+  metric("jsonBytes", median(bytes));
+  metric("gzipBytes", median(gzip));
+  metric("changedBytes", median(changed));
+  metric("parseMs", median(axis("parseMs")));
+  metric("validationMs", median(validation));
+  metric("reuseMs", median(axis("reuseMs")));
+  metric("reactWorkMs", median(commit));
+  metric("validationAndReactMs", median(update));
+  metric("wallMs", median(axis("wallMs")));
+  metric("layoutPaintMs", trace.layoutPaintMs / REVISIONS);
+  if (patches) {
+    metric("diffMs", median(revisions.map((entry) => entry.diffMs)));
+    metric("applyMs", median(axis("applyMs")));
+    metric("endToEndMs", median(axis("endToEndMs")));
+  }
   const reactMeasure = production
     ? "React work ms (flushSync wall, net of validation)"
     : "React commit ms (Profiler, net of validation)";

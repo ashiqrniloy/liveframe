@@ -1,8 +1,9 @@
 import { strict as assert } from "node:assert";
 import { cpus, loadavg, platform, release } from "node:os";
 import { validatorCatalog, validatorFixtures } from "../src/__tests__/fixtures/validator.ts";
-import { applyPatch, arr, diffTrees, checkValue, obj, str, type TreePatch, type UiNode, union } from "../src/index.ts";
+import { applyPatch, arr, checkValue, diffTrees, obj, str, type TreePatch, type UiNode, union } from "../src/index.ts";
 import { compileSchema, type SchemaSink } from "../src/validate/schema.ts";
+import { budget, metric } from "./metrics.ts";
 
 const fixtures = await validatorFixtures();
 const schemas = new Map(validatorCatalog.definitions.map((definition) => [definition.kind, definition.props]));
@@ -49,6 +50,11 @@ for (const { name, nodes, tree, validateTree } of fixtures) {
   const perNode = (compiledMs * 1_000) / nodes;
   const speedup = genericMs / compiledMs;
   const propsSpeedup = genericMs / compiledPropsMs;
+  metric(`${name}.compiledMs`, compiledMs);
+  metric(`${name}.compiledUsPerNode`, perNode);
+  metric(`${name}.genericMs`, genericMs);
+  metric(`${name}.genericUsPerNode`, (genericMs * 1_000) / nodes);
+  metric(`${name}.compiledPropsMs`, compiledPropsMs);
   console.log(
     `${name}: ${nodes} nodes; compiled ${compiledMs.toFixed(4)} ms, ${perNode.toFixed(3)} µs/node; generic ${genericMs.toFixed(4)} ms, ${((genericMs * 1_000) / nodes).toFixed(3)} µs/node; ${speedup.toFixed(2)}×`,
   );
@@ -75,6 +81,7 @@ const checkFeed = compileSchema(feedSchema);
 assert(!checkFeed([{ kind: "unknown" }], "", sink));
 sink.errors.length = 0;
 const feedMs = measure(() => checkFeed(feed, "", sink));
+metric("mixed-feed.compiledMs", feedMs);
 console.log(
   `mixed-feed: 500 elements; compiled ${feedMs.toFixed(4)} ms, ${((feedMs * 1000) / 500).toFixed(3)} µs/element`,
 );
@@ -131,18 +138,20 @@ for (let i = 0; i < 1200; i++) {
 samples.sort((a, b) => a - b);
 const median = samples[Math.floor(samples.length / 2)];
 assert(median !== undefined);
+metric("applyPatch.medianMs", median);
 console.log(
   `applyPatch: 679 nodes, 50 rows, one row status per revision; 200 warm-ups, 1000 samples; median ${median.toFixed(4)} ms (<= 0.5 ms)`,
 );
-assert(median <= 0.5, "applyPatch exceeded 0.5 ms median");
+budget(median <= 0.5, "applyPatch exceeded 0.5 ms median");
 
 diffSamples.sort((a, b) => a - b);
 const diffMedian = diffSamples[Math.floor(diffSamples.length / 2)];
 assert(diffMedian !== undefined);
+metric("diffTrees.medianMs", diffMedian);
 console.log(
   `diffTrees: 679 nodes, 50 rows, one row status per revision; 200 warm-ups, 1000 samples; median ${diffMedian.toFixed(4)} ms (<= 1.5 ms)`,
 );
-assert(diffMedian <= 1.5, "diffTrees exceeded 1.5 ms median");
+budget(diffMedian <= 1.5, "diffTrees exceeded 1.5 ms median");
 
 // Plan 022 Task 4: catalog-level work is reused across manifests; a first compile stays the cost.
 const catalogDocument = (await Bun.file(
@@ -181,6 +190,8 @@ for (let i = 0; i < 20; i++) {
 colds.sort((a, b) => a - b);
 const coldMedian = colds[Math.floor(colds.length / 2)];
 assert(coldMedian !== undefined);
+metric("compileValidator.reusedMedianMs", hitMedian);
+metric("compileValidator.firstCompileMedianMs", coldMedian);
 console.log(
   `compileValidator: same catalog and capabilities, different manifest; 200 warm-ups, 1000 samples; median ${hitMedian.toFixed(4)} ms (<= 0.25 ms)`,
 );
