@@ -132,6 +132,39 @@ export function applyPatch(base: UiTree, patch: unknown): Result<UiTree> {
   return { ok: true, value: { ...base, revision: doc.revision, root } };
 }
 
+/**
+ * Emits reverse removes, then left-to-right inserts and moves, and visits each kept child. Past index
+ * i, the patched list holds the kept children in their old order minus the ones a move already took,
+ * and `first` points at the first of them, so no array is spliced. Ids are unique in a valid tree.
+ */
+function diffChildren(before: UiNode, after: UiNode, ops: PatchOp[], visit: (before: UiNode, after: UiNode) => void) {
+  const prior = before.children ?? [];
+  const wanted = new Set((after.children ?? []).map((child) => child.id));
+  const retained = new Map(prior.map((child) => [child.id, child]));
+  const removes = ops.length;
+  for (let i = prior.length - 1; i >= 0; i--) {
+    const child = prior[i] as UiNode;
+    if (!wanted.has(child.id)) ops.push({ op: "remove", id: child.id });
+  }
+  const kept = ops.length === removes ? prior : prior.filter((child) => wanted.has(child.id));
+  const moved = new Set<UiNode>();
+  let first = 0;
+  for (const [i, child] of (after.children ?? []).entries()) {
+    while (first < kept.length && moved.has(kept[first] as UiNode)) first++;
+    const old = retained.get(child.id);
+    if (!old) {
+      ops.push({ op: "insert", parent: after.id, index: i, node: child });
+      continue;
+    }
+    if (kept[first] === old) first++;
+    else {
+      ops.push({ op: "move", id: child.id, index: i });
+      moved.add(old);
+    }
+    visit(old, child);
+  }
+}
+
 /** Diff validated, immutable SDK-form trees; send the whole tree if diffing fails. */
 export function diffTrees(prev: UiTree, next: UiTree): Result<TreePatch> {
   if (prev.catalogId !== next.catalogId) return failure("invalid-document", "/catalogId", "Diff catalogs differ");
@@ -160,32 +193,7 @@ export function diffTrees(prev: UiTree, next: UiTree): Result<TreePatch> {
       const { children: _children, ...own } = after;
       ops.push({ op: "set", ...own });
     }
-    if (!before.children && !after.children) return;
-    const children = [...(before.children ?? [])];
-    const wanted = new Set((after.children ?? []).map((child) => child.id));
-    const retained = new Map(children.map((child) => [child.id, child]));
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      if (child && !wanted.has(child.id)) {
-        ops.push({ op: "remove", id: child.id });
-        children.splice(i, 1);
-      }
-    }
-    for (const [i, child] of (after.children ?? []).entries()) {
-      const old = retained.get(child.id);
-      if (!old) {
-        ops.push({ op: "insert", parent: after.id, index: i, node: child });
-        children.splice(i, 0, child);
-      } else {
-        if (children[i]?.id !== child.id) {
-          const position = children.indexOf(old);
-          ops.push({ op: "move", id: child.id, index: i });
-          children.splice(position, 1);
-          children.splice(i, 0, old);
-        }
-        visit(old, child);
-      }
-    }
+    if (before.children || after.children) diffChildren(before, after, ops, visit);
   }
   visit(prev.root, next.root);
   return {

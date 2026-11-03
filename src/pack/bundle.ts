@@ -32,11 +32,17 @@ function isNode(value: unknown): value is AnyNode {
   return value !== null && typeof value === "object" && "type" in value && typeof value.type === "string";
 }
 
+const functionTypes: ReadonlySet<string> = new Set([
+  "FunctionDeclaration",
+  "FunctionExpression",
+  "ArrowFunctionExpression",
+]);
+
 function walk(node: AnyNode, visit: (node: AnyNode, insideFunction: boolean) => void, insideFunction = false): void {
   visit(node, insideFunction);
-  const nested =
-    insideFunction || ["FunctionDeclaration", "FunctionExpression", "ArrowFunctionExpression"].includes(node.type);
-  for (const value of Object.values(node)) {
+  const nested = insideFunction || functionTypes.has(node.type);
+  for (const key in node) {
+    const value: unknown = node[key as keyof AnyNode];
     if (Array.isArray(value)) {
       for (const child of value) if (isNode(child)) walk(child, visit, nested);
     } else if (isNode(value)) walk(value, visit, nested);
@@ -45,12 +51,21 @@ function walk(node: AnyNode, visit: (node: AnyNode, insideFunction: boolean) => 
 
 const synchronous = "a synchronous module: no top-level await";
 
-/** One module rule for source modules and untrusted, already-linked packages. */
-export function checkModule(source: string, at: string, allowRelative = false): Result<ReturnType<typeof parse>> {
+/**
+ * One module rule for source modules and untrusted, already-linked packages. `also` sees every
+ * node of the same walk, so the bundler's own check does not walk the module a second time.
+ */
+export function checkModule(
+  source: string,
+  at: string,
+  allowRelative = false,
+  also?: (node: AnyNode) => void,
+): Result<ReturnType<typeof parse>> {
   const c = documentChecks();
   try {
     const ast = parse(source, { ecmaVersion: "latest", sourceType: "module", locations: true });
     walk(ast, (node, insideFunction) => {
+      also?.(node);
       if (c.errors.length >= 20) return;
       const location = `${at}/${node.loc?.start.line ?? 1}`;
       // A widget evaluates synchronously (spec §7.1): top-level await would suspend the runner,
@@ -248,14 +263,17 @@ export function bundle({
     active.push(file);
 
     let source = transpile(files[file] as string, file);
-    const checked = checkModule(source, pointer(file), true);
-    if (!checked.ok) throw new BundleFailure(checked.errors);
-    walk(checked.value, (node) => {
-      const location = pointer(file, node.loc?.start.line ?? 1);
-      if (node.type === "Identifier" && node.name.startsWith("__lf_")) {
-        fail("invalid-document", location, "Identifiers starting with __lf_ are reserved for the linker");
-      }
+    let reserved: AnyNode | undefined;
+    const checked = checkModule(source, pointer(file), true, (node) => {
+      if (!reserved && node.type === "Identifier" && node.name.startsWith("__lf_")) reserved = node;
     });
+    if (!checked.ok) throw new BundleFailure(checked.errors);
+    if (reserved)
+      fail(
+        "invalid-document",
+        pointer(file, reserved.loc?.start.line ?? 1),
+        "Identifiers starting with __lf_ are reserved for the linker",
+      );
 
     const link: Link = { source, imports: [], exported: new Map(), stars: [], edits: [] };
     const dependency = (specifier: string): string => {

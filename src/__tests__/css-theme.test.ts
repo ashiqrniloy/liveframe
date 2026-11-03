@@ -350,3 +350,25 @@ test("installed_strings_cannot_escape_css_or_style_elements", () => {
   expect(sheet).not.toContain("</style>");
   expect(sheet).toContain("\\3c /style>");
 });
+
+test("theme_css_revalidates_a_catalog_changed_after_it_passed", () => {
+  const theme = themes[0] as Theme;
+  const installed = structuredClone(catalog);
+  const sheet = css(themeCss(theme, installed));
+  expect(css(themeCss(theme, structuredClone(catalog)))).toBe(sheet);
+  (installed as { definitions: unknown }).definitions = "none";
+  const first = failure(themeCss(theme, installed));
+  expect(first).toEqual(failure(validateCatalog(installed)));
+  (first.errors as unknown[]).length = 0; // A caller's copy of the errors never reaches the cache.
+  expect(failure(themeCss(theme, installed))).toEqual(failure(validateCatalog(installed)));
+});
+
+test("theme_css_cache_never_matches_values_json_text_hides", () => {
+  const theme = themes[0] as Theme;
+  css(themeCss(theme, structuredClone(catalog)));
+  const hidden = structuredClone(catalog);
+  Object.assign(hidden.definitions[0] as object, { surplus: undefined });
+  expect(JSON.stringify(hidden)).toBe(JSON.stringify(catalog));
+  const expected = failure(validateCatalog(hidden));
+  expect(failure(themeCss(theme, hidden))).toEqual(expected);
+});

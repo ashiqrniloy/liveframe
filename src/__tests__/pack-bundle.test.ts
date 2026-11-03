@@ -77,6 +77,29 @@ test("rejects_forbidden_imports", () => {
   }
 });
 
+test("reserved_identifier_reported_alone_and_after_module_rules", () => {
+  const reserved = bundle({
+    files: { "entry.ts": "const ok = 1;\nconst __lf_a = 1;\nconst __lf_b = 2;\nexport default __lf_a + __lf_b + ok;" },
+    entry: "entry.ts",
+  });
+  expect(reserved).toEqual({
+    ok: false,
+    errors: [
+      {
+        kind: "invalid-document",
+        pointer: "/files/entry.ts/2",
+        message: "Identifiers starting with __lf_ are reserved for the linker",
+      },
+    ],
+  });
+  const both = bundle({
+    files: { "entry.ts": 'import x from "react";\nconst __lf_a = x;\nexport default __lf_a;' },
+    entry: "entry.ts",
+  });
+  expect(both.ok).toBe(false);
+  if (!both.ok) expect(both.errors.map((error) => error.kind)).toEqual(["forbidden-import"]);
+});
+
 test("rejects_unresolved_cycle_and_syntax", () => {
   for (const files of [
     {},
