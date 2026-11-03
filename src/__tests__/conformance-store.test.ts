@@ -55,16 +55,20 @@ test("store_suite_catches_broken_stores", async () => {
     const store = memoryStore();
     return { ...store, listPlacements: async () => (await store.listPlacements()).reverse() };
   }, "lists_placements_sorted_and_replaces_by_id");
+  await fails(() => {
+    const store = memoryStore();
+    return { ...store, listPlacements: async () => [...(await store.listPlacements()), null as never] };
+  }, "lists_only_placement_records");
   await fails(memoryStore, "records_survive_reopen", () => memoryStore());
 });
 
 test("store_suite_cases_are_independent_and_runner_agnostic", async () => {
   const cases: ConformanceCase[] = storeSuite({ create: async () => memoryStore() });
-  expect(cases).toHaveLength(16);
-  expect(new Set(cases.map((c) => c.name)).size).toBe(16);
+  expect(cases).toHaveLength(17);
+  expect(new Set(cases.map((c) => c.name)).size).toBe(17);
   await Promise.all(cases.map((c) => c.run()));
   const reopened = storeSuite({ create: memoryStore, reopen: async (store) => store });
-  expect(reopened).toHaveLength(17);
+  expect(reopened).toHaveLength(18);
   await Promise.all(reopened.map((c) => c.run()));
 });
 

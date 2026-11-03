@@ -265,6 +265,54 @@ export default () => __lf_sdk0.jsx(__lf_sdk0.primitive("text"), { text: "ok" });
   }
 });
 
+test("malformed_worker_error_result_is_replaced_and_worker_recycled", async () => {
+  const runner = workerRunner({ timeoutMs: 2000 });
+  const entry = { kind: "invalid-prop", pointer: "/root", message: "bad" };
+  const answers: Record<string, string> = {
+    "errors is a string": '{ ok: false, errors: "x" }',
+    "10,000 errors": `{ ok: false, errors: Array.from({ length: 10000 }, () => (${JSON.stringify(entry)})) }`,
+    "no errors": "{ ok: false, errors: [] }",
+    "a non-string kind": '{ ok: false, errors: [{ kind: 7, pointer: "", message: "" }] }',
+    "an extra field": `{ ok: false, errors: [{ ...${JSON.stringify(entry)}, stack: "at /home/app" }] }`,
+    "a null result": "null",
+    "a truthy ok": "{ ok: 1, value: {} }",
+  };
+  try {
+    for (const [name, answer] of Object.entries(answers)) {
+      // The widget shares the worker's realm, so its wrapper answers the next render.
+      const forging = `import * as __lf_sdk0 from "@arnilo/liveframe/sdk";
+const forward = self.onmessage;
+self.onmessage = (event) => {
+  if (event.data?.type === "render") self.postMessage({ type: "result", id: event.data.id, result: ${answer} });
+  return forward(event);
+};
+export default () => __lf_sdk0.jsx(__lf_sdk0.primitive("text"), { text: ${JSON.stringify(name)} });`;
+      expect((await runner.render(withCode(forging), inputs, options)).ok).toBe(true);
+      const replaced = await runner.render(withCode(`${simpleCode}\n// victim of ${name}`), inputs, options);
+      expect(replaced).toEqual({
+        ok: false,
+        errors: [{ kind: "render-failed", pointer: "", message: "Worker returned a malformed result" }],
+      });
+      // The recycled worker no longer carries the forging wrapper.
+      expect((await runner.render(withCode(`${simpleCode}\n// after ${name}`), inputs, options)).ok).toBe(true);
+    }
+  } finally {
+    runner.close();
+  }
+});
+
+test("well_formed_worker_error_result_passes_through", async () => {
+  const runner = workerRunner({ timeoutMs: 2000 });
+  const failing = `import * as __lf_sdk0 from "@arnilo/liveframe/sdk";
+export default () => { throw new Error("boom"); };`;
+  try {
+    const result = await runner.render(withCode(failing), inputs, options);
+    expect(result).toMatchObject({ ok: false, errors: [{ kind: "render-failed", message: "boom" }] });
+  } finally {
+    runner.close();
+  }
+});
+
 test("unsolicited_result_terminates_the_worker", async () => {
   const runner = workerRunner({ timeoutMs: 2000 });
   // A second answer to the next render, with an id the host never asked for.

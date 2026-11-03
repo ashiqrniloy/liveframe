@@ -338,7 +338,7 @@ test("subpath_export_surfaces", () => {
     "storeSuite",
   ]);
   const cases: ConformanceCase[] = conformance.storeSuite({ create: store.memoryStore });
-  expect(cases).toHaveLength(16);
+  expect(cases).toHaveLength(17);
   expect(Object.keys(previewReact).sort()).toEqual(["Preview"]);
   expect(Object.keys(fileStore).sort()).toEqual(["fileStore"]);
   expect(Object.keys(preview).sort()).toEqual(["createPreview", "inProcessRunner"]);

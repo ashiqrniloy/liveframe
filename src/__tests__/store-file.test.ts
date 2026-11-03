@@ -114,6 +114,21 @@ test("long_ids_are_hashed_into_a_file_name_that_fits", async () => {
   expect((await readdir(join(dir, "placements"))).sort()).toContain("%C3%A9%F0%9F%98%80.json");
 });
 
+test("null_placement_record_fails_closed", async () => {
+  const dir = await directory();
+  const store = fileStore(dir);
+  await store.putPlacement(placement);
+  for (const record of ["null", "[]", "3", '{"slot":"x"}', '{"id":7}']) {
+    await writeFile(join(dir, "placements", "other.json"), record);
+    await expect(store.listPlacements()).rejects.toMatchObject({
+      name: "LiveframeFailure",
+      errors: [{ kind: "invalid-document", message: expect.stringContaining("other.json") }],
+    });
+  }
+  await rm(join(dir, "placements", "other.json"));
+  expect(await store.listPlacements()).toEqual([placement]);
+});
+
 test("corrupt_file_is_typed_error", async () => {
   const dir = await directory();
   const store = fileStore(dir);

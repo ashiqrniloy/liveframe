@@ -7,6 +7,7 @@ import type { WidgetPackage } from "../../formats/package.ts";
 import type { Placement, StyleRecord } from "../../formats/records.ts";
 import type { Json } from "../../formats/tree.ts";
 import { sha256 } from "../../pack/hash.ts";
+import { isRecord } from "../../schema.ts";
 import type { Store } from "../index.ts";
 import { assertScope } from "../scope.ts";
 
@@ -119,9 +120,14 @@ export function fileStore(dir: string): Store {
       const records: Placement[] = [];
       for (const file of files.filter((file) => file.endsWith(".json"))) {
         const record = await read<Placement>(join(directory, file));
-        if (record !== undefined) records.push(record);
+        if (record === undefined) continue;
+        if (!isRecord(record) || typeof record.id !== "string")
+          throw new LiveframeFailure([
+            { kind: "invalid-document", pointer: "", message: `Invalid placement record: ${join(directory, file)}` },
+          ]);
+        records.push(record);
       }
-      return records.sort((a, b) => (a?.id < b?.id ? -1 : a?.id > b?.id ? 1 : 0));
+      return records.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
     },
     async putState(id, scope, state) {
       await write(statePath(id, scope), JSON.stringify(state));

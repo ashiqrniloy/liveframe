@@ -235,6 +235,21 @@ export function storeSuite({
       "Placements must sort by id and replace rather than duplicate",
     );
   });
+  add("lists_only_placement_records", async (store, equal) => {
+    const { placement } = storeFixture();
+    await store.putPlacement(placement);
+    await store.putPlacement({ ...placement, id: "a" });
+    const listed: readonly unknown[] = await store.listPlacements();
+    equal(
+      listed.map((entry) =>
+        typeof entry === "object" && entry !== null && !Array.isArray(entry)
+          ? typeof (entry as { id?: unknown }).id
+          : typeof entry,
+      ),
+      ["string", "string"],
+      "Placement list must hold only records with a string id",
+    );
+  });
   add("keeps_null_and_false_state_distinct_from_missing", async (store, equal) => {
     for (const state of [null, false]) {
       await store.putState("home", "", state);

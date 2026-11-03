@@ -10,6 +10,12 @@ Fixed:
 - **Top-level `await using` is rejected:** `checkModule`, and so `pack()`, `bundle()` and `verifyPackage()`, now fail `await using` outside a function (also in a top-level block or `for (await using …)`) with the existing `invalid-document` error. A never-settling `Symbol.asyncDispose` could suspend a module like top-level `await`. `await using` inside an `async` function and synchronous `using` are accepted as before.
 - **Failed module links no longer take a cache slot:** `loadModule` no longer caches a package whose SDK header cannot be linked, so such packages no longer count toward the `maxModules` bound.
 - **A reassigned package field is no longer trusted as verified:** the reference runners remembered a verified package by object, so replacing `code` (or `hash`, `format`, `manifest`, `scenarios`) after verification loaded the new code under the old verified hash. They now remember the references they verified and hash again when any of them changed. Mutating inside `manifest` or `scenarios` is still not detected; freezing is planned for 0.3.0.
+- **Worker error results are shape-checked:** `workerRunner()` re-validated every successful tree but passed a failed result through as sent. A result that is not `{ ok, value }` or `{ ok: false, errors }`, or whose `errors` list is empty, longer than 21 entries or holds a record with a non-string `kind`/`pointer`/`message`/`expected`/`nodeId` or any other field, now becomes one `render-failed` error ("Worker returned a malformed result") and the worker is recycled.
+- **`fileStore().listPlacements()` fails closed on a corrupt record:** a placement file that holds `null`, an array, a scalar or an object without a string `id` made the listing return it, or throw a `TypeError` while sorting. It now throws the `invalid-document` `LiveframeFailure` that `read` already throws for invalid JSON, naming the file.
+
+Added:
+
+- **Store conformance case:** `storeSuite()` gains `store_lists_only_placement_records`, which fails a store whose `listPlacements()` returns anything but records with a string `id`. Existing cases are unchanged.
 
 ## 0.2.2 — 2026-11-03
 

@@ -246,7 +246,7 @@ Plan 022's rules 1–6 apply as written. In addition:
     - `docs/security.md` item 3 states the remaining assumption, and CHANGELOG "Fixed" has a line. No spec change: §7.5 already says the hash is verified before code loads.
     - `bun run check`: 1011 pass, 0 fail. Before this work, `loader_resolves_sdk_from_other_cwd` failed when run alone against a stale `dist/`; it passes after `bun run build`, as `check` does.
 
-- [ ] Task 5: Shape-check worker error results and reject corrupt placement records (R6, R7)
+- [x] Task 5: Shape-check worker error results and reject corrupt placement records (R6, R7)
   - Acceptance Criteria:
     - Functional:
       - `validateResult` (`src/preview/worker/index.ts:71-79`) also checks a failed worker result: `errors` must be a non-empty array of at most `maxErrors` (default `DEFAULT_MAX_ERRORS`) records, each with a string `kind`, `pointer` and `message`, an optional string `expected` and `nodeId`, and no other fields. If any check fails, the result becomes one `render-failed` error, "Worker returned a malformed error result", and the worker is recycled.
@@ -277,6 +277,15 @@ Plan 022's rules 1–6 apply as written. In addition:
     - `malformed_worker_error_result_is_replaced_and_worker_recycled`: a worker that posts `{ ok: false, errors: "x" }` or 10,000 errors yields one `render-failed` error.
     - `null_placement_record_fails_closed`: a `placements/a.json` containing `null` makes `listPlacements` throw `invalid-document`.
     - The added store-suite case, which fails against a mutant store that returns `[null]`.
+  - Notes (executed 2026-11-03):
+    - `src/preview/worker/index.ts`: `validateResult` takes `unknown` and first checks the envelope with a small `isResult` (`ok === true` with a `value`, or `ok === false` with an error list). `isErrorList` requires 1 to `DEFAULT_MAX_ERRORS + 1` records whose only fields are `kind`, `pointer`, `message`, `expected` and `nodeId`, all strings. A failure becomes one `render-failed` error and the worker is recycled. `isRecord` comes from `schema.ts`; it is not in `formats/capabilities.ts`, which only re-exports it.
+    - **Amended: the bound is 21, not 20.** A validator that hits `maxErrors` appends a `limit-exceeded` marker (`addBoundMarker`), so a legitimate bounded list has `DEFAULT_MAX_ERRORS + 1` entries. `RunnerOptions` has no `maxErrors`, so the default applies.
+    - **Amended: one message.** The malformed envelope, a non-record result and a bad error list share "Worker returned a malformed result" instead of "…malformed error result". The `onmessage` handler read `data.result.ok` before validating, so a `null` result would have thrown in the handler and hung the render until its timeout; the recycle decision now reads the validated result.
+    - `src/store/fs/index.ts`: `listPlacements` throws `invalid-document` naming the file when a record is not an object with a string `id`, and the sort compares `a.id`/`b.id` directly.
+    - `src/conformance/store.ts`: the added case is `store_lists_only_placement_records`. The suite has 17 cases (18 with `reopen`), so the three count assertions in `conformance-store.test.ts` and `exports.test.ts` changed from 16/16/17 to 17/17/18. No existing case changed. A conformance case can only use the `Store` interface, so it checks what `listPlacements()` returns and cannot write a corrupt file; the file-level fail-closed behaviour is `null_placement_record_fails_closed`.
+    - Tests: `malformed_worker_error_result_is_replaced_and_worker_recycled` (seven malformed answers, each followed by a clean render to prove the recycle), `well_formed_worker_error_result_passes_through`, `null_placement_record_fails_closed`, and the mutant `[null]` store in `store_suite_catches_broken_stores`. With `worker/index.ts` and `fs/index.ts` reverted, the first and third fail.
+    - CHANGELOG has two "Fixed" lines and one "Added" line for the store case. The register stays `[]`. No spec change.
+    - `bun run check`: 1017 pass, 0 fail. `in_process_warm_overhead_under_point_one_ms` failed twice with the machine at load average 10 to 13 (0.108 and 0.129 ms against 0.1; the same test also failed on the baseline without these changes, and standalone runs ranged from -0.07 to 0.157 ms). It passed on the third full run. It is a wall-clock test and unrelated to this task.
 
 - [ ] Task 6: Keep absolute paths out of MCP draft errors and document the draft-root trust model (R8, patch-safe part)
   - Acceptance Criteria:

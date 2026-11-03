@@ -1,18 +1,46 @@
-import type { LiveframeError, Result } from "../../errors.ts";
+import { DEFAULT_MAX_ERRORS, type LiveframeError, type Result } from "../../errors.ts";
 import type { WidgetPackage } from "../../formats/package.ts";
 import type { UiTree } from "../../formats/tree.ts";
 import { compiledValidator } from "../../runner-kit/cache.ts";
+import { isRecord } from "../../schema.ts";
 import { verifyPackageHash } from "../cache.ts";
 import type { Runner, RunnerOptions } from "../runner.ts";
 import type { WorkerMessage } from "./protocol.ts";
 
 type Pending = {
   readonly id: number;
-  readonly validate: (result: Result<UiTree>) => Result<UiTree>;
+  readonly validate: (result: unknown) => Result<UiTree>;
   readonly resolve: (result: Result<UiTree>) => void;
 };
 
 const reason = (error: unknown): string => (error instanceof Error ? error.message : String(error));
+
+const ERROR_FIELDS = new Set(["kind", "pointer", "message", "expected", "nodeId"]);
+
+/** The envelope of a worker answer; a tree's `value` is checked by the validator, not here. */
+function isResult(result: unknown): result is Result<unknown> {
+  if (!isRecord(result)) return false;
+  return result.ok === true ? "value" in result : result.ok === false && isErrorList(result.errors);
+}
+
+/** A validator's own bound marker comes after `maxErrors` errors, so one more is legitimate. */
+function isErrorList(errors: unknown): boolean {
+  return (
+    Array.isArray(errors) &&
+    errors.length > 0 &&
+    errors.length <= DEFAULT_MAX_ERRORS + 1 &&
+    errors.every(
+      (error) =>
+        isRecord(error) &&
+        Object.keys(error).every((key) => ERROR_FIELDS.has(key)) &&
+        typeof error.kind === "string" &&
+        typeof error.pointer === "string" &&
+        typeof error.message === "string" &&
+        (error.expected === undefined || typeof error.expected === "string") &&
+        (error.nodeId === undefined || typeof error.nodeId === "string"),
+    )
+  );
+}
 
 /** The repository's source sits beside `entry.ts`; the published build beside `entry.js`. */
 const entry = new URL(`./entry${import.meta.url.endsWith(".ts") ? ".ts" : ".js"}`, import.meta.url);
@@ -68,8 +96,13 @@ export function workerRunner(defaults: { timeoutMs?: number; maxPackages?: numbe
     };
   }
 
-  /** A worker result is only accepted after the host re-validates its tree. */
-  function validateResult(result: Result<UiTree>, pkg: WidgetPackage, options: RunnerOptions): Result<UiTree> {
+  /** A worker result is only accepted after the host re-validates its tree or shape-checks its errors. */
+  function validateResult(result: unknown, pkg: WidgetPackage, options: RunnerOptions): Result<UiTree> {
+    if (!isResult(result))
+      return {
+        ok: false,
+        errors: [{ kind: "render-failed", pointer: "", message: "Worker returned a malformed result" }],
+      };
     if (!result.ok) return result;
     try {
       const validator = compiledValidator({ ...options, manifest: pkg.manifest }, pkg.hash);
@@ -89,10 +122,11 @@ export function workerRunner(defaults: { timeoutMs?: number; maxPackages?: numbe
         return;
       }
       const validated = active.validate(data.result);
-      // A crashed realm or a tree the host rejects is not reused.
+      // A crashed realm, a malformed result or a tree the host rejects is not reused.
       if (
-        (data.result.ok && !validated.ok) ||
-        (!data.result.ok && data.result.errors.some((error) => error.kind === "render-failed"))
+        !validated.ok &&
+        ((isRecord(data.result) && data.result.ok === true) ||
+          validated.errors.some((error) => error.kind === "render-failed"))
       )
         recycle();
       settle(validated);
