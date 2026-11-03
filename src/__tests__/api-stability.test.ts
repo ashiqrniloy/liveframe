@@ -1,7 +1,9 @@
 import { expect, test } from "bun:test";
 import { resolve } from "node:path";
 import baselineJson from "../../scripts/release/api/0.2.1.json" with { type: "json" };
+import baseline022Json from "../../scripts/release/api/0.2.2.json" with { type: "json" };
 import registerJson from "../../scripts/release/api/register-0.2.2.json" with { type: "json" };
+import register023Json from "../../scripts/release/api/register-0.2.3.json" with { type: "json" };
 import {
   type ApiSurface,
   compareApiSurface,
@@ -42,6 +44,15 @@ test("baseline_matches_the_checkout_before_any_022_change", async () => {
   expect(baseline.generatedFrom).toContain("v0.2.1");
   const current = await readApiSurface(root);
   expect(compareApiSurface(baseline, current, register)).toEqual([]);
+});
+
+test("baseline_0_2_2_matches_the_checkout_with_an_empty_register", async () => {
+  const baseline022 = baseline022Json as unknown as ApiSurface;
+  const register023 = register023Json as unknown as readonly RegisterEntry[];
+  expect(baseline022.generatedFrom).toContain("v0.2.2");
+  expect(register023).toHaveLength(0);
+  const current = await readApiSurface(root);
+  expect(compareApiSurface(baseline022, current, register023)).toEqual([]);
 });
 
 test("removed_export_fails", () => {
