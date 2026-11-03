@@ -222,6 +222,17 @@ test("verify_rejects_linked_top_level_await", () => {
   rejects(verifyPackage({ ...tampered, hash: packageHash(tampered) }, options), "invalid-document", "/code/1");
 });
 
+test("verify_rejects_linked_top_level_await_using", () => {
+  const pkg = value(pack(input, options));
+  for (const [code, pointer] of [
+    [`await using x = { async [Symbol.asyncDispose]() {} };\nexport default () => null;`, "/code/1"],
+    [`{\n  await using x = { async [Symbol.asyncDispose]() {} };\n}\nexport default () => null;`, "/code/2"],
+  ] as const) {
+    const tampered = { ...pkg, code } as WidgetPackage;
+    rejects(verifyPackage({ ...tampered, hash: packageHash(tampered) }, options), "invalid-document", pointer);
+  }
+});
+
 test("verify_rechecks_manifest_and_scenarios", () => {
   const pkg = value(pack(input, options));
   rejects(

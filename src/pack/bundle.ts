@@ -53,8 +53,14 @@ export function checkModule(source: string, at: string, allowRelative = false): 
     walk(ast, (node, insideFunction) => {
       if (c.errors.length >= 20) return;
       const location = `${at}/${node.loc?.start.line ?? 1}`;
-      // A widget evaluates synchronously (spec §7.1): top-level await would suspend the runner.
-      if (!insideFunction && (node.type === "AwaitExpression" || (node.type === "ForOfStatement" && node.await)))
+      // A widget evaluates synchronously (spec §7.1): top-level await would suspend the runner,
+      // and so would `await using`, whose disposal awaits `Symbol.asyncDispose`.
+      if (
+        !insideFunction &&
+        (node.type === "AwaitExpression" ||
+          (node.type === "ForOfStatement" && node.await) ||
+          (node.type === "VariableDeclaration" && node.kind === "await using"))
+      )
         c.reject(location, "Expected a synchronous module", "invalid-document", synchronous);
       if (
         node.type === "ImportExpression" ||

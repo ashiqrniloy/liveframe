@@ -163,7 +163,7 @@ Plan 022's rules 1–6 apply as written. In addition:
     - Cost: one extra `validateTree` per preview render, which is the same work the worker runner's host re-validation does (0.907 ms median on the proof catalog, `docs/packages.md`). I did not re-measure it. The preview and authoring paths are not bench-gated.
     - Docs: `docs/security.md` item 3 and spec §7.5 already promised host validation of every runner tree, so neither changed. CHANGELOG has a new `Unreleased` section with a "Fixed" line.
 
-- [ ] Task 3: Reject top-level `await using` and stop caching failed module links (R2, R3)
+- [x] Task 3: Reject top-level `await using` and stop caching failed module links (R2, R3)
   - Acceptance Criteria:
     - Functional:
       - `checkModule` (`src/pack/bundle.ts:49-82`) rejects a `VariableDeclaration` whose `kind` is `"await using"` outside a function, with the existing `invalid-document` error and the `synchronous` expectation (`:46`). The check sits beside the `AwaitExpression`/`for await` rule at `:57`. This covers source modules in `pack()`/`bundle()` and linked code in `verifyPackage()`. A block-scoped `await using` at top level is rejected too. `await using` inside an `async` function, and synchronous `using`, are still accepted.
@@ -200,6 +200,13 @@ Plan 022's rules 1–6 apply as written. In addition:
     - `top_level_await_using_is_rejected`: covers `pack()`, `verifyPackage()` on a hand-built package, and a top-level block. Fails without the new condition.
     - `await_using_inside_async_function_and_sync_using_are_accepted`: fails if the rule is too broad.
     - `link_failure_is_not_cached`: two `loadModule` calls with unlinkable code leave `loadedModuleCount()` unchanged.
+  - Notes (executed 2026-11-03):
+    - `checkModule` (`src/pack/bundle.ts`) now also rejects a `VariableDeclaration` of kind `"await using"` when it is outside a function. `for (await using x of …)` is caught too, because the walker visits the loop's declaration. acorn 8.19.0 parses `await using` and `using` under `ecmaVersion: "latest"` (checked). `pack()` and `bundle()` share the rule, and `verifyPackage()` reuses `checkModule`.
+    - `loadModule` (`src/preview/load.ts`) returns the rejection for a link failure without storing it, so `loadedModuleCount()` and the `maxModules` bound count only real imports. A failed *import* stays cached, as planned.
+    - Tests: `top_level_await_using_is_rejected` and `await_using_inside_async_function_and_sync_using_are_accepted` (`pack-bundle.test.ts`), `verify_rejects_linked_top_level_await_using` (`pack.test.ts`) and `link_failure_is_not_cached` (`preview-load.test.ts`). With the two source files reverted, three of them fail; the accepted-forms test passes either way, since it guards against over-rejecting.
+    - **No corpus case added.** The plan said to add one only if the corpus carries module-rule cases. `conformance/corpus/package/` holds document-level cases (hash, imports, limits) and none for the synchronous-module rule, so the corpus and its comparator are untouched.
+    - Spec change: §7.1 and §7.3 (lines 386 and 446) and `docs/packages.md` now name `await using` beside `await` and `for await`. CHANGELOG "Fixed" has two lines (`await using`, link-failure caching).
+    - The register stays `[]`.
 
 - [ ] Task 4: Bind the verified-hash cache to the content it verified (R4, patch-safe part)
   - Acceptance Criteria:

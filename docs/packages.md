@@ -133,8 +133,8 @@ ES module. Only `@arnilo/liveframe/sdk`, `/sdk/jsx-runtime` and
 `/sdk/jsx-dev-runtime` may remain as imports. Non-SDK imports and re-exports,
 `require`, dynamic imports and `import.meta` fail with `forbidden-import`;
 syntax errors use `transpile-failed` with a file and line in the pointer.
-Widget modules evaluate synchronously, so top-level `await` and `for await`
-outside a function fail with `invalid-document` (`/files/entry.tsx/3`, expected
+Widget modules evaluate synchronously, so top-level `await`, `for await` and
+`await using` outside a function fail with `invalid-document` (`/files/entry.tsx/3`, expected
 "a synchronous module: no top-level await"). A module that suspended there could
 hold a runner forever, so the rule is checked at pack and again at verification
 (`/code/3` for a linked package). Inside functions, `async` code is ordinary and

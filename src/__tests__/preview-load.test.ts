@@ -7,7 +7,7 @@ import * as jsxRuntime from "@arnilo/liveframe/sdk/jsx-runtime";
 import * as jsxDevRuntime from "@arnilo/liveframe/sdk/jsx-dev-runtime";
 import { compileValidator } from "../index.ts";
 import { bundle } from "../pack/bundle.ts";
-import { loadModule } from "../preview/load.ts";
+import { isModuleLoaded, loadedModuleCount, loadModule } from "../preview/load.ts";
 import catalog from "./fixtures/proof/catalog.json" with { type: "json" };
 import capabilities from "./fixtures/widgets/capabilities.json" with { type: "json" };
 import { proofWidgets } from "./fixtures/widgets/index.ts";
@@ -58,6 +58,14 @@ test("loader_caches_by_hash_including_in_flight_loads", async () => {
   expect(await loadModule("throw new Error('must not reload');", "loader-cache")).toBe(module);
   const other = await loadModule("export default 'another package';", "loader-other-hash");
   expect(other.default).toBe("another package");
+});
+
+test("link_failure_is_not_cached", async () => {
+  const unlinkable = 'import * as __lf_sdk0 from "not-the-sdk";\nexport default 1;';
+  const before = loadedModuleCount();
+  for (const _ of [1, 2]) await expect(loadModule(unlinkable, "loader-unlinkable")).rejects.toThrow();
+  expect(loadedModuleCount()).toBe(before);
+  expect(isModuleLoaded("loader-unlinkable")).toBe(false);
 });
 
 test("loader_resolves_sdk_from_other_cwd", async () => {

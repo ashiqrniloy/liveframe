@@ -23,11 +23,8 @@ export function loadModule(code: string, hash: string): Promise<LoadedModule> {
   const cached = modules.get(hash);
   if (cached) return cached;
   const linked = linkPackage(code, (specifier) => import.meta.resolve(specifier));
-  if (!linked.ok) {
-    const failed = Promise.reject(new Error(linked.errors[0]?.message ?? "Package code cannot be linked"));
-    modules.set(hash, failed);
-    return failed;
-  }
+  // A link failure imported nothing, so it takes no slot in `modules` or the `maxModules` bound.
+  if (!linked.ok) return Promise.reject(new Error(linked.errors[0]?.message ?? "Package code cannot be linked"));
   const rewritten = linked.value;
   const loaded: Promise<LoadedModule> = import(
     `data:text/javascript,${encodeURIComponent(rewritten).replaceAll(".", "%2E")}`

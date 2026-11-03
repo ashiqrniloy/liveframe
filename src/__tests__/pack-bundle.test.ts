@@ -182,6 +182,34 @@ test("top_level_await_is_rejected", async () => {
   expect(await (linked.default as () => Promise<number>)()).toBe(3);
 });
 
+test("top_level_await_using_is_rejected", () => {
+  for (const [source, line] of [
+    ["await using x = { async [Symbol.asyncDispose]() {} };\nexport default () => null;", 1],
+    ["{\n  await using x = { async [Symbol.asyncDispose]() {} };\n}\nexport default () => null;", 2],
+    ["for (await using x of []) x;\nexport default () => null;", 1],
+  ] as const) {
+    const bundled = bundle({ files: { "entry.ts": source }, entry: "entry.ts" });
+    expect(bundled.ok).toBe(false);
+    if (!bundled.ok)
+      expect(bundled.errors).toEqual([
+        expect.objectContaining({
+          kind: "invalid-document",
+          pointer: `/files/entry.ts/${line}`,
+          expected: "a synchronous module: no top-level await",
+        }),
+      ]);
+  }
+});
+
+test("await_using_inside_async_function_and_sync_using_are_accepted", () => {
+  for (const source of [
+    "export default async () => { await using x = { async [Symbol.asyncDispose]() {} }; return 3; };",
+    "export default () => { using x = { [Symbol.dispose]() {} }; return 3; };",
+    "using x = { [Symbol.dispose]() {} };\nexport default () => 3;",
+  ])
+    expect(bundle({ files: { "entry.ts": source }, entry: "entry.ts" }).ok).toBe(true);
+});
+
 test("preserves_module_hashbangs", async () => {
   const linked = await load({
     "entry.ts": '#!/usr/bin/env bun\nimport value from "./value"; export default () => value;',

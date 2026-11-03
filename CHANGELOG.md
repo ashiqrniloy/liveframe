@@ -7,6 +7,8 @@ All notable changes to `@arnilo/liveframe` are recorded here. The project follow
 Fixed:
 
 - **Custom runner trees are validated on the host:** `createPreview()` and `createAuthoring()` now pass every tree a custom `Runner` returns through the draft's compiled validator before storing or reporting it. A runner that returned an invalid or cyclic tree used to be reported as `ok: true` by `session.render()`, `renderOutcomes` and the `render_scenarios` tool, and a cyclic tree could overflow the stack. They now report the validator's typed errors. Trees from `inProcessRunner()` and `workerRunner()` are unchanged. Only trees that already violated the spec change outcome.
+- **Top-level `await using` is rejected:** `checkModule`, and so `pack()`, `bundle()` and `verifyPackage()`, now fail `await using` outside a function (also in a top-level block or `for (await using …)`) with the existing `invalid-document` error. A never-settling `Symbol.asyncDispose` could suspend a module like top-level `await`. `await using` inside an `async` function and synchronous `using` are accepted as before.
+- **Failed module links no longer take a cache slot:** `loadModule` no longer caches a package whose SDK header cannot be linked, so such packages no longer count toward the `maxModules` bound.
 
 ## 0.2.2 — 2026-11-03
 
