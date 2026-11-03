@@ -208,7 +208,7 @@ Plan 022's rules 1–6 apply as written. In addition:
     - Spec change: §7.1 and §7.3 (lines 386 and 446) and `docs/packages.md` now name `await using` beside `await` and `for await`. CHANGELOG "Fixed" has two lines (`await using`, link-failure caching).
     - The register stays `[]`.
 
-- [ ] Task 4: Bind the verified-hash cache to the content it verified (R4, patch-safe part)
+- [x] Task 4: Bind the verified-hash cache to the content it verified (R4, patch-safe part)
   - Acceptance Criteria:
     - Functional:
       - `verifyPackageHash` (`src/preview/cache.ts:14-23`) replaces its `WeakSet` with a `WeakMap<WidgetPackage, { hash: string; code: string; manifest: Manifest; scenarios: readonly Scenario[] }>`. That map records the references it verified. A cache hit requires `pkg.hash`, `pkg.code`, `pkg.manifest` and `pkg.scenarios` to be the same references (`===`). Any reassigned field triggers a full re-hash.
@@ -238,6 +238,13 @@ Plan 022's rules 1–6 apply as written. In addition:
   - Test Cases to Write:
     - `reassigned_code_after_verification_is_rehashed_and_rejected`: fails with the `WeakSet` version.
     - `unchanged_package_is_verified_once`: hashing is called once across two renders (spy on `packageHash`).
+  - Notes (executed 2026-11-03):
+    - `verifyPackageHash` (`src/preview/cache.ts`) now keeps a `WeakMap` from the package to a shallow copy of the references it verified. A hit needs `hash`, `code`, `manifest` and `scenarios` to be `===`; any reassigned field is hashed again. The copy is separate from the package, so reassigning a field cannot change what was recorded.
+    - **Amended: `format` is compared too.** `packageHash` covers `format`, so leaving it out would let a reassigned `format` keep a verified hash. It costs one more comparison and the criterion's intent is unchanged.
+    - Both runners already call `verifyPackageHash`, so nothing else changed. No new export, and the register stays `[]`.
+    - Tests are in `preview-load.test.ts`: `reassigned_code_after_verification_is_rehashed_and_rejected` (fails with the old `WeakSet`) and `unchanged_package_is_verified_once` (spies on `packageHash`; it passes either way and guards against re-hashing every call). The test packages come from `pack()` and are copied with a spread so each test mutates its own object.
+    - `docs/security.md` item 3 states the remaining assumption, and CHANGELOG "Fixed" has a line. No spec change: §7.5 already says the hash is verified before code loads.
+    - `bun run check`: 1011 pass, 0 fail. Before this work, `loader_resolves_sdk_from_other_cwd` failed when run alone against a stale `dist/`; it passes after `bun run build`, as `check` does.
 
 - [ ] Task 5: Shape-check worker error results and reject corrupt placement records (R6, R7)
   - Acceptance Criteria:

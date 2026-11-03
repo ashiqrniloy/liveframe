@@ -1,15 +1,19 @@
-import { expect, test } from "bun:test";
+import { expect, spyOn, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as sdk from "@arnilo/liveframe/sdk";
 import * as jsxRuntime from "@arnilo/liveframe/sdk/jsx-runtime";
 import * as jsxDevRuntime from "@arnilo/liveframe/sdk/jsx-dev-runtime";
-import { compileValidator } from "../index.ts";
+import { compileValidator, validateCapabilities, validateCatalog } from "../index.ts";
 import { bundle } from "../pack/bundle.ts";
+import * as hashing from "../pack/hash.ts";
+import { pack, type WidgetPackage } from "../pack/index.ts";
+import { verifyPackageHash } from "../preview/cache.ts";
 import { isModuleLoaded, loadedModuleCount, loadModule } from "../preview/load.ts";
 import catalog from "./fixtures/proof/catalog.json" with { type: "json" };
 import capabilities from "./fixtures/widgets/capabilities.json" with { type: "json" };
+import { drafts } from "./fixtures/widgets/drafts.ts";
 import { proofWidgets } from "./fixtures/widgets/index.ts";
 
 test("loader_escapes_dots", async () => {
@@ -152,3 +156,32 @@ await loadModule('import { render } from "@arnilo/liveframe/sdk"; export default
     await rm(directory, { recursive: true, force: true });
   }
 }, 15000);
+
+function packedWidget(): WidgetPackage {
+  const draft = drafts[0];
+  const cat = validateCatalog(catalog);
+  const caps = validateCapabilities(capabilities);
+  if (!draft || !cat.ok || !caps.ok) throw new Error("Missing fixture");
+  const packed = pack(draft, { catalog: cat.value, capabilities: caps.value });
+  if (!packed.ok) throw new Error(JSON.stringify(packed.errors));
+  return { ...packed.value };
+}
+
+test("reassigned_code_after_verification_is_rehashed_and_rejected", () => {
+  const pkg = packedWidget();
+  expect(verifyPackageHash(pkg)).toBe(true);
+  (pkg as { code: string }).code = `${pkg.code}\n// changed after verification`;
+  expect(verifyPackageHash(pkg)).toBe(false);
+});
+
+test("unchanged_package_is_verified_once", () => {
+  const pkg = packedWidget();
+  const hashed = spyOn(hashing, "packageHash");
+  try {
+    expect(verifyPackageHash(pkg)).toBe(true);
+    expect(verifyPackageHash(pkg)).toBe(true);
+    expect(hashed).toHaveBeenCalledTimes(1);
+  } finally {
+    hashed.mockRestore();
+  }
+});
