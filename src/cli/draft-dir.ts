@@ -75,9 +75,12 @@ export async function readDraftDirectory(
       if (bytesRead > maxBytes) return failure("limit-exceeded", "Draft exceeds 1048576 aggregate bytes");
       contents[name] = new TextDecoder().decode(bytes);
     }
-    const manifest: unknown = JSON.parse(contents["manifest.json"]!);
-    const scenarios: unknown = JSON.parse(contents["scenarios.json"]!);
-    const files = Object.fromEntries(sources.map((name) => [name, contents[name]!]));
+    // Sources end in .ts or .tsx, so the rest is exactly the source files, in read order.
+    const { "manifest.json": manifestText, "scenarios.json": scenariosText, ...files } = contents;
+    if (manifestText === undefined || scenariosText === undefined)
+      return failure("not-found", "Draft manifest.json or scenarios.json is missing");
+    const manifest: unknown = JSON.parse(manifestText);
+    const scenarios: unknown = JSON.parse(scenariosText);
     return { ok: true, value: { files, entry, manifest, scenarios } };
   } catch (error) {
     if (error instanceof SyntaxError) return failure("invalid-document", "Draft contains malformed JSON");

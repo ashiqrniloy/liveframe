@@ -75,32 +75,6 @@ function hunks(approved: string[], widget: string[]): string[][] {
   return result;
 }
 
-// Why each divergence exists; the first matching rule names the cause. Order matters: the most
-// specific markup wins over a shared tag such as `span` or `button`.
-const causes: [RegExp, string][] = [
-  [
-    /tablist|"role":"tab"|tabpanel|aria-orientation/,
-    "Tabs are React Aria markup (tablist adds aria-orientation, a tab is a div[role=tab], the panel always renders) and one label string carries the count",
-  ],
-  [
-    /role":"img"|"svg"|"use"|"path"|"circle"/,
-    "An icon is an inline glyph in span[role=img][aria-hidden], not an svg > use reference to a sprite symbol",
-  ],
-  [/"dt"|"dd"|"dl"/, "Facts render dt/dd text in a child span, and each column pair is its own dl"],
-  [/"details"|"summary"|aria-expanded/, "Widget options are a menu popup button, not native details > summary"],
-  [/"hr"/, "The header's bottom border is a separator element, not a border on the header"],
-  [/"p"/, "Prose is a text span; the catalog has no paragraph primitive"],
-  [/"a"/, "An action is a button carrying an intent, not a link"],
-  [/"next"/i, "A button label sits in its own span slot"],
-  [/^[+-] span "/, "A text element renders a span where the source used a div"],
-  [/^[+-] (div|span) \{/, "An attribute differs on the same element"],
-];
-
-const causeOf = (hunk: string[]): string => {
-  const text = hunk.join("\n");
-  return causes.find(([pattern]) => pattern.test(text))?.[1] ?? "Unclassified";
-};
-
 const styleDifferences = widths.map((width) => {
   const styles = JSON.parse(readFileSync(`${dir}/${width}-styles.json`, "utf8")) as {
     differences: { anchor: string; property: string; approved: string; widget: string }[];

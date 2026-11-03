@@ -188,45 +188,56 @@ export function checkContrast(
     return;
   }
   const cache = new Map<string, Triple>();
-  const colour = (role: string) => {
+  const colour = (role: string, value: Colour) => {
     let rgb = cache.get(role);
     if (!rgb) {
-      rgb = toSrgb(theme.colours[role]!);
+      rgb = toSrgb(value);
       cache.set(role, rgb);
     }
     return rgb;
   };
   const pairs = vocabulary.contrast ?? [];
-  const ratios = pairs.map((pair, i) => {
-    const background = theme.colours[pair.background]!;
-    const alpha = background.alpha ?? 1;
-    if (alpha < 1 && !base) {
-      reject(
-        `/colours/${pair.background}/alpha`,
-        `Contrast pair ${i} (${pair.foreground} on ${pair.background}) requires an opaque contrastBase`,
-      );
-      return NaN;
+  const measured = pairs.map((pair, i) => {
+    const background = theme.colours[pair.background];
+    const foreground = theme.colours[pair.foreground];
+    // validateTheme has already required every vocabulary role, so this only guards a direct caller.
+    if (!background || !foreground) {
+      reject(`/colours/${background ? pair.foreground : pair.background}`, `Contrast pair ${i} names a missing role`);
+      return { pair, ratio: NaN };
     }
-    const bg = alpha < 1 ? over(colour(pair.background), alpha, colour(baseRole!)) : colour(pair.background);
-    const fg = over(colour(pair.foreground), theme.colours[pair.foreground]!.alpha ?? 1, bg);
+    const alpha = background.alpha ?? 1;
+    let bg = colour(pair.background, background);
+    if (alpha < 1) {
+      if (!base || baseRole === undefined) {
+        reject(
+          `/colours/${pair.background}/alpha`,
+          `Contrast pair ${i} (${pair.foreground} on ${pair.background}) requires an opaque contrastBase`,
+        );
+        return { pair, ratio: NaN };
+      }
+      bg = over(bg, alpha, colour(baseRole, base));
+    }
+    const fg = over(colour(pair.foreground, foreground), foreground.alpha ?? 1, bg);
     const ratio = contrastRatio(fg, bg);
     if (!Number.isFinite(ratio))
       reject(`/colours/${pair.foreground}`, `Contrast pair ${i} cannot be converted to finite sRGB`);
-    return ratio;
+    return { pair, ratio };
   });
-  const label = (i: number) => `${i} (${pairs[i]!.foreground} on ${pairs[i]!.background}): ${ratios[i]!.toFixed(2)}`;
-  for (const [i, pair] of pairs.entries()) {
-    const ratio = ratios[i]!;
+  const label = (i: number, { pair, ratio }: (typeof measured)[number]) =>
+    `${i} (${pair.foreground} on ${pair.background}): ${ratio.toFixed(2)}`;
+  for (const [i, entry] of measured.entries()) {
+    const { pair, ratio } = entry;
     if (ratio < pair.minimum || (pair.maximum !== undefined && ratio > pair.maximum))
       reject(
         `/colours/${pair.foreground}`,
-        `Contrast pair ${label(i)}; expected ${pair.minimum}–${pair.maximum ?? 21}`,
+        `Contrast pair ${label(i, entry)}; expected ${pair.minimum}–${pair.maximum ?? 21}`,
         "insufficient-contrast",
       );
-    if (pair.lessThan !== undefined && ratio >= ratios[pair.lessThan]!)
+    const other = pair.lessThan === undefined ? undefined : measured[pair.lessThan];
+    if (pair.lessThan !== undefined && other && ratio >= other.ratio)
       reject(
         `/colours/${pair.foreground}`,
-        `Contrast pair ${label(i)} must be less than pair ${label(pair.lessThan)}`,
+        `Contrast pair ${label(i, entry)} must be less than pair ${label(pair.lessThan, other)}`,
         "insufficient-contrast",
       );
   }

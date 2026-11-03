@@ -1,4 +1,4 @@
-import type { Intent, IntentOrigin, Result } from "@arnilo/liveframe";
+import type { Intent, IntentOrigin } from "@arnilo/liveframe";
 import { createPreview, type PreviewBinding, type PreviewSession } from "@arnilo/liveframe/preview";
 import { memoryStore } from "@arnilo/liveframe/store";
 import { drafts, packageOptions, value } from "../../src/__tests__/fixtures/widgets/drafts.ts";

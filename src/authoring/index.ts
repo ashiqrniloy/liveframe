@@ -171,6 +171,12 @@ const failure = (kind: LiveframeError["kind"], pointer: string, message: string)
   errors: [{ kind, pointer, message }],
 });
 const decodeLayout = (bytes: Uint8Array): CellLayout => JSON.parse(new TextDecoder().decode(bytes));
+/** A file the capture index names; capture() writes every one, so a gap is a backend fault. */
+function capturedFile(files: ReadonlyMap<string, Uint8Array>, path: string): Uint8Array {
+  const bytes = files.get(path);
+  if (!bytes) throw new Error(`Capture returned no file ${path}`);
+  return bytes;
+}
 const authoringCell = (
   { scenario, width, theme, designSystem, errors, snapshot, png, layout, media }: CapturedCell,
   files: ReadonlyMap<string, Uint8Array>,
@@ -181,8 +187,8 @@ const authoringCell = (
   designSystem,
   errors,
   aria: snapshot === null ? null : new TextDecoder().decode(files.get(snapshot)),
-  png: files.get(png)!,
-  ...(layout === undefined ? {} : { layout: layout === null ? null : decodeLayout(files.get(layout)!) }),
+  png: capturedFile(files, png),
+  ...(layout === undefined ? {} : { layout: layout === null ? null : decodeLayout(capturedFile(files, layout)) }),
   ...(media === undefined ? {} : { media }),
 });
 
@@ -238,11 +244,8 @@ export function createAuthoring(options: AuthoringOptions) {
     return checked;
   }
 
-  async function renderOne(input: RenderInput): Promise<Result<UiTree>> {
-    return remember(
-      await session.render({ ...input, scenario: input.scenario!, preserveState: false }),
-      input.scenario!,
-    );
+  async function renderOne(input: RenderInput, scenario: string): Promise<Result<UiTree>> {
+    return remember(await session.render({ ...input, scenario, preserveState: false }), scenario);
   }
 
   // Page snapshots advance revisions too; keep the tool's origin tied to the served tree.
@@ -261,8 +264,7 @@ export function createAuthoring(options: AuthoringOptions) {
     },
   };
 
-  async function renderOutcomes(input: RenderInput): Promise<Result<ScenarioStatus[]>> {
-    const pkg = packed!;
+  async function renderOutcomes(input: RenderInput, pkg: WidgetPackage): Promise<Result<ScenarioStatus[]>> {
     const selected =
       input.scenario === undefined ? pkg.scenarios : pkg.scenarios.filter((s) => s.name === input.scenario);
     if (!selected.length) return failure("not-found", "/scenario", "Unknown scenario");
@@ -285,9 +287,10 @@ export function createAuthoring(options: AuthoringOptions) {
           pointer,
           "Outcome expansion requires at most one sourceOutcome source per scenario",
         );
-      if (sources.length === 0) expanded.push(scenario);
+      const [source] = sources;
+      if (source === undefined) expanded.push(scenario);
       else {
-        const result = outcomeScenarios(scenario, { source: sources[0]!, manifest: pkg.manifest, capabilities });
+        const result = outcomeScenarios(scenario, { source, manifest: pkg.manifest, capabilities });
         if (!result.ok) return { ok: false, errors: rooted(pointer, result.errors) };
         expanded.push(...result.value);
       }
@@ -381,8 +384,8 @@ export function createAuthoring(options: AuthoringOptions) {
         const checked = renderArguments(input);
         if (!checked.ok) return checked;
         if (!packed) return failure("not-found", "", "Call pack_draft before render_scenarios");
-        if (input.outcomes) return renderOutcomes(input);
-        if (input.scenario !== undefined) return renderOne(input);
+        if (input.outcomes) return renderOutcomes(input, packed);
+        if (input.scenario !== undefined) return renderOne(input, input.scenario);
         const results = await session.check();
         return results.ok ? success(checkAll(results.value)) : results;
       });
@@ -413,7 +416,8 @@ export function createAuthoring(options: AuthoringOptions) {
     },
     capturePreview(input: CaptureInput = {}): Promise<Result<AuthoringCaptureCell[]>> {
       return exclusive(async () => {
-        if (!packed) return failure("not-found", "", "Call pack_draft before capture_preview");
+        const pkg = packed;
+        if (!pkg) return failure("not-found", "", "Call pack_draft before capture_preview");
         if (input.layout !== undefined && typeof input.layout !== "boolean")
           return failure("invalid-document", "/layout", "Expected a boolean");
         let url: string;
@@ -422,7 +426,8 @@ export function createAuthoring(options: AuthoringOptions) {
             throw new Error(
               "The config module names no preview(): add `preview: async (binding) => ({ url, close })` to serve the app's own page.",
             );
-          bound ??= options.preview({ session: boundSession, package: () => packed! });
+          // The binding outlives this call: it serves the latest packed draft, which is never unset.
+          bound ??= options.preview({ session: boundSession, package: () => packed ?? pkg });
           const bridge = await bound.catch((error: unknown) => {
             bound = undefined;
             throw error;

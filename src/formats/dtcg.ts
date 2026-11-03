@@ -152,7 +152,7 @@ export const shadowLayer = obj(
   },
   { inset: bool() },
 );
-export const shadowLayers = arr(shadowLayer, { maxItems: 16 });
+const shadowLayers = arr(shadowLayer, { maxItems: 16 });
 export type ShadowLayer<Alpha = number | string> = Omit<Infer<typeof shadowLayer>, "color"> & {
   readonly color: ColourValue<Alpha>;
 };

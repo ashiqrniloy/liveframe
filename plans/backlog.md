@@ -372,6 +372,7 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 
 ## Gate the lint warnings, not only complexity
 
+- Status: closed 2026-11-04 by [plan 025 Task 1](025-Phase-7-Part-L-Release-0-2-3-Simplification-And-Release.md): `bun run lint` is `biome lint --error-on-warnings .` and reports 0 warnings and 0 infos. `src/` narrows instead of asserting; the `biome.jsonc` override turns `noNonNullAssertion` off only for tests, benches, proof harnesses and evidence scripts. The entry below is historical.
 - Section: tooling (`biome.json`, `bun run lint`)
 - Priority: P3
 - Source: plans/evidence/012-impact-analysis.md F2

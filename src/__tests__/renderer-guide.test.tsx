@@ -16,7 +16,7 @@ function receivePatch(current: UiTree, patch: TreePatch) {
 test("renderer_guide_example_runs", async () => {
   const example = await Bun.file(new URL("./fixtures/renderer-guide.tsx", import.meta.url)).text();
   const guide = await Bun.file(new URL("../../docs/renderer.md", import.meta.url)).text();
-  expect(guide).toContain("```tsx\n" + example + "```");
+  expect(guide).toContain(`\`\`\`tsx\n${example}\`\`\``);
   expect(guide).toContain(["```ts", patchSnippet, "```"].join("\n"));
   expect(validator.validateTree(tree).ok).toBe(true);
   expect(renderToString(<GuideSurface tree={tree} onIntent={() => {}} />)).toBe(

@@ -40,7 +40,7 @@ export function outcomeScenarios(
   const checked = validateScenario(scenario);
   if (!checked.ok) return checked;
   const seed = Object.hasOwn(scenario.data, source) ? scenario.data[source] : undefined;
-  c.collect(checkValue(schema, seed), "/data/" + source.replace(/~/g, "~0").replace(/\//g, "~1"));
+  c.collect(checkValue(schema, seed), `/data/${source.replace(/~/g, "~0").replace(/\//g, "~1")}`);
   if (!isRecord(seed) || !Object.hasOwn(seed, "value"))
     c.reject("/source", "The seed envelope must contain a valid value for the ok scenario");
   if (c.errors.length) return { ok: false, errors: c.errors };

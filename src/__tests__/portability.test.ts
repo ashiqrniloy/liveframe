@@ -252,7 +252,7 @@ test.each(subpaths.filter(({ host }) => host === "none"))(
     }
     if (loader) {
       // Exactly one dynamic import, in the approved backend loader; never called in this browser scan.
-      const dynamicImport = 'import(`data:text/javascript,${encodeURIComponent(rewritten).replaceAll(".", "%2E")}`)';
+      const dynamicImport = `import(\`data:text/javascript,\${encodeURIComponent(rewritten).replaceAll(".", "%2E")}\`)`;
       expect(source.split(dynamicImport)).toHaveLength(2);
       source = source.replace(dynamicImport, "");
     }

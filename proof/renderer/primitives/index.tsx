@@ -99,7 +99,7 @@ const Glyph = ({ name }: { name: string }) =>
       {glyphs[name]}
     </svg>
   ) : (
-    <>{icons[name] ?? "◇"}</>
+    (icons[name] ?? "◇")
   );
 const icon = (name: string | undefined, className: string) =>
   name ? (

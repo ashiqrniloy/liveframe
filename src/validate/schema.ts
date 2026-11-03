@@ -36,7 +36,6 @@ type ObjectCheck = {
   readonly objectExpected: string;
 };
 
-/** Compiles an install-validated language schema; checks allocate only on failure. */
 /** A missing required property, reported at its own pointer. */
 function missing(sink: SchemaSink, at: string, key: string, expected: string): false {
   const start = sink.errors.length;
@@ -81,6 +80,7 @@ function objectCheck(spec: ObjectCheck): SchemaCheck {
   };
 }
 
+/** Compiles an install-validated language schema; checks allocate only on failure. */
 export function compileSchema(schema: LanguageSchema): SchemaCheck {
   const check = compileForm(schema);
   return schema.nullable === true ? (value, at, sink) => value === null || check(value, at, sink) : check;

@@ -27,7 +27,7 @@ export type WidgetPackage = Omit<Infer<typeof fields>, "manifest" | "scenarios">
   readonly scenarios: readonly Scenario[];
 };
 const json = { $ref: "#/$defs/json" } as const;
-export const scenarioSchema = {
+const scenarioSchema = {
   ...scenarioFields,
   properties: {
     ...scenarioFields.properties,

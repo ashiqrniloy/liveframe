@@ -166,10 +166,6 @@ type JsonObject = Record<string, unknown>;
 const strip = (schema: JsonObject, keys: readonly string[]) =>
   Object.fromEntries(Object.entries(schema).filter(([key]) => !keys.includes(key)));
 
-const manifestSchema = manifestDoc as JsonObject;
-const packageSchema = packageDoc as JsonObject;
-const packageDefs = packageSchema.$defs as JsonObject;
-
 const stringSchema = { type: "string" };
 const stringsSchema = { type: "array", items: stringSchema };
 const errorProperties = {

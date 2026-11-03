@@ -1,4 +1,4 @@
-import type { LiveframeError, Result } from "../errors.ts";
+import type { Result } from "../errors.ts";
 import { arr, bool, checkValue, type Infer, int, type LanguageSchema, literal, obj, record, str } from "../schema.ts";
 import { at, documentChecks, isRecord, shell } from "./capabilities.ts";
 import { styleProps } from "./fixed.ts";
@@ -67,7 +67,7 @@ export function defineComponent<const D extends Definition>(definition: D): D {
 function unique<S>(schema: S) {
   return { ...schema, uniqueItems: true };
 }
-export const definitionSchema = {
+const definitionSchema = {
   ...definitionFields,
   properties: {
     ...definitionFields.properties,

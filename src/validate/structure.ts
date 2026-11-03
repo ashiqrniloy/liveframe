@@ -107,7 +107,7 @@ export function compileStructure(catalog: Catalog): CompiledStructure {
 }
 
 /** Bytes of a JSON scalar (`JSON.stringify` length), or undefined when it is not one. */
-export function jsonScalarBytes(value: unknown, maximum: number): number | undefined {
+function jsonScalarBytes(value: unknown, maximum: number): number | undefined {
   if (value === null) return 4;
   if (typeof value === "string") return stringBytes(value, maximum);
   if (typeof value === "boolean") return value ? 4 : 5;

@@ -40,6 +40,12 @@
   },
   "overrides": [
     {
+      // Tests, benches, proof harnesses and evidence scripts assert presence by failing when it is absent,
+      // so a non-null assertion there is the assertion. In shipped src/ it would hide a missing branch.
+      "includes": ["src/__tests__/**", "bench/**", "proof/tests/**", "proof/scripts/**", "plans/evidence/**"],
+      "linter": { "rules": { "style": { "noNonNullAssertion": "off" } } }
+    },
+    {
       "includes": ["src/**", "!src/__tests__/**"],
       "linter": {
         "rules": {

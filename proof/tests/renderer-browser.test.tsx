@@ -651,7 +651,8 @@ test("surface_text_never_inherits_host_fonts", async () => {
           // Hidden native controls and Aria helper nodes carry no surface class; they never draw surface text.
           if (![...element.classList].some((name) => name.startsWith("lf_"))) continue;
           const family = getComputedStyle(element).fontFamily;
-          if (!(element as HTMLElement).innerText?.trim() && !["INPUT", "TEXTAREA"].includes(element.tagName)) continue;
+          if (!(element as HTMLElement).textContent?.trim() && !["INPUT", "TEXTAREA"].includes(element.tagName))
+            continue;
           bad.push(`${element.tagName}.${element.className} ${family}`);
         }
         return bad;

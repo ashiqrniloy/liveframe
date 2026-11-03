@@ -499,7 +499,7 @@ test("authoring_results_match_mcp_json", async () => {
     for (const [name, arguments_, result] of pairs) {
       const tool = await client.callTool({ name, arguments: arguments_ });
       const block = tool.content[0];
-      if (!block || block.type !== "text") throw new Error("Expected MCP text content");
+      if (block?.type !== "text") throw new Error("Expected MCP text content");
       expect(tool.isError === true).toBe(!result.ok);
       expect(JSON.parse(block.text)).toEqual(result.ok ? result.value : result.errors);
     }
