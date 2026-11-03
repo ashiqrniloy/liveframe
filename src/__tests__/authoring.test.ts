@@ -21,6 +21,24 @@ import { drafts, packageOptions, value } from "./fixtures/widgets/drafts.ts";
 const draft = { ...drafts[0]!, manifest: value(validateManifestShape(drafts[0]!.manifest)) };
 const options = () => ({ ...packageOptions, runner: inProcessRunner() });
 
+/** A tree the validator accepts that is still over the authoring tool's 256 KiB result bound. */
+const oversizedTree = (surfaceId: string, revision: number): UiTree => ({
+  format: "liveframe/1",
+  catalogId: packageOptions.catalog.catalogId,
+  surfaceId,
+  revision,
+  root: {
+    id: "root",
+    kind: "stack",
+    props: {},
+    children: Array.from({ length: 8 }, (_, index) => ({
+      id: `root/big-${index}`,
+      kind: "text",
+      props: { text: "😀".repeat(10000) },
+    })),
+  },
+});
+
 test("set_state_applies_offered_event_and_refuses_invalid_origins_and_actions", async () => {
   let binding!: PreviewBinding;
   let renders = 0;
@@ -105,10 +123,7 @@ test("set_state_bounds_the_rerendered_tree", async () => {
       async render(...args) {
         const result = await delegate.render(...args);
         if (!large || !result.ok) return result;
-        return {
-          ok: true,
-          value: { ...result.value, root: { ...result.value.root, props: { text: "😀".repeat(70000) } } },
-        };
+        return { ok: true, value: oversizedTree(result.value.surfaceId, result.value.revision) };
       },
     },
   });
@@ -449,16 +464,7 @@ test("authoring_hides_host_meta_unless_requested_and_bounds_trees", async () => 
     ...options(),
     runner: {
       async render(_pkg, _inputs, opts) {
-        return {
-          ok: true,
-          value: {
-            format: "liveframe/1",
-            catalogId: packageOptions.catalog.catalogId,
-            surfaceId: opts.surfaceId,
-            revision: opts.revision,
-            root: { id: "root", kind: "text", props: { text: "😀".repeat(70000) } },
-          },
-        };
+        return { ok: true, value: oversizedTree(opts.surfaceId, opts.revision) };
       },
     },
   });
@@ -625,5 +631,22 @@ test("capture_layout_without_backend_support_is_null_and_oversize_names_the_layo
   } finally {
     await without.close();
     await huge.close();
+  }
+});
+
+test("custom_runner_cyclic_tree_is_rejected_not_counted", async () => {
+  const root: Record<string, unknown> = { id: "root", kind: "stack", props: {} };
+  root.children = [root];
+  const a = createAuthoring({
+    ...packageOptions,
+    runner: { render: async () => ({ ok: true, value: { format: "liveframe/1", root } as never }) },
+  });
+  try {
+    value(await a.packDraft(draft));
+    const statuses = value(await a.renderScenarios()) as { ok: boolean }[];
+    expect(statuses.length).toBeGreaterThan(0);
+    expect(statuses.every((status) => !status.ok)).toBe(true);
+  } finally {
+    await a.close();
   }
 });

@@ -449,3 +449,38 @@ test("pending_render_cannot_restore_a_session_reset_by_update", async () => {
   rejects(await session.intent({ type: "action", name: "tasks.claim", args: { id: "x" } }), "not-found");
   expect(session.intents()).toEqual([]);
 });
+
+const invalidTree = { format: "nope", root: { id: 7, kind: "<script>" } };
+
+test("custom_runner_invalid_tree_is_rejected_by_the_session", async () => {
+  const session = createPreview({
+    ...packageOptions,
+    runner: { render: async () => ({ ok: true, value: invalidTree as never }) },
+  });
+  value(session.update(draft));
+  const result = await session.render({ scenario: "first" });
+  expect(result.ok).toBe(false);
+  rejects(result, "invalid-prop", "/format");
+  const checked = await session.check();
+  expect(value(checked).every((entry) => !entry.result.ok)).toBe(true);
+  // The invalid tree offers nothing, so an intent that names an origin is refused.
+  const origin = { surfaceId: "preview-x", revision: 1, nodeId: "root", event: "onChange" };
+  rejects(await session.intent({ type: "setState", key: "query", value: "x" }, origin), "not-found");
+});
+
+test("valid_runner_trees_are_unchanged", async () => {
+  const delegate = inProcessRunner();
+  let raw: Result<UiTree> | undefined;
+  const session = createPreview({
+    ...packageOptions,
+    runner: {
+      async render(...args) {
+        raw = await delegate.render(...args);
+        return raw;
+      },
+    },
+  });
+  value(session.update(draft));
+  const tree = value(await session.render({ scenario: "first" }));
+  expect(tree).toEqual(value(raw!));
+});

@@ -443,6 +443,22 @@ test("render_outcomes_rejects_non_boolean", async () => {
   expect(result.json()).toMatchObject([{ kind: "invalid-document", pointer: "/outcomes" }]);
 }, 30000);
 
+test("render_scenarios_reports_invalid_custom_runner_tree", async () => {
+  const statuses = await withClient(
+    async (client) => {
+      expect((await call(client, "pack_draft", agentHome)).isError).toBe(false);
+      const one = await call(client, "render_scenarios", { scenario: agentScenario });
+      expect(one.json()).toEqual(
+        expect.arrayContaining([expect.objectContaining({ kind: "invalid-prop", pointer: "/format" })]),
+      );
+      return (await call(client, "render_scenarios")).json();
+    },
+    { config: `${fixtures}/mcp-bad-runner.config.ts` },
+  );
+  expect(statuses).toEqual(expect.arrayContaining([expect.objectContaining({ ok: false })]));
+  expect(JSON.stringify(statuses)).not.toContain('"ok":true');
+}, 30000);
+
 function countNodes(node: { children?: readonly unknown[] }): number {
   const children = node.children ?? [];
   return 1 + children.reduce<number>((sum, child) => sum + countNodes(child as { children?: readonly unknown[] }), 0);

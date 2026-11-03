@@ -112,7 +112,7 @@ Plan 022's rules 1–6 apply as written. In addition:
     - The new test also asserts `generatedFrom` names `v0.2.2`. `api-stability.test.ts`: 8 pass. The 0.2.1 test is unchanged.
     - No spec change.
 
-- [ ] Task 2: Validate every runner tree on the host in `createPreview()` and `createAuthoring()` (R1)
+- [x] Task 2: Validate every runner tree on the host in `createPreview()` and `createAuthoring()` (R1)
   - Acceptance Criteria:
     - Functional:
       - `createPreview().run` (`src/preview/session.ts:40-50`) passes each successful runner result through the session's `validator` (compiled in `update()`, `:102`) before storing or returning it, using the runner options' `limits`. An invalid tree becomes the validator's typed errors.
@@ -153,6 +153,15 @@ Plan 022's rules 1–6 apply as written. In addition:
     - `custom_runner_cyclic_tree_is_rejected_not_counted`: a tree whose child points at its root returns `ok: false` from `renderOutcomes` without a stack overflow. Fails if `checkAll` sees it.
     - `render_scenarios_reports_invalid_custom_runner_tree`: through the MCP tool, the scenario status is `ok: false`.
     - `valid_runner_trees_are_unchanged`: the in-process runner's tree is deep-equal before and after this change.
+  - Notes (executed 2026-11-03):
+    - `src/preview/session.ts` `run()` validates a successful runner result with the session's validator before storing or returning it. The validator is read before the `await`, so an `update()` during a render cannot swap it. If none exists it is compiled from the active package's manifest, so validation never fails open. `src/authoring/index.ts` `renderOutcomes` validates each result with `compiledValidator(…, pkg.hash)` from `runner-kit/cache.ts` before `checkAll`. No new export, and the register is still `[]`.
+    - **Amended: no `limits`.** `createPreview` and `createAuthoring` take no `limits` option, and the options they pass to a runner carry none. The default limits (5000 nodes, depth 64, 1 MiB) therefore apply. Adding a `limits` option would be a new declaration.
+    - **Amended: the validator's kind is `invalid-prop`, not `invalid-document`.** A wrong `format`/`catalogId` and a bad `id` come back as `invalid-prop` at `/format`, `/catalogId`, `/surfaceId` and `/revision`. An unknown `kind` is `unknown-component`. The tests assert those.
+    - **Amended: two existing tests were edited, against the plan's "unedited" criterion.** `set_state_bounds_the_rerendered_tree` and `authoring_hides_host_meta_unless_requested_and_bounds_trees` used a hand-built tree that was invalid against the catalog (an undeclared `text` prop on the root, then a string over the 10,000-character limit). They were meant to reach the 256 KiB result bound, and the host validator now rejects them first, as intended. Both now use a shared `oversizedTree()` helper: eight valid `text` nodes of 10,000 emoji each, about 320 KB, over the bound and valid. They still assert `limit-exceeded` at `/scenario`. The other existing preview, authoring and MCP tests pass unedited.
+    - Added fixture `src/__tests__/fixtures/mcp-bad-runner.config.ts`, a host runner that returns an invalid tree, for the MCP test. Single-scenario `render_scenarios` returns the validator's errors directly. The all-scenarios form returns `ok: false` statuses.
+    - With `session.ts` and `authoring/index.ts` reverted, `custom_runner_invalid_tree_is_rejected_by_the_session`, `custom_runner_cyclic_tree_is_rejected_not_counted` and `render_scenarios_reports_invalid_custom_runner_tree` fail, so they test the fix. `valid_runner_trees_are_unchanged` passes either way, which is its job.
+    - Cost: one extra `validateTree` per preview render, which is the same work the worker runner's host re-validation does (0.907 ms median on the proof catalog, `docs/packages.md`). I did not re-measure it. The preview and authoring paths are not bench-gated.
+    - Docs: `docs/security.md` item 3 and spec §7.5 already promised host validation of every runner tree, so neither changed. CHANGELOG has a new `Unreleased` section with a "Fixed" line.
 
 - [ ] Task 3: Reject top-level `await using` and stop caching failed module links (R2, R3)
   - Acceptance Criteria:

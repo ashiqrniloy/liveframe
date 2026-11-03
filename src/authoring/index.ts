@@ -19,6 +19,7 @@ import {
 } from "../preview/capture/index.ts";
 import type { Runner } from "../preview/runner.ts";
 import { createPreview } from "../preview/session.ts";
+import { compiledValidator } from "../runner-kit/cache.ts";
 import { isLanguageSchema, sourceOutcome } from "../schema.ts";
 import { generate, generateDefinitions, generateElementsSchema } from "../sdk/gen.ts";
 import { complete } from "../validate/complete.ts";
@@ -291,9 +292,10 @@ export function createAuthoring(options: AuthoringOptions) {
         expanded.push(...result.value);
       }
     }
+    const validator = compiledValidator({ catalog, capabilities, manifest: pkg.manifest }, pkg.hash);
     const results = [];
     for (const scenario of expanded) {
-      const result = await runner.render(
+      const rendered = await runner.render(
         pkg,
         {
           params: scenario.params,
@@ -303,6 +305,8 @@ export function createAuthoring(options: AuthoringOptions) {
         },
         { catalog, capabilities, surfaceId, revision: ++revision },
       );
+      // A custom runner is host code: validate its tree so `checkAll` only sees bounded, acyclic data.
+      const result = rendered.ok ? validator.validateTree(rendered.value) : rendered;
       results.push({ scenario: scenario.name, result });
     }
     return success(checkAll(results));

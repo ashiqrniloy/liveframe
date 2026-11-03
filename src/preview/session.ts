@@ -44,7 +44,10 @@ export function createPreview({
       context: selected.context,
       data: selected.scenario.data,
     };
-    const result = await runner.render(active, inputs, { catalog, capabilities, surfaceId, revision: ++revision });
+    // A custom runner is host code the session does not trust: its tree is validated before anyone sees it.
+    const checker = validator ?? compileValidator({ catalog, capabilities, manifest: active.manifest });
+    const rendered = await runner.render(active, inputs, { catalog, capabilities, surfaceId, revision: ++revision });
+    const result = rendered.ok ? checker.validateTree(rendered.value) : rendered;
     if (pkg === active && current === selected) selected.result = result;
     return result;
   }

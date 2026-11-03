@@ -2,6 +2,12 @@
 
 All notable changes to `@arnilo/liveframe` are recorded here. The project follows the compatibility policy in [`docs/compatibility.md`](docs/compatibility.md).
 
+## Unreleased
+
+Fixed:
+
+- **Custom runner trees are validated on the host:** `createPreview()` and `createAuthoring()` now pass every tree a custom `Runner` returns through the draft's compiled validator before storing or reporting it. A runner that returned an invalid or cyclic tree used to be reported as `ok: true` by `session.render()`, `renderOutcomes` and the `render_scenarios` tool, and a cyclic tree could overflow the stack. They now report the validator's typed errors. Trees from `inProcessRunner()` and `workerRunner()` are unchanged. Only trees that already violated the spec change outcome.
+
 ## 0.2.2 — 2026-11-03
 
 This section shipped as `0.2.2-rc.2` first. `0.2.2-rc.1` was superseded before release: the release review brought the first-compile cost of `compileValidator` back inside 0.2.1's and fixed a stale catalog-cache hit.
