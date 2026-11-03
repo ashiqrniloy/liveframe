@@ -536,3 +536,11 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Source: plans/023-Phase-7-Part-J-Release-0-2-3-Security-And-Defects.md Task 2 (R1) and Task 10 (F5)
 - What: since 0.2.3 both functions validate every tree a custom `Runner` returns on the host, but they take no `limits` option and pass none to the runner, so the default limits apply (5,000 nodes, depth 64, 1 MiB). A host that raises the limits for its own runner cannot make the session accept the larger tree. Add an optional `limits` to `createPreview`/`createAuthoring` options, forwarded to both the runner and the host validation, with a test that a tree over the default but within the raised limit passes. This adds a declaration, so it is a 0.3.0 change with a `docs/compatibility.md` entry.
 - Why: Task 2 closed the unvalidated-tree gap without a new declaration (the 0.2.3 register is empty). The option is the only way to configure that validation.
+
+## Cut the validity cost inside `walkJson`
+
+- Section: Validation (spec §10)
+- Priority: P4
+- Source: plans/024-Phase-7-Part-K-Release-0-2-3-Performance.md Task 4 (R14), plans/evidence/024-validator-walk.md
+- What: the single-traversal tree walk measured no gain, but its count-only floor shows `walkJson`'s validity machinery (the cycle `Set`, `path.push`/`pop`, shared-context field writes) costs 8–17% of the whole-tree walk on `agent-home`. Candidate: build the error path while unwinding from a failure instead of pushing it on the way down. `render()`'s builder shares `walkJson`, so measure both users.
+- Why: it is the one part of R14's cost that a change could reach with identical errors and no new coupling between the checks and the byte count. It is only worth doing if the whole-tree figure becomes a target again.
