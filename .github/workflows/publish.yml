@@ -18,7 +18,12 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # Protected environment: required reviewers and a `v*` tag rule are set in the repository settings.
+    environment: release
     steps:
+      - name: Real publishes run only from a tag
+        if: ${{ !inputs.dry_run && github.ref_type != 'tag' }}
+        run: echo "::error::publish from a v* tag" && exit 1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -27,6 +32,14 @@ jobs:
         if: github.ref_type == 'tag'
         run: test "${GITHUB_REF_NAME#v}" = "$(bun -p 'require("./package.json").version')"
       - run: bun install --frozen-lockfile
+      - name: Audit runtime dependencies (fails on high or critical)
+        run: bun audit --prod --audit-level=high
+      - name: SBOM (CycloneDX)
+        run: bun scripts/release/sbom.ts --out "$RUNNER_TEMP/sbom.cdx.json"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom
+          path: ${{ runner.temp }}/sbom.cdx.json
       - run: bunx playwright install --with-deps chromium
       - run: bun run check
       - run: bun scripts/release/archive-gate.ts

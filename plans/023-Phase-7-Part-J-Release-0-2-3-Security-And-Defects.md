@@ -364,7 +364,7 @@ Plan 022's rules 1–6 apply as written. In addition:
     - `src/__tests__/css-style-props.test.ts` got a comment above the `width: "2fr"` assertion; the assertion is untouched. No source file changed, so CSS bytes, validation and `liveframe gen` output (`_Dimension`) are identical and the register stays `[]`.
     - **Added a CHANGELOG "Deprecated" line** under Unreleased, which the task's file list did not name; a deprecation is something adopters look for there.
 
-- [ ] Task 8: Add a dependency audit and an SBOM to CI, and gate publishing to tags in a protected environment (R10)
+- [x] Task 8: Add a dependency audit and an SBOM to CI, and gate publishing to tags in a protected environment (R10)
   - Acceptance Criteria:
     - Functional:
       - `.github/workflows/ci.yml` runs `bun audit --prod --audit-level=high` after `bun install --frozen-lockfile`. It fails the job on a high or critical advisory in the runtime closure. `bun audit` (all dependencies, all levels) runs informationally with `continue-on-error`.
@@ -407,6 +407,15 @@ Plan 022's rules 1–6 apply as written. In addition:
   - Test Cases to Write:
     - `sbom_lists_exactly_the_runtime_closure`: the SBOM's component set equals the lockfile closure of `dependencies`. It includes `acorn` and `sucrase` (or none of sucrase's dependencies after Task 9), and no dev dependency.
     - `sbom_is_valid_cyclonedx_1_6`: it validates against the CycloneDX 1.6 JSON schema (vendored under `scripts/release/fixtures/`) with `ajv`, which is already a dev dependency.
+  - Notes (executed 2026-11-03):
+    - `.github/workflows/ci.yml` and `publish.yml` run `bun audit --prod --audit-level=high` after the frozen install (it passes today: 18 packages, no advisories). CI also runs a plain `bun audit` with `continue-on-error`. Both upload the SBOM as the `sbom` workflow artifact with `actions/upload-artifact` pinned to the v7.0.2 commit (`cf430e0…`, resolved with `gh api`).
+    - **SBOM location: workflow artifact only, not in the npm archive.** Shipping it would add a published file and change the archive gate's list. The criterion allowed either; this is the smaller change.
+    - `publish.yml`: the job declares `environment: release`, and its first step fails `!inputs.dry_run && github.ref_type != 'tag'`. The tag/version check is unchanged. **Consequence to know:** because the job declares the environment, a dry run from a branch is also subject to the environment's rules. With a tag-only deployment rule, a branch dry run is blocked and a dry run has to be dispatched with a tag selected as the ref. I did not use an expression to make the environment conditional, since I could not verify that an empty environment is accepted.
+    - `scripts/release/sbom.ts`: Bun-only, no dependency. `bun.lock` is parsed with `Bun.JSONC.parse` (present in Bun 1.4.4 locally; CI pins 1.4.2, where I did not run it). It walks `dependencies` through the lock, resolving nested keys the way bun.lock does (`a/b/dep`, then `a/dep`, then `dep`; a scope counts as one segment). Each component has name, version, `purl`, a SHA-512 hash converted from the lockfile integrity, and a licence read from the installed `package.json` when `node_modules` has it (the lock records none), and the BOM carries the dependency graph. Output today: 18 components, including `acorn` and `sucrase`.
+    - Vendored the CycloneDX 1.6 schema with its two referenced schemas (`bom-1.6.schema.json`, `spdx.schema.json`, `jsf-0.82.schema.json`, from the CycloneDX specification repository) under `scripts/release/fixtures/cyclonedx/`. `ajv-formats` is not installed, so the test compiles with `validateFormats: false`; an SBOM carries no formatted fields except a timestamp it does not emit.
+    - Tests in `src/__tests__/sbom.test.ts`: `sbom_lists_exactly_the_runtime_closure` (includes `acorn` and `sucrase`, no dev or peer dependency, unique purls, closed graph), `sbom_resolves_nested_and_scoped_lock_entries` (a synthetic lock with a nested scoped package), and `sbom_is_valid_cyclonedx_1_6` (with a negative check so the validator is not vacuous). After Task 9 removes sucrase's dependencies, the first test still holds, since it checks closure rather than a fixed list.
+    - `docs/compatibility.md` § "Release process" describes the tag gate, the environment, the audit and the SBOM. CHANGELOG has an "Added (tooling, not published)" line. No spec change; the register stays `[]`.
+    - **Owner actions still open (not done by me):** create the `release` environment with required reviewers and a `v*` tag rule in the repository settings, and set the environment name on the npm trusted publisher if npm supports it for this package. Neither has evidence yet.
 
 - [ ] Task 9: Bundle sucrase's transform so consumers install no CLI-only dependencies (R11, gated on Task 1's decision)
   - Acceptance Criteria:
