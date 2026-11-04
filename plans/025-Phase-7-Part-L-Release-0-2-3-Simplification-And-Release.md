@@ -15,7 +15,7 @@ Depends on: plans [023](023-Phase-7-Part-J-Release-0-2-3-Security-And-Defects.md
 
 - `bun run lint` runs with `--error-on-warnings` and reports 0 warnings. The backlog entry "Gate the lint warnings, not only complexity" is closed.
 - Each helper exists once:
-  - `pointer`/`at`, error-message, `queue()`, `utf8Length`, `isThenable` and `findChild` each have exactly one definition under `src/`. A test greps for re-implementations, using the patterns in Task 2.
+  - `pointer`/`at`, error-message, `queue()`, `utf8Length`, `isThenable` and `findNode` (named `findChild` when planned; see Task 2's notes) each have exactly one definition under `src/`. A test greps for re-implementations, using the patterns in Task 2.
   - The validator bundle (`scripts/validator-bundle.ts`) and the portability test still pass.
 - `render()`'s byte count equals the validator's count for every tree in a 1,000-tree property test, and the literal offsets in `src/sdk/render.ts:538-584` are gone.
 - No function under `src/` carries a `noExcessiveCognitiveComplexity` suppression without an A/B figure in its comment. Every split function's bench is within 2%.
@@ -92,7 +92,7 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
       - First `bun run check` (load average 95): build, `gen:check`, typecheck, lint and format check passed. 37 browser and proof tests failed with "Target page, context or browser has been closed" and timeouts.
       - Re-run `bun run test` at load average 10 → 5: 1041 pass, 0 fail, including `surface_text_never_inherits_host_fonts`. This is the same load sensitivity plan 023 recorded (Task 8 carry-over).
 
-- [ ] Task 2: Share the small internal helpers (R20)
+- [x] Task 2: Share the small internal helpers (R20)
   - Acceptance Criteria:
     - Functional:
       - One internal module, `src/internal.ts` (host-API-free, not exported from any subpath), holds:
@@ -139,6 +139,53 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
     - `queue_runs_serially_and_survives_a_rejection`.
     - `utf8_length_matches_text_encoder`: random strings, including lone surrogates, counted against `TextEncoder` with U+FFFD replacement, as `stringBytes` does today.
     - `no_duplicate_helpers`: the guard.
+  - Notes (executed 2026-11-04):
+    - `src/internal.ts` holds `at(pointer, key)` (with the no-escape fast path), `pointerSegment` (derived from `at`, for the cold paths that need a bare token), `errorMessage`, `queue`, `isThenable` and `utf8Length`. It imports nothing.
+    - Pointers:
+      - `at` was already the shared pointer builder (`src/formats/capabilities.ts`, imported by 12 modules). It moved to `src/internal.ts` and gained the fast path. `capabilities.ts` re-exports it, so those imports are unchanged.
+      - `src/schema.ts` and `src/sdk/elements.ts` dropped their own `pointerAt` and call `at`. `src/validate/schema.ts`, `src/validate/style.ts`, `src/formats/vocabulary.ts`, `src/pack/outcome.ts`, `src/pack/bundle.ts` and authoring's `key` use `at` or `pointerSegment`.
+    - `errorMessage` replaces authoring's `message`, the worker's `reason`, and the inline idiom in `src/preview/in-process.ts`, `src/runner-kit/render.ts`, `src/cli/mcp.ts` (×2) and `src/cli/liveframe.ts`.
+      - `src/cli/draft-dir.ts:73` had no such idiom; its only error branch tests `SyntaxError`.
+      - `src/sdk/render.ts` `thrownMessage` stays separate, with a comment saying why.
+      - The two conformance messages (`src/conformance/store.ts`, `src/conformance/react/server.tsx`) also stay. They fall back to fixed text, not `String(error)`.
+    - `queue()` replaces authoring's `serialize`, the MCP `queued` (shutdown now drains it with `await queued(async () => {})`), `fileStore`'s module-global `packages` and the worker runner's `queue`.
+      - The old authoring and MCP queues ran `tail.then(work, work)`. Their tail never rejects, so `tail.then(work)` is the same.
+      - The worker's old tail was `result.then(() => {})`, which would have broken the chain if a render promise rejected, e.g. a throw from `refusal(pkg)`. Its renders now get the same failure isolation as the other queues. A render that resolves (every current path) is ordered exactly as before.
+    - `isThenable` replaces `src/sdk/render.ts`'s copy, `src/sdk/intents.ts` and `settled` in `src/react/renderer.tsx`. The result is the same for every input those sites see.
+    - `utf8Length` deviates from the plan:
+      - `stringBytes` is not a UTF-8 counter. It counts a string's JSON form (quotes, escapes, and a lone surrogate as a 6-byte `\uXXXX`), so it neither becomes `utf8Length` nor re-exports it. Its doc comment now says so.
+      - The test therefore checks `utf8Length` against `TextEncoder` directly.
+      - `src/pack/hash.ts` `utf8` is unchanged. It throws on lone surrogates, and its worst-case sizing exists to avoid a second pass on the `packageHash` path that plan 024 Task 5 tuned. Sizing it with `utf8Length` would add that pass.
+      - `utf8Length` replaces `checkCodeSize`'s loop and authoring's `utf8(JSON.stringify(…)).byteLength`. `JSON.stringify` never emits lone surrogates, so the count is unchanged.
+    - The node lookup is `findNode(tree, id)` in `src/validate/patch.ts`, not `findChild` in `src/internal.ts`, because it reads `applyPatch`'s cached id index.
+      - `checkOffered` drops its own `indexes` WeakMap and uses `findNode`.
+      - Authoring `setState` uses it too, instead of mapping every child.
+      - Both trees are validated, so ids are unique.
+      - `findNode` is not exported from the root (`src/index.ts` names its patch exports).
+    - The guard (`no-duplicate-helpers.test.ts`) uses these patterns:
+      - `replaceAll("~", "~0")` or `replace(/~/g`;
+      - `instanceof Error ? <x>.message : String(`, narrowed from `instanceof Error ? ` so that the two conformance messages are allowed;
+      - `= <x>.catch(() => {})`;
+      - `typeof … .then ==`/`!== "function"`;
+      - `.children?.map(f).find(`.
+      Run over `HEAD`'s `src/`, it matches 9, 7, 3, 3 and 1 sites.
+    - Callers, recorded with `graft callers`:
+      - `pointerAt` (`src/schema.ts`): `visit`, `checkArray`, `checkObject`, `isObjectKeywordsValid`, `isUnionKeywordsValid`, `isWellFormed`.
+      - `pointerAt` (`src/sdk/elements.ts`): `convert`, `convertFragment`, `elementProps`, `merge`, `stateSchema`.
+      - `at` (`src/formats/capabilities.ts`): `capabilitiesFor`, `walk`, `map`, plus the 12 importing modules.
+      - Authoring `key`: `packArguments`. Bundle `pointer`: `bundle`, `transpile`, `visit`, `resolve`.
+      - `serialize`: `createAuthoring`. `isThenable`: `renderValue`, `dataKind`, `emit`, `shapeOf`. Worker `reason`: `render`, `validateResult`. Authoring `message`: `captureFailure`, `capturePreview`. `checkCodeSize`: `validateWidgetPackageShape`.
+      - The inline sites had no symbol of their own.
+    - `src/__tests__/schemas.test.ts` `schema_publisher_detects_drift` copies the publisher's source closure into a temp dir. It now lists `src/internal.ts`, a needed addition because `src/schema.ts` imports it.
+    - Performance (`bun bench/ab.ts HEAD bench/validator.bench.ts`, paired head/base ratios):
+      - First shape, with `at` calling `pointerSegment`: agent-home compiled 1.038 and generic 1.108 (9 runs, load 5.6 → 16), then 1.056 and 1.081 (15 runs, load 14 → 6). That misses the 1.02 gate. `checkValue` calls `at` eagerly for every array item and property.
+      - An A/A run (HEAD against HEAD, 15 runs) gave 1.002 and 0.992, so the driver has no bias. In isolation, a microbenchmark showed an imported helper costs the same as a local one, so the cost was the nested call.
+      - Final shape, with the fast path written into `at` itself: agent-home compiled 1.020 and generic 1.013 (15 runs, load 7.5 → 5.2), within the gate. The other validator metrics in the full 9-run table were 0.91–1.03 under load.
+      - The other helpers are off the hot path.
+    - Verification:
+      - The first `bun run check` (load 32) failed `schema_publisher_detects_drift`, which was missing `src/internal.ts`. It now lists the file. Eight wall-clock and browser tests also failed.
+      - Some `cli-mcp.test.ts` cases fail in the same way at HEAD under load (load 34–60), so they are not regressions.
+      - The final `bun run check` (load 4.8 → 9.7) passed: 1048 pass, 0 fail.
 
 - [ ] Task 3: Give the tree byte budget one owner (R21)
   - Acceptance Criteria:

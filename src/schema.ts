@@ -1,5 +1,6 @@
 import type { LiveframeError, Result } from "./errors.ts";
 import { carriesValue } from "./formats/events.ts";
+import { at } from "./internal.ts";
 
 type Annotations = { readonly description?: string; readonly deprecated?: boolean; readonly nullable?: boolean };
 type StringOptions = Annotations & {
@@ -182,7 +183,7 @@ export function checkLanguageSchema(
       Object.hasOwn(schema, minimum) &&
       (!isBound(schema[minimum]) || !isBound(maximum) || schema[minimum] > maximum)
     ) {
-      onError?.(pointerAt(pointer, minimum), `a nonnegative integer <= ${maximum}`);
+      onError?.(at(pointer, minimum), `a nonnegative integer <= ${maximum}`);
       return false;
     }
     ancestors.add(schema);
@@ -216,7 +217,7 @@ function isUnionKeywordsValid(
         isRecord(entry) &&
         entry.type === "object" &&
         entry.nullable !== true &&
-        visit(entry, pointerAt(pointerAt(pointer, "mapping"), tag)) &&
+        visit(entry, at(at(pointer, "mapping"), tag)) &&
         isRecord(entry.properties) &&
         !Object.hasOwn(entry.properties, discriminator),
     )
@@ -255,7 +256,7 @@ function isWellFormed(
     case "boolean":
       return true;
     case "array":
-      return isBound(schema.maxItems) && visit(schema.items, pointerAt(pointer, "items"));
+      return isBound(schema.maxItems) && visit(schema.items, at(pointer, "items"));
     default:
       return isObjectKeywordsValid(schema, visit, pointer);
   }
@@ -299,18 +300,13 @@ function isObjectKeywordsValid(
 ): boolean {
   if (schema.additionalProperties !== false || !isRecord(schema.properties)) return false;
   const { properties, required } = schema;
-  const base = pointerAt(pointer, "properties");
+  const base = at(pointer, "properties");
   return (
     Array.isArray(required) &&
     required.every((key) => typeof key === "string" && Object.hasOwn(properties, key)) &&
     new Set(required).size === required.length &&
-    Object.entries(properties).every(([key, child]) => visit(child, pointerAt(base, key)))
+    Object.entries(properties).every(([key, child]) => visit(child, at(base, key)))
   );
-}
-
-function pointerAt(pointer: string, key: string | number): string {
-  const name = String(key);
-  return `${pointer}/${name.includes("~") || name.includes("/") ? name.replaceAll("~", "~0").replaceAll("/", "~1") : name}`;
 }
 
 /** Interprets a language schema and returns at most maxErrors failures (default 20). */
@@ -351,20 +347,20 @@ export function checkValue<const S extends LanguageSchema>(
     if (!Array.isArray(input)) return reject(pointer, "an array");
     if (input.length > s.maxItems) reject(pointer, `at most ${s.maxItems} items`);
     if (input.length < (s.minItems ?? 0)) reject(pointer, `an array of ${s.minItems}–${s.maxItems} items`);
-    for (let i = 0; i < input.length && !full(); i++) visit(s.items, input[i], pointerAt(pointer, i));
+    for (let i = 0; i < input.length && !full(); i++) visit(s.items, input[i], at(pointer, i));
   }
   function checkObject(s: ObjectSchema, input: unknown, pointer: string, discriminator?: string) {
     if (!isRecord(input)) return reject(pointer, "an object");
     for (const key of s.required) {
       if (full()) return;
-      if (!Object.hasOwn(input, key)) reject(pointerAt(pointer, key), "a required property");
+      if (!Object.hasOwn(input, key)) reject(at(pointer, key), "a required property");
     }
     for (const key of Object.keys(input)) {
       if (full()) return;
       if (key === discriminator) continue;
       const property = Object.hasOwn(s.properties, key) ? s.properties[key] : undefined;
-      if (!property) reject(pointerAt(pointer, key), "a declared property");
-      else visit(property, input[key], pointerAt(pointer, key));
+      if (!property) reject(at(pointer, key), "a declared property");
+      else visit(property, input[key], at(pointer, key));
     }
   }
   function visit(s: LanguageSchema, input: unknown, pointer: string): void {
@@ -376,7 +372,7 @@ export function checkValue<const S extends LanguageSchema>(
       }
       const tag = Object.hasOwn(input, s.discriminator) ? input[s.discriminator] : undefined;
       if (typeof tag !== "string" || !Object.hasOwn(s.mapping, tag)) {
-        reject(pointerAt(pointer, s.discriminator), `one of: ${Object.keys(s.mapping).join(", ")}`);
+        reject(at(pointer, s.discriminator), `one of: ${Object.keys(s.mapping).join(", ")}`);
         return;
       }
       checkObject(s.mapping[tag] as ObjectSchema, input, pointer, s.discriminator);

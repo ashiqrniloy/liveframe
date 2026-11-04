@@ -6,13 +6,14 @@ import { LiveframeFailure } from "../../errors.ts";
 import type { WidgetPackage } from "../../formats/package.ts";
 import type { Placement, StyleRecord } from "../../formats/records.ts";
 import type { Json } from "../../formats/tree.ts";
+import { queue } from "../../internal.ts";
 import { sha256 } from "../../pack/hash.ts";
 import { isRecord } from "../../schema.ts";
 import type { Store } from "../index.ts";
 import { assertScope } from "../scope.ts";
 
 // Serialize package checks and writes across store instances in this writing process.
-let packages = Promise.resolve();
+const packages = queue();
 
 // A file name's encoded form, keeping "name.json" inside NAME_MAX (255 bytes).
 const ENCODED_LIMIT = 200;
@@ -82,7 +83,7 @@ export function fileStore(dir: string): Store {
       const { id, version } = pkg.manifest;
       const hash = pkg.hash;
       const file = path("packages", id, version);
-      const pending = packages.then(async () => {
+      return packages(async () => {
         const existing = await read<WidgetPackage>(file);
         if (existing !== undefined) {
           if (existing.hash === hash) return;
@@ -97,8 +98,6 @@ export function fileStore(dir: string): Store {
         }
         await write(file, source);
       });
-      packages = pending.catch(() => {});
-      return pending;
     },
     getPackage: (id, version) => read<WidgetPackage>(path("packages", id, version)),
     putPlacement: (placement) => write(path("placements", placement.id), JSON.stringify(placement)),

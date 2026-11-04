@@ -1,4 +1,5 @@
 import type { Result } from "../errors.ts";
+import { utf8Length } from "../internal.ts";
 import { arr, bool, checkValue, type Infer, obj, str } from "../schema.ts";
 import { documentChecks, isRecord, shell } from "./capabilities.ts";
 import { validateJson } from "./json.ts";
@@ -64,15 +65,7 @@ type Checks = ReturnType<typeof documentChecks>;
 /** At most 1 MiB of UTF-8 code, counted without allocating a copy. */
 function checkCodeSize(code: unknown, c: Checks): void {
   if (typeof code !== "string") return;
-  let bytes = 0;
-  for (const char of code) {
-    const unit = char.charCodeAt(0);
-    bytes += char.length === 2 ? 4 : unit <= 0x7f ? 1 : unit <= 0x7ff ? 2 : 3;
-    if (bytes > 1048576) {
-      c.reject("/code", "Expected at most 1 MiB of UTF-8 code");
-      return;
-    }
-  }
+  if (utf8Length(code, 1048576) > 1048576) c.reject("/code", "Expected at most 1 MiB of UTF-8 code");
 }
 
 /** Every scenario is valid and its name is unique. */

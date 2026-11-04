@@ -1,5 +1,6 @@
 import { isRecord } from "../formats/capabilities.ts";
 import { styleProps } from "../formats/fixed.ts";
+import { pointerSegment } from "../internal.ts";
 import type { Vocabulary } from "../formats/vocabulary.ts";
 import { field, reject } from "./checks.ts";
 import type { SchemaCheck, SchemaSink } from "./schema.ts";
@@ -26,8 +27,7 @@ function checkBreakpointMap(
     if (!Object.hasOwn(value, key)) continue;
     if (first && key !== "base") valid = reject(sink, at, expected);
     first = false;
-    if (!breakpoints.has(key))
-      valid = reject(sink, `${at}/${key.replaceAll("~", "~0").replaceAll("/", "~1")}`, expected);
+    if (!breakpoints.has(key)) valid = reject(sink, `${at}/${pointerSegment(key)}`, expected);
     else if (!field(check, value[key], sink, key)) valid = false;
     if (!valid && sink.errors.length >= sink.maxErrors) break;
   }

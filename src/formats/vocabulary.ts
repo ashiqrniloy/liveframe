@@ -1,6 +1,7 @@
 import type { LiveframeError, Result } from "../errors.ts";
 import { arr, checkValue, type Infer, int, isRecord, num, obj, record, str } from "../schema.ts";
 
+import { at } from "../internal.ts";
 import { noPaint } from "./fixed.ts";
 
 const name = str({ maxLength: 64, pattern: "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$" });
@@ -145,7 +146,7 @@ export function validateVocabulary(doc: unknown): Result<Vocabulary> {
     c.reject("invalid-document", "", "Expected a vocabulary object");
     return { ok: false, errors };
   }
-  const pointer = (key: string) => `/${key.replaceAll("~", "~0").replaceAll("/", "~1")}`;
+  const pointer = (key: string) => at("", key);
   for (const key of vocabularySchema.required)
     if (!Object.hasOwn(doc, key)) c.reject("invalid-document", pointer(key), "Expected a required property");
   for (const key of Object.keys(doc)) {

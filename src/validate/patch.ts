@@ -21,6 +21,11 @@ function indexTree(tree: UiTree): Map<string, readonly Entry[]> {
   indexes.set(tree, index);
   return index;
 }
+
+/** The node with `id` in a validated tree, whose ids are unique; the index is shared with `applyPatch`. */
+export function findNode(tree: UiTree, id: string): UiNode | undefined {
+  return indexTree(tree).get(id)?.[0]?.node;
+}
 const failure = (kind: LiveframeError["kind"], pointer: string, message: string): Result<never> => ({
   ok: false,
   errors: [{ kind, pointer, message }],

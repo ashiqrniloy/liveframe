@@ -4,6 +4,7 @@ import type { Catalog } from "../formats/catalog.ts";
 import { validateJson } from "../formats/json.ts";
 import type { Manifest } from "../formats/manifest.ts";
 import type { UiTree } from "../formats/tree.ts";
+import { errorMessage } from "../internal.ts";
 import { canonicalJson } from "../pack/hash.ts";
 import { type RenderLimits, render } from "../sdk/render.ts";
 import type { WidgetProps } from "../sdk/types.ts";
@@ -54,7 +55,7 @@ export function renderWidget(
   } catch (error) {
     return {
       ok: false,
-      errors: [{ kind: "render-failed", pointer: "", message: error instanceof Error ? error.message : String(error) }],
+      errors: [{ kind: "render-failed", pointer: "", message: errorMessage(error) }],
     };
   }
 }

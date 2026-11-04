@@ -1,7 +1,10 @@
 // biome-ignore lint/suspicious/noControlCharactersInRegex: JSON must escape control characters.
 const escapedOrNonAscii = /["\\\x00-\x1f\x7f-\uffff]/;
 
-/** UTF-8 bytes of QuoteJSONString (ECMA-262), including quotes, without serialising. */
+/**
+ * UTF-8 bytes of QuoteJSONString (ECMA-262), including quotes, without serialising. Not `utf8Length`:
+ * this counts the JSON escapes, and a lone surrogate is a 6-byte `\uXXXX` escape, not U+FFFD.
+ */
 export function stringBytes(value: string, maximum = Infinity): number {
   if (value.length + 2 <= maximum && !escapedOrNonAscii.test(value)) return value.length + 2;
   let bytes = 2;

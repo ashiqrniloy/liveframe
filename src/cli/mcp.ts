@@ -11,6 +11,7 @@ import { type CaptureInput, createAuthoring, type PackInput, type RenderInput } 
 import { type Capabilities, validateCapabilities } from "../formats/capabilities.ts";
 import { type Catalog, validateCatalog } from "../formats/catalog.ts";
 import { type LiveframeError, LiveframeFailure, type Result } from "../index.ts";
+import { errorMessage, queue } from "../internal.ts";
 import type { AuthoringConfig } from "../preview/authoring.ts";
 import type { CaptureBackend } from "../preview/capture/index.ts";
 import type { Runner } from "../preview/runner.ts";
@@ -64,7 +65,7 @@ async function loadConfig(path: string): Promise<ConfigResult> {
   try {
     module = await import(pathToFileURL(resolve(path)).href);
   } catch (error) {
-    return { ok: false, errors: [invalid(error instanceof Error ? error.message : String(error))] };
+    return { ok: false, errors: [invalid(errorMessage(error))] };
   }
   const config = module.default as AuthoringConfig | undefined;
   if (typeof config !== "object" || config === null)
@@ -82,7 +83,7 @@ async function loadConfig(path: string): Promise<ConfigResult> {
     } catch (error) {
       return {
         ok: false,
-        errors: [{ ...invalid(error instanceof Error ? error.message : String(error)), pointer: "/draftRoot" }],
+        errors: [{ ...invalid(errorMessage(error)), pointer: "/draftRoot" }],
       };
     }
   }
@@ -505,12 +506,7 @@ export async function mcp(path: string, load: () => Promise<Sdk> = loadSdk): Pro
     );
   const server = new sdk.McpServer({ name: "liveframe", version: pkg.version });
   // Include disk reads in arrival order, before the host-free authoring queue.
-  let pending: Promise<unknown> = Promise.resolve();
-  const queued = <T>(work: () => Promise<T>): Promise<T> => {
-    const next = pending.then(work, work);
-    pending = next.catch(() => {});
-    return next;
-  };
+  const queued = queue();
   const drafts: Authoring = {
     ...authoring,
     packDraft: (input) =>
@@ -535,7 +531,7 @@ export async function mcp(path: string, load: () => Promise<Sdk> = loadSdk): Pro
     process.stdin.once("close", stop);
   });
   await server.close().catch(() => {});
-  await pending;
+  await queued(async () => {}); // drain the queue
   await authoring.close();
   if (owned) runner.close?.();
   return 0;

@@ -10,6 +10,7 @@ import {
   record,
   str,
 } from "../schema.ts";
+import { at } from "../internal.ts";
 import { stringBytes } from "../validate/bytes.ts";
 import type { Json } from "./tree.ts";
 import type { Manifest } from "./manifest.ts";
@@ -168,9 +169,7 @@ export function checkMeta(meta: unknown, pointer: string, c: ReturnType<typeof d
   };
   walk(meta, pointer, 1);
 }
-export function at(pointer: string, key: string | number) {
-  return `${pointer}/${String(key).replaceAll("~", "~0").replaceAll("/", "~1")}`;
-}
+export { at };
 export function shell(value: Record<string, unknown>, complex: readonly string[]) {
   return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, complex.includes(key) ? true : entry]));
 }

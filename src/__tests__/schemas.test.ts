@@ -178,6 +178,7 @@ test("schema_publisher_detects_drift", async () => {
       "src/formats/fixed.ts",
       "src/schema.ts",
       "src/errors.ts",
+      "src/internal.ts",
       "src/validate/bytes.ts",
     ]) {
       await Bun.write(join(directory, path), Bun.file(new URL(`../../${path}`, import.meta.url)));

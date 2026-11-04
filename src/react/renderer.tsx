@@ -13,6 +13,7 @@ import {
 import { slotClass, styleDeclarations, surfaceAttributes } from "../css/index.ts";
 import { type LiveframeError, LiveframeFailure } from "../errors.ts";
 import { carriesValue } from "../formats/events.ts";
+import { isThenable } from "../internal.ts";
 import {
   type CompiledValidator,
   type Intent,
@@ -329,7 +330,7 @@ export function createRenderer({
        * surface as an unhandled rejection from a primitive's `emit`.
        */
       function settled(result: unknown): Promise<void> | undefined {
-        if (typeof (result as Promise<unknown> | undefined)?.then !== "function") return undefined;
+        if (!isThenable(result)) return undefined;
         return Promise.resolve(result).then(
           () => undefined,
           () => undefined,

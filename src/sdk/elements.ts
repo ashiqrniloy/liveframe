@@ -5,6 +5,7 @@ import { addBoundMarker, DEFAULT_MAX_ERRORS, type LiveframeError, type Result } 
 import { arr, bool, int, isRecord, num, obj, str, type Infer, type LanguageSchema } from "../schema.ts";
 import type { Intent, Json, UiTree } from "../formats/tree.ts";
 import { Element } from "./element.ts";
+import { at } from "../internal.ts";
 import { Fragment } from "./jsx-runtime.ts";
 import { renderPrepared, type RenderOptions } from "./render.ts";
 
@@ -70,8 +71,8 @@ function merge(
   for (const name in source) {
     if (!Object.hasOwn(source, name)) continue;
     if (name === "key" || name === "children" || name === "variant")
-      reject.at(pointerAt(pointer, name), `no ${name} in ${sectionName}`);
-    else if (Object.hasOwn(target, name)) reject.at(pointerAt(pointer, name), "one property section per name");
+      reject.at(at(pointer, name), `no ${name} in ${sectionName}`);
+    else if (Object.hasOwn(target, name)) reject.at(at(pointer, name), "one property section per name");
     else target[name] = source[name];
   }
 }
@@ -85,25 +86,20 @@ function kindTag(kind: string): Readonly<{ kind: string }> {
   return tag;
 }
 
-function pointerAt(pointer: string, key: string | number): string {
-  return `${pointer}/${String(key).replaceAll("~", "~0").replaceAll("/", "~1")}`;
-}
-
 function elementProps(
   value: Record<string, unknown>,
   pointer: string,
   reject: Reject,
 ): Record<string, unknown> | undefined {
-  const props = section(value.props, pointerAt(pointer, "props"), reject);
-  const style = section(value.style, pointerAt(pointer, "style"), reject);
-  const events = section(value.events, pointerAt(pointer, "events"), reject);
+  const props = section(value.props, at(pointer, "props"), reject);
+  const style = section(value.style, at(pointer, "style"), reject);
+  const events = section(value.events, at(pointer, "events"), reject);
   if (reject.stopped) return undefined;
   const merged: Record<string, unknown> = { ...props };
   for (const reserved of ["key", "children", "variant"] as const)
-    if (Object.hasOwn(merged, reserved))
-      reject.at(pointerAt(pointerAt(pointer, "props"), reserved), `no ${reserved} in props`);
-  merge(merged, style, pointerAt(pointer, "style"), "style", reject);
-  merge(merged, events, pointerAt(pointer, "events"), "events", reject);
+    if (Object.hasOwn(merged, reserved)) reject.at(at(at(pointer, "props"), reserved), `no ${reserved} in props`);
+  merge(merged, style, at(pointer, "style"), "style", reject);
+  merge(merged, events, at(pointer, "events"), "events", reject);
   if (value.variant !== undefined) merged.variant = value.variant;
   return reject.stopped ? undefined : merged;
 }
@@ -140,8 +136,8 @@ function convertFragment(
   pointers: WeakMap<Element, string>,
 ): Element | undefined {
   for (const name of ["variant", "props", "style", "events"] as const)
-    if (Object.hasOwn(value, name)) reject.at(pointerAt(pointer, name), `no ${name} on a fragment`);
-  const children = elementChildren(value.children, pointerAt(pointer, "children"), depth, ancestors, reject, pointers);
+    if (Object.hasOwn(value, name)) reject.at(at(pointer, name), `no ${name} on a fragment`);
+  const children = elementChildren(value.children, at(pointer, "children"), depth, ancestors, reject, pointers);
   if (!children) return undefined;
   const element = new Element(Fragment, { children }, value.key, true);
   pointers.set(element, pointer);
@@ -171,16 +167,15 @@ function convert(
     return undefined;
   }
   for (const name in value)
-    if (Object.hasOwn(value, name) && !ELEMENT_KEYS.has(name))
-      reject.at(pointerAt(pointer, name), "no such element field");
+    if (Object.hasOwn(value, name) && !ELEMENT_KEYS.has(name)) reject.at(at(pointer, name), "no such element field");
   const kind = value.kind;
   if (typeof kind !== "string" || kind.length === 0) {
-    reject.at(pointerAt(pointer, "kind"), "a nonempty catalog kind");
+    reject.at(at(pointer, "kind"), "a nonempty catalog kind");
     return undefined;
   }
   const key = value.key;
   if (key !== undefined && !(typeof key === "string" || (typeof key === "number" && Number.isFinite(key))))
-    reject.at(pointerAt(pointer, "key"), "a string or finite number key");
+    reject.at(at(pointer, "key"), "a string or finite number key");
   if (kind === "fragment") return convertFragment(value, pointer, depth, ancestors, reject, pointers);
 
   const merged = elementProps(value, pointer, reject);
@@ -188,7 +183,7 @@ function convert(
   const children =
     value.children === undefined
       ? []
-      : elementChildren(value.children, pointerAt(pointer, "children"), depth, ancestors, reject, pointers);
+      : elementChildren(value.children, at(pointer, "children"), depth, ancestors, reject, pointers);
   if (!children) return undefined;
   if (children.length) merged.children = children;
   // The element is internal to this call and never escapes; freezing it would only add work.
@@ -229,9 +224,9 @@ function stateSchema(value: unknown, pointer: string, depth: number): LanguageSc
       throw new TypeError(`Expected at most ${STATE_MAX_ITEMS} state items at ${pointer}`);
     const first = value[0];
     if (value.length === 0) return arr(str({ maxLength: 0 }), { maxItems: 0 });
-    const items = stateSchema(first, pointerAt(pointer, 0), depth + 1);
+    const items = stateSchema(first, at(pointer, 0), depth + 1);
     for (let i = 1; i < value.length; i++)
-      if (JSON.stringify(stateSchema(value[i], pointerAt(pointer, i), depth + 1)) !== JSON.stringify(items))
+      if (JSON.stringify(stateSchema(value[i], at(pointer, i), depth + 1)) !== JSON.stringify(items))
         throw new TypeError(`Expected homogeneous state items at ${pointer}`);
     return arr(items, { maxItems: Math.max(STATE_MAX_ITEMS, value.length) });
   }
@@ -240,7 +235,7 @@ function stateSchema(value: unknown, pointer: string, depth: number): LanguageSc
   if (entries.length > STATE_MAX_PROPERTIES)
     throw new TypeError(`Expected at most ${STATE_MAX_PROPERTIES} state properties at ${pointer}`);
   const properties: Record<string, LanguageSchema> = {};
-  for (const [name, child] of entries) properties[name] = stateSchema(child, pointerAt(pointer, name), depth + 1);
+  for (const [name, child] of entries) properties[name] = stateSchema(child, at(pointer, name), depth + 1);
   return obj(properties);
 }
 

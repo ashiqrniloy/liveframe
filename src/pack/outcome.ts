@@ -2,6 +2,7 @@ import type { Result } from "../errors.ts";
 import { type Capabilities, documentChecks } from "../formats/capabilities.ts";
 import type { Manifest } from "../formats/manifest.ts";
 import { type Scenario, validateScenario } from "../formats/package.ts";
+import { at } from "../internal.ts";
 import { checkValue, isLanguageSchema, isRecord, sourceOutcome } from "../schema.ts";
 import { canonicalJson } from "./hash.ts";
 
@@ -40,7 +41,7 @@ export function outcomeScenarios(
   const checked = validateScenario(scenario);
   if (!checked.ok) return checked;
   const seed = Object.hasOwn(scenario.data, source) ? scenario.data[source] : undefined;
-  c.collect(checkValue(schema, seed), `/data/${source.replace(/~/g, "~0").replace(/\//g, "~1")}`);
+  c.collect(checkValue(schema, seed), at("/data", source));
   if (!isRecord(seed) || !Object.hasOwn(seed, "value"))
     c.reject("/source", "The seed envelope must contain a valid value for the ok scenario");
   if (c.errors.length) return { ok: false, errors: c.errors };

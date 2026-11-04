@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { validateCatalog } from "../formats/catalog.ts";
+import { errorMessage } from "../internal.ts";
 import { generate, generateDefinitions, generateElementsSchema } from "../sdk/gen.ts";
 import { CaptureError } from "./capture.ts";
 
@@ -162,12 +163,6 @@ async function main(args: string[]): Promise<number> {
 try {
   process.exitCode = await main(process.argv.slice(2));
 } catch (error) {
-  console.error(
-    JSON.stringify(
-      [{ kind: "invalid-document", pointer: "", message: error instanceof Error ? error.message : String(error) }],
-      null,
-      2,
-    ),
-  );
+  console.error(JSON.stringify([{ kind: "invalid-document", pointer: "", message: errorMessage(error) }], null, 2));
   process.exitCode = 2;
 }

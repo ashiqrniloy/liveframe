@@ -2,6 +2,7 @@ import { DEFAULT_MAX_ERRORS, type LiveframeError, type Result } from "../../erro
 import type { WidgetPackage } from "../../formats/package.ts";
 import type { UiTree } from "../../formats/tree.ts";
 import { compiledValidator } from "../../runner-kit/cache.ts";
+import { errorMessage, queue } from "../../internal.ts";
 import { isRecord } from "../../schema.ts";
 import { verifyPackageHash } from "../cache.ts";
 import type { Runner, RunnerOptions } from "../runner.ts";
@@ -12,8 +13,6 @@ type Pending = {
   readonly validate: (result: unknown) => Result<UiTree>;
   readonly resolve: (result: Result<UiTree>) => void;
 };
-
-const reason = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
 const ERROR_FIELDS = new Set(["kind", "pointer", "message", "expected", "nodeId"]);
 
@@ -65,7 +64,7 @@ export function workerRunner(defaults: { timeoutMs?: number; maxPackages?: numbe
   let loaded = new Set<string>();
   let pending: Pending | undefined;
   let nextId = 1;
-  let queue = Promise.resolve();
+  const serial = queue();
   let closed = false;
 
   function settle(result: Result<UiTree>): void {
@@ -108,7 +107,7 @@ export function workerRunner(defaults: { timeoutMs?: number; maxPackages?: numbe
       const validator = compiledValidator({ ...options, manifest: pkg.manifest }, pkg.hash);
       return validator.validateTree(result.value, options.limits ? { limits: options.limits } : undefined);
     } catch (error) {
-      return { ok: false, errors: [{ kind: "render-failed", pointer: "", message: reason(error) }] };
+      return { ok: false, errors: [{ kind: "render-failed", pointer: "", message: errorMessage(error) }] };
     }
   }
 
@@ -159,7 +158,7 @@ export function workerRunner(defaults: { timeoutMs?: number; maxPackages?: numbe
 
   return {
     render(pkg, inputs, options) {
-      const result = queue.then(
+      const result = serial(
         () =>
           new Promise<Result<UiTree>>((resolve) => {
             const refused = refusal(pkg);
@@ -181,11 +180,10 @@ export function workerRunner(defaults: { timeoutMs?: number; maxPackages?: numbe
             try {
               send(pkg, inputs, { ...options, timeoutMs }, id);
             } catch (error) {
-              stop("render-failed", reason(error));
+              stop("render-failed", errorMessage(error));
             }
           }),
       );
-      queue = result.then(() => {});
       return result;
     },
     close() {

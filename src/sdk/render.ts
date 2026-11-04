@@ -1,6 +1,7 @@
 import { addBoundMarker, DEFAULT_MAX_ERRORS, type LiveframeError, type Result } from "../errors.ts";
 import { at, isRecord } from "../formats/capabilities.ts";
 import type { UiNode, UiTree } from "../formats/tree.ts";
+import { isThenable } from "../internal.ts";
 import { stringBytes } from "../validate/bytes.ts";
 import { buildFacts, type CompiledValidator, type KindFacts } from "../validate/compile.ts";
 import type { SchemaCheck, SchemaSink } from "../validate/schema.ts";
@@ -31,14 +32,7 @@ export type RenderOptions = {
   readonly maxErrors?: number;
 };
 
-function isThenable(value: unknown): boolean {
-  return (
-    value !== null &&
-    (typeof value === "object" || typeof value === "function") &&
-    typeof (value as { then?: unknown }).then === "function"
-  );
-}
-
+/** Not the shared `errorMessage`: an empty message falls back to `String(thrown)`, and long ones are cut. */
 function thrownMessage(thrown: unknown): string {
   const message = thrown instanceof Error && thrown.message ? thrown.message : String(thrown);
   return message.length > 500 ? `${message.slice(0, 500)}…` : message;

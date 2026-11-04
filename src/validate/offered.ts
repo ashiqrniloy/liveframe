@@ -2,10 +2,11 @@ import type { LiveframeError, Result } from "../errors.ts";
 import { at, isRecord } from "../formats/capabilities.ts";
 import type { Definition } from "../formats/catalog.ts";
 import { carriesValue } from "../formats/events.ts";
-import type { Intent, IntentOrigin, Json, UiNode, UiTree } from "../formats/tree.ts";
+import type { Intent, IntentOrigin, Json, UiTree } from "../formats/tree.ts";
 import type { CompiledValidator } from "./compile.ts";
 import { complete } from "./complete.ts";
 import { difference } from "./difference.ts";
+import { findNode } from "./patch.ts";
 import type { SchemaCheck } from "./schema.ts";
 
 export type OfferedEvent = { carries: Definition["events"][string]["carries"]; check: SchemaCheck | undefined };
@@ -17,7 +18,6 @@ export const offeredChecks = new WeakMap<
     events: ReadonlyMap<string, ReadonlyMap<string, OfferedEvent>>;
   }
 >();
-const indexes = new WeakMap<UiTree, Map<string, UiNode>>();
 const validated = new WeakMap<UiTree, WeakSet<CompiledValidator>>();
 
 const failure = (kind: LiveframeError["kind"], pointer: string, message: string): Result<never> => ({
@@ -45,18 +45,7 @@ export function checkOffered(
     validators.add(validator);
     validated.set(tree, validators);
   }
-  let nodes = indexes.get(tree);
-  if (!nodes) {
-    const index = new Map<string, UiNode>();
-    const visit = (node: UiNode) => {
-      index.set(node.id, node);
-      for (const child of node.children ?? []) visit(child);
-    };
-    visit(tree.root);
-    nodes = index;
-    indexes.set(tree, nodes);
-  }
-  const node = nodes.get(origin.nodeId);
+  const node = findNode(tree, origin.nodeId);
   if (!node) return failure("not-found", "/origin/nodeId", "Unknown origin node");
   const offered = node.events && Object.hasOwn(node.events, origin.event) ? node.events[origin.event] : undefined;
   if (!offered) return failure("undeclared-event", "/origin/event", "Event was not offered by this node");

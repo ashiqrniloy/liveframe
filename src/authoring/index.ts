@@ -4,8 +4,9 @@ import type { Catalog, Definition } from "../formats/catalog.ts";
 import { validateJson } from "../formats/json.ts";
 import { validateManifestShape } from "../formats/manifest.ts";
 import { type Scenario, validateScenario, type WidgetPackage } from "../formats/package.ts";
-import type { Json, UiNode, UiTree } from "../formats/tree.ts";
-import { canonicalJson, utf8 } from "../pack/hash.ts";
+import type { Json, UiTree } from "../formats/tree.ts";
+import { errorMessage, pointerSegment, queue, utf8Length } from "../internal.ts";
+import { canonicalJson } from "../pack/hash.ts";
 import { outcomeScenarios } from "../pack/outcome.ts";
 import type { PreviewBinding, PreviewSession } from "../preview/authoring.ts";
 import {
@@ -23,6 +24,7 @@ import { compiledValidator } from "../runner-kit/cache.ts";
 import { isLanguageSchema, sourceOutcome } from "../schema.ts";
 import { generate, generateDefinitions, generateElementsSchema } from "../sdk/gen.ts";
 import { complete } from "../validate/complete.ts";
+import { findNode } from "../validate/patch.ts";
 import { checkAll, type ScenarioStatus } from "./checks.ts";
 
 export type AuthoringOptions = {
@@ -91,8 +93,6 @@ const at = (pointer: string, message: string, expected?: string): LiveframeError
 const rooted = (base: string, errors: readonly LiveframeError[]): LiveframeError[] =>
   errors.map((error) => ({ ...error, pointer: `${base}${error.pointer}` }));
 
-const key = (path: string) => path.replaceAll("~", "~0").replaceAll("/", "~1");
-
 export type PackInput = Parameters<PreviewSession["update"]>[0];
 export type RenderInput = { scenario?: string; state?: Json; context?: Json; outcomes?: boolean };
 export type SetStateInput = { origin: { nodeId: string; event: string }; value?: Json };
@@ -120,7 +120,7 @@ function packArguments(input: unknown): Result<PackInput> {
     errors.push(at("/files", "Expected a non-empty object of source files"));
   else
     for (const [path, source] of Object.entries(files))
-      if (typeof source !== "string") errors.push(at(`/files/${key(path)}`, "Expected a source string"));
+      if (typeof source !== "string") errors.push(at(`/files/${pointerSegment(path)}`, "Expected a source string"));
   if (typeof entry !== "string" || entry.length === 0)
     errors.push(at("/entry", "Expected the entry file path", "one of the keys of files"));
   else if (!isRecord(files) || !Object.hasOwn(files, entry))
@@ -154,15 +154,6 @@ function renderArguments(input: unknown): Result<RenderInput> {
   return errors.length > 0 ? { ok: false, errors } : { ok: true, value: input as RenderInput };
 }
 
-function serialize(): <T>(work: () => Promise<T>) => Promise<T> {
-  let tail: Promise<unknown> = Promise.resolve();
-  return (work) => {
-    const run = tail.then(work, work);
-    tail = run.catch(() => {}); // a failed call must not break the queue
-    return run;
-  };
-}
-
 function success<T>(value: T): Result<T> {
   return { ok: true, value };
 }
@@ -194,15 +185,14 @@ const authoringCell = (
 
 /** Only the cell-count refusal names the config field; a layout refusal names its cell. */
 function captureFailure(error: unknown, bound: number): Result<never> {
-  if (!(error instanceof CaptureError)) return failure("render-failed", "", message(error));
+  if (!(error instanceof CaptureError)) return failure("render-failed", "", errorMessage(error));
   const cellCount = error.kind === "limit-exceeded" && error.pointer === "";
   return failure(
     error.kind,
     error.pointer,
-    cellCount ? `maxCaptureCells: ${bound}. ${message(error)}` : message(error),
+    cellCount ? `maxCaptureCells: ${bound}. ${errorMessage(error)}` : errorMessage(error),
   );
 }
-const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
 let nextAuthoring = 0;
 
 /** Backend-only authoring. The host supplies its runner; no operation grants runtime authority. */
@@ -213,7 +203,7 @@ export function createAuthoring(options: AuthoringOptions) {
   const { catalog, capabilities, runner } = options;
   const exposeMeta = options.exposeMeta === true;
   const session = createPreview({ catalog, capabilities, runner });
-  const exclusive = serialize();
+  const exclusive = queue();
   const surfaceId = `authoring-${++nextAuthoring}`;
   let revision = 0;
   let packed: WidgetPackage | undefined;
@@ -222,7 +212,7 @@ export function createAuthoring(options: AuthoringOptions) {
 
   function bounded(result: Result<UiTree>, scenario: string): Result<UiTree> {
     if (!result.ok) return result;
-    const size = utf8(JSON.stringify(result.value)).byteLength;
+    const size = utf8Length(JSON.stringify(result.value));
     if (size > MAX_TREE_BYTES)
       return {
         ok: false,
@@ -396,9 +386,7 @@ export function createAuthoring(options: AuthoringOptions) {
         const checked = setStateArguments(input);
         if (!checked.ok) return checked;
         const { tree, scenario } = current;
-        const find = (node: UiNode): UiNode | undefined =>
-          node.id === input.origin.nodeId ? node : node.children?.map(find).find(Boolean);
-        const node = find(tree.root);
+        const node = findNode(tree, input.origin.nodeId);
         if (!node) return failure("not-found", "/origin/nodeId", "Unknown origin node");
         const offered =
           node.events && Object.hasOwn(node.events, input.origin.event) ? node.events[input.origin.event] : undefined;
@@ -434,7 +422,7 @@ export function createAuthoring(options: AuthoringOptions) {
           });
           url = bridge.url;
         } catch (error) {
-          return failure("not-found", "", message(error));
+          return failure("not-found", "", errorMessage(error));
         }
         try {
           if (!options.capture)

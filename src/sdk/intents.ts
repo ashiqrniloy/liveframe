@@ -1,3 +1,4 @@
+import { isThenable } from "../internal.ts";
 import type { Intent, Json } from "./types.ts";
 
 type SetStateIntent = Extract<Intent, { type: "setState" }>;
@@ -17,8 +18,7 @@ function assertJson(value: unknown, path: string, ancestors = new Set<object>(),
   if (typeof value === "number" && Number.isFinite(value)) return;
   if (typeof value === "function") throw new TypeError(`Expected JSON at ${path}: functions are not data`);
   if (typeof value !== "object") throw new TypeError(`Expected JSON at ${path}: ${typeof value} is not data`);
-  if ("then" in value && typeof value.then === "function")
-    throw new TypeError(`Expected JSON at ${path}: promises are not data`);
+  if (isThenable(value)) throw new TypeError(`Expected JSON at ${path}: promises are not data`);
   if (Array.isArray(value)) {
     if (ancestors.has(value)) throw new TypeError(`Expected JSON at ${path}: cyclic data`);
     if (depth >= MAX_DEPTH) throw new TypeError(`Expected JSON at ${path}: nesting is too deep`);

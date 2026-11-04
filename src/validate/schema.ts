@@ -1,4 +1,5 @@
 import type { LiveframeError } from "../errors.ts";
+import { pointerSegment } from "../internal.ts";
 import { codePointsWithin, type LanguageSchema } from "../schema.ts";
 
 export type SchemaSink = {
@@ -22,7 +23,7 @@ function reject(at: string, sink: SchemaSink, expected: string): false {
 }
 
 function prefixErrors(sink: SchemaSink, start: number, at: string, key: string | number): void {
-  const prefix = `${at}/${String(key).replaceAll("~", "~0").replaceAll("/", "~1")}`;
+  const prefix = `${at}/${pointerSegment(key)}`;
   for (let i = start; i < sink.errors.length; i++) {
     const error = sink.errors[i];
     if (error) sink.errors[i] = { ...error, pointer: prefix + error.pointer };

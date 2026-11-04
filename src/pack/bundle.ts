@@ -10,6 +10,7 @@ import {
 import { transform } from "sucrase";
 import type { LiveframeError, Result } from "../errors.ts";
 import { documentChecks } from "../formats/capabilities.ts";
+import { at } from "../internal.ts";
 import { sdkSpecifiers } from "../runner-kit/link.ts";
 
 const sdkSpecifierSet: ReadonlySet<string> = new Set(sdkSpecifiers);
@@ -25,7 +26,7 @@ function fail(kind: LiveframeError["kind"], pointer: string, message: string): n
 }
 
 function pointer(file: string, line?: number): string {
-  return `/files/${file.replace(/~/g, "~0").replace(/\//g, "~1")}${line === undefined ? "" : `/${line}`}`;
+  return line === undefined ? at("/files", file) : at(at("/files", file), line);
 }
 
 function isNode(value: unknown): value is AnyNode {
