@@ -4,9 +4,15 @@ What a version bump of `@arnilo/liveframe` may change. The policy is [decision R
 
 ## How 0.2.x stays compatible
 
-`scripts/release/api/0.2.1.json` freezes the 0.2.1 public surface: every exported declaration of every typed subpath, plus a SHA-256 of each file under `schemas/`, `conformance/corpus/`, `conformance/hash/` and `conformance/patch/`. `src/__tests__/api-stability.test.ts` compares the built package against it on every `bun run check`. Each addition or widening needs an entry in `scripts/release/api/register-0.2.2.json` (`subpath`, `name`, `change`, `reason`, `hostAction`, `task`). The test fails on a removed export, an unregistered declaration or schema change, a register entry whose change did not happen, any change to an existing corpus, hash or patch file, and any `deferred` entry whose change shipped anyway.
+`scripts/release/api/0.2.1.json` freezes the 0.2.1 public surface: every exported declaration of every typed subpath, plus a SHA-256 of each file under `schemas/`, `conformance/corpus/`, `conformance/hash/` and `conformance/patch/`. During 0.2.2, `src/__tests__/api-stability.test.ts` compared the built package against it on every `bun run check`. Each addition or widening needed an entry in `scripts/release/api/register-0.2.2.json` (`subpath`, `name`, `change`, `reason`, `hostAction`, `task`). The test rejected removed exports, unregistered declaration or schema changes, stale register entries, changed existing corpus or vector files, and shipped `deferred` entries.
 
-0.2.3 also compares against `scripts/release/api/0.2.2.json`. Its stricter release rule allows no declaration, schema, corpus or vector changes: `scripts/release/api/register-0.2.3.json` is `[]`.
+0.2.3 also compared against `scripts/release/api/0.2.2.json`. Its stricter release rule allowed no declaration, schema, corpus or vector changes: `scripts/release/api/register-0.2.3.json` is `[]`.
+
+## The 0.3.0 gate
+
+The [approved scope](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-11-05-0238-release-0-3-0-scope.md) permits documented breaks in this minor release. `scripts/release/api/0.2.3.json`, generated from `v0.2.3`, is now the single checkout baseline in `api-stability.test.ts`. The 0.2.1 and 0.2.2 comparisons are retired because 0.3.0 may break them by design; their baseline and register files remain as release history.
+
+Every declaration or schema change needs an entry in `scripts/release/api/register-0.3.0.json`. Additions use `added`, compatible changes use `widened`, and breaks use `removed` or `changed` with a non-empty `migration` naming an exact heading in [the migration guide](migration-0.3.md). A removed target must disappear; a changed target must differ. Stale entries and shipped deferrals fail the gate. Existing corpus, hash and patch files may change only with a documented break entry naming the full file path under `./conformance/corpus/*`, `./conformance/hash/*` or `./conformance/patch/*`. Each break also needs its spec update, CHANGELOG line and adopter checklist in the same task. Behaviour-only changes need regression evidence as well: declaration comparison cannot detect them.
 
 ## Versions
 

@@ -1,10 +1,22 @@
 import { expect, test } from "bun:test";
 import type { CaptureBackend } from "@arnilo/liveframe/preview/capture";
 import { memoryStore, type Placement } from "@arnilo/liveframe/store";
+import register from "../../scripts/release/api/register-0.3.0.json" with { type: "json" };
 import { captureOnce, scopedState } from "./fixtures/migration-0.2.ts";
 
 const guide = new URL("../../docs/migration-0.2.md", import.meta.url);
 const fixture = new URL("./fixtures/migration-0.2.ts", import.meta.url);
+
+test("migration_0_3_guide_covers_registered_breaks", async () => {
+  const markdown = await Bun.file(new URL("../../docs/migration-0.3.md", import.meta.url)).text();
+  expect(markdown).toContain("## Breaking changes");
+  for (const entry of register as { change: string; migration?: string }[]) {
+    if (entry.change !== "changed" && entry.change !== "removed") continue;
+    const section = markdown.split(`### ${entry.migration}\n`)[1]?.split(/\n#{1,3} /)[0];
+    expect(section).toBeDefined();
+    for (const text of ["Before", "After", "```", "Adopter checklist"]) expect(section).toContain(text);
+  }
+});
 
 /** One exported function of the fixture, exactly as the guide prints it. */
 async function sample(name: string): Promise<string> {

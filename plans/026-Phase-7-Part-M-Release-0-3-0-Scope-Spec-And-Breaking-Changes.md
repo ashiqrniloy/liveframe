@@ -1,0 +1,405 @@
+# Phase 7 Part M: Release 0.3.0 — Scope, Spec Restructure and the Breaking-Change Batch
+
+Depends on: plan [025](025-Phase-7-Part-L-Release-0-2-3-Simplification-And-Release.md) Tasks 1–11a complete (0.2.3 published). Plan 025 Task 8 (quiet-host proof) and Task 10 (`next` dist-tag repair) are carried into plan [032](032-Phase-7-Part-S-Release-0-3-0.md) Tasks 3 and 5 unless they close first; Task 1 below records which. Followed by plans [027](027-Phase-7-Part-N-Release-0-3-0-Formats-References-Extensions-Axes-And-Urls.md) (formats), [028](028-Phase-7-Part-O-Release-0-3-0-Template-Widgets-And-Streaming.md) (template widgets), [029](029-Phase-7-Part-P-Release-0-3-0-Interaction-Outcomes-Local-Bindings-And-Surface-Core.md) (interaction and renderer core), [030](030-Phase-7-Part-Q-Release-0-3-0-Host-Pipeline-Evolution-And-Dependencies.md) (host lifecycle), [031](031-Phase-7-Part-R-Release-0-3-0-Isolated-Runner-Conformance-And-Starter.md) (isolated runner, runner conformance, starter) and [032](032-Phase-7-Part-S-Release-0-3-0.md) (the release). Source: the 2026-11-05 evaluation of Liveframe against the goal of being the canonical runtime-UI system (weaknesses W1–W9 and lesser gaps), plus every item already queued for 0.3.0 in `roadmap.md` Phase 7, `docs/compatibility.md` § "Deferred to 0.3.0" and `plans/backlog.md`.
+
+## Objectives
+
+- Record the 0.3.0 scope decision. The owner's instruction (2026-11-05): "make 0.3.0 include everything that has been already planned and everything that you have identified. Let it be a big release." Plus three owner decisions: no Node runtime support, the isolated runner ships as a separate optional package, and the release is a minor that may break with migration entries.
+- Freeze the 0.2.3 public surface as the 0.3.0 baseline. Extend the API register so a breaking change is allowed only when it names its migration entry.
+- Restructure `docs/spec.md` into a normative core plus feature sections, with release history moved out, before plans 027–031 edit it (W9).
+- Land the queued breaking changes together: package freezing and render-input ownership (R4/R5), rejection of dimension fractions (R9), one realm rule for validators, validation limits for preview and authoring sessions, the verified-package cache option (R15), and `focusContinuity` on by default.
+- Derive format checkers and published JSON Schemas from one source (R24).
+
+## Expected Outcome
+
+- `decision-logs/<date>-release-0-3-0-scope.md` is approved. Its item table (copied below) maps every item to a plan and task.
+- `scripts/release/api/0.2.3.json` and `scripts/release/api/register-0.3.0.json` exist. `api-stability.test.ts` compares the checkout against 0.2.3 with that register, which now accepts `removed` and `changed` entries only when each names a heading in `docs/migration-0.3.md`.
+- `docs/spec.md` reads as a normative document: no "as in 0.2.1" sentences, one rule per paragraph, and a mapping table in `plans/evidence/026-spec-restructure.md` proving no normative sentence was lost.
+- `pack()`/`verifyPackage()` return deeply frozen packages. `render()` no longer freezes caller objects. `width="2fr"` is `invalid-prop`. Every public validator rejects a foreign-realm document with the realm message. `createPreview`/`createAuthoring` take `limits`. `loadPlacement` takes an opt-in verified-package cache. `<Surface>` keeps focus by default.
+- Structural checkers and `schemas/*.json` come from one definition per format; schema drift becomes impossible rather than tested.
+- `docs/migration-0.3.md` exists with a before/after, a code sample and an adopter checklist for every break in this plan.
+
+This plan opens the 0.3.0 minor release in roadmap Phase 7. 0.3.0 is the break window that 0.2.x deferred to: breaks are allowed, but every one gets a migration entry, a register entry and a CHANGELOG line. Spec sections touched: all (restructure, Task 2), then §6.3, §7.2–§7.5, §10, §11 and §13. No version is bumped and nothing is published here; plan 032 releases.
+
+### 0.3.0 scope items
+
+| # | Item | Source | Plan / task |
+|---|---|---|---|
+| Q1 | Node references (`ref()`, `$anchor`, `refProps`) | `decision-logs/2026-11-02-1219-defer-node-references-to-0-3-0.md` | 027 T2–T3 |
+| Q2 | Extension recipe properties | `decision-logs/2026-11-02-2208-extension-recipe-properties-for-0-3-0.md` | 027 T4 |
+| Q3 | Multiple variant axes, revised to alias colour roles | `decision-logs/2026-11-02-2208-multiple-variant-axes-for-0-3-0.md` + evaluation | 027 T1, T5 |
+| Q4 | Frozen packages; render keeps caller ownership (R4/R5) | `docs/compatibility.md` § Deferred | 026 T3 |
+| Q5 | Reject `fr` on dimension props (R9) | same | 026 T4 |
+| Q6 | Verified-package cache option for `loadPlacement` (R15) | same | 026 T7 |
+| Q7 | `limits` on `createPreview`/`createAuthoring` | backlog | 026 T6 |
+| Q8 | One realm rule across validators | backlog | 026 T5 |
+| Q9 | One source for checkers and JSON Schemas (R24) | backlog | 026 T9 |
+| Q10 | `focusContinuity` on by default | 0.2.2 opt-in rule | 026 T8 |
+| W1 | Isolated runner as a separate optional package; runner conformance suite | evaluation; owner decision | 031 T1–T5 |
+| W2a | Template widgets: declarative, data-bound, no sandbox needed | evaluation | 028 T1–T6 |
+| W2b | Progressive rendering of streamed agent documents | evaluation | 028 T7 |
+| W3a | Action-outcome contract | evaluation | 029 T1–T2 |
+| W3b | Local bindings evaluated in the browser | evaluation | 029 T1, T3–T4 |
+| W4 | Stateless host pipeline (`/host`); demo host shows full orchestration | evaluation; backlog | 030 T1–T3, T5 |
+| W5a | Catalog impact report for installed packages | evaluation | 030 T6 |
+| W5b | Several catalog majors in one renderer | evaluation | 030 T7 |
+| W5c | Declarative state migration | evaluation | 030 T8 |
+| W6a | Content-addressed package dependencies | evaluation | 030 T9–T10 |
+| W6b | Cross-placement coordination through source dependents | evaluation | 030 T4 |
+| W7a | Framework-independent surface core (`/surface`) | evaluation | 029 T4 |
+| W7b | Starter package and getting-started guide | evaluation | 031 T6–T7 |
+| W7c | Bun-only runtime, recorded | owner decision | 026 T1, 031 T1 |
+| W8a | App-declared states and semantics | evaluation | 027 T6 |
+| W8b | `url` string form with a scheme allowlist | evaluation | 027 T7 |
+| W9 | Spec restructure | evaluation | 026 T2 |
+| L1 | Localisation guidance and determinism rule | evaluation | 029 T6 |
+| L2 | Observability hooks | evaluation | 029 T5, 030 T2–T3 |
+| O1 | Quiet-host benchmark proof (carried from 025 T8) | plan 025 | 032 T3 |
+| O2 | `next` dist-tag (carried from 025 T10) | plan 025 | 032 T5 |
+
+Not in scope: nested surfaces (the analysis named the gap but proposed composition through dependencies and coordination instead; lifting §6.4's no-nesting rule changes every sheet), a second renderer (W7a ships the core a second renderer needs), Node runtime support (owner decision).
+
+## Compatibility rules for every task
+
+1. **A break needs four things in the same task:** a `register-0.3.0.json` entry with `change: "removed" | "changed"` and a `migration` heading, the heading in `docs/migration-0.3.md` (before, after, code sample, adopter checklist), a CHANGELOG "Changed" or "Removed" line, and a spec update.
+2. **Additions are `added` or `widened`,** as in 0.2.2.
+3. **A format change that an older validator must reject keeps the format id** when the change is an optional field (the 0.2.1/0.2.2 precedent). A change of meaning for an existing field takes a new format id.
+4. **Corpus, hash and patch vectors change only with a format version,** or with a register entry that names the vector file and the migration heading.
+5. **Every task leaves `bun run check` green,** including the API gate.
+
+## Tasks
+
+- [x] Task 1: Record the 0.3.0 scope decision and gate the 0.2.3 surface with a breaking-aware register
+  - Acceptance Criteria:
+    - Functional:
+      - Write `decision-logs/<date>-release-0-3-0-scope.md` with `create-decision-log`. It holds the scope table above, the three owner decisions (big release; no Node runtime support, so backend subpaths stay Bun ≥ 1.4.2 and the archive gate's Node probe stays a portability probe only; the isolated runner is a separate optional package), the "not in scope" list with reasons, and the disposition of plan 025 Tasks 8 and 10. Approval evidence is the owner's 2026-11-05 instruction quoted in Objectives.
+      - Generate `scripts/release/api/0.2.3.json` from a temporary worktree at `v0.2.3`, exactly as `0.2.2.json` was made (plan 023 Task 1). Create `register-0.3.0.json` as `[]`.
+      - Extend `scripts/release/api-surface.ts` (`change` union at `:36`) with `removed` and `changed`. Each needs a non-empty `migration` string. The comparator fails when a `removed`/`changed` entry's migration heading is not a heading of `docs/migration-0.3.md`, when a removed export still exists, or when a `changed` entry's declaration did not change.
+      - Create `docs/migration-0.3.md` with its introduction and an empty "Breaking changes" section. `migration-guide.test.ts` covers it as it covers `migration-0.2.md`.
+      - Add `baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register` to `api-stability.test.ts`. The 0.2.1 and 0.2.2 comparisons are retired in the same change, with the reason in the test file header: 0.3.0 may break them by design.
+    - Performance: n/a — a data file and a test.
+    - Code Quality: one comparator, extended; no second script.
+    - Security: n/a for the laws. The gate makes every contract change visible and documented.
+    - Compatibility: adds no public surface.
+  - Approach:
+    - Skills to Use:
+      - `create-decision-log` — scope and owner decisions, approval recorded.
+      - `liveframe-execution` — authority order, green-after-task.
+    - Library Documentation to Check Before Implementation:
+      - none; `scripts/release/api-surface.ts` and plan 022 Task 1 notes record the TypeScript compiler API in use.
+    - Documentation Reviewed:
+      - `scripts/release/api-surface.ts:36,191-269` (register classes and failure messages).
+      - `src/__tests__/api-stability.test.ts`; `docs/compatibility.md` § "Deferred to 0.3.0"; `docs/migration-0.2.md`.
+      - `decision-logs/2026-11-01-1747-release-0-2-2-scope-and-api-stability.md` (opt-in and no-break rules this release lifts).
+    - Options Considered:
+      - Allow breaks without a register entry. Rejected: an undocumented break is exactly what R15 prevents.
+      - Keep the 0.2.1/0.2.2 comparisons. Rejected: they would fail on every intended break and say nothing the 0.2.3 comparison does not.
+    - Chosen Approach:
+      - One baseline (0.2.3) and one register whose break entries are tied to migration headings by the comparator.
+    - API Notes and Examples:
+      ```json
+      { "subpath": "./sdk", "name": "render", "change": "changed", "task": "026 T3",
+        "reason": "No longer freezes caller-owned inputs in place", "migration": "Render inputs keep caller ownership" }
+      ```
+    - Files to Create/Edit:
+      - `decision-logs/<date>-release-0-3-0-scope.md`
+      - `scripts/release/api/0.2.3.json`; `scripts/release/api/register-0.3.0.json`
+      - `scripts/release/api-surface.ts`; `src/__tests__/api-stability.test.ts`
+      - `docs/migration-0.3.md`; `src/__tests__/migration-guide.test.ts`
+      - `docs/compatibility.md`: describe the current minor-release gate and retain patch-gate history.
+  - Test Cases to Write:
+    - `baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register`: fails on any unregistered declaration or schema change.
+    - `register_break_without_migration_heading_fails`: a fixture register with `change: "removed"` and an unknown heading fails the comparator.
+    - `register_removed_entry_for_existing_export_fails`: catches a stale removal entry.
+    - Changed declarations require a real migration heading and reject stale `changed` entries; complete subpath removal requires entries for its exports; schema and corpus/hash/patch changes require matching classifications and migration headings.
+  - Notes (executed 2026-11-05):
+    - Recorded the owner's approved scope and complete item table in `decision-logs/2026-11-05-0238-release-0-3-0-scope.md` using `create-decision-log`. Plan 025 Tasks 8 and 10 remain open and carry into plan 032 Tasks 3 and 5.
+    - Generated `scripts/release/api/0.2.3.json` from a detached worktree at `v0.2.3` (`f9458d8`), with a frozen install and build. `generatedFrom` records the commands; the temporary worktree was removed. `register-0.3.0.json` starts as `[]`.
+    - Extended the existing comparator for documented `removed`/`changed` entries, exact migration headings outside code examples, stale-change rejection and whole-subpath removal. Existing corpus/hash/patch changes now require a matching break entry naming the full file path, as required by this plan's compatibility rule 4. Task identifiers also accept plan-qualified strings such as `026 T3`.
+    - Retired the 0.2.1/0.2.2 checkout comparisons with the reason in the test header; retained their data files. Added the empty 0.3 migration guide, guide-structure coverage and current-gate documentation in `docs/compatibility.md`. No public API or normative spec meaning changed.
+    - Tests were written first and reproduced missing migration validation and removal/change handling. The focused API and migration suites pass (14 tests). `timeout 900s bun run check` passed: build, generated-file checks, typecheck, lint, formatting and 1,070 passing tests, 4 existing skips, 0 failures.
+    - First full check: 1,069 pass, 4 existing skips, one unchanged CSS timing test failed (`switch_under_budget_with_blur`, one 22.4 ms sample against 16.67 ms). Its isolated rerun passed with a 6.6 ms maximum; no runtime code or threshold was changed. The full-check retry also passed that test and the complete suite. Dedicated benchmarks were not run: this task changes release tooling and documentation only.
+    - Finding for Tasks 3 and 8: behaviour-only changes can leave emitted declarations identical, so their proposed `changed` entries would correctly fail the stale-entry gate. Their approaches now require reconciling behaviour evidence with register representation in those tasks without fake declaration edits or weakening the stale-declaration check.
+
+- [ ] Task 2: Restructure the spec into a normative core and feature sections (W9)
+  - Acceptance Criteria:
+    - Functional:
+      - `docs/spec.md` keeps its section numbers §1–§15 (every link and the `docs-links` test keep working) but each section opens with its normative rules as short numbered statements, followed by rationale. Paragraphs over 120 words are split. Release history ("as in 0.2.1", "projects exactly the CSS it did in 0.2.1", plan and request ids) moves to `CHANGELOG.md` or `docs/compatibility.md`; decision-log citations stay.
+      - `plans/evidence/026-spec-restructure.md` maps every normative sentence of the 0.2.3 spec to its new location. Nothing normative is dropped or changed in meaning; any sentence found ambiguous is listed as a finding for the owner, not silently reworded.
+      - A new `docs-spec-structure.test.ts` fails when a spec paragraph exceeds 160 words or a sentence matches `/\b0\.[12]\.\d\b/` outside quoted decision references.
+    - Performance: n/a — documentation.
+    - Code Quality: no code change; tests that quote spec text (`*-guide.test.ts`) are updated to the new wording in the same task.
+    - Security: the four laws (§2) stay verbatim.
+    - Compatibility: no meaning change, so no register entry.
+  - Approach:
+    - Skills to Use:
+      - `karpathy-guidelines` — surgical, no meaning drift.
+      - `liveframe-execution` — the spec is the authority; a meaning change needs a decision.
+    - Library Documentation to Check Before Implementation:
+      - none; read `docs/spec.md` in full and `src/__tests__/docs-links.test.ts`, `docs-wording.test.ts`.
+    - Documentation Reviewed:
+      - `docs/spec.md` (901 lines; §7.5 and §13 have single paragraphs over 500 words).
+    - Options Considered:
+      - Split the spec into several files. Rejected: breaks every `spec.md#…` link in docs, decision logs and the published package.
+      - Defer to after the feature plans. Rejected: plans 027–031 would each edit the old structure and the restructure would then touch their fresh text.
+    - Chosen Approach:
+      - Same file and section numbers, rules-first layout, history moved out, a sentence map as proof.
+    - API Notes and Examples:
+      ```md
+      ### 7.3 Packages
+      **Rules**
+      1. `pack()` never runs widget code.
+      2. An `(id, version)` names exactly one hash.
+      …
+      **Rationale** …
+      ```
+    - Files to Create/Edit:
+      - `docs/spec.md`; `CHANGELOG.md`; `docs/compatibility.md`
+      - `plans/evidence/026-spec-restructure.md`
+      - `src/__tests__/docs-spec-structure.test.ts`; guide tests that quote moved text (tentative: found by running `bun run test` after the edit)
+  - Test Cases to Write:
+    - `spec_paragraphs_stay_short`: fails on a paragraph over 160 words.
+    - `spec_carries_no_release_history`: fails on a bare `0.2.x` reference outside a decision citation.
+    - Existing `docs-links` passes unchanged: proves anchors survived.
+  - Notes (executed <date>):
+
+- [ ] Task 3: Freeze packages and keep caller ownership of render inputs (Q4: R4, R5)
+  - Acceptance Criteria:
+    - Functional:
+      - `pack()` (`src/pack/pack.ts:8-38`) and `verifyPackage()` (`src/pack/verify.ts:50`) return packages frozen at every depth, including `manifest`, `scenarios` and nested JSON. `outcomeScenarios()` returns frozen scenarios. Writing to any field throws in strict mode.
+      - `render()` (`src/sdk/render.ts:55-61`) no longer calls `freezeDeep` (`:341-346`) on caller objects. It gives the widget frozen inputs by freezing a structural copy made during the existing input check (`checkInputs`, `:348`), so the walk stays single-pass. Caller objects are untouched afterwards. `renderElements` and `renderModule` follow.
+      - The reference runners' hash cache (`src/preview/cache.ts:16`) keys on frozen packages; the top-level field snapshot added in 0.2.3 is removed because a frozen package cannot change.
+      - Register entries (`changed`) for `pack`, `verifyPackage` and `render`, each pointing at a migration heading; the two migration entries from `docs/compatibility.md` § "Deferred to 0.3.0" move into `docs/migration-0.3.md`.
+    - Performance: `bun run bench` render benches stay within 3 µs/node; the copy is measured in the task notes against the 0.2.3 interleaved A/B harness (plan 024 Task 1), and must cost ≤ 5% of render on the agent-home tree.
+    - Code Quality: one `freezeCopy` helper in `src/internal.ts` (or the existing JSON walk), no second traversal.
+    - Security: law 2 and the package-integrity contract — a verified package can no longer be mutated into an unverified one; nested mutation is impossible rather than undetected.
+    - Compatibility: breaking for hosts that write to package fields or rely on `render()` freezing their objects; migration entries cover both.
+  - Approach:
+    - Skills to Use:
+      - `liveframe-execution`; `safe-refactor` — removing the snapshot cache path.
+    - Library Documentation to Check Before Implementation:
+      - none; read `src/sdk/render.ts:157-214,341-373`, `src/preview/cache.ts`.
+    - Documentation Reviewed:
+      - `docs/compatibility.md` § "Deferred to 0.3.0" (R4, R5 entries); `docs/security.md` item 3; spec §7.2, §7.3, §7.5.
+    - Options Considered:
+      - Freeze only the top level. Rejected: R4 is about nested mutation.
+      - Copy inputs in a separate pass. Rejected: the input check already walks every value.
+    - Chosen Approach:
+      - Freeze package results once at the end of `pack`/`verifyPackage`; build frozen input copies inside the existing input walk.
+      - Task 1 finding: `changed` rejects unchanged declarations. Before recording behaviour-only breaks here, reconcile their register representation with executable regression evidence in this task; preserve stale-declaration rejection and do not manufacture unrelated declaration changes to pass it.
+    - API Notes and Examples:
+      ```ts
+      const pkg = value(pack(draft, install));
+      Object.isFrozen(pkg.manifest.params); // true
+      const inputs = { params, state, data, context };
+      render(Widget, inputs, options);
+      Object.isFrozen(inputs.state); // false
+      ```
+    - Files to Create/Edit:
+      - `src/pack/pack.ts`; `src/pack/verify.ts`; `src/pack/outcome.ts`
+      - `src/sdk/render.ts`; `src/sdk/elements.ts`; `src/runner-kit/render.ts`
+      - `src/preview/cache.ts`; `src/internal.ts`
+      - `docs/spec.md` §7.2/§7.3/§7.5; `docs/packages.md`; `docs/sdk.md`; `docs/security.md`; `docs/compatibility.md`; `docs/migration-0.3.md`; `CHANGELOG.md`
+      - `scripts/release/api/register-0.3.0.json`
+  - Test Cases to Write:
+    - `packed_package_is_deeply_frozen`: fails if any nested manifest or scenario value is writable.
+    - `verified_package_is_deeply_frozen`.
+    - `render_leaves_caller_inputs_unfrozen`: fails if `render` freezes the host's objects.
+    - `widget_still_receives_frozen_inputs`: a widget that writes to `state` throws `render-failed`.
+    - `nested_package_mutation_cannot_reach_a_runner`: replaces the 0.2.3 snapshot test.
+  - Notes (executed <date>):
+
+- [ ] Task 4: Reject fractions on dimension style props (Q5: R9)
+  - Acceptance Criteria:
+    - Functional:
+      - `width`, `height`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight` reject `fr` values as `invalid-prop` at `/style/<prop>` (responsive values at `/style/<prop>/<breakpoint>`), in the compiled validator, `render()`, `renderElements`, the published `ui-tree.json` and `catalog.json` style-prop schemas, `liveframe gen` types and the CSS projection. Grid `columns`/`rows` fractions are unchanged.
+      - A corpus case `ui-tree/dimension-fraction-rejected.json` is added with a register entry naming it.
+      - Migration entry "Fractions on dimension props are rejected" with the `grow`/`basis` rewrite.
+    - Performance: no measurable change (one branch removed).
+    - Code Quality: the fraction branch is removed from the dimension domain, not special-cased.
+    - Security: law 3 unaffected; validation tightened.
+    - Compatibility: breaking for trees using dimension fractions (which had no effect).
+  - Approach:
+    - Skills to Use: `surgical-patch`; `liveframe-execution`.
+    - Library Documentation to Check Before Implementation: none; `src/validate/style.ts`, `src/css/` style-prop projection.
+    - Documentation Reviewed: spec §6.3 (fractions deprecated); `docs/compatibility.md` § Deferred (R9); plan 023 Task 7 notes.
+    - Options Considered: keep accepting and ignore. Rejected: deprecated in 0.2.3 for removal here.
+    - Chosen Approach: remove `fr` from the dimension value domain everywhere it is defined.
+    - API Notes and Examples:
+      ```tsx
+      <Box width="2fr" />          // invalid-prop at /style/width
+      <Box grow={2} basis={0} />   // replacement
+      ```
+    - Files to Create/Edit:
+      - `src/validate/style.ts`; `src/formats/` style-prop schema source; `src/sdk/gen.ts` (types); `src/css/` projection
+      - `schemas/ui-tree.json`, `schemas/catalog.json` (regenerated); `conformance/corpus/ui-tree/…`
+      - `docs/spec.md` §6.3; `docs/styling.md`; `docs/migration-0.3.md`; `CHANGELOG.md`; `register-0.3.0.json`
+  - Test Cases to Write:
+    - `dimension_fraction_is_invalid_prop` (each of the six props, plain and responsive).
+    - `grid_track_fractions_still_valid`.
+    - `generated_types_reject_fraction_dimensions` (type-level).
+  - Notes (executed <date>):
+
+- [ ] Task 5: One realm rule for every public validator entry point (Q8)
+  - Acceptance Criteria:
+    - Functional:
+      - Every public function that takes a document (`validateCatalog`, `validateManifest`, `validateCapabilities`, `validateTheme`, `validateDesignSystem`, `compileValidator`, a compiled validator's `validateTree`, `validateTreePatch`, `applyPatch`, `diffTrees`, `verifyPackage`, `renderModule`) rejects an object created in another realm with the realm message already used by `validateJson` (`src/formats/json.ts:106`), kind `invalid-document` at the offending pointer.
+      - `validateTree` no longer reports `invalid-prop` "Expected a plain JSON object" for a foreign-realm tree (`src/validate/tree.ts:196`).
+      - A `vm` test passes an outer-realm document to each entry point in `validator.bundle.js` and asserts the realm message.
+      - Migration entry "Foreign-realm documents are rejected everywhere".
+    - Performance: the realm check runs only on the rejection path (prototype mismatch), so accepted documents pay nothing; bench non-regression.
+    - Code Quality: one shared `realmError` helper used by every entry point.
+    - Security: law 2 — accessor-bearing foreign objects can no longer slip into compile-time paths.
+    - Compatibility: breaking for hosts passing outer-realm objects to `validateCatalog`/`compileValidator`, which 0.2.3 accepted.
+  - Approach:
+    - Skills to Use: `liveframe-execution`; `surgical-patch`.
+    - Library Documentation to Check Before Implementation: Bun `node:vm` support (test only) via `find-docs`.
+    - Documentation Reviewed: backlog "Name the realm mismatch in a compiled validator's `validateTree`"; `src/formats/json.ts:77-110`; `src/__tests__/validator-bundle.test.ts`.
+    - Options Considered: document which entry points accept foreign objects. Rejected: two rules for one boundary; agents and ports need one.
+    - Chosen Approach: reject everywhere with the existing message.
+    - API Notes and Examples:
+      ```ts
+      vmValidator.compileValidator({ catalog: outerRealmCatalog, … });
+      // throws LiveframeFailure: "/catalog: Expected a JSON value created in this realm; …"
+      ```
+    - Files to Create/Edit:
+      - `src/formats/json.ts`; `src/validate/tree.ts`; `src/validate/compile.ts`; `src/validate/patch.ts`; `src/pack/verify.ts`; `src/runner-kit/render.ts`
+      - `src/__tests__/validator-bundle.test.ts`; `docs/spec.md` §10; `docs/migration-0.3.md`; `CHANGELOG.md`
+  - Test Cases to Write:
+    - `every_entry_point_names_a_foreign_realm` (table-driven over the list above).
+    - `same_realm_documents_unchanged` (corpus passes byte-identically).
+  - Notes (executed <date>):
+
+- [ ] Task 6: Validation limits for preview and authoring sessions (Q7)
+  - Acceptance Criteria:
+    - Functional:
+      - `createPreview({ …, limits? })` and `createAuthoring({ …, limits? })` forward `limits` to the runner and to host validation (`src/preview/session.ts:40-53`, `src/authoring/index.ts:377`). `AuthoringConfig.limits?` reaches `liveframe mcp`. Invalid limits are `invalid-document` at `/limits`.
+      - A tree over the default node limit but within a raised limit passes; the same tree without the option fails `limit-exceeded`.
+    - Performance: n/a — option plumbing.
+    - Code Quality: reuse `RenderLimits`; no new type.
+    - Security: law 2 — limits apply on both sides; never looser on the host than requested.
+    - Compatibility: `widened` entries for `createPreview`, `createAuthoring`, `AuthoringConfig`.
+  - Approach:
+    - Skills to Use: `liveframe-execution`.
+    - Library Documentation to Check Before Implementation: none.
+    - Documentation Reviewed: backlog "Let `createPreview()` and `createAuthoring()` take validation limits"; spec §7.5, §13.
+    - Options Considered: read limits from the runner. Rejected: the runner is untrusted for validation.
+    - Chosen Approach: one optional option, forwarded.
+    - API Notes and Examples:
+      ```ts
+      createPreview({ catalog, capabilities, runner, limits: { nodes: 20_000 } });
+      ```
+    - Files to Create/Edit: `src/preview/session.ts`; `src/authoring/index.ts`; `src/preview/authoring.ts`; `src/cli/` MCP config validation; `docs/preview.md`; `docs/mcp.md`; `docs/spec.md` §7.5/§13; `register-0.3.0.json`
+  - Test Cases to Write:
+    - `session_limits_raise_host_validation`; `session_limits_invalid_document`; `mcp_config_limits_forwarded`.
+  - Notes (executed <date>):
+
+- [ ] Task 7: Opt-in verified-package cache for `loadPlacement` (Q6: R15)
+  - Acceptance Criteria:
+    - Functional:
+      - `/store` exports `verifiedPackages({ max? })` returning a host-owned cache object. `loadPlacement(store, id, install, { scope?, state?, verified? })` (`src/store/load.ts:34-99`) uses it to skip re-verifying a package whose canonical content hash and installation documents (catalog and capabilities canonical JSON) match an entry. The key is `(packageHash(stored record), catalogKey, capabilitiesKey)`, never `(id, version)`.
+      - Placement, params and state checks still run on every load. A changed record, a hash mismatch, a corrupt record or changed install documents miss the cache. LRU bound, default 256.
+      - The spec and `docs/packages.md` state ownership: the cache holds frozen packages (Task 3) and is safe to share across stores of one installation.
+    - Performance: a bench `loadPlacement` × 100 placements over one package shows ≥ 5× fewer hash computations with the cache; recorded in the notes.
+    - Code Quality: the cache is a plain object with `get`/`set`; no global state.
+    - Security: law 2 and the store-is-untrusted rule (§7.4) hold — the stored record is always re-hashed; only verification of the manifest/scenarios/code against the install documents is reused.
+    - Compatibility: `added` for `verifiedPackages`, `widened` for `loadPlacement`.
+  - Approach:
+    - Skills to Use: `liveframe-execution`; `lean-build`.
+    - Library Documentation to Check Before Implementation: none.
+    - Documentation Reviewed: `docs/compatibility.md` § Deferred (R15); backlog entry; `src/store/load.ts`; `src/pack/hash.ts`.
+    - Options Considered: trust `(id, version)`. Rejected by the deferral text. A global cache. Rejected: host-owned lifetimes.
+    - Chosen Approach: content- and install-keyed opt-in cache.
+    - API Notes and Examples:
+      ```ts
+      const verified = verifiedPackages();
+      await loadPlacement(store, id, install, { scope, verified });
+      ```
+    - Files to Create/Edit: `src/store/load.ts`; `src/store/index.ts`; `bench/` (new load bench); `docs/packages.md`; `docs/spec.md` §7.4; `docs/migration-0.3.md` (the deferred entry is resolved); `register-0.3.0.json`
+  - Test Cases to Write:
+    - `cache_hit_skips_reverification_but_checks_state`; `changed_record_misses_cache`; `changed_capabilities_miss_cache`; `corrupt_record_still_fails`; `invalid_state_still_resets_with_cache`.
+  - Notes (executed <date>):
+
+- [ ] Task 8: Keep focus by default in `<Surface>` (Q10)
+  - Acceptance Criteria:
+    - Functional:
+      - `focusContinuity` defaults to `true` (`src/react/renderer.tsx:60,414,497`). `focusContinuity={false}` restores 0.2.3 behaviour exactly: no snapshot, no attribute, no listener, no `tabIndex`.
+      - Every renderer browser and conformance test passes in both modes.
+      - Migration entry "Surfaces keep focus by default".
+    - Performance: the 0.2.2 focus-continuity measurement is repeated on the selection bench and recorded; non-regression of span A and arrival budgets.
+    - Code Quality: one default changed; no new prop.
+    - Security: n/a for the laws; moving focus emits no intent (existing test).
+    - Compatibility: `changed` for `SurfaceProps` default behaviour (observable).
+  - Approach:
+    - Skills to Use: `liveframe-execution`.
+    - Library Documentation to Check Before Implementation: React 19 `getSnapshotBeforeUpdate` via `find-docs` (unchanged usage).
+    - Documentation Reviewed: decision 2026-11-01-1747 (opt-in rule); spec §11; `docs/renderer.md`.
+    - Options Considered: keep opt-in. Rejected: focus falling to `<body>` is an accessibility failure by default.
+    - Chosen Approach: default on with opt-out. Task 1 finding: changing a default alone may leave `SurfaceProps` declarations identical. Reconcile the behaviour-only register representation with the default-on/opt-out tests in this task before adding its entry; retain the comparator's stale-declaration rejection.
+    - API Notes and Examples:
+      ```tsx
+      <Surface … />                         // keeps focus
+      <Surface focusContinuity={false} … /> // 0.2.3 behaviour
+      ```
+    - Files to Create/Edit: `src/react/renderer.tsx`; `src/conformance/react/` cases; `docs/renderer.md`; `docs/spec.md` §11; `docs/migration-0.3.md`; `CHANGELOG.md`; `register-0.3.0.json`
+  - Test Cases to Write:
+    - `focus_continuity_on_by_default`; `focus_continuity_false_adds_nothing` (no attribute, no tabIndex).
+  - Notes (executed <date>):
+
+- [ ] Task 9: Derive structural checkers and published JSON Schemas from one source (Q9: R24)
+  - Acceptance Criteria:
+    - Functional:
+      - Each format in `src/formats/registry.ts` is defined once, as a schema-language value plus named install-time relationship checks. The structural checker is compiled from it (the compiled schema machinery in `src/validate/schema.ts`), and `scripts/schemas.ts` emits `schemas/*.json` from the same value.
+      - Published schemas are byte-identical to 0.2.3 unless a register entry says otherwise; `format-schema-differential.test.ts` keeps running as a regression guard.
+      - Install-time relationships (catalog references, recipe completeness, contrast) remain separate code, named as such.
+    - Performance: validator and install benches non-regression (≤ 2% via the A/B harness).
+    - Code Quality: removes the hand-written duplicate per format; net deletion recorded in notes.
+    - Security: law 2 — one source means a checker cannot be looser than its schema.
+    - Compatibility: no declaration change expected; any schema byte change gets a register entry.
+  - Approach:
+    - Skills to Use: `safe-refactor`; `liveframe-execution`.
+    - Library Documentation to Check Before Implementation: JSON Schema 2020-12 (the published dialect) via `find-docs` if any keyword mapping is unclear.
+    - Documentation Reviewed: backlog "Derive format checkers and published JSON Schemas from one source"; `src/formats/registry.ts`; `scripts/schemas.ts`; plan 025 Task 6 notes.
+    - Options Considered: generate checkers from JSON Schema with a library (ajv). Rejected: new runtime dependency and `Function` constructor use (spec §10 forbids).
+    - Chosen Approach: the schema language is already the single source for widget data; use it for formats too.
+    - API Notes and Examples:
+      ```ts
+      export const placementFormat = defineFormat("placement", obj({ id: str({ maxLength: 128 }), … }), [relationshipChecks…]);
+      ```
+    - Files to Create/Edit: `src/formats/*.ts` (each format); `src/formats/registry.ts`; `scripts/schemas.ts`; `src/__tests__/format-schema-differential.test.ts`
+  - Test Cases to Write:
+    - `published_schemas_byte_identical_to_0_2_3` (unless registered).
+    - Existing corpus and differential suites pass unchanged.
+  - Notes (executed <date>):
+
+- [ ] Task 10: Analyze architectural impact and dispose of every finding
+  - Acceptance Criteria:
+    - Functional: sweep the twelve impact areas (`.agents/skills/create-plan/references/liveframe.md` §5) against Tasks 1–9 in `plans/evidence/026-impact-analysis.md`; present findings with recommended dispositions; execute or backlog each, recording the owner's answer.
+    - Performance: `bun run bench` once, sequentially, with machine load recorded; no new budget claims.
+    - Code Quality: findings are specific and cite `file:line`.
+    - Security: the four laws reviewed explicitly.
+  - Approach:
+    - Skills to Use: `create-plan` (impact areas); `liveframe-execution`.
+    - Library Documentation to Check Before Implementation: none.
+    - Documentation Reviewed: this plan's notes; `plans/evidence/025-impact-analysis.md`.
+    - Options Considered: n/a.
+    - Chosen Approach: the standard final task.
+    - API Notes and Examples: n/a.
+    - Files to Create/Edit: `plans/evidence/026-impact-analysis.md`; `plans/backlog.md`; this plan's Further Actions.
+  - Test Cases to Write: n/a — review task; `bun run check` green.
+  - Notes (executed <date>):
+
+## Verification (whole plan)
+
+- `timeout 900 bun run check`
+- `timeout 900 bun run bench` (sequential, load recorded)
+- `bun scripts/release/api-surface.ts --compare scripts/release/api/0.2.3.json --register scripts/release/api/register-0.3.0.json` (or the test that wraps it)
+- `git diff --stat v0.2.3 -- schemas conformance` — every change has a register entry
+
+## Compromises Made
+
+- To be filled after tasks are completed and tests pass.
+
+## Further Actions
+
+- To be filled after task completion with improvements, rationale, and priority.

@@ -33,10 +33,11 @@ export type ApiSurface = {
 export type RegisterEntry = {
   readonly subpath: string;
   readonly name: string;
-  readonly change: "added" | "widened" | "deferred";
+  readonly change: "added" | "widened" | "deferred" | "removed" | "changed";
   readonly reason: string;
   readonly hostAction: string;
-  readonly task: number;
+  readonly task: number | string;
+  readonly migration?: string;
 };
 
 function normaliseText(text: string): string {
@@ -184,16 +185,33 @@ export function compareApiSurface(
   baseline: ApiSurface,
   current: ApiSurface,
   register: readonly RegisterEntry[],
+  migrationGuide = readFileSync(new URL("../../docs/migration-0.3.md", import.meta.url), "utf8"),
 ): string[] {
   const failures: string[] = [];
   const usedEntries = new Set<number>();
+  const prose = migrationGuide.replace(/^```[^\n]*\n[\s\S]*?^```[^\n]*$/gm, "");
+  const headings = new Set([...prose.matchAll(/^ {0,3}#{1,6}[ \t]+(.+?)[ \t]*#*[ \t]*$/gm)].map((match) => match[1]));
+  for (const entry of register) {
+    if (entry.change !== "removed" && entry.change !== "changed") continue;
+    if (!entry.migration?.trim() || !headings.has(entry.migration)) {
+      failures.push(`Migration heading not found: ${entry.subpath} ${entry.name} (${entry.migration ?? ""})`);
+    }
+  }
 
-  // 1. Corpus, hash and patch files are never allowed to change or disappear.
+  // 1. Existing corpus, hash and patch files need a documented break to change.
   for (const group of ["corpus", "hash", "patch"] as const) {
     for (const [file, expectedHash] of Object.entries(baseline[group])) {
       const actualHash = current[group][file];
-      if (!actualHash) failures.push(`Removed ${group} file: ${file}`);
-      else if (actualHash !== expectedHash) failures.push(`Changed ${group} file: ${file}`);
+      const entryIndex = register.findIndex((e) => e.subpath === `./conformance/${group}/*` && e.name === file);
+      const entry = register[entryIndex];
+      if (entryIndex >= 0) usedEntries.add(entryIndex);
+      if (!actualHash) {
+        if (entry?.change !== "removed") failures.push(`Removed ${group} file: ${file}`);
+      } else if (actualHash !== expectedHash) {
+        if (entry?.change !== "changed") failures.push(`Changed ${group} file: ${file}`);
+      } else if (entry && entry.change !== "deferred") {
+        failures.push(`Stale register entry (${group} file did not change): ${file}`);
+      }
     }
   }
 
@@ -206,11 +224,13 @@ export function compareApiSurface(
     if (entryIndex >= 0) usedEntries.add(entryIndex);
 
     if (!actualHash) {
-      failures.push(`Removed schema file: ${file}`);
+      if (entry?.change !== "removed") failures.push(`Removed schema file: ${file}`);
     } else if (actualHash !== expectedHash) {
       if (!entry) failures.push(`Schema changed without a register entry: ${file}`);
       else if (entry.change === "deferred")
         failures.push(`Deferred schema change must not ship: ${file} (task ${entry.task})`);
+      else if (entry.change !== "widened" && entry.change !== "changed")
+        failures.push(`Existing schema changed with '${entry.change}': ${file}`);
     } else if (entry && entry.change !== "deferred") {
       failures.push(`Stale register entry (schema did not change): ./schemas/* ${entry.name}`);
     }
@@ -230,11 +250,7 @@ export function compareApiSurface(
   const allSubpaths = new Set([...Object.keys(baseline.exports), ...Object.keys(current.exports)]);
   for (const subpath of [...allSubpaths].sort()) {
     const baseSub = baseline.exports[subpath];
-    const currSub = current.exports[subpath];
-    if (!currSub) {
-      failures.push(`Removed export subpath: ${subpath}`);
-      continue;
-    }
+    const currSub = current.exports[subpath] ?? {};
     if (!baseSub) {
       for (const name of Object.keys(currSub).sort()) {
         const entryIndex = register.findIndex((e) => e.subpath === subpath && e.name === name);
@@ -254,7 +270,7 @@ export function compareApiSurface(
       if (entryIndex >= 0) usedEntries.add(entryIndex);
 
       if (actualDecl === undefined) {
-        failures.push(`Removed export: ${subpath} ${name}`);
+        if (entry?.change !== "removed") failures.push(`Removed export: ${subpath} ${name}`);
       } else if (actualDecl !== expectedDecl) {
         if (!entry) {
           failures.push(`Declaration changed without a register entry: ${subpath} ${name}`);
@@ -262,8 +278,10 @@ export function compareApiSurface(
           failures.push(
             `Deferred register entry shipped a declaration change: ${subpath} ${name} (task ${entry.task})`,
           );
-        } else if (entry.change !== "widened") {
-          failures.push(`Existing export changed with '${entry.change}' instead of 'widened': ${subpath} ${name}`);
+        } else if (entry.change !== "widened" && entry.change !== "changed") {
+          failures.push(
+            `Existing export changed with '${entry.change}' instead of 'widened' or 'changed': ${subpath} ${name}`,
+          );
         }
       } else if (entry && entry.change !== "deferred") {
         failures.push(`Stale register entry (declaration did not change): ${subpath} ${name}`);
