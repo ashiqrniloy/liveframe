@@ -495,6 +495,6 @@ Plan 022's rules 1–6 apply as written. In addition:
 
 ## Further Actions
 
-- Plan 025 Task 8: a full `check` and the pack-time comparison on a quiet host (P2, blocks the release evidence).
-- Plan 025 Task 9: create the `release` environment and configure the npm trusted publisher; choose tag-only or reviewers-only (P1, blocks the tag).
+- Plan 025 Task 8: a full `check` and the pack-time comparison on a quiet host remain open in backlog P3 "Re-run the full benchmark suite on a quiet host". The owner approved publication with this proof open; no budget is waived. [Final handoff](evidence/025-impact-analysis.md), F2.
+- Plan 025 Task 9 completed the `release` environment, required reviewer, tag-only policy and trusted-publisher setup; protected RC and final publication succeeded. The separate `next` repair remains open in backlog P3 (plan 025 Task 10; final handoff F3).
 - Backlog P4: validation `limits` for `createPreview()`/`createAuthoring()` (0.3.0); handle-based draft read.

@@ -2,6 +2,8 @@
 
 Follow-ups handed off from plans. One entry per item; update an entry with the same source and title instead of duplicating it.
 
+Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impact-analysis.md) consolidates the existing quiet-host proof, dist-tag repair, 0.3.0 migrations, draft-read/session-limit and measured-optimization entries (F2–F6). Completed release-environment setup and publication are not open follow-ups; Task 8 performance proof and Task 10 `next` repair remain open.
+
 ## Phase 1 performance gate: 3 µs per node
 
 - Disposition: existing P1 retained by the owner on 2026-10-25 (plan 002 Task 9 carry-over F2; plans/evidence/002-impact-analysis.md).

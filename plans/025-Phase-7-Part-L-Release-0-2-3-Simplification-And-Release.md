@@ -570,8 +570,18 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
     - The malformed-key test failed with the original `URIError` before the fix; both new tests pass afterward. Focused SDK render/elements, byte agreement, portability and API suites: 43 pass, zero fail. The first full check caught a test-local component factory; moved that fixture to module scope without a suppression.
     - Final `timeout 900s bun run check` passes: build, generated files, typecheck, lint, format and tests — 1,065 pass, four skip, zero fail; 143,313 assertions, 120 files, 357.61 s of tests. No quiet-host performance claim. The correction is under Unreleased; 0.2.3 was not republished.
 
-- [ ] Task 11: Analyze architectural impact and dispose of every finding
+- [x] Task 11: Analyze architectural impact and dispose of every finding
   - Sweep the impact areas in `.agents/skills/create-plan/references/liveframe.md` §5 against everything plans 023–025 delivered. Record each area, or `None — <reason>`, in `plans/evidence/025-impact-analysis.md`. Present the findings with a recommended `execute`/`backlog` disposition, record the owner's answer, and execute or backlog each item. Then run the backlog handoff for all three plans (`create-plan` § Execution updates).
+  - Approach:
+    - Skills: `liveframe-execution`, `create-plan`, `graft`, `karpathy-guidelines`, `ponytail`.
+    - Documentation: all twelve impact areas; plans 023/024 impact reports; approved scope and release exception; acceptance and registry-release records. No third-party API change or documentation lookup required.
+    - Chosen approach: retain previously approved dispositions, execute the owner's approved key-error fix as Task 11a, and reconcile stale handoffs without altering the published 0.2.3 archive.
+    - Files: `plans/evidence/025-impact-analysis.md`; this plan; plans 023/024 Further Actions; `plans/backlog.md`; `plans/evidence/025-acceptance.md`; `plans/evidence/025-release-readiness-review.md`; `roadmap.md` §3.
+    - Tests: no new runtime logic; `timeout 900s bun run check`, unchanged schema/corpus/vector diff and empty API register. Keep Tasks 8 and 10 open.
+  - Notes (executed 2026-11-05):
+    - `plans/evidence/025-impact-analysis.md` covers all twelve required areas across plans 023–025 and disposes F1–F7. The owner chose “Execute the key error fix now”; Task 11a is complete in `91de429`. Prior approved performance, release-repair, migration and hardening dispositions remain in their existing backlog entries; no duplicate or unapproved deferral was added.
+    - Completed the three-plan handoff: corrected plans 023/024 Further Actions, filled this plan's Compromises/Further Actions, linked the consolidated backlog, reconciled T10/T11 and new T11a acceptance rows, updated readiness/roadmap status. Preserved the existing unstaged plan-index and unrelated roadmap edits. Tasks 8 and 10 remain unchecked; this plan remains in progress.
+    - Baseline full check: 1,063 pass, four skip, zero fail. Final post-fix `timeout 900s bun run check`: 1,065 pass, four skip, zero fail (357.61 s); build, generated files, types, warnings-as-errors lint and format all pass. Both API baselines pass, `register-0.2.3.json` remains `[]`, and the schema/corpus/vector diff from `v0.2.2` is empty. No further spec change or publication; quiet-host and dist-tag proof remain open.
 
 ## Verification (whole plan)
 
@@ -585,8 +595,18 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- Quiet-host performance proof remains open in Task 8 and backlog P3. The owner approved releasing with that proof open; loaded-host ratios and passing full checks do not prove every absolute budget or tight cumulative non-regression gate.
+- Task 10 remains open for the owner's `next` repair after successful 0.2.3 publication and verified provenance/archive/API checks. Publishing again is not required.
+- Shared helpers preserve distinct contracts: UTF-8 sizing is separate from JSON-string sizing; strict hash encoding keeps its single pass; `findNode` shares the patch index. Byte rules have one owner, while the generic validator uses its framing primitives rather than the renderer's node-shell rules.
+- The differential suite detects structural drift without generating schemas. It skips impossible allocations above the tree-patch sentinel length; single-source formats remain a P3 candidate.
+- No public contract changed. Package/render-input ownership, dimension-fraction rejection and verified-package caching remain 0.3.0 work. The trusted draft-root restriction and default session validation limits remain documented.
 
 ## Further Actions
 
-- To be filled after task completion with improvements, rationale, and priority.
+- **P3, Task 8:** close "Re-run the full benchmark suite on a quiet host" only after the full check, benchmark budgets and pack comparison have the required quiet-host evidence. Preserve missed original targets and report cumulative ratios.
+- **P3, Task 10:** "Enable trusted-publisher dist-tag management on npmjs.com or update next tag"; record the owner's repair and registry confirmation that `next` is at or above 0.2.3.
+- **P3, 0.3.0:** package freezing/render-input ownership, dimension-fraction rejection, an opt-in verified-package cache and evaluation of single-source formats. Each has an existing backlog entry; API-changing work has migration notes in `docs/compatibility.md`.
+- **P4:** handle-based draft reads and configurable preview/authoring validation limits; retain the documented host restrictions until implemented.
+- **P4, profile first:** `walkJson` validity cost, further SHA gains, JSON prototype allocation, event-name regex and runner identity-cache removal. Preserve the already-present full-error-sink exit (closed, no change).
+- **Next release:** Task 11a's typed malformed-key error is Unreleased; publishing that correction is separate work. It does not rewrite the 0.2.3 release record.
+- The [final impact report](evidence/025-impact-analysis.md) consolidates the handoff for plans 023–025; no duplicate backlog entries are needed for previously approved work.

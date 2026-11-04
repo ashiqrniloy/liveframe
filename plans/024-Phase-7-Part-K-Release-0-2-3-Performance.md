@@ -311,6 +311,6 @@ This plan implements the performance part of the 0.2.3 review-fix release in roa
 
 ## Further Actions
 
-- **Plan 025 Task 8 (owner):** a quiet-host `bun run bench` and `bun run check`, the re-measure of every 024 target (missed ones against their achieved figures), and the now-effective `compileValidator` 0.25 ms gate. Priority: release blocker for 0.2.3.
-- **Plan 025 Task 7:** collect the Unreleased Performance block into `## 0.2.3`, and write the verified-package cache for `loadPlacement` (R15) as a 0.3.0 deferral. Priority: release blocker.
+- **Plan 025 Task 8 (owner):** quiet-host `bun run bench` and `bun run check` remain open in backlog P3. Task 8 re-measured every 024 target, distinguishing missed targets, achieved ratios and failing absolute gates, including the now-effective `compileValidator` gate. The owner approved publication with quiet-host proof open; no budget is waived. [Final handoff](evidence/025-impact-analysis.md), F2/F6.
+- **Plan 025 Task 7 completed:** the dated 0.2.3 changelog includes the Performance block; the verified-package cache for `loadPlacement` has a 0.3.0 migration and backlog P3 entry (final handoff F4).
 - **Backlog P4:** "Cut the validity cost inside `walkJson`" (Task 4). "Reach 2× on the pure-JS SHA-256 only if hashing shows up in a profile" (Task 5). Both are worth doing only if a profile shows the cost.

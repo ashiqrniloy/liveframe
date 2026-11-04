@@ -39,7 +39,7 @@ Split findings retain each disposition; fixing the patch-safe part does not clai
 
 - Task 8 remains unchecked. The owner previously said “Leave the quiet-host requirement open”; that did not approve bypassing it for the final release. Full checks and installed RC gates pass, but no full check at load below 2 is recorded, full benchmark absolute gates fail under load, and cumulative validator/render ratios reach 1.064 / 1.096. Earlier task-boundary A/B evidence is retained; a release cannot be described as proving those outstanding budgets.
 - Proposed: release 0.2.3 after the final-version release checklist passes, retaining Task 8 and the quiet-host backlog as open. Alternative: hold final publication until quiet-host evidence passes. No thresholds or tests are weakened.
-- Task 11's final impact sweep is a separate unexecuted task. Roadmap status must describe the published release and remaining Tasks 8/11 accurately; it cannot mark plan 025 complete while those remain open.
+- Task 11's final impact sweep was unexecuted at release review. Its subsequent [impact report](025-impact-analysis.md) tracks dispositions and the handoff for plans 023–025. Roadmap status must retain the actual open Tasks 8 and 10; publication does not close the missing performance proof or `next` repair.
 - npm trusted-publisher dist-tag permission is owner-configured. The workflow attempts `next` promotion; a failure requires the documented owner repair and registry confirmation.
 
 ## Owner review
