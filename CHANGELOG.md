@@ -4,13 +4,9 @@ All notable changes to `@arnilo/liveframe` are recorded here. The project follow
 
 ## Unreleased
 
-## 0.2.3-rc.1 — 2026-11-04
+## 0.2.3 — 2026-11-04
 
-Release candidate for the 0.2.3 changes below, intended for the `next` dist-tag. The final 0.2.3 release remains pending.
-
-## 0.2.3
-
-Release notes prepared ahead of publication. A host upgrading from 0.2.2 needs no API or data migration; the API register is empty. See the [compatibility notes](docs/compatibility.md#023) for invalid-input outcomes and the [adopter notes](docs/adopters-0.2.md#023--review-fixes-and-simplification) for remaining limits.
+A host upgrading from 0.2.2 needs no API or data migration; the API register is empty. See the [compatibility notes](docs/compatibility.md#023) for invalid-input outcomes and the [adopter notes](docs/adopters-0.2.md#023--review-fixes-and-simplification) for remaining limits.
 
 Fixed:
 
@@ -47,6 +43,10 @@ Performance (outputs, errors, hashes and declarations unchanged; ratios are pair
 - **`diffTrees` reorders in linear time:** 1,000 shuffled rows 0.57; unchanged and single-change diffs unaffected.
 - **`bundle()` walks each module once:** 0.79–0.81 on the agent-home widget.
 - **`themeCss` reuses a catalog it has already accepted:** a content-checked cache (8 entries) halves repeat calls (0.57); the first call per catalog content costs about 0.19 ms more.
+
+## 0.2.3-rc.1 — 2026-11-04
+
+Release candidate for the 0.2.3 changes above, published under the `next` dist-tag.
 
 ## 0.2.2 — 2026-11-03
 

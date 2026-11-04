@@ -520,7 +520,7 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
         - `backlog`, with the owner's approval.
       - The owner answers go, in words. `0.2.3` is published under `latest`, and `next` is at or above it.
       - If the dist-tag step fails again (backlog "Enable trusted-publisher dist-tag management…", P3), record the owner's manual `npm dist-tag add`. The registry verification goes in `plans/evidence/025-release.md`.
-      - `roadmap.md` §3 records plans 023–025 as complete.
+      - `roadmap.md` §3 records plans 023 and 024 as complete and 0.2.3 as published/verified after execution. Plan 025 retains its actual open Tasks 8 and 11; the owner-approved release exception does not close them.
     - Performance: n/a.
     - Code Quality: as Task 9.
     - Security: provenance is verified.
@@ -542,6 +542,10 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
       - `package.json`; `CHANGELOG.md`; `plans/evidence/025-release-readiness-review.md`; `plans/evidence/025-release.md`; `roadmap.md` §3
   - Test Cases to Write:
     - n/a.
+
+  - Notes (execution started 2026-11-04):
+    - Reviewed R1–R26 in `plans/evidence/025-release-readiness-review.md`. The owner answered “Go: release with quiet-host proof open”; `decision-logs/2026-11-04-2116-release-0-2-3-with-quiet-host-proof-open.md` records the exception. Tasks 8 and 11 stay open; the roadmap criterion is amended to avoid claiming whole-plan completion.
+    - Prepared `package.json` 0.2.3 and the dated changelog. Final-version local gates pass: full check 1,063 pass, four skip, zero fail (392.22 s); installed archive all 14 steps; peer floors React 117 / Playwright 23 / MCP 78 tests; demo 53 tests. Publication and registry verification follow.
 
 - [ ] Task 11: Analyze architectural impact and dispose of every finding
   - Sweep the impact areas in `.agents/skills/create-plan/references/liveframe.md` §5 against everything plans 023–025 delivered. Record each area, or `None — <reason>`, in `plans/evidence/025-impact-analysis.md`. Present the findings with a recommended `execute`/`backlog` disposition, record the owner's answer, and execute or backlog each item. Then run the backlog handoff for all three plans (`create-plan` § Execution updates).
