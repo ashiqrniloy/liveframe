@@ -503,6 +503,11 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
   - Test Cases to Write:
     - n/a.
 
+  - Notes (started 2026-11-04):
+    - The owner's request to complete Task 9 authorizes the RC tag and publication. Prepared `0.2.3-rc.1` and a dated changelog entry. Publication evidence is in `plans/evidence/025-release-candidate.md`; this checkbox remains open until registry verification passes.
+    - Created the previously absent `release` environment after the owner chose reviewer `ashiqrniloy` plus `v*` tags; verified both rules through the GitHub API. The owner confirmed the npm trusted publisher's repository, workflow and environment configuration. Branch dry runs must instead run on a tag.
+    - Task 8 remains open; no quiet-host exception or final-release approval is inferred.
+
 - [ ] Task 10: Review readiness with the owner, then publish 0.2.3 and verify it
   - Acceptance Criteria:
     - Functional:

@@ -4,6 +4,10 @@ All notable changes to `@arnilo/liveframe` are recorded here. The project follow
 
 ## Unreleased
 
+## 0.2.3-rc.1 — 2026-11-04
+
+Release candidate for the 0.2.3 changes below, intended for the `next` dist-tag. The final 0.2.3 release remains pending.
+
 ## 0.2.3
 
 Release notes prepared ahead of publication. A host upgrading from 0.2.2 needs no API or data migration; the API register is empty. See the [compatibility notes](docs/compatibility.md#023) for invalid-input outcomes and the [adopter notes](docs/adopters-0.2.md#023--review-fixes-and-simplification) for remaining limits.
