@@ -470,7 +470,7 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
     - Remeasured the 024 targets: nine paired runs each for hashing, validator, render and production streaming (whole-tree and patches), plus 31 paired rounds for all hot spots. SHA-256 0.700, packageHash 0.702 and renderKey 0.684 reproduce the achieved gains; original missed targets stay missed/backlogged. Inline-fallback streaming validation + React is 0.371 whole-tree / 0.357 patch; reuse is 1.000 in both. The direct checkout stable/inline comparison (three alternating pairs) is 1.0476 ≤1.10. Bundle 0.790, theme cache hit 0.574, shuffled diff 0.557; deleting the identity cache still loses (1.230). Standalone CSS benchmark passes at its default 1,000 runs.
     - Remaining timing evidence is explicitly open: all 18 validator A/B children fail absolute gates under load, and cumulative relative ratios reach 1.064 for validator/core-queue.medium and 1.096 for render/git-status. These figures do not prove a tight non-regression gate; do not replace the earlier task-boundary evidence or close the quiet-host backlog on them. Raw output is local-only under `/evidence/025-task-8/`, with commands, loads, child exits and metrics recorded durably in the acceptance file. No runtime, public API, normative spec meaning or dependency change.
 
-- [ ] Task 9: Publish 0.2.3-rc.1 under `next` and verify it from the registry
+- [x] Task 9: Publish 0.2.3-rc.1 under `next` and verify it from the registry
   - Acceptance Criteria:
     - Functional:
       - `package.json` is `0.2.3-rc.1`, and `CHANGELOG.md` has a dated rc entry. The owner's go is recorded before the tag is pushed.
@@ -503,10 +503,12 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
   - Test Cases to Write:
     - n/a.
 
-  - Notes (started 2026-11-04):
-    - The owner's request to complete Task 9 authorizes the RC tag and publication. Prepared `0.2.3-rc.1` and a dated changelog entry. Publication evidence is in `plans/evidence/025-release-candidate.md`; this checkbox remains open until registry verification passes.
+  - Notes (executed 2026-11-04):
+    - The owner's request to complete Task 9 authorized the RC tag and publication. Published `0.2.3-rc.1` with a dated changelog entry from tag `v0.2.3-rc.1`, commit `5413ab80367fceccf45372186c9dc32aa5a116e4`. [Publish run 41851529137](https://github.com/ashiqrniloy/liveframe/actions/runs/41851529137) succeeded. Publication and registry evidence is in `plans/evidence/025-release-candidate.md`.
     - Created the previously absent `release` environment after the owner chose reviewer `ashiqrniloy` plus `v*` tags; verified both rules through the GitHub API. The owner confirmed the npm trusted publisher's repository, workflow and environment configuration. Branch dry runs must instead run on a tag.
     - Task 8 remains open; no quiet-host exception or final-release approval is inferred.
+    - Local and CI full checks both pass: 1,063 pass, four skip, zero fail; local and CI archive gates, all three peer floors and demo pass. CI production/bundled audits pass; downloaded and checked the CycloneDX 1.6 SBOM artifact identifying the RC, acorn and seven bundled components.
+    - The protected job waited for review; the agent submitted approval through authenticated reviewer `ashiqrniloy` using the owner's publication authorization. npm accepted the publish at 15:03:32Z; initial registry requests failed during processing. After propagation, `next` is `0.2.3-rc.1`, `latest` is `0.2.2`, all 14 registry archive steps pass, the installed API comparison against 0.2.2 has zero differences with `register-0.2.3.json` still `[]`, and npm verifies signatures and SLSA provenance with no invalid or missing entries. The verified provenance matches the tag, commit and workflow run.
 
 - [ ] Task 10: Review readiness with the owner, then publish 0.2.3 and verify it
   - Acceptance Criteria:
