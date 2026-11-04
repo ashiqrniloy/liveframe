@@ -337,7 +337,7 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
     - Performance ([evidence](evidence/025-renderer-authoring-splits.md)): initial 9-pair whole-tree and patch streaming ratios were all 1.000. Selection initially missed its gate; checking the item cache before unpacking the context restored the fast path. The final 9-pair production selection run passes React, validation and wall time for both design systems (0.937–1.000). Three-pair final whole-tree and patch confirmations are all 1.000. The new `bench/selection.bench.ts` reuses the existing production proof test unchanged. Host load and failed measurement attempts are recorded in the evidence.
     - Verification: the five focused suites passed before and after (121 tests each); additional renderer/conformance/preview suites passed (88 tests). First full check: 1,048 pass, four skip, one warm-runner timing failure (0.1386 ms against 0.1 ms). Final `bun run check`, with no concurrent benchmark: build, gen check, types, lint, format and tests all pass — 1,049 pass, four skip, zero fail; warm-runner overhead 0.0087 ms. Graft refreshed.
 
-- [ ] Task 6: Detect drift between format checkers and published JSON Schemas (R24, patch-safe part)
+- [x] Task 6: Detect drift between format checkers and published JSON Schemas (R24, patch-safe part)
   - Acceptance Criteria:
     - Functional:
       - `src/__tests__/format-schema-differential.test.ts` covers every format that has both an install checker and a published schema: vocabulary, catalog, capabilities, manifest, theme, design system, UI tree, tree patch, package, and the records. For each format:
@@ -358,16 +358,27 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
       - ajv 8.20: `ajv/dist/2020`, `strict: true`, resolving `urn:liveframe:…` `$id`s.
     - Documentation Reviewed:
       - `src/__tests__/schemas.test.ts` (existing schema checks); `src/formats/catalog.ts:70-135` (the hand-written `definitionSchema`/`catalogSchema` beside the `obj`/`str` checker); `scripts/schemas.ts`.
+      - Current official Ajv documentation via Context7 `/ajv-validator/ajv`: `Ajv2020`, `strict`, offline `addSchema`/`getSchema` by `$id`, and `multipleOfPrecision` for decimal divisors (installed Ajv 8.20).
     - Options Considered:
       - Generate the JSON Schemas from the checkers (one source). Rejected for 0.2.3: the published schema bytes must stay identical (rule 5), and that generator is a design project. It goes to the backlog as a 0.3.0 candidate.
     - Chosen Approach:
-      - A differential test now; a single source later.
+      - A differential test now; a single source later. Read all published schemas from disk, including the vocabulary embedded in the catalog. Recursively collect valid JSON corpus/fixture documents and embedded schema-language forms, plus numeric/object-event fixtures and the validator workload trees. Fix a valid installation context per theme, design-system and tree seed; use transport shape checks for manifest/package structure. Generate 200 mutations per seed with a fixed PRNG, following references, matching union branches, pattern-keyed maps and nested nodes.
+      - Keep strict validation, with Ajv's documented decimal `multipleOfPrecision` tolerance. Skip allocating strings past the tree-patch `Number.MAX_SAFE_INTEGER` sentinel bound; all allocatable published length bounds (up to 1 MiB) are exercised. Assert the suite completes within 20 seconds.
     - API Notes and Examples:
       - n/a.
     - Files to Create/Edit:
       - `src/__tests__/format-schema-differential.test.ts`; `plans/backlog.md` (single-source formats, P3)
   - Test Cases to Write:
     - The differential test itself. A mutant check confirms it catches drift: temporarily loosening one `maxItems` in a schema, under a test-only override, must fail it.
+  - Notes (executed 2026-11-04):
+    - Added `src/__tests__/format-schema-differential.test.ts`: all 11 registry schemas plus the catalog's embedded vocabulary, with a registry-coverage assertion. Seeds include valid JSON documents anywhere in `conformance/` and the fixture directory, embedded schema-language forms, numeric/object-event fixture documents and all eight validator workload trees. Manifest/package comparisons use their structural transport checkers; install relationships remain covered by the existing corpus tests.
+    - Each seed gets 200 reproducible mutations across applicable categories: missing required fields, wrong types, unknown properties, empty nonempty arrays, and overflowing array/string bounds. The walker follows local/external references, matching union branches, pattern properties and recursive tree nodes. Mutations copy only their ancestor path, preserving fixture inputs. One-way relationship rules are named in the test; no document gets an exception to checker acceptance implying schema acceptance.
+    - A test-only vocabulary `maxItems` override from 256 to 257 fails the boundary assertion on 257 distinct role names. A rejecting test-only schema also proves the acceptance-agreement assertion fails. Neither override changes published files.
+    - No checker or published-schema drift found. Ajv's default decimal division falsely rejected an existing rack shadow alpha; the documented `multipleOfPrecision: 8` option handles floating-point roundoff while retaining `strict: true`. No runtime, public declaration, dependency or schema-byte change; no spec meaning change.
+    - Limitation: tree-patch id fields publish `Number.MAX_SAFE_INTEGER` as a sentinel maximum. Constructing a longer string is impossible; those overflow allocations are skipped with a `shortcut:` comment. Other published length bounds up to 1 MiB remain covered.
+    - The single-source structural-format follow-up is in `plans/backlog.md` at P3, as a 0.3.0 candidate.
+    - Verification: focused suite 14 pass, zero fail in 8.89 s; its whole-suite time assertion is below 20 s. First full `bun run check`: build, gen check, types, lint and format pass; tests 1,061 pass, four skip, two timing failures (agent-home CSS switch 19 ms against 16.67 ms; warm-runner overhead 0.1222 ms against 0.1 ms). The same load-sensitive tests are recorded in Tasks 1–5; thresholds and tests remain unchanged.
+    - Final full `bun run check` passes unchanged: build, gen check, types, lint, format and tests — 1,063 pass, four skip, zero fail. Agent-home CSS switch max 6.3 ms; warm-runner overhead −0.0232 ms/render. All 14 new tests, including the total runtime assertion, pass within this run.
 
 - [ ] Task 7: Write the 0.2.3 documentation, compatibility notes and 0.3.0 deferrals
   - Acceptance Criteria:
