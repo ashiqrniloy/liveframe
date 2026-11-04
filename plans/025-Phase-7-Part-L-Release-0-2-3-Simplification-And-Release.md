@@ -187,7 +187,7 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
       - Some `cli-mcp.test.ts` cases fail in the same way at HEAD under load (load 34–60), so they are not regressions.
       - The final `bun run check` (load 4.8 → 9.7) passed: 1048 pass, 0 fail.
 
-- [ ] Task 3: Give the tree byte budget one owner (R21)
+- [x] Task 3: Give the tree byte budget one owner (R21)
   - Acceptance Criteria:
     - Functional:
       - `src/validate/bytes.ts` exports the per-field byte rules as named functions: node opening, `id`, `kind`, `variant`, the `props`/`style`/`events` member, the children array and the tree fields. Both `compileTree` (`src/validate/tree.ts:238` and its neighbours) and `render()`'s `emit` (`src/sdk/render.ts:538-584`) use them. No byte literal such as `6 +`, `8 +`, `9`, `10` or `11` remains in either file.
@@ -217,6 +217,33 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
   - Test Cases to Write:
     - `render_and_validator_count_the_same_bytes`: fails if either side changes a rule alone.
     - The existing byte-limit tests in `sdk-render.test.tsx` and `tree.test.ts`, unedited.
+  - Notes (executed 2026-11-04):
+    - `src/validate/bytes.ts` now holds the framing, under one comment:
+      - `CONTAINER_BYTES` (`{}`/`[]`), `BRACKET_BYTES` (one bracket), `SEPARATOR_BYTES` (`,`) and `memberBytes(key, first, maximum?)` (`"key":`, with its leading `,` unless first).
+      - The named node and tree rules are built from those: `nodeOpenBytes(id, kind)`, `VARIANT_/PROPS_/STYLE_/EVENTS_MEMBER_BYTES`, `childrenFramingBytes(count)` and `treeFieldBytes(name, first, valueBytes)`. The member constants are computed once, at module load.
+    - Users of the rules:
+      - `render()`'s `emit` and its tree shell use the named rules.
+      - `compileTree`'s `walk` and the shared `walkJson` (`src/validate/structure.ts`) use the framing primitives.
+      - No byte literal is left in `src/sdk/render.ts` or `src/validate/tree.ts`.
+    - Deviation: the plan said `compileTree` would call the node rules too. It does not. The validator walks arbitrary JSON, not node shells, so it calls the primitives that the node rules are built from. One file still owns every rule.
+    - Behaviour is unchanged:
+      - `render()` used to add a node's `,"children":[`, its commas and its `]` in separate `addBytes` calls. It now adds one `childrenFramingBytes(n)`. All those calls carried the same pointer and node id, and `limit` fires once, so the limit error is the same.
+      - The node's closing `}` is still added first, at the node's pointer, so the error pointer is unchanged when that byte tips the limit.
+    - `src/__tests__/byte-budget-agreement.test.ts` `render_and_validator_count_the_same_bytes`:
+      - Uses 1,000 seeded random trees of stack, text and button, with labels, gaps, variants and actions. Strings mix escapes, control characters, 2-, 3- and 4-byte UTF-8 and lone surrogates.
+      - For each tree, with L = `utf8Length(JSON.stringify(tree))`, `render()` and `validateTree` both accept at a limit of L and both fail with `limit-exceeded` at L−1. So each one's count is exactly L.
+      - Mutant check: `STYLE_MEMBER_BYTES + 1` in `render.ts` alone fails the test, and so does `SEPARATOR_BYTES + 1` in `tree.ts` alone.
+    - Finding for Task 11: `render()` throws an uncaught `URIError` for a `key` holding a lone surrogate (`encodeSegment` → `encodeURIComponent`). It should return a `Result` error.
+      - It predates this task and is not fixed here, because the task is behaviour-preserving.
+      - The test draws keys from well-formed pieces only, and says why. Lone surrogates still reach prop values.
+    - Performance (`bun bench/ab.ts HEAD …`, paired head/base ratios):
+      - A/A (HEAD against HEAD, 15 runs, load 5.7 → 3.5) on the render per-node metrics gave 0.980–1.006, so noise on this host is about ±2%.
+      - Validator `compiledUsPerNode`, 21 runs (load 7.5 → 3.4): agent-home 1.003, core-queue.full 0.997, git-status 1.019, rack-module 1.006, synthetic-queue 1.023.
+      - Render per-node, 21 runs (load 11.6 → 7.5): agent-home-elements 1.010, core-queue.full 0.914, synthetic-queue 0.968, rack-module 1.023, git-status 0.937. In-bench validation was 0.992.
+      - The two 1.023 figures are inside the A/A band, and the earlier 9- and 15-run passes put the same metrics on either side of 1.0.
+      - `agent-home.genericUsPerNode` read 1.033 and 1.042. It is the props-only `checkValue` baseline, which runs none of the changed code, so that drift is noise. Writing `memberBytes` out by hand in `walkJson` did not move it, so the call stays.
+      - The host was never quiet (load ≥ 3.4), so the absolute ≤ 3 µs/node and ≤ 1.5 µs/node figures are left to Task 8's quiet-host run. Head medians were 1.33–1.48 µs/node (validator) and 2.1–3.1 µs/node (render, at load 11).
+    - Verification: `bun run check` at load 3.5 → 15.5 passed build, `gen:check`, typecheck, lint and format check. Tests: 1051 pass and 2 fail, both browser timing tests (`dialog_exit_animates_then_unmounts_and_reduced_motion_skips_exit` and `switch_changes_computed_styles_not_dom_structure: agent-home`). Re-run on their own at load 13, `proof/tests/switch.test.ts` and `proof/tests/renderer-browser.test.tsx` gave 16 pass, 0 fail. This is the load sensitivity Tasks 1 and 2 recorded.
 
 - [ ] Task 4: Split the long render, validation and generator closures (R22)
   - Acceptance Criteria:

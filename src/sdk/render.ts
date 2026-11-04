@@ -2,7 +2,17 @@ import { addBoundMarker, DEFAULT_MAX_ERRORS, type LiveframeError, type Result } 
 import { at, isRecord } from "../formats/capabilities.ts";
 import type { UiNode, UiTree } from "../formats/tree.ts";
 import { isThenable } from "../internal.ts";
-import { stringBytes } from "../validate/bytes.ts";
+import {
+  BRACKET_BYTES,
+  childrenFramingBytes,
+  EVENTS_MEMBER_BYTES,
+  nodeOpenBytes,
+  PROPS_MEMBER_BYTES,
+  STYLE_MEMBER_BYTES,
+  stringBytes,
+  treeFieldBytes,
+  VARIANT_MEMBER_BYTES,
+} from "../validate/bytes.ts";
 import { buildFacts, type CompiledValidator, type KindFacts } from "../validate/compile.ts";
 import type { SchemaCheck, SchemaSink } from "../validate/schema.ts";
 import { encodeSegment, type JsonWalk, walkJson } from "../validate/structure.ts";
@@ -529,27 +539,23 @@ function renderValue(
     }
 
     // The shell is generated here; only its values need the shared JSON walk.
-    addBytes(6 + stringBytes(id) + 8 + stringBytes(kind), pointer, id); // {"id":…,"kind":…
+    addBytes(nodeOpenBytes(id, kind), pointer, id);
     if (hasVariant) {
-      addBytes(11, `${pointer}/variant`, id);
+      addBytes(VARIANT_MEMBER_BYTES, `${pointer}/variant`, id);
       count(variant, `${pointer}/variant`, id);
     }
-    addBytes(9, `${pointer}/props`, id);
+    addBytes(PROPS_MEMBER_BYTES, `${pointer}/props`, id);
     count(props, `${pointer}/props`, id);
     if (hasStyle) {
-      addBytes(9, `${pointer}/style`, id);
+      addBytes(STYLE_MEMBER_BYTES, `${pointer}/style`, id);
       count(style, `${pointer}/style`, id);
     }
     if (hasEvents) {
-      addBytes(10, `${pointer}/events`, id);
+      addBytes(EVENTS_MEMBER_BYTES, `${pointer}/events`, id);
       count(events, `${pointer}/events`, id);
     }
-    addBytes(1, pointer, id);
-    if (childrenOut.length) {
-      addBytes(1 + stringBytes("children") + 1 + 1, `${pointer}/children`, id);
-      for (let i = 1; i < childrenOut.length; i++) addBytes(1, `${pointer}/children`, id);
-      addBytes(1, `${pointer}/children`, id);
-    }
+    addBytes(BRACKET_BYTES, pointer, id);
+    if (childrenOut.length) addBytes(childrenFramingBytes(childrenOut.length), `${pointer}/children`, id);
     out.push(node);
   }
 
@@ -569,10 +575,10 @@ function renderValue(
 
   let firstField = true;
   function treeField(name: string, valueBytes: number): void {
-    addBytes((firstField ? 0 : 1) + stringBytes(name) + 1 + valueBytes, "/root", "root");
+    addBytes(treeFieldBytes(name, firstField, valueBytes), "/root", "root");
     firstField = false;
   }
-  addBytes(1, "/root", "root");
+  addBytes(BRACKET_BYTES, "/root", "root");
   treeField("format", stringBytes(FORMAT));
   treeField("catalogId", stringBytes(catalogId));
   treeField("surfaceId", stringBytes(surfaceId));
@@ -598,7 +604,7 @@ function renderValue(
   const roots: UiNode[] = [];
   emit(result, null, "", 1, false, new Set<string>(), roots);
   if (roots.length !== 1 && !stopped) fail("invalid-children", "", "exactly one root element", "root");
-  addBytes(1, "", "root");
+  addBytes(BRACKET_BYTES, "", "root");
 
   function finish(): LiveframeError[] {
     if (bounded) addBoundMarker(errors, lastNodeId);

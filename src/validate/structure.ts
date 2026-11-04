@@ -1,5 +1,5 @@
 import type { Catalog } from "../formats/catalog.ts";
-import { stringBytes } from "./bytes.ts";
+import { CONTAINER_BYTES, memberBytes, SEPARATOR_BYTES, stringBytes } from "./bytes.ts";
 
 /**
  * A key path is `root` plus one encoded segment per element below it (spec §7.1, §9).
@@ -169,7 +169,7 @@ export function walkJson(value: unknown, ctx: JsonWalk): void {
     }
   }
   ctx.ancestors.add(value);
-  ctx.bytes += 2;
+  ctx.bytes += CONTAINER_BYTES;
   if (ctx.bytes > ctx.maximum) {
     ctx.limit();
     ctx.stopped = true;
@@ -185,7 +185,7 @@ function walkArray(value: readonly unknown[], ctx: JsonWalk): void {
   for (let i = 0; i < value.length && !ctx.stopped; i++) {
     ctx.path.push(i);
     if (i) {
-      ctx.bytes += 1;
+      ctx.bytes += SEPARATOR_BYTES;
       if (ctx.bytes > ctx.maximum) {
         ctx.limit();
         ctx.stopped = true;
@@ -207,7 +207,7 @@ function walkObject(value: object, ctx: JsonWalk): void {
     if (ctx.stopped) break;
     if (!Object.hasOwn(value, key)) continue;
     ctx.path.push(key);
-    ctx.bytes += stringBytes(key, ctx.maximum - ctx.bytes) + 1 + (first ? 0 : 1);
+    ctx.bytes += memberBytes(key, first, ctx.maximum - ctx.bytes);
     first = false;
     if (ctx.bytes > ctx.maximum) {
       ctx.limit();

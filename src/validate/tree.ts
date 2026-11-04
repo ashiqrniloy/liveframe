@@ -3,7 +3,7 @@ import { at, isRecord } from "../formats/capabilities.ts";
 import type { Catalog } from "../formats/catalog.ts";
 import type { UiTree } from "../formats/tree.ts";
 import { int, str } from "../schema.ts";
-import { stringBytes } from "./bytes.ts";
+import { CONTAINER_BYTES, memberBytes, SEPARATOR_BYTES } from "./bytes.ts";
 import { closed, field } from "./checks.ts";
 import { compileSchema, type SchemaCheck, type SchemaSink } from "./schema.ts";
 import {
@@ -195,7 +195,7 @@ export function compileTree(
       const prototype = Object.getPrototypeOf(value);
       if (!array && prototype !== Object.prototype && prototype !== null) return fail("a plain JSON object", nodeId);
       ancestors.add(value);
-      add(2, nodeId);
+      add(CONTAINER_BYTES, nodeId);
       if (array) {
         const counts =
           mode === "children" && structure.children.get(parentKind) instanceof Map
@@ -205,7 +205,7 @@ export function compileTree(
           fail("no children for this kind", nodeId, "invalid-children");
         for (let i = 0; i < value.length && !stopped; i++) {
           path.push(i);
-          if (i) add(1, nodeId);
+          if (i) add(SEPARATOR_BYTES, nodeId);
           if (stopped) {
             path.pop();
             break;
@@ -235,7 +235,7 @@ export function compileTree(
           if (mode === "node" && !valid && key !== "children") continue;
           if (mode === "tree" && !treeFields.has(key)) continue;
           path.push(key);
-          add(stringBytes(key, budget.bytes - bytes) + 1 + (first ? 0 : 1), nodeId);
+          add(memberBytes(key, first, budget.bytes - bytes), nodeId);
           if (stopped) {
             path.pop();
             break;

@@ -25,3 +25,51 @@ export function stringBytes(value: string, maximum = Infinity): number {
   }
   return bytes;
 }
+
+/*
+ * Tree byte framing (spec §10: a tree's size is the UTF-8 length of its `JSON.stringify` output).
+ * A container adds its two brackets, each item after the first a comma, and each object member
+ * its quoted key and colon (`"key":`, or `,"key":` after the first). The validator applies these
+ * to whatever JSON it walks; `render()` builds node shells and tree fields itself, so it adds their
+ * framing through the named rules below. Both owners are proven to agree by
+ * `byte-budget-agreement.test.ts`.
+ */
+
+/** `{` and `}`, or `[` and `]`. */
+export const CONTAINER_BYTES = 2;
+/** One `{`, `}`, `[` or `]` on its own, when a shell opens and closes in separate steps. */
+export const BRACKET_BYTES = 1;
+/** `,` between two items. */
+export const SEPARATOR_BYTES = 1;
+
+/** `"key":`, plus the leading `,` when the member is not the first. */
+export function memberBytes(key: string, first: boolean, maximum = Infinity): number {
+  return stringBytes(key, maximum) + 1 + (first ? 0 : 1);
+}
+
+const ID_MEMBER = memberBytes("id", true);
+const KIND_MEMBER = memberBytes("kind", false);
+const CHILDREN_MEMBER = memberBytes("children", false);
+/** `,"variant":` before a node's variant value. */
+export const VARIANT_MEMBER_BYTES = memberBytes("variant", false);
+/** `,"props":` before a node's props object. */
+export const PROPS_MEMBER_BYTES = memberBytes("props", false);
+/** `,"style":` before a node's style object. */
+export const STYLE_MEMBER_BYTES = memberBytes("style", false);
+/** `,"events":` before a node's events object. */
+export const EVENTS_MEMBER_BYTES = memberBytes("events", false);
+
+/** A node's opening `{"id":…,"kind":…`. */
+export function nodeOpenBytes(id: string, kind: string): number {
+  return BRACKET_BYTES + ID_MEMBER + stringBytes(id) + KIND_MEMBER + stringBytes(kind);
+}
+
+/** A node's `,"children":[…]` framing for `count` children (count ≥ 1), without the children. */
+export function childrenFramingBytes(count: number): number {
+  return CHILDREN_MEMBER + CONTAINER_BYTES + (count - 1) * SEPARATOR_BYTES;
+}
+
+/** One tree field's `"name":value` (with its leading `,` unless first), given its value's bytes. */
+export function treeFieldBytes(name: string, first: boolean, valueBytes: number): number {
+  return memberBytes(name, first) + valueBytes;
+}
