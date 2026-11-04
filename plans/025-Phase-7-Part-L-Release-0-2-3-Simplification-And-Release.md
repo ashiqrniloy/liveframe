@@ -448,12 +448,27 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
       - n/a.
     - Chosen Approach:
       - One acceptance table.
+      - Verification prerequisite: update the peer-floor harness's copied config from `biome.json` to Task 1's `biome.jsonc`; the unmodified harness fails with ENOENT before testing any peer.
     - API Notes and Examples:
       - n/a.
     - Files to Create/Edit:
       - `plans/evidence/025-acceptance.md`
+      - `plans/evidence/025-pack-comparison.ts`: reproducible alternating 20-sample comparison against the installed 0.2.2 archive, with output-identity and timing assertions.
+      - `plans/backlog.md`: append the full-check and pack-time carry-over results.
+      - `scripts/release/peer-floors.ts`: follow Task 1's config rename.
   - Test Cases to Write:
     - n/a.
+
+  - Notes (executed 2026-11-04):
+    - **Open, not complete.** The owner explicitly answered “Leave the quiet-host requirement open”. No below-2 full-check result is claimed, no budget is relaxed, and this checkbox stays unchecked. Publication and final impact work remain Tasks 9–11.
+    - `plans/evidence/025-acceptance.md` contains 207 rows covering every Expected Outcome and task criterion in plans 023–025, including nested requirements and the three impact tasks. It distinguishes passing tests, historical execution evidence, explicit amendments, missed/backlogged targets and pending release work. The test-diff audit lists all existing-case edits, including 023's oversized fixtures, conformance counts and bundled-code scan; it does not claim the narrower original “only additions” wording literally holds.
+    - Fixed the peer-floor prerequisite: Task 1 renamed `biome.json` to `biome.jsonc`, but the harness still copied the old path and failed with ENOENT before testing. Following that rename is the only existing script change. The complete rerun passes React 19.0.0 (117 tests), Playwright 1.49.0 (23) and MCP server 2.0.0 (78), zero failures.
+    - Full `bun run check` passes: build, generated files, types, warnings-as-errors lint, format and tests — 1,063 pass, four skip, zero fail, 120 files, 374.76 s of tests. Pre-run load observation 2.20; this does not satisfy the required quiet-host proof. The installed-archive gate passes all 14 steps; production and bundled audits pass; the CycloneDX 1.6 SBOM has acorn plus seven bundled components. Portability, law tests and both API baselines pass; the register stays `[]`, with no schema, corpus or vector diff from `v0.2.2`.
+    - `bun run demo:test` passes (53 tests), as does a detached scratch worktree's run (53 tests). `git diff --exit-code v0.2.2 HEAD -- examples/demo-host` proves the scratch host's source, fixtures, config and tests are the unmodified 0.2.2 host; the script upgrades it to the checkout's packed archive. The scratch worktree was removed.
+    - Added assert-based `plans/evidence/025-pack-comparison.ts`: five warm-ups, 20 alternating samples per side, each packing the five proof widgets. Against the installed registry 0.2.2 archive, code and hashes are identical; median 44.4011 → 37.1157 ms, ratio 0.8359 (paired median 0.8218), within 5%, load 4.62 before/after. Both this result and the full-check result are appended to the existing quiet-host backlog entry, which remains open.
+    - First full `bun run bench` fails at load 2.89 → 3.15: `core-queue.full` 1.887 µs/node exceeds 1.5. The fixed reused-catalog `compileValidator` gate passes at 0.1827 ms ≤0.25. The command short-circuits before render/CSS/streaming. The acceptance record contains subsequent remeasurements; an A/B driver's successful reporting exit is not a passing absolute gate.
+    - Remeasured the 024 targets: nine paired runs each for hashing, validator, render and production streaming (whole-tree and patches), plus 31 paired rounds for all hot spots. SHA-256 0.700, packageHash 0.702 and renderKey 0.684 reproduce the achieved gains; original missed targets stay missed/backlogged. Inline-fallback streaming validation + React is 0.371 whole-tree / 0.357 patch; reuse is 1.000 in both. The direct checkout stable/inline comparison (three alternating pairs) is 1.0476 ≤1.10. Bundle 0.790, theme cache hit 0.574, shuffled diff 0.557; deleting the identity cache still loses (1.230). Standalone CSS benchmark passes at its default 1,000 runs.
+    - Remaining timing evidence is explicitly open: all 18 validator A/B children fail absolute gates under load, and cumulative relative ratios reach 1.064 for validator/core-queue.medium and 1.096 for render/git-status. These figures do not prove a tight non-regression gate; do not replace the earlier task-boundary evidence or close the quiet-host backlog on them. Raw output is local-only under `/evidence/025-task-8/`, with commands, loads, child exits and metrics recorded durably in the acceptance file. No runtime, public API, normative spec meaning or dependency change.
 
 - [ ] Task 9: Publish 0.2.3-rc.1 under `next` and verify it from the registry
   - Acceptance Criteria:

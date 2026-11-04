@@ -85,7 +85,7 @@ const current = Object.entries(pkg.peerDependencies).map(([name, range]) => `${n
 
 const dir = await mkdtemp(join(tmpdir(), "liveframe-peer-floors-"));
 try {
-  for (const path of ["package.json", "bun.lock", "biome.json", "tsconfig.json", "tsconfig.build.json"])
+  for (const path of ["package.json", "bun.lock", "biome.jsonc", "tsconfig.json", "tsconfig.build.json"])
     await cp(join(root, path), join(dir, path));
   for (const path of ["src", "proof", "docs", "scripts", "schemas", "bench", "examples", "conformance"])
     await cp(join(root, path), join(dir, path), { recursive: true });
