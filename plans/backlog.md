@@ -490,6 +490,8 @@ Follow-ups handed off from plans. One entry per item; update an entry with the s
 - Why: CL-14 and `docs/compatibility.md` § Release process step 4 state that `next` should remain at or above `latest` so installations referencing the prerelease tag do not resolve older code than the default release.
 
 
+- Recurrence (plan 025 Task 10): [run 41858182585](https://github.com/ashiqrniloy/liveframe/actions/runs/41858182585) successfully published 0.2.3 under `latest`, then npm 12.2.1 returned E403 on `next` because the trusted publisher cannot manage dist-tags. Registry initially confirms `{ latest: 0.2.3, next: 0.2.3-rc.1 }`. Owner asked to run `npm dist-tag add @arnilo/liveframe@0.2.3 next`; repair confirmation pending. All earlier exact-version tag examples above are historical; use 0.2.3 for this repair.
+
 ## Proof styles fail the opt-in contrast audit
 
 - Section: Styling (spec §6.2, §6.5)

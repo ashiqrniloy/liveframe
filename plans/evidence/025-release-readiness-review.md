@@ -1,6 +1,6 @@
 # 0.2.3 release readiness review
 
-Prepared 2026-11-04 for plan 025 Task 10, against `c0c3b7a` plus the final version/changelog preparation. The RC's [registry verification](025-release-candidate.md) passes. Final publication is authorized after final-version checks pass.
+Prepared 2026-11-04 for plan 025 Task 10, against `c0c3b7a` plus the final version/changelog preparation. The RC's [registry verification](025-release-candidate.md) passes. Final publication completed under `latest`; registry provenance, archive and API checks pass. The owner's `next` dist-tag repair is pending.
 
 ## Review findings R1–R26
 
@@ -48,6 +48,6 @@ The owner answered **“Go: release with quiet-host proof open”** after review
 
 ## Final-version local gates
 
-`package.json` holds `0.2.3`; its changelog entry is dated 2026-11-04. `timeout 900s bun run check` passes (1,063 pass, four skip, zero fail; 120 files, 392.22 s of tests). The local installed-archive gate passes all 14 steps in 6.5 s. Host load before the check was 5.37, so this does not close quiet-host proof. Peer floors pass: React 19.0.0 (117 tests), Playwright 1.49.0 (23), MCP server 2.0.0 (78). Demo passes (53 tests). Publication verification follows in `025-release.md`.
+`package.json` holds `0.2.3`; its changelog entry is dated 2026-11-04. `timeout 900s bun run check` passes (1,063 pass, four skip, zero fail; 120 files, 392.22 s of tests). The local installed-archive gate passes all 14 steps in 6.5 s. Host load before the check was 5.37, so this does not close quiet-host proof. Peer floors pass: React 19.0.0 (117 tests), Playwright 1.49.0 (23), MCP server 2.0.0 (78). Demo passes (53 tests). [Publication and registry verification](025-release.md) pass; the workflow's `next` promotion failed for lack of npm permission and owner repair is pending.
 
 Regenerate logs with the release checklist in `docs/compatibility.md`; this execution's local-only logs are under `/evidence/025-task-10/`.
