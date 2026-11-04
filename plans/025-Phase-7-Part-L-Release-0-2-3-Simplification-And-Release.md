@@ -245,7 +245,7 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
       - The host was never quiet (load ≥ 3.4), so the absolute ≤ 3 µs/node and ≤ 1.5 µs/node figures are left to Task 8's quiet-host run. Head medians were 1.33–1.48 µs/node (validator) and 2.1–3.1 µs/node (render, at load 11).
     - Verification: `bun run check` at load 3.5 → 15.5 passed build, `gen:check`, typecheck, lint and format check. Tests: 1051 pass and 2 fail, both browser timing tests (`dialog_exit_animates_then_unmounts_and_reduced_motion_skips_exit` and `switch_changes_computed_styles_not_dom_structure: agent-home`). Re-run on their own at load 13, `proof/tests/switch.test.ts` and `proof/tests/renderer-browser.test.tsx` gave 16 pass, 0 fail. This is the load sensitivity Tasks 1 and 2 recorded.
 
-- [ ] Task 4: Split the long render, validation and generator closures (R22)
+- [x] Task 4: Split the long render, validation and generator closures (R22)
   - Acceptance Criteria:
     - Functional:
       - `renderValue`/`emit` (`src/sdk/render.ts:68-617`, `emit` `:283-560`) are split along their natural seams: component expansion, key and sibling resolution, prop classification, and byte accounting (now Task 3's helpers). They become module-level functions that take an explicit render context object. Do the same for `compileTree`'s `walk` (`src/validate/tree.ts:136-245`, unless Task 4 of plan 024 already restructured it) and `gen.generate` (`src/sdk/gen.ts:296`).
@@ -272,6 +272,29 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
       - `src/sdk/render.ts`; `src/validate/tree.ts`; `src/sdk/gen.ts`; `plans/evidence/025-closure-splits.md`
   - Test Cases to Write:
     - n/a. Behaviour-preserving, proven by the existing SDK, validator, gen and corpus tests unedited, and by Task 3's agreement test.
+  - Notes (executed 2026-11-04):
+    - `src/sdk/render.ts`:
+      - `renderValue`'s locals became one plain `RenderContext` object, built by `createContext`. Every step is now a module-level function that takes it.
+      - `emit` (80 lines, from 277) orchestrates: `expand` (component expansion), `isValidKey`, `emitFragment`, `kindOf`, `siblingSegment` (key and sibling resolution), `admitNode` (id, node and depth budgets), `classifyProps` with `propTarget` (prop classification), `checkStructure`, `checkNode`, and `countNode` (Task 3's byte rules). `renderValue` is now the option checks, the tree shell and the root emit.
+    - Kept behaviour:
+      - `classifyProps` builds the node record in the same field order. `children` is added last, as before.
+      - `countNode` tests `Object.hasOwn(record, "variant")`, which is exactly the old `hasVariant`, including a variant whose value is `undefined`.
+      - Only composed components pay for `expand`'s `[element, key]` tuple. Primitives never allocate it.
+      - Errors keep their order, kinds, pointers and node ids.
+    - `src/validate/tree.ts`: `compileTree` builds a plain `TreeContext`. `walk` dispatches to `enterNode` (budgets, schema, id, structure), `checkId`, `enterTree`, `walkItems`, `walkMembers` and `memberMode`. Plan 024 Task 4 had not restructured `walk`, so the split applied.
+    - `src/sdk/gen.ts`:
+      - `generate` became `styleTypes` (a module-level table), `prelude(vocabulary)` and `component(definition, names)`.
+      - `jsonSchema`'s `form` switch became `formSchema`, `stringSchema` and `objectSchema`.
+      - Note that the suppression was on `jsonSchema`'s `form`, not on `generate`.
+    - All three `noExcessiveCognitiveComplexity` suppressions are removed. None needed a figure, because every split met its gate. No function in the three files is over 120 lines.
+    - Performance against `ba1d5ff` (`plans/evidence/025-closure-splits.md`):
+      - Render per node, 15 runs at load 3.5: 0.984–1.017.
+      - Validator compiled per node, 15 runs at load 2.2: 1.005–1.019, plus git-status at 1.037. git-status re-ran at 1.009 on 21 runs.
+      - In-process `generate()`: 1.020, with byte-identical output. The CLI wall time measured cold-worktree startup, so it is not used.
+    - Verification:
+      - `bun run check` (load 3.1 → 25.7) passed build, `gen:check`, typecheck, lint and format check. Tests: 1044 pass and 9 fail, all timing or timeout tests (`Render exceeded 100 ms`, `under_5us_per_node`, `under_2ms`, 5 s gen timeouts and browser cases).
+      - The seven files with failures, re-run on their own at load 16–21: 71 pass, 0 fail. That is the same load sensitivity Tasks 1–3 recorded.
+      - Before that run, the SDK, render, corpus, tree, patch, law and vector suites had passed unedited (147 tests), and so had the gen and schema tests (25).
 
 - [ ] Task 5: Split `createRenderer`/`Surface` and `createAuthoring` (R23)
   - Acceptance Criteria:
