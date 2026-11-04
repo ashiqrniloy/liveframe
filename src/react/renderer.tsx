@@ -11,10 +11,11 @@ import {
   useState,
 } from "react";
 import { slotClass, styleDeclarations, surfaceAttributes } from "../css/index.ts";
-import { type LiveframeError, LiveframeFailure } from "../errors.ts";
+import { type LiveframeError, LiveframeFailure, type Result } from "../errors.ts";
 import { carriesValue } from "../formats/events.ts";
-import { isThenable } from "../internal.ts";
+import { sameJson } from "../formats/json.ts";
 import {
+  type Catalog,
   type CompiledValidator,
   type Intent,
   type IntentOrigin,
@@ -22,11 +23,11 @@ import {
   type UiTree,
   validateCatalog,
 } from "../index.ts";
-import { complete } from "../validate/complete.ts";
+import { isThenable } from "../internal.ts";
 import { actionFacts } from "../validate/compile.ts";
+import { complete } from "../validate/complete.ts";
 import { compileSchema } from "../validate/schema.ts";
 import { binding, type Implementation, type Item } from "./implement.ts";
-import { sameJson } from "../formats/json.ts";
 import { shareNodes } from "./share.ts";
 
 /** The registry check's failures, with the diagnostics the other install-time APIs throw. */
@@ -189,6 +190,163 @@ class FocusContinuity extends Component<{
   }
 }
 
+type AcceptedTree = {
+  arrival: Result<UiTree>;
+  validator: CompiledValidator;
+  tree: UiTree | undefined;
+};
+
+function acceptTree(
+  accepted: AcceptedTree,
+  arrival: Result<UiTree>,
+  validator: CompiledValidator,
+  failed: WeakSet<UiNode>,
+): AcceptedTree {
+  const previous = validator === accepted.validator ? accepted.tree : undefined;
+  const next = arrival.ok ? arrival.value : undefined;
+  return {
+    arrival,
+    validator,
+    tree:
+      next && !(previous && previous.surfaceId === next.surfaceId && previous.revision > next.revision)
+        ? shareNodes(previous, next, failed)
+        : previous,
+  };
+}
+
+type IntentState = {
+  current: {
+    current: { tree: UiTree | undefined; onIntent: SurfaceProps["onIntent"]; confirm: SurfaceProps["confirm"] };
+  };
+  confirming: { current: boolean };
+  mounted: { current: boolean };
+};
+
+type ItemContext = IntentState & {
+  contexts: WeakMap<UiNode, Item>;
+  registry: Map<string, Implementation>;
+  catalog: Catalog;
+  eventChecks: Map<string, Map<string, ReturnType<typeof compileSchema> | undefined>>;
+  actions: ReturnType<typeof actionFacts>;
+  portal: HTMLDivElement | null;
+  diagnosed: boolean;
+  failed: WeakSet<UiNode>;
+};
+
+/**
+ * The host's promise, when it returns one, with rejection contained: a failed intent must not
+ * surface as an unhandled rejection from a primitive's `emit`.
+ */
+function settled(result: unknown): Promise<void> | undefined {
+  if (!isThenable(result)) return undefined;
+  return Promise.resolve(result).then(
+    () => undefined,
+    () => undefined,
+  );
+}
+function raiseIntent(
+  { current, confirming, mounted }: IntentState,
+  intent: Intent,
+  origin: IntentOrigin,
+  meta: { confirm: boolean; irreversible: boolean } | undefined,
+): Promise<void> | undefined {
+  const { onIntent, confirm } = current.current;
+  if (!confirm || !meta?.confirm) return settled(onIntent(intent, origin));
+  if (confirming.current) return undefined;
+  confirming.current = true;
+  const confirmationMeta = Object.freeze({ confirm: meta.confirm, irreversible: meta.irreversible });
+  return (async () => {
+    let approved = false;
+    try {
+      approved = await confirm(intent, confirmationMeta);
+    } catch {
+      // A failed confirmation is a cancellation.
+    } finally {
+      confirming.current = false;
+    }
+    if (!approved || !mounted.current) return;
+    try {
+      await onIntent(intent, origin);
+    } catch {
+      // The host's failure is not the primitive's: `emit`'s promise never rejects.
+    }
+  })();
+}
+
+function context(state: ItemContext, node: UiNode): Item {
+  const cached = state.contexts.get(node);
+  if (cached) return cached;
+  const { contexts, registry, catalog, eventChecks, actions, current, portal, diagnosed, failed } = state;
+  const implementation = registry.get(node.kind);
+  if (!implementation) throw new Error(`Missing implementation: ${node.kind}`);
+  const { definition } = implementation[binding];
+  const projected = styleDeclarations(node.style ?? {}, catalog);
+  const items = (node.children ?? []).map((child) => context(state, child));
+  const events = Object.freeze(
+    Object.fromEntries(
+      Object.entries(node.events ?? {}).map(([event, intent]) => {
+        const action = intent.type === "action" ? actions.get(intent.name) : undefined;
+        return [
+          event,
+          Object.freeze({
+            type: intent.type,
+            confirm: action?.confirm ?? false,
+            irreversible: action?.irreversible ?? false,
+          }),
+        ];
+      }),
+    ),
+  );
+  const item: Item = {
+    id: node.id,
+    kind: node.kind,
+    variant: node.variant,
+    props: node.props,
+    events,
+    slot(name) {
+      if (!definition.slots.includes(name)) throw new Error(`Undeclared slot: ${node.kind}.${name}`);
+      const recipe = slotClass(node.kind, node.variant ?? definition.defaultVariant, name);
+      return [recipe, ...(name === "root" ? projected.classes : [])].join(" ");
+    },
+    style: projected.style,
+    emit(event, value) {
+      const acceptedTree = current.current.tree;
+      if (!acceptedTree || !node.events || !Object.hasOwn(node.events, event)) return;
+      const intent = node.events[event];
+      if (!intent) return;
+      const carries = definition.events[event]?.carries;
+      const check = eventChecks.get(node.kind)?.get(event);
+      if (!(check ? check(value, "", { errors: [], maxErrors: 1 }) : carriesValue(carries, value)))
+        throw new Error(`Invalid event value: ${node.kind}.${event}`);
+      const completed = complete(intent, value);
+      const origin = Object.freeze({
+        surfaceId: acceptedTree.surfaceId,
+        revision: acceptedTree.revision,
+        nodeId: node.id,
+        event,
+      });
+      return raiseIntent(state, completed, origin, events[event]);
+    },
+    children: items.map((child) => child.render()),
+    items,
+    portal: portal ?? undefined,
+    render: () => element,
+  };
+  const element = (
+    <Boundary key={node.id} node={node} failed={failed}>
+      {diagnosed ? (
+        <Diagnosed id={node.id}>
+          <Node item={item} implementation={implementation} />
+        </Diagnosed>
+      ) : (
+        <Node item={item} implementation={implementation} />
+      )}
+    </Boundary>
+  );
+  contexts.set(node, item);
+  return item;
+}
+
 export function createRenderer({
   catalog,
   implementations,
@@ -267,16 +425,7 @@ export function createRenderer({
     const arrival = useMemo(() => validator.validateTree(tree), [tree, validator]);
     const [accepted, setAccepted] = useState({ arrival, validator, tree: arrival.ok ? arrival.value : undefined });
     if (arrival !== accepted.arrival || validator !== accepted.validator) {
-      const previous = validator === accepted.validator ? accepted.tree : undefined;
-      const next = arrival.ok ? arrival.value : undefined;
-      setAccepted({
-        arrival,
-        validator,
-        tree:
-          next && !(previous && previous.surfaceId === next.surfaceId && previous.revision > next.revision)
-            ? shareNodes(previous, next, failed)
-            : previous,
-      });
+      setAccepted(acceptTree(accepted, arrival, validator, failed));
     }
     const [portal, setPortal] = useState<HTMLDivElement | null>(null);
     const wrapper = useRef<HTMLDivElement>(null);
@@ -324,118 +473,22 @@ export function createRenderer({
     const root = useMemo(() => {
       const tree = accepted.tree;
       if (!tree) return null;
-      const actions = actionFacts(accepted.validator);
-      /**
-       * The host's promise, when it returns one, with rejection contained: a failed intent must not
-       * surface as an unhandled rejection from a primitive's `emit`.
-       */
-      function settled(result: unknown): Promise<void> | undefined {
-        if (!isThenable(result)) return undefined;
-        return Promise.resolve(result).then(
-          () => undefined,
-          () => undefined,
-        );
-      }
-      function raiseIntent(
-        intent: Intent,
-        origin: IntentOrigin,
-        meta: { confirm: boolean; irreversible: boolean } | undefined,
-      ): Promise<void> | undefined {
-        const { onIntent, confirm } = current.current;
-        if (!confirm || !meta?.confirm) return settled(onIntent(intent, origin));
-        if (confirming.current) return undefined;
-        confirming.current = true;
-        const confirmationMeta = Object.freeze({ confirm: meta.confirm, irreversible: meta.irreversible });
-        return (async () => {
-          let approved = false;
-          try {
-            approved = await confirm(intent, confirmationMeta);
-          } catch {
-            // A failed confirmation is a cancellation.
-          } finally {
-            confirming.current = false;
-          }
-          if (!approved || !mounted.current) return;
-          try {
-            await onIntent(intent, origin);
-          } catch {
-            // The host's failure is not the primitive's: `emit`'s promise never rejects.
-          }
-        })();
-      }
-      function context(node: UiNode): Item {
-        const cached = contexts.get(node);
-        if (cached) return cached;
-        const implementation = registry.get(node.kind);
-        if (!implementation) throw new Error(`Missing implementation: ${node.kind}`);
-        const { definition } = implementation[binding];
-        const projected = styleDeclarations(node.style ?? {}, validatedCatalog);
-        const items = (node.children ?? []).map(context);
-        const events = Object.freeze(
-          Object.fromEntries(
-            Object.entries(node.events ?? {}).map(([event, intent]) => {
-              const action = intent.type === "action" ? actions.get(intent.name) : undefined;
-              return [
-                event,
-                Object.freeze({
-                  type: intent.type,
-                  confirm: action?.confirm ?? false,
-                  irreversible: action?.irreversible ?? false,
-                }),
-              ];
-            }),
-          ),
-        );
-        const item: Item = {
-          id: node.id,
-          kind: node.kind,
-          variant: node.variant,
-          props: node.props,
-          events,
-          slot(name) {
-            if (!definition.slots.includes(name)) throw new Error(`Undeclared slot: ${node.kind}.${name}`);
-            const recipe = slotClass(node.kind, node.variant ?? definition.defaultVariant, name);
-            return [recipe, ...(name === "root" ? projected.classes : [])].join(" ");
-          },
-          style: projected.style,
-          emit(event, value) {
-            const acceptedTree = current.current.tree;
-            if (!acceptedTree || !node.events || !Object.hasOwn(node.events, event)) return;
-            const intent = node.events[event];
-            if (!intent) return;
-            const carries = definition.events[event]?.carries;
-            const check = eventChecks.get(node.kind)?.get(event);
-            if (!(check ? check(value, "", { errors: [], maxErrors: 1 }) : carriesValue(carries, value)))
-              throw new Error(`Invalid event value: ${node.kind}.${event}`);
-            const completed = complete(intent, value);
-            const origin = Object.freeze({
-              surfaceId: acceptedTree.surfaceId,
-              revision: acceptedTree.revision,
-              nodeId: node.id,
-              event,
-            });
-            return raiseIntent(completed, origin, events[event]);
-          },
-          children: items.map((child) => child.render()),
-          items,
-          portal: portal ?? undefined,
-          render: () => element,
-        };
-        const element = (
-          <Boundary key={node.id} node={node} failed={failed}>
-            {diagnosed ? (
-              <Diagnosed id={node.id}>
-                <Node item={item} implementation={implementation} />
-              </Diagnosed>
-            ) : (
-              <Node item={item} implementation={implementation} />
-            )}
-          </Boundary>
-        );
-        contexts.set(node, item);
-        return item;
-      }
-      return context(tree.root).render();
+      return context(
+        {
+          contexts,
+          registry,
+          catalog: validatedCatalog,
+          eventChecks,
+          actions: actionFacts(accepted.validator),
+          current,
+          confirming,
+          mounted,
+          portal,
+          diagnosed,
+          failed,
+        },
+        tree.root,
+      ).render();
     }, [accepted.tree, accepted.validator, contexts, portal, diagnosed, failed]);
     const scope = surfaceAttributes({ ...appliedScope, tree: accepted.tree ?? emptyTree });
     return (

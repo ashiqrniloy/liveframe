@@ -195,6 +195,184 @@ function captureFailure(error: unknown, bound: number): Result<never> {
 }
 let nextAuthoring = 0;
 
+type AuthoringState = {
+  options: AuthoringOptions;
+  catalog: Catalog;
+  capabilities: Capabilities;
+  runner: Runner;
+  maxCaptureCells: number;
+  session: PreviewSession;
+  surfaceId: string;
+  revision: number;
+  packed: WidgetPackage | undefined;
+  current: { scenario: string; tree: UiTree } | undefined;
+  bound: Promise<{ readonly url: string; close(): Promise<void> }> | undefined;
+};
+
+function bounded(result: Result<UiTree>, scenario: string): Result<UiTree> {
+  if (!result.ok) return result;
+  const size = utf8Length(JSON.stringify(result.value));
+  if (size > MAX_TREE_BYTES)
+    return {
+      ok: false,
+      errors: [
+        {
+          kind: "limit-exceeded",
+          pointer: "/scenario",
+          message: `Scenario "${scenario}" rendered ${size} bytes, over the ${MAX_TREE_BYTES}-byte limit`,
+          expected: `a tree of at most ${MAX_TREE_BYTES} bytes`,
+        },
+      ],
+    };
+  return result;
+}
+
+function remember(state: AuthoringState, result: Result<UiTree>, scenario: string): Result<UiTree> {
+  const checked = bounded(result, scenario);
+  state.current = checked.ok ? { scenario, tree: checked.value } : undefined;
+  return checked;
+}
+
+async function renderOne(state: AuthoringState, input: RenderInput, scenario: string): Promise<Result<UiTree>> {
+  return remember(state, await state.session.render({ ...input, scenario, preserveState: false }), scenario);
+}
+
+// Page snapshots advance revisions too; keep the tool's origin tied to the served tree.
+function bindSession(state: AuthoringState): PreviewSession {
+  const { session } = state;
+  return {
+    ...session,
+    async render(input) {
+      const result = await session.render(input);
+      if (state.current?.scenario === input.scenario) remember(state, result, input.scenario);
+      else state.current = undefined;
+      return result;
+    },
+    async intent(intent, origin) {
+      const result = await session.intent(intent, origin);
+      if (state.current && result.ok) remember(state, result, state.current.scenario);
+      return result;
+    },
+  };
+}
+
+async function renderOutcomes(
+  state: AuthoringState,
+  input: RenderInput,
+  pkg: WidgetPackage,
+): Promise<Result<ScenarioStatus[]>> {
+  const { catalog, capabilities, runner } = state;
+  const { surfaceId } = state;
+  const selected =
+    input.scenario === undefined ? pkg.scenarios : pkg.scenarios.filter((s) => s.name === input.scenario);
+  if (!selected.length) return failure("not-found", "/scenario", "Unknown scenario");
+  const expanded: Scenario[] = [];
+  for (const scenario of selected) {
+    const sources = Object.keys(scenario.data).filter((alias) => {
+      const declaration = Object.hasOwn(pkg.manifest.sources, alias) ? pkg.manifest.sources[alias] : undefined;
+      const schema =
+        declaration && Object.hasOwn(capabilities.sources, declaration.source)
+          ? capabilities.sources[declaration.source]?.result
+          : undefined;
+      const payload = isLanguageSchema(schema) && "mapping" in schema ? schema.mapping.ok?.properties.value : undefined;
+      return payload !== undefined && canonicalJson(schema) === canonicalJson(sourceOutcome(payload));
+    });
+    const pointer = `/scenarios/${pkg.scenarios.indexOf(scenario)}`;
+    if (sources.length > 1)
+      return failure(
+        "invalid-document",
+        pointer,
+        "Outcome expansion requires at most one sourceOutcome source per scenario",
+      );
+    const [source] = sources;
+    if (source === undefined) expanded.push(scenario);
+    else {
+      const result = outcomeScenarios(scenario, { source, manifest: pkg.manifest, capabilities });
+      if (!result.ok) return { ok: false, errors: rooted(pointer, result.errors) };
+      expanded.push(...result.value);
+    }
+  }
+  const validator = compiledValidator({ catalog, capabilities, manifest: pkg.manifest }, pkg.hash);
+  const results = [];
+  for (const scenario of expanded) {
+    const rendered = await runner.render(
+      pkg,
+      {
+        params: scenario.params,
+        state: input.state === undefined ? (scenario.state ?? pkg.manifest.initialState) : input.state,
+        context: input.context === undefined ? scenario.context : input.context,
+        data: scenario.data,
+      },
+      { catalog, capabilities, surfaceId, revision: ++state.revision },
+    );
+    // A custom runner is host code: validate its tree so `checkAll` only sees bounded, acyclic data.
+    const result = rendered.ok ? validator.validateTree(rendered.value) : rendered;
+    results.push({ scenario: scenario.name, result });
+  }
+  return success(checkAll(results));
+}
+
+async function setState(state: AuthoringState, input: SetStateInput): Promise<Result<UiTree>> {
+  if (!state.current) return failure("not-found", "", "Call render_scenarios with a scenario first");
+  const checked = setStateArguments(input);
+  if (!checked.ok) return checked;
+  const { tree, scenario } = state.current;
+  const node = findNode(tree, input.origin.nodeId);
+  if (!node) return failure("not-found", "/origin/nodeId", "Unknown origin node");
+  const offered =
+    node.events && Object.hasOwn(node.events, input.origin.event) ? node.events[input.origin.event] : undefined;
+  if (!offered) return failure("undeclared-event", "/origin/event", "Event was not offered by this node");
+  if (offered.type !== "setState")
+    return failure("invalid-prop", "/origin/event", "Expected an offered setState event; actions are refused");
+  const result = await state.session.intent(complete(offered, input.value), {
+    surfaceId: tree.surfaceId,
+    revision: tree.revision,
+    nodeId: input.origin.nodeId,
+    event: input.origin.event,
+  });
+  return result.ok ? remember(state, result, scenario) : result;
+}
+
+async function capturePreview(
+  state: AuthoringState,
+  boundSession: PreviewSession,
+  input: CaptureInput,
+): Promise<Result<AuthoringCaptureCell[]>> {
+  const { options, maxCaptureCells } = state;
+  const pkg = state.packed;
+  if (!pkg) return failure("not-found", "", "Call pack_draft before capture_preview");
+  if (input.layout !== undefined && typeof input.layout !== "boolean")
+    return failure("invalid-document", "/layout", "Expected a boolean");
+  let url: string;
+  try {
+    if (!options.preview)
+      throw new Error(
+        "The config module names no preview(): add `preview: async (binding) => ({ url, close })` to serve the app's own page.",
+      );
+    // The binding outlives this call: it serves the latest packed draft, which is never unset.
+    state.bound ??= options.preview({ session: boundSession, package: () => state.packed ?? pkg });
+    const bridge = await state.bound.catch((error: unknown) => {
+      state.bound = undefined;
+      throw error;
+    });
+    url = bridge.url;
+  } catch (error) {
+    return failure("not-found", "", errorMessage(error));
+  }
+  try {
+    if (!options.capture)
+      return failure("not-found", "", "No capture backend configured: inject capture in createAuthoring().");
+    const { index, files } = await capture(url, {
+      ...input,
+      backend: options.capture,
+      maxCells: maxCaptureCells,
+    });
+    return success(index.cells.map((cell) => authoringCell(cell, files)));
+  } catch (error) {
+    return captureFailure(error, maxCaptureCells);
+  }
+}
+
 /** Backend-only authoring. The host supplies its runner; no operation grants runtime authority. */
 export function createAuthoring(options: AuthoringOptions) {
   const maxCaptureCells = options.maxCaptureCells === undefined ? 12 : options.maxCaptureCells;
@@ -204,106 +382,20 @@ export function createAuthoring(options: AuthoringOptions) {
   const exposeMeta = options.exposeMeta === true;
   const session = createPreview({ catalog, capabilities, runner });
   const exclusive = queue();
-  const surfaceId = `authoring-${++nextAuthoring}`;
-  let revision = 0;
-  let packed: WidgetPackage | undefined;
-  let current: { scenario: string; tree: UiTree } | undefined;
-  let bound: Promise<{ readonly url: string; close(): Promise<void> }> | undefined;
-
-  function bounded(result: Result<UiTree>, scenario: string): Result<UiTree> {
-    if (!result.ok) return result;
-    const size = utf8Length(JSON.stringify(result.value));
-    if (size > MAX_TREE_BYTES)
-      return {
-        ok: false,
-        errors: [
-          {
-            kind: "limit-exceeded",
-            pointer: "/scenario",
-            message: `Scenario "${scenario}" rendered ${size} bytes, over the ${MAX_TREE_BYTES}-byte limit`,
-            expected: `a tree of at most ${MAX_TREE_BYTES} bytes`,
-          },
-        ],
-      };
-    return result;
-  }
-
-  function remember(result: Result<UiTree>, scenario: string): Result<UiTree> {
-    const checked = bounded(result, scenario);
-    current = checked.ok ? { scenario, tree: checked.value } : undefined;
-    return checked;
-  }
-
-  async function renderOne(input: RenderInput, scenario: string): Promise<Result<UiTree>> {
-    return remember(await session.render({ ...input, scenario, preserveState: false }), scenario);
-  }
-
-  // Page snapshots advance revisions too; keep the tool's origin tied to the served tree.
-  const boundSession: PreviewSession = {
-    ...session,
-    async render(input) {
-      const result = await session.render(input);
-      if (current?.scenario === input.scenario) remember(result, input.scenario);
-      else current = undefined;
-      return result;
-    },
-    async intent(intent, origin) {
-      const result = await session.intent(intent, origin);
-      if (current && result.ok) remember(result, current.scenario);
-      return result;
-    },
+  const state: AuthoringState = {
+    options,
+    catalog,
+    capabilities,
+    runner,
+    maxCaptureCells,
+    session,
+    surfaceId: `authoring-${++nextAuthoring}`,
+    revision: 0,
+    packed: undefined,
+    current: undefined,
+    bound: undefined,
   };
-
-  async function renderOutcomes(input: RenderInput, pkg: WidgetPackage): Promise<Result<ScenarioStatus[]>> {
-    const selected =
-      input.scenario === undefined ? pkg.scenarios : pkg.scenarios.filter((s) => s.name === input.scenario);
-    if (!selected.length) return failure("not-found", "/scenario", "Unknown scenario");
-    const expanded: Scenario[] = [];
-    for (const scenario of selected) {
-      const sources = Object.keys(scenario.data).filter((alias) => {
-        const declaration = Object.hasOwn(pkg.manifest.sources, alias) ? pkg.manifest.sources[alias] : undefined;
-        const schema =
-          declaration && Object.hasOwn(capabilities.sources, declaration.source)
-            ? capabilities.sources[declaration.source]?.result
-            : undefined;
-        const payload =
-          isLanguageSchema(schema) && "mapping" in schema ? schema.mapping.ok?.properties.value : undefined;
-        return payload !== undefined && canonicalJson(schema) === canonicalJson(sourceOutcome(payload));
-      });
-      const pointer = `/scenarios/${pkg.scenarios.indexOf(scenario)}`;
-      if (sources.length > 1)
-        return failure(
-          "invalid-document",
-          pointer,
-          "Outcome expansion requires at most one sourceOutcome source per scenario",
-        );
-      const [source] = sources;
-      if (source === undefined) expanded.push(scenario);
-      else {
-        const result = outcomeScenarios(scenario, { source, manifest: pkg.manifest, capabilities });
-        if (!result.ok) return { ok: false, errors: rooted(pointer, result.errors) };
-        expanded.push(...result.value);
-      }
-    }
-    const validator = compiledValidator({ catalog, capabilities, manifest: pkg.manifest }, pkg.hash);
-    const results = [];
-    for (const scenario of expanded) {
-      const rendered = await runner.render(
-        pkg,
-        {
-          params: scenario.params,
-          state: input.state === undefined ? (scenario.state ?? pkg.manifest.initialState) : input.state,
-          context: input.context === undefined ? scenario.context : input.context,
-          data: scenario.data,
-        },
-        { catalog, capabilities, surfaceId, revision: ++revision },
-      );
-      // A custom runner is host code: validate its tree so `checkAll` only sees bounded, acyclic data.
-      const result = rendered.ok ? validator.validateTree(rendered.value) : rendered;
-      results.push({ scenario: scenario.name, result });
-    }
-    return success(checkAll(results));
-  }
+  const boundSession = bindSession(state);
 
   return {
     async listPrimitives({ kinds }: { kinds?: string[] } = {}): Promise<Result<readonly Definition[]>> {
@@ -356,9 +448,9 @@ export function createAuthoring(options: AuthoringOptions) {
         if (!checked.ok) return checked;
         const result = session.update(checked.value);
         if (!result.ok) return result;
-        packed = result.value;
-        current = undefined;
-        const { manifest, scenarios, hash } = packed;
+        state.packed = result.value;
+        state.current = undefined;
+        const { manifest, scenarios, hash } = state.packed;
         return success({
           hash,
           id: manifest.id,
@@ -373,74 +465,22 @@ export function createAuthoring(options: AuthoringOptions) {
       return exclusive(async () => {
         const checked = renderArguments(input);
         if (!checked.ok) return checked;
-        if (!packed) return failure("not-found", "", "Call pack_draft before render_scenarios");
-        if (input.outcomes) return renderOutcomes(input, packed);
-        if (input.scenario !== undefined) return renderOne(input, input.scenario);
+        if (!state.packed) return failure("not-found", "", "Call pack_draft before render_scenarios");
+        if (input.outcomes) return renderOutcomes(state, input, state.packed);
+        if (input.scenario !== undefined) return renderOne(state, input, input.scenario);
         const results = await session.check();
         return results.ok ? success(checkAll(results.value)) : results;
       });
     },
     setState(input: SetStateInput): Promise<Result<UiTree>> {
-      return exclusive(async () => {
-        if (!current) return failure("not-found", "", "Call render_scenarios with a scenario first");
-        const checked = setStateArguments(input);
-        if (!checked.ok) return checked;
-        const { tree, scenario } = current;
-        const node = findNode(tree, input.origin.nodeId);
-        if (!node) return failure("not-found", "/origin/nodeId", "Unknown origin node");
-        const offered =
-          node.events && Object.hasOwn(node.events, input.origin.event) ? node.events[input.origin.event] : undefined;
-        if (!offered) return failure("undeclared-event", "/origin/event", "Event was not offered by this node");
-        if (offered.type !== "setState")
-          return failure("invalid-prop", "/origin/event", "Expected an offered setState event; actions are refused");
-        const result = await session.intent(complete(offered, input.value), {
-          surfaceId: tree.surfaceId,
-          revision: tree.revision,
-          nodeId: input.origin.nodeId,
-          event: input.origin.event,
-        });
-        return result.ok ? remember(result, scenario) : result;
-      });
+      return exclusive(() => setState(state, input));
     },
     capturePreview(input: CaptureInput = {}): Promise<Result<AuthoringCaptureCell[]>> {
-      return exclusive(async () => {
-        const pkg = packed;
-        if (!pkg) return failure("not-found", "", "Call pack_draft before capture_preview");
-        if (input.layout !== undefined && typeof input.layout !== "boolean")
-          return failure("invalid-document", "/layout", "Expected a boolean");
-        let url: string;
-        try {
-          if (!options.preview)
-            throw new Error(
-              "The config module names no preview(): add `preview: async (binding) => ({ url, close })` to serve the app's own page.",
-            );
-          // The binding outlives this call: it serves the latest packed draft, which is never unset.
-          bound ??= options.preview({ session: boundSession, package: () => packed ?? pkg });
-          const bridge = await bound.catch((error: unknown) => {
-            bound = undefined;
-            throw error;
-          });
-          url = bridge.url;
-        } catch (error) {
-          return failure("not-found", "", errorMessage(error));
-        }
-        try {
-          if (!options.capture)
-            return failure("not-found", "", "No capture backend configured: inject capture in createAuthoring().");
-          const { index, files } = await capture(url, {
-            ...input,
-            backend: options.capture,
-            maxCells: maxCaptureCells,
-          });
-          return success(index.cells.map((cell) => authoringCell(cell, files)));
-        } catch (error) {
-          return captureFailure(error, maxCaptureCells);
-        }
-      });
+      return exclusive(() => capturePreview(state, boundSession, input));
     },
     close(): Promise<void> {
       return exclusive(async () => {
-        await (await bound?.catch(() => undefined))?.close();
+        await (await state.bound?.catch(() => undefined))?.close();
       });
     },
   };

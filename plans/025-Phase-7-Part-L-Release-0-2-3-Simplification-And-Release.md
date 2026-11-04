@@ -296,7 +296,7 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
       - The seven files with failures, re-run on their own at load 16–21: 71 pass, 0 fail. That is the same load sensitivity Tasks 1–3 recorded.
       - Before that run, the SDK, render, corpus, tree, patch, law and vector suites had passed unedited (147 tests), and so had the gen and schema tests (25).
 
-- [ ] Task 5: Split `createRenderer`/`Surface` and `createAuthoring` (R23)
+- [x] Task 5: Split `createRenderer`/`Surface` and `createAuthoring` (R23)
   - Acceptance Criteria:
     - Functional:
       - From `Surface` (`src/react/renderer.tsx:218-435`), extract into module-level functions or components with explicit inputs:
@@ -316,16 +316,26 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
       - React 19.3: rules of hooks; `useMemo` dependency semantics.
     - Documentation Reviewed:
       - `src/react/renderer.tsx:166-440`; `src/authoring/index.ts:150-451`; plan 024 Task 2, which already moves fallback and diagnostics into contexts.
+      - React 19.3.1 project dependency; current official Rules of Hooks and `useMemo` dependency documentation via Context7 `/reactjs/react.dev`. All hooks remain in `Surface`, and dependency arrays are unchanged.
     - Options Considered:
       - Split into several files. Rejected: the pieces share private types. One file with module-level functions is enough.
     - Chosen Approach:
-      - Extract by responsibility, inside the same file.
+      - Extract by responsibility, inside the same file. Keep all hooks and memo dependencies in `Surface`; pass plain private context/session objects to the non-hook helpers. Reuse the existing production selection test through `bench/selection.bench.ts` so `bench/ab.ts` can compare both design systems.
     - API Notes and Examples:
       - n/a.
     - Files to Create/Edit:
-      - `src/react/renderer.tsx`; `src/authoring/index.ts`
+      - `src/react/renderer.tsx`; `src/authoring/index.ts`; `bench/selection.bench.ts`; `plans/evidence/025-renderer-authoring-splits.md`
   - Test Cases to Write:
     - n/a. Behaviour-preserving, proven by the existing suites unedited.
+
+  - Notes (executed 2026-11-04):
+    - Renderer: module-level `acceptTree` owns the arrival/accepted-tree transition; `settled`/`raiseIntent` own intent delivery and confirmation; `context` builds and caches items from a plain `ItemContext`. The cache lookup runs before context unpacking, preserving the reused-node fast path. Every hook and memo dependency array remains in `Surface`.
+    - The `noComponentHookFactories` suppression stays with its existing reason: the public startup factory creates `Surface` once, and subsequent renders reuse that component. No hook boundary moved.
+    - Authoring: module-level `bounded`, `remember`, `renderOne`, `renderOutcomes`, `bindSession`, `setState` and `capturePreview` take explicit inputs over one private `AuthoringState`. Public methods keep the same serial queue. Offered-event validation, origin stamping, outcome validation, revision increments, binding retries and latest-package capture behavior are unchanged.
+    - Callers: `graft callers createRenderer --depth all` covered the proof/demo hosts, React fixtures, renderer and conformance suites, preview and streaming clients. `createAuthoring` covered authoring/MCP tests, CLI MCP operations and the release probe. No caller, fixture or existing test needed an edit.
+    - Compatibility: the generated `dist/react/renderer.d.ts` and `dist/authoring/index.d.ts` are byte-identical to starting commit `c813db7`. The empty-register API gate passes. No spec change.
+    - Performance ([evidence](evidence/025-renderer-authoring-splits.md)): initial 9-pair whole-tree and patch streaming ratios were all 1.000. Selection initially missed its gate; checking the item cache before unpacking the context restored the fast path. The final 9-pair production selection run passes React, validation and wall time for both design systems (0.937–1.000). Three-pair final whole-tree and patch confirmations are all 1.000. The new `bench/selection.bench.ts` reuses the existing production proof test unchanged. Host load and failed measurement attempts are recorded in the evidence.
+    - Verification: the five focused suites passed before and after (121 tests each); additional renderer/conformance/preview suites passed (88 tests). First full check: 1,048 pass, four skip, one warm-runner timing failure (0.1386 ms against 0.1 ms). Final `bun run check`, with no concurrent benchmark: build, gen check, types, lint, format and tests all pass — 1,049 pass, four skip, zero fail; warm-runner overhead 0.0087 ms. Graft refreshed.
 
 - [ ] Task 6: Detect drift between format checkers and published JSON Schemas (R24, patch-safe part)
   - Acceptance Criteria:
