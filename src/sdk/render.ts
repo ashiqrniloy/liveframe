@@ -438,7 +438,7 @@ function emit(
       ctx,
       "invalid-prop",
       sourcePointer ?? parentPointer(ctx, parentId),
-      "a nonempty bounded string or finite number key",
+      "a nonempty bounded string without lone surrogates or finite number key",
       parentId ?? "root",
     );
     return;
@@ -543,7 +543,7 @@ function expand(
 
 function isValidKey(key: unknown): boolean {
   const text = typeof key === "number" && Number.isFinite(key) ? String(key) : typeof key === "string" ? key : "";
-  return text.length > 0 && text.length <= 128;
+  return text.length > 0 && text.length <= 128 && !/[\ud800-\udfff]/u.test(text);
 }
 
 /** A fragment adds no node: it checks its own props and key, then emits its children in place. */

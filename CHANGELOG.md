@@ -4,6 +4,10 @@ All notable changes to `@arnilo/liveframe` are recorded here. The project follow
 
 ## Unreleased
 
+Fixed:
+
+- SDK keys containing lone UTF-16 surrogates return a typed `invalid-prop` error instead of throwing `URIError` while building a primitive or fragment id. Valid surrogate pairs and key-path escaping are unchanged.
+
 ## 0.2.3 — 2026-11-04
 
 A host upgrading from 0.2.2 needs no API or data migration; the API register is empty. See the [compatibility notes](docs/compatibility.md#023) for invalid-input outcomes and the [adopter notes](docs/adopters-0.2.md#023--review-fixes-and-simplification) for remaining limits.

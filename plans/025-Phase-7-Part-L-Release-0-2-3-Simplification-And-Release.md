@@ -236,6 +236,7 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
     - Finding for Task 11: `render()` throws an uncaught `URIError` for a `key` holding a lone surrogate (`encodeSegment` → `encodeURIComponent`). It should return a `Result` error.
       - It predates this task and is not fixed here, because the task is behaviour-preserving.
       - The test draws keys from well-formed pieces only, and says why. Lone surrogates still reach prop values.
+      - Follow-up (2026-11-05): the owner selected execution in the impact review; Task 11a fixes this at key validation with regression tests, recorded under Unreleased.
     - Performance (`bun bench/ab.ts HEAD …`, paired head/base ratios):
       - A/A (HEAD against HEAD, 15 runs, load 5.7 → 3.5) on the render per-node metrics gave 0.980–1.006, so noise on this host is about ±2%.
       - Validator `compiledUsPerNode`, 21 runs (load 7.5 → 3.4): agent-home 1.003, core-queue.full 0.997, git-status 1.019, rack-module 1.006, synthetic-queue 1.023.
@@ -546,6 +547,28 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
   - Notes (execution started 2026-11-04):
     - Reviewed R1–R26 in `plans/evidence/025-release-readiness-review.md`. The owner answered “Go: release with quiet-host proof open”; `decision-logs/2026-11-04-2116-release-0-2-3-with-quiet-host-proof-open.md` records the exception. Tasks 8 and 11 stay open; the roadmap criterion is amended to avoid claiming whole-plan completion.
     - Prepared `package.json` 0.2.3 and the dated changelog. Final-version local gates pass: full check 1,063 pass, four skip, zero fail (392.22 s); installed archive all 14 steps; peer floors React 117 / Playwright 23 / MCP 78 tests; demo 53 tests. Published from tag `v0.2.3`, commit `f9458d8`, in protected run 41858182585. CI repeats the passing checklist; registry archive, empty-register API, signatures and matching provenance pass. npm accepted the publish, then E403 rejected `next` promotion; owner repair is requested. This checkbox remains open until registry confirms `next` at or above 0.2.3. See `plans/evidence/025-release.md`.
+
+- [x] Task 11a: Return typed errors for lone-surrogate SDK keys (impact F1)
+  - Acceptance Criteria:
+    - Functional: malformed UTF-16 keys return one `invalid-prop` error at the parent/source pointer, including primitive, fragment and composed-component keys; valid Unicode pairs and escaping retain their exact ids.
+    - Performance: bound the check by the existing 128-code-unit key limit; preserve the renderer's single traversal. Existing render budget checks remain unchanged.
+    - Code Quality: validate in the existing shared `isValidKey` guard before either encoding path; no new dependency, public helper or host API.
+    - Security: malformed author input cannot escape the typed-error boundary (law 2); no authority or styling change.
+    - Compatibility: declarations, schemas, corpus and vectors remain unchanged; the published 0.2.3 archive is not altered or republished. Record the fix under Unreleased.
+  - Approach:
+    - Skills: `surgical-patch`, `karpathy-guidelines`, `liveframe-execution`, `graft`, `ponytail`.
+    - Documentation: spec §7.1/§9 key-derived ids and §10 typed failures; `encodeSegment` and every transitive caller; the Task 3 finding and key-filter comment. No third-party API lookup needed.
+    - Chosen approach: Unicode-mode surrogate matching in the existing guard, preserving paired astral characters and ES2022 portability. Avoid replacement-character normalization, which could collapse distinct keys.
+    - Files: `src/sdk/render.ts`; `src/__tests__/sdk-render.test.tsx`; `src/__tests__/byte-budget-agreement.test.ts`; `CHANGELOG.md`; this plan and its impact/acceptance records.
+  - Test Cases to Write:
+    - `lone_surrogate_keys_return_typed_errors`: high/low and embedded lone surrogates, primitive/fragment/composed-component paths; reproduces the original `URIError` before the fix.
+    - `unicode_key_paths_preserve_surrogate_pairs_and_escaping`: exact astral, slash, colon and CJK ids for primitives and fragments.
+    - Existing SDK render/elements, 1,000-tree byte agreement, portability and API gates; full `bun run check` before completion.
+  - Authorization: owner answered “Execute the key error fix now” during Task 11 on 2026-11-05.
+  - Notes (executed 2026-11-05):
+    - `isValidKey` rejects lone UTF-16 surrogates before both encoding paths, and the existing typed failure names the restriction. Valid astral pairs, colon/slash/CJK escaping and composed-component key propagation retain their behavior. No dependency, public declaration, schema, corpus or vector change; no spec meaning change.
+    - The malformed-key test failed with the original `URIError` before the fix; both new tests pass afterward. Focused SDK render/elements, byte agreement, portability and API suites: 43 pass, zero fail. The first full check caught a test-local component factory; moved that fixture to module scope without a suppression.
+    - Final `timeout 900s bun run check` passes: build, generated files, typecheck, lint, format and tests — 1,065 pass, four skip, zero fail; 143,313 assertions, 120 files, 357.61 s of tests. No quiet-host performance claim. The correction is under Unreleased; 0.2.3 was not republished.
 
 - [ ] Task 11: Analyze architectural impact and dispose of every finding
   - Sweep the impact areas in `.agents/skills/create-plan/references/liveframe.md` §5 against everything plans 023–025 delivered. Record each area, or `None — <reason>`, in `plans/evidence/025-impact-analysis.md`. Present the findings with a recommended `execute`/`backlog` disposition, record the owner's answer, and execute or backlog each item. Then run the backlog handoff for all three plans (`create-plan` § Execution updates).

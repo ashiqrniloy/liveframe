@@ -17,6 +17,7 @@ const Button = primitive<{
   readonly children?: unknown;
 }>("button");
 const Nope = primitive("nope");
+const KeyedText = ({ nodeKey }: { readonly nodeKey: string }) => jsx(Text, { text: "child" }, nodeKey);
 
 const inputs: WidgetProps = {
   params: { canAct: true, canEscalate: false, canViewAlerts: true },
@@ -153,6 +154,29 @@ describe("sdk render", () => {
       </Stack>,
     );
     expect(ids(fragment)).toEqual(["root", "root/claim"]);
+  });
+
+  test("lone_surrogate_keys_return_typed_errors", () => {
+    for (const key of ["\ud800", "\udfff", "a\ud800b", "😀\udfff"]) {
+      for (const child of [
+        jsx(Text, { text: "child" }, key),
+        jsx(Fragment, { children: <Text text="child" /> }, key),
+        jsx(KeyedText, { nodeKey: key }),
+      ]) {
+        const errors = failures(() => <Stack>{child}</Stack>);
+        expect(errors).toHaveLength(1);
+        expect(errors[0]).toMatchObject({ kind: "invalid-prop", pointer: "/root", nodeId: "root" });
+      }
+    }
+  });
+
+  test("unicode_key_paths_preserve_surrogate_pairs_and_escaping", () => {
+    const key = "row:😀/世";
+    const segment = "row:%F0%9F%98%80%2F%E4%B8%96";
+    const root = rendered(<Stack>{jsx(Text, { text: "child" }, key)}</Stack>);
+    expect(ids(root)).toEqual(["root", `root/${segment}`]);
+    const fragment = rendered(<Stack>{jsx(Fragment, { children: <Text key="child" text="child" /> }, key)}</Stack>);
+    expect(ids(fragment)).toEqual(["root", `root/${segment}/child`]);
   });
 
   test("props_split_into_variant_style_events_and_props", () => {

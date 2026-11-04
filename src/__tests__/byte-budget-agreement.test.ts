@@ -56,7 +56,7 @@ const pieces = [
   "~",
 ];
 
-// render() throws a URIError on a key holding a lone surrogate (encodeSegment), so keys draw from well-formed pieces.
+// Keys must encode into id paths; malformed surrogate keys are covered by sdk-render.test.tsx.
 const keyPieces = pieces.filter((piece) => !/^[\ud800-\udfff]$/.test(piece));
 
 function text(next: () => number, maximum: number, from: readonly string[] = pieces): string {
