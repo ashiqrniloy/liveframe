@@ -380,7 +380,7 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
     - Verification: focused suite 14 pass, zero fail in 8.89 s; its whole-suite time assertion is below 20 s. First full `bun run check`: build, gen check, types, lint and format pass; tests 1,061 pass, four skip, two timing failures (agent-home CSS switch 19 ms against 16.67 ms; warm-runner overhead 0.1222 ms against 0.1 ms). The same load-sensitive tests are recorded in Tasks 1–5; thresholds and tests remain unchanged.
     - Final full `bun run check` passes unchanged: build, gen check, types, lint, format and tests — 1,063 pass, four skip, zero fail. Agent-home CSS switch max 6.3 ms; warm-runner overhead −0.0232 ms/render. All 14 new tests, including the total runtime assertion, pass within this run.
 
-- [ ] Task 7: Write the 0.2.3 documentation, compatibility notes and 0.3.0 deferrals
+- [x] Task 7: Write the 0.2.3 documentation, compatibility notes and 0.3.0 deferrals
   - Acceptance Criteria:
     - Functional:
       - `CHANGELOG.md` `## 0.2.3` collects the `Unreleased` lines from plans 023–025:
@@ -419,6 +419,12 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
       - `CHANGELOG.md`; `docs/compatibility.md`; `docs/adopters-0.2.md`; `docs/renderer.md`; `docs/security.md`; `plans/backlog.md`
   - Test Cases to Write:
     - n/a. The existing doc tests (`renderer-guide.test.tsx`, `preview-guide.test.ts`, `mcp-guide.test.ts`) run the guide code.
+  - Notes (executed 2026-11-04):
+    - Collected the plans 023–025 release notes into an undated `CHANGELOG.md` 0.2.3 section, explicitly prepared ahead of publication. It lists invalid-input fixes, relative MCP draft messages, bundled sucrase, tooling and simplification, the measured plan 024 performance ratios and the dimension-fraction deprecation. The loaded-host caveat remains; no new performance claim or release date was invented.
+    - `docs/compatibility.md` now records the empty 0.2.3 register, unchanged valid-input contracts and the invalid-input outcome changes. Added before/after examples and adopter checklists for package/render-input ownership (R4/R5), the proposed verified-package cache (R15) and dimension fractions (R9). The cache option spelling is explicitly illustrative and awaits its 0.3.0 design; no declaration or new design decision was introduced.
+    - Added the 0.2.3 adopter note, including default host-validation limits, nested package mutation, draftRoot trust and the direct sucrase dependency caveat. Audited `docs/renderer.md`: its validator/portal/diagnostics reset rule and id-matched child reuse already match the delivered code, so no edit was needed. Security item 3 now distinguishes preview/authoring host validation from a production host calling a custom runner directly, and states malformed worker-result handling and the reference-runner hash-cache boundary. Item 4 already accurately requires browser arrival validation and offered-intent checking.
+    - `plans/backlog.md` now has the three review-fix 0.3.0 deferrals and separate measured dispositions for R16 items 1, 3 and 4 (item 3 is closed because the full-sink array exit already exists), plus R25's retained identity cache. Existing handle-based draft reads, validation-limit options and single-source formats entries remain the handoff for R8, R1 and R24. No runtime, public API, schema, corpus, vector or normative spec meaning changed.
+    - Verification: focused docs-links, docs-wording, API-stability and renderer/preview/MCP guide suites — 14 pass, zero fail, including both baseline comparisons and `register_host_actions_appear_in_adopter_notes`. A final docs-only recheck after adding the render-ownership example — 3 pass, zero fail. Full `bun run check` passes: build, generated files, types, warnings-as-errors lint, format and tests — 1,063 pass, four skip, zero fail (120 files, 357.64 s). `git diff --check` passes. Task 8's broader release gates and publication remain unexecuted here.
 
 - [ ] Task 8: Prove every acceptance bullet of plans 023–025 against the checkout
   - Acceptance Criteria:

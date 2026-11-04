@@ -70,6 +70,18 @@ Where a row says a limitation, it is part of the release, not a to-do. The row i
 
 In 0.2.1, `/authoring` and `liveframe mcp` also add an eighth operation (`setState()` / `set_state` applies an offered `setState` event and returns the new tree while refusing actions, with opt-in `preserveState: true` on preview session renders so bound pages and capture retain that state), advertise `outcomes` on `render_scenarios`, expose all three `liveframe gen` modules from `generated_types({ module? })`, accept `{ dir, entry? }` in the CLI's `pack_draft` under an opt-in `AuthoringConfig.draftRoot`, annotate every tool with titles and behaviour hints, declare self-contained `outputSchema`s with `structuredContent` alongside byte-identical 0.2.0 text blocks, let apps raise `maxCaptureCells` up to 48, and report each captured cell's structural `layout` (`capture_preview({ layout: true })`, `capture(url, { layout: true })`, `liveframe preview capture --layout`). Missing inline `pack_draft` keys now return a typed `LiveframeError[]` instead of the MCP SDK's validation string.
 
+## 0.2.3 — Review fixes and simplification
+
+Upgrading a host from 0.2.2 needs no API or stored-data changes. The 0.2.3 API register is empty: declarations, schemas, corpus expectations and vectors remain unchanged. The [changelog](../CHANGELOG.md#023) lists the fixes and measured performance figures; [compatibility notes](compatibility.md#023) describe invalid-input outcomes.
+
+Custom runners now have their successful trees checked on the host by preview and authoring before storage or reporting. Invalid or cyclic trees return typed validation errors; the sessions use default validation limits even if the custom runner supports larger trees. Top-level `await using` is rejected, malformed worker error results recycle the worker with `render-failed`, and corrupt placement listings throw an `invalid-document` `LiveframeFailure`. A failed module link no longer uses a module-cache slot.
+
+Reference runners re-check a package hash after top-level field replacement. They still do not detect nested mutation inside `manifest` or `scenarios`; treat packages as immutable. MCP draft-directory failures retain their kinds and pointers but use relative paths in messages. Keep `draftRoot` writable only by the agent and host; reads through open handles remain deferred.
+
+`<Surface>` now keeps node reuse across inline fallback elements and replacement diagnostics arrays, and matches whole-tree children by `id` so prepending and reordering retain existing rows. Hashing, bundling, reorder diffs and repeated `themeCss` calls are faster without output changes. `sucrase` is bundled into `/pack`, leaving only `acorn` as a runtime dependency; apps importing `sucrase` must declare their own dependency.
+
+Fractions on dimension props are deprecated but still accepted. Replace `width="2fr"` with `grow={2}` and `basis={0}`, or use fractions in parent grid tracks. Package freezing, render-input ownership changes, rejection of dimension fractions and the verified-package cache option remain [0.3.0 migrations](compatibility.md#deferred-to-030). None is an option to enable in 0.2.3.
+
 ## 0.2.2 — Performance and accessibility additions
 
 Hosts upgrading from 0.2.1 that do not opt into focus continuity, the contrast audit, the new recipe states, or accessibility capture have **nothing to do**: whole-tree node reuse and validator caching are automatic, all format additions are additive, and existing trees, themes, design systems and captures behave byte-for-byte as in 0.2.1.

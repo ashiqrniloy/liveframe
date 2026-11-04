@@ -4,6 +4,10 @@ All notable changes to `@arnilo/liveframe` are recorded here. The project follow
 
 ## Unreleased
 
+## 0.2.3
+
+Release notes prepared ahead of publication. A host upgrading from 0.2.2 needs no API or data migration; the API register is empty. See the [compatibility notes](docs/compatibility.md#023) for invalid-input outcomes and the [adopter notes](docs/adopters-0.2.md#023--review-fixes-and-simplification) for remaining limits.
+
 Fixed:
 
 - **Custom runner trees are validated on the host:** `createPreview()` and `createAuthoring()` now pass every tree a custom `Runner` returns through the draft's compiled validator before storing or reporting it. A runner that returned an invalid or cyclic tree used to be reported as `ok: true` by `session.render()`, `renderOutcomes` and the `render_scenarios` tool, and a cyclic tree could overflow the stack. They now report the validator's typed errors. Trees from `inProcessRunner()` and `workerRunner()` are unchanged. Only trees that already violated the spec change outcome.
@@ -12,7 +16,6 @@ Fixed:
 - **A reassigned package field is no longer trusted as verified:** the reference runners remembered a verified package by object, so replacing `code` (or `hash`, `format`, `manifest`, `scenarios`) after verification loaded the new code under the old verified hash. They now remember the references they verified and hash again when any of them changed. Mutating inside `manifest` or `scenarios` is still not detected; freezing is planned for 0.3.0.
 - **Worker error results are shape-checked:** `workerRunner()` re-validated every successful tree but passed a failed result through as sent. A result that is not `{ ok, value }` or `{ ok: false, errors }`, or whose `errors` list is empty, longer than 21 entries or holds a record with a non-string `kind`/`pointer`/`message`/`expected`/`nodeId` or any other field, now becomes one `render-failed` error ("Worker returned a malformed result") and the worker is recycled.
 - **`fileStore().listPlacements()` fails closed on a corrupt record:** a placement file that holds `null`, an array, a scalar or an object without a string `id` made the listing return it, or throw a `TypeError` while sorting. It now throws the `invalid-document` `LiveframeFailure` that `read` already throws for invalid JSON, naming the file.
-- **MCP draft-directory errors no longer leak absolute paths:** `pack_draft({ dir })` used to return Node's error message, for example `ENOENT: no such file or directory, realpath '/srv/app/drafts/a/widget.tsx'`. It now says `draft file "widget.tsx" in "a" not found`, or `draft directory "a" not found`, or `… could not be read (EACCES)`, naming only the relative `dir` and file. The `kind` and `pointer` are unchanged. `docs/mcp.md` now states the `draftRoot` trust model.
 
 Added (tooling, not published):
 
@@ -20,7 +23,9 @@ Added (tooling, not published):
 
 Changed:
 
+- **MCP draft-directory messages name only relative paths:** `pack_draft({ dir })` now reports `draft file "widget.tsx" in "a" not found`, `draft directory "a" not found`, or `… could not be read (EACCES)`, instead of an operating-system error containing an absolute host path. The `kind` and `pointer` are unchanged. `docs/mcp.md` states the `draftRoot` trust model.
 - **`sucrase` is bundled into `dist/pack/`, so a consumer no longer installs its dependencies:** `@arnilo/liveframe` now depends only on `acorn`. `commander`, `mz`, `thenify`, `pirates`, `tinyglobby` and the other packages sucrase pulled in with caret ranges no longer reach `node_modules` through Liveframe. `pack()` output is byte-identical; `dist/pack/THIRD-PARTY-LICENSES` carries the licence text of every bundled package. A project that imported `sucrase` only because Liveframe installed it must now depend on it directly.
+- **Simpler internals with the same public surface:** dead code and private exports removed, shared internal helpers and tree-byte accounting, and measured closure splits. Lint now fails on warnings. A deterministic differential suite checks install checkers against every published format schema; no schema drift was found.
 
 Deprecated:
 

@@ -6,11 +6,27 @@ What a version bump of `@arnilo/liveframe` may change. The policy is [decision R
 
 `scripts/release/api/0.2.1.json` freezes the 0.2.1 public surface: every exported declaration of every typed subpath, plus a SHA-256 of each file under `schemas/`, `conformance/corpus/`, `conformance/hash/` and `conformance/patch/`. `src/__tests__/api-stability.test.ts` compares the built package against it on every `bun run check`. Each addition or widening needs an entry in `scripts/release/api/register-0.2.2.json` (`subpath`, `name`, `change`, `reason`, `hostAction`, `task`). The test fails on a removed export, an unregistered declaration or schema change, a register entry whose change did not happen, any change to an existing corpus, hash or patch file, and any `deferred` entry whose change shipped anyway.
 
+0.2.3 also compares against `scripts/release/api/0.2.2.json`. Its stricter release rule allows no declaration, schema, corpus or vector changes: `scripts/release/api/register-0.2.3.json` is `[]`.
+
 ## Versions
 
 - **Patch (`0.x.y`)** never breaks the public API, the formats or the on-disk `fileStore` layout. Bug fixes, documentation, additive exports, error kinds, corpus cases, hash vectors and new optional format versions can ship here, as can widening a peer range (only with the proof the [release task](https://github.com/ashiqrniloy/liveframe/blob/main/plans/013-Phase-6-Part-B-Packaging-Demo-And-Release.md) describes). Existing format meanings, corpus expectations and hash vectors remain fixed under the rules below.
 - **Minor (`0.x`)** may break the public API. Every breaking change in `0.x` comes at a minor version, with a deprecation in an earlier release where that is feasible.
 - **`1.0.0`** changes the rule above: from then on a breaking change needs a major version.
+
+## 0.2.3
+
+A host upgrading from 0.2.2 changes nothing: exports, declarations, format meanings, published schemas, corpus expectations, hash and patch vectors, and the on-disk store layout stay the same. The [scope decision](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-11-03-1132-release-0-2-3-scope.md) requires an empty API register. Valid trees, CSS, hashes, patches and intents retain their bytes; performance and internal organization improve.
+
+Inputs that already violated the contract change outcome:
+
+- Invalid custom-runner trees, including cyclic trees, return typed validation errors from preview and authoring rather than being stored or reported as successful. Both use the default validation limits (5,000 nodes, depth 64, 1 MiB); a custom runner's higher limits do not raise the session's limits.
+- Top-level `await using`, including inside top-level blocks and loop headers, is rejected with `invalid-document` by package module checking. Async functions may still use it.
+- Reassigning a verified package's `hash`, `format`, `code`, `manifest` or `scenarios` causes the reference runners to verify it again. Nested mutation in `manifest` or `scenarios` remains undetected; keep packages immutable.
+- Malformed worker results, including empty or malformed error lists, become `render-failed` and recycle the worker.
+- Corrupt placement listings reject with an `invalid-document` `LiveframeFailure` instead of returning malformed records or throwing a sorting `TypeError`. Loading one placement still does not list its siblings.
+
+Failed module links no longer occupy the reference loader's module cache. MCP draft-directory failures now name only relative paths, retaining their error kinds and pointers. `sucrase` is bundled rather than installed as a runtime dependency; declare it directly if your app imported the transitive dependency. Fractions on dimension props remain accepted but are deprecated for 0.3.0. See the [adopter notes](adopters-0.2.md#023--review-fixes-and-simplification) and migrations below.
 
 ## 0.2.2
 
@@ -70,6 +86,43 @@ access named scopes; stop scoped writes before rolling back.
 
 ## Deferred to 0.3.0
 
+These are future contracts, not APIs available in 0.2.3. The review-fix deferrals below follow the approved 0.2.3 scope decision; cache option spelling and detailed ownership rules still need their implementation design.
+
+- **Package and render-input immutability (R4, R5).** **Before:** `pack()` and `verifyPackage()` return mutable packages, the reference runners detect only top-level field replacement after verification, and `render()` freezes caller input objects in place. **After (0.3.0):** package results are frozen, including nested manifest and scenario data; `render()` stops freezing caller-owned objects in place while preserving immutable inputs for widget execution. A package write may throw in strict mode, so prepare metadata before packing or keep host metadata separately. Do not rely on rendering to freeze host state.
+
+  ```ts
+  // Before: mutating a returned package is possible, but invalidates its hash.
+  const pkg = value(pack(draft, install));
+  pkg.manifest.description = "Reviewed";
+
+  // After: supply package metadata before packing; keep review state host-side.
+  const reviewed = value(pack({
+    ...draft,
+    manifest: { ...draft.manifest, description: "Reviewed" },
+  }, install));
+  const approval = { hash: reviewed.hash, approvedBy: reviewerId };
+  ```
+
+  ```ts
+  // Before: copy JSON inputs if the host needs to retain mutable originals.
+  render(Widget, JSON.parse(JSON.stringify(inputs)), renderOptions);
+  // After (0.3.0): rendering preserves caller ownership of these objects.
+  render(Widget, inputs, renderOptions);
+  ```
+
+  **Adopter checklist:** find writes to package fields and nested values; move hashed metadata before `pack()` and approval data outside the package; replace input objects when changing render data; explicitly freeze host-owned data if your application requires it. Test that rendering leaves caller object ownership intact and that package mutations fail. These ownership changes ship together, rather than silently changing a patch contract.
+- **Verified-package cache option for `loadPlacement` (R15).** **Before:** every load verifies the stored package, including hashing, even when many placements use the same package. **After (0.3.0):** an opt-in host-owned cache can reuse verification for unchanged package content under the same installation documents; omitting it retains verification on every load. An `(id, version)` match alone must never trust changed content or bypass record, params or state validation.
+
+  ```ts
+  // Before (0.2.3): every call verifies the package.
+  await loadPlacement(store, placementId, install, { scope });
+
+  // After (0.3.0 proposal): share a host-owned verification cache.
+  // Illustrative option name; not an available or finalized signature.
+  await loadPlacement(store, placementId, install, { scope, verifiedPackages });
+  ```
+
+  **Adopter checklist:** nothing to change in 0.2.3; profile repeated package loads before opting in later; use the final 0.3.0 option and ownership rules; invalidate on package content or catalog/capability changes; prove corrupt records, hash mismatches and invalid params still fail and invalid state still resets. Until then, hosts that already verify and retain packages can use `verifyPlacementInputs` for separately managed params and state.
 - **Node references (`ref`, `NodeRef`, `catalog.json` `refProps`).** A widget author cannot name another node today, so `aria-describedby`,
   `aria-labelledby`, `aria-controls` and `aria-errormessage` cannot point at a node outside the
   author's own subtree. The [deferral decision](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-11-02-1219-defer-node-references-to-0-3-0.md)
@@ -88,6 +141,13 @@ access named scopes; stop scoped writes before rolling back.
   `width="2fr"`, which has no effect. **After (0.3.0):** `invalid-prop` at `/style/width`.
   **Adopter checklist:** use `grow={2}` with `basis={0}`, or move the fraction to the parent's
   `columns`/`rows`. Fractions in `columns`/`rows` tracks are unchanged.
+
+  ```tsx
+  // Before: accepted but ignored as a width.
+  <Box width="2fr" />
+  // After: proportional growth in a flex parent.
+  <Box grow={2} basis={0} />
+  ```
 
 ## Growth
 
