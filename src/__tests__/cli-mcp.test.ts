@@ -25,6 +25,27 @@ import { drafts } from "./fixtures/widgets/drafts.ts";
 const fixtures = "src/__tests__/fixtures";
 const config = `${fixtures}/mcp.config.ts`;
 
+test("mcp_config_limits_forwarded", async () => {
+  await withClient(
+    async (client) => {
+      expect((await call(client, "pack_draft", drafts[0]!)).isError).toBe(false);
+      const result = await call(client, "render_scenarios", { scenario: drafts[0]!.scenarios[0]!.name });
+      expect(result.isError).toBe(true);
+      expect(result.json()).toContainEqual(expect.objectContaining({ kind: "limit-exceeded" }));
+    },
+    { config: `${fixtures}/mcp-limits.config.ts`, env: { LF_TEST_LIMITS: '{"nodes":1}' } },
+  );
+});
+
+test("mcp_config_limits_invalid_document", () => {
+  for (const limits of [null, [], { nodes: 0 }, { depth: 1.5 }, { bytes: "1" }, { unknown: 1 }]) {
+    const run = cli([`${fixtures}/mcp-limits.config.ts`], undefined, { LF_TEST_LIMITS: JSON.stringify(limits) });
+    expect(run.exitCode).toBe(2);
+    expect(run.stdout.toString()).toBe("");
+    expect(JSON.parse(run.stderr.toString())).toMatchObject([{ kind: "invalid-document", pointer: "/limits" }]);
+  }
+});
+
 function cli(args: string[], preload?: string, env: Record<string, string> = {}) {
   return Bun.spawnSync(
     [

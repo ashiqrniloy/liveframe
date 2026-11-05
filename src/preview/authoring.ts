@@ -4,6 +4,7 @@ import type { WidgetPackage } from "../formats/package.ts";
 import type { Intent, IntentOrigin, Json, UiTree } from "../formats/tree.ts";
 import type { pack } from "../pack/pack.ts";
 import type { Runner } from "./runner.ts";
+import type { RenderLimits } from "../sdk/render.ts";
 
 /** One backend draft session (spec §7.5). */
 export type PreviewSession = {
@@ -36,6 +37,8 @@ export type AuthoringConfig = {
   readonly draftRoot?: string;
   /** The app's runner. Defaults to `workerRunner()`. */
   readonly runner?: Runner;
+  /** Tree limits applied by both the runner and host validation. */
+  readonly limits?: RenderLimits;
   /** Capture engine; the CLI lazily defaults to Playwright when omitted. */
   readonly capture?: CaptureBackend;
   /** Per-call capture cell bound: integer 1–48, default 12. Invalid values exit 2 at /maxCaptureCells. */

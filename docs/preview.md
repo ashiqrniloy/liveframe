@@ -21,10 +21,12 @@ isolated runner into `createPreview`, and use that same runner in production.
 
 ## Run a session on the backend
 
-`createPreview({ catalog, capabilities, runner })` is in `@arnilo/liveframe/preview`
+`createPreview({ catalog, capabilities, runner, limits? })` is in `@arnilo/liveframe/preview`
 and has no host dependencies. The example expects three host-provided values:
 installed `catalog` and `capabilities` documents, and a `draft`
 (`{ files, entry, manifest, scenarios }`, as in the package guide).
+
+Set `limits: { nodes: 20_000 }` to raise the node bound. The optional `nodes`, `depth` and `bytes` fields reuse `RenderLimits` from `/sdk`; omitted fields default to 5,000 nodes, depth 64 and 1 MiB. Each provided value must be a positive safe integer. Limits are copied at construction and applied to both the runner and host validation on every render, intent re-render and scenario check. Invalid limits throw `LiveframeFailure` with `invalid-document` at `/limits`.
 
 ```ts
 import type { Result } from "@arnilo/liveframe";

@@ -23,6 +23,7 @@ import { createPreview } from "../preview/session.ts";
 import { compiledValidator } from "../runner-kit/cache.ts";
 import { isLanguageSchema, sourceOutcome } from "../schema.ts";
 import { generate, generateDefinitions, generateElementsSchema } from "../sdk/gen.ts";
+import type { RenderLimits } from "../sdk/render.ts";
 import { complete } from "../validate/complete.ts";
 import { findNode } from "../validate/patch.ts";
 import { checkAll, type ScenarioStatus } from "./checks.ts";
@@ -31,6 +32,7 @@ export type AuthoringOptions = {
   readonly catalog: Catalog;
   readonly capabilities: Capabilities;
   readonly runner: Runner;
+  readonly limits?: RenderLimits;
   readonly preview?: (binding: PreviewBinding) => Promise<{ readonly url: string; close(): Promise<void> }>;
   readonly capture?: CaptureBackend;
   /** Per-call capture cell bound: integer 1–48, default 12. Invalid values throw LiveframeFailure. */
@@ -303,10 +305,18 @@ async function renderOutcomes(
         context: input.context === undefined ? scenario.context : input.context,
         data: scenario.data,
       },
-      { catalog, capabilities, surfaceId, revision: ++state.revision },
+      {
+        catalog,
+        capabilities,
+        surfaceId,
+        revision: ++state.revision,
+        ...(state.options.limits ? { limits: state.options.limits } : {}),
+      },
     );
     // A custom runner is host code: validate its tree so `checkAll` only sees bounded, acyclic data.
-    const result = rendered.ok ? validator.validateTree(rendered.value) : rendered;
+    const result = rendered.ok
+      ? validator.validateTree(rendered.value, state.options.limits ? { limits: state.options.limits } : undefined)
+      : rendered;
     results.push({ scenario: scenario.name, result });
   }
   return success(checkAll(results));
@@ -380,7 +390,8 @@ export function createAuthoring(options: AuthoringOptions) {
     throw new LiveframeFailure([at("/maxCaptureCells", "Expected maxCaptureCells to be an integer from 1 to 48")]);
   const { catalog, capabilities, runner } = options;
   const exposeMeta = options.exposeMeta === true;
-  const session = createPreview({ catalog, capabilities, runner });
+  const session = createPreview(options);
+  options = { ...options, ...(options.limits ? { limits: Object.freeze({ ...options.limits }) } : {}) };
   const exclusive = queue();
   const state: AuthoringState = {
     options,

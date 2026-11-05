@@ -304,7 +304,7 @@ Not in scope: nested surfaces (the analysis named the gap but proposed compositi
     - Tests were written first and reproduced accepted foreign catalogs and generic nested-object diagnostics. The final focused API/bundle/spec/differential run passed all 39 tests. `timeout 900s bun run check` passed: build, generated-file checks, typecheck, lint, formatting, 1,089 passing tests, 4 existing skips and 0 failures. Refreshed the local graft graph.
     - Performance evidence and regeneration script: `plans/evidence/026-validator-realm.md` and `plans/evidence/026-validator-realm.ts`. The accepted-tree paired ratio is 1.0158 against Task 4 (within 2%). A loaded-host absolute validator run exceeded tree budgets; patch/diff/warm-compile budgets passed. Quiet-host absolute performance is not established. Corrected this task's original zero-cost claim: realm classification remains cold in existing walks, but install paths previously had no uniform prototype guard and now require a scan. No extra accepted-tree pass was added.
 
-- [ ] Task 6: Validation limits for preview and authoring sessions (Q7)
+- [x] Task 6: Validation limits for preview and authoring sessions (Q7)
   - Acceptance Criteria:
     - Functional:
       - `createPreview({ …, limits? })` and `createAuthoring({ …, limits? })` forward `limits` to the runner and to host validation (`src/preview/session.ts:40-53`, `src/authoring/index.ts:377`). `AuthoringConfig.limits?` reaches `liveframe mcp`. Invalid limits are `invalid-document` at `/limits`.
@@ -312,21 +312,27 @@ Not in scope: nested surfaces (the analysis named the gap but proposed compositi
     - Performance: n/a — option plumbing.
     - Code Quality: reuse `RenderLimits`; no new type.
     - Security: law 2 — limits apply on both sides; never looser on the host than requested.
-    - Compatibility: `widened` entries for `createPreview`, `createAuthoring`, `AuthoringConfig`.
+    - Compatibility: `widened` entries for `createPreview`, `AuthoringOptions` and `AuthoringConfig`. `createAuthoring` already takes the named `AuthoringOptions`; its emitted declaration is unchanged, so the widened options type records that addition without a stale function entry.
   - Approach:
     - Skills to Use: `liveframe-execution`.
     - Library Documentation to Check Before Implementation: none.
     - Documentation Reviewed: backlog "Let `createPreview()` and `createAuthoring()` take validation limits"; spec §7.5, §13.
     - Options Considered: read limits from the runner. Rejected: the runner is untrusted for validation.
-    - Chosen Approach: one optional option, forwarded.
+    - Chosen Approach: one optional option, validated and snapshotted by the preview constructor, then forwarded to the runner and host validation. Authoring also applies the same limits to its separate outcome-expansion runner path. The MCP adapter already spreads config into `createAuthoring` and handles `LiveframeFailure` with exit 2, so no duplicate CLI validation is needed.
     - API Notes and Examples:
       ```ts
       createPreview({ catalog, capabilities, runner, limits: { nodes: 20_000 } });
       ```
-    - Files to Create/Edit: `src/preview/session.ts`; `src/authoring/index.ts`; `src/preview/authoring.ts`; `src/cli/` MCP config validation; `docs/preview.md`; `docs/mcp.md`; `docs/spec.md` §7.5/§13; `register-0.3.0.json`
+    - Files to Create/Edit: `src/preview/session.ts`; `src/authoring/index.ts`; `src/preview/authoring.ts`; `src/__tests__/session-limits.test.ts`; `src/__tests__/cli-mcp.test.ts`; `src/__tests__/fixtures/mcp-limits.config.ts`; `docs/preview.md`; `docs/mcp.md`; `docs/spec.md` §7.5/§13; `CHANGELOG.md`; `scripts/release/api/register-0.3.0.json`; `roadmap.md` §3. The existing `src/cli/mcp.ts` config forwarding/error handling is exercised unchanged.
   - Test Cases to Write:
-    - `session_limits_raise_host_validation`; `session_limits_invalid_document`; `mcp_config_limits_forwarded`.
-  - Notes (executed <date>):
+    - `session_limits_raise_host_validation`; `session_limits_invalid_document`; `mcp_config_limits_forwarded`; `mcp_config_limits_invalid_document`; `session_limits_bound_untrusted_runner_nodes_depth_and_bytes`; `session_limits_are_owned_frozen_snapshots`.
+  - Notes (executed 2026-11-05):
+    - Added optional `RenderLimits` to preview sessions, `AuthoringOptions` and `AuthoringConfig`. The preview constructor rejects malformed limits, unknown fields and non-positive/non-safe-integer values with `LiveframeFailure`, kind `invalid-document` at `/limits`. Limits are owned frozen snapshots; caller changes and runner writes cannot loosen subsequent host checks.
+    - Forwarded limits to every runner call and host `validateTree`, including scenario checks, intent re-renders, the bound preview and authoring's separate outcome-expansion path. The existing MCP config spread and typed-construction-error handler already provide forwarding and exit 2; no duplicate CLI validation or new public type was added.
+    - A 5,001-node real widget proves a raised limit passes host validation while the default fails. Independent custom-runner tests cover node, depth and byte refusals; runner-option assertions and snapshot tests cover forwarding and ownership. MCP tests exercise strict configured limits and invalid config through stdio/CLI.
+    - Updated spec §7.5/§13, preview/MCP guides, compatible adopter notes and changelog. Registered `createPreview`, `AuthoringOptions` and `AuthoringConfig` as widened. The API gate rejected the originally proposed `createAuthoring` entry because its declaration still takes the same named options type; registering `AuthoringOptions` covers that widening without a fake declaration edit or weakening the gate. No format, schema or corpus bytes changed.
+    - Tests were written first and reproduced missing runner forwarding, absent host bounds and accepted invalid limits. The focused limits/API/migration run passed 20 tests; the focused MCP config run passed both tests. The first full check was stopped after an existing preview-capture test exceeded its unchanged 100 ms render deadline; no timing threshold or assertion was changed. Dedicated benchmarks were not run: this task only plumbs validation options. Authoring's 256 KiB single-tree response bound and capture limits are unchanged.
+    - Final verification: `timeout 900s bun run check` passed build, generated-file checks, typecheck, lint, formatting and all 1,095 tests (4 existing skips, 0 failures), including all six new limits tests and the API gate.
 
 - [ ] Task 7: Opt-in verified-package cache for `loadPlacement` (Q6: R15)
   - Acceptance Criteria:

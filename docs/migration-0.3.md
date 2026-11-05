@@ -61,3 +61,9 @@ Before, `width`, `height`, `minWidth`, `maxWidth`, `minHeight` and `maxHeight` a
 ```
 
 Adopter checklist: replace dimension fractions in widgets, stored trees and responsive maps with `grow` / `basis` for flex layout, or move fractions to the parent's grid `columns` / `rows`. Use declared `space.*` / `size.*`, `fill`, `fit`, or bounded `ch` / `%` when a dimension is needed. Regenerate catalog SDK types with `liveframe gen`.
+
+## Compatible additions
+
+### Preview and authoring validation limits
+
+Optionally set limits; defaults remain unchanged. `createPreview()`, `createAuthoring()` and the MCP config accept `limits: { nodes: 20_000 }`, with optional positive safe integers for `nodes`, `depth` and `bytes`. Limits apply to both the runner and host validation. Invalid limits report `invalid-document` at `/limits` during construction (MCP exits 2). Authoring tool response and capture bounds remain unchanged. See [preview](preview.md) and [MCP](mcp.md) for details.

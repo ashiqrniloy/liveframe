@@ -298,5 +298,29 @@
       "file": "src/__tests__/validator-bundle.test.ts",
       "test": "every_entry_point_names_a_foreign_realm"
     }
+  },
+  {
+    "subpath": "./preview",
+    "name": "createPreview",
+    "change": "widened",
+    "reason": "Optional RenderLimits forwarded to runner and host tree validation",
+    "hostAction": "Optionally set limits; defaults remain unchanged",
+    "task": "026 T6"
+  },
+  {
+    "subpath": "./preview",
+    "name": "AuthoringConfig",
+    "change": "widened",
+    "reason": "Optional RenderLimits forwarded to runner and host tree validation",
+    "hostAction": "Optionally set limits; defaults remain unchanged",
+    "task": "026 T6"
+  },
+  {
+    "subpath": "./authoring",
+    "name": "AuthoringOptions",
+    "change": "widened",
+    "reason": "Optional RenderLimits forwarded to runner and host tree validation",
+    "hostAction": "Optionally set limits; defaults remain unchanged",
+    "task": "026 T6"
   }
 ]

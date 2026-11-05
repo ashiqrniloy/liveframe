@@ -4,6 +4,10 @@ All notable changes to `@arnilo/liveframe` are recorded here. The project follow
 
 ## Unreleased
 
+Added:
+
+- `createPreview()`, `createAuthoring()` and the MCP `AuthoringConfig` accept `limits` for node count, depth and tree bytes, enforced by both the runner and host validation. Defaults and authoring response bounds are unchanged.
+
 Changed:
 
 - Document validators consistently reject foreign-realm plain objects with `invalid-document` and the instruction to parse inside the sandbox. Compile and module-render errors identify the input document. See [migration](docs/migration-0.3.md#foreign-realm-documents-are-rejected-everywhere).

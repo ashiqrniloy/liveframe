@@ -1,4 +1,4 @@
-import type { LiveframeError, Result } from "../errors.ts";
+import { LiveframeFailure, type LiveframeError, type Result } from "../errors.ts";
 import { isRecord } from "../formats/capabilities.ts";
 import type { Scenario, WidgetPackage } from "../formats/package.ts";
 import type { Intent, IntentOrigin, Json, UiTree } from "../formats/tree.ts";
@@ -16,7 +16,28 @@ export function createPreview({
   catalog,
   capabilities,
   runner,
-}: Pick<RunnerOptions, "catalog" | "capabilities"> & { runner: Runner }): PreviewSession {
+  limits,
+}: Pick<RunnerOptions, "catalog" | "capabilities" | "limits"> & { runner: Runner }): PreviewSession {
+  if (limits !== undefined) {
+    if (
+      !isRecord(limits) ||
+      Object.entries(limits).some(
+        ([key, value]) =>
+          !["nodes", "depth", "bytes"].includes(key) ||
+          typeof value !== "number" ||
+          !Number.isSafeInteger(value) ||
+          value < 1,
+      )
+    )
+      throw new LiveframeFailure([
+        {
+          kind: "invalid-document",
+          pointer: "/limits",
+          message: "Expected limits to contain only nodes, depth and bytes as positive safe integers",
+        },
+      ]);
+    limits = Object.freeze({ ...limits });
+  }
   const surfaceId = `preview-${++nextSession}`;
   let revision = 0;
   let pkg: WidgetPackage | undefined;
@@ -46,8 +67,14 @@ export function createPreview({
     };
     // A custom runner is host code the session does not trust: its tree is validated before anyone sees it.
     const checker = validator ?? compileValidator({ catalog, capabilities, manifest: active.manifest });
-    const rendered = await runner.render(active, inputs, { catalog, capabilities, surfaceId, revision: ++revision });
-    const result = rendered.ok ? checker.validateTree(rendered.value) : rendered;
+    const rendered = await runner.render(active, inputs, {
+      catalog,
+      capabilities,
+      surfaceId,
+      revision: ++revision,
+      ...(limits ? { limits } : {}),
+    });
+    const result = rendered.ok ? checker.validateTree(rendered.value, limits ? { limits } : undefined) : rendered;
     if (pkg === active && current === selected) selected.result = result;
     return result;
   }
