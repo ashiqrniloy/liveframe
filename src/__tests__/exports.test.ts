@@ -359,6 +359,7 @@ test("subpath_export_surfaces", () => {
     "validatePlacement",
     "validateState",
     "validateStyleRecord",
+    "verifiedPackages",
     "verifyPlacementInputs",
   ]);
 });

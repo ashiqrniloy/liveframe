@@ -125,21 +125,10 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
 
 ## Deferred to 0.3.0
 
-These are future contracts, not APIs available in 0.2.3. The review-fix deferrals below follow the approved 0.2.3 scope decision; cache option spelling and detailed ownership rules still need their implementation design.
+These are future contracts, not APIs available in 0.2.3. The review-fix deferrals below follow the approved 0.2.3 scope decision; implemented entries link to their final contracts.
 
 - **Package and render-input immutability (R4, R5).** Implemented for 0.3.0; see [frozen packages](migration-0.3.md#packages-are-deeply-frozen) and [render input ownership](migration-0.3.md#render-inputs-keep-caller-ownership).
-- **Verified-package cache option for `loadPlacement` (R15).** **Before:** every load verifies the stored package, including hashing, even when many placements use the same package. **After (0.3.0):** an opt-in host-owned cache can reuse verification for unchanged package content under the same installation documents; omitting it retains verification on every load. An `(id, version)` match alone must never trust changed content or bypass record, params or state validation.
-
-  ```ts
-  // Before (0.2.3): every call verifies the package.
-  await loadPlacement(store, placementId, install, { scope });
-
-  // After (0.3.0 proposal): share a host-owned verification cache.
-  // Illustrative option name; not an available or finalized signature.
-  await loadPlacement(store, placementId, install, { scope, verifiedPackages });
-  ```
-
-  **Adopter checklist:** nothing to change in 0.2.3; profile repeated package loads before opting in later; use the final 0.3.0 option and ownership rules; invalidate on package content or catalog/capability changes; prove corrupt records, hash mismatches and invalid params still fail and invalid state still resets. Until then, hosts that already verify and retain packages can use `verifyPlacementInputs` for separately managed params and state.
+- **Verified-package cache option for `loadPlacement` (R15).** Implemented for 0.3.0 as `verifiedPackages({ max? })` and `{ verified }`; see [adopter notes](migration-0.3.md#optional-verified-package-cache) and [loading](packages.md#loading-and-state-resets). Stored content is freshly hashed on every load.
 - **Node references (`ref`, `NodeRef`, `catalog.json` `refProps`).** A widget author cannot name another node today, so `aria-describedby`,
   `aria-labelledby`, `aria-controls` and `aria-errormessage` cannot point at a node outside the
   author's own subtree. The [deferral decision](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-11-02-1219-defer-node-references-to-0-3-0.md)

@@ -6,6 +6,8 @@ All notable changes to `@arnilo/liveframe` are recorded here. The project follow
 
 Added:
 
+- `/store` exports `verifiedPackages({ max? })`, an optional host-owned LRU passed as `{ verified }` to `loadPlacement`. Matching content and installation documents reuse package verification; stored structure, content hashes, placement identity, params and state are checked on every load.
+
 - `createPreview()`, `createAuthoring()` and the MCP `AuthoringConfig` accept `limits` for node count, depth and tree bytes, enforced by both the runner and host validation. Defaults and authoring response bounds are unchanged.
 
 Changed:

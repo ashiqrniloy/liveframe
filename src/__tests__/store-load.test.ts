@@ -1,6 +1,13 @@
 import { expect, test } from "bun:test";
-import { pack, type WidgetPackage, verifyPackage } from "@arnilo/liveframe/pack";
-import { loadPlacement, memoryStore, verifyPlacementInputs, type Placement, type Store } from "@arnilo/liveframe/store";
+import { pack, packageHash, type WidgetPackage, verifyPackage } from "@arnilo/liveframe/pack";
+import {
+  loadPlacement,
+  memoryStore,
+  verifiedPackages,
+  verifyPlacementInputs,
+  type Placement,
+  type Store,
+} from "@arnilo/liveframe/store";
 import { int, obj, str, type Result, validateCatalog, validateCapabilities } from "../index.ts";
 import catalogDoc from "./fixtures/proof/catalog.json" with { type: "json" };
 import capabilitiesDoc from "./fixtures/proof/capabilities.json" with { type: "json" };
@@ -168,4 +175,120 @@ test("load_placement_resets_state", async () => {
     expect(loaded.reset?.length).toBeGreaterThan(0);
     expect(loaded.reset?.length).toBeLessThanOrEqual(20);
   }
+});
+
+test("cache_hit_skips_reverification_but_checks_state", async () => {
+  const store = await installed();
+  const verified = verifiedPackages();
+  const first = value(await loadPlacement(store, "home", options, { verified }));
+  expect(Object.isFrozen(first.package.manifest)).toBe(true);
+  await store.putState("home", "viewer", { count: 7 });
+  const reordered = {
+    catalog: Object.fromEntries(Object.entries(options.catalog).reverse()) as typeof options.catalog,
+    capabilities: Object.fromEntries(Object.entries(options.capabilities).reverse()) as typeof options.capabilities,
+  };
+  const second = value(await loadPlacement(store, "home", reordered, { verified, scope: "viewer" }));
+  expect(second.package).toBe(first.package);
+  expect(second.state).toEqual({ count: 7 });
+  const other = await installed();
+  expect(value(await loadPlacement(other, "home", options, { verified })).package).toBe(first.package);
+  expect(value(await loadPlacement(store, "home", options)).package).not.toBe(first.package);
+  await store.putPlacement({ ...placement, params: { "a/~": 1 } });
+  rejects(await loadPlacement(store, "home", options, { verified }), "invalid-prop", "/params/a~1~0");
+  rejects(
+    await loadPlacement({ ...store, getPlacement: async () => ({ ...placement, id: "wrong" }) }, "home", options, {
+      verified,
+    }),
+    "invalid-document",
+    "/id",
+  );
+});
+
+test("changed_record_misses_cache_and_corrupt_record_still_fails", async () => {
+  const store = await installed();
+  const verified = verifiedPackages();
+  const first = value(await loadPlacement(store, "home", options, { verified }));
+  const changed = { ...pkg, code: `${pkg.code}\n// changed` };
+  const rehashed = { ...changed, hash: packageHash(changed) };
+  const loaded = value(
+    await loadPlacement({ ...store, getPackage: async () => rehashed }, "home", options, { verified }),
+  );
+  expect(loaded.package).not.toBe(first.package);
+  expect(loaded.package.code).toBe(rehashed.code);
+  for (const corrupt of [
+    null,
+    { ...pkg, extra: true },
+    { ...pkg, scenarios: [] },
+    { ...pkg, manifest: { ...pkg.manifest, extra: true } },
+  ]) {
+    rejects(
+      await loadPlacement({ ...store, getPackage: async () => corrupt as WidgetPackage }, "home", options, {
+        verified,
+      }),
+      "invalid-document",
+    );
+  }
+  const forbidden = { ...pkg, code: 'import x from "forbidden"; export default x;' };
+  rejects(
+    await loadPlacement(
+      { ...store, getPackage: async () => ({ ...forbidden, hash: packageHash(forbidden) }) },
+      "home",
+      options,
+      { verified },
+    ),
+    "forbidden-import",
+  );
+  for (const corrupt of [changed, { ...pkg, hash: `sha256-${"0".repeat(64)}` }]) {
+    rejects(
+      await loadPlacement({ ...store, getPackage: async () => corrupt }, "home", options, { verified }),
+      "hash-mismatch",
+      "/hash",
+    );
+  }
+});
+
+test("changed_install_documents_miss_cache", async () => {
+  const store = await installed();
+  const verified = verifiedPackages();
+  const install = structuredClone(options);
+  const first = value(await loadPlacement(store, "home", install, { verified }));
+  Object.assign(install.capabilities, { actions: {}, sources: {} });
+  const second = value(await loadPlacement(store, "home", install, { verified }));
+  expect(second.package).not.toBe(first.package);
+  Object.assign(install.catalog, { definitions: [...install.catalog.definitions].reverse() });
+  const third = value(await loadPlacement(store, "home", install, { verified }));
+  expect(third.package).not.toBe(second.package);
+  Object.assign(install.catalog, { catalogId: "other@1" });
+  rejects(await loadPlacement(store, "home", install, { verified }), "catalog-mismatch");
+});
+
+test("invalid_state_still_resets_with_cache", async () => {
+  const store = await installed();
+  const verified = verifiedPackages();
+  const first = value(await loadPlacement(store, "home", options, { verified }));
+  await store.putState("home", "", { count: "old" });
+  const loaded = value(await loadPlacement(store, "home", options, { verified }));
+  expect(loaded.package).toBe(first.package);
+  expect(loaded.state).toEqual({ count: 0 });
+  expect(loaded.reset).toContainEqual(expect.objectContaining({ kind: "invalid-prop", pointer: "/state/count" }));
+  expect(await store.getState("home", "")).toEqual({ count: "old" });
+});
+
+test("verified_packages_lru_bound_and_invalid_max", () => {
+  const cache = verifiedPackages({ max: 2 });
+  cache.set("a", pkg);
+  cache.set("b", pkg);
+  expect(cache.get("a")).toBe(pkg);
+  cache.set("c", pkg);
+  expect(cache.get("b")).toBeUndefined();
+  cache.set("a", pkg);
+  cache.set("d", pkg);
+  expect(cache.get("c")).toBeUndefined();
+  for (const max of [0, -1, 1.5, Infinity, NaN, Number.MAX_SAFE_INTEGER + 1]) {
+    expect(() => verifiedPackages({ max })).toThrow();
+  }
+  const defaults = verifiedPackages();
+  for (let i = 0; i < 257; i++) defaults.set(String(i), pkg);
+  expect(defaults.get("0")).toBeUndefined();
+  expect(defaults.get("1")).toBe(pkg);
 });

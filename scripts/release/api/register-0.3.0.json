@@ -322,5 +322,21 @@
     "reason": "Optional RenderLimits forwarded to runner and host tree validation",
     "hostAction": "Optionally set limits; defaults remain unchanged",
     "task": "026 T6"
+  },
+  {
+    "subpath": "./store",
+    "name": "verifiedPackages",
+    "change": "added",
+    "reason": "Host-owned bounded LRU for verified frozen packages",
+    "hostAction": "Optionally pass a host-owned verifiedPackages cache; existing calls remain supported",
+    "task": "026 T7"
+  },
+  {
+    "subpath": "./store",
+    "name": "loadPlacement",
+    "change": "widened",
+    "reason": "Optional verified cache keyed by fresh package content hash and canonical installation documents",
+    "hostAction": "Optionally pass a host-owned verifiedPackages cache; existing calls remain supported",
+    "task": "026 T7"
   }
 ]

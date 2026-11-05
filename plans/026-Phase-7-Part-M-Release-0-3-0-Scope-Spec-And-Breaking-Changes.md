@@ -334,13 +334,13 @@ Not in scope: nested surfaces (the analysis named the gap but proposed compositi
     - Tests were written first and reproduced missing runner forwarding, absent host bounds and accepted invalid limits. The focused limits/API/migration run passed 20 tests; the focused MCP config run passed both tests. The first full check was stopped after an existing preview-capture test exceeded its unchanged 100 ms render deadline; no timing threshold or assertion was changed. Dedicated benchmarks were not run: this task only plumbs validation options. Authoring's 256 KiB single-tree response bound and capture limits are unchanged.
     - Final verification: `timeout 900s bun run check` passed build, generated-file checks, typecheck, lint, formatting and all 1,095 tests (4 existing skips, 0 failures), including all six new limits tests and the API gate.
 
-- [ ] Task 7: Opt-in verified-package cache for `loadPlacement` (Q6: R15)
+- [x] Task 7: Opt-in verified-package cache for `loadPlacement` (Q6: R15)
   - Acceptance Criteria:
     - Functional:
       - `/store` exports `verifiedPackages({ max? })` returning a host-owned cache object. `loadPlacement(store, id, install, { scope?, state?, verified? })` (`src/store/load.ts:34-99`) uses it to skip re-verifying a package whose canonical content hash and installation documents (catalog and capabilities canonical JSON) match an entry. The key is `(packageHash(stored record), catalogKey, capabilitiesKey)`, never `(id, version)`.
       - Placement, params and state checks still run on every load. A changed record, a hash mismatch, a corrupt record or changed install documents miss the cache. LRU bound, default 256.
       - The spec and `docs/packages.md` state ownership: the cache holds frozen packages (Task 3) and is safe to share across stores of one installation.
-    - Performance: a bench `loadPlacement` × 100 placements over one package shows ≥ 5× fewer hash computations with the cache; recorded in the notes.
+    - Performance: a bench `loadPlacement` × 100 placements over one package shows ≥ 5× fewer full package verifications with the cache; record hash computations separately. Fresh hashing on every load is mandatory below, so fewer hashes is not a valid target (100 uncached versus 101 cached, including the initial verification).
     - Code Quality: the cache is a plain object with `get`/`set`; no global state.
     - Security: law 2 and the store-is-untrusted rule (§7.4) hold — the stored record is always re-hashed; only verification of the manifest/scenarios/code against the install documents is reused.
     - Compatibility: `added` for `verifiedPackages`, `widened` for `loadPlacement`.
@@ -349,16 +349,23 @@ Not in scope: nested surfaces (the analysis named the gap but proposed compositi
     - Library Documentation to Check Before Implementation: none.
     - Documentation Reviewed: `docs/compatibility.md` § Deferred (R15); backlog entry; `src/store/load.ts`; `src/pack/hash.ts`.
     - Options Considered: trust `(id, version)`. Rejected by the deferral text. A global cache. Rejected: host-owned lifetimes.
-    - Chosen Approach: content- and install-keyed opt-in cache.
+    - Chosen Approach: content- and install-keyed opt-in cache. A private store helper owns shape checks, fresh hashing and cache lookup; `loadPlacement` retains identity, params and state checks.
     - API Notes and Examples:
       ```ts
       const verified = verifiedPackages();
       await loadPlacement(store, id, install, { scope, verified });
       ```
-    - Files to Create/Edit: `src/store/load.ts`; `src/store/index.ts`; `bench/` (new load bench); `docs/packages.md`; `docs/spec.md` §7.4; `docs/migration-0.3.md` (the deferred entry is resolved); `register-0.3.0.json`
+    - Files to Create/Edit: `src/store/load.ts`; `src/store/verified.ts`; `src/store/index.ts`; `src/__tests__/store-load.test.ts`; `src/__tests__/exports.test.ts`; `bench/store-load.bench.ts`; `docs/packages.md`; `docs/spec.md` §7.4; `docs/compatibility.md`; `docs/migration-0.3.md` (the deferred entry is resolved); `CHANGELOG.md`; `scripts/release/api/register-0.3.0.json`; `roadmap.md` §3
   - Test Cases to Write:
-    - `cache_hit_skips_reverification_but_checks_state`; `changed_record_misses_cache`; `changed_capabilities_miss_cache`; `corrupt_record_still_fails`; `invalid_state_still_resets_with_cache`.
-  - Notes (executed <date>):
+    - `cache_hit_skips_reverification_but_checks_state`; `changed_record_misses_cache_and_corrupt_record_still_fails`; `changed_install_documents_miss_cache`; `invalid_state_still_resets_with_cache`; `verified_packages_lru_bound_and_invalid_max`.
+  - Notes (executed 2026-11-05):
+    - Added `/store`'s `verifiedPackages({ max? })`, a host-owned plain `get`/`set` LRU with a 256-entry default and typed `/max` construction errors for non-positive/non-safe-integer bounds. `loadPlacement` accepts optional `{ verified }`; existing calls retain full verification. No global cache or dependency was added.
+    - Cache lookups first validate the stored package shape and freshly compute its content hash, comparing it with the declared hash. Keys include the computed hash and canonical catalog/capabilities JSON. Hits reuse the verified frozen package across stores; installation mutations, changed content, corrupt records and bad declared hashes cannot reuse old verification. Placement identity, params and scoped/explicit state checks remain on every load; resets remain reported and unwritten.
+    - Tests were written first and failed on the absent export. Five added tests cover cache identity reuse (including reordered installation object keys and another store), unchanged default behaviour, invalid params/placement identity, changed and rehashed content, rehashed forbidden imports, corrupt shapes, changed capabilities/catalog content, state resets, LRU recency/eviction/default bound and invalid bounds. The final focused store/export/API/spec/migration run passed 52 tests; final test additions also passed typecheck.
+    - Updated spec §7.4, package guide, compatible adopter notes, compatibility deferral, changelog, runtime export pin and API register (`verifiedPackages`: added; `loadPlacement`: widened). Direct cache writes are trusted host operations and accept only verified frozen packages. No format, schema or corpus bytes changed.
+    - Corrected the contradictory performance criterion before completing implementation: always re-hashing 100 untrusted reads cannot yield five times fewer hash computations. The standalone `timeout 60s bun --conditions liveframe:source bench/store-load.bench.ts` asserts one verification for 100 placements (100× fewer full verifications), and reports path-derived hash counts separately: 100 uncached, 101 cached (100 fresh reads plus the initial full verification). Its cache-write count and package-identity assertions prove reuse; hash counts follow the implementation path rather than an instrumented hash hook. Small-package timings can be slower with caching because structural checks and canonical installation keys still run; no elapsed-time speedup is claimed.
+    - First full check passed build, generated checks, typecheck, lint and formatting, then finished with 1,099 passing tests, 4 existing skips and one unchanged timing failure: `render_all_matches_session_check` exceeded its existing 100 ms runner deadline on the ready scenario. Its isolated rerun passed (one test, 406 ms total). No deadline, assertion or unrelated implementation was changed. The full-check retry passed, including that test (328 ms total).
+    - Final verification: `timeout 900s bun run check` passed build, generated-file checks, typecheck, lint, formatting and all 1,100 tests (4 existing skips, 0 failures). The final standalone benchmark ran after the full check, at load averages 7.68 / 5.99 / 5.27: 100 uncached verifications and hashes in 32.69 ms; one cached verification and 101 hashes in 51.36 ms. This is a small-fixture, single-run observation, not a calibrated speedup claim. Full `bun run bench` was not run; Task 10 owns the whole-plan performance sweep.
 
 - [ ] Task 8: Keep focus by default in `<Surface>` (Q10)
   - Acceptance Criteria:

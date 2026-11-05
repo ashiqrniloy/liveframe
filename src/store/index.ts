@@ -25,3 +25,4 @@ export interface Store {
 
 export { loadPlacement, verifyPlacementInputs } from "./load.ts";
 export { memoryStore } from "./memory.ts";
+export { verifiedPackages } from "./verified.ts";

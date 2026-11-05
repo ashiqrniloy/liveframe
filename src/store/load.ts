@@ -2,10 +2,11 @@ import { DEFAULT_MAX_ERRORS, LiveframeFailure, type LiveframeError, type Result 
 import type { WidgetPackage } from "../formats/package.ts";
 import { validatePlacement, validateState } from "../formats/records.ts";
 import type { Json } from "../formats/tree.ts";
-import { verifyPackage } from "../pack/verify.ts";
+import type { verifyPackage } from "../pack/verify.ts";
 import { compileSchema } from "../validate/schema.ts";
 import type { Store } from "./index.ts";
 import { assertScope } from "./scope.ts";
+import { verifyStoredPackage, type verifiedPackages } from "./verified.ts";
 
 /** Check host inputs against a verified package without reading or writing a store. */
 export function verifyPlacementInputs(
@@ -35,7 +36,7 @@ export async function loadPlacement(
   store: Store,
   id: string,
   options: Parameters<typeof verifyPackage>[1],
-  inputs: { scope?: string; state?: unknown } = {},
+  inputs: { scope?: string; state?: unknown; verified?: ReturnType<typeof verifiedPackages> } = {},
 ): Promise<Result<{ package: WidgetPackage; params: Json; state: Json; reset?: readonly LiveframeError[] }>> {
   try {
     const scope = inputs.scope === undefined ? "" : inputs.scope;
@@ -63,7 +64,7 @@ export async function loadPlacement(
           },
         ],
       };
-    const verified = verifyPackage(doc, options);
+    const verified = verifyStoredPackage(doc, options, inputs.verified);
     if (!verified.ok) return verified;
     const pkg = verified.value;
     const manifest = pkg.manifest;

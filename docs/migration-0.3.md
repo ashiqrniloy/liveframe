@@ -67,3 +67,25 @@ Adopter checklist: replace dimension fractions in widgets, stored trees and resp
 ### Preview and authoring validation limits
 
 Optionally set limits; defaults remain unchanged. `createPreview()`, `createAuthoring()` and the MCP config accept `limits: { nodes: 20_000 }`, with optional positive safe integers for `nodes`, `depth` and `bytes`. Limits apply to both the runner and host validation. Invalid limits report `invalid-document` at `/limits` during construction (MCP exits 2). Authoring tool response and capture bounds remain unchanged. See [preview](preview.md) and [MCP](mcp.md) for details.
+
+### Optional verified-package cache
+
+Optionally pass a host-owned verifiedPackages cache; existing calls remain supported.
+
+Before, every `loadPlacement` call performed full package verification. After,
+that remains the default; hosts may opt in to reuse verification for the same
+package content and canonical installation documents.
+
+```ts
+// Before (still supported)
+await loadPlacement(store, id, install, { scope });
+// After: share this host-owned cache across loads.
+const verified = verifiedPackages({ max: 256 }); // import from @arnilo/liveframe/store
+await loadPlacement(store, id, install, { scope, verified });
+```
+
+Adopter checklist: Profile repeated loads before opting in. Keep the cache in the
+host and share it across stores of one installation. Only insert verified frozen
+packages through its trusted `set` method. Stored structure and hashes are checked
+every time; changed content or installation documents miss automatically. Params
+still reject and invalid state still resets. This addition requires no migration.

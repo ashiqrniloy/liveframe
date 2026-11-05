@@ -235,7 +235,7 @@ check persistence. The suite returns runner-independent cases; failures are
 
 ## Loading and state resets
 
-`loadPlacement(store, id, { catalog, capabilities }, { scope?, state? })` reads that one placement
+`loadPlacement(store, id, { catalog, capabilities }, { scope?, state?, verified? })` reads that one placement
 with `getPlacement()`, then checks its structure, package identity and integrity,
 manifest and scenarios, params, and stored state. It never lists placements, so a
 malformed sibling record cannot block a load; loading the malformed record itself
@@ -247,6 +247,29 @@ scope for viewer-specific state:
 await store.putState("home", "viewer:42", { count: 4 });
 const loaded = await loadPlacement(store, "home", options, { scope: "viewer:42" });
 ```
+
+For repeated loads, share a host-owned verification cache across stores of one
+installation:
+
+```ts
+import { verifiedPackages } from "@arnilo/liveframe/store";
+const verified = verifiedPackages({ max: 256 });
+const loaded = await loadPlacement(store, "home", options, { verified, scope: "viewer:42" });
+```
+
+The cache holds verified, deeply frozen packages and evicts the least recently
+used entry when full. `max` defaults to 256 and must be a positive safe integer;
+invalid values throw `LiveframeFailure` with `invalid-document` at `/max`.
+Its `get`/`set` methods are trusted host operations; only insert verified frozen
+packages. Discard the cache to release its entries.
+
+Every load still checks the record structure and freshly hashes package content,
+including comparison with the declared hash. The key combines that computed hash
+with canonical catalog and capabilities JSON, so changed records and installation
+documents cannot reuse an old verification. A hit skips manifest, scenario and
+code verification; placement identity, params and scoped state checks still run.
+Omitting `verified` keeps full verification on every load. Hashing and canonical
+installation keys still cost time; profile your packages before opting in.
 
 An own `state` property bypasses `getState` and uses the same validation and reset
 rules. `{ state: undefined }` explicitly selects initial state without reading
