@@ -4,6 +4,10 @@ All notable changes to `@arnilo/liveframe` are recorded here. The project follow
 
 ## Unreleased
 
+Changed:
+
+- **Specification layout:** the same numbered sections now open with rules, followed by contract details and rationale. Historical comparisons and proof results moved to `docs/compatibility.md`; the normative contracts and four laws are unchanged.
+
 Fixed:
 
 - SDK keys containing lone UTF-16 surrogates return a typed `invalid-prop` error instead of throwing `URIError` while building a primitive or fragment id. Valid surrogate pairs and key-path escaping are unchanged.

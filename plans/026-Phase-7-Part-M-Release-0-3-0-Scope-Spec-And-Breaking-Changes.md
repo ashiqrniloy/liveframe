@@ -121,7 +121,7 @@ Not in scope: nested surfaces (the analysis named the gap but proposed compositi
     - First full check: 1,069 pass, 4 existing skips, one unchanged CSS timing test failed (`switch_under_budget_with_blur`, one 22.4 ms sample against 16.67 ms). Its isolated rerun passed with a 6.6 ms maximum; no runtime code or threshold was changed. The full-check retry also passed that test and the complete suite. Dedicated benchmarks were not run: this task changes release tooling and documentation only.
     - Finding for Tasks 3 and 8: behaviour-only changes can leave emitted declarations identical, so their proposed `changed` entries would correctly fail the stale-entry gate. Their approaches now require reconciling behaviour evidence with register representation in those tasks without fake declaration edits or weakening the stale-declaration check.
 
-- [ ] Task 2: Restructure the spec into a normative core and feature sections (W9)
+- [x] Task 2: Restructure the spec into a normative core and feature sections (W9)
   - Acceptance Criteria:
     - Functional:
       - `docs/spec.md` keeps its section numbers §1–§15 (every link and the `docs-links` test keep working) but each section opens with its normative rules as short numbered statements, followed by rationale. Paragraphs over 120 words are split. Release history ("as in 0.2.1", "projects exactly the CSS it did in 0.2.1", plan and request ids) moves to `CHANGELOG.md` or `docs/compatibility.md`; decision-log citations stay.
@@ -157,11 +157,20 @@ Not in scope: nested surfaces (the analysis named the gap but proposed compositi
       - `docs/spec.md`; `CHANGELOG.md`; `docs/compatibility.md`
       - `plans/evidence/026-spec-restructure.md`
       - `src/__tests__/docs-spec-structure.test.ts`; guide tests that quote moved text (tentative: found by running `bun run test` after the edit)
+      - `roadmap.md` §3: update this plan's execution status.
   - Test Cases to Write:
     - `spec_paragraphs_stay_short`: fails on a paragraph over 160 words.
     - `spec_carries_no_release_history`: fails on a bare `0.2.x` reference outside a decision citation.
-    - Existing `docs-links` passes unchanged: proves anchors survived.
-  - Notes (executed <date>):
+    - Existing `docs-links` passes unchanged: proves file/archive paths resolve; the heading test below proves anchors survived.
+    - `spec_sections_open_with_numbered_rules`: every numbered section/subsection starts with rules and includes rationale.
+    - `spec_preserves_section_anchors_and_the_four_laws`: pin all heading text and the four verbatim laws. The existing `docs-links` test checks file/archive paths, not fragment targets.
+    - `spec_structure_checks_detect_long_prose_and_release_history`: regression fixtures prove overlong paragraphs and bare release references fail, while fenced examples and quoted decision references remain allowed.
+  - Notes (executed 2026-11-05):
+    - Reorganized the same spec file into a normative core (§1–§5), feature contracts (§6–§11) and supporting proof/distribution/boundary sections (§12–§15). All 26 section/subsection headings, all 16 fenced examples/diagrams and the four laws remain verbatim. Each section opens with numbered rules and separates contract details from rationale.
+    - Split long prose into paragraphs of at most 120 words. Moved release comparisons, request/plan identifiers, provenance and the detailed Phase 0 proof history into `docs/compatibility.md`; retained the normative performance budgets and decision citations in the spec. Added the documentation change to the changelog. No runtime, public API, format or normative meaning changed; no register entry is needed.
+    - `plans/evidence/026-spec-restructure.md` maps all 1,268 baseline prose/table/code units from the byte-identical `v0.2.3` spec, including 964 prose sentences/lead-ins. It records 1,252 exact normalized matches and annotates all 16 editorial replacements; complete heading and fenced-block arrays were also compared. Existing ambiguities about package immutability and the runner prose/interface's `maxErrors` mismatch are listed for the owner without reinterpretation. Task 3 already owns the freezing change; the later runner work can resolve the interface mismatch.
+    - Wrote the structure checks first: the original spec reproduced paragraph-length, release-history and rules-first failures. Added regression fixtures plus explicit heading/law preservation tests. The existing docs-links test checks file/archive paths, so it alone did not prove fragment preservation; its implementation is unchanged. No guide test quotes the moved spec text, so no guide-test edits were needed.
+    - Focused structure, link and wording checks passed (8 tests). `timeout 900s bun run check` passed: build, generated-file checks, typecheck, lint, formatting, 1,075 passing tests, 4 existing skips and 0 failures (433.73 s for the test suite). `git diff --check` passed. Dedicated benchmarks were not run: this task changes documentation and its regression tests only.
 
 - [ ] Task 3: Freeze packages and keep caller ownership of render inputs (Q4: R4, R5)
   - Acceptance Criteria:

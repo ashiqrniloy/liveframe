@@ -1,28 +1,43 @@
-# Liveframe — Specification (v0.1 draft)
+# Liveframe — Specification
 
 Published on npm as `@arnilo/liveframe`: one package, with subpath exports for each part (§13).
 
-Drafted 2026-10-21 from two working implementations of the same idea:
+The normative core is §1–§5: purpose, the four laws, responsibilities, terms and definitions. Feature contracts are §6–§11. §12 records the primitive proof requirements and performance budgets; §13 defines distribution and conformance; §14–§15 record boundaries and settled decisions.
 
-- **Synapta**, a multi-tenant web platform: TSX widgets on an SDK, with three interaction tiers.
-- **Clay**, a desktop editor on Tauri: server-driven UI with design-system recipes.
-
-This library takes Synapta's authoring and interaction model and Clay's styling model, and combines them.
+Each section starts with numbered rules. Contract details, tables and examples retain the same authority; rationale explains the rules. Release history lives in `CHANGELOG.md` and `docs/compatibility.md`.
 
 ---
 
 ## 1. Purpose
 
-A library for apps whose UI must change **at runtime** — by users, organisations or AI agents — **without a deployment**, while staying safe and looking exactly like the rest of the app.
+**Rules**
 
-The app ships a small set of trusted **primitive components** and a **design system**. Everything above that is ordinary TSX code, written by people or agents and installed at runtime:
+1. The app ships a small set of trusted **primitive components** and a **design system**.
+2. A new primitive is the only thing that needs a deployment.
+
+**Contract and examples**
+
+Everything above that is ordinary TSX code, written by people or agents and installed at runtime:
 
 - panels, widgets, cards, queues and whole screens
 - the reusable components inside them
 
-A new primitive is the only thing that needs a deployment. That happens only when the browser must *do* something new (a code editor, a chart engine, drag-and-drop).
+That happens only when the browser must *do* something new (a code editor, a chart engine, drag-and-drop).
+
+**Rationale**
+
+A library for apps whose UI must change **at runtime** — by users, organisations or AI agents — **without a deployment**, while staying safe and looking exactly like the rest of the app.
 
 ## 2. The model
+
+**Rules**
+
+1. Widget code never runs in the browser. Only the app's compiled primitives run there.
+2. The UI tree is data, and it is validated before the renderer reads it.
+3. Widget code never sets colours or raw CSS. Look comes from the design system; layout comes from token-constrained style props.
+4. A widget never holds authority. Data is resolved and actions are run by the app, as the viewer.
+
+**Contract and examples**
 
 ```
  widget code (TSX, written by a human or an agent)
@@ -37,14 +52,19 @@ A new primitive is the only thing that needs a deployment. That happens only whe
         └── interactions: local (no round trip) · setState (re-run widget) · action (app operation)
 ```
 
-There are four rules, and none of them is optional:
+**Rationale**
 
-1. Widget code never runs in the browser. Only the app's compiled primitives run there.
-2. The UI tree is data, and it is validated before the renderer reads it.
-3. Widget code never sets colours or raw CSS. Look comes from the design system; layout comes from token-constrained style props.
-4. A widget never holds authority. Data is resolved and actions are run by the app, as the viewer.
+There are four rules, and none of them is optional.
+
+The validated tree separates backend widget execution from trusted browser primitives and interaction handling.
 
 ## 3. What the library ships, and what the app provides
+
+**Rules**
+
+1. The library ships **no components, no visual style, no isolation sandbox, no storage backend, no authorisation and no layout shell**.
+
+**Contract and examples**
 
 | The library ships | The app provides |
 |---|---|
@@ -57,9 +77,17 @@ There are four rules, and none of them is optional:
 | The preview: runners, preview sessions, `<Preview>` and `liveframe preview capture` (§7.5), plus the authoring MCP server `liveframe mcp` (§13) | A preview page that mounts `<Preview>` |
 | A conformance test kit | Approval and placement of widgets |
 
-The library ships **no components, no visual style, no isolation sandbox, no storage backend, no authorisation and no layout shell**.
+**Rationale**
+
+The division of responsibilities keeps app authority and trusted implementations with the host.
 
 ## 4. Concepts
+
+**Rules**
+
+1. The terms in the table define the contracts used throughout this specification.
+
+**Contract and examples**
 
 | Term | Meaning |
 |---|---|
@@ -80,9 +108,19 @@ The library ships **no components, no visual style, no isolation sandbox, no sto
 | **Scenario** | A named set of fixture inputs a package carries, such as `default`, `empty` or `failed`. Every package has at least one (§7.3) |
 | **Runner** | Where widget code executes. The app's sandbox is one; preview and production use the same runner (§7.5) |
 
+**Rationale**
+
+Shared terms connect authoring, installation and rendering without prescribing app-specific primitives.
+
 ## 5. Component definitions
 
-A definition is pure data. The SDK types, the validator, the renderer and the agent-facing docs are all generated from it.
+**Rules**
+
+1. A definition is pure data.
+2. The **primitive set is per app**: a catalog is the app's contract, and portability comes from the formats, not from one mandated set (`decision-logs/2026-10-22-1905-phase-1-format-scope.md`).
+3. **No product-shaped components in the catalog.**
+
+**Contract and examples**
 
 ```ts
 export const Button = defineComponent({
@@ -114,9 +152,57 @@ A definition declares:
 - **`a11y`**: the role, and which prop provides the accessible name.
 - **`deprecated`** (optional): why the primitive or a prop is deprecated and what replaces it.
 
-**The schema language.** Props, params, state, context, action arguments and data-source shapes all use one closed schema language based on JSON Schema 2020-12, with the discriminator form from JSON Type Definition (RFC 8927). Its forms are `string` (with `maxLength` in code points, and optional `minLength`, `pattern` and string `enum`), `number` and `integer` (with optional `minimum` and `maximum`), `boolean`, `array` (with `maxItems` and optional `minItems`) and `object` (closed: `additionalProperties: false`, with `required`). Every string and array is bounded: `maxLength` and `maxItems` are required. Length and item bounds are nonnegative integers; an omitted minimum is zero. Install validation rejects a minimum above its maximum as `invalid-document` at the minimum keyword's pointer. String bounds count Unicode code points in one pass. Any schema may carry `description`, `deprecated` and a boolean `nullable`. With `nullable: true`, `null` passes without checking the form; every other value must satisfy the form, including its enum and bounds. Omitting `nullable` or setting it to `false` rejects `null`. Nullability does not make a required property optional. The discriminator form is `{ discriminator: "<prop>", mapping: { "<tag>": ObjectSchema } }`, without `type`. It has 1–64 mapping entries, with string tags of at most 64 code points. Each entry is a closed object schema that neither declares the discriminator property nor sets `nullable: true` (RFC 8927 §2.2.8); nullability belongs on the union. Values require an own string tag property. A missing, non-string or unknown tag fails at that property's JSON Pointer with `expected` listing the allowed tags. A known tag selects only its entry through a precompiled Map; payload errors are rooted at the value. `Infer` and `liveframe gen` produce readonly tagged unions. Adding a tag is a minor catalog change; removing or narrowing one or changing the discriminator is major. Published meta-schemas describe the structure; install validation enforces the tag-property exclusion. Equivalent JSON Schema value validators use `oneOf` with a required `const` tag per closed object branch. A schema outside the language is rejected at install.
+**The schema language.** Props, params, state, context, action arguments and data-source shapes all use one closed schema language based on JSON Schema 2020-12, with the discriminator form from JSON Type Definition (RFC 8927).
 
-**Widget schemas carry no `pattern`.** The three schemas a widget manifest declares — `params`, `state` and `context` — are matched against values the app does not author: what a user types, what an intent carries, and what storage holds. A pattern there is widget code running on the host thread and in the browser, where one catastrophic backtrack on a short value costs seconds. So a `pattern` anywhere inside them is `invalid-document` at the keyword (`/state/properties/evil/pattern`), rejected before any value is matched, by `validateManifest`, `validateManifestShape` and the published manifest schema alike. Authors use `enum`, or ask the app for an action or source that checks the value where it is trusted. Catalog definitions and capabilities are the app's own documents and keep `pattern`.
+Its forms are `string` (with `maxLength` in code points, and optional `minLength`, `pattern` and string `enum`), `number` and `integer` (with optional `minimum` and `maximum`), `boolean`, `array` (with `maxItems` and optional `minItems`) and `object` (closed: `additionalProperties: false`, with `required`).
+
+Every string and array is bounded: `maxLength` and `maxItems` are required.
+
+Length and item bounds are nonnegative integers; an omitted minimum is zero.
+
+Install validation rejects a minimum above its maximum as `invalid-document` at the minimum keyword's pointer.
+
+String bounds count Unicode code points in one pass.
+
+Any schema may carry `description`, `deprecated` and a boolean `nullable`.
+
+With `nullable: true`, `null` passes without checking the form; every other value must satisfy the form, including its enum and bounds.
+
+Omitting `nullable` or setting it to `false` rejects `null`.
+
+Nullability does not make a required property optional.
+
+The discriminator form is `{ discriminator: "<prop>", mapping: { "<tag>": ObjectSchema } }`, without `type`.
+
+It has 1–64 mapping entries, with string tags of at most 64 code points.
+
+Each entry is a closed object schema that neither declares the discriminator property nor sets `nullable: true` (RFC 8927 §2.2.8); nullability belongs on the union.
+
+Values require an own string tag property.
+
+A missing, non-string or unknown tag fails at that property's JSON Pointer with `expected` listing the allowed tags.
+
+A known tag selects only its entry through a precompiled Map; payload errors are rooted at the value.
+
+`Infer` and `liveframe gen` produce readonly tagged unions.
+
+Adding a tag is a minor catalog change; removing or narrowing one or changing the discriminator is major.
+
+Published meta-schemas describe the structure; install validation enforces the tag-property exclusion.
+
+Equivalent JSON Schema value validators use `oneOf` with a required `const` tag per closed object branch.
+
+A schema outside the language is rejected at install.
+
+**Widget schemas carry no `pattern`.** The three schemas a widget manifest declares — `params`, `state` and `context` — are matched against values the app does not author: what a user types, what an intent carries, and what storage holds.
+
+A pattern there is widget code running on the host thread and in the browser, where one catastrophic backtrack on a short value costs seconds.
+
+So a `pattern` anywhere inside them is `invalid-document` at the keyword (`/state/properties/evil/pattern`), rejected before any value is matched, by `validateManifest`, `validateManifestShape` and the published manifest schema alike.
+
+Authors use `enum`, or ask the app for an action or source that checks the value where it is trusted.
+
+Catalog definitions and capabilities are the app's own documents and keep `pattern`.
 
 **The catalog.** A catalog is one document:
 
@@ -130,11 +216,9 @@ type Catalog = {
 };
 ```
 
-The **primitive set is per app**: a catalog is the app's contract, and portability comes from the formats, not from one mandated set (`decision-logs/2026-10-22-1905-phase-1-format-scope.md`).
-
 **Versioning.** A change that can break an existing widget or tree takes a new major `catalogId`: removing or renaming a kind, prop, variant, slot or event; narrowing a prop's type or bounds; making a prop required; changing an event's `carries`; or removing a vocabulary name. Adding a kind, an optional prop, a variant, a slot, an event or a vocabulary name keeps the id. The library classifies a change between two catalogs by these rules.
 
-**Primitive set.** The Phase 0 proof (§12, `proof/REPORT.md`) built four real UIs from the first 23 candidates without adding a product-shaped primitive. It also showed which generic capabilities were missing. The set is:
+**Primitive set.** The proof primitive set (§12, `proof/REPORT.md`) is:
 
 - Layout: `box`, `stack`, `inline`, `grid`, `scroll`, `separator`
 - Content: `text`, `heading`, `icon`, `image`, `link`
@@ -142,32 +226,62 @@ The **primitive set is per app**: a catalog is the app's contract, and portabili
 - Overlays: `menu` / `menuItem`, `popover`, `dialog`, `tooltip`
 - Navigation: `tabs` / `tab`, `disclosure` (a summary label that expands its children locally, with `onToggle`)
 
-Additions the proof found necessary:
+The proof primitives also provide:
 
 - **Semantics on layout primitives.** `box`, `stack`, `inline` and `grid` take an optional closed `semantics` prop (`section`, `article`, `aside`, `header`, `footer`, `nav`, `list`, `listItem`, `terms`, `term`, `detail`, `form`, `group`, `figure`, `status`, `alert`) and an optional accessible `label`. Landmarks, description lists, forms, groups, figures and live regions (`status`, `alert`) are structure, not styling. A live region must stay mounted for its text changes to be announced.
 - **Selection state on `button`.** `current` and `pressed` expose a selected row or toggle to assistive technology.
 
 The icon glyph set is the app's: status marks and brand marks are icons, not primitives.
 
-Rule: **no product-shaped components in the catalog.** A queue, a metric card or a widget frame is a composed component written in TSX. If something can be built from primitives, it must be.
+A queue, a metric card or a widget frame is a composed component written in TSX. If something can be built from primitives, it must be.
+
+**Rationale**
+
+The SDK types, the validator, the renderer and the agent-facing docs are all generated from the definition.
 
 ## 6. Styling (Clay's model)
 
-Styling has three layers. Each one is inert data, validated, and installable at runtime.
+**Rules**
+
+1. Styling has three layers.
+2. Each one is inert data, validated, and installable at runtime.
+
+**Rationale**
+
+The theme, design system and style props separate colour authority, look and structure.
 
 ### 6.1 Theme: the only colour source
 
-A theme defines **colour roles** (`surface.base`, `surface.hover`, `text.primary`, `text.muted`, `border.hairline`, `accent.fill`, `status.critical`…) and **typography roles** (`body`, `label`, `heading.2`, `mono`…). A typography role sets family, size, weight and line height, and optionally `letterSpacing` (a bounded `em` value), `textTransform` (`none` or `uppercase`), `fontStretch` (a bounded percentage, for a face with width variants such as a mono at 87.5%) and `fontSizeAdjust` (an `ex-height` factor that normalises a face whose x-height differs from the design's, as `font-size-adjust` does). Matching an approved design is often a matter of these four fields, not of new primitives.
+**Rules**
+
+1. Nothing outside the theme may introduce a colour.
+2. The app declares the required role names (§6.5); a theme that misses one fails validation.
+3. In forced-colours mode, OS system colours override everything.
+
+**Contract and examples**
+
+A theme defines **colour roles** (`surface.base`, `surface.hover`, `text.primary`, `text.muted`, `border.hairline`, `accent.fill`, `status.critical`…) and **typography roles** (`body`, `label`, `heading.2`, `mono`…). A typography role sets family, size, weight and line height, and optionally `letterSpacing` (a bounded `em` value), `textTransform` (`none` or `uppercase`), `fontStretch` (a bounded percentage, for a face with width variants such as a mono at 87.5%) and `fontSizeAdjust` (an `ex-height` factor that normalises a face whose x-height differs from the design's, as `font-size-adjust` does).
 
 - A colour value is a DTCG 2025.10 colour object: `{ colorSpace, components, alpha?, hex? }`, in any colour space DTCG lists. The projection converts it to CSS. A typography role follows the DTCG `typography` composite (`fontFamily`, `fontSize`, `fontWeight`, `letterSpacing`, `lineHeight` as a multiplier), with dimensions in `px` or `rem` and `letterSpacing` also in `em`; the four fields above extend it.
-- Nothing else in the system may introduce a colour.
-- The app declares the required role names (§6.5); a theme that misses one fails validation.
+
 - The vocabulary may declare contrast pairs (§6.5). Theme installation checks their WCAG 2.x ratios; violations return `insufficient-contrast` with the pair index, roles and measured ratio to two decimals. This is an install check with no per-render work.
 - Light, dark and high-contrast are separate themes, or modes of one theme.
-- In forced-colours mode, OS system colours override everything.
+
 - The theme is the resolved set of roles. An app may assemble it from separate sources, such as a colour package and the user's own typography preferences. Whatever the sources, nothing outside the resolved theme introduces a colour or a typeface.
 
+**Rationale**
+
+Matching an approved design is often a matter of these four fields, not of new primitives.
+
 ### 6.2 Design system: values and recipes
+
+**Rules**
+
+1. **Not allowed:** raw CSS, selectors, scripts, or literal colours.
+2. **Recipes own the look; style props own the structure.**
+3. **Completeness:** a design system is valid only if, after `extends` and the cascade, every `(kind, variant, slot)` the catalog declares has a `rest` style, and every kind that declares an event has a `focus` overlay.
+
+**Contract and examples**
 
 A design system contributes:
 
@@ -192,25 +306,76 @@ A design system contributes:
 
 - **States**: `rest`, `hover`, `active`, `focus`, `disabled`, `selected`, `current`, `mixed`, `pending`, `readonly`, `invalid`, `open`. The list is fixed by the library; a recipe may style any of them, and states are optional overlays on `rest`.
 - **Recipe properties** are a closed, typed list fixed by the library: colours, borders (width per side or all sides, style), outline, radius, padding, gap, typography role, opacity, shadow, backdrop blur and saturation, transition (a duration and an easing value), and a pressed offset (a `translateY` dimension). Every property's value type is fixed. Product-specific names, such as an easing called `expo-out` or a transform preset, are design values, not recipe vocabulary.
-- **Recipes own the look; style props own the structure.** A recipe never sets display mode, flex or grid layout, tracks, content alignment, size or position: those are style props (§6.3) chosen by the widget. Structure must survive a design-system switch; look must change with it (`decision-logs/2026-10-22-0850-recipes-own-look-style-props-own-structure.md`).
+- A recipe never sets display mode, flex or grid layout, tracks, content alignment, size or position: those are style props (§6.3) chosen by the widget.
 - **Structural defaults belong to app primitives.** Headings' wrapping, an icon's box, controls' minimum heights and overlay positioning are trusted app implementation CSS. The library's base sheet supplies only a generic reset, surface typography, containment and environment overrides; it knows no app kinds. Law 3 constrains widget code and installed style data, not trusted app primitive CSS.
-- **Projection semantics.** `borderLeftWidth` and `borderRightWidth` mean inline start and inline end in left-to-right text and project to logical sides, mirroring under `dir="rtl"`; top and bottom remain physical. Vertical writing modes are out of scope. `translateY` uses CSS `translate`, preserving a primitive's own `transform`. `backdropBlur` and `backdropSaturate` compose into one `backdrop-filter`. `backgroundOpacity` multiplies the background colour's alpha through `--lf-alpha`, which environment overrides may force to 1. A role-alpha object projects as `color-mix(in oklab, var(--lf-c-…) N%, transparent)`, with at most two percentage decimal places and no trailing zeroes, including 0% and 100%. Plain roles keep direct `var()` references. The mix multiplies intrinsic theme alpha. With `backgroundOpacity`, its output feeds the existing background mix, so theme alpha × role alpha × background opacity applies exactly once.
+- **Projection semantics.** `borderLeftWidth` and `borderRightWidth` mean inline start and inline end in left-to-right text and project to logical sides, mirroring under `dir="rtl"`; top and bottom remain physical.
+
+  Vertical writing modes are out of scope.
+
+  `translateY` uses CSS `translate`, preserving a primitive's own `transform`.
+
+  `backdropBlur` and `backdropSaturate` compose into one `backdrop-filter`.
+
+  `backgroundOpacity` multiplies the background colour's alpha through `--lf-alpha`, which environment overrides may force to 1.
+
+  A role-alpha object projects as `color-mix(in oklab, var(--lf-c-…) N%, transparent)`, with at most two percentage decimal places and no trailing zeroes, including 0% and 100%.
+
+  Plain roles keep direct `var()` references.
+
+  The mix multiplies intrinsic theme alpha.
+
+  With `backgroundOpacity`, its output feeds the existing background mix, so theme alpha × role alpha × background opacity applies exactly once.
 - **Entry motion.** A slot whose resolved `open` declarations differ from `rest` enters from its rest declarations through `@starting-style`, using its recipe transition. Equal states emit no entry rule. Exit motion requires renderer-managed delayed unmounting (§11).
-- **Colour-typed properties accept theme roles.** `backgroundColor`, `borderColor` and `outlineColor` also accept `"none"`, which supplies no hue and projects to `transparent`. Omission inherits through the cascade; explicit `none` clears inherited paint, even with `backgroundOpacity`. `backgroundColor`, `textColor`, `borderColor`, `outlineColor` and shadow layer `color` also accept a closed `{ role, alpha }` object. `role` must name a declared theme role (never `none`); `alpha` is a finite number in [0, 1] with at most four decimal places, or a design-system `opacity` value name whose resolved number meets the same bound and precision. Other existing opacity values are not precision-restricted. Opacity names resolve through the inherited design values before projection. `textColor` and shadow colours exclude `none`. The exact colour-role name `none` is reserved in vocabularies; nested names such as `surface.none` remain valid. Other properties accept design values or bounded literals of the right type.
-- **Native parts.** `placeholderColor`, `scrollbarThumbColor` and `scrollbarTrackColor` are colour-typed: a theme role, `none` or a `{ role, alpha }` object. `placeholderColor` styles the `::placeholder` of the element that carries the slot class and honours every state; the projection emits `opacity: 1` beside it, so the UA's own placeholder dimming does not multiply the alpha. The scrollbar colours target the scrolling slot, project to the standard `scrollbar-color: <thumb> <track>`, and are **rest-only**: a non-rest recipe that declares either is rejected at install, naming the property, and the thumb and track must resolve together at rest. States inherit the rest pair; container hover or press is not thumb hover or press, so native thumb interaction stays with the OS. Safari before 26.2 and WebKitGTK before 2.52.3 lack `scrollbar-color` and keep native scrollbars; the projection emits no `::-webkit-scrollbar-*` fallback.
-- **Not allowed:** raw CSS, selectors, scripts, or literal colours.
+- **Colour-typed properties accept theme roles.** `backgroundColor`, `borderColor` and `outlineColor` also accept `"none"`, which supplies no hue and projects to `transparent`.
+
+  Omission inherits through the cascade; explicit `none` clears inherited paint, even with `backgroundOpacity`.
+
+  `backgroundColor`, `textColor`, `borderColor`, `outlineColor` and shadow layer `color` also accept a closed `{ role, alpha }` object.
+
+  `role` must name a declared theme role (never `none`); `alpha` is a finite number in [0, 1] with at most four decimal places, or a design-system `opacity` value name whose resolved number meets the same bound and precision.
+
+  Other existing opacity values are not precision-restricted.
+
+  Opacity names resolve through the inherited design values before projection.
+
+  `textColor` and shadow colours exclude `none`.
+
+  The exact colour-role name `none` is reserved in vocabularies; nested names such as `surface.none` remain valid.
+
+  Other properties accept design values or bounded literals of the right type.
+- **Native parts.** `placeholderColor`, `scrollbarThumbColor` and `scrollbarTrackColor` are colour-typed: a theme role, `none` or a `{ role, alpha }` object.
+
+  `placeholderColor` styles the `::placeholder` of the element that carries the slot class and honours every state; the projection emits `opacity: 1` beside it, so the UA's own placeholder dimming does not multiply the alpha.
+
+  The scrollbar colours target the scrolling slot, project to the standard `scrollbar-color: <thumb> <track>`, and are **rest-only**: a non-rest recipe that declares either is rejected at install, naming the property, and the thumb and track must resolve together at rest.
+
+  States inherit the rest pair; container hover or press is not thumb hover or press, so native thumb interaction stays with the OS.
+
+  Safari before 26.2 and WebKitGTK before 2.52.3 lack `scrollbar-color` and keep native scrollbars; the projection emits no `::-webkit-scrollbar-*` fallback.
+
 - **Derivation:** a design system may `extends` another and override individual recipes or values.
-- **Completeness:** a design system is valid only if, after `extends` and the cascade, every `(kind, variant, slot)` the catalog declares has a `rest` style, and every kind that declares an event has a `focus` overlay. Other states are optional overlays on `rest`.
+- Other states are optional overlays on `rest`.
+
+**Rationale**
+
+Structure must survive a design-system switch; look must change with it (`decision-logs/2026-10-22-0850-recipes-own-look-style-props-own-structure.md`).
 
 ### 6.3 Style props: what authors may set
 
-Widget authors never touch colour or recipes. They choose a primitive's **variant** and set its declared **style props**. Style props are layout-only and token-constrained:
+**Rules**
+
+1. Widget authors never touch colour or recipes.
+2. They choose a primitive's **variant** and set its declared **style props**.
+
+**Contract and examples**
+
+Style props are layout-only and token-constrained:
 
 | Style prop | Accepts |
 |---|---|
 | `padding`, `gap`, `margin` (per side or axis) | `space.*` |
 | `direction`, `align`, `justify`, `wrap`, `textAlign` | Enums (`align` on `button` places its content) |
-| `width`, `height`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight` | `space.*`, `size.*`, `fill`, `fit`, fractions, or bounded `ch` / `%`. Fractions are deprecated here: they project to `minmax(0, Nfr)`, which browsers ignore as a size, and 0.3.0 rejects them |
+| `width`, `height`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight` | `space.*`, `size.*`, `fill`, `fit`, fractions, or bounded `ch` / `%`. Fractions are deprecated here: they project to `minmax(0, Nfr)`, which browsers ignore as a size |
 | `grow`, `shrink`, `basis` | Bounded numbers |
 | `columns`, `rows`, `area` (grid) | Bounded track lists, or area names; each track a fraction, `space.*` or `size.*` |
 | `position`, `inset*` | `static` or `sticky`; `space.*` |
@@ -236,11 +401,23 @@ It is what keeps a long surface's switch inside the budget (§6.4, `decision-log
 
 `paddingLeft`/`paddingRight` and `marginLeft`/`marginRight` mean inline start/end in left-to-right text and project to logical properties, mirroring under `dir="rtl"`. Top and bottom remain physical. Field names stay unchanged.
 
-The SDK types enforce these values, so `gap="space.3"` compiles and `gap="13px"` doesn't. The validator enforces them again on the output tree.
+The validator enforces them again on the output tree.
+
+**Rationale**
+
+The SDK types enforce these values, so `gap="space.3"` compiles and `gap="13px"` doesn't.
 
 ### 6.4 How styling reaches the screen
 
-`@arnilo/liveframe/css` provides pure, deterministic functions returning `Result<string>`: `baseCss(catalog)`, `themeCss(theme, catalog)` and `designSystemCss(designSystem, { catalog, registry })`. Inputs are validated before output; invalid input produces typed errors and no partial sheet. The same input, independent of object key order, produces identical bytes. The output has three independent sheets:
+**Rules**
+
+1. Inputs are validated before output; invalid input produces typed errors and no partial sheet.
+2. The same input, independent of object key order, produces identical bytes.
+3. **Surfaces do not nest**, including surfaces composed by the host.
+
+**Contract and examples**
+
+`@arnilo/liveframe/css` provides pure, deterministic functions returning `Result<string>`: `baseCss(catalog)`, `themeCss(theme, catalog)` and `designSystemCss(designSystem, { catalog, registry })`. The output has three independent sheets:
 
 | Sheet | Contents and scope |
 |---|---|
@@ -248,13 +425,13 @@ The SDK types enforce these values, so `gap="space.3"` compiles and `gap="13px"`
 | Theme | Colour and typography role variables and `color-scheme` under `:where([data-lf-theme="<id>@<version>"])` |
 | Design system | Design-value variables, recipe rules and container rules under `:where([data-lf-ds="<id>@<version>"])` |
 
-Design-system colours refer to theme roles through `var()`, so a fixed catalog needs N + M + 1 sheets for N themes and M design systems. Surface roots carry both scope attributes and `lf_surface`. **Surfaces do not nest**, including surfaces composed by the host. Overlays follow §11's scope contract.
+Surface roots carry both scope attributes and `lf_surface`. Overlays follow §11's scope contract.
 
 Every surface root sets the theme's base typography from the app's vocabulary, and every slot that draws text has a typography role. Nothing inherits the host page's fonts. Only a surface whose tree uses responsive values gains `lf_container`, a named inline-size container `lf`. Responsive rules use `@container lf` with literal design-system breakpoint widths; values chain through narrower breakpoints (§6.3). A responsive surface supplies its own container rather than relying on a host container or viewport fallback.
 
 **Classes and names.** Each slot carries one stable class, `lf_<kind>_<variant>_<slot>`, independent of theme, design system and state. Dots in role/value names encode as `_`; `__` separates fixed suffixes. Vocabulary, catalog and id names contain no `_`, making the encoding injective. Variables are `--lf-c-<role>`, `--lf-t-<role>__<field>`, `--lf-v-<name>` and `--lf-r-<prop>__<breakpoint>__<cssProperty>`. `slotClass`, `styleDeclarations`, `surfaceAttributes`, `colourVar` and `valueVar` provide classes, plain style objects, scope attributes and variable names without a DOM dependency. Installed strings are escaped and validated, never inserted as raw CSS.
 
-**States and cascade.** Each recipe selector has specificity (0,1,0): the slot class contributes specificity, while scope, state and root qualifiers are inside `:where()`. Source order is `rest < hover < focus < active < open < selected < current < mixed < pending < readonly < invalid < disabled`. A state whose resolved declarations equal rest emits no extra rule. A root's state also reaches its slots. Hover and active never apply to a disabled element, including a slot of a disabled root, and never to a pending one once the design system styles `pending`: a control that is waiting for the host takes no hover or press feedback. A system that declares no `pending` recipe projects exactly the CSS it did in 0.2.1.
+**States and cascade.** Each recipe selector has specificity (0,1,0): the slot class contributes specificity, while scope, state and root qualifiers are inside `:where()`. Source order is `rest < hover < focus < active < open < selected < current < mixed < pending < readonly < invalid < disabled`. A state whose resolved declarations equal rest emits no extra rule. A root's state also reaches its slots. Hover and active never apply to a disabled element, including a slot of a disabled root, and never to a pending one once the design system styles `pending`: a control that is waiting for the host takes no hover or press feedback. A system that declares no `pending` recipe gains no pending-state rules.
 
 | State | Matches |
 |---|---|
@@ -270,7 +447,31 @@ Every surface root sets the theme's base typography from the app's vocabulary, a
 | invalid | `:user-invalid`, `[data-invalid]`, `[aria-invalid=true]` |
 | disabled | `:disabled`, `[data-disabled]`, `[aria-disabled=true]` |
 
-**Preferences and switching.** Reduced motion sets transition durations to zero and removes the pressed offset. Reduced transparency forces `--lf-alpha: 1`, disables `backdrop-filter` and reprojects recipe colour/shadow/native-part modifiers as their unmodified role references, including alpha 0. The host may also ask for it explicitly with the surface's `transparency` prop: `<Surface transparency="reduced">` sets `data-lf-transparency="reduced"` on the scope element and its portal container, and the base sheet applies the same forcing under `:where([data-lf-transparency=reduced])`. The design-system sheet emits, next to the media query block, an attribute block that carries exactly the same recovery rules scoped to `:where([data-lf-ds=…][data-lf-transparency=reduced])`, so a modifier recovers identically either way; a system with no alpha modifiers gains no attribute rules. Intrinsic theme alpha and explicit `none` remain unchanged in both. The media query is a progressive enhancement on supporting browsers; the attribute works everywhere. Light, dark and high-contrast theme selection belongs to the host (§6.1); the theme sheet sets `color-scheme` from `theme.colorScheme`. To switch, the host preloads sheets, sets `data-lf-switching` on the scope element, changes the theme/design-system/transparency attributes atomically, then removes `data-lf-switching` on the next animation frame. While set, transitions are disabled on that element and its descendants. Switching changes no node, slot class or widget output and runs no widget code. The switch budget, 16.67 ms (§12), bounds **span A**: from the first switching attribute change through style and layout of the switch frame, forced once. It excludes later per-element style reads and frame scheduling, which are logged but not budgeted. A surface whose long repeated content is not marked `deferOffscreen` (§6.3) has no engine-independent bound: WebKit alone restyles and relays out about 1,000 font-changed nodes in 9–10 ms with no library CSS (`decision-logs/2026-10-31-1438-webkit-switching-cost-remedies.md`).
+**Preferences and switching.** Reduced motion sets transition durations to zero and removes the pressed offset.
+
+Reduced transparency forces `--lf-alpha: 1`, disables `backdrop-filter` and reprojects recipe colour/shadow/native-part modifiers as their unmodified role references, including alpha 0.
+
+The host may also ask for it explicitly with the surface's `transparency` prop: `<Surface transparency="reduced">` sets `data-lf-transparency="reduced"` on the scope element and its portal container, and the base sheet applies the same forcing under `:where([data-lf-transparency=reduced])`.
+
+The design-system sheet emits, next to the media query block, an attribute block that carries exactly the same recovery rules scoped to `:where([data-lf-ds=…][data-lf-transparency=reduced])`, so a modifier recovers identically either way; a system with no alpha modifiers gains no attribute rules.
+
+Intrinsic theme alpha and explicit `none` remain unchanged in both.
+
+The media query is a progressive enhancement on supporting browsers; the attribute works everywhere.
+
+Light, dark and high-contrast theme selection belongs to the host (§6.1); the theme sheet sets `color-scheme` from `theme.colorScheme`.
+
+To switch, the host preloads sheets, sets `data-lf-switching` on the scope element, changes the theme/design-system/transparency attributes atomically, then removes `data-lf-switching` on the next animation frame.
+
+While set, transitions are disabled on that element and its descendants.
+
+Switching changes no node, slot class or widget output and runs no widget code.
+
+The switch budget, 16.67 ms (§12), bounds **span A**: from the first switching attribute change through style and layout of the switch frame, forced once.
+
+It excludes later per-element style reads and frame scheduling, which are logged but not budgeted.
+
+A surface whose long repeated content is not marked `deferOffscreen` (§6.3) has no engine-independent bound: WebKit alone restyles and relays out about 1,000 font-changed nodes in 9–10 ms with no library CSS (`decision-logs/2026-10-31-1438-webkit-switching-cost-remedies.md`).
 
 **Forced colours.** `forced-color-adjust` remains `auto`; the OS owns colours. Inside `@media (forced-colors: active)`, a generic state table restores cues only where a state's resolved recipe differs from rest, using the same precedence:
 
@@ -294,9 +495,18 @@ A slot with a scrollbar pair gets `scrollbar-color: auto` there, and a slot with
 
 **Outside this projection:** shadow-DOM isolation, print styles, compound variants, `::before`/`::after` decoration, keyframes, `:nth-child`, scrollbar thumb states and geometry, `prefers-contrast` selection and an atomic-class CSP route. Native controls use the theme's `color-scheme`; placeholder and scrollbar colours come from the native-part recipe properties (§6.2). Inline style attributes require a CSP allowing `style-src-attr 'unsafe-inline'`; hosts insert and authorize sheets themselves (§13).
 
+**Rationale**
+
+Design-system colours refer to theme roles through `var()`, so a fixed catalog needs N + M + 1 sheets for N themes and M design systems.
+
 ### 6.5 The declared vocabulary
 
-The app declares the **names** its widgets, themes and design systems share. The library fixes the **kinds** of name and their value types. This settles portability without imposing one naming scheme (`decision-logs/2026-10-22-1905-phase-1-format-scope.md`).
+**Rules**
+
+1. The app declares the **names** its widgets, themes and design systems share.
+2. The library fixes the **kinds** of name and their value types.
+
+**Contract and examples**
 
 ```ts
 type Vocabulary = {
@@ -320,15 +530,62 @@ Fixed by the library: the kinds above, the states (§6.2), the recipe properties
 
 **Contrast declarations.** At most 256 pairs may name declared colour roles, with finite inclusive thresholds in [1, 21] and `maximum >= minimum`. Descriptions are at most 500 code points. `lessThan` is a zero-based integer pair index: dangling, self and cyclic references are invalid. It requires the measured ratio to be strictly less than the referenced pair's ratio. A supplied `contrastBase` must name a declared surface role and its theme colour must be opaque, even when no background needs it. Translucent pair backgrounds require that base; missing/nonopaque bases are `invalid-document`. Vocabularies without contrast declarations retain their existing behaviour.
 
-**Contrast calculation.** Follow the accepted conversion contract (`decision-logs/2026-10-28-1123-styling-paint-alpha-contrast-native-parts.md` §3): convert all 14 DTCG spaces through XYZ D65 (Bradford-adapting D50), then to linear sRGB, clip channels to [0, 1], and encode sRGB. Rec.2020 uses the approved piecewise inverse transfer, as in the [2025-04-24 CSS Color 4 sample](https://www.w3.org/TR/2025/CRD-css-color-4-20250424/#color-conversion-code). Missing components (`"none"`) are zero, omitted alpha is 1, and `hex` is fallback metadata only. Composite the background over the opaque base if needed, then foreground over background, using encoded-sRGB source-over (`a * source + (1-a) * destination`). Linearize the resulting opaque channels using `c / 12.92` for `c <= 0.04045`, otherwise `((c + 0.055) / 1.055)^2.4`. Luminance is `0.2126R + 0.7152G + 0.0722B`; ratio is `(max(Lfg,Lbg)+0.05)/(min(Lfg,Lbg)+0.05)`. Compare unrounded values; round only diagnostics. Nonfinite conversion results fail as invalid theme data. Cache conversions per role and evaluate pairs/orderings in O(pairs). This deterministic sRGB clipping policy does not claim to reproduce browser perceptual gamut mapping.
+**Contrast calculation.** Follow the accepted conversion contract (`decision-logs/2026-10-28-1123-styling-paint-alpha-contrast-native-parts.md` §3): convert all 14 DTCG spaces through XYZ D65 (Bradford-adapting D50), then to linear sRGB, clip channels to [0, 1], and encode sRGB.
 
-**Recipe-derived audit.** Declared pairs cover the theme in isolation; they cannot cover the pairs recipes create as they pair a `textColor`, `placeholderColor`, `borderColor` or `outlineColor` with a background per slot and state. The root export's `auditContrast({ theme, designSystem, catalog, registry?, minimums? })` resolves every `(kind, variant, slot, state)` through the same cascade and returns the pairs below threshold: text and placeholder colours at 4.5:1, or 3:1 for large text from the resolved typography role (WCAG 2.2 §1.4.3), and, for kinds that declare events, `borderColor` at rest and `outlineColor` at focus at 3:1 (WCAG 2.2 §1.4.11). The effective background is the slot's, else the kind's root slot's for the same state, else the vocabulary's `contrastBase`; a pair whose background cannot be resolved is reported as `unresolved-background`, never measured against a guess. Each finding names the recipe key, both roles, the ratio to two decimals and the threshold. The audit is opt-in, runs at install time and never on the render path, and it changes no installation: a design system that installs today still installs.
+Rec.2020 uses the approved piecewise inverse transfer, as in the [2025-04-24 CSS Color 4 sample](https://www.w3.org/TR/2025/CRD-css-color-4-20250424/#color-conversion-code).
+
+Missing components (`"none"`) are zero, omitted alpha is 1, and `hex` is fallback metadata only.
+
+Composite the background over the opaque base if needed, then foreground over background, using encoded-sRGB source-over (`a * source + (1-a) * destination`).
+
+Linearize the resulting opaque channels using `c / 12.92` for `c <= 0.04045`, otherwise `((c + 0.055) / 1.055)^2.4`.
+
+Luminance is `0.2126R + 0.7152G + 0.0722B`; ratio is `(max(Lfg,Lbg)+0.05)/(min(Lfg,Lbg)+0.05)`.
+
+Compare unrounded values; round only diagnostics.
+
+Nonfinite conversion results fail as invalid theme data.
+
+Cache conversions per role and evaluate pairs/orderings in O(pairs).
+
+This deterministic sRGB clipping policy does not claim to reproduce browser perceptual gamut mapping.
+
+**Recipe-derived audit.** Declared pairs cover the theme in isolation; they cannot cover the pairs recipes create as they pair a `textColor`, `placeholderColor`, `borderColor` or `outlineColor` with a background per slot and state.
+
+The root export's `auditContrast({ theme, designSystem, catalog, registry?, minimums? })` resolves every `(kind, variant, slot, state)` through the same cascade and returns the pairs below threshold: text and placeholder colours at 4.5:1, or 3:1 for large text from the resolved typography role (WCAG 2.2 §1.4.3), and, for kinds that declare events, `borderColor` at rest and `outlineColor` at focus at 3:1 (WCAG 2.2 §1.4.11).
+
+The effective background is the slot's, else the kind's root slot's for the same state, else the vocabulary's `contrastBase`; a pair whose background cannot be resolved is reported as `unresolved-background`, never measured against a guess.
+
+Each finding names the recipe key, both roles, the ratio to two decimals and the threshold.
+
+The audit is opt-in, runs at install time and never on the render path, and it changes no installation: a design system that installs today still installs.
 
 Changing the contrast contract or its base is conservatively classified as a major catalog change because it can invalidate installed themes. Description-only changes are ignored; an omitted maximum is equivalent to 21.
 
+**Rationale**
+
+This settles portability without imposing one naming scheme (`decision-logs/2026-10-22-1905-phase-1-format-scope.md`).
+
 ## 7. Authoring and installing (Synapta's model)
 
+**Rules**
+
+1. Widgets, their SDK, packages, storage and preview follow §7.1–§7.5.
+
+**Rationale**
+
+These feature contracts connect widget authoring to installation and host execution.
+
 ### 7.1 Widgets
+
+**Rules**
+
+1. A capability carries no authority.
+2. The app still authorises every read and every action as the viewer.
+3. The widget function is **pure and synchronous**.
+4. The widget function returns **one root element**.
+
+**Contract and examples**
 
 ```tsx
 /** @jsxImportSource @arnilo/liveframe/sdk */
@@ -368,8 +625,6 @@ type Capabilities = {
 };
 ```
 
-A capability carries no authority. The app still authorises every read and every action as the viewer. Capabilities are how an author, person or agent, learns what exists, and what lets the validator check action arguments before they reach the dispatcher.
-
 `confirm` and `irreversible` are independent optional booleans, defaulting to false. `irreversible` marks an action for the control's presentation; it does not force the renderer's confirmation hook. The host still owns confirmation and authorisation on dispatch.
 
 A widget **manifest** declares:
@@ -383,33 +638,65 @@ A widget **manifest** declares:
 
 The widget function's rules:
 
-- It is **pure and synchronous**. All four inputs are frozen. Time and randomness come only through `context`. A module may not suspend while it evaluates: top-level `await`, `for await` and `await using` are rejected (§7.3), because a module that never settles would hold the runner. Inside functions they are ordinary async code, which the renderer never waits for.
-- It returns **one root element**.
+- All four inputs are frozen. Time and randomness come only through `context`. A module may not suspend while it evaluates: top-level `await`, `for await` and `await using` are rejected (§7.3), because a module that never settles would hold the runner. Inside functions they are ordinary async code, which the renderer never waits for.
+
 - It uses only catalog primitives and composed components. **Host elements are errors** (`<div>`, `<span>`), and so are function props, promises, async functions, and string `className` or `style`. Props are JSON at every depth: a composed component's props are walked before it runs, so a nested function or promise is rejected even if the component would discard it.
 - Every element in a list needs a **`key`**. Node ids are key paths (`root/queue/row:4812/claim`), never positions, so the renderer keeps focus, scroll and local state across re-renders.
 - **Long lists are paged or windowed.** A widget renders what a surface shows, and loads more through `setState`. Render cost grows with node count, and performance budgets are measured on these realistic sizes.
 - **Composed components are ordinary functions** in the same bundle or in shared modules. They are expanded when the widget runs, and the UI tree contains only primitives.
 
+**Rationale**
+
+Capabilities are how an author, person or agent, learns what exists, and what lets the validator check action arguments before they reach the dispatcher.
+
 ### 7.2 The SDK
 
+**Rules**
+
+1. The SDK runtime uses no host APIs (no `node:`, `bun:`, DOM or `require`), so it runs unchanged in any JS runtime and any sandbox the app chooses.
+2. **Components come from a generated module.**
+
+**Contract and examples**
+
 - `jsx`, `jsxs` and `Fragment` under `jsxImportSource: "@arnilo/liveframe/sdk"`. Elements are frozen records keyed by primitive kind.
-- **Components come from a generated module.** `liveframe gen <catalog> --out <file>` writes a typed TypeScript module into the app, binding one component per definition with `primitive("<kind>")` from the SDK:
+- `liveframe gen <catalog> --out <file>` writes a typed TypeScript module into the app, binding one component per definition with `primitive("<kind>")` from the SDK:
 
   ```ts
   export const Button = primitive<ButtonProps>("button");
   ```
 
-  A widget imports it by relative path (`./ui.gen`, §7.1). It is source, not a `.d.ts`, so an unpacked widget still runs, and `pack()` bundles it like a composed component (§7.3). Props are readonly, each declared event becomes a typed event prop, docs come from the definition, and `liveframe gen --check` fails CI on drift.
+  A widget imports it by relative path (`./ui.gen`, §7.1). Props are readonly, each declared event becomes a typed event prop, docs come from the definition, and `liveframe gen --check` fails CI on drift.
 - **The emitters are also a host-side function.** `generate(catalog)`, `generateDefinitions(catalog)` and `generateElementsSchema(catalog)` ship from `@arnilo/liveframe/sdk/gen`, byte-identical to the CLI's modes, so a host build service can generate either module without the CLI. The subpath is host-API-free and takes a validated `Catalog`.
 - **Implementation definitions can be generated too.** `liveframe gen <catalog> --implementations --out <file>` writes a separate module of `as const satisfies Definition` exports, one per definition, so the app, when it implements a primitive itself, calls `implement()` (§11) on a JSON-loaded catalog and still infers props, slots, event names and carry value types as it does for a hand-written definition. Drift is checked the same way, and the generator neither imports the SDK nor generates a runtime implementation.
 - `state.set(key, value?)` and `action(name, args, { bind?, bindAll? }?)` return frozen intent data. Without a value, `state.set(key)` sends the value the event produced. `bind` fills a scalar argument; `bindAll: true` fills several arguments from one object event (§8).
-- **Agent element JSON.** `renderElements(json, { validator, surfaceId, revision, limits?, maxErrors? })` from `/sdk` builds a tree from an unpackaged surface an agent emitted as JSON: `{ kind, key?, variant?, props?, style?, events?, children? }`, with intents in the `Intent` shape. It uses `render()`'s key-path ids, limits, validation and error kinds, checks every node in the same pass, and rewrites each error `pointer` to point into the JSON (`nodeId` stays the derived key-path id). A `fragment` element groups keyed children without adding a node. The `Elements<Catalog>` type is its typed form. `ephemeralManifest({ catalogId, actions, state? })` builds a manifest the browser's arrival check accepts; `state` is the initial value, and its schema is derived from it. Neither API stores anything: a persistent surface is a real package.
+- **Agent element JSON.** `renderElements(json, { validator, surfaceId, revision, limits?, maxErrors? })` from `/sdk` builds a tree from an unpackaged surface an agent emitted as JSON: `{ kind, key?, variant?, props?, style?, events?, children? }`, with intents in the `Intent` shape.
+
+  It uses `render()`'s key-path ids, limits, validation and error kinds, checks every node in the same pass, and rewrites each error `pointer` to point into the JSON (`nodeId` stays the derived key-path id).
+
+  A `fragment` element groups keyed children without adding a node.
+
+  The `Elements<Catalog>` type is its typed form.
+
+  `ephemeralManifest({ catalogId, actions, state? })` builds a manifest the browser's arrival check accepts; `state` is the initial value, and its schema is derived from it.
+
+  Neither API stores anything: a persistent surface is a real package.
 - **`render(widget, inputs, { validator, surfaceId, revision, limits?, maxErrors? })`** runs the function, builds the tree with key-path ids, and validates each node as it is emitted, so building and validating are one pass (§10). `validator` is a `CompiledValidator` from `compileValidator`; `limits` bounds nodes, depth and bytes (§10); `maxErrors` is the error bound below.
   - It returns `Result<UiTree>`: `{ ok: true, value }` or `{ ok: false, errors }`, where `errors` is every error found, up to `maxErrors` (default 20, the bound §10 uses). Each is a `LiveframeError` (§10) whose `kind` is one of `host-element`, `unknown-component`, `invalid-prop`, `invalid-children`, `missing-key`, `duplicate-key`, `undeclared-event`, `undeclared-action`, `function-prop`, `async-render`, `render-failed`, `limit-exceeded`.
   - An input that fails its manifest schema is `invalid-prop`, with a pointer into the inputs (`/state/filter`) and no `nodeId`.
-- The SDK runtime uses no host APIs (no `node:`, `bun:`, DOM or `require`), so it runs unchanged in any JS runtime and any sandbox the app chooses.
+
+**Rationale**
+
+The generated component module is source, not a `.d.ts`, so an unpacked widget still runs, and `pack()` bundles it like a composed component (§7.3).
 
 ### 7.3 Packages
+
+**Rules**
+
+1. **`pack()` never runs widget code.**
+2. **A package is immutable.**
+3. An `(id, version)` names exactly one hash, and storing different content under an existing pair is an error.
+
+**Contract and examples**
 
 A widget is installed as a **package**: the unit the app stores, approves, places and loads into its sandbox. An author writes TSX, but a sandbox runs JavaScript, so installing starts with `pack()` (`@arnilo/liveframe/pack`):
 
@@ -446,23 +733,33 @@ Optionally, the root `sourceOutcome(result)` helper declares the generic `ok` (r
 - rejects top-level `await`, `for await` and `await using`: widget modules evaluate synchronously, so a suspension at that level would be a way to hold a runner forever;
 - hashes the result.
 
-**Canonical form and hash.** Hash exactly `{ format, manifest, code, scenarios }`, excluding `hash`. Canonical JSON follows [RFC 8785 §3.2](https://www.rfc-editor.org/rfc/rfc8785.html#section-3.2): sort object keys recursively by their unescaped UTF-16 code units, preserve array order, emit no whitespace, and use ECMAScript serialisation for strings, numbers and literals. Preserve Unicode without normalisation; reject non-JSON values, non-finite numbers and lone surrogates. Encode the canonical string as UTF-8, compute SHA-256 ([FIPS 180-4 §6.2](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf)), and prefix its lowercase hexadecimal digest with `sha256-`. An internal pure-JavaScript SHA-256 implementation keeps `pack()` synchronous and host-API-free, without Web Crypto. The hash checks integrity, not origin or approval. `/pack` exports `canonicalJson` and `packageHash` so a TypeScript host computes the same value, and `conformance/hash/packages.json` pins `{ package, hash }` vectors for ports (§13).
+**Canonical form and hash.** Hash exactly `{ format, manifest, code, scenarios }`, excluding `hash`. Canonical JSON follows [RFC 8785 §3.2](https://www.rfc-editor.org/rfc/rfc8785.html#section-3.2): sort object keys recursively by their unescaped UTF-16 code units, preserve array order, emit no whitespace, and use ECMAScript serialisation for strings, numbers and literals. Preserve Unicode without normalisation; reject non-JSON values, non-finite numbers and lone surrogates. Encode the canonical string as UTF-8, compute SHA-256 ([FIPS 180-4 §6.2](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf)), and prefix its lowercase hexadecimal digest with `sha256-`. An internal pure-JavaScript SHA-256 implementation keeps `pack()` synchronous and host-API-free, without Web Crypto. `/pack` exports `canonicalJson` and `packageHash` so a TypeScript host computes the same value, and `conformance/hash/packages.json` pins `{ package, hash }` vectors for ports (§13).
 
 **Manifest `description` and `meta`.** A manifest may carry an optional `description` (at most 500 code points) and an optional `meta`, a JSON value of at most 8 levels of nesting and 4096 bytes of compact UTF-8 JSON, counted while walking. Capability actions and sources take the same optional `meta`. The library never reads `meta` (law 4): it is the host's annotation, untrusted on load, and it grants nothing. An over-bound value is `limit-exceeded` at the pointer; a non-JSON value is `invalid-document`. The package hash covers the manifest's `description` and `meta`, because the canonical form covers every manifest field; capabilities are the host's own document and are not packaged, so capability `meta` is outside the hash.
 
 `pack()` and `verifyPackage()` return `Result<WidgetPackage>` with bounded `LiveframeError[]` on failure (§10). A malformed manifest or scenario uses `invalid-document`; no scenarios points at `/scenarios`. Import and syntax failures use the distinct kinds in §10, with a file and line in `pointer` (a JSON Pointer such as `/files/queue.tsx/12`).
 
-Rules:
-
-- **`pack()` never runs widget code.** Rendering a draft is the preview's job (§7.5), through the app's runner and under the app's policy.
-- **A package is immutable.** An `(id, version)` names exactly one hash, and storing different content under an existing pair is an error. A change is a new version, and rolling back means placing an older one.
+- Rendering a draft is the preview's job (§7.5), through the app's runner and under the app's policy.
+- A change is a new version, and rolling back means placing an older one.
 - **`verifyPackage(pkg, { catalog, capabilities })`** re-checks the format, the manifest, the scenarios and the hash without executing anything. It re-parses the code and re-applies the module rules: only SDK imports may remain in a linked package, and no top-level `await` may remain in it. The app runs it on every package it loads.
 - The package hash is the widget part of the re-run cache key (§8).
 - `/pack` is host-API-free, so the app can pack wherever it installs widgets.
 
+**Rationale**
+
+The hash checks integrity, not origin or approval.
+
 ### 7.4 Storage
 
-A runtime change never edits the app's code. Everything that changes is a record, and keeping changes across launches means storing these records and reading them back:
+**Rules**
+
+1. **A store is not trusted.**
+2. **The app owns tenant isolation.**
+3. **Approval is the app's.**
+
+**Contract and examples**
+
+Everything that changes is a record, and keeping changes across launches means storing these records and reading them back:
 
 | Record | Holds | Key |
 |---|---|---|
@@ -491,23 +788,31 @@ interface Store {
 It also ships:
 
 - **`memoryStore()`**, for tests and ephemeral hosts.
-- **`fileStore(dir)`** (`@arnilo/liveframe/store/fs`), for a desktop or single-node app. It keeps one JSON file per record and writes each atomically: a temporary file, then a rename. It assumes one writing process. A key becomes a file name by percent-encoding every byte outside `a-z`, `0-9`, `_` and `-`; a key whose encoded form exceeds 200 bytes is named `~` plus the SHA-256 of its UTF-8 bytes instead, so every id the record formats allow is storable inside a 255-byte file-name limit. The layout is part of the 0.1.x compatibility promise.
+- **`fileStore(dir)`** (`@arnilo/liveframe/store/fs`), for a desktop or single-node app. It keeps one JSON file per record and writes each atomically: a temporary file, then a rename. It assumes one writing process. A key becomes a file name by percent-encoding every byte outside `a-z`, `0-9`, `_` and `-`; a key whose encoded form exceeds 200 bytes is named `~` plus the SHA-256 of its UTF-8 bytes instead, so every id the record formats allow is storable inside a 255-byte file-name limit. The layout follows the compatibility promise in `docs/compatibility.md`.
 - **`loadPlacement(store, id, { catalog, capabilities }, { scope?, state? })`**, which reads a placement, its package and its state, verifies all three, and returns `Result<{ package, params, state, reset? }>`. The fourth argument is optional; scope defaults to `""`. An own `state` property bypasses `getState`, including when its value is `undefined`. Explicit state follows the same check-and-reset rules as stored state. Failures carry bounded `LiveframeError[]` (§10); `reset`, when present, holds the validation errors that caused a state reset.
 - **`verifyPlacementInputs(pkg, { params, state? })`**, for hosts that already verified the package and keep state outside a store. Returns `Result<{ params, state, reset? }>` using the same checks as `loadPlacement`: invalid params reject, missing state uses initial state, and invalid state resets with reported errors. Neither helper executes code or persists resets.
 
-Rules:
-
-- **A store is not trusted.** Like a tree arriving at the renderer (§10), every record read back is checked: the package by `verifyPackage`, the params against the package's params schema, and the state against its state schema. A state that no longer fits, typically after a placement moves to a new widget version, is reset to the manifest's initial state, and `loadPlacement` reports the reset. Any other failure is an error, never a silent fallback.
+- Like a tree arriving at the renderer (§10), every record read back is checked: the package by `verifyPackage`, the params against the package's params schema, and the state against its state schema. A state that no longer fits, typically after a placement moves to a new widget version, is reset to the manifest's initial state, and `loadPlacement` reports the reset. Any other failure is an error, never a silent fallback.
 - Missing placements or packages, conflicting package versions, malformed records and package integrity failures use the distinct typed errors in §10. `putPackage()` keeps its `Promise<void>` contract and rejects with a `LiveframeFailure` (§10) carrying the version-conflict error when an existing `(id, version)` has a different hash; a store rejects rather than returning a result, so the app catches it at the write boundary. `loadPlacement()` reads one placement by id and never lists, so a malformed sibling record cannot block a load.
-- **The app owns tenant isolation.** A multi-tenant app opens one store per tenant, or implements the interface over its own database and scopes it itself.
+- A multi-tenant app opens one store per tenant, or implements the interface over its own database and scopes it itself.
 - **State scopes are host data.** Within that store, state is keyed by placement and a scope string of at most 128 Unicode code points, with no pattern; `""` is shared state. Invalid scopes reject with `LiveframeFailure` carrying `invalid-document` at `/scope`. Unsupported scopes must reject, never fall back to shared state. This grants no authority and does not replace tenant isolation or authorization. Deleting a placement removes all its state scopes, even if the placement record is absent.
-- **Existing state files keep their meaning.** `fileStore` reads and writes shared state at `states/<encoded-id>.json`, including directories written by 0.1.0. Named scopes use `states/<encoded-id>/<encoded-scope>.json`, applying the existing filename encoding and long-key hashing to both segments. No data rewrite is needed.
-- **Approval is the app's.** A stored package is inert until the app puts a placement for it. Which theme and design system are active, per user or organisation, is also an app setting.
+- **Existing state files keep their meaning.** `fileStore` reads and writes shared state at `states/<encoded-id>.json`. Named scopes use `states/<encoded-id>/<encoded-scope>.json`, applying the existing filename encoding and long-key hashing to both segments. No data rewrite is needed.
+- A stored package is inert until the app puts a placement for it. Which theme and design system are active, per user or organisation, is also an app setting.
 - **The conformance kit has a store suite** (§13), so an app's own store, for example over Postgres, proves it keeps these rules.
+
+**Rationale**
+
+A runtime change never edits the app's code.
 
 ### 7.5 Runners and preview
 
-Nobody publishes a widget blind. A person or an agent writes it, looks at it, changes it and looks again. Liveframe ships that loop; the app keeps the isolation.
+**Rules**
+
+1. **Preview and production use the same runner**, so a preview shows what will run.
+2. A runner enforces a time limit per render (`timeoutMs`, default 100 ms) and returns `limit-exceeded` when it trips.
+3. Neither reference runner is an isolation boundary; both return only trees their own validator accepted.
+
+**Contract and examples**
 
 **Runners.** A runner is where widget code executes:
 
@@ -521,10 +826,19 @@ interface Runner {
 }
 ```
 
-- The app's sandbox is a runner. **Preview and production use the same runner**, so a preview shows what will run.
-- A runner compiles the validator from `{ catalog, capabilities, pkg.manifest }` and calls `render()` (§7.2) with `surfaceId`, `revision`, `limits` and `maxErrors`. `/runner-kit` ships that step: `renderModule(widgetDefault, inputs, { catalog, capabilities, manifest, surfaceId, revision, limits?, maxErrors? })` is synchronous, caches the compiled validator (the 64 most recent manifests per `(catalog, capabilities)`, keyed by the manifest's canonical JSON), and returns `render()`'s `Result<UiTree>`, with a thrown widget or a non-function default as `render-failed`. Both reference runners are built on it. A sandbox loads the module itself; the kit neither loads, times nor isolates it, and the host still validates every tree it receives (law 2). A host renders several scenarios of one package by packing once and calling the runner per scenario; there is no batch call, because the host would validate each result anyway.
-- A runner enforces a time limit per render (`timeoutMs`, default 100 ms) and returns `limit-exceeded` when it trips.
-- Liveframe ships two reference runners. **Neither is an isolation boundary**, and both return only trees their own validator accepted:
+- The app's sandbox is a runner.
+- A runner compiles the validator from `{ catalog, capabilities, pkg.manifest }` and calls `render()` (§7.2) with `surfaceId`, `revision`, `limits` and `maxErrors`.
+
+  `/runner-kit` ships that step: `renderModule(widgetDefault, inputs, { catalog, capabilities, manifest, surfaceId, revision, limits?, maxErrors? })` is synchronous, caches the compiled validator (the 64 most recent manifests per `(catalog, capabilities)`, keyed by the manifest's canonical JSON), and returns `render()`'s `Result<UiTree>`, with a thrown widget or a non-function default as `render-failed`.
+
+  Both reference runners are built on it.
+
+  A sandbox loads the module itself; the kit neither loads, times nor isolates it, and the host still validates every tree it receives (law 2).
+
+  A host renders several scenarios of one package by packing once and calling the runner per scenario; there is no batch call, because the host would validate each result anyway.
+
+- Liveframe ships two reference runners:
+
   - `inProcessRunner({ maxModules? })` (`/preview`), for tests and trusted code. It cannot interrupt a loop; a render that returns after `timeoutMs` is reported as `limit-exceeded`.
   - `workerRunner()` (`/preview/worker`) runs packages in a worker and terminates it on a timeout or crash. It bounds time and crashes, not what the code can reach. Each render carries an id and only that id's result is accepted: a result with no pending render, the wrong id, or a second answer for one id terminates the worker, and the pending render fails with `render-failed`. A tree the host's validator rejects returns that validator's errors, and the worker is not reused.
 - **Reference-runner caches.** A package's hash keys a module or validator cache only after `packageHash(pkg)` matched it, checked once per package object; a mismatch is `hash-mismatch` and nothing loads. Validators are kept per `(catalog, capabilities)` and hash, the 64 most recently used. Loaded modules cannot be unloaded, so `inProcessRunner({ maxModules })` reports the loader's process-wide count through `stats().modules` and, at `maxModules` (default 256), refuses a package whose hash is not loaded yet with `limit-exceeded` (loaded hashes still render), while `workerRunner({ maxPackages })` (default 64) restarts its worker once that many distinct hashes have been loaded.
@@ -548,7 +862,19 @@ Publishing a previewed draft stores exactly the package `update()` returned, wit
 
 `resultScenario` is required: it names the scenario `result` was rendered for, and the component never infers a label. A result labelled `A` is drawn only while `A` is selected, so a first result for `A` never appears as `B`, and the "last good render" map is keyed by `resultScenario` alone. The selected cell is highlighted and reported through `onSelect(cell)`.
 
-Selections have two modes. **Uncontrolled** (default), the cell is mirrored in the URL: `scenario` is the scenario name, `width` is in CSS px, and `theme` and `designSystem` are `id@version`. A `urlKey` prefixes every key as `<urlKey>.<name>`, so two previews on one page never read or overwrite each other's keys; without it the bare keys keep `liveframe preview capture` and the MCP capture working unchanged. `<Preview>` reads the selection on mount and writes changes with `history.replaceState`. **Controlled**, when `selection` is supplied: `<Preview>` neither reads nor writes `location`, so an in-memory router keeps its URL; it draws `selection`, and user selections still call `onSelect(cell)` for the host to feed back. Invalid or absent values, in the URL or in a controlled `selection`, default to the first entry of each axis. It reports cell intents through `onIntent(intent, origin)` for the host to hand both arguments to the session.
+Selections have two modes.
+
+**Uncontrolled** (default), the cell is mirrored in the URL: `scenario` is the scenario name, `width` is in CSS px, and `theme` and `designSystem` are `id@version`.
+
+A `urlKey` prefixes every key as `<urlKey>.<name>`, so two previews on one page never read or overwrite each other's keys; without it the bare keys keep `liveframe preview capture` and the MCP capture working unchanged.
+
+`<Preview>` reads the selection on mount and writes changes with `history.replaceState`.
+
+**Controlled**, when `selection` is supplied: `<Preview>` neither reads nor writes `location`, so an in-memory router keeps its URL; it draws `selection`, and user selections still call `onSelect(cell)` for the host to feed back.
+
+Invalid or absent values, in the URL or in a controlled `selection`, default to the first entry of each axis.
+
+It reports cell intents through `onIntent(intent, origin)` for the host to hand both arguments to the session.
 
 It lists the intent log and each render error's `nodeId` (when present) and `pointer`. After a failed render, an earlier successful tree for the same scenario is drawn dimmed and labelled "last good render"; matching node elements receive `data-lf-error`. Without such a tree it shows the host's fallback. The retained tree still passes through `<Surface>`'s arrival check; this does not change §11's invalid-tree fallback rule.
 
@@ -566,11 +892,61 @@ It opens the app's preview page in headless Chromium and captures all declared c
 { "url": "…", "cells": [{ "scenario": "…", "width": 360, "theme": "…", "designSystem": "…", "png": "…", "snapshot": "…", "errors": [] }] }
 ```
 
-The host-API-free `/preview/capture` exports `capture(url, { backend, scenarios?, widths?, themes?, designSystems?, maxCells?, layout?, media? })`, `playwrightBackend(playwright)`, `CaptureError` and the capture types. Capture returns `{ index, files: Map<string, Uint8Array> }`, including `index.json`, takes no `out` and writes nothing. `CaptureBackend<Handle>.open(url)` returns a session with `waitReady(selector)`, `axes()`, `cells()`, `screenshot(handle)` (PNG bytes), `ariaSnapshot(handle)` (YAML or null), an optional `layout(handle)`, an optional `emulate(media)` and `close()`. Axes include `shown` for controlled previews; cells include handles, coordinates and errors. Every session and the optional backend `close()` are closed on completion or failure. The adapter takes an explicitly imported Playwright module and reuses one Chromium instance per call; importing the subpath never loads Playwright. Snapshots are opaque default `locator.ariaSnapshot()` YAML on the `^1.49.0` peer range. A backend without snapshots records `snapshot: null` and emits no snapshot file. Screenshot fidelity depends on the backend's engine. With `layout: true` (CLI: `--layout`) each cell also gets `<cell>.layout.json` and a `layout` entry in its index record: `{ width, height, overflowX, overflowing, nodes: [{ id, x, y, width, height }] }`, integer CSS pixels relative to the cell's border box, holding numbers and node ids only. A node's box is the union of its `data-lf-node` wrapper's child boxes, looking through nested `display: contents` wrappers (the wrapper itself has no box); a node with no box is reported with zero size, never omitted. `overflowing` lists the nodes whose box crosses the cell's right edge, and `overflowX` is true when any does or the cell scrolls horizontally. A backend without `layout(handle)` records `layout: null` and writes no file; a record over 262144 bytes is `limit-exceeded` naming the cell, never truncated. Without the option, results are unchanged. The CLI writes the returned map to `--out`. With `media: { textScale?: number[], forcedColors?: ("none"|"active")[], reducedMotion?: ("no-preference"|"reduce")[] }` (CLI: `--text-scale`, `--forced-colors`, `--reduced-motion`) every requested value multiplies the cells, so `maxCells` bounds the product and an over-large call is `limit-exceeded` before any cell is captured. Each cell is captured at one media point: `emulate(media)` runs after the page is open and before `waitReady`, `playwrightBackend` implements `forcedColors` and `reducedMotion` with `page.emulateMedia` and `textScale` by setting the root `font-size` percentage, and the cell and its index record carry that point in a `media` field, which also appears in its filename. A backend without `emulate` refuses a call that requests media with `not-found` at `/media` naming the axes; a call without media never calls `emulate` and writes no `media` field, so its output is unchanged. `textScale` and the enums are validated before capture. The `contrast` axis is excluded because it needs Playwright 1.51 and the peer floor is `^1.49.0`.
+The host-API-free `/preview/capture` exports `capture(url, { backend, scenarios?, widths?, themes?, designSystems?, maxCells?, layout?, media? })`, `playwrightBackend(playwright)`, `CaptureError` and the capture types.
+
+Capture returns `{ index, files: Map<string, Uint8Array> }`, including `index.json`, takes no `out` and writes nothing.
+
+`CaptureBackend<Handle>.open(url)` returns a session with `waitReady(selector)`, `axes()`, `cells()`, `screenshot(handle)` (PNG bytes), `ariaSnapshot(handle)` (YAML or null), an optional `layout(handle)`, an optional `emulate(media)` and `close()`.
+
+Axes include `shown` for controlled previews; cells include handles, coordinates and errors.
+
+Every session and the optional backend `close()` are closed on completion or failure.
+
+The adapter takes an explicitly imported Playwright module and reuses one Chromium instance per call; importing the subpath never loads Playwright.
+
+Snapshots are opaque default `locator.ariaSnapshot()` YAML on the `^1.49.0` peer range.
+
+A backend without snapshots records `snapshot: null` and emits no snapshot file.
+
+Screenshot fidelity depends on the backend's engine.
+
+With `layout: true` (CLI: `--layout`) each cell also gets `<cell>.layout.json` and a `layout` entry in its index record: `{ width, height, overflowX, overflowing, nodes: [{ id, x, y, width, height }] }`, integer CSS pixels relative to the cell's border box, holding numbers and node ids only.
+
+A node's box is the union of its `data-lf-node` wrapper's child boxes, looking through nested `display: contents` wrappers (the wrapper itself has no box); a node with no box is reported with zero size, never omitted.
+
+`overflowing` lists the nodes whose box crosses the cell's right edge, and `overflowX` is true when any does or the cell scrolls horizontally.
+
+A backend without `layout(handle)` records `layout: null` and writes no file; a record over 262144 bytes is `limit-exceeded` naming the cell, never truncated.
+
+Without the option, results are unchanged.
+
+The CLI writes the returned map to `--out`.
+
+With `media: { textScale?: number[], forcedColors?: ("none"|"active")[], reducedMotion?: ("no-preference"|"reduce")[] }` (CLI: `--text-scale`, `--forced-colors`, `--reduced-motion`) every requested value multiplies the cells, so `maxCells` bounds the product and an over-large call is `limit-exceeded` before any cell is captured.
+
+Each cell is captured at one media point: `emulate(media)` runs after the page is open and before `waitReady`, `playwrightBackend` implements `forcedColors` and `reducedMotion` with `page.emulateMedia` and `textScale` by setting the root `font-size` percentage, and the cell and its index record carry that point in a `media` field, which also appears in its filename.
+
+A backend without `emulate` refuses a call that requests media with `not-found` at `/media` naming the axes; a call without media never calls `emulate` and writes no `media` field, so its output is unchanged.
+
+`textScale` and the enums are validated before capture.
+
+The `contrast` axis is excluded because it needs Playwright 1.51 and the peer floor is `^1.49.0`.
 
 Playwright is an optional peer dependency, lazily loaded only by CLI capture paths. The authoring MCP server (§13) exposes the same capture as its `capture_preview` tool, against a page its config bound to the server's own session.
 
+**Rationale**
+
+Nobody publishes a widget blind. A person or an agent writes it, looks at it, changes it and looks again. Liveframe ships that loop; the app keeps the isolation.
+
 ## 8. Interaction (Synapta's three tiers)
+
+**Rules**
+
+1. **One intent per event.**
+2. **The app re-checks every intent.**
+3. **State is owned by the app.**
+
+**Contract and examples**
 
 | Tier | Example | Where it runs | Round trip | Author writes |
 |---|---|---|---|---|
@@ -578,20 +954,61 @@ Playwright is an optional peer dependency, lazily loaded only by CLI capture pat
 | **2. Declared state** | Change a filter, load the next page, select a row that changes what is shown | The app re-runs the widget with new `state`; the renderer reconciles the new tree by id | One, to where widgets run | `state.set(key, value?)` |
 | **3. Action** | Claim a task, run a command, save a record | The app's dispatcher: authorises as the viewer, confirms per its policy, executes | One, to the app | `action(name, args)` |
 
-Rules:
+- If a primitive needs two behaviours, it gets two events.
+- **Several values can commit together.** `action("escalate", { id }, { bindAll: true })` merges an object event into the literal args and removes `bindAll`.
 
-- **One intent per event.** If a primitive needs two behaviours, it gets two events.
-- **Several values can commit together.** `action("escalate", { id }, { bindAll: true })` merges an object event into the literal args and removes `bindAll`. `bind` and `bindAll` are mutually exclusive; `bind` requires a scalar event, `bindAll` an object event. Literal/event key overlap is `invalid-prop` at the literal arg. The event schema must structurally fit the action's argument schema minus literal args: every event property exists in the target, every remaining required target property is required by the event, and scalar types match (except `integer` fits `number`). Nullable event properties require nullable targets. Bounds and enums are checked on the filled value by Preview and the host, not compared at build time. Implicit object `setState` replaces the entire object key under the same fit rule.
+  `bind` and `bindAll` are mutually exclusive; `bind` requires a scalar event, `bindAll` an object event.
+
+  Literal/event key overlap is `invalid-prop` at the literal arg.
+
+  The event schema must structurally fit the action's argument schema minus literal args: every event property exists in the target, every remaining required target property is required by the event, and scalar types match (except `integer` fits `number`).
+
+  Nullable event properties require nullable targets.
+
+  Bounds and enums are checked on the filled value by Preview and the host, not compared at build time.
+
+  Implicit object `setState` replaces the entire object key under the same fit rule.
 - **Inputs are local until they commit.** A `textField` keeps its value locally (tier 1). Its `onCommit` (Enter, blur, or a debounce the definition declares) carries the value as `setState`. To act on a typed value directly, an action intent names the argument the event's value fills: `action("tasks.escalate", { id }, { bind: "reason" })`. The validator checks that the event's `carries` type matches that argument's schema, and the app re-checks the filled arguments on dispatch. Numeric `bind` and implicit `setState` values use the same compatibility rule: `number` fills only `number`, while `integer` fills `integer` or `number`. The host checks `minimum` and `maximum` on the filled value.
-- **Origin and offered intent check.** The root export provides `IntentOrigin = { surfaceId, revision, nodeId, event }` and `checkOffered(tree, origin, intent, validator): Result<void>`. Use the host's served tree and compiled validator. Wrong surface/revision is `version-conflict` at `/origin/surfaceId` or `/origin/revision`; an unknown node is `not-found` at `/origin/nodeId`; an absent event is `undeclared-event` at `/origin/event`. Completion must reproduce the candidate exactly, preserving type, state key, action name and literal arguments; only the `bind` argument, declared `bindAll` keys or implicit state value can be filled. Mismatches and schema failures are `invalid-prop` at the offending field. Filled values satisfy both the event schema and manifest/capability schemas. The helper shares completion with the renderer. It validates and builds an id map once per immutable tree/validator pair; subsequent checks use the map without walking the tree. Replace tree objects instead of mutating them. Unknown validators fail closed. The explicit fourth argument is approved in `decision-logs/2026-10-28-1935-check-offered-explicit-validator.md`.
+- **Origin and offered intent check.** The root export provides `IntentOrigin = { surfaceId, revision, nodeId, event }` and `checkOffered(tree, origin, intent, validator): Result<void>`.
+
+  Use the host's served tree and compiled validator.
+
+  Wrong surface/revision is `version-conflict` at `/origin/surfaceId` or `/origin/revision`; an unknown node is `not-found` at `/origin/nodeId`; an absent event is `undeclared-event` at `/origin/event`.
+
+  Completion must reproduce the candidate exactly, preserving type, state key, action name and literal arguments; only the `bind` argument, declared `bindAll` keys or implicit state value can be filled.
+
+  Mismatches and schema failures are `invalid-prop` at the offending field.
+
+  Filled values satisfy both the event schema and manifest/capability schemas.
+
+  The helper shares completion with the renderer.
+
+  It validates and builds an id map once per immutable tree/validator pair; subsequent checks use the map without walking the tree.
+
+  Replace tree objects instead of mutating them.
+
+  Unknown validators fail closed.
+
+  The explicit fourth argument is approved in `decision-logs/2026-10-28-1935-check-offered-explicit-validator.md`.
 - **Confirmation is UI, authorisation is the host's.** `confirm` gates the renderer's optional confirmation hook; `irreversible` is presentation and never gates emission. Neither grants authority: the host still applies its own confirmation policy and authorisation on dispatch (§11).
-- **The app re-checks every intent.** The intent must be declared by the widget's manifest, and its args must match the action's schema in the app's capabilities. The validator checks this on every render; the app checks it again on dispatch. Intents carry no authority.
-- **State is owned by the app.** Widget state is persisted per placement and host scope, in the app's store (§7.4), or supplied explicitly by the host. The widget only ever receives it as input.
-- **Re-runs are cacheable.** A widget is pure, so the same widget version and the same inputs always produce the same tree. A host may skip a re-run, and the transfer, when the hash of the package (§7.3), `catalogId`, params, state, data and context is unchanged; `/pack` publishes that key as `renderKey`, the SHA-256 of those inputs in canonical JSON, so inputs that differ only in key order share it.
+- The intent must be declared by the widget's manifest, and its args must match the action's schema in the app's capabilities. The validator checks this on every render; the app checks it again on dispatch. Intents carry no authority.
+- Widget state is persisted per placement and host scope, in the app's store (§7.4), or supplied explicitly by the host. The widget only ever receives it as input.
+- **Re-runs are cacheable.** A host may skip a re-run, and the transfer, when the hash of the package (§7.3), `catalogId`, params, state, data and context is unchanged; `/pack` publishes that key as `renderKey`, the SHA-256 of those inputs in canonical JSON, so inputs that differ only in key order share it.
+
+**Rationale**
+
+A widget is pure, so the same widget version and the same inputs always produce the same tree.
 
 ## 9. The UI tree (wire format)
 
-An agent may emit element JSON (§7.2), but that document is converted on the backend; the wire format below is what a host serves and a renderer validates on arrival. The format is deliberately minimal. Nothing in the model needs more.
+**Rules**
+
+1. Each render produces a **whole tree**.
+2. A `revision` lower than the current one is ignored.
+
+**Contract and examples**
+
+An agent may emit element JSON (§7.2), but that document is converted on the backend; the wire format below is what a host serves and a renderer validates on arrival.
 
 ```ts
 type UiTree = {
@@ -615,12 +1032,24 @@ type Intent =
   | { type: "action"; name: string; args: Record<string, Json>; bind?: string; bindAll?: true }; // bind and bindAll are exclusive
 ```
 
-- Each render produces a **whole tree**. Whole-tree transport remains valid. Hosts may instead transport `liveframe/tree-patch/1` against a previously validated tree. The renderer still receives a whole tree and reconciles by `id`, so unchanged nodes keep their DOM and local state.
-- A `revision` lower than the current one is ignored.
-- LF-17 measured a realistic streaming surface beyond the compression and arrival budgets; optional patches follow the approved design in `decision-logs/2026-10-30-1928-tree-patch-format.md`.
+- Whole-tree transport remains valid. Hosts may instead transport `liveframe/tree-patch/1` against a previously validated tree. The renderer still receives a whole tree and reconciles by `id`, so unchanged nodes keep their DOM and local state.
+
+- Optional patches follow the approved design in `decision-logs/2026-10-30-1928-tree-patch-format.md`.
 - Interop with A2UI or other formats is possible through a converter. It is not part of v1.
 
+**Rationale**
+
+The format is deliberately minimal. Nothing in the model needs more.
+
 ### 9.1 Optional tree patches
+
+**Rules**
+
+1. Application is atomic: failures expose no partial result.
+2. Application is structural only.
+3. The host validates the complete result before accepting its revision, serving it or using it for dispatch checks; the renderer independently validates arrivals.
+
+**Contract and examples**
 
 ```ts
 type TreePatch = {
@@ -652,17 +1081,26 @@ type PatchOp =
 
 Missing targets or parents are `not-found` at the op's `/id` or `/parent`. Malformed patches, non-increasing revisions, out-of-range indexes and root removal/move are `invalid-document`. An addressed ambiguous duplicate target is `duplicate-key`; other duplicate ids and catalog-specific checks are rejected by subsequent whole-tree validation. Errors point into the patch, except failures from whole-tree validation, which point into its result.
 
-Application is atomic: failures expose no partial result. Success returns a new tree envelope retaining format/catalog/surface with the new revision; empty ops retain the root. Changed nodes and ancestors are copied, and untouched subtrees retain reference identity. Application neither mutates nor freezes caller objects. Hosts must keep served trees and nested values immutable while in use.
+Success returns a new tree envelope retaining format/catalog/surface with the new revision; empty ops retain the root. Changed nodes and ancestors are copied, and untouched subtrees retain reference identity. Application neither mutates nor freezes caller objects. Hosts must keep served trees and nested values immutable while in use.
 
 `diffTrees(prev: UiTree, next: UiTree): Result<TreePatch>` takes previously validated, immutable trees with matching catalog/surface and increasing revisions. Mismatches, non-increasing revisions, or explicit empty children anywhere in either input return `invalid-document` for unchanged whole-tree fallback. Other valid whole-tree representations remain accepted by whole-tree validation. Every successful diff round-trips exactly through `applyPatch`.
 
 Diffing compares JSON objects independent of property insertion order and arrays in order. Walk retained parents in next-tree preorder: set changed own fields, remove absent children in reverse sibling order, then scan next children left to right, inserting absent subtrees or moving retained children to their next index and recursing. Emit no descendant ops beneath inserted or removed subtrees. Parent changes carry new key-path ids. Avoid redundant sets/moves; no minimal-edit or linear sibling-reorder guarantee is made. Identical logical inputs produce byte-identical canonical JSON.
 
-Application is structural only. The host validates the complete result before accepting its revision, serving it or using it for dispatch checks; the renderer independently validates arrivals. On any failure retain the last accepted tree and request a whole tree. Patches contain no widget code or authority. `checkOffered` still checks the accepted revision; superseded origins fail as `version-conflict`. There is no renderer patch prop or incremental validation.
+  On any failure retain the last accepted tree and request a whole tree. `checkOffered` still checks the accepted revision; superseded origins fail as `version-conflict`. There is no renderer patch prop or incremental validation.
+
+**Rationale**
+
+Patches contain no widget code or authority.
 
 ## 10. Validation
 
-The validator runs on every rendered tree before it leaves the app's backend. The renderer re-checks every tree on arrival with the app's compiled validator (§11), so it never trusts its transport.
+**Rules**
+
+1. The validator runs on every rendered tree before it leaves the app's backend.
+2. It never uses `eval` or the `Function` constructor, which content security policies and some sandboxes forbid.
+
+**Contract and examples**
 
 It checks:
 
@@ -674,7 +1112,17 @@ It checks:
 - ids are unique and key-derived
 - limits hold: node count (default 5,000), depth (default 64), and tree size in bytes (default 1 MiB), all configurable. Tree size is the UTF-8 length of the tree's `JSON.stringify` output, counted during the walk without serialising. String bounds count code points. The runner adds a time limit (§7.5)
 
-**Errors.** Every validator returns `Result<T>`: `{ ok: true, value } | { ok: false, errors }`. A failed validation returns every error it found, up to a bound (default 20), so an author or agent fixes them in one round. Install-time APIs that have no value to return on failure throw `LiveframeFailure`, a subclass of `Error` whose `errors` is that same bounded `LiveframeError[]` and whose `message` is one `pointer: message` line per error. `pack()`, `verifyPackage()`, `loadPlacement()` and `Runner.render()` use the same result and error bound; async operations wrap the result in a promise. Each `LiveframeError` is `{ kind, pointer, message, expected?, nodeId? }`: `pointer` is a JSON Pointer into the document (the empty string at its root), `expected` is the rule that failed, in words an agent can act on, and `nodeId`, when present, is the key path of the UI node. The complete kind list is:
+**Errors.** Every validator returns `Result<T>`: `{ ok: true, value } | { ok: false, errors }`.
+
+A failed validation returns every error it found, up to a bound (default 20), so an author or agent fixes them in one round.
+
+Install-time APIs that have no value to return on failure throw `LiveframeFailure`, a subclass of `Error` whose `errors` is that same bounded `LiveframeError[]` and whose `message` is one `pointer: message` line per error.
+
+`pack()`, `verifyPackage()`, `loadPlacement()` and `Runner.render()` use the same result and error bound; async operations wrap the result in a promise.
+
+Each `LiveframeError` is `{ kind, pointer, message, expected?, nodeId? }`: `pointer` is a JSON Pointer into the document (the empty string at its root), `expected` is the rule that failed, in words an agent can act on, and `nodeId`, when present, is the key path of the UI node.
+
+The complete kind list is:
 
 | Kind | Meaning |
 |---|---|
@@ -706,13 +1154,25 @@ It checks:
 
 `kind` is open: a minor release may add kinds, so a consumer must handle an unknown kind by name — report it, never fail to compile or silently drop it. Removing a kind, or changing what one means, is a major change.
 
-The validator is **compiled per catalog**: when the catalog, vocabulary, capabilities and manifest are loaded, each definition and schema becomes a closure over precomputed sets and checks, instead of schemas interpreted on every render. It never uses `eval` or the `Function` constructor, which content security policies and some sandboxes forbid. Its per-node checks are what `render()` calls while it builds the tree, so building and validating are one pass; the same validator re-checks a whole tree on arrival. In the Phase 0 proof, validation is more than half of a render's cost, and building the tree checks the same props a second time. Build and validate become one pass (`docs/model.md`, "Performance"; `decision-logs/2026-10-22-1540-typescript-runtime-render-budget.md`).
+The validator is **compiled per catalog**: when the catalog, vocabulary, capabilities and manifest are loaded, each definition and schema becomes a closure over precomputed sets and checks, instead of schemas interpreted on every render. Its per-node checks are what `render()` calls while it builds the tree, so building and validating are one pass; the same validator re-checks a whole tree on arrival. The single-pass budget is recorded in `docs/model.md`, "Performance", and `decision-logs/2026-10-22-1540-typescript-runtime-render-budget.md`.
 
 It validates every other format on install: a catalog's definitions and schema language, the vocabulary, the capabilities, a manifest against its catalog and capabilities, a theme against the vocabulary (every role present and every declared contrast minimum, maximum and strict ordering satisfied, §6.5), and a design system against the catalog and vocabulary (values typed, every declared name defined, recipes complete after the cascade, and no colour outside the theme). The library publishes a JSON Schema for every format (§13).
 
 The root export `capabilitiesFor(capabilities, manifest): Result<Capabilities>` selects exactly the manifest's actions and referenced sources from installed documents in linear time, preserving input map order and complete entries without mutation; unknown names return bounded `unknown-name` errors at manifest pointers, and compiling with the successful subset preserves validation behaviour while allowing hosts to prune before browser transfer.
 
+**Rationale**
+
+The renderer re-checks every tree on arrival with the app's compiled validator (§11), so it never trusts its transport.
+
 ## 11. Renderer
+
+**Rules**
+
+1. **The renderer never trusts its transport.**
+2. Surfaces never nest.
+3. Nodes render keyed by `id`, so focus, scroll and local state survive re-renders.
+
+**Contract and examples**
 
 `@arnilo/liveframe/react`:
 
@@ -729,37 +1189,83 @@ const validator = compileValidator({ catalog, capabilities, manifest });
   - `slot(name)`: the single stable recipe class for that slot in its current variant (§6.4). The root slot also carries the node's style-prop classes; surface and container classes belong to the surface wrapper. Implementations expose state through the normative selector table there
   - `style`: the root's inline declarations from the node's style props (`styleDeclarations`, §6.4)
   - `emit(event, value?)`: raises the declared intent
-  - `events`: a readonly map keyed by the definition's events, populated only for events offered by this node. Each entry is `{ type: "action" | "setState", confirm: boolean, irreversible: boolean }`, resolved from the validator's compiled capabilities; `setState` reports both flags false. No action names, argument values or host `meta` reach implementations. The renderer caches each node context, including this metadata and its rendered element, by node object identity. Untouched subtrees retain their contexts and elements across patches and across whole-tree arrivals whose values they already hold, with children matched to their previous values by `id` within the same parent. Replacing the validator or portal, or turning diagnostics on or off, resets reuse; a new `fallback` value or a new diagnostics list does not. Reused handlers read the currently accepted tree and current callbacks when emitting.
+  - `events`: a readonly map keyed by the definition's events, populated only for events offered by this node.
+
+    Each entry is `{ type: "action" | "setState", confirm: boolean, irreversible: boolean }`, resolved from the validator's compiled capabilities; `setState` reports both flags false.
+
+    No action names, argument values or host `meta` reach implementations.
+
+    The renderer caches each node context, including this metadata and its rendered element, by node object identity.
+
+    Untouched subtrees retain their contexts and elements across patches and across whole-tree arrivals whose values they already hold, with children matched to their previous values by `id` within the same parent.
+
+    Replacing the validator or portal, or turning diagnostics on or off, resets reuse; a new `fallback` value or a new diagnostics list does not.
+
+    Reused handlers read the currently accepted tree and current callbacks when emitting.
   - `children`: already rendered
   - `items`: a node context for each child, with `id`, `kind`, `variant`, `props`, `slot(name)`, `style`, `events`, `children` (already rendered), `render()` (the child drawn through its own implementation) and `emit(event, value?)`. Slots, styles, metadata and intents belong to that child, so collection primitives can draw its parts themselves
   - `portal`: the surface's scoped overlay container, or undefined when overlays use the top layer
-- **The renderer never trusts its transport.** It re-checks every arriving tree with the `validator`, compiled from the catalog, the capabilities and the widget's manifest (§10), before reading any tree field, including `surfaceId` or `revision`. A tree that fails renders the app's `fallback` for the whole surface, never part of an invalid tree and never nothing. After validation, a tree for the same `surfaceId` whose `revision` is lower than the current one is ignored; a different `surfaceId` replaces the current tree.
-- Nodes render keyed by `id`, so focus, scroll and local state survive re-renders. An implementation that throws renders the `fallback` at that node, through an error boundary.
+- It re-checks every arriving tree with the `validator`, compiled from the catalog, the capabilities and the widget's manifest (§10), before reading any tree field, including `surfaceId` or `revision`. A tree that fails renders the app's `fallback` for the whole surface, never part of an invalid tree and never nothing. After validation, a tree for the same `surfaceId` whose `revision` is lower than the current one is ignored; a different `surfaceId` replaces the current tree.
+- An implementation that throws renders the `fallback` at that node, through an error boundary.
 - After a whole tree passes validation, the renderer substitutes the accepted tree's node objects for every subtree that is deep-equal to it (object key order ignored, array order kept) when the `surfaceId` and validator are unchanged, so React skips those subtrees by element identity and their local state, focus and scroll survive. Substitution only replaces a value with an equal one, so the drawn tree is exactly the validated arrival. A node whose implementation threw is never reused, nor are its ancestors, so a later arrival retries it as it did before.
 - Opt-in `focusContinuity` keeps keyboard focus inside the surface across updates. With `<Surface focusContinuity>`, if the element focused inside the wrapper or portal container is disconnected by an update, focus moves to the next element in document order that was tabbable before the update and is still connected, else the closest previous one, else the wrapper, which carries `tabIndex={-1}` in this mode only; every move uses `focus({ preventScroll: true })`. Focus the host or a primitive has already placed elsewhere is never taken back, and moving focus emits no intent. Without the prop the surface takes no snapshot, adds no attribute and installs no listener.
 - Server-side rendering is supported. React error boundaries do not catch server rendering errors: if an implementation throws during `renderToString`, the host catches the error and supplies fallback markup. Hydrating that replacement markup can recover through client rendering; successful server renders and invalid-tree fallbacks hydrate without mismatch. The scoped `portal` container is supplied to implementations only after mounting, so it is undefined during SSR and the first client render.
-- `<Surface>` renders its own wrapper element around the tree and a sibling `portal` container. Both carry `surfaceAttributes({ theme, designSystem, tree })`: §6.4's theme/design-system scope attributes, `lf_surface` and, when the tree uses responsive values, `lf_container`. Node slots do not carry these scope classes, and parents of responsive nodes do not gain containers. Surfaces never nest. Changing `theme`, `designSystem` or `transparency` runs §6.4's switching sequence on the wrapper and portal container together; it preserves node identities and slot classes and runs no widget code.
-- Host-only `wrapperProps` and `portalProps` accept `{ className?: string; style?: CSSProperties }`. Host classes append to the library classes and inline styles apply to their container; no other fields pass through, so scope attributes and `data-lf-portal` remain library-owned. Widget trees cannot supply these hooks. The base sheet emits `:where([data-lf-portal]){position:fixed;inset:0;pointer-events:none}` and `:where([data-lf-portal])>*{pointer-events:auto}`. The portal takes no grid track or flex gap, keeps a viewport-sized box for responsive containment and inherited scope variables, and allows clicks on overlay content. Responsive overlay values use viewport width, including in narrow preview cells, instead of the old block portal's host-dependent width. Host classes may override these zero-specificity defaults. Ancestors with `transform`, `filter` or layout/paint `contain` may establish a containing block instead of the viewport; hosts account for this and obey the backdrop rule below.
+- `<Surface>` renders its own wrapper element around the tree and a sibling `portal` container. Both carry `surfaceAttributes({ theme, designSystem, tree })`: §6.4's theme/design-system scope attributes, `lf_surface` and, when the tree uses responsive values, `lf_container`. Node slots do not carry these scope classes, and parents of responsive nodes do not gain containers. Changing `theme`, `designSystem` or `transparency` runs §6.4's switching sequence on the wrapper and portal container together; it preserves node identities and slot classes and runs no widget code.
+- Host-only `wrapperProps` and `portalProps` accept `{ className?: string; style?: CSSProperties }`.
+
+  Host classes append to the library classes and inline styles apply to their container; no other fields pass through, so scope attributes and `data-lf-portal` remain library-owned.
+
+  Widget trees cannot supply these hooks.
+
+  The base sheet emits `:where([data-lf-portal]){position:fixed;inset:0;pointer-events:none}` and `:where([data-lf-portal])>*{pointer-events:auto}`.
+
+  The portal takes no grid track or flex gap, keeps a viewport-sized box for responsive containment and inherited scope variables, and allows clicks on overlay content.
+
+  Responsive overlay values use viewport width, including in narrow preview cells, instead of the old block portal's host-dependent width.
+
+  Host classes may override these zero-specificity defaults.
+
+  Ancestors with `transform`, `filter` or layout/paint `contain` may establish a containing block instead of the viewport; hosts account for this and obey the backdrop rule below.
 - Overlays stay within their surface's scope: use the top layer while retaining DOM ancestry, or the `portal` container. A backdrop slot and its overlay content are siblings. No backdrop ancestor may set opacity below 1 or a filter that creates a backdrop root; the backdrop must be able to sample the page behind it. Exit motion, scroll locking and making the background inert are part of the renderer contract: the renderer supplies the scoped container, and the app's implementations deliver the lifecycle (for example through React Aria). Browser tests and the renderer conformance suite (§13) prove it.
-- `emit(event, value?)` checks the event value against the definition's `carries` (`none`: no value; `string`; `boolean`; `number`: a finite number; `integer`: a finite integer; `{ object: ObjectSchema }`: the declared schema, compiled once per definition event in the renderer factory). A mismatch is an implementation bug: it throws and raises no intent. When the host's `onIntent` returns a promise, `emit` returns a `Promise<void>` that settles when the host's promise does (or, through `confirm`, after approval and the host call), so an implementation can set `aria-busy` until the host finishes; otherwise it returns `undefined`, as in 0.2.1. The promise carries neither the host's value nor its rejection: a rejection is contained and never reaches the window as an unhandled rejection. `onIntent(intent, origin)` receives a frozen origin identifying the accepted tree's `surfaceId` and `revision`, the emitting `nodeId` and event name, including collection and portal nodes. Existing one-argument callbacks keep working. It receives fresh, deeply frozen complete intents: a `setState` without `value` gets the event's value; an action with `bind` gets `args[bind]` set to that value and `bind` removed; `bindAll: true` merges the emitted object into `args` and is removed. Explicit `setState` values are preserved, and the emitted object is copied before freezing. The app re-checks the filled intent (§8), re-runs the widget or dispatches the action, then passes the new tree back in.
-- Recommended, not required: build interactive primitives on a behaviour library such as React Aria, for accessibility.
+- `emit(event, value?)` checks the event value against the definition's `carries` (`none`: no value; `string`; `boolean`; `number`: a finite number; `integer`: a finite integer; `{ object: ObjectSchema }`: the declared schema, compiled once per definition event in the renderer factory).
+
+  A mismatch is an implementation bug: it throws and raises no intent.
+
+  When the host's `onIntent` returns a promise, `emit` returns a `Promise<void>` that settles when the host's promise does (or, through `confirm`, after approval and the host call), so an implementation can set `aria-busy` until the host finishes; otherwise it returns `undefined`.
+
+  The promise carries neither the host's value nor its rejection: a rejection is contained and never reaches the window as an unhandled rejection.
+
+  `onIntent(intent, origin)` receives a frozen origin identifying the accepted tree's `surfaceId` and `revision`, the emitting `nodeId` and event name, including collection and portal nodes.
+
+  Existing one-argument callbacks keep working.
+
+  It receives fresh, deeply frozen complete intents: a `setState` without `value` gets the event's value; an action with `bind` gets `args[bind]` set to that value and `bind` removed; `bindAll: true` merges the emitted object into `args` and is removed.
+
+  Explicit `setState` values are preserved, and the emitted object is copied before freezing.
+
+  The app re-checks the filled intent (§8), re-runs the widget or dispatches the action, then passes the new tree back in.
+
 - Optional `<Surface confirm={(intent, meta) => Promise<boolean>}>` awaits approval before `onIntent` for actions whose resolved `confirm` is true. It receives the completed frozen intent and readonly `{ confirm, irreversible }`. False, rejection or a throw emits nothing. Confirmation is single-flight per mounted surface: further confirmation-requiring emits are dropped while pending; other emits continue. Approval after unmount is dropped; otherwise the original origin is retained even if the tree changed. Without the hook, emission is unchanged. `irreversible` alone never gates emission. This is UI convenience: the host still re-checks the offered intent, schema, confirmation policy and authorisation on dispatch (§8).
+
+**Rationale**
+
+Recommended, not required: build interactive primitives on a behaviour library such as React Aria, for accessibility.
 
 ## 12. First task: prove the primitive set on two real UIs
 
-Before building the library, prove the model's central claim: **that a small primitive set, plus recipes and style props, can express real product UI with no product-shaped components.** Both source apps currently hit a wall here from opposite sides:
+**Rules**
 
-- **Synapta's components are too big.** Its approved home design is blocked because `Queue` locks its card layout, controls and paging inside one component.
-- **Clay's primitives are too thin.** A `label` carries text, an icon and a few style variables.
+1. **Task.** Implement the primitive candidates (§5), both design systems as recipes, and the following four UIs as TSX widgets using **only** those primitives.
+2. Composed components are allowed; new primitives are not, until the gap is recorded.
+3. **Performance budgets.** The real renderer and validator must stay at or below 3 µs per node on the same benches (2 ms at 680 nodes), and the design-system switch at or below 16.67 ms, measured as span A (§6.4).
 
-**Task.** Implement the primitive candidates (§5), both design systems as recipes, and the following four UIs as TSX widgets using **only** those primitives. Composed components are allowed; new primitives are not, until the gap is recorded.
+**Contract and examples**
 
 1. **Synapta's agent-home queue**, matching the approved design (`synapta-core`: `design-artifacts/approved/agent-home-certified.html`, the `core.queue` widget at lines 1137–1245, the focus cards at 1247–1320, the states at 1324–1357 and the escalate dialog at 1368–1383, as of commit `91de29ed`):
    - a focus card with `Claim` / `Escalate…` on task cards, and `Acknowledge` / a `Snooze` menu / `Convert to task` on alert cards
    - selecting a row moves its card into the focus position
    - one "load more" control that advances three cursor chains
    - the approved DOM structure and look, in the Certified design system
-   - The blocker this resolves is recorded in `synapta-core`: `plans/200.4-SdkComponentsRendererAndQueue.md`, task T4b.
 2. **Synapta's `core.queue` widget at all four sizes** (`small`, `medium`, `large`, `full`), from `synapta-core`: `product-modules/ui/core/widgets/queue/`.
 3. **Clay's git status panel** (`clay`: `packages/git/src/status.ts`, `buildGitStatusTree`) and **one Rack module panel**, in the Rack design system (`clay`: `packages/design-rack/package.json`, `uiDesignSystem`).
 4. **One design system switch.** The same widget from (1) or (3), rendered under both Certified and Rack with no change to widget code.
@@ -780,21 +1286,28 @@ Before building the library, prove the model's central claim: **that a small pri
 
 **If it fails**, meaning a UI can't be expressed without product-shaped primitives or raw styling, stop and revisit §5 and §6 before building anything else.
 
-**Outcome (2026-10-22): go.** See `proof/REPORT.md` and `decision-logs/2026-10-22-1519-phase-0-go.md`.
+**Proof outcome.** Go: see `proof/REPORT.md` and `decision-logs/2026-10-22-1519-phase-0-go.md`.
 
-The first pass was a conditional go: all four UIs were built from the candidates and composed TSX, with no product-shaped primitive and no raw styling, all three tiers worked, and the switch needed no widget change, but the agent-home queue differed from the approved artifact by 36–50% of pixels because generic capabilities were missing. Plan 002 added them to §5 and §6.3–§6.4 and re-proved the comparison:
+Both source apps currently hit a wall here from opposite sides:
 
-- **pixel mismatch 0.72% / 0.75% / 0.97%** at 1440 / 1024 / 390 px, against the ≤ 1% bar, at region sizes equal to the artifact's, with no diagnostics;
-- every remaining difference listed and approved: ten DOM causes (each a markup choice of an existing primitive) and 32 style values (27 anchor correspondence, 3 recorded switch-budget choices, 2 not expressible with no visual effect), in `proof/PARITY.md`;
-- the artifact's two font faces snapshotted with licences and SHA-256, so typography is compared with the real faces.
+- **Synapta's components are too big.** Its approved home design is blocked because `Queue` locks its card layout, controls and paging inside one component.
+- **Clay's primitives are too thin.** A `label` carries text, an icon and a few style variables.
 
-The one budget that does not hold is render cost: the artifact-faithful tree is 679 nodes at 50 rows (13.6 per row), and the proof's render path costs 8.5 µs per node, so its 50-row selection rerenders in 5.75 ms against a 2 ms bench. The owner accepted this as a rendering-path cost rather than a model finding, and made it Phase 1's exit criterion: **the real renderer and validator must stay at or below 3 µs per node** on the same benches (2 ms at 680 nodes), and the design-system switch at or below 16.67 ms, measured as span A (§6.4).
+**Rationale**
 
-Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
+Before building the library, prove the model's central claim: **that a small primitive set, plus recipes and style props, can express real product UI with no product-shaped components.**
 
 ## 13. Tech stack and packages
 
-- TypeScript throughout. Bun to build and test. No WebAssembly, no Rust, no bundled isolation sandbox.
+**Rules**
+
+1. TypeScript throughout.
+2. Bun to build and test.
+3. No WebAssembly, no Rust, no bundled isolation sandbox.
+4. Split into separate packages only if a real consumer needs to version the parts independently.
+
+**Contract and examples**
+
 - One npm package, **`@arnilo/liveframe`**, with a subpath export for each part:
 
   | Import | Holds |
@@ -841,7 +1354,17 @@ Paths are relative to `@arnilo/liveframe`; `.` is the root export. The `sdk` row
 
 - Peer ranges start at the oldest version that passes the suites covering them: `react` and `react-dom` `^19.0.0`, `playwright` `^1.49.0` (the version that added `locator.ariaSnapshot()`) and `@modelcontextprotocol/server` `^2.0.0`. `scripts/release/peer-floors.ts` installs each floor into a temporary copy of the checkout and runs those suites; a range widens only when that run passes.
 - One CLI, `liveframe`, exposed through the package's `bin` (`liveframe gen`, `liveframe gen --check`, `liveframe gen --implementations`, `liveframe gen --elements-schema`, `liveframe preview capture`, `liveframe mcp`). `liveframe gen` writes a widget's typed component module into the app (§7.2), `--elements-schema` writes the per-catalog agent JSON Schema, and the same emitters are importable from `/sdk/gen`. `playwright` is an optional peer dependency, needed only by `preview capture`.
-- **In-process authoring.** `/authoring` exports `createAuthoring({ catalog, capabilities, runner, preview?, capture?, maxCaptureCells?, exposeMeta? })`. Catalog and capabilities are validated documents; the runner is required. Its eight async operations return `Result<T>`: `listPrimitives({ kinds? })`, `listVocabulary()`, `listCapabilities()`, `generatedTypes({ module? })`, `packDraft({ files, entry, manifest, scenarios })`, `renderScenarios({ scenario?, state?, context?, outcomes? })`, `setState({ origin: { nodeId, event }, value? })` and `capturePreview({ scenarios?, widths?, themes?, designSystems?, layout?, media? })`. Their values, errors and bounds match the MCP tools below, except capture returns cells with coordinates, errors, `aria: string | null`, `png: Uint8Array` only when `layout: true` was asked, `layout: CellLayout | null`, and only when `media` was asked, `media: CaptureMedia`. It writes no files and loads neither MCP nor Playwright. Missing capture configuration returns `not-found`.
+- **In-process authoring.** `/authoring` exports `createAuthoring({ catalog, capabilities, runner, preview?, capture?, maxCaptureCells?, exposeMeta? })`.
+
+  Catalog and capabilities are validated documents; the runner is required.
+
+  Its eight async operations return `Result<T>`: `listPrimitives({ kinds? })`, `listVocabulary()`, `listCapabilities()`, `generatedTypes({ module? })`, `packDraft({ files, entry, manifest, scenarios })`, `renderScenarios({ scenario?, state?, context?, outcomes? })`, `setState({ origin: { nodeId, event }, value? })` and `capturePreview({ scenarios?, widths?, themes?, designSystems?, layout?, media? })`.
+
+  Their values, errors and bounds match the MCP tools below, except capture returns cells with coordinates, errors, `aria: string | null`, `png: Uint8Array` only when `layout: true` was asked, `layout: CellLayout | null`, and only when `media` was asked, `media: CaptureMedia`.
+
+  It writes no files and loads neither MCP nor Playwright.
+
+  Missing capture configuration returns `not-found`.
   The four draft operations share one arrival-order queue; catalog reads stay concurrent. The preview binding is lazy, reused after success, retried after rejection, and closed by `close()`; the host owns the runner. `outcomes: true` returns statuses after expanding each selected scenario with exactly one `sourceOutcome` source using `outcomeScenarios()` (§7.3); scenarios with none remain unchanged, and two is `invalid-document` at `/scenarios/<index>`. Expansion errors return before rendering anything. Expanded renders use a separate surface and revision sequence and leave the preview selection, state and package unchanged. Authoring grants no store, dispatcher, resolver, installation, placement or approval authority (law 4).
 - **`liveframe mcp <config-module>`** is an authoring-time MCP server for coding agents, serving the MCP protocol over stdio. The module default-exports an `AuthoringConfig`: `{ catalog, capabilities, runner?, preview?, capture?, maxCaptureCells?, draftRoot? }`. The server validates `catalog` and `capabilities` on start; an invalid config prints typed `LiveframeError`s to stderr and exits 2. Stdout carries only the protocol.
 
@@ -853,26 +1376,79 @@ Paths are relative to `@arnilo/liveframe`; `.` is the root export. The `sdk` row
 
   `tools/list` holds exactly eight tools, each returning JSON in one text block. Each tool advertises a `title` and explicit `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint` annotations as listed in [the MCP guide](mcp.md#the-tools). Annotations are client hints only: they never change execution or enforce permissions or isolation. All tools have `openWorldHint: false` for the configured app's authoring environment; host-supplied runners and backends retain their own authority:
 
-  Every tool also advertises a self-contained `outputSchema` built from the published format schemas, with only local `$ref`s. Each successful result adds `structuredContent` equal to the JSON value in its first text block: the definitions array, vocabulary object, capabilities document, generated module object, draft summary, tree/status-array union, state tree or capture cell-metadata array described below. Existing text blocks remain byte-identical, including capture's accessibility text and image blocks; capture structured output contains coordinates and errors, plus `layout` when requested. Capability and draft `meta` obey `exposeMeta` in both representations. Error results retain `isError: true` and their text and omit `structuredContent`. SDK 2.4.0's `2026-07-28` codec returns values directly; for protocol `2025-11-25` it wraps non-object-root schemas and structured values as `{ result: value }` (`list_primitives`, `render_scenarios` even when returning a tree, and `capture_preview`). Object-root results stay unwrapped.
+  Every tool also advertises a self-contained `outputSchema` built from the published format schemas, with only local `$ref`s.
+
+  Each successful result adds `structuredContent` equal to the JSON value in its first text block: the definitions array, vocabulary object, capabilities document, generated module object, draft summary, tree/status-array union, state tree or capture cell-metadata array described below.
+
+  Existing text blocks remain byte-identical, including capture's accessibility text and image blocks; capture structured output contains coordinates and errors, plus `layout` when requested.
+
+  Capability and draft `meta` obey `exposeMeta` in both representations.
+
+  Error results retain `isError: true` and their text and omit `structuredContent`.
+
+  SDK 2.4.0's `2026-07-28` codec returns values directly; for protocol `2025-11-25` it wraps non-object-root schemas and structured values as `{ result: value }` (`list_primitives`, `render_scenarios` even when returning a tree, and `capture_preview`).
+
+  Object-root results stay unwrapped.
 
   - `list_primitives({ kinds? })` — every definition in full, or the named kinds: props schema, children, events with `carries`, variants, slots, style props, `description` and `deprecated`.
   - `list_vocabulary()` — `{ catalogId, vocabulary }`: the id a manifest must name, then the catalog's color, surface, fillable and typography roles, tones, `surfaceTypography`, and the `space`, `radius`, `size` and `bp` names.
   - `list_capabilities()` — each source's params and result schemas and each action's args schema. It never calls a resolver. Capability `meta` is omitted unless the config sets `exposeMeta: true`.
   - `generated_types({ module? })` — `{ note, types }`, with `types` byte-identical to the selected `liveframe gen` output: `"types"` (default), `"implementations"` (`--implementations`) or `"elementsSchema"` (`--elements-schema`). The note names the file to save. Omitting `module` preserves the original result; an unknown selector is `invalid-document` at `/module`, with all three accepted values in `expected`.
   - `pack_draft({ files, entry, manifest, scenarios })`, or `{ dir, entry? }` with `config.draftRoot` — inline input is `session.update()`'s input, returning `{ hash, id, version, description?, scenarios }` (and the manifest `meta` only when `exposeMeta` is true) or the pack errors; a failed pack keeps the previous package.
-  - `render_scenarios({ scenario?, state?, context?, outcomes? })` — one scenario's tree of at most 256 KiB (262144 bytes of JSON; past that, `limit-exceeded` at `/scenario`, naming the size and the limit) or its `LiveframeError`s, or every scenario's status — `{ scenario, ok: true, nodes }` for each renderable scenario, plus each distinct error once as `{ ok: false, kind, pointer, message, expected?, scenarios }` — distinct by `kind`, `pointer`, `message` and `expected` — where `scenarios` names the scenarios that share it. The optional boolean `outcomes: true` expands each selected scenario's single `sourceOutcome` source into `ok`, `unauthorized`, `unavailable`, `stale` and `failed`, always returning statuses even with `scenario`. Scenarios with no outcome source render once; more than one is `invalid-document` at `/scenarios/<index>`. Non-boolean `outcomes` is `invalid-document` at `/outcomes`.
+  - `render_scenarios({ scenario?, state?, context?, outcomes? })` — one scenario's tree of at most 256 KiB (262144 bytes of JSON; past that, `limit-exceeded` at `/scenario`, naming the size and the limit) or its `LiveframeError`s, or every scenario's status — `{ scenario, ok: true, nodes }` for each renderable scenario, plus each distinct error once as `{ ok: false, kind, pointer, message, expected?, scenarios }` — distinct by `kind`, `pointer`, `message` and `expected` — where `scenarios` names the scenarios that share it.
 
-  - `set_state({ origin: { nodeId, event }, value? })` — applies an offered `setState` through `session.intent` and returns the new tree under the same 256 KiB bound. Only a successful single-scenario render establishes a selection; checks and outcome expansion leave it unchanged. A successful repack clears it; a failed pack retains it. Without one, return `not-found` with "Call render_scenarios with a scenario first". Unknown nodes/events return `not-found` at `/origin/nodeId` or `undeclared-event` at `/origin/event`. Actions are refused as `invalid-prop` at `/origin/event` before the session can log them. The server supplies the current surface/revision and completes the offered intent using its literal value or the supplied event value; invalid values retain the intent validation error. Missing or malformed origin is `invalid-document`. The bound page and capture preserve changed state when reading the same scenario.
+    The optional boolean `outcomes: true` expands each selected scenario's single `sourceOutcome` source into `ok`, `unauthorized`, `unavailable`, `stale` and `failed`, always returning statuses even with `scenario`.
 
-  `config.draftRoot?: string` opts the CLI into directory reads. A relative root resolves from the server's working directory at startup; it is canonicalized and must name an existing directory, or startup reports `invalid-document` at `/draftRoot` and exits 2. `dir` must be a non-empty relative path with no `..` segment. The reader selects top-level `.ts`/`.tsx` files plus `manifest.json` and `scenarios.json`, defaults `entry` to `entry.tsx`, ignores unrelated files and never recurses or executes code. The canonical directory and every selected file must stay beneath the root at path boundaries; selected files must be regular files. Reads are limited to 128 sources and 1048576 aggregate bytes including JSON, checked before allocating contents and during reading. The packer's emitted-code limit remains separate. Directory reads join the draft queue before packing; `/authoring` stays inline-only.
+    Scenarios with no outcome source render once; more than one is `invalid-document` at `/scenarios/<index>`.
+
+    Non-boolean `outcomes` is `invalid-document` at `/outcomes`.
+
+  - `set_state({ origin: { nodeId, event }, value? })` — applies an offered `setState` through `session.intent` and returns the new tree under the same 256 KiB bound.
+
+    Only a successful single-scenario render establishes a selection; checks and outcome expansion leave it unchanged.
+
+    A successful repack clears it; a failed pack retains it.
+
+    Without one, return `not-found` with "Call render_scenarios with a scenario first".
+
+    Unknown nodes/events return `not-found` at `/origin/nodeId` or `undeclared-event` at `/origin/event`.
+
+    Actions are refused as `invalid-prop` at `/origin/event` before the session can log them.
+
+    The server supplies the current surface/revision and completes the offered intent using its literal value or the supplied event value; invalid values retain the intent validation error.
+
+    Missing or malformed origin is `invalid-document`.
+
+    The bound page and capture preserve changed state when reading the same scenario.
+
+  `config.draftRoot?: string` opts the CLI into directory reads.
+
+  A relative root resolves from the server's working directory at startup; it is canonicalized and must name an existing directory, or startup reports `invalid-document` at `/draftRoot` and exits 2.
+
+  `dir` must be a non-empty relative path with no `..` segment.
+
+  The reader selects top-level `.ts`/`.tsx` files plus `manifest.json` and `scenarios.json`, defaults `entry` to `entry.tsx`, ignores unrelated files and never recurses or executes code.
+
+  The canonical directory and every selected file must stay beneath the root at path boundaries; selected files must be regular files.
+
+  Reads are limited to 128 sources and 1048576 aggregate bytes including JSON, checked before allocating contents and during reading.
+
+  The packer's emitted-code limit remains separate.
+
+  Directory reads join the draft queue before packing; `/authoring` stays inline-only.
   Every reader error points to `/dir`: `invalid-document` for invalid paths, escapes, malformed JSON, non-regular files or combining `dir` with `files`, `manifest` or `scenarios`; `not-found` for an unconfigured `draftRoot` or missing directory, JSON file or entry; `limit-exceeded` for read bounds. Document validation after reading keeps normal document-root pointers. The reader assumes host-controlled directories, not a sandbox against concurrent local file replacement.
 
   `pack_draft` and `render_scenarios` declare only a permissive top-level object — a description per argument and the published schemas in `$defs` for reference — and validate inside the handler with the same format validators the library uses. Each inline-required `pack_draft` property's description says "Required"; missing keys return `invalid-document` at `/files`, `/entry`, `/manifest` or `/scenarios`, reporting every missing key. An argument error is therefore always a `LiveframeError[]` rooted at the document an agent edits (`/manifest/id`, `/scenarios/0/params`), never the MCP layer's own validation string. Non-object `arguments` (null, arrays, strings or numbers) are protocol errors rejected before the handler; omitted arguments reach it as an empty object.
-  - `capture_preview({ scenarios?, widths?, themes?, designSystems?, layout?, media? })` — captures the bound page's cells, 12 per call by default (configurable up to 48), returning each cell's coordinates, accessibility snapshot, `LiveframeError`s and PNG as image content. With `layout: true` each cell's metadata also carries its structural `layout` (§7.5), so a row and a stack, or a row too wide for its cell, are told apart by numbers rather than image height; an oversize record is `limit-exceeded` at `/layout`. With `media` every requested value multiplies the cells, each cell metadata carries its own `media` point, and the axes, `textScale` validation and the `not-found` refusal are those of §7.5. Its own failures are typed: an undeclared axis value is `unknown-name`, exceeding `maxCaptureCells` is `limit-exceeded` before any screenshot, with the configured bound, `maxCaptureCells` and axis-narrowing arguments in the message, an unreachable or never-ready page, a missing `preview()` and missing Playwright or Chromium are `not-found` (with the install command), and anything else keeps its message as `render-failed`.
+  - `capture_preview({ scenarios?, widths?, themes?, designSystems?, layout?, media? })` — captures the bound page's cells, 12 per call by default (configurable up to 48), returning each cell's coordinates, accessibility snapshot, `LiveframeError`s and PNG as image content.
+
+    With `layout: true` each cell's metadata also carries its structural `layout` (§7.5), so a row and a stack, or a row too wide for its cell, are told apart by numbers rather than image height; an oversize record is `limit-exceeded` at `/layout`.
+
+    With `media` every requested value multiplies the cells, each cell metadata carries its own `media` point, and the axes, `textScale` validation and the `not-found` refusal are those of §7.5.
+
+    Its own failures are typed: an undeclared axis value is `unknown-name`, exceeding `maxCaptureCells` is `limit-exceeded` before any screenshot, with the configured bound, `maxCaptureCells` and axis-narrowing arguments in the message, an unreachable or never-ready page, a missing `preview()` and missing Playwright or Chromium are `not-found` (with the install command), and anything else keeps its message as `render-failed`.
 
   The server is authoring-only (law 4): it has no store, dispatcher or data resolver; its only intent path, `set_state`, applies an offered `setState`; no tool runs, logs or dispatches an action. No tool installs, places or approves a widget or resolves real data. The bound page receives trees only, never draft code (law 1). The MCP SDK is an optional peer dependency, needed only by this command; a missing SDK is reported with how to install it, and `liveframe gen` runs without it.
 - Everything outside `/react`, `/store/fs`, `/preview/worker`, `/preview/react`, `/conformance/react` and the CLI is host-API-free, and CI checks it. `/css` returns strings and plain objects; inserting a sheet through `<style>`, `<link>` or a CSP nonce is the host's job. Across the library subpaths, the only dynamic `import(` is the package loader in `/preview` (§7.5), and the scan names that file as its only exception. The CLI may lazily import command-specific optional peers: `playwright` for capture and the MCP SDK for `liveframe mcp`, and it may import the host's config module named on the `liveframe mcp` command line. `liveframe gen` must run without either peer installed.
-- Split into separate packages only if a real consumer needs to version the parts independently.
 
 **Conformance contracts.** The kit tests the app's side of the catalog, styling, renderer and store contracts; library-internal correctness stays in the library's own tests.
 
@@ -885,17 +1461,41 @@ Paths are relative to `@arnilo/liveframe`; `.` is the root export. The `sdk` row
 - `conformance/patch/diff.json` holds `{ name, prev, next, patch }` vectors pinning deterministic diff order and exact application round trips. Trees are inline documents; the library tests the vectors through public exports.
 - `conformance/hash/` holds committed language-neutral vectors: accepted `{ value, canonical, sha256 }` and rejected `{ value, rejected }` entries, with tagged escapes for values JSON cannot carry. `sha256` is the lowercase hex digest of the UTF-8 canonical text, without the `sha256-` prefix. `packages.json` holds `{ package, hash }` entries, where `hash` is `sha256-` plus the digest of the canonical `{ format, manifest, code, scenarios }` (§7.3). The library's suite runs every vector through the canonicaliser and hash; the set includes RFC 8785 Appendix B and changes only with a format version.
 
+**Rationale**
+
+Subpath exports let hosts load the parts their environment needs.
+
 ## 14. Non-goals for v1
+
+**Rules**
+
+1. The exclusions below define the v1 boundary.
+2. Runtime agent tools that install, place or approve widgets stay the app's (`decision-logs/2026-10-22-0902-authoring-mcp-server-for-coding-agents.md`).
+
+**Contract and examples**
 
 - Running widget code in the browser, including in preview.
 - Shipping components, a design system, an isolation sandbox (the reference runners in §7.5 are not one), a storage backend (the reference stores in §7.4 are not one), authorisation, approval flows or layout shells.
 - Migrating widget state between versions beyond resetting it to the initial state (§7.4).
-- Agent tooling beyond generated typed component modules for the catalog, structured validation errors, preview capture (§7.5) and the authoring MCP server (§13). Runtime agent tools that install, place or approve widgets stay the app's (`decision-logs/2026-10-22-0902-authoring-mcp-server-for-coding-agents.md`).
+- Agent tooling beyond generated typed component modules for the catalog, structured validation errors, preview capture (§7.5) and the authoring MCP server (§13).
 - Renderers other than React.
 - A2UI or other wire interop.
 
+**Rationale**
+
+These boundaries keep runtime authority with the app.
+
 ## 15. Open decisions
 
-- None. 0.1.0 ships under the MIT license (`decision-logs/2026-10-25-0231-release-0-1-0-hardening-and-api-freeze.md`, R1).
+**Rules**
 
-Settled before Phase 1 (`decision-logs/2026-10-22-1905-phase-1-format-scope.md`): the vocabulary's names are app-declared and its kinds library-fixed (§6.5); the primitive set stays per app (§5); an action intent may `bind` the event's value into one argument (§8, §9).
+1. There are no open decisions.
+2. The library uses the MIT license (`decision-logs/2026-10-25-0231-release-0-1-0-hardening-and-api-freeze.md`).
+
+**Contract and examples**
+
+The settled contracts (`decision-logs/2026-10-22-1905-phase-1-format-scope.md`) are: the vocabulary's names are app-declared and its kinds library-fixed (§6.5); the primitive set stays per app (§5); an action intent may `bind` the event's value into one argument (§8, §9).
+
+**Rationale**
+
+The settled contracts retain their decision-log citations.

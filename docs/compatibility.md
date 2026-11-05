@@ -83,6 +83,39 @@ state. The committed 0.1.0 directory is regenerated with
 rewritten during upgrade. A rollback to 0.1.0 retains shared state but cannot
 access named scopes; stop scoped writes before rolling back.
 
+## Spec history relocated for the normative layout
+
+The spec restructure preserves the current contracts. These historical comparisons and proof results explain how they arose.
+
+- §6.4 history: A system that declares no `pending` recipe projects exactly the CSS it did in 0.2.1.
+- §7.4 history: The layout is part of the 0.1.x compatibility promise. `fileStore` reads and writes shared state at `states/<encoded-id>.json`, including directories written by 0.1.0.
+- §11 history: When the host's `onIntent` returns a promise, `emit` returns a `Promise<void>` that settles when the host's promise does (or, through `confirm`, after approval and the host call), so an implementation can set `aria-busy` until the host finishes; otherwise it returns `undefined`, as in 0.2.1.
+- §15 release status: None. 0.1.0 ships under the MIT license (`decision-logs/2026-10-25-0231-release-0-1-0-hardening-and-api-freeze.md`, R1).
+- §9 history: LF-17 measured a realistic streaming surface beyond the compression and arrival budgets; optional patches follow the approved design in `decision-logs/2026-10-30-1928-tree-patch-format.md`.
+- §6.3: dimension fractions remain deprecated; 0.3.0 rejects them.
+- §5 proof history: The Phase 0 proof (§12, `proof/REPORT.md`) built four real UIs from the first 23 candidates without adding a product-shaped primitive. It also showed which generic capabilities were missing.
+- §12 proof context: The blocker this resolves is recorded in `synapta-core`: `plans/200.4-SdkComponentsRendererAndQueue.md`, task T4b.
+- §10 proof-era observation and requirement: In the Phase 0 proof, validation is more than half of a render's cost, and building the tree checks the same props a second time. Build and validate become one pass (`docs/model.md`, "Performance"; `decision-logs/2026-10-22-1540-typescript-runtime-render-budget.md`). The library's build and validation now share one pass.
+
+Drafted 2026-10-21 from two working implementations of the same idea:
+
+- **Synapta**, a multi-tenant web platform: TSX widgets on an SDK, with three interaction tiers.
+- **Clay**, a desktop editor on Tauri: server-driven UI with design-system recipes.
+
+This library takes Synapta's authoring and interaction model and Clay's styling model, and combines them.
+
+**Outcome (2026-10-22): go.** See `proof/REPORT.md` and `decision-logs/2026-10-22-1519-phase-0-go.md`.
+
+The first pass was a conditional go: all four UIs were built from the candidates and composed TSX, with no product-shaped primitive and no raw styling, all three tiers worked, and the switch needed no widget change, but the agent-home queue differed from the approved artifact by 36–50% of pixels because generic capabilities were missing. Plan 002 added them to §5 and §6.3–§6.4 and re-proved the comparison:
+
+- **pixel mismatch 0.72% / 0.75% / 0.97%** at 1440 / 1024 / 390 px, against the ≤ 1% bar, at region sizes equal to the artifact's, with no diagnostics;
+- every remaining difference listed and approved: ten DOM causes (each a markup choice of an existing primitive) and 32 style values (27 anchor correspondence, 3 recorded switch-budget choices, 2 not expressible with no visual effect), in `proof/PARITY.md`;
+- the artifact's two font faces snapshotted with licences and SHA-256, so typography is compared with the real faces.
+
+The one budget that does not hold is render cost: the artifact-faithful tree is 679 nodes at 50 rows (13.6 per row), and the proof's render path costs 8.5 µs per node, so its 50-row selection rerenders in 5.75 ms against a 2 ms bench. The owner accepted this as a rendering-path cost rather than a model finding, and made it Phase 1's exit criterion: **the real renderer and validator must stay at or below 3 µs per node** on the same benches (2 ms at 680 nodes), and the design-system switch at or below 16.67 ms, measured as span A (§6.4).
+
+Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
+
 ## Formats
 
 - A format's meaning never changes within its `/N` version. `liveframe/manifest/1`, `liveframe-catalog/1` and the rest keep their fields, their required keys and their validation rules for as long as they are `/1`.
