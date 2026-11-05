@@ -435,6 +435,26 @@ Not in scope: nested surfaces (the analysis named the gap but proposed compositi
     - Final `timeout 900s bun run check` passes: build, generated files, API/schema gates, typecheck, lint, format and **1,107 passing tests, four existing skips, zero failures** (366.52 seconds of tests). The focused schema/corpus/diagnostic tests also pass. Updated the formats guide, changelog, R24 backlog entry and roadmap status. No normative spec meaning changed.
     - Nine-pair A/B comparisons against `d3155ee`, pinned to CPU 10, pass the relative gate for the budgeted paths: all whole-tree workloads 0.896–0.995, patch application 0.860, diffing 1.014, reused compilation 0.974 and first compilation 0.559; all five install validators 0.223–0.888. See [the full reports and commands](evidence/026-format-sources.md). Seven of nine validator children on each side miss absolute budgets under load; isolated reference submetrics reach 1.085. This does not claim a 2% limit for every reference microbenchmark or a quiet-host absolute pass. Task 10 retains the whole-plan benchmark and review of that reference variance.
 
+- [x] Task 9a: Correct runner contract and hash-cache documentation found by the impact review
+  - Acceptance Criteria:
+    - Functional: spec §7.5 agrees with `RunnerOptions` and `docs/packages.md`: reference runners use the SDK default error bound; only `renderModule` exposes `maxErrors`. Spec and package-guide cache prose distinguishes deeply frozen packages from mutable transport packages.
+    - Performance: n/a — prose corrections, no runtime change.
+    - Code Quality: correct the existing paragraphs; add no option or abstraction.
+    - Security: retain fresh hash checks for mutable packages (law 2).
+    - Compatibility: no declaration, schema, vector or behavior change; no register or migration entry.
+  - Approach:
+    - Skills to Use: `liveframe-execution`, `karpathy-guidelines`, `surgical-patch`.
+    - Library Documentation to Check Before Implementation: none; this corrects local contract documentation.
+    - Documentation Reviewed: `src/preview/runner.ts:9-16`, `src/runner-kit/render.ts:13-21`, `src/preview/in-process.ts:75-103`, `src/preview/cache.ts:15-24`, `docs/packages.md:310-361`, spec §7.5, Task 2's preservation findings.
+    - Options Considered: add `RunnerOptions.maxErrors`; rejected because no caller requires a new option and the guide already documents the existing default.
+    - Chosen Approach: align prose with the implemented public contract and Task 3's approved cache semantics. Owner selected execution: “Execute the Runner.maxErrors correction now”.
+    - API Notes and Examples: `RunnerOptions` remains unchanged; `renderModule({ …, maxErrors? })` remains available.
+    - Files to Create/Edit: `docs/spec.md`; `docs/packages.md`; this plan.
+  - Test Cases to Write: none — documentation-only correction; existing spec structure, document links/wording, runner integrity tests and `bun run check` verify the surrounding contracts.
+  - Notes (executed 2026-11-05):
+    - Corrected the runner's rendering-options prose, preserving the runner-kit option and the SDK default. Corrected the two stale once-per-object hash descriptions to require fresh hashing for mutable transport packages. No API, implementation, normative behavior or release decision changed.
+    - Focused spec/link/wording and runner integrity checks passed: 19 tests, zero failures. Final `timeout 900s bun run check` passed build, generated files, typecheck, lint, formatting and 1,107 tests (four existing skips, zero failures; 339.66 seconds of tests). No new test was added for this prose-only correction.
+
 - [ ] Task 10: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional: sweep the twelve impact areas (`.agents/skills/create-plan/references/liveframe.md` §5) against Tasks 1–9 in `plans/evidence/026-impact-analysis.md`; present findings with recommended dispositions; execute or backlog each, recording the owner's answer.
@@ -448,7 +468,7 @@ Not in scope: nested surfaces (the analysis named the gap but proposed compositi
     - Options Considered: n/a.
     - Chosen Approach: the standard final task.
     - API Notes and Examples: n/a.
-    - Files to Create/Edit: `plans/evidence/026-impact-analysis.md`; `plans/backlog.md`; this plan's Further Actions.
+    - Files to Create/Edit: `plans/evidence/026-impact-analysis.md`; `plans/backlog.md`; this plan's Further Actions; `roadmap.md` §3 completion status. Task 9a owns the documentation corrections found during review.
   - Test Cases to Write: n/a — review task; `bun run check` green.
   - Notes (executed <date>):
 

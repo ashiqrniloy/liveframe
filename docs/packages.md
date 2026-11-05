@@ -316,8 +316,9 @@ const key = renderKey({ hash: pkg.hash, catalogId: catalog.catalogId, params, st
 
 Reference runners compile and cache validators, then use the SDK's validated
 render path. Before loading anything they check that `pkg.hash` matches the
-package's content, once per package object; a mismatch is `hash-mismatch` and
-nothing is loaded. They do not validate the documents themselves, so still call
+package's content. Deeply frozen packages may reuse that check; mutable transport
+packages are rehashed. A mismatch is `hash-mismatch` and nothing is loaded.
+They do not validate the documents themselves, so still call
 `verifyPackage` on received packages or use `loadPlacement` before running one.
 Modules are cached by hash, and validators per catalog identity, capabilities
 identity and hash, keeping the 64 most recently used. Replace configuration
