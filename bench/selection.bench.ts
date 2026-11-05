@@ -10,7 +10,7 @@ const child = Bun.spawn({
     "liveframe:source",
     "proof/tests/renderer-browser.test.tsx",
     "--test-name-pattern",
-    "^selection_rerender_cost_is_recorded_in_production$",
+    "^(selection_rerender_cost_is_recorded_in_production|focus_continuity_selection_cost_is_recorded_in_production)$",
   ],
   stdout: "pipe",
   stderr: "pipe",
@@ -28,4 +28,11 @@ for (const [, system, json] of matches) {
     assert(values.every((value) => Number.isFinite(value) && value > 0));
     metric(`${system}.${field}Ms`, ((values[4] as number) + (values[5] as number)) / 2);
   }
+}
+
+const focus = [...(out + err).matchAll(/679-node focus continuity (false|true): median ([\d.]+) ms/g)];
+assert.equal(focus.length, 2, out + err);
+for (const [, mode, median] of focus) {
+  assert(Number.isFinite(Number(median)) && Number(median) > 0);
+  metric(`focusContinuity.${mode}.wallMs`, Number(median));
 }

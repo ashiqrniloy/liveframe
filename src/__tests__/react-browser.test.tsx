@@ -1315,7 +1315,7 @@ test("portal_focus_is_continued", async () => {
   }
 });
 
-test("default_surface_drops_focus_as_in_0_2_1", async () => {
+test("focus_continuity_on_by_default", async () => {
   const page = await browser.newPage();
   try {
     await page.goto(server.url.href);
@@ -1323,6 +1323,40 @@ test("default_surface_drops_focus_as_in_0_2_1", async () => {
     await page.evaluate((value: unknown) => window.surfaceTest.arrive(value), focusRows(1, ["a", "b", "c"]));
     await page.getByRole("button", { name: /^Row b/ }).focus();
     await page.evaluate((value: unknown) => window.surfaceTest.arrive(value), focusRows(2, ["a", "c"]));
+    expect((await focused(page)).text).toBe("Row c 0");
+    expect(await page.evaluate(() => window.surfaceTest.intents())).toEqual([]);
+    expect(await page.locator("#app > .lf_surface").first().getAttribute("tabindex")).toBe("-1");
+  } finally {
+    await page.close();
+  }
+});
+
+test("focus_continuity_false_adds_nothing", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    await page.evaluate(() => window.surfaceTest.setFocusContinuity(false));
+    await page.evaluate((value: unknown) => window.surfaceTest.arrive(value), focusRows(1, ["a", "b", "c"]));
+    await page.getByRole("button", { name: /^Row b/ }).focus();
+    const snapshots = await page.evaluate(
+      (value: unknown) => {
+        const original = document.querySelectorAll;
+        let queries = 0;
+        document.querySelectorAll = function (...args: Parameters<typeof original>) {
+          queries++;
+          return original.apply(this, args);
+        };
+        try {
+          window.surfaceTest.arrive(value);
+          return queries;
+        } finally {
+          document.querySelectorAll = original;
+        }
+      },
+      focusRows(2, ["a", "c"]),
+    );
+    expect(snapshots).toBe(0);
     expect(await focused(page)).toMatchObject({ tag: "BODY" });
     expect(await page.evaluate(() => document.querySelector("#app > .lf_surface")?.hasAttribute("tabindex"))).toBe(
       false,

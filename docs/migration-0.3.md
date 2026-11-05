@@ -62,6 +62,28 @@ Before, `width`, `height`, `minWidth`, `maxWidth`, `minHeight` and `maxHeight` a
 
 Adopter checklist: replace dimension fractions in widgets, stored trees and responsive maps with `grow` / `basis` for flex layout, or move fractions to the parent's grid `columns` / `rows`. Use declared `space.*` / `size.*`, `fill`, `fit`, or bounded `ch` / `%` when a dimension is needed. Regenerate catalog SDK types with `liveframe gen`.
 
+### Surfaces keep focus by default
+
+Before, `<Surface>` left focus recovery off unless `focusContinuity` was supplied.
+After, focus continuity defaults to `true`: removing the focused element moves
+focus to the next surviving tabbable, else the previous one, else the surface
+wrapper. Every move prevents scrolling and emits no intent. Existing focus
+placed by the host or a primitive is respected.
+
+```tsx
+// Before: explicitly enable focus recovery.
+<Surface {...surfaceProps} focusContinuity />
+// After: enabled by default.
+<Surface {...surfaceProps} />
+// Opt out to retain 0.2.3 behaviour.
+<Surface {...surfaceProps} focusContinuity={false} />
+```
+
+Adopter checklist: Remove redundant `focusContinuity={true}` props if desired.
+If the host owns recovery, pass `focusContinuity={false}`; this takes no snapshot,
+adds no attribute or `tabIndex`, and installs no listener. Check keyboard flows
+that remove a focused row or portal control.
+
 ## Compatible additions
 
 ### Preview and authoring validation limits

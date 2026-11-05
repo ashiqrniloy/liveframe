@@ -20,6 +20,7 @@ declare global {
       before: Snapshot,
       after: Snapshot,
       rounds?: number,
+      focusContinuity?: boolean,
     ) => Promise<{ samples: { validation: number; react: number; wall: number }[]; production: boolean }>;
   }
 }
@@ -104,7 +105,7 @@ window.measureSelection = async (before, after) => {
 
 // Production-mode measurement: no Profiler, React work is the flushSync wall span
 // net of arrival validation. The transition is repeated so warm samples only count.
-window.measureSelectionWall = async (before, after, rounds = 10) => {
+window.measureSelectionWall = async (before, after, rounds = 10, focusContinuity) => {
   const checked = validateCapabilities(capabilities);
   if (!checked.ok) throw new Error(JSON.stringify(checked.errors));
   const compiled = compileValidator({ catalog, capabilities: checked.value, manifest: before.manifest });
@@ -128,11 +129,13 @@ window.measureSelectionWall = async (before, after, rounds = 10) => {
       designSystem={systems[designSystem]}
       fallback={fallback}
       onIntent={onIntent}
+      {...(focusContinuity === undefined ? {} : { focusContinuity })}
     />
   );
   flushSync(() => root.render(measured(before)));
   flushSync(() => root.render(measured(after)));
   await nextFrame();
+  container.querySelector<HTMLButtonElement>("button")?.focus();
   // Fresh object graphs per round, like whole-tree arrivals; cloning stays outside the timed span.
   const arrivals = Array.from({ length: rounds }, () => structuredClone(after.tree));
   const samples: { validation: number; react: number; wall: number }[] = [];

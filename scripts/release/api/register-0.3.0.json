@@ -338,5 +338,18 @@
     "reason": "Optional verified cache keyed by fresh package content hash and canonical installation documents",
     "hostAction": "Optionally pass a host-owned verifiedPackages cache; existing calls remain supported",
     "task": "026 T7"
+  },
+  {
+    "subpath": "./react",
+    "name": "createRenderer",
+    "change": "changed",
+    "reason": "Focus continuity defaults to true without changing the declaration",
+    "hostAction": "If the host owns recovery, pass `focusContinuity={false}`",
+    "task": "026 T8",
+    "migration": "Surfaces keep focus by default",
+    "behavior": {
+      "file": "src/__tests__/react-browser.test.tsx",
+      "test": "focus_continuity_on_by_default"
+    }
   }
 ]

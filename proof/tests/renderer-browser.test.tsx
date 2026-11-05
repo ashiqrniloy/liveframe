@@ -294,6 +294,32 @@ test("selection_rerender_cost_is_recorded_in_production", async () => {
   }
 }, 30000);
 
+test("focus_continuity_selection_cost_is_recorded_in_production", async () => {
+  const session = await openPage("full", "agent-home", "ready");
+  const before = session.snapshot();
+  const after = await session.dispatch(1, { type: "setState", key: "selected", value: "task-1" });
+  const { page, errors } = await openProductionPage();
+  try {
+    for (const continuity of [false, true]) {
+      const outcome = await page.evaluate(async (json) => {
+        const { before, after, continuity } = JSON.parse(json);
+        const result = await window.measureSelectionWall(before, after, 50, continuity);
+        return { ...result, focused: document.activeElement?.tagName };
+      }, JSON.stringify({ before, after, continuity }));
+      expect(outcome.production).toBe(true);
+      expect(outcome.focused).toBe("BUTTON");
+      expect(outcome.samples).toHaveLength(50);
+      const walls = outcome.samples.map((sample) => sample.wall).sort((a, b) => a - b);
+      console.log(
+        `679-node focus continuity ${continuity}: median ${((walls[24]! + walls[25]!) / 2).toFixed(3)} ms (50 arrivals)`,
+      );
+    }
+    expect(errors).toEqual([]);
+  } finally {
+    await page.close();
+  }
+}, 30000);
+
 test(
   "dialog_exit_animates_then_unmounts_and_reduced_motion_skips_exit",
   () =>

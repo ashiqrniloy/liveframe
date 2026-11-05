@@ -76,7 +76,7 @@ const styles: {
   { theme: { id: "rack", version: "1.0.0" }, designSystem: { id: "rack", version: "1.0.0" } },
 ];
 let switching = false;
-let continuity = false;
+let continuity: boolean | undefined;
 let normalStyle = styles[0];
 let fallback = surfaceProps.fallback;
 // A host that writes `fallback={<p>…</p>}` inline hands Surface a new element on every parent render.
@@ -132,7 +132,7 @@ const root = mode
         tree={input}
         onIntent={onIntent}
         fallback={fallback}
-        focusContinuity={continuity}
+        {...(continuity === undefined ? {} : { focusContinuity: continuity })}
         {...(diagnostics ? { diagnostics } : {})}
       />,
       { onCaughtError: () => {}, onRecoverableError: (error) => hydrationErrors.push(String(error)) },
@@ -167,7 +167,7 @@ function draw() {
         tree={input}
         onIntent={onIntent}
         fallback={inlineFallback ? <p>Unavailable</p> : fallback}
-        focusContinuity={continuity}
+        {...(continuity === undefined ? {} : { focusContinuity: continuity })}
         {...(diagnostics ? { diagnostics } : {})}
       />,
     ),

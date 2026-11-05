@@ -20,7 +20,7 @@ test("renderer_guide_example_runs", async () => {
   expect(guide).toContain(["```ts", patchSnippet, "```"].join("\n"));
   expect(validator.validateTree(tree).ok).toBe(true);
   expect(renderToString(<GuideSurface tree={tree} onIntent={() => {}} />)).toBe(
-    '<div data-lf-theme="acme@1.0.0" data-lf-ds="acme@1.0.0" class="lf_surface">' +
+    '<div data-lf-theme="acme@1.0.0" data-lf-ds="acme@1.0.0" class="lf_surface" tabindex="-1">' +
       '<button type="button" class="lf_button_default_root"><span class="lf_button_default_label">Claim</span></button>' +
       '</div><div data-lf-theme="acme@1.0.0" data-lf-ds="acme@1.0.0" class="lf_surface" data-lf-portal=""></div>',
   );

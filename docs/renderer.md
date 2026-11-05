@@ -203,12 +203,11 @@ host props; widget trees cannot supply them.
 
 ## Keep focus in the surface when a row disappears
 
-An update that removes the element the user is on drops focus to `<body>`, and
-with it the keyboard user's place. `<Surface focusContinuity>` keeps focus inside
-the surface instead:
+An update can remove the element the user is on. `<Surface>` keeps keyboard focus
+inside the surface by default:
 
 ```tsx
-<Surface {...surfaceProps} tree={tree} focusContinuity />
+<Surface {...surfaceProps} tree={tree} />
 ```
 
 While focus is inside the wrapper or portal container, the surface records which
@@ -220,8 +219,8 @@ order, and every move uses `focus({ preventScroll: true })` so the page does not
 jump. Focus the host or a primitive has already placed elsewhere is never taken
 back.
 
-The prop is off by default: without it there is no snapshot, no `tabIndex` and no
-listener, exactly as in 0.2.1. Moving focus emits no intent.
+Set `focusContinuity={false}` to opt out: no snapshot, added attribute, `tabIndex`
+or listener, preserving 0.2.3 behaviour. Moving focus emits no intent.
 
 Preview surfaces pass an optional `diagnostics` array of `LiveframeError`s. This
 adds a `display: contents` wrapper per node with `data-lf-node`, and

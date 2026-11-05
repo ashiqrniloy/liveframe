@@ -120,7 +120,7 @@ export function rendererSuite({
           });
           const expected = renderToString(
             <>
-              <div {...scope} className={className}>
+              <div {...scope} className={className} tabIndex={-1}>
                 {fallback}
               </div>
               <div {...scope} className={className} data-lf-portal="" />

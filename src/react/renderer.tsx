@@ -148,17 +148,17 @@ type FocusSnapshot = {
 /**
  * Keeps focus in the surface when a tree update removes the focused element. The snapshot is taken
  * in `getSnapshotBeforeUpdate`, the last moment the pre-update DOM is readable, and restored after
- * the commit. Rendered only under `focusContinuity`, so the default surface does no work at all.
+ * the commit. Rendered only under `focusContinuity`, so an opted-out surface does no work at all.
  */
 class FocusContinuity extends Component<{
   readonly scope: () => readonly (Element | null)[];
   readonly wrapper: () => HTMLElement | null;
   readonly children: ReactNode;
 }> {
-  getSnapshotBeforeUpdate(): FocusSnapshot | undefined {
+  getSnapshotBeforeUpdate(): FocusSnapshot | null {
     const focused = document.activeElement;
-    if (!(focused instanceof HTMLElement)) return undefined;
-    if (!this.props.scope().some((element) => element?.contains(focused))) return undefined;
+    if (!(focused instanceof HTMLElement)) return null;
+    if (!this.props.scope().some((element) => element?.contains(focused))) return null;
     const order = tabbables().filter((element) => element !== focused);
     return {
       focused,
@@ -167,7 +167,7 @@ class FocusContinuity extends Component<{
     };
   }
 
-  componentDidUpdate(_prevProps: unknown, _prevState: unknown, snapshot: FocusSnapshot | undefined) {
+  componentDidUpdate(_prevProps: unknown, _prevState: unknown, snapshot: FocusSnapshot | null) {
     // A connected element keeps its focus; a host or a primitive that took focus during the commit
     // stays where it is. Only the element the browser dropped is ours to replace.
     if (!snapshot || snapshot.focused.isConnected) return;
@@ -411,7 +411,7 @@ export function createRenderer({
     wrapperProps,
     portalProps,
     transparency,
-    focusContinuity,
+    focusContinuity = true,
   }: SurfaceProps) {
     const mounted = useRef(false);
     const [failed] = useState(() => new WeakSet<UiNode>());
