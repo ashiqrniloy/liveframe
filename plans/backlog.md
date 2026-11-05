@@ -513,7 +513,11 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 
 - Release disposition (2026-11-04, plan 025 Task 10): after reviewing the missing below-2-load proof, absolute benchmark failures and cumulative 1.064/1.096 validator/render ratios, the owner answered “Go: release with quiet-host proof open”. [Approved exception](../decision-logs/2026-11-04-2116-release-0-2-3-with-quiet-host-proof-open.md). Task 8 and this backlog entry remain open; final publication does not prove or relax any outstanding budget.
 
+- Update (2026-11-05, plan 026 Task 10): the required single sequential whole-plan benchmark attempt at load 4.02 / 4.39 / 4.91 failed core-queue.full at 1.509 µs/node against 1.5; the chained render/CSS/streaming stages were not reached. No retry or threshold change. [Impact review](evidence/026-impact-analysis.md) records all measurements and the Task 9 isolated reference variance (up to 1.085 interpreted / 1.037 props), distinguished from passing relative whole-tree/patch/diff/compilation/install gates. Retain this existing follow-up into plan 032 Task 3 under the approved scope; no quiet-host or cumulative absolute pass is claimed.
+
 ## Name the realm mismatch in a compiled validator's `validateTree`
+
+- Status: closed in the checkout 2026-11-05 by plan 026 Task 5: consistent invalid-document realm diagnostics across public document validators, with the VM entry-point matrix and migration. Recorded by [Task 10's impact review](evidence/026-impact-analysis.md). Not yet published as 0.3.0.
 
 - Section: Validation (spec §10)
 - Priority: P4
@@ -538,6 +542,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Why: 0.2.3 documents the trust model instead (`draftRoot` is writable only by the agent and the host, `docs/mcp.md`), which is enough while the root is host-controlled. Hosts that share the directory with other writers need the handle-based read.
 
 ## Let `createPreview()` and `createAuthoring()` take validation limits
+
+- Status: closed in the checkout 2026-11-05 by plan 026 Task 6: owned RenderLimits snapshots reach runner calls, host validation, outcome expansion and MCP; malformed limits fail at /limits. Recorded by [Task 10's impact review](evidence/026-impact-analysis.md). Not yet published as 0.3.0.
 
 - Section: Preview and authoring (spec §7.5, §12)
 - Priority: P4
@@ -573,6 +579,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 
 ## Freeze packages and preserve caller ownership of render inputs in 0.3.0
 
+- Status: closed in the checkout 2026-11-05 by plan 026 Task 3: owned deeply frozen packages and widget input copies; caller inputs remain writable. Migration and integrity/ownership regressions are included. Recorded by [Task 10's impact review](evidence/026-impact-analysis.md). Not yet published as 0.3.0.
+
 - Section: Packages and SDK input ownership
 - Priority: P3
 - Source: plans/025-Phase-7-Part-L-Release-0-2-3-Simplification-And-Release.md Task 7 (R4, R5); approved 0.2.3 scope decision
@@ -581,6 +589,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 
 ## Reject fractions on dimension props in 0.3.0
 
+- Status: closed in the checkout 2026-11-05 by plan 026 Task 4: all six dimension props reject fractions across runtime, generation, projection and tree schema; grid tracks remain valid. Registered corpus case and migration included. Recorded by [Task 10's impact review](evidence/026-impact-analysis.md). Not yet published as 0.3.0.
+
 - Section: Styling (spec §6.3)
 - Priority: P3
 - Source: plans/025-Phase-7-Part-L-Release-0-2-3-Simplification-And-Release.md Task 7 (R9); plan 023 Task 7
@@ -588,6 +598,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Why: dimension fractions currently project to CSS browsers ignore. 0.2.3 deprecates them without changing accepted documents or CSS bytes; rejection needs the minor release.
 
 ## Add an opt-in verified-package cache to loadPlacement in 0.3.0
+
+- Status: closed in the checkout 2026-11-05 by plan 026 Task 7: host-owned bounded verifiedPackages cache, fresh stored-content hashing and installation-aware keys; placement, params and state still checked on every load. Recorded by [Task 10's impact review](evidence/026-impact-analysis.md). Not yet published as 0.3.0.
 
 - Section: Stores and package verification (spec §7.4)
 - Priority: P3

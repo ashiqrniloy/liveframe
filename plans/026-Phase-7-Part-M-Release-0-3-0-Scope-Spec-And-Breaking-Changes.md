@@ -455,7 +455,7 @@ Not in scope: nested surfaces (the analysis named the gap but proposed compositi
     - Corrected the runner's rendering-options prose, preserving the runner-kit option and the SDK default. Corrected the two stale once-per-object hash descriptions to require fresh hashing for mutable transport packages. No API, implementation, normative behavior or release decision changed.
     - Focused spec/link/wording and runner integrity checks passed: 19 tests, zero failures. Final `timeout 900s bun run check` passed build, generated files, typecheck, lint, formatting and 1,107 tests (four existing skips, zero failures; 339.66 seconds of tests). No new test was added for this prose-only correction.
 
-- [ ] Task 10: Analyze architectural impact and dispose of every finding
+- [x] Task 10: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional: sweep the twelve impact areas (`.agents/skills/create-plan/references/liveframe.md` §5) against Tasks 1–9 in `plans/evidence/026-impact-analysis.md`; present findings with recommended dispositions; execute or backlog each, recording the owner's answer.
     - Performance: `bun run bench` once, sequentially, with machine load recorded; no new budget claims.
@@ -470,7 +470,11 @@ Not in scope: nested surfaces (the analysis named the gap but proposed compositi
     - API Notes and Examples: n/a.
     - Files to Create/Edit: `plans/evidence/026-impact-analysis.md`; `plans/backlog.md`; this plan's Further Actions; `roadmap.md` §3 completion status. Task 9a owns the documentation corrections found during review.
   - Test Cases to Write: n/a — review task; `bun run check` green.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-05):
+    - Completed all twelve impact areas and explicitly reviewed the four laws in [the impact analysis](evidence/026-impact-analysis.md). Four findings are disposed: F1 closes five implemented backlog entries; F2 retains the existing quiet-host/performance follow-up; F3/F4 are corrected by Task 9a (`61734cd`). The owner selected “Execute the Runner.maxErrors correction now” over the proposed backlog disposition. No new runtime option or architectural decision was introduced.
+    - Ran `bun run bench` exactly once, sequentially, with load recorded (4.02 / 4.39 / 4.91 before, 4.01 / 4.37 / 4.90 after). It exited 1: core-queue.full measured 1.509 µs/node against 1.5. The chained render/CSS/streaming stages were not reached. Recorded Task 9's isolated reference variance separately from its passing relative shipping-path gates. No retry, budget change or new performance claim; existing quiet-host proof remains in the backlog and plan 032 Task 3.
+    - Final clean `timeout 900s bun run check` passed build, generated files, API/schema gates, typecheck, lint, formatting and 1,107 tests (four existing skips, zero failures, 171,104 assertions across 124 files; 339.66 seconds of tests). Load was 6.34 / 10.41 / 7.84 before and 4.41 / 5.71 / 6.45 after; this is not quiet-host proof. An earlier accidental broad-test invocation overlapped a check and produced browser failures; both were stopped and this fresh check supersedes them. No assertion or timeout was weakened.
+    - Verified the complete `v0.2.3` schema/corpus/vector diff contains only the three registered dimension-fraction files. Focused spec/link/wording/runner-integrity tests passed (19 tests). `git diff --check` passed. Updated the backlog handoff, Compromises/Further Actions and roadmap §3; preserved unrelated plan-index, roadmap scope/numbering and draft-plan edits. No version bump, publication or external host change.
 
 ## Verification (whole plan)
 
@@ -481,8 +485,12 @@ Not in scope: nested surfaces (the analysis named the gap but proposed compositi
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- Quiet-host absolute and cumulative performance proof remains open under the already approved scope/release exception. Task 10's single loaded-host benchmark failed the validator gate and did not reach the later chained stages. No threshold was relaxed.
+- Render-copy A/B evidence uses explicitly frozen host-owned inputs; mutable resolved data is copied and checked each render, with a workload-dependent cost. The verified-package cache proves fewer full verifications, not fewer hashes or an elapsed-time gain on small packages.
+- Task 9 preserves the public widget schema language by using a private transport-schema compiler for recursive references, maps, tuples and applicators. It removes 27 net production lines and retains separate relationship checks. Its relative shipping-path gates pass; isolated reference microbenchmarks do not all meet 2% and remain recorded for performance follow-up.
+- No installed 0.3.0 archive or external adopter upgrade was tested here; plan 032 owns release validation. Existing runner isolation, host orchestration and draft-directory trust limitations retain their approved plans/backlog entries.
 
 ## Further Actions
 
-- To be filled after task completion with improvements, rationale, and priority.
+- **P3 — Re-run the full benchmark suite on a quiet host.** Existing [backlog entry](backlog.md#re-run-the-full-benchmark-suite-on-a-quiet-host), carried into plan 032 Task 3. Include this plan's loaded-host result and Task 9's isolated reference variance when validating unchanged absolute budgets; reopen the owning task if a quiet-host budget fails. Do not infer a whole-suite pass from task-specific paired results.
+- The five ownership/dimension/cache/realm/session-limit backlog items implemented by Tasks 3–7 are closed in the checkout; Task 9 already closed R24. F3/F4 are complete in Task 9a. No new follow-up is required for those findings. Plans 027–032 continue the approved release scope, including runner conformance/isolation and the existing `next` dist-tag carryover.
