@@ -268,35 +268,41 @@ Not in scope: nested surfaces (the analysis named the gap but proposed compositi
     - Final verification: `timeout 900s bun run check` passed build, generated-file checks, typecheck, lint, formatting and 1,086 tests (4 existing skips, 0 failures). The final fresh run includes both preservation regressions. Dedicated benchmarks were not run; no performance budget claim is added.
 
 
-- [ ] Task 5: One realm rule for every public validator entry point (Q8)
+- [x] Task 5: One realm rule for every public validator entry point (Q8)
   - Acceptance Criteria:
     - Functional:
       - Every public function that takes a document (`validateCatalog`, `validateManifest`, `validateCapabilities`, `validateTheme`, `validateDesignSystem`, `compileValidator`, a compiled validator's `validateTree`, `validateTreePatch`, `applyPatch`, `diffTrees`, `verifyPackage`, `renderModule`) rejects an object created in another realm with the realm message already used by `validateJson` (`src/formats/json.ts:106`), kind `invalid-document` at the offending pointer.
       - `validateTree` no longer reports `invalid-prop` "Expected a plain JSON object" for a foreign-realm tree (`src/validate/tree.ts:196`).
-      - A `vm` test passes an outer-realm document to each entry point in `validator.bundle.js` and asserts the realm message.
+      - A Bun `node:vm` test passes an outer-realm document to each root entry point in `validator.bundle.js` and asserts the realm message; pack, store and runner APIs are tested separately without widening the validator bundle. Include the exported vocabulary, package-shape, scenario and record validators found during the public-entry-point inventory.
       - Migration entry "Foreign-realm documents are rejected everywhere".
-    - Performance: the realm check runs only on the rejection path (prototype mismatch), so accepted documents pay nothing; bench non-regression.
+    - Performance: realm diagnostic classification runs only after a prototype mismatch in existing walks; no extra accepted-tree pass. Install paths that previously lacked prototype guards scan document values before structural checks. Record install/cache costs and paired tree-validation non-regression (≤ 2%).
     - Code Quality: one shared `realmError` helper used by every entry point.
     - Security: law 2 — accessor-bearing foreign objects can no longer slip into compile-time paths.
     - Compatibility: breaking for hosts passing outer-realm objects to `validateCatalog`/`compileValidator`, which 0.2.3 accepted.
   - Approach:
     - Skills to Use: `liveframe-execution`; `surgical-patch`.
     - Library Documentation to Check Before Implementation: Bun `node:vm` support (test only) via `find-docs`.
-    - Documentation Reviewed: backlog "Name the realm mismatch in a compiled validator's `validateTree`"; `src/formats/json.ts:77-110`; `src/__tests__/validator-bundle.test.ts`.
+    - Documentation Reviewed: backlog "Name the realm mismatch in a compiled validator's `validateTree`"; `src/formats/json.ts:77-110`; `src/__tests__/validator-bundle.test.ts`; Context7 `/oven-sh/bun/bun-v1.4.2` `docs/runtime/nodejs-compat.mdx` (`node:vm` core APIs and ES modules).
     - Options Considered: document which entry points accept foreign objects. Rejected: two rules for one boundary; agents and ports need one.
-    - Chosen Approach: reject everywhere with the existing message.
+    - Chosen Approach: reject everywhere with the existing message, preserving existing non-realm diagnostics. Root guards run before reading foreign fields; cache equality rejects foreign nested objects, and tree walks reuse their existing prototype checks. Install scans reuse the JSON walker in realm-only mode. The original zero-cost claim cannot apply to install paths that previously had no prototype guard; measure these and isolate the accepted-tree hot path.
     - API Notes and Examples:
       ```ts
       vmValidator.compileValidator({ catalog: outerRealmCatalog, … });
       // throws LiveframeFailure: "/catalog: Expected a JSON value created in this realm; …"
       ```
     - Files to Create/Edit:
-      - `src/formats/json.ts`; `src/validate/tree.ts`; `src/validate/compile.ts`; `src/validate/patch.ts`; `src/pack/verify.ts`; `src/runner-kit/render.ts`
-      - `src/__tests__/validator-bundle.test.ts`; `docs/spec.md` §10; `docs/migration-0.3.md`; `CHANGELOG.md`
+      - `src/internal.ts`; `src/formats/json.ts`; install checkers in `src/formats/{capabilities,catalog,design-system,manifest,package,records,theme,vocabulary}.ts`; `src/validate/{tree,structure,compile,patch}.ts`; `src/runner-kit/render.ts`. `verifyPackage` delegates through the package-shape checker, so its implementation needs no duplicate guard.
+      - `src/__tests__/validator-bundle.test.ts`; `plans/evidence/026-validator-realm.{ts,md}`; `docs/spec.md` §10; `docs/migration-0.3.md`; `CHANGELOG.md`; `scripts/release/api/register-0.3.0.json`; `roadmap.md` §3
   - Test Cases to Write:
     - `every_entry_point_names_a_foreign_realm` (table-driven over the list above).
     - `same_realm_documents_unchanged` (corpus passes byte-identically).
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-05):
+    - Extracted the existing foreign-plain-object diagnostic into one internal `realmError` helper. Install validators reject before reading foreign document fields; their realm-only scan preserves existing cycle, metadata-budget and other non-realm diagnostics. Compiler root guards label catalog/capabilities/manifest inputs, and structural cache equality prevents a warm hit from accepting nested foreign schema objects.
+    - Tree validation reuses the existing prototype guard and reports `invalid-document` at the offending pointer. Its JSON walk uses the same diagnostic; a cold scan of a rejected node prevents an ordinary schema error from hiding the foreign object. Patch/diff guards retain the existing precondition that base/diff inputs are validated immutable trees. Package verification delegates to the package-shape checker, and module rendering preserves typed compile failures.
+    - The public-entry-point inventory also found `validateVocabulary`, package-shape/scenario and stored-record validators. They are covered by the same regression matrix; `validateState` and `validateTreePatch` already used the shared JSON check and need no contract/register change. The actual validator bundle is evaluated in Bun's VM; pack/store/runner checks run separately, so no extra exports or dependencies were added.
+    - Added the spec rule, migration heading, changelog line and behaviour register entries. Existing entries for `compileValidator` and `verifyPackage` retain their earlier migrations and name this additional break in their reason/task fields, following Task 4's combined-entry precedent. No published schema or corpus bytes changed.
+    - Tests were written first and reproduced accepted foreign catalogs and generic nested-object diagnostics. The final focused API/bundle/spec/differential run passed all 39 tests. `timeout 900s bun run check` passed: build, generated-file checks, typecheck, lint, formatting, 1,089 passing tests, 4 existing skips and 0 failures. Refreshed the local graft graph.
+    - Performance evidence and regeneration script: `plans/evidence/026-validator-realm.md` and `plans/evidence/026-validator-realm.ts`. The accepted-tree paired ratio is 1.0158 against Task 4 (within 2%). A loaded-host absolute validator run exceeded tree budgets; patch/diff/warm-compile budgets passed. Quiet-host absolute performance is not established. Corrected this task's original zero-cost claim: realm classification remains cold in existing walks, but install paths previously had no uniform prototype guard and now require a scan. No extra accepted-tree pass was added.
 
 - [ ] Task 6: Validation limits for preview and authoring sessions (Q7)
   - Acceptance Criteria:

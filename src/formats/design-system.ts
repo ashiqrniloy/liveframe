@@ -19,6 +19,7 @@ import {
   signedDimension,
 } from "./dtcg.ts";
 import { noPaint, scrollbarProperties, states } from "./fixed.ts";
+import { validateJson } from "./json.ts";
 
 const literalSchemas = {
   radius: designDimension,
@@ -231,6 +232,11 @@ function checkDocument(
   context: DesignSystemContext,
   seen: Set<string>,
 ): DesignSystem | undefined {
+  const json = validateJson(input, true);
+  if (!json.ok) {
+    c.collect(json, base);
+    return undefined;
+  }
   if (!isRecord(input)) {
     c.reject(base, "Expected a design system object");
     return undefined;

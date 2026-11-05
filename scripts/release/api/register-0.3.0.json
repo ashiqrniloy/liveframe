@@ -16,9 +16,9 @@
     "subpath": "./pack",
     "name": "verifyPackage",
     "change": "changed",
-    "reason": "Ownership contract changes without declaration changes",
+    "reason": "Ownership contract changes without declaration changes; foreign-realm documents rejected consistently (026 T5, Foreign-realm documents are rejected everywhere)",
     "hostAction": "Follow the migration checklist",
-    "task": "026 T3",
+    "task": "026 T3, 026 T5",
     "migration": "Packages are deeply frozen",
     "behavior": {
       "file": "src/__tests__/pack.test.ts",
@@ -62,9 +62,9 @@
   },
   {
     "change": "changed",
-    "reason": "Dimension fractions are rejected; grid tracks remain valid",
+    "reason": "Dimension fractions are rejected; grid tracks remain valid; foreign-realm documents rejected consistently (026 T5, Foreign-realm documents are rejected everywhere)",
     "hostAction": "replace dimension fractions",
-    "task": "026 T4",
+    "task": "026 T4, 026 T5",
     "migration": "Fractions on dimension props are rejected",
     "subpath": ".",
     "name": "compileValidator",
@@ -129,5 +129,174 @@
     "migration": "Fractions on dimension props are rejected",
     "subpath": "./conformance/corpus/*",
     "name": "conformance/corpus/ui-tree/docs/dimension-fraction-rejected.json"
+  },
+  {
+    "subpath": ".",
+    "name": "validateCatalog",
+    "change": "changed",
+    "reason": "Foreign-realm plain objects reject with a consistent invalid-document diagnostic",
+    "hostAction": "Parse transported JSON in the receiving realm before validation",
+    "task": "026 T5",
+    "migration": "Foreign-realm documents are rejected everywhere",
+    "behavior": {
+      "file": "src/__tests__/validator-bundle.test.ts",
+      "test": "every_entry_point_names_a_foreign_realm"
+    }
+  },
+  {
+    "subpath": ".",
+    "name": "validateCapabilities",
+    "change": "changed",
+    "reason": "Foreign-realm plain objects reject with a consistent invalid-document diagnostic",
+    "hostAction": "Parse transported JSON in the receiving realm before validation",
+    "task": "026 T5",
+    "migration": "Foreign-realm documents are rejected everywhere",
+    "behavior": {
+      "file": "src/__tests__/validator-bundle.test.ts",
+      "test": "every_entry_point_names_a_foreign_realm"
+    }
+  },
+  {
+    "subpath": ".",
+    "name": "validateManifest",
+    "change": "changed",
+    "reason": "Foreign-realm plain objects reject with a consistent invalid-document diagnostic",
+    "hostAction": "Parse transported JSON in the receiving realm before validation",
+    "task": "026 T5",
+    "migration": "Foreign-realm documents are rejected everywhere",
+    "behavior": {
+      "file": "src/__tests__/validator-bundle.test.ts",
+      "test": "every_entry_point_names_a_foreign_realm"
+    }
+  },
+  {
+    "subpath": ".",
+    "name": "validateTheme",
+    "change": "changed",
+    "reason": "Foreign-realm plain objects reject with a consistent invalid-document diagnostic",
+    "hostAction": "Parse transported JSON in the receiving realm before validation",
+    "task": "026 T5",
+    "migration": "Foreign-realm documents are rejected everywhere",
+    "behavior": {
+      "file": "src/__tests__/validator-bundle.test.ts",
+      "test": "every_entry_point_names_a_foreign_realm"
+    }
+  },
+  {
+    "subpath": ".",
+    "name": "validateDesignSystem",
+    "change": "changed",
+    "reason": "Foreign-realm plain objects reject with a consistent invalid-document diagnostic",
+    "hostAction": "Parse transported JSON in the receiving realm before validation",
+    "task": "026 T5",
+    "migration": "Foreign-realm documents are rejected everywhere",
+    "behavior": {
+      "file": "src/__tests__/validator-bundle.test.ts",
+      "test": "every_entry_point_names_a_foreign_realm"
+    }
+  },
+  {
+    "subpath": ".",
+    "name": "applyPatch",
+    "change": "changed",
+    "reason": "Foreign-realm plain objects reject with a consistent invalid-document diagnostic",
+    "hostAction": "Parse transported JSON in the receiving realm before validation",
+    "task": "026 T5",
+    "migration": "Foreign-realm documents are rejected everywhere",
+    "behavior": {
+      "file": "src/__tests__/validator-bundle.test.ts",
+      "test": "every_entry_point_names_a_foreign_realm"
+    }
+  },
+  {
+    "subpath": ".",
+    "name": "diffTrees",
+    "change": "changed",
+    "reason": "Foreign-realm plain objects reject with a consistent invalid-document diagnostic",
+    "hostAction": "Parse transported JSON in the receiving realm before validation",
+    "task": "026 T5",
+    "migration": "Foreign-realm documents are rejected everywhere",
+    "behavior": {
+      "file": "src/__tests__/validator-bundle.test.ts",
+      "test": "every_entry_point_names_a_foreign_realm"
+    }
+  },
+  {
+    "subpath": "./runner-kit",
+    "name": "renderModule",
+    "change": "changed",
+    "reason": "Foreign-realm plain objects reject with a consistent invalid-document diagnostic",
+    "hostAction": "Parse transported JSON in the receiving realm before validation",
+    "task": "026 T5",
+    "migration": "Foreign-realm documents are rejected everywhere",
+    "behavior": {
+      "file": "src/__tests__/validator-bundle.test.ts",
+      "test": "every_entry_point_names_a_foreign_realm"
+    }
+  },
+  {
+    "subpath": ".",
+    "name": "validateVocabulary",
+    "change": "changed",
+    "reason": "Foreign-realm documents use the shared realm diagnostic",
+    "hostAction": "Parse transported JSON in the receiving realm before validation",
+    "task": "026 T5",
+    "migration": "Foreign-realm documents are rejected everywhere",
+    "behavior": {
+      "file": "src/__tests__/validator-bundle.test.ts",
+      "test": "every_entry_point_names_a_foreign_realm"
+    }
+  },
+  {
+    "subpath": "./pack",
+    "name": "validateScenario",
+    "change": "changed",
+    "reason": "Foreign-realm documents use the shared realm diagnostic",
+    "hostAction": "Parse transported JSON in the receiving realm before validation",
+    "task": "026 T5",
+    "migration": "Foreign-realm documents are rejected everywhere",
+    "behavior": {
+      "file": "src/__tests__/validator-bundle.test.ts",
+      "test": "every_entry_point_names_a_foreign_realm"
+    }
+  },
+  {
+    "subpath": "./pack",
+    "name": "validateWidgetPackageShape",
+    "change": "changed",
+    "reason": "Foreign-realm documents use the shared realm diagnostic",
+    "hostAction": "Parse transported JSON in the receiving realm before validation",
+    "task": "026 T5",
+    "migration": "Foreign-realm documents are rejected everywhere",
+    "behavior": {
+      "file": "src/__tests__/validator-bundle.test.ts",
+      "test": "every_entry_point_names_a_foreign_realm"
+    }
+  },
+  {
+    "subpath": "./store",
+    "name": "validatePlacement",
+    "change": "changed",
+    "reason": "Foreign-realm documents use the shared realm diagnostic",
+    "hostAction": "Parse transported JSON in the receiving realm before validation",
+    "task": "026 T5",
+    "migration": "Foreign-realm documents are rejected everywhere",
+    "behavior": {
+      "file": "src/__tests__/validator-bundle.test.ts",
+      "test": "every_entry_point_names_a_foreign_realm"
+    }
+  },
+  {
+    "subpath": "./store",
+    "name": "validateStyleRecord",
+    "change": "changed",
+    "reason": "Foreign-realm documents use the shared realm diagnostic",
+    "hostAction": "Parse transported JSON in the receiving realm before validation",
+    "task": "026 T5",
+    "migration": "Foreign-realm documents are rejected everywhere",
+    "behavior": {
+      "file": "src/__tests__/validator-bundle.test.ts",
+      "test": "every_entry_point_names_a_foreign_realm"
+    }
   }
 ]

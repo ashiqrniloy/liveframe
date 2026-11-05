@@ -6,6 +6,21 @@ This guide grows as the 0.3.0 tasks land. An empty section below means no breaki
 
 ## Breaking changes
 
+### Foreign-realm documents are rejected everywhere
+
+Before, install validators could accept objects constructed outside their JavaScript realm, while tree validation reported a generic `invalid-prop` error. After, document validators consistently reject foreign plain objects with `invalid-document`, the offending pointer and the instruction to parse inside the sandbox. `compileValidator` throws `LiveframeFailure`; `renderModule` returns its document errors. Patch bases and diff inputs still require previously validated, immutable trees.
+
+```ts
+// Before: pass a host object directly to the sandbox's validator.
+sandbox.validateCatalog(hostCatalog);
+// After: transport text and parse it inside the sandbox.
+const text = JSON.stringify(hostCatalog);
+// Inside the receiving realm:
+const result = validateCatalog(JSON.parse(text));
+```
+
+Adopter checklist: Parse transported JSON in the receiving realm before validation. Recreate installed catalogs, capabilities and manifests in that realm before compiling; validate returned trees in the host after transport. Same-realm and null-prototype objects retain their existing behaviour.
+
 ### Packages are deeply frozen
 
 Before, `pack()` and `verifyPackage()` returned mutable packages. After, they return owned copies frozen at every depth. `outcomeScenarios()` also returns deeply frozen copies.

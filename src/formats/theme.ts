@@ -1,6 +1,7 @@
 import type { Result } from "../errors.ts";
 import { bool, checkValue, type Infer, num, obj, record, str } from "../schema.ts";
 import { at, documentChecks, isRecord, shell } from "./capabilities.ts";
+import { checkContrast } from "./contrast.ts";
 import {
   type Colour,
   colourFields,
@@ -12,8 +13,8 @@ import {
   typographyFields,
   typographySchema,
 } from "./dtcg.ts";
+import { validateJson } from "./json.ts";
 import type { Vocabulary } from "./vocabulary.ts";
-import { checkContrast } from "./contrast.ts";
 
 // DTCG 2025.10 §4.2: https://www.designtokens.org/tr/2025.10/color/#supported-color-spaces
 // Lab axes and LCH chroma have no theoretical upper bound; typical values are not limits.
@@ -78,6 +79,8 @@ type Checks = ReturnType<typeof documentChecks>;
 
 /** Validates a resolved theme against an installed vocabulary, collecting up to 20 errors. */
 export function validateTheme(doc: unknown, vocabulary: Vocabulary): Result<Theme> {
+  const json = validateJson(doc, true);
+  if (!json.ok) return json;
   const c = documentChecks();
   if (!isRecord(doc)) c.reject("", "Expected a theme object");
   else {

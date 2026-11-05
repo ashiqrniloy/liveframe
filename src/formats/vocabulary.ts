@@ -1,8 +1,8 @@
 import type { LiveframeError, Result } from "../errors.ts";
-import { arr, checkValue, type Infer, int, isRecord, num, obj, record, str } from "../schema.ts";
-
 import { at } from "../internal.ts";
+import { arr, checkValue, type Infer, int, isRecord, num, obj, record, str } from "../schema.ts";
 import { noPaint } from "./fixed.ts";
+import { validateJson } from "./json.ts";
 
 const name = str({ maxLength: 64, pattern: "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$" });
 function names(prefix = "") {
@@ -135,6 +135,8 @@ function checkContrastReferences(value: Vocabulary, colours: ReadonlySet<string>
 
 /** Checks the closed vocabulary and collects at most 20 pointed failures. */
 export function validateVocabulary(doc: unknown): Result<Vocabulary> {
+  const json = validateJson(doc, true);
+  if (!json.ok) return json;
   const errors: LiveframeError[] = [];
   const c: Checks = {
     errors,

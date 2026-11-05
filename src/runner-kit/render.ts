@@ -1,4 +1,4 @@
-import type { Result } from "../errors.ts";
+import { LiveframeFailure, type Result } from "../errors.ts";
 import type { Capabilities } from "../formats/capabilities.ts";
 import type { Catalog } from "../formats/catalog.ts";
 import { validateJson } from "../formats/json.ts";
@@ -53,6 +53,7 @@ export function renderWidget(
       ...(maxErrors === undefined ? {} : { maxErrors }),
     });
   } catch (error) {
+    if (error instanceof LiveframeFailure) return { ok: false, errors: error.errors };
     return {
       ok: false,
       errors: [{ kind: "render-failed", pointer: "", message: errorMessage(error) }],
@@ -78,15 +79,15 @@ export function renderModule(
     key = manifestKey(options.manifest);
   } catch {
     const checked = validateJson(options.manifest);
+    if (!checked.ok)
+      return { ok: false, errors: checked.errors.map((error) => ({ ...error, pointer: `/manifest${error.pointer}` })) };
     return {
       ok: false,
       errors: [
         {
           kind: "invalid-document",
           pointer: "/manifest",
-          message: checked.ok
-            ? "Manifest must be a JSON value"
-            : (checked.errors[0]?.message ?? "Manifest must be a JSON value"),
+          message: "Manifest must be a JSON value",
         },
       ],
     };

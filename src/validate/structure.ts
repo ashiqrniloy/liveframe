@@ -131,7 +131,7 @@ export type JsonWalk = {
   /** Set once the byte limit or an error bound ends the walk. */
   stopped: boolean;
   /** Cold: reports a broken value rule. */
-  fail(expected: string): void;
+  fail(expected: string, value?: unknown): void;
   /** Cold: reports the byte limit. */
   limit(): void;
 };
@@ -164,7 +164,7 @@ export function walkJson(value: unknown, ctx: JsonWalk): void {
   if (!array) {
     const prototype = Object.getPrototypeOf(value);
     if (prototype !== Object.prototype && prototype !== null) {
-      ctx.fail("a plain JSON object");
+      ctx.fail("a plain JSON object", value);
       return;
     }
   }

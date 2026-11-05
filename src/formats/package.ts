@@ -50,8 +50,9 @@ export const widgetPackageSchema = {
 
 /** Checks fixture structure, without interpreting the manifest or resolving data sources. */
 export function validateScenario(doc: unknown): Result<Scenario> {
+  const json = validateJson(doc);
+  if (!json.ok) return json;
   const c = documentChecks();
-  c.collect(validateJson(doc), "");
   if (!isRecord(doc)) c.reject("", "Expected a scenario object");
   else {
     c.collect(checkValue(scenarioFields, shell(doc, ["params", "context", "state", "data"])), "");
@@ -84,6 +85,8 @@ function checkScenarios(scenarios: readonly unknown[], c: Checks): void {
 
 /** Transport structure only: never executes code or checks hashes and manifest semantics. */
 export function validateWidgetPackageShape(doc: unknown): Result<WidgetPackage> {
+  const json = validateJson(doc, true);
+  if (!json.ok) return json;
   const c = documentChecks();
   if (!isRecord(doc)) c.reject("", "Expected a widget package object");
   else {

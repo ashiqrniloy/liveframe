@@ -6,6 +6,8 @@ All notable changes to `@arnilo/liveframe` are recorded here. The project follow
 
 Changed:
 
+- Document validators consistently reject foreign-realm plain objects with `invalid-document` and the instruction to parse inside the sandbox. Compile and module-render errors identify the input document. See [migration](docs/migration-0.3.md#foreign-realm-documents-are-rejected-everywhere).
+
 - Dimension style props reject `fr` values, including responsive values, with `invalid-prop`. Grid tracks still accept fractions. See [migration](docs/migration-0.3.md#fractions-on-dimension-props-are-rejected).
 
 - Packages and outcome scenarios are deeply frozen owned copies; rendering gives widgets frozen copies while preserving caller ownership. See [migration](docs/migration-0.3.md).

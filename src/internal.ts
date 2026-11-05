@@ -1,4 +1,23 @@
 // Small helpers shared across the library. Internal: no subpath exports this module.
+import type { LiveframeError } from "./errors.ts";
+
+/** Recognises a foreign plain object without reading its document fields. */
+export function realmError(value: unknown, pointer = ""): LiveframeError | undefined {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return;
+  const prototype = Object.getPrototypeOf(value);
+  if (
+    prototype !== null &&
+    prototype !== Object.prototype &&
+    Object.getPrototypeOf(prototype) === null &&
+    Object.prototype.toString.call(value) === "[object Object]"
+  )
+    return {
+      kind: "invalid-document",
+      pointer,
+      message:
+        "Expected a JSON value created in this realm; this object was created in another realm (parse it inside the sandbox)",
+    };
+}
 
 /**
  * `pointer` extended by one JSON Pointer reference token (RFC 6901 §3): `~` escapes before `/`, and

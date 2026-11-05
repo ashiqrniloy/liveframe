@@ -1,7 +1,9 @@
 import { addBoundMarker, DEFAULT_MAX_ERRORS, type LiveframeError, type Result } from "../errors.ts";
 import { at, isRecord } from "../formats/capabilities.ts";
 import type { Catalog } from "../formats/catalog.ts";
+import { validateJson } from "../formats/json.ts";
 import type { UiTree } from "../formats/tree.ts";
+import { realmError } from "../internal.ts";
 import { int, str } from "../schema.ts";
 import { CONTAINER_BYTES, memberBytes, SEPARATOR_BYTES } from "./bytes.ts";
 import { closed, field } from "./checks.ts";
@@ -125,8 +127,12 @@ function createContext(
       bytes: 0,
       maximum: budget.bytes,
       stopped: false,
-      fail(expected) {
-        fail(ctx, expected, ctx.jsonSink.nodeId, "invalid-prop");
+      fail(expected, value) {
+        const error = realmError(value, pointer(ctx));
+        if (error) {
+          ctx.errors.push(error);
+          full(ctx);
+        } else fail(ctx, expected, ctx.jsonSink.nodeId, "invalid-prop");
         ctx.jsonSink.stopped = ctx.stopped;
       },
       limit() {
@@ -212,6 +218,18 @@ function walk(
     ctx.bytes = jsonSink.bytes;
     return;
   }
+  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) {
+      const error = realmError(value, pointer(ctx));
+      if (error) {
+        ctx.errors.push(error);
+        full(ctx);
+        return;
+      }
+      return fail(ctx, "a plain JSON object", parentId);
+    }
+  }
   let nodeId = parentId;
   let nodeKind = parentKind;
   let valid = true;
@@ -229,8 +247,6 @@ function walk(
   const { ancestors } = ctx;
   if (ancestors.has(value)) return fail(ctx, "an acyclic JSON tree", nodeId);
   const array = Array.isArray(value);
-  const prototype = Object.getPrototypeOf(value);
-  if (!array && prototype !== Object.prototype && prototype !== null) return fail(ctx, "a plain JSON object", nodeId);
   ancestors.add(value);
   add(ctx, CONTAINER_BYTES, nodeId);
   if (array) walkItems(ctx, value, mode, depth, parentId, parentKind, nodeId);
@@ -256,6 +272,10 @@ function enterNode(
   const nodeId = isRecord(value) && typeof value.id === "string" ? value.id : parentId;
   const start = ctx.errors.length;
   const valid = ctx.checkNode(value, "", ctx.sink);
+  if (!valid) {
+    const realm = validateJson(value, true);
+    if (!realm.ok) ctx.errors.splice(start, ctx.errors.length - start, ...realm.errors.slice(0, ctx.maxErrors - start));
+  }
   annotate(ctx, start, nodeId);
   if (ctx.stopped || !isRecord(value)) return;
   if (typeof value.id === "string") checkId(ctx, value.id, depth, parentId, nodeId);

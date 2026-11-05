@@ -3,6 +3,7 @@ import { at, type Capabilities, isRecord, validateCapabilities } from "../format
 import { type Catalog, type Definition, validateCatalog } from "../formats/catalog.ts";
 import { sameJson } from "../formats/json.ts";
 import { type Manifest, validateManifest } from "../formats/manifest.ts";
+import { realmError } from "../internal.ts";
 import type { LanguageSchema } from "../schema.ts";
 import { closed, field, reject } from "./checks.ts";
 import { compileIntents } from "./intent.ts";
@@ -215,6 +216,10 @@ function catalogWork(catalog: unknown, capabilities: unknown): CatalogWork {
 
 /** Validate installed documents once, then compile specialised per-kind checks. */
 export function compileValidator(options: CompileValidatorOptions): CompiledValidator {
+  for (const name of ["catalog", "capabilities", "manifest"] as const) {
+    const error = realmError(options[name], `/${name}`);
+    if (error) throw new LiveframeFailure([error]);
+  }
   const work = catalogWork(options.catalog, options.capabilities);
   const manifestResult = validateManifest(options.manifest, work);
   if (!manifestResult.ok) throw new LiveframeFailure(manifestResult.errors);

@@ -1,4 +1,5 @@
 import type { Result } from "../errors.ts";
+import { realmError } from "../internal.ts";
 import { bool, checkValue, type Infer, obj, str } from "../schema.ts";
 import { documentChecks, isRecord, shell } from "./capabilities.ts";
 import { validateJson } from "./json.ts";
@@ -28,6 +29,8 @@ export const styleRecordSchema = {
 } as const;
 
 export function validatePlacement(doc: unknown): Result<Placement> {
+  const error = realmError(doc);
+  if (error) return { ok: false, errors: [error] };
   const c = documentChecks();
   if (!isRecord(doc)) c.reject("", "Expected a placement object");
   else {
@@ -39,6 +42,8 @@ export function validatePlacement(doc: unknown): Result<Placement> {
 
 /** The body is JSON here; theme/design-system installation applies its own semantic checks. */
 export function validateStyleRecord(doc: unknown): Result<StyleRecord> {
+  const error = realmError(doc);
+  if (error) return { ok: false, errors: [error] };
   const c = documentChecks();
   if (!isRecord(doc)) c.reject("", "Expected a style record object");
   else {

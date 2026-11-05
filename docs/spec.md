@@ -1103,6 +1103,7 @@ Patches contain no widget code or authority.
 
 1. The validator runs on every rendered tree before it leaves the app's backend.
 2. It never uses `eval` or the `Function` constructor, which content security policies and some sandboxes forbid.
+3. Document validators reject foreign-realm plain objects with `invalid-document` at the offending JSON Pointer and the message "Expected a JSON value created in this realm; this object was created in another realm (parse it inside the sandbox)". Parse transported JSON in the receiving realm before validating it. Same-realm plain objects and null-prototype objects remain accepted.
 
 **Contract and examples**
 
@@ -1121,6 +1122,8 @@ It checks:
 A failed validation returns every error it found, up to a bound (default 20), so an author or agent fixes them in one round.
 
 Install-time APIs that have no value to return on failure throw `LiveframeFailure`, a subclass of `Error` whose `errors` is that same bounded `LiveframeError[]` and whose `message` is one `pointer: message` line per error.
+
+`compileValidator` and `renderModule` identify a foreign catalog, capabilities document or manifest at `/catalog`, `/capabilities` or `/manifest`. Standalone install validators use pointers relative to their document. `validateTree`, `validateTreePatch`, `applyPatch`, `diffTrees` and `verifyPackage` use the same realm diagnostic; patch bases and diff inputs must already be validated, immutable trees.
 
 `pack()`, `verifyPackage()`, `loadPlacement()` and `Runner.render()` use the same result and error bound; async operations wrap the result in a promise.
 

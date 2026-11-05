@@ -2,6 +2,7 @@ import type { Result } from "../errors.ts";
 import { arr, bool, checkValue, type Infer, int, type LanguageSchema, literal, obj, record, str } from "../schema.ts";
 import { at, documentChecks, isRecord, shell } from "./capabilities.ts";
 import { styleProps } from "./fixed.ts";
+import { validateJson } from "./json.ts";
 import { type Vocabulary, validateVocabulary, vocabularySchema } from "./vocabulary.ts";
 
 const token = str({ maxLength: 64, pattern: "^[a-z][A-Za-z0-9-]*$" });
@@ -238,6 +239,8 @@ function checkDefinitionReferences(value: Catalog, c: Checks): void {
 
 /** Validates structure first, then references; returns at most 20 pointed errors. */
 export function validateCatalog(doc: unknown): Result<Catalog> {
+  const json = validateJson(doc, true);
+  if (!json.ok) return json;
   const c = documentChecks();
   if (!isRecord(doc))
     return { ok: false, errors: [{ kind: "invalid-document", pointer: "", message: "Expected a catalog object" }] };

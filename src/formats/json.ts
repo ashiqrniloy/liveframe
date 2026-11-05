@@ -1,4 +1,5 @@
 import type { Result } from "../errors.ts";
+import { realmError } from "../internal.ts";
 import { at, documentChecks } from "./capabilities.ts";
 import type { Json } from "./tree.ts";
 
@@ -26,6 +27,7 @@ function defer(left: unknown, right: unknown, pending: unknown[]): boolean {
 
 /** Compare one level's members, queuing the containers among them. */
 function sameLevel(left: object, right: object, pending: unknown[]): boolean {
+  if (Object.getPrototypeOf(right) !== Object.getPrototypeOf(left) && realmError(right)) return false;
   if (Array.isArray(left)) {
     if (!Array.isArray(right) || left.length !== right.length) return false;
     for (let i = 0; i < left.length; i++) if (!defer(left[i], right[i], pending)) return false;
@@ -73,8 +75,9 @@ function pushChildren(value: object, pointer: string, pending: Entry[]): void {
  * Checks JSON values without recursion, including cycles and values JSON.stringify would discard.
  * Its own stack-based walk (not the shared recursive one) because it collects bounded pointed
  * errors, while render's predicate answers yes/no and the hash walk counts bytes.
+ * Install checkers use `realmOnly` to preserve their existing non-realm diagnostics.
  */
-export function validateJson(doc: unknown): Result<Json> {
+export function validateJson(doc: unknown, realmOnly = false): Result<Json> {
   const c = documentChecks();
   const ancestors = new Set<object>();
   const pending: Entry[] = [{ value: doc, pointer: "" }];
@@ -94,18 +97,9 @@ export function validateJson(doc: unknown): Result<Json> {
       ancestors.has(value) ||
       (!Array.isArray(value) && ![Object.prototype, null].includes(Object.getPrototypeOf(value)))
     ) {
-      const prototype = typeof value === "object" && value !== null ? Object.getPrototypeOf(value) : null;
-      const foreignRealm =
-        prototype !== null &&
-        prototype !== Object.prototype &&
-        Object.getPrototypeOf(prototype) === null &&
-        Object.prototype.toString.call(value) === "[object Object]";
-      c.reject(
-        pointer,
-        foreignRealm
-          ? "Expected a JSON value created in this realm; this object was created in another realm (parse it inside the sandbox)"
-          : "Expected a JSON value without cycles or non-finite numbers",
-      );
+      const error = realmError(value, pointer);
+      if (error || !realmOnly)
+        c.reject(pointer, error?.message ?? "Expected a JSON value without cycles or non-finite numbers");
       continue;
     }
     ancestors.add(value);

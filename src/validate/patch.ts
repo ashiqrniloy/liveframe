@@ -1,6 +1,7 @@
 import type { LiveframeError, Result } from "../errors.ts";
 import type { UiNode, UiTree } from "../formats/tree.ts";
 import { type PatchOp, type TreePatch, validateTreePatch } from "../formats/tree-patch.ts";
+import { realmError } from "../internal.ts";
 import { difference } from "./difference.ts";
 
 type Entry = { node: UiNode; parent: Entry | undefined };
@@ -37,6 +38,8 @@ const failure = (kind: LiveframeError["kind"], pointer: string, message: string)
  * values must remain immutable while in use; this function neither mutates nor freezes them.
  */
 export function applyPatch(base: UiTree, patch: unknown): Result<UiTree> {
+  const error = realmError(base);
+  if (error) return { ok: false, errors: [error] };
   const checked = validateTreePatch(patch);
   if (!checked.ok) return checked;
   const doc = checked.value;
@@ -172,6 +175,10 @@ function diffChildren(before: UiNode, after: UiNode, ops: PatchOp[], visit: (bef
 
 /** Diff validated, immutable SDK-form trees; send the whole tree if diffing fails. */
 export function diffTrees(prev: UiTree, next: UiTree): Result<TreePatch> {
+  for (const tree of [prev, next]) {
+    const error = realmError(tree);
+    if (error) return { ok: false, errors: [error] };
+  }
   if (prev.catalogId !== next.catalogId) return failure("invalid-document", "/catalogId", "Diff catalogs differ");
   if (prev.surfaceId !== next.surfaceId) return failure("invalid-document", "/surfaceId", "Diff surfaces differ");
   if (next.revision <= prev.revision)
@@ -181,6 +188,8 @@ export function diffTrees(prev: UiTree, next: UiTree): Result<TreePatch> {
     while (pending.length) {
       const node = pending.pop();
       if (!node) break;
+      const error = realmError(node, "/root");
+      if (error) return { ok: false, errors: [error] };
       if (node.children?.length === 0)
         return failure("invalid-document", "/root", "Diff requires omitted empty children; send the whole tree");
       pending.push(...(node.children ?? []));

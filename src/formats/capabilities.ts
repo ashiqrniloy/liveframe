@@ -1,19 +1,20 @@
 import type { LiveframeError, Result } from "../errors.ts";
+import { at } from "../internal.ts";
 import {
   bool,
+  checkLanguageSchema,
   checkValue,
   type Infer,
-  checkLanguageSchema,
   isRecord,
   type LanguageSchema,
   obj,
   record,
   str,
 } from "../schema.ts";
-import { at } from "../internal.ts";
 import { stringBytes } from "../validate/bytes.ts";
-import type { Json } from "./tree.ts";
+import { validateJson } from "./json.ts";
 import type { Manifest } from "./manifest.ts";
+import type { Json } from "./tree.ts";
 
 export type ObjectSchema = Extract<LanguageSchema, { readonly type: "object" }>;
 export const capabilityName = str({ maxLength: 128, pattern: "^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)*$" });
@@ -175,6 +176,8 @@ export function shell(value: Record<string, unknown>, complex: readonly string[]
 }
 /** Describes available operations; the host still authorises every request. */
 export function validateCapabilities(doc: unknown): Result<Capabilities> {
+  const json = validateJson(doc, true);
+  if (!json.ok) return json;
   const c = documentChecks();
   if (!isRecord(doc)) c.reject("", "Expected a capabilities object");
   else {

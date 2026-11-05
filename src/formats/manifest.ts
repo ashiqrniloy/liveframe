@@ -12,8 +12,8 @@ import {
   shell,
   validateCapabilities,
 } from "./capabilities.ts";
-import { validateJson } from "./json.ts";
 import type { Catalog } from "./catalog.ts";
+import { validateJson } from "./json.ts";
 
 type Json = null | boolean | number | string | readonly Json[] | { readonly [key: string]: Json };
 const binding = obj({
@@ -198,6 +198,8 @@ export function validateManifest(
   doc: unknown,
   { catalog, capabilities }: { catalog: Catalog; capabilities: Capabilities },
 ): Result<Manifest> {
+  const json = validateJson(doc, true);
+  if (!json.ok) return json;
   const c = documentChecks();
   if (!isRecord(doc)) c.reject("", "Expected a manifest object");
   else {
@@ -220,8 +222,9 @@ export function validateManifest(
 
 /** Package transport checks only; installation still requires validateManifest with host documents. */
 export function validateManifestShape(doc: unknown): Result<Manifest> {
+  const json = validateJson(doc);
+  if (!json.ok) return json;
   const c = documentChecks();
-  c.collect(validateJson(doc), "");
   if (!isRecord(doc)) c.reject("", "Expected a manifest object");
   else {
     c.collect(checkValue(fields, shell(doc, ["params", "state", "context", "initialState", "sources", "meta"])), "");
