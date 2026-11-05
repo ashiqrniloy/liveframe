@@ -140,9 +140,8 @@ project to `min-height` and `max-height`, as `height` projects to `height`. A
 percentage height resolves only against a parent with a definite height; with an
 auto-height parent it behaves as `auto`, so prefer a `size.*` value there.
 A fraction (`2fr`) on `width`, `height`, `minWidth`, `maxWidth`, `minHeight` or `maxHeight`
-is deprecated: it projects to `minmax(0, 2fr)`, which is not a valid length, so browsers
-ignore it, and 0.3.0 rejects it. Use `grow={2}` with `basis={0}`, or put the fraction in
-the parent's `columns` or `rows`. Fractions in `columns` and `rows` tracks are unchanged.
+is rejected as `invalid-prop`, including inside responsive values. Use `grow={2}`
+with `basis={0}`, or put the fraction in the parent's `columns` or `rows`. Fractions in `columns` and `rows` tracks are unchanged.
 `deferOffscreen` marks long repeated content, such as list rows, that the
 engine may skip while it is offscreen. It takes a `space.*` or `size.*` value
 and projects to `content-visibility: auto` plus

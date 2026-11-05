@@ -151,8 +151,123 @@
         },
         "style": {
           "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/json"
+          "allOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/json"
+              }
+            }
+          ],
+          "properties": {
+            "width": {
+              "not": {
+                "type": "string",
+                "pattern": "^[0-9]+(?:\\.[0-9]+)?fr$"
+              },
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": "object",
+                "additionalProperties": {
+                  "not": {
+                    "type": "string",
+                    "pattern": "^[0-9]+(?:\\.[0-9]+)?fr$"
+                  }
+                }
+              }
+            },
+            "height": {
+              "not": {
+                "type": "string",
+                "pattern": "^[0-9]+(?:\\.[0-9]+)?fr$"
+              },
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": "object",
+                "additionalProperties": {
+                  "not": {
+                    "type": "string",
+                    "pattern": "^[0-9]+(?:\\.[0-9]+)?fr$"
+                  }
+                }
+              }
+            },
+            "minWidth": {
+              "not": {
+                "type": "string",
+                "pattern": "^[0-9]+(?:\\.[0-9]+)?fr$"
+              },
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": "object",
+                "additionalProperties": {
+                  "not": {
+                    "type": "string",
+                    "pattern": "^[0-9]+(?:\\.[0-9]+)?fr$"
+                  }
+                }
+              }
+            },
+            "maxWidth": {
+              "not": {
+                "type": "string",
+                "pattern": "^[0-9]+(?:\\.[0-9]+)?fr$"
+              },
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": "object",
+                "additionalProperties": {
+                  "not": {
+                    "type": "string",
+                    "pattern": "^[0-9]+(?:\\.[0-9]+)?fr$"
+                  }
+                }
+              }
+            },
+            "minHeight": {
+              "not": {
+                "type": "string",
+                "pattern": "^[0-9]+(?:\\.[0-9]+)?fr$"
+              },
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": "object",
+                "additionalProperties": {
+                  "not": {
+                    "type": "string",
+                    "pattern": "^[0-9]+(?:\\.[0-9]+)?fr$"
+                  }
+                }
+              }
+            },
+            "maxHeight": {
+              "not": {
+                "type": "string",
+                "pattern": "^[0-9]+(?:\\.[0-9]+)?fr$"
+              },
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": "object",
+                "additionalProperties": {
+                  "not": {
+                    "type": "string",
+                    "pattern": "^[0-9]+(?:\\.[0-9]+)?fr$"
+                  }
+                }
+              }
+            }
           }
         },
         "events": {

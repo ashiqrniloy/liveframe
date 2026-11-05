@@ -75,3 +75,9 @@ test("tree_schema_checks_paths_envelopes_and_intent_shapes", () => {
   ])
     expect(validate({ ...tree, root: { ...tree.root, events: { onPress: intent } } })).toBe(false);
 });
+
+test("tree_schema_keeps_dimension_values_json", () => {
+  for (const prop of ["width", "height", "minWidth", "maxWidth", "minHeight", "maxHeight"])
+    for (const value of [undefined, () => {}, { base: undefined }, { base: () => {} }])
+      expect(validate({ ...tree, root: { ...tree.root, style: { [prop]: value } } })).toBe(false);
+});

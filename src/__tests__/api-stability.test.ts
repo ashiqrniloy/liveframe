@@ -293,3 +293,12 @@ test("behavior_break_requires_existing_regression_evidence", () => {
     ),
   ).not.toEqual([]);
 });
+
+test("new_corpus_case_accepts_only_an_added_register_entry", () => {
+  const name = "conformance/corpus/ui-tree/dimension-fraction-rejected.json";
+  const current = { ...fixture, corpus: { ...fixture.corpus, [name]: "new" } };
+  const entry: RegisterEntry = { ...breaking, subpath: "./conformance/corpus/*", name, change: "added" };
+  expect(compareApiSurface(fixture, current, [entry], migration)).toEqual([]);
+  expect(compareApiSurface(fixture, current, [{ ...entry, change: "changed" }], migration)).not.toEqual([]);
+  expect(compareApiSurface(fixture, fixture, [entry], migration)).not.toEqual([]);
+});

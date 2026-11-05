@@ -21,12 +21,18 @@ const dimension = (value: unknown): string => {
   if (text.startsWith("space.") || text.startsWith("size.")) return `var(${valueVar(text)})`;
   if (text === "fill") return "100%";
   if (text === "fit") return "fit-content";
-  return text.endsWith("fr") ? `minmax(0, ${text})` : text;
+  return text;
 };
 const token = (value: unknown) => `var(${valueVar(String(value))})`;
 const colour = (value: unknown) => `var(${colourVar(String(value))})`;
 const identity = (value: unknown) => String(value);
-const tracks = (value: unknown) => (value as string[]).map(dimension).join(" ");
+const tracks = (value: unknown) =>
+  (value as string[])
+    .map((track) => {
+      const text = dimension(track);
+      return text.endsWith("fr") ? `minmax(0, ${text})` : text;
+    })
+    .join(" ");
 type Mapping = {
   readonly properties: readonly string[];
   readonly value: (value: unknown, catalog: Catalog, property: string) => string;

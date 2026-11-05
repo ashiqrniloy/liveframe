@@ -133,7 +133,7 @@ async function resultSamples(client: Client) {
   return results;
 }
 
-test("text_results_unchanged_from_0_2_0", async () => {
+test("text_results_match_expected_contract", async () => {
   await withClient(
     async (client) => {
       const results = await resultSamples(client);

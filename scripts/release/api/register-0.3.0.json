@@ -42,13 +42,92 @@
     "subpath": "./sdk",
     "name": "render",
     "change": "changed",
-    "reason": "Ownership contract changes without declaration changes",
+    "reason": "Ownership contract changes without declaration changes; dimension fractions are rejected (026 T4, Fractions on dimension props are rejected)",
     "hostAction": "Follow the migration checklist",
-    "task": "026 T3",
+    "task": "026 T3, 026 T4",
     "migration": "Render inputs keep caller ownership",
     "behavior": {
       "file": "src/__tests__/sdk-inputs.test.tsx",
       "test": "widget_mutation_fails_without_freezing_caller_inputs"
     }
+  },
+  {
+    "change": "changed",
+    "reason": "Dimension fractions are rejected; grid tracks remain valid",
+    "hostAction": "replace dimension fractions",
+    "task": "026 T4",
+    "migration": "Fractions on dimension props are rejected",
+    "subpath": "./schemas/*",
+    "name": "ui-tree.json"
+  },
+  {
+    "change": "changed",
+    "reason": "Dimension fractions are rejected; grid tracks remain valid",
+    "hostAction": "replace dimension fractions",
+    "task": "026 T4",
+    "migration": "Fractions on dimension props are rejected",
+    "subpath": ".",
+    "name": "compileValidator",
+    "behavior": {
+      "file": "src/__tests__/dimension-fraction.test.ts",
+      "test": "dimension_fraction_is_invalid_prop"
+    }
+  },
+  {
+    "change": "changed",
+    "reason": "Dimension fractions are rejected; grid tracks remain valid",
+    "hostAction": "replace dimension fractions",
+    "task": "026 T4",
+    "migration": "Fractions on dimension props are rejected",
+    "subpath": "./sdk",
+    "name": "renderElements",
+    "behavior": {
+      "file": "src/__tests__/dimension-fraction.test.ts",
+      "test": "dimension_fraction_is_invalid_prop"
+    }
+  },
+  {
+    "change": "changed",
+    "reason": "Dimension fractions are rejected; grid tracks remain valid",
+    "hostAction": "replace dimension fractions",
+    "task": "026 T4",
+    "migration": "Fractions on dimension props are rejected",
+    "subpath": "./sdk/gen",
+    "name": "generate",
+    "behavior": {
+      "file": "src/__tests__/sdk-gen-types.test.tsx",
+      "test": "generated_types_reject_fraction_dimensions"
+    }
+  },
+  {
+    "change": "changed",
+    "reason": "Dimension fractions are rejected; grid tracks remain valid",
+    "hostAction": "replace dimension fractions",
+    "task": "026 T4",
+    "migration": "Fractions on dimension props are rejected",
+    "subpath": "./css",
+    "name": "styleDeclarations",
+    "behavior": {
+      "file": "src/__tests__/dimension-fraction.test.ts",
+      "test": "dimension_fraction_is_invalid_prop"
+    }
+  },
+  {
+    "change": "added",
+    "reason": "Conformance case for rejected dimension fractions",
+    "hostAction": "replace dimension fractions",
+    "task": "026 T4",
+    "migration": "Fractions on dimension props are rejected",
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/dimension-fraction-rejected.json"
+  },
+  {
+    "change": "added",
+    "reason": "Conformance case for rejected dimension fractions",
+    "hostAction": "replace dimension fractions",
+    "task": "026 T4",
+    "migration": "Fractions on dimension props are rejected",
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/docs/dimension-fraction-rejected.json"
   }
 ]

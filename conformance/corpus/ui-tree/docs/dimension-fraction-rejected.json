@@ -1,0 +1,14 @@
+{
+  "format": "liveframe/1",
+  "catalogId": "proof.ui@1",
+  "surfaceId": "corpus",
+  "revision": 1,
+  "root": {
+    "id": "root",
+    "kind": "box",
+    "props": {},
+    "style": {
+      "width": "2fr"
+    }
+  }
+}

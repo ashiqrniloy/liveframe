@@ -630,6 +630,7 @@ describe("shared structure pieces", () => {
   test("structure_pieces_match_tree_walk", async () => {
     // Captured from `validateTree` before the walk's rules moved into `validate/structure.ts` (2026-10-22),
     // over every failing-case row and every proof tree. Any drift in a rule, its text or its order fails here.
+    // Dimension expected text reflects the approved 0.3.0 fraction rejection.
     const baseline: { name: string; errors: readonly LiveframeError[] }[] = await Bun.file(
       new URL("./fixtures/validator-baseline.json", import.meta.url),
     ).json();

@@ -48,6 +48,27 @@ const json = { $ref: "#/$defs/json" } as const;
 const jsonMap = { type: "object", additionalProperties: json } as const;
 const node = { $ref: "#/$defs/node" } as const;
 
+// Style names and tokens remain catalog-owned; transport rejects inert dimension fractions.
+const noFraction = { not: { type: "string", pattern: "^[0-9]+(?:\\.[0-9]+)?fr$" } } as const;
+const dimension = {
+  ...noFraction,
+  if: { type: "object" },
+  // biome-ignore lint/suspicious/noThenProperty: JSON Schema conditional keyword.
+  then: { type: "object", additionalProperties: noFraction },
+} as const;
+const style = {
+  type: "object",
+  allOf: [jsonMap],
+  properties: {
+    width: dimension,
+    height: dimension,
+    minWidth: dimension,
+    maxWidth: dimension,
+    minHeight: dimension,
+    maxHeight: dimension,
+  },
+} as const;
+
 /** Structural transport schema; catalog checks and configurable limits belong to the compiled validator. */
 export const treeSchema = {
   ...treeFields,
@@ -80,7 +101,7 @@ export const treeSchema = {
         // The path grammar matches the proof's encoded JSX keys; depth and bytes are configurable.
         id: { type: "string", pattern: "^root(?:/(?:[a-zA-Z0-9_.!~*'():-]|%[0-9A-F]{2})+)*$" },
         props: jsonMap,
-        style: jsonMap,
+        style,
         events: { type: "object", additionalProperties: { $ref: "#/$defs/intent" } },
         children: { type: "array", items: node },
       },

@@ -375,7 +375,7 @@ Style props are layout-only and token-constrained:
 |---|---|
 | `padding`, `gap`, `margin` (per side or axis) | `space.*` |
 | `direction`, `align`, `justify`, `wrap`, `textAlign` | Enums (`align` on `button` places its content) |
-| `width`, `height`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight` | `space.*`, `size.*`, `fill`, `fit`, fractions, or bounded `ch` / `%`. Fractions are deprecated here: they project to `minmax(0, Nfr)`, which browsers ignore as a size |
+| `width`, `height`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight` | `space.*`, `size.*`, `fill`, `fit`, or bounded `ch` / `%`. Fractions (`fr`) are rejected as `invalid-prop`; they belong only in grid `columns` / `rows` |
 | `grow`, `shrink`, `basis` | Bounded numbers |
 | `columns`, `rows`, `area` (grid) | Bounded track lists, or area names; each track a fraction, `space.*` or `size.*` |
 | `position`, `inset*` | `static` or `sticky`; `space.*` |

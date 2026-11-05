@@ -63,3 +63,21 @@ test("generated_types_reject_wrong_props", () => {
   const undeclaredDefer = <Stack deferOffscreen="space.7" />;
   expect([maxHeight, rawHeight, rawDefer, undeclaredDefer]).toHaveLength(4);
 });
+
+test("generated_types_reject_fraction_dimensions", () => {
+  const invalid = [
+    // @ts-expect-error: fractions are grid tracks, not dimensions
+    <Box key="width" width="2fr" />,
+    // @ts-expect-error: fractions are grid tracks, not dimensions
+    <Box key="height" height="2fr" />,
+    // @ts-expect-error: fractions are grid tracks, not dimensions
+    <Box key="minWidth" minWidth="2fr" />,
+    // @ts-expect-error: fractions are grid tracks, not dimensions
+    <Box key="maxWidth" maxWidth={{ base: "fill", "bp.sm": "2fr" }} />,
+    // @ts-expect-error: fractions are grid tracks, not dimensions
+    <Scroll key="minHeight" label="List" minHeight="2fr" />,
+    // @ts-expect-error: fractions are grid tracks, not dimensions
+    <Scroll key="maxHeight" label="List" maxHeight={{ base: "2fr" }} />,
+  ];
+  expect(invalid).toHaveLength(6);
+});

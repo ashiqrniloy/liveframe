@@ -228,8 +228,8 @@
       {
         "kind": "invalid-prop",
         "pointer": "/root/style/width",
-        "expected": "a declared space or size (space.0, space.1, space.2, space.3, space.4, space.5, space.6, space.7, size.rail, size.glyph), or a fraction from 0fr to 12fr, fill, fit, or a ch/% value from 0 to 100",
-        "message": "Expected a declared space or size (space.0, space.1, space.2, space.3, space.4, space.5, space.6, space.7, size.rail, size.glyph), or a fraction from 0fr to 12fr, fill, fit, or a ch/% value from 0 to 100",
+        "expected": "a declared space or size (space.0, space.1, space.2, space.3, space.4, space.5, space.6, space.7, size.rail, size.glyph), fill, fit, or a ch/% value from 0 to 100",
+        "message": "Expected a declared space or size (space.0, space.1, space.2, space.3, space.4, space.5, space.6, space.7, size.rail, size.glyph), fill, fit, or a ch/% value from 0 to 100",
         "nodeId": "root"
       }
     ]
@@ -295,8 +295,8 @@
       {
         "kind": "invalid-prop",
         "pointer": "/root/style/width",
-        "expected": "a declared space or size (space.0, space.1, space.2, space.3, space.4, space.5, space.6, space.7, size.rail, size.glyph), or a fraction from 0fr to 12fr, fill, fit, or a ch/% value from 0 to 100",
-        "message": "Expected a declared space or size (space.0, space.1, space.2, space.3, space.4, space.5, space.6, space.7, size.rail, size.glyph), or a fraction from 0fr to 12fr, fill, fit, or a ch/% value from 0 to 100",
+        "expected": "a declared space or size (space.0, space.1, space.2, space.3, space.4, space.5, space.6, space.7, size.rail, size.glyph), fill, fit, or a ch/% value from 0 to 100",
+        "message": "Expected a declared space or size (space.0, space.1, space.2, space.3, space.4, space.5, space.6, space.7, size.rail, size.glyph), fill, fit, or a ch/% value from 0 to 100",
         "nodeId": "root"
       }
     ]

@@ -38,14 +38,18 @@ export function compileStyles(vocabulary: Vocabulary): ReadonlyMap<StyleProp, Sc
   const space = choices(vocabulary.space);
   const lengths = new Set([...vocabulary.space, ...vocabulary.size]);
   const lengthExpected = `a declared space or size (${[...lengths].join(", ")}), or a fraction from 0fr to 12fr`;
-  const measure = /^(\d+(?:\.\d+)?)(fr|ch|%)$/;
+  const measure = /^(\d+(?:\.\d+)?)(ch|%)$/;
   const dimension: SchemaCheck = (value, at, sink) => {
     if (typeof value === "string") {
       if (lengths.has(value) || value === "fill" || value === "fit") return true;
       const match = measure.exec(value);
-      if (match && Number(match[1]) <= (match[2] === "fr" ? 12 : 100)) return true;
+      if (match && Number(match[1]) <= 100) return true;
     }
-    return reject(sink, at, `${lengthExpected}, fill, fit, or a ch/% value from 0 to 100`);
+    return reject(
+      sink,
+      at,
+      `a declared space or size (${[...lengths].join(", ")}), fill, fit, or a ch/% value from 0 to 100`,
+    );
   };
   const fraction = /^(\d+(?:\.\d+)?)fr$/;
   const track: SchemaCheck = (value, at, sink) => {

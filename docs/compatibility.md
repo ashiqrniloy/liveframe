@@ -151,20 +151,7 @@ These are future contracts, not APIs available in 0.2.3. The review-fix deferral
   reference as `not-found`. **Adopter checklist:** nothing to change for 0.2.2; a catalog declaring
   `refProps` needs an updated port, since a 0.2.1 catalog validator rejects the field. Design:
   [`plans/evidence/022-node-reference-design.md`](https://github.com/ashiqrniloy/liveframe/blob/main/plans/evidence/022-node-reference-design.md).
-- **Fractions on dimension style props (`width`, `height`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight`).**
-  `width="2fr"` validates and projects to `minmax(0, 2fr)`, which browsers ignore, so it has no
-  effect. 0.2.3 deprecates it in [spec §6.3](https://github.com/ashiqrniloy/liveframe/blob/main/docs/spec.md) and
-  `docs/styling.md`; validation, CSS bytes and `liveframe gen` output are unchanged. **Before:**
-  `width="2fr"`, which has no effect. **After (0.3.0):** `invalid-prop` at `/style/width`.
-  **Adopter checklist:** use `grow={2}` with `basis={0}`, or move the fraction to the parent's
-  `columns`/`rows`. Fractions in `columns`/`rows` tracks are unchanged.
-
-  ```tsx
-  // Before: accepted but ignored as a width.
-  <Box width="2fr" />
-  // After: proportional growth in a flex parent.
-  <Box grow={2} basis={0} />
-  ```
+- **Fractions on dimension style props (implemented for 0.3.0).** The six dimension props now reject fractions with `invalid-prop`, including responsive values. Use `grow={2}` with `basis={0}`, or move fractions to the parent's `columns` / `rows`. The [migration checklist](migration-0.3.md#fractions-on-dimension-props-are-rejected) covers widgets, stored trees and generated types. 0.2.3 accepted these inert declarations and deprecated them; grid-track fractions are unchanged.
 
 ## Growth
 

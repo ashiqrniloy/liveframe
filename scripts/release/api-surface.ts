@@ -215,6 +215,13 @@ export function compareApiSurface(
         failures.push(`Stale register entry (${group} file did not change): ${file}`);
       }
     }
+    for (const file of Object.keys(current[group])) {
+      if (Object.hasOwn(baseline[group], file)) continue;
+      const index = register.findIndex((e) => e.subpath === `./conformance/${group}/*` && e.name === file);
+      if (index < 0) continue;
+      usedEntries.add(index);
+      if (register[index]?.change !== "added") failures.push(`New ${group} file must be registered as added: ${file}`);
+    }
   }
 
   // 2. Check schemas against baseline and register (subpath "./schemas/*").

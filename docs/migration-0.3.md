@@ -31,3 +31,18 @@ render(Widget, inputs, options);
 ```
 
 Adopter checklist: Follow the migration checklist. explicitly freeze host state if needed; do not depend on widget input identity matching host objects; expect changed mutable data to be checked again.
+
+### Fractions on dimension props are rejected
+
+Before, `width`, `height`, `minWidth`, `maxWidth`, `minHeight` and `maxHeight` accepted `fr` values. They projected to `minmax(0, Nfr)`, which browsers ignored as a size. After, those props reject fractions with `invalid-prop`, including values inside responsive breakpoint maps. Grid `columns` and `rows` still accept fractions.
+
+```tsx
+// Before
+<Box width="2fr" />
+// After: distribute available space in a flex parent.
+<Box grow={2} basis={0} />
+// Or express the tracks on a grid parent.
+<Grid columns={["2fr", "1fr"]} />
+```
+
+Adopter checklist: replace dimension fractions in widgets, stored trees and responsive maps with `grow` / `basis` for flex layout, or move fractions to the parent's grid `columns` / `rows`. Use declared `space.*` / `size.*`, `fill`, `fit`, or bounded `ch` / `%` when a dimension is needed. Regenerate catalog SDK types with `liveframe gen`.

@@ -27,7 +27,12 @@ const fields = obj({
   revision: natural,
   ops: bool(),
 });
-const { children: _children, ...ownFields } = treeSchema.$defs.node.properties;
+// Patch transport checks JSON shape; applyPatch validates style domains against the installation.
+const nodeProperties = {
+  ...treeSchema.$defs.node.properties,
+  style: { type: "object", additionalProperties: { $ref: "#/$defs/json" } },
+} as const;
+const { children: _children, ...ownFields } = nodeProperties;
 const id = str({ ...ownFields.id, maxLength: Number.MAX_SAFE_INTEGER });
 const setFields = obj(
   { op: tag("set"), id, kind: ownFields.kind, props: bool() },
@@ -60,7 +65,7 @@ export const treePatchSchema = {
       },
     },
   },
-  $defs: treeSchema.$defs,
+  $defs: { ...treeSchema.$defs, node: { ...treeSchema.$defs.node, properties: nodeProperties } },
 } as const;
 
 type Checks = ReturnType<typeof documentChecks>;

@@ -227,10 +227,10 @@ Not in scope: nested surfaces (the analysis named the gap but proposed compositi
 
     - Final verification: `timeout 900s bun run check` passed build, generated-file checks, typecheck, lint, formatting and 1,081 tests (4 existing skips, 0 failures). The fresh full run includes the accessor regressions; an earlier overlapping process was stopped because it had loaded the pre-fix module. Focused runtime, API/migration and spec-structure checks also passed. No format, schema, corpus, hash vector or public declaration changed.
 
-- [ ] Task 4: Reject fractions on dimension style props (Q5: R9)
+- [x] Task 4: Reject fractions on dimension style props (Q5: R9)
   - Acceptance Criteria:
     - Functional:
-      - `width`, `height`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight` reject `fr` values as `invalid-prop` at `/style/<prop>` (responsive values at `/style/<prop>/<breakpoint>`), in the compiled validator, `render()`, `renderElements`, the published `ui-tree.json` and `catalog.json` style-prop schemas, `liveframe gen` types and the CSS projection. Grid `columns`/`rows` fractions are unchanged.
+      - `width`, `height`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight` reject `fr` values as `invalid-prop` at `/style/<prop>` (responsive values at `/style/<prop>/<breakpoint>`), in the compiled validator and `render()` (with the tree prefix `/root`), `renderElements`, and the published `ui-tree.json` style-value schema, `liveframe gen` types and the CSS projection. Grid `columns`/`rows` fractions are unchanged.
       - A corpus case `ui-tree/dimension-fraction-rejected.json` is added with a register entry naming it.
       - Migration entry "Fractions on dimension props are rejected" with the `grow`/`basis` rewrite.
     - Performance: no measurable change (one branch removed).
@@ -249,14 +249,24 @@ Not in scope: nested surfaces (the analysis named the gap but proposed compositi
       <Box grow={2} basis={0} />   // replacement
       ```
     - Files to Create/Edit:
-      - `src/validate/style.ts`; `src/formats/` style-prop schema source; `src/sdk/gen.ts` (types); `src/css/` projection
-      - `schemas/ui-tree.json`, `schemas/catalog.json` (regenerated); `conformance/corpus/ui-tree/…`
+      - `src/validate/style.ts`; `src/formats/tree.ts`; `src/formats/tree-patch.ts` (preserve structural patch transport); `src/sdk/gen.ts` (types); `src/css/style-props.ts`
+      - `src/__tests__/dimension-fraction.test.ts`; `src/__tests__/sdk-gen-types.test.tsx`; `src/__tests__/css-style-props.test.ts`; `src/__tests__/tree.test.ts`; `src/__tests__/validator-node.test.ts`; `src/__tests__/validator-rules.test.ts`; `src/__tests__/cli-mcp.test.ts`; validator/MCP text snapshots; regenerated SDK fixture and demo-host modules
+      - `schemas/ui-tree.json` (regenerated); `conformance/corpus/ui-tree/dimension-fraction-rejected.json` and its document. `catalog.json` only lists style-prop names, so has no dimension value domain to edit.
+      - `scripts/release/api-surface.ts`; `src/__tests__/api-stability.test.ts`: recognize explicit `added` corpus entries, a prerequisite for registering the new case; preserve the existing policy for unregistered additions.
       - `docs/spec.md` §6.3; `docs/styling.md`; `docs/migration-0.3.md`; `CHANGELOG.md`; `register-0.3.0.json`
   - Test Cases to Write:
     - `dimension_fraction_is_invalid_prop` (each of the six props, plain and responsive).
     - `grid_track_fractions_still_valid`.
     - `generated_types_reject_fraction_dimensions` (type-level).
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-05):
+    - Removed fractions from the compiled dimension domain and generated `_Dimension` union. CSS fraction projection now belongs only to grid tracks. All six dimension props reject plain and responsive fractions; compiled validation and `render()` retain their existing `/root/style/…` tree pointers, while `renderElements` reports `/style/…` source pointers.
+    - Tightened the published UI-tree transport schema for numeric fraction strings, including responsive maps, without rejecting token names such as `size.fr`. Preserved the existing JSON-only guard for all style values, including known dimension properties; a regression test covers functions and undefined values in both scalar and responsive positions. `catalog.json` only declares style-prop names and has no dimension-value schema, so it remains byte-identical. Kept patch transport shape-only (and its published schema byte-identical); `applyPatch` still validates the resulting tree against the installation.
+    - Added the rejected-fraction corpus case and document, migration with flex/grid rewrites, changelog and spec/styling/compatibility updates. Registered the schema and behavior breaks; the existing render entry records both Tasks 3 and 4. The comparator now recognizes explicit `added` entries for new corpus/vector files, while preserving its existing policy for unregistered additions; its regression test reproduced the stale-entry failure first.
+    - Added regression coverage for all six props, zero/integer/decimal fractions, base and breakpoint failures across compiled validation, rendering, element rendering, CSS projection and the published schema. A targeted regression also preserves CSS projection of tokens ending in `fr` by resolving token references before formatting numeric tracks. Positive coverage preserves grid fractions, declared lengths, fill/fit and bounded ch/percent values. Type-level failures cover all six generated dimensions. Updated the accepted-value fixture, validator expected-text snapshot and MCP generated-types snapshot; regenerated SDK fixture and demo-host types.
+    - Tests were written first: dimension fractions were accepted and all six type-level rejection assertions were unused. After implementation, the focused runtime/corpus/migration/API suites passed, and all seven failures from the first full test run passed in a focused rerun (9 tests including the two new runtime tests). That full run exposed three stale contract expectations, now updated, plus four transient proof-host failures during a load-average spike around 39, including 100 ms render-limit failures. No timing limit or test assertion was weakened.
+    - Before the final full check, 54 focused tests across the validator, tree/patch schemas, format differentials, corpus, API gate and CSS projection passed. The second complete run had only the known CSS switch timing failure (20.6 ms against 16.67); its first isolated rerun hit 27.4 ms, then both the pre-task commit and corrected checkout passed (6.5 ms and 7.7 ms maxima). Temporary baseline worktree removed. Intermediate runs were stopped to include the token and JSON-guard regressions in a fresh final run; no timing thresholds changed.
+    - Final verification: `timeout 900s bun run check` passed build, generated-file checks, typecheck, lint, formatting and 1,086 tests (4 existing skips, 0 failures). The final fresh run includes both preservation regressions. Dedicated benchmarks were not run; no performance budget claim is added.
+
 
 - [ ] Task 5: One realm rule for every public validator entry point (Q8)
   - Acceptance Criteria:

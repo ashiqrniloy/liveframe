@@ -67,13 +67,6 @@ test("every_style_prop_maps", () => {
     expect(responsive.classes).toContain(`lf_r_${prop}`);
   }
   expect(styleDeclarations({ fill: cases.fill[0] }, catalog).classes).toEqual(["lf_fill"]);
-  // `fr` on a dimension prop is deprecated (spec §6.3): the declaration is inert and 0.3.0 rejects it.
-  expect(
-    styleDeclarations(
-      { width: "2fr", radius: catalog.vocabulary.radius[0], height: catalog.vocabulary.size[0] },
-      catalog,
-    ).style,
-  ).toMatchObject({ width: "minmax(0, 2fr)" });
 });
 
 test("defer_offscreen_projects_content_visibility", () => {
@@ -143,7 +136,6 @@ test("value_forms_and_colour_authority", () => {
   for (const [value, expected] of [
     ["space.2", "var(--lf-v-space_2)"],
     ["size.rail", "var(--lf-v-size_rail)"],
-    ["0fr", "minmax(0, 0fr)"],
     ["100%", "100%"],
     ["0ch", "0ch"],
     ["fit", "fit-content"],

@@ -6,6 +6,8 @@ All notable changes to `@arnilo/liveframe` are recorded here. The project follow
 
 Changed:
 
+- Dimension style props reject `fr` values, including responsive values, with `invalid-prop`. Grid tracks still accept fractions. See [migration](docs/migration-0.3.md#fractions-on-dimension-props-are-rejected).
+
 - Packages and outcome scenarios are deeply frozen owned copies; rendering gives widgets frozen copies while preserving caller ownership. See [migration](docs/migration-0.3.md).
 - **Specification layout:** the same numbered sections now open with rules, followed by contract details and rationale. Historical comparisons and proof results moved to `docs/compatibility.md`; the normative contracts and four laws are unchanged.
 

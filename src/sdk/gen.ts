@@ -128,7 +128,7 @@ function prelude(v: Catalog["vocabulary"]): string[] {
     // biome-ignore lint/suspicious/noTemplateCurlyInString: These are emitted TypeScript template literal types.
     "type _Track = _Length | `${number}fr`;",
     // biome-ignore lint/suspicious/noTemplateCurlyInString: These are emitted TypeScript template literal types.
-    'type _Dimension = _Track | "fill" | "fit" | `${number}ch` | `${number}%`;',
+    'type _Dimension = _Length | "fill" | "fit" | `${number}ch` | `${number}%`;',
     alias("_Surface", union(v.surfaceRoles)),
     alias("_Fill", union(v.fillableRoles)),
     alias("_Radius", union([...v.radius, "full"])),

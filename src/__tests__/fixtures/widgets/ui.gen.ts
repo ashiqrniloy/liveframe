@@ -14,7 +14,7 @@ type _Length =
   | "size.rail"
   | "size.glyph";
 type _Track = _Length | `${number}fr`;
-type _Dimension = _Track | "fill" | "fit" | `${number}ch` | `${number}%`;
+type _Dimension = _Length | "fill" | "fit" | `${number}ch` | `${number}%`;
 type _Surface =
   | "surface.base"
   | "surface.raised"
