@@ -127,29 +127,7 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
 
 These are future contracts, not APIs available in 0.2.3. The review-fix deferrals below follow the approved 0.2.3 scope decision; cache option spelling and detailed ownership rules still need their implementation design.
 
-- **Package and render-input immutability (R4, R5).** **Before:** `pack()` and `verifyPackage()` return mutable packages, the reference runners detect only top-level field replacement after verification, and `render()` freezes caller input objects in place. **After (0.3.0):** package results are frozen, including nested manifest and scenario data; `render()` stops freezing caller-owned objects in place while preserving immutable inputs for widget execution. A package write may throw in strict mode, so prepare metadata before packing or keep host metadata separately. Do not rely on rendering to freeze host state.
-
-  ```ts
-  // Before: mutating a returned package is possible, but invalidates its hash.
-  const pkg = value(pack(draft, install));
-  pkg.manifest.description = "Reviewed";
-
-  // After: supply package metadata before packing; keep review state host-side.
-  const reviewed = value(pack({
-    ...draft,
-    manifest: { ...draft.manifest, description: "Reviewed" },
-  }, install));
-  const approval = { hash: reviewed.hash, approvedBy: reviewerId };
-  ```
-
-  ```ts
-  // Before: copy JSON inputs if the host needs to retain mutable originals.
-  render(Widget, JSON.parse(JSON.stringify(inputs)), renderOptions);
-  // After (0.3.0): rendering preserves caller ownership of these objects.
-  render(Widget, inputs, renderOptions);
-  ```
-
-  **Adopter checklist:** find writes to package fields and nested values; move hashed metadata before `pack()` and approval data outside the package; replace input objects when changing render data; explicitly freeze host-owned data if your application requires it. Test that rendering leaves caller object ownership intact and that package mutations fail. These ownership changes ship together, rather than silently changing a patch contract.
+- **Package and render-input immutability (R4, R5).** Implemented for 0.3.0; see [frozen packages](migration-0.3.md#packages-are-deeply-frozen) and [render input ownership](migration-0.3.md#render-inputs-keep-caller-ownership).
 - **Verified-package cache option for `loadPlacement` (R15).** **Before:** every load verifies the stored package, including hashing, even when many placements use the same package. **After (0.3.0):** an opt-in host-owned cache can reuse verification for unchanged package content under the same installation documents; omitting it retains verification on every load. An `(id, version)` match alone must never trust changed content or bypass record, params or state validation.
 
   ```ts
@@ -232,3 +210,5 @@ Release checklist, in order. Publishing cannot be undone, so the tag is pushed o
 3. Push `v<version>`. The workflow publishes a prerelease under `next` and a release under `latest`, with provenance.
 4. After a release, the workflow runs `npm dist-tag add @arnilo/liveframe@<version> next`. npm trusted publishing permits that command only when the trusted publisher has **Allow npm dist-tag** enabled (npmjs.com, the package's trusted publishers; a one-time owner setting, off by default) and the CLI is npm ≥ 11.21.0 (≥ 12.2.0 on 12.x), so the workflow pins npm 12.2.1 for it. If the step fails, the owner runs the same command once with npm auth.
 5. Verify from the registry: `npm view @arnilo/liveframe version`, `npm view @arnilo/liveframe dist-tags` (`next` is the release or newer), `npm audit signatures --include-attestations`, and `bun scripts/release/archive-gate.ts --package @arnilo/liveframe@<version>`.
+
+Behavior-only `changed` entries may retain the same declaration when they name an existing regression test in `behavior: { file, test }`. The full check runs that test; entries still require a migration heading. Entries without behavior evidence retain stale-declaration rejection. Schema and vector gates are unchanged.

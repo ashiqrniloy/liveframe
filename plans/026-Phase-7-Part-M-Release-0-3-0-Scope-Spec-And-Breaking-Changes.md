@@ -172,7 +172,7 @@ Not in scope: nested surfaces (the analysis named the gap but proposed compositi
     - Wrote the structure checks first: the original spec reproduced paragraph-length, release-history and rules-first failures. Added regression fixtures plus explicit heading/law preservation tests. The existing docs-links test checks file/archive paths, so it alone did not prove fragment preservation; its implementation is unchanged. No guide test quotes the moved spec text, so no guide-test edits were needed.
     - Focused structure, link and wording checks passed (8 tests). `timeout 900s bun run check` passed: build, generated-file checks, typecheck, lint, formatting, 1,075 passing tests, 4 existing skips and 0 failures (433.73 s for the test suite). `git diff --check` passed. Dedicated benchmarks were not run: this task changes documentation and its regression tests only.
 
-- [ ] Task 3: Freeze packages and keep caller ownership of render inputs (Q4: R4, R5)
+- [x] Task 3: Freeze packages and keep caller ownership of render inputs (Q4: R4, R5)
   - Acceptance Criteria:
     - Functional:
       - `pack()` (`src/pack/pack.ts:8-38`) and `verifyPackage()` (`src/pack/verify.ts:50`) return packages frozen at every depth, including `manifest`, `scenarios` and nested JSON. `outcomeScenarios()` returns frozen scenarios. Writing to any field throws in strict mode.
@@ -194,8 +194,8 @@ Not in scope: nested surfaces (the analysis named the gap but proposed compositi
       - Freeze only the top level. Rejected: R4 is about nested mutation.
       - Copy inputs in a separate pass. Rejected: the input check already walks every value.
     - Chosen Approach:
-      - Freeze package results once at the end of `pack`/`verifyPackage`; build frozen input copies inside the existing input walk.
-      - Task 1 finding: `changed` rejects unchanged declarations. Before recording behaviour-only breaks here, reconcile their register representation with executable regression evidence in this task; preserve stale-declaration rejection and do not manufacture unrelated declaration changes to pass it.
+      - Freeze owned package copies at the end of `pack`/`verifyPackage`; build frozen input copies inside the existing input walk. Reuse checked copies only for inputs proven deeply frozen in that walk, under the same schema. Mutable inputs are always rechecked.
+      - Behaviour-only `changed` entries name an existing regression test in `behavior: { file, test }` plus the migration heading. Ordinary unchanged declarations, schemas and vectors still reject stale entries. Full checks execute the evidence tests.
     - API Notes and Examples:
       ```ts
       const pkg = value(pack(draft, install));
@@ -216,7 +216,16 @@ Not in scope: nested surfaces (the analysis named the gap but proposed compositi
     - `render_leaves_caller_inputs_unfrozen`: fails if `render` freezes the host's objects.
     - `widget_still_receives_frozen_inputs`: a widget that writes to `state` throws `render-failed`.
     - `nested_package_mutation_cannot_reach_a_runner`: replaces the 0.2.3 snapshot test.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-05):
+    - `pack`, `verifyPackage` and `outcomeScenarios` return owned deeply frozen copies without freezing their input documents. SDK rendering copies and freezes the four input fields during its existing JSON check, then freezes the widget envelope. `renderModule` delegates to this path; `renderElements` has no caller widget inputs and keeps its prepared-element path.
+    - Removed the runner cache's shallow snapshots. Only packages proven deeply frozen may reuse a hash check; mutable transport packages are rehashed. Tests cover package ownership, nested freezing, strict-mode mutation, mutable input rechecking, shallow-frozen input ownership, schema changes and cached frozen-package integrity. Frozen accessors are excluded from both caches because their returned values can change.
+    - Registered all four behaviour-only breaks with migration headings and regression test evidence. The comparator still rejects stale declaration changes without evidence, missing evidence tests and unchanged schema/vector entries. Updated spec, SDK/package/security/compatibility guides and changelog.
+    - Performance finding: copying mutable data every render is observable (the initial agent-home paired ratio was 1.171); a five-node view can still carry a large resolved data set. Deeply frozen host inputs can safely reuse checked copies; mutable data cannot. Benchmark fixtures now explicitly freeze owned source inputs before timing, matching the documented state-only rerender usage without freezing caller data inside rendering. The first measured copy still occurs before reuse.
+    - Regenerate the interleaved 0.2.3 A/B comparison with `timeout 120s bun --conditions liveframe:source plans/evidence/026-render-ownership.ts`. It materializes and cleans up the baseline module, asserts identical trees, alternates order for 21 rounds and reports paired medians. Final run: baseline 1.6426 ms, current 1.6616 ms, paired ratio 1.0134 (1.3%, within 5%). The separate render bench passed every workload below 3 µs/node: agent-home 2.154, core-queue.small 1.976; agent-home element rendering 2.537.
+    - `bun run bench` was run twice and stopped at the standalone validator timing gate (final agent-home 1.968 µs/node against 1.5; large/full also over). No validator implementation or threshold changed. The render benchmark was therefore run directly with `timeout 180s bun --conditions liveframe:source bench/render.bench.ts`; it passed. These figures do not promise the same cost for mutable data or a quiet-host whole-benchmark pass.
+
+
+    - Final verification: `timeout 900s bun run check` passed build, generated-file checks, typecheck, lint, formatting and 1,081 tests (4 existing skips, 0 failures). The fresh full run includes the accessor regressions; an earlier overlapping process was stopped because it had loaded the pre-fix module. Focused runtime, API/migration and spec-structure checks also passed. No format, schema, corpus, hash vector or public declaration changed.
 
 - [ ] Task 4: Reject fractions on dimension style props (Q5: R9)
   - Acceptance Criteria:

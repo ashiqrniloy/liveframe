@@ -3,9 +3,10 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as sdk from "@arnilo/liveframe/sdk";
-import * as jsxRuntime from "@arnilo/liveframe/sdk/jsx-runtime";
 import * as jsxDevRuntime from "@arnilo/liveframe/sdk/jsx-dev-runtime";
+import * as jsxRuntime from "@arnilo/liveframe/sdk/jsx-runtime";
 import { compileValidator, validateCapabilities, validateCatalog } from "../index.ts";
+import { freezeCopy } from "../internal.ts";
 import { bundle } from "../pack/bundle.ts";
 import * as hashing from "../pack/hash.ts";
 import { pack, type WidgetPackage } from "../pack/index.ts";
@@ -175,7 +176,7 @@ test("reassigned_code_after_verification_is_rehashed_and_rejected", () => {
 });
 
 test("unchanged_package_is_verified_once", () => {
-  const pkg = packedWidget();
+  const pkg = freezeCopy(packedWidget());
   const hashed = spyOn(hashing, "packageHash");
   try {
     expect(verifyPackageHash(pkg)).toBe(true);
@@ -184,4 +185,25 @@ test("unchanged_package_is_verified_once", () => {
   } finally {
     hashed.mockRestore();
   }
+});
+
+test("nested_package_mutation_cannot_reach_a_runner", () => {
+  const pkg = freezeCopy(packedWidget());
+  expect(verifyPackageHash(pkg)).toBe(true);
+  expect(() => Object.assign(pkg.manifest, { description: "tampered" })).toThrow(TypeError);
+  expect(verifyPackageHash(pkg)).toBe(true);
+});
+
+test("frozen_package_accessors_are_rehashed", () => {
+  const original = freezeCopy(packedWidget());
+  let code = original.code;
+  const pkg = Object.freeze({
+    ...original,
+    get code() {
+      return code;
+    },
+  });
+  expect(verifyPackageHash(pkg)).toBe(true);
+  code += "\n// tampered";
+  expect(verifyPackageHash(pkg)).toBe(false);
 });

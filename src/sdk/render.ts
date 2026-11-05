@@ -24,10 +24,10 @@ import type { WidgetProps } from "./types.ts";
 const FORMAT = "liveframe/1" as const;
 /** Matches the tree walker: JSON never nests deeper than this (spec §10). */
 const INPUT_DEPTH = 128;
-/** Data objects already checked and frozen, per compiled data check: a host re-runs with the same resolved data (spec §8), and a different source-schema contract must check it again. */
-const checkedData = new WeakMap<object, WeakSet<SchemaCheck>>();
-/** Only SDK-traversed inputs are known to be deeply frozen. */
-const frozenInputs = new WeakSet<object>();
+
+const deepFrozen = new WeakSet<object>();
+const mutableChildren = new WeakSet<object>();
+const inputCopies = new WeakMap<object, { check: SchemaCheck; copy: unknown }>();
 
 export type RenderLimits = {
   readonly nodes?: number;
@@ -57,7 +57,7 @@ export function render<P, S, D, C>(
   inputs: WidgetProps<P, S, D, C>,
   options: RenderOptions,
 ): Result<UiTree> {
-  return renderValue(() => widget(inputs), inputs, options, true);
+  return renderValue((owned) => widget(owned as WidgetProps<P, S, D, C>), inputs, options, true);
 }
 
 /** Internal: builds a tree from an already-built root element, for element JSON (spec §7.2). */
@@ -155,7 +155,7 @@ function createContext(options: RenderOptions, sourcePointers: WeakMap<Element, 
 }
 
 function renderValue(
-  getResult: () => unknown,
+  getResult: (inputs: Readonly<Record<string, unknown>>) => unknown,
   inputs: Readonly<Record<string, unknown>>,
   options: RenderOptions,
   validateInputs: boolean,
@@ -177,7 +177,7 @@ function renderValue(
   if (!Number.isSafeInteger(revision) || revision < 0)
     fail(ctx, "invalid-prop", "", "a revision that is a non-negative safe integer", "root");
   if (errors.length) return { ok: false, errors };
-  if (validateInputs) checkInputs(ctx, inputs);
+  const owned = validateInputs ? checkInputs(ctx, inputs) : inputs;
   if (errors.length) return { ok: false, errors: finish(ctx) };
 
   addBytes(ctx, BRACKET_BYTES, "/root", "root");
@@ -190,7 +190,7 @@ function renderValue(
 
   let result: unknown;
   try {
-    result = getResult();
+    result = getResult(owned);
   } catch (thrown) {
     fail(ctx, "render-failed", "", "the widget to run without throwing", "root", thrownMessage(thrown));
     return { ok: false, errors: finish(ctx) };
@@ -270,8 +270,7 @@ function parentPointer(ctx: RenderContext, parentId: string | null): string {
  * Rejects a non-JSON value (function, promise, class instance, NaN, cycle) at its pointer, within
  * the depth bound every input walk uses. `composed` is a composed component's node id: its props
  * are data too, so a nested function or promise keeps its own kind (spec §7.1).
- * A boolean predicate with no allocation (not the shared error-collecting walk): it runs once per
- * value on the bench-gated render path.
+ * Optionally builds a frozen copy during this same walk.
  */
 function isJson(
   ctx: RenderContext,
@@ -280,6 +279,7 @@ function isJson(
   ancestors: Set<object>,
   composed?: string,
   depth = 0,
+  copy?: unknown,
 ): boolean {
   const reject = (kind: LiveframeError["kind"], expected: string): false => {
     fail(ctx, kind, pointer + jsonPointer(ctx.path), expected, composed);
@@ -291,7 +291,7 @@ function isJson(
   if (shape === "promise") return reject(composed ? "async-render" : "invalid-prop", "JSON data, not a promise");
   if (shape === "number") return reject("invalid-prop", "a finite number");
   if (shape === "other") return reject("invalid-prop", "plain JSON data");
-  return isJsonContainer(ctx, value as object, pointer, ancestors, composed, depth, reject);
+  return isJsonContainer(ctx, value as object, pointer, ancestors, composed, depth, reject, copy);
 }
 
 /** The recursion half of `isJson`: depth bound, cycle guard, then every child. */
@@ -303,28 +303,45 @@ function isJsonContainer(
   composed: string | undefined,
   depth: number,
   reject: (kind: LiveframeError["kind"], expected: string) => false,
+  copy?: unknown,
 ): boolean {
   if (depth >= INPUT_DEPTH) return reject("invalid-prop", `data nested at most ${INPUT_DEPTH} deep`);
   if (ancestors.has(value)) return reject("invalid-prop", "acyclic data");
   ancestors.add(value);
   const { path } = ctx;
+  const immutable = copy !== undefined && Object.isFrozen(value);
   let valid = true;
   if (Array.isArray(value)) {
     for (let i = 0; i < value.length && valid; i++) {
       path.push(i);
-      valid = isJson(ctx, value[i], pointer, ancestors, composed, depth + 1);
+      valid = checkChild(ctx, value[i], pointer, ancestors, composed, depth, copy, i, value, immutable);
       path.pop();
     }
   } else {
     for (const key in value) {
       if (!Object.hasOwn(value, key)) continue;
       path.push(key);
-      valid = isJson(ctx, (value as Record<string, unknown>)[key], pointer, ancestors, composed, depth + 1);
+      valid = checkChild(
+        ctx,
+        (value as Record<string, unknown>)[key],
+        pointer,
+        ancestors,
+        composed,
+        depth,
+        copy,
+        key,
+        value,
+        immutable,
+      );
       path.pop();
       if (!valid) break;
     }
   }
   ancestors.delete(value);
+  if (copy !== undefined) {
+    Object.freeze(copy);
+    if (immutable && !mutableChildren.has(value)) deepFrozen.add(value);
+  }
   return valid;
 }
 
@@ -337,39 +354,26 @@ function shapeOf(value: unknown): "json" | "container" | "function" | "promise" 
   return Array.isArray(value) || isRecord(value) ? "container" : "other";
 }
 
-/** Freezes in place: inputs are never copied, and frozen data cannot be mutated behind the widget. */
-function freezeDeep(value: unknown): void {
-  if (value === null || typeof value !== "object" || frozenInputs.has(value)) return;
-  for (const key in value) if (Object.hasOwn(value, key)) freezeDeep((value as Record<string, unknown>)[key]);
-  Object.freeze(value);
-  frozenInputs.add(value);
-}
-
-function checkInputs(ctx: RenderContext, inputs: Readonly<Record<string, unknown>>): void {
+function checkInputs(ctx: RenderContext, inputs: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
   const checks = buildFacts(ctx.validator).inputs;
-  checkInput(ctx, inputs, "params", checks.params);
-  checkInput(ctx, inputs, "state", checks.state);
-  checkInput(ctx, inputs, "context", checks.context);
-  checkInput(ctx, inputs, "data", checks.data);
-}
-
-function checkInput(
-  ctx: RenderContext,
-  inputs: Readonly<Record<string, unknown>>,
-  name: keyof WidgetProps,
-  check: SchemaCheck,
-): void {
-  const value = inputs[name];
-  const cache = name === "data" && value !== null && typeof value === "object" ? value : undefined;
-  if (cache && checkedData.get(cache)?.has(check)) return;
-  const before = ctx.errors.length;
-  if (isJson(ctx, value, `/${name}`, ctx.ancestors)) check(value, `/${name}`, ctx.sink);
-  if (ctx.errors.length > before || ctx.stopped) return;
-  freezeDeep(value);
-  if (cache) {
-    const accepted = checkedData.get(cache) ?? new WeakSet<SchemaCheck>();
-    checkedData.set(cache, accepted.add(check));
+  const owned: Record<string, unknown> = {};
+  for (const name of ["params", "state", "context", "data"] as const) {
+    const value = inputs[name];
+    const cached = value !== null && typeof value === "object" ? inputCopies.get(value) : undefined;
+    if (cached?.check === checks[name]) {
+      owned[name] = cached.copy;
+      continue;
+    }
+    const copy = inputCopy(value);
+    const before = ctx.errors.length;
+    if (isJson(ctx, value, `/${name}`, ctx.ancestors, undefined, 0, copy)) checks[name](copy, `/${name}`, ctx.sink);
+    if (ctx.errors.length === before) {
+      owned[name] = copy;
+      if (value !== null && typeof value === "object" && deepFrozen.has(value))
+        inputCopies.set(value, { check: checks[name], copy });
+    }
   }
+  return Object.freeze(owned);
 }
 
 function dataKind(value: unknown): LiveframeError["kind"] | undefined {
@@ -789,4 +793,34 @@ function countNode(
   }
   addBytes(ctx, BRACKET_BYTES, pointer, id);
   if (childCount) addBytes(ctx, childrenFramingBytes(childCount), `${pointer}/children`, id);
+}
+
+function inputCopy(value: unknown): unknown {
+  if (value === null || typeof value !== "object") return value;
+  return Array.isArray(value) ? [] : Object.create(null);
+}
+
+function checkChild(
+  ctx: RenderContext,
+  child: unknown,
+  pointer: string,
+  ancestors: Set<object>,
+  composed: string | undefined,
+  depth: number,
+  copy: unknown,
+  key: string | number,
+  parent: object,
+  immutable: boolean,
+): boolean {
+  const owned = copy === undefined ? undefined : inputCopy(child);
+  const valid = isJson(ctx, child, pointer, ancestors, composed, depth + 1, owned);
+  if (copy !== undefined) {
+    (copy as Record<string | number, unknown>)[key] = owned;
+    if (
+      (child !== null && typeof child === "object" && !deepFrozen.has(child)) ||
+      (immutable && !Object.hasOwn(Object.getOwnPropertyDescriptor(parent, key) ?? {}, "value"))
+    )
+      mutableChildren.add(parent);
+  }
+  return valid;
 }

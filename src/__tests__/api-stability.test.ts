@@ -271,3 +271,25 @@ test("schemas_and_vectors_require_matching_break_entries", () => {
     ).toEqual([]);
   }
 });
+
+test("behavior_break_requires_existing_regression_evidence", () => {
+  const entry: RegisterEntry = {
+    subpath: ".",
+    name: "validateCatalog",
+    change: "changed",
+    task: "026 T3",
+    reason: "ownership",
+    hostAction: "migrate",
+    migration: "Ownership",
+    behavior: { file: "src/__tests__/pack.test.ts", test: "packed_and_verified_packages_are_deeply_frozen" },
+  };
+  expect(compareApiSurface(fixture, fixture, [entry], "### Ownership")).toEqual([]);
+  expect(
+    compareApiSurface(
+      fixture,
+      fixture,
+      [{ ...entry, behavior: { ...entry.behavior!, test: "missing_test" } }],
+      "### Ownership",
+    ),
+  ).not.toEqual([]);
+});

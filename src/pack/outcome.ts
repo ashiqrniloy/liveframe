@@ -2,7 +2,7 @@ import type { Result } from "../errors.ts";
 import { type Capabilities, documentChecks } from "../formats/capabilities.ts";
 import type { Manifest } from "../formats/manifest.ts";
 import { type Scenario, validateScenario } from "../formats/package.ts";
-import { at } from "../internal.ts";
+import { at, freezeCopy } from "../internal.ts";
 import { checkValue, isLanguageSchema, isRecord, sourceOutcome } from "../schema.ts";
 import { canonicalJson } from "./hash.ts";
 
@@ -57,5 +57,5 @@ export function outcomeScenarios(
     c.collect(checked, "");
     if (checked.ok) scenarios.push(checked.value);
   }
-  return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: scenarios };
+  return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: freezeCopy(scenarios) };
 }

@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+
 /**
  * Emit the public API surface of a built Liveframe package root as deterministic JSON.
  *
@@ -16,10 +17,10 @@
  *   sorted in UTF-16 code-unit order.
  */
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { API, type Project, type Symbol as TsSymbol, SymbolFlags } from "typescript/unstable/async";
 import { type Node, SyntaxKind } from "typescript/unstable/ast";
+import { API, type Project, SymbolFlags, type Symbol as TsSymbol } from "typescript/unstable/async";
 
 export type ApiSurface = {
   readonly generatedFrom?: string;
@@ -38,6 +39,7 @@ export type RegisterEntry = {
   readonly hostAction: string;
   readonly task: number | string;
   readonly migration?: string;
+  readonly behavior?: { readonly file: string; readonly test: string };
 };
 
 function normaliseText(text: string): string {
@@ -283,7 +285,7 @@ export function compareApiSurface(
             `Existing export changed with '${entry.change}' instead of 'widened' or 'changed': ${subpath} ${name}`,
           );
         }
-      } else if (entry && entry.change !== "deferred") {
+      } else if (entry && entry.change !== "deferred" && !behaviorEvidence(entry)) {
         failures.push(`Stale register entry (declaration did not change): ${subpath} ${name}`);
       }
     }
@@ -342,4 +344,17 @@ if (import.meta.main) {
   const json = `${JSON.stringify(surface, null, 2)}\n`;
   if (out) await Bun.write(out, json);
   else process.stdout.write(json);
+}
+
+/** Behavior-only breaks name a regression test run by the full check. */
+function behaviorEvidence(entry: RegisterEntry): boolean {
+  const evidence = entry.behavior;
+  return (
+    entry.change === "changed" &&
+    !!evidence &&
+    /^src\/__tests__\/[a-zA-Z0-9_/-]+\.test\.tsx?$/.test(evidence.file) &&
+    !evidence.file.includes("..") &&
+    existsSync(evidence.file) &&
+    readFileSync(evidence.file, "utf8").includes(`test("${evidence.test}"`)
+  );
 }

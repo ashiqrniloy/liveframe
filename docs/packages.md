@@ -465,3 +465,5 @@ direct SDK rendering through both runners. It covers every proof scenario,
 version conflicts, tampering, malformed records, invalid params, reported state
 resets, inert packing/loading and worker timeout recovery. No screenshot is
 needed to verify this backend path.
+
+Package and outcome-scenario results are deeply frozen owned copies. Prepare hashed metadata before packing and keep approval data outside the package. See [the ownership migration](migration-0.3.md#packages-are-deeply-frozen).

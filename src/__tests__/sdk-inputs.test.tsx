@@ -96,7 +96,25 @@ describe("sdk inputs", () => {
     }
   });
 
-  test("data_checked_once_per_object", () => {
+  test("frozen_accessor_inputs_are_rechecked", () => {
+    let tasks: readonly object[] = Object.freeze([Object.freeze({ id: "t1", title: "Fix" })]);
+    const data = Object.freeze({
+      get tasks() {
+        return tasks;
+      },
+    });
+    const seen: number[] = [];
+    const widget = (owned: WidgetProps) => {
+      seen.push((owned.data as { tasks: readonly object[] }).tasks.length);
+      return <Text text="x" />;
+    };
+    expect(render(widget, { ...inputs, data } as WidgetProps, options).ok).toBe(true);
+    tasks = Object.freeze([]);
+    expect(render(widget, { ...inputs, data } as WidgetProps, options).ok).toBe(true);
+    expect(seen).toEqual([1, 0]);
+  });
+
+  test("mutable_data_is_rechecked", () => {
     let reads = 0;
     const list = [{ id: "t1", title: "Fix" }];
     const data = {
@@ -113,11 +131,11 @@ describe("sdk inputs", () => {
     const afterFirst = reads;
     expect(afterFirst).toBeGreaterThan(0);
     expect(renderWith(data)).toBe(true);
-    expect(reads).toBe(afterFirst);
+    expect(reads).toBeGreaterThan(afterFirst);
 
     const next = { tasks: [{ id: "t2", title: "Ship" }] };
     expect(renderWith(next)).toBe(true);
-    expect(reads).toBe(afterFirst);
+    expect(reads).toBeGreaterThan(afterFirst);
   });
 
   test("checked_data_is_checked_again_under_another_source_schema", () => {
@@ -153,6 +171,23 @@ describe("sdk inputs", () => {
     expect(renderWith(validator).ok).toBe(true);
   });
 
+  test("widget_mutation_fails_without_freezing_caller_inputs", () => {
+    const original = JSON.parse(JSON.stringify(inputs));
+    const result = render(
+      (owned: WidgetProps) => {
+        expect(Object.isFrozen(owned)).toBe(true);
+        (owned.state as Record<string, unknown>).filter = "tasks";
+        return <Text text="x" />;
+      },
+      original,
+      options,
+    );
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.errors[0]?.kind).toBe("render-failed");
+    expect(Object.isFrozen(original)).toBe(false);
+    expect(Object.isFrozen(original.state)).toBe(false);
+  });
+
   test("inputs_reach_widget_frozen", () => {
     let frozen: readonly boolean[] = [];
     let mutated = false;
@@ -178,8 +213,10 @@ describe("sdk inputs", () => {
     const state = Object.freeze({ ...(inputs.state as object), cursors });
     let frozen = false;
     const result = render(
-      () => {
-        frozen = Object.isFrozen(cursors) && Object.isFrozen(row);
+      ({ state, data }: WidgetProps) => {
+        frozen =
+          Object.isFrozen((state as { cursors: object }).cursors) &&
+          Object.isFrozen((data as { tasks: object[] }).tasks[0]);
         return <Text text="x" />;
       },
       { ...inputs, state, data } as WidgetProps,
@@ -188,12 +225,10 @@ describe("sdk inputs", () => {
 
     expect(result.ok).toBe(true);
     expect(frozen).toBe(true);
-    expect(() => {
-      cursors.tasks = "next";
-    }).toThrow(TypeError);
-    expect(() => {
-      row.title = "Changed";
-    }).toThrow(TypeError);
+    expect(Object.isFrozen(cursors)).toBe(false);
+    expect(Object.isFrozen(row)).toBe(false);
+    cursors.tasks = "next";
+    row.title = "Changed";
     expect(render(() => <Text text="x" />, { ...inputs, state, data } as WidgetProps, options).ok).toBe(true);
   });
 

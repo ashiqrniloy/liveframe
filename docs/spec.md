@@ -653,8 +653,10 @@ Capabilities are how an author, person or agent, learns what exists, and what le
 
 **Rules**
 
-1. The SDK runtime uses no host APIs (no `node:`, `bun:`, DOM or `require`), so it runs unchanged in any JS runtime and any sandbox the app chooses.
-2. **Components come from a generated module.**
+1. `render()` copies inputs during its JSON check and gives widgets a deeply frozen envelope and nested values. Caller objects are never frozen or mutated; mutable inputs are checked on every render. Checked copies of deeply frozen inputs may be reused under the same schema.
+
+2. The SDK runtime uses no host APIs (no `node:`, `bun:`, DOM or `require`), so it runs unchanged in any JS runtime and any sandbox the app chooses.
+3. **Components come from a generated module.**
 
 **Contract and examples**
 
@@ -692,7 +694,9 @@ The generated component module is source, not a `.d.ts`, so an unpacked widget s
 
 **Rules**
 
-1. **`pack()` never runs widget code.**
+1. `pack()` and `verifyPackage()` return owned, deeply frozen packages, including manifests and scenarios. `outcomeScenarios()` returns deeply frozen scenario copies. Runners cache hash verification only for deeply frozen packages; mutable transport packages are rehashed.
+
+2. **`pack()` never runs widget code.**
 2. **A package is immutable.**
 3. An `(id, version)` names exactly one hash, and storing different content under an existing pair is an error.
 

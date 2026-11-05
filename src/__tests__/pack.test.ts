@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { pack, type Scenario, type WidgetPackage, verifyPackage } from "@arnilo/liveframe/pack";
-import { type Result, obj, str, validateCatalog, validateCapabilities } from "../index.ts";
+import { pack, type Scenario, verifyPackage, type WidgetPackage } from "@arnilo/liveframe/pack";
+import { obj, type Result, str, validateCapabilities, validateCatalog } from "../index.ts";
 import { packageHash } from "../pack/hash.ts";
 import catalogDoc from "./fixtures/proof/catalog.json" with { type: "json" };
 import capabilitiesDoc from "./fixtures/widgets/capabilities.json" with { type: "json" };
@@ -269,4 +269,19 @@ test("verify_agent_home_under_20_ms", () => {
   const elapsed = performance.now() - start;
   console.info(`agent-home package verification: ${elapsed.toFixed(2)} ms`);
   expect(elapsed).toBeLessThan(20);
+});
+
+function expectFrozen(value: unknown): void {
+  if (value === null || typeof value !== "object") return;
+  expect(Object.isFrozen(value)).toBe(true);
+  for (const child of Object.values(value)) expectFrozen(child);
+}
+
+test("packed_and_verified_packages_are_deeply_frozen", () => {
+  const pkg = value(pack(input, options));
+  expectFrozen(pkg);
+  const doc = JSON.parse(JSON.stringify(pkg));
+  expectFrozen(value(verifyPackage(doc, options)));
+  expect(Object.isFrozen(doc)).toBe(false);
+  expect(Object.isFrozen(input.manifest)).toBe(false);
 });

@@ -56,3 +56,12 @@ export function utf8Length(text: string, maximum = Infinity): number {
   }
   return bytes;
 }
+
+/** Copies validated JSON and freezes every owned container. */
+export function freezeCopy<T>(value: T): T {
+  if (value === null || typeof value !== "object") return value;
+  const copy = Array.isArray(value)
+    ? value.map((entry) => freezeCopy(entry))
+    : Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, freezeCopy(entry)]));
+  return Object.freeze(copy) as T;
+}

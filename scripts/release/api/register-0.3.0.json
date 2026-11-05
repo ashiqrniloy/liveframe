@@ -1,1 +1,54 @@
-[]
+[
+  {
+    "subpath": "./pack",
+    "name": "pack",
+    "change": "changed",
+    "reason": "Ownership contract changes without declaration changes",
+    "hostAction": "Follow the migration checklist",
+    "task": "026 T3",
+    "migration": "Packages are deeply frozen",
+    "behavior": {
+      "file": "src/__tests__/pack.test.ts",
+      "test": "packed_and_verified_packages_are_deeply_frozen"
+    }
+  },
+  {
+    "subpath": "./pack",
+    "name": "verifyPackage",
+    "change": "changed",
+    "reason": "Ownership contract changes without declaration changes",
+    "hostAction": "Follow the migration checklist",
+    "task": "026 T3",
+    "migration": "Packages are deeply frozen",
+    "behavior": {
+      "file": "src/__tests__/pack.test.ts",
+      "test": "packed_and_verified_packages_are_deeply_frozen"
+    }
+  },
+  {
+    "subpath": "./pack",
+    "name": "outcomeScenarios",
+    "change": "changed",
+    "reason": "Ownership contract changes without declaration changes",
+    "hostAction": "Follow the migration checklist",
+    "task": "026 T3",
+    "migration": "Packages are deeply frozen",
+    "behavior": {
+      "file": "src/__tests__/outcome.test.ts",
+      "test": "outcome_scenarios_one_per_status"
+    }
+  },
+  {
+    "subpath": "./sdk",
+    "name": "render",
+    "change": "changed",
+    "reason": "Ownership contract changes without declaration changes",
+    "hostAction": "Follow the migration checklist",
+    "task": "026 T3",
+    "migration": "Render inputs keep caller ownership",
+    "behavior": {
+      "file": "src/__tests__/sdk-inputs.test.tsx",
+      "test": "widget_mutation_fails_without_freezing_caller_inputs"
+    }
+  }
+]

@@ -1,5 +1,4 @@
 import { expect, test } from "bun:test";
-import { Ajv2020 } from "ajv/dist/2020.js";
 import {
   checkValue,
   type Infer,
@@ -10,6 +9,7 @@ import {
   validateCapabilities,
 } from "@arnilo/liveframe";
 import { outcomeScenarios, type Scenario } from "@arnilo/liveframe/pack";
+import { Ajv2020 } from "ajv/dist/2020.js";
 import { schemaDocument } from "../formats/registry.ts";
 import { packageOptions, value } from "./fixtures/widgets/drafts.ts";
 
@@ -59,6 +59,9 @@ test("source_outcome_is_language_schema", () => {
 test("outcome_scenarios_one_per_status", () => {
   const before = JSON.stringify(scenario);
   const expanded = value(outcomeScenarios(scenario, options));
+  expect(Object.isFrozen(expanded)).toBe(true);
+  expect(Object.isFrozen(expanded[0]?.data.queue)).toBe(true);
+  expect(Object.isFrozen(scenario)).toBe(false);
   expect(expanded.map((entry) => entry.name)).toEqual([
     "full.ok",
     "full.unauthorized",

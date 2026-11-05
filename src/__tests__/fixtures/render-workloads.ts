@@ -1,6 +1,7 @@
 import { action, render, state, type WidgetProps } from "@arnilo/liveframe/sdk";
 import { jsx, jsxs } from "@arnilo/liveframe/sdk/jsx-runtime";
 import { compileValidator, obj, str, type UiNode } from "../../index.ts";
+import { freezeCopy } from "../../internal.ts";
 import catalog from "./proof/catalog.json" with { type: "json" };
 import capabilities from "./widgets/capabilities.json" with { type: "json" };
 import { proofWidgets } from "./widgets/index.ts";
@@ -17,7 +18,12 @@ const rows = Array.from({ length: 50 }, (_, i) => ({
   detail: "Waiting on you",
   owner: "You",
 }));
-const syntheticInputs = { params: {}, state: { selected: "task:0" }, data: { rows }, context: { size: "full" } };
+const syntheticInputs = freezeCopy({
+  params: {},
+  state: { selected: "task:0" },
+  data: { rows },
+  context: { size: "full" },
+});
 function syntheticQueue({ data }: WidgetProps<object, { selected: string }, { rows: typeof rows }, { size: string }>) {
   return jsxs(Stack, {
     gap: "space.3",
@@ -63,7 +69,8 @@ export function renderWorkloads() {
   for (const fixture of proofWidgets) {
     const validator = compileValidator({ catalog, capabilities, manifest: fixture.manifest });
     for (const scenarioName of Object.keys(fixture.exports)) {
-      const scenario = fixture.scenarios.find((entry) => entry.name === scenarioName);
+      const found = fixture.scenarios.find((entry) => entry.name === scenarioName);
+      const scenario = found && freezeCopy(found);
       if (!scenario) throw new Error(`Missing ${fixture.name}/${scenarioName}`);
       const queue = fixture.name === "agent-home" || fixture.name === "core-queue";
       const rack = fixture.name === "rack-module";

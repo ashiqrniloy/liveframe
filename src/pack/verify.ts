@@ -2,7 +2,8 @@ import type { Result } from "../errors.ts";
 import { type Capabilities, documentChecks } from "../formats/capabilities.ts";
 import type { Catalog } from "../formats/catalog.ts";
 import { validateManifest } from "../formats/manifest.ts";
-import { type WidgetPackage, validateWidgetPackageShape } from "../formats/package.ts";
+import { validateWidgetPackageShape, type WidgetPackage } from "../formats/package.ts";
+import { freezeCopy } from "../internal.ts";
 import type { LanguageSchema } from "../schema.ts";
 import { compileSchema } from "../validate/schema.ts";
 import { checkModule } from "./bundle.ts";
@@ -65,5 +66,5 @@ export function verifyPackage(doc: unknown, options: PackageContext): Result<Wid
     if (!(error instanceof TypeError)) throw error;
     return { ok: false, errors: [{ kind: "invalid-document", pointer: "", message: error.message }] };
   }
-  return { ok: true, value: pkg };
+  return { ok: true, value: freezeCopy(pkg) };
 }

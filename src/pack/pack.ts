@@ -1,5 +1,6 @@
 import type { Result } from "../errors.ts";
-import { type WidgetPackage, validateWidgetPackageShape } from "../formats/package.ts";
+import { validateWidgetPackageShape, type WidgetPackage } from "../formats/package.ts";
+import { freezeCopy } from "../internal.ts";
 import { bundle } from "./bundle.ts";
 import { packageHash } from "./hash.ts";
 import { validatePackageInputs } from "./verify.ts";
@@ -30,7 +31,7 @@ export function pack(
   const bounded = validateWidgetPackageShape(pkg);
   if (!bounded.ok) return bounded;
   try {
-    return { ok: true, value: { ...pkg, hash: packageHash(pkg) } };
+    return { ok: true, value: freezeCopy({ ...pkg, hash: packageHash(pkg) }) };
   } catch (error) {
     if (!(error instanceof TypeError)) throw error;
     return { ok: false, errors: [{ kind: "invalid-document", pointer: "", message: error.message }] };

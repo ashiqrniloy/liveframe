@@ -243,11 +243,9 @@ Widgets must be pure and synchronous. Supply time and randomness through
 The same widget, inputs and render options give byte-identical serialized trees,
 including across fresh validators. Changing `revision` changes the tree envelope.
 
-`params`, `state` and `context` are checked every render. `data` is checked
-against the manifest's bound sources and their capability `result` schemas,
-then frozen in place. A module-private identity cache skips the data check and
-freeze when that exact object is reused with the same compiled validator. Reuse
-it for state-only rerenders; allocate a new data object for a new resolution. Supply plain JSON value
+All four input fields are checked every render and copied during the JSON walk.
+The widget receives deeply frozen copies, including the input envelope; caller objects remain untouched.
+Mutable data is rechecked even when its identity is reused. Proven deeply frozen inputs may reuse checked frozen copies under the same schema. Supply plain JSON value
 properties, not accessors. The cache remembers which compiled validator
 accepted the object, so another validator with a different source-schema
 contract checks the same object again. It does not cache the tree or skip widget
