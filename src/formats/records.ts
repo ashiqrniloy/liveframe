@@ -1,7 +1,6 @@
 import type { Result } from "../errors.ts";
-import { realmError } from "../internal.ts";
-import { bool, checkValue, type Infer, obj, str } from "../schema.ts";
-import { documentChecks, isRecord, shell } from "./capabilities.ts";
+import { bool, type Infer, obj, str } from "../schema.ts";
+import { checkFormat } from "./check.ts";
 import { validateJson } from "./json.ts";
 import { type Json, treeSchema } from "./tree.ts";
 
@@ -29,28 +28,16 @@ export const styleRecordSchema = {
 } as const;
 
 export function validatePlacement(doc: unknown): Result<Placement> {
-  const error = realmError(doc);
-  if (error) return { ok: false, errors: [error] };
-  const c = documentChecks();
-  if (!isRecord(doc)) c.reject("", "Expected a placement object");
-  else {
-    c.collect(checkValue(placementFields, shell(doc, ["params"])), "");
-    if (Object.hasOwn(doc, "params")) c.collect(validateJson(doc.params), "/params");
-  }
-  return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: doc as Placement };
+  const json = validateJson(doc);
+  if (!json.ok) return json;
+  return checkFormat(placementSchema, doc) as Result<Placement>;
 }
 
 /** The body is JSON here; theme/design-system installation applies its own semantic checks. */
 export function validateStyleRecord(doc: unknown): Result<StyleRecord> {
-  const error = realmError(doc);
-  if (error) return { ok: false, errors: [error] };
-  const c = documentChecks();
-  if (!isRecord(doc)) c.reject("", "Expected a style record object");
-  else {
-    c.collect(checkValue(styleFields, shell(doc, ["body"])), "");
-    if (Object.hasOwn(doc, "body")) c.collect(validateJson(doc.body), "/body");
-  }
-  return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: doc as StyleRecord };
+  const json = validateJson(doc);
+  if (!json.ok) return json;
+  return checkFormat(styleRecordSchema, doc) as Result<StyleRecord>;
 }
 
 /** State has no record envelope; placement id and host scope form its storage key. */

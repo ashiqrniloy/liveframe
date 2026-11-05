@@ -160,6 +160,10 @@ test("schema_publisher_detects_drift", async () => {
     for (const path of [
       "scripts/schemas.ts",
       "src/formats/registry.ts",
+      "src/formats/language.ts",
+      "src/formats/check.ts",
+      "src/validate/schema.ts",
+      "src/validate/format-schema.ts",
       "src/formats/package.ts",
       "src/formats/records.ts",
       "src/formats/json.ts",
@@ -202,5 +206,24 @@ test("schema_publisher_detects_drift", async () => {
     expect(extra.error).toContain("Unregistered schema: schemas/unregistered.json");
   } finally {
     await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("published_schemas_byte_identical_to_0_2_3_unless_registered", async () => {
+  const baseline = await Bun.file(new URL("../../scripts/release/api/0.2.3.json", import.meta.url)).json();
+  const register = await Bun.file(new URL("../../scripts/release/api/register-0.3.0.json", import.meta.url)).json();
+  for (const [path, digest] of Object.entries(baseline.schemas)) {
+    const bytes = await Bun.file(new URL(`../../${path}`, import.meta.url)).arrayBuffer();
+    const actual = new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
+    if (actual !== digest)
+      expect(register).toContainEqual(
+        expect.objectContaining({
+          subpath: "./schemas/*",
+          name: path.slice("schemas/".length),
+          change: "changed",
+          migration: expect.any(String),
+        }),
+      );
+    else expect(actual).toBe(digest);
   }
 });

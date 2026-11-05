@@ -1,5 +1,6 @@
 import { bool, type Infer, int, obj, str } from "../schema.ts";
 import { capabilityName } from "./capabilities.ts";
+import { jsonSchema } from "./language.ts";
 
 export type Json = null | boolean | number | string | readonly Json[] | { readonly [key: string]: Json };
 
@@ -74,16 +75,7 @@ export const treeSchema = {
   ...treeFields,
   properties: { ...treeFields.properties, root: node },
   $defs: {
-    json: {
-      anyOf: [
-        { type: "null" },
-        { type: "boolean" },
-        { type: "number" },
-        { type: "string" },
-        { type: "array", items: json },
-        jsonMap,
-      ],
-    },
+    json: jsonSchema,
     intent: {
       oneOf: [
         { ...stateFields, properties: { ...stateFields.properties, value: json } },

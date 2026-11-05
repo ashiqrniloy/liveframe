@@ -2,9 +2,9 @@ import { addBoundMarker, DEFAULT_MAX_ERRORS, type LiveframeError, type Result } 
 import { at, isRecord } from "../formats/capabilities.ts";
 import type { Catalog } from "../formats/catalog.ts";
 import { validateJson } from "../formats/json.ts";
-import type { UiTree } from "../formats/tree.ts";
+import { treeSchema, type UiTree } from "../formats/tree.ts";
 import { realmError } from "../internal.ts";
-import { int, str } from "../schema.ts";
+import { str } from "../schema.ts";
 import { CONTAINER_BYTES, memberBytes, SEPARATOR_BYTES } from "./bytes.ts";
 import { closed, field } from "./checks.ts";
 import { compileSchema, type SchemaCheck, type SchemaSink } from "./schema.ts";
@@ -26,7 +26,7 @@ export type TreeValidator = (tree: unknown, options?: ValidateTreeOptions) => Re
 /** The tree budget every surface starts from (spec §10). */
 export const DEFAULT_LIMITS = { nodes: 5000, depth: 64, bytes: 1024 * 1024 } as const;
 
-const treeFields = new Set(["format", "catalogId", "surfaceId", "revision", "root"]);
+const treeFields = new Set(Object.keys(treeSchema.properties));
 type Mode = "tree" | "node" | "children" | "json";
 
 /** One validation's state, passed to every step of the walk. A plain object, so each step is a module-level function. */
@@ -56,11 +56,12 @@ export function compileTree(
   checkNode: SchemaCheck,
   structure: CompiledStructure = compileStructure(catalog),
 ): TreeValidator {
+  const { pattern: _installedPattern, ...catalogId } = treeSchema.properties.catalogId;
   const metadata = new Map([
-    ["format", compileSchema(str({ maxLength: 11, enum: ["liveframe/1"] }))],
-    ["catalogId", compileSchema(str({ maxLength: 128, enum: [catalog.catalogId] }))],
-    ["surfaceId", compileSchema(str({ maxLength: 128, pattern: "^.+$" }))],
-    ["revision", compileSchema(int({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }))],
+    ["format", compileSchema(treeSchema.properties.format)],
+    ["catalogId", compileSchema(str({ ...catalogId, enum: [catalog.catalogId] }))],
+    ["surfaceId", compileSchema(treeSchema.properties.surfaceId)],
+    ["revision", compileSchema({ ...treeSchema.properties.revision, maximum: Number.MAX_SAFE_INTEGER })],
   ]);
   return (tree, options = {}) => {
     const ctx = createContext(checkNode, structure, metadata, options);

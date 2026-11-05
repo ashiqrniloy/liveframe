@@ -260,6 +260,8 @@ generic interpreter reports `invalid-document`.
 
 ## Published JSON Schemas
 
+Each transport format has one internal definition. Install validators compile structural checks from the same value that emits the published schema; the widget schema language stays unchanged. Cross-document references, schema-keyword relationships, recipe completeness, colour authority and contrast remain named install-time checks. The tree validator specializes the shared envelope fields alongside its catalog and budget checks in one walk.
+
 Every published document's `$id` is `urn:liveframe:<format>:1` — the format and
 its version, never a domain or a package version — and a cross-document `$ref`
 uses that id (`widget-package.json` references `urn:liveframe:manifest:1`).

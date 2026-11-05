@@ -1,12 +1,19 @@
 import { at, type Capabilities, isRecord } from "../formats/capabilities.ts";
 import type { Definition } from "../formats/catalog.ts";
 import type { Manifest } from "../formats/manifest.ts";
+import { treeSchema } from "../formats/tree.ts";
 import type { LanguageSchema } from "../schema.ts";
 import { closed, field, reject } from "./checks.ts";
 import { compileSchema, type SchemaCheck, type SchemaSink } from "./schema.ts";
 
-const stateFields = new Set(["type", "key", "value"]);
-const actionFields = new Set(["type", "name", "args", "bind", "bindAll"]);
+const stateFields = new Set([
+  ...treeSchema.$defs.intent.oneOf[0].required,
+  ...Object.keys(treeSchema.$defs.intent.oneOf[0].properties),
+]);
+const actionFields = new Set([
+  ...treeSchema.$defs.intent.oneOf[1].required,
+  ...Object.keys(treeSchema.$defs.intent.oneOf[1].properties),
+]);
 type Carries = Definition["events"][string]["carries"];
 
 function carriesFits(carries: Carries, type: string): boolean {

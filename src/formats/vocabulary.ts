@@ -1,6 +1,7 @@
 import type { LiveframeError, Result } from "../errors.ts";
 import { at } from "../internal.ts";
-import { arr, checkValue, type Infer, int, isRecord, num, obj, record, str } from "../schema.ts";
+import { arr, type Infer, int, num, obj, record, str } from "../schema.ts";
+import { checkFormat } from "./check.ts";
 import { noPaint } from "./fixed.ts";
 import { validateJson } from "./json.ts";
 
@@ -57,39 +58,6 @@ type Checks = {
   readonly reject: (kind: "invalid-document" | "unknown-name", pointer: string, message: string) => void;
 };
 
-/** Each declared list must pass its language schema and hold unique names. */
-function checkLists(input: Record<string, unknown>, c: Checks): void {
-  for (const [key, schema] of Object.entries(lists)) {
-    if (c.errors.length >= 20) break;
-    // Uniqueness is a format constraint, outside the author's schema language.
-    const { uniqueItems: _, ...languageSchema } = schema;
-    const result = checkValue(languageSchema, Object.hasOwn(input, key) ? input[key] : undefined);
-    if (!result.ok) {
-      for (const error of result.errors) c.reject("invalid-document", `/${key}${error.pointer}`, error.message);
-      continue;
-    }
-    const seen = new Set<string>();
-    for (const [i, value] of result.value.entries()) {
-      if (seen.has(value)) c.reject("invalid-document", `/${key}/${i}`, "Names must be unique within a list");
-      seen.add(value);
-    }
-  }
-}
-
-function checkTones(tones: unknown, pointer: (key: string) => string, c: Checks): void {
-  if (tones === null || typeof tones !== "object" || Array.isArray(tones)) {
-    c.reject("invalid-document", "/tones", "Expected a tone-to-colour-role object");
-    return;
-  }
-  const entries = Object.entries(tones);
-  if (entries.length > 256) c.reject("invalid-document", "/tones", "Expected at most 256 tones");
-  for (const [key, value] of entries) {
-    if (c.errors.length >= 20) break;
-    if (!checkValue(name, key).ok || !checkValue(name, value).ok)
-      c.reject("invalid-document", `/tones${pointer(key)}`, "Expected bounded vocabulary names");
-  }
-}
-
 /** Cross-references: every role a surface, fill or tone names must be declared. */
 function checkReferences(value: Vocabulary, pointer: (key: string) => string, c: Checks): void {
   const colours = new Set(value.colourRoles);
@@ -137,6 +105,8 @@ function checkContrastReferences(value: Vocabulary, colours: ReadonlySet<string>
 export function validateVocabulary(doc: unknown): Result<Vocabulary> {
   const json = validateJson(doc, true);
   if (!json.ok) return json;
+  const shape = checkFormat(vocabularySchema, doc);
+  if (!shape.ok) return shape;
   const errors: LiveframeError[] = [];
   const c: Checks = {
     errors,
@@ -144,31 +114,7 @@ export function validateVocabulary(doc: unknown): Result<Vocabulary> {
       if (errors.length < 20) errors.push({ kind, pointer, message });
     },
   };
-  if (!isRecord(doc)) {
-    c.reject("invalid-document", "", "Expected a vocabulary object");
-    return { ok: false, errors };
-  }
   const pointer = (key: string) => at("", key);
-  for (const key of vocabularySchema.required)
-    if (!Object.hasOwn(doc, key)) c.reject("invalid-document", pointer(key), "Expected a required property");
-  for (const key of Object.keys(doc)) {
-    if (errors.length >= 20) break;
-    if (!Object.hasOwn(vocabularySchema.properties, key))
-      c.reject("invalid-document", pointer(key), "Unknown property");
-  }
-  checkLists(doc, c);
-  const typography = checkValue(name, Object.hasOwn(doc, "surfaceTypography") ? doc.surfaceTypography : undefined);
-  if (!typography.ok)
-    for (const error of typography.errors)
-      c.reject("invalid-document", `/surfaceTypography${error.pointer}`, error.message);
-  checkTones(Object.hasOwn(doc, "tones") ? doc.tones : undefined, pointer, c);
-  for (const [key, schema] of Object.entries({ contrast, contrastBase: name })) {
-    if (!Object.hasOwn(doc, key)) continue;
-    const result = checkValue(schema, doc[key]);
-    if (!result.ok)
-      for (const error of result.errors) c.reject("invalid-document", `/${key}${error.pointer}`, error.message);
-  }
-  if (errors.length) return { ok: false, errors };
   const value = doc as Vocabulary;
   checkReferences(value, pointer, c);
   return errors.length ? { ok: false, errors } : { ok: true, value };

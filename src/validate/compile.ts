@@ -3,6 +3,7 @@ import { at, type Capabilities, isRecord, validateCapabilities } from "../format
 import { type Catalog, type Definition, validateCatalog } from "../formats/catalog.ts";
 import { sameJson } from "../formats/json.ts";
 import { type Manifest, validateManifest } from "../formats/manifest.ts";
+import { treeSchema } from "../formats/tree.ts";
 import { realmError } from "../internal.ts";
 import type { LanguageSchema } from "../schema.ts";
 import { closed, field, reject } from "./checks.ts";
@@ -128,7 +129,13 @@ function rebaseErrors(sink: SchemaSink, start: number, path: string, node: unkno
   }
 }
 
-const fields = new Set(["id", "kind", "variant", "props", "style", "events", "children"]);
+const nodeFields = Object.keys(treeSchema.$defs.node.properties);
+// Keep existing diagnostic order; the schema owns membership.
+const fields = new Set(
+  ["id", "kind", "variant", "props", "style", "events", "children"]
+    .filter((name) => nodeFields.includes(name))
+    .concat(nodeFields),
+);
 
 /** Catalog-level work: everything a validator needs that depends only on the catalog and capabilities. */
 type CatalogKind = {

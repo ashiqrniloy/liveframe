@@ -15,6 +15,7 @@ import {
   validateTreePatch,
   validateVocabulary,
 } from "../index.ts";
+import { compileFormatSchema, type FormatSchema } from "../validate/format-schema.ts";
 import * as numeric from "./fixtures/numeric-events.ts";
 import * as form from "./fixtures/object-events.ts";
 import { validatorFixtures } from "./fixtures/validator.ts";
@@ -239,6 +240,22 @@ for (const [name, { matches, check }] of Object.entries(checks)) {
   test(`format_schema_differential: ${name}`, () => {
     const ref = name === "vocabulary" ? "urn:liveframe:catalog:1#/properties/vocabulary" : `urn:liveframe:${name}:1`;
     const validate = validator(ref);
+    const structure = compileFormatSchema(
+      published.get(name === "vocabulary" ? "catalog" : name) as FormatSchema,
+      (id) => {
+        const schema = [...published.values()].find((entry) => entry.$id === id);
+        if (!schema) throw new Error(`Missing schema: ${id}`);
+        return schema as FormatSchema;
+      },
+    );
+    const structural =
+      name === "vocabulary"
+        ? compileFormatSchema(formats.catalog.$defs.vocabulary, () => {
+            throw new Error("Unexpected ref");
+          })
+        : structure;
+    const agrees = (doc: Json) =>
+      expect(structural(doc, "", { errors: [], maxErrors: 1 })).toBe(Boolean(validate(doc)));
     const seeds = documents.filter(({ value }) => record(value) && matches(value) && check(value));
     expect(seeds.length).toBeGreaterThan(0);
     let random = 0x25_06;
@@ -259,6 +276,7 @@ for (const [name, { matches, check }] of Object.entries(checks)) {
       }
       const seed = { name: seedName, value, check: scoped };
       assertAgreement(seed, validate, value, "seed");
+      agrees(value);
       const candidates = mutations(value, ref);
       const groups = [...new Set(candidates.map((mutation) => mutation.kind))].map((kind) =>
         candidates.filter((mutation) => mutation.kind === kind),
@@ -272,6 +290,7 @@ for (const [name, { matches, check }] of Object.entries(checks)) {
         const label = `${mutation.kind} /${mutation.path.join("/")}`;
         if (["maxItems", "maxLength", "empty"].includes(mutation.kind)) assertBoundaryRejected(validate, doc, label);
         assertAgreement(seed, validate, doc, label);
+        if (i < 20) agrees(doc);
       }
     }
   }, 20_000);

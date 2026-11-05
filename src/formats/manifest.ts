@@ -1,5 +1,6 @@
-import { LiveframeFailure, type Result } from "../errors.ts";
+import { type LiveframeError, LiveframeFailure, type Result } from "../errors.ts";
 import { arr, bool, checkValue, type Infer, type LanguageSchema, obj, str } from "../schema.ts";
+import { compileSchema } from "../validate/schema.ts";
 import {
   at,
   type Capabilities,
@@ -9,11 +10,12 @@ import {
   isRecord,
   namedMap,
   type ObjectSchema,
-  shell,
   validateCapabilities,
 } from "./capabilities.ts";
 import type { Catalog } from "./catalog.ts";
+import { checkFormat } from "./check.ts";
 import { validateJson } from "./json.ts";
+import { jsonSchema, languageForms, objectSchema } from "./language.ts";
 
 type Json = null | boolean | number | string | readonly Json[] | { readonly [key: string]: Json };
 const binding = obj({
@@ -77,54 +79,21 @@ export const manifestSchema = {
     }),
   },
   $defs: {
-    json: {
-      anyOf: [
-        { type: "null" },
-        { type: "boolean" },
-        { type: "number" },
-        { type: "string" },
-        { type: "array", items: json },
-        { type: "object", additionalProperties: json },
-      ],
-    },
+    ...languageForms(false),
+    objectSchema,
+    json: jsonSchema,
   },
 };
 
 const noPattern = "no pattern in widget schemas; use enum or a capability";
 
-/**
- * params, state and context are matched against untrusted values on the app's
- * thread, so a pattern would be an author's code running there (spec §5).
- */
-function rejectPatterns(
-  schema: LanguageSchema,
-  pointer: string,
-  reject: (pointer: string, message: string, kind?: "invalid-document", expected?: string) => void,
-): void {
-  if ("discriminator" in schema) {
-    for (const [tag, entry] of Object.entries(schema.mapping))
-      rejectPatterns(entry, at(at(pointer, "mapping"), tag), reject);
-    return;
-  }
-  if (schema.type === "string") {
-    if (Object.hasOwn(schema, "pattern"))
-      reject(`${pointer}/pattern`, "Expected no pattern in widget schemas", "invalid-document", noPattern);
-  } else if (schema.type === "array") rejectPatterns(schema.items, `${pointer}/items`, reject);
-  else if (schema.type === "object")
-    for (const [key, child] of Object.entries(schema.properties))
-      rejectPatterns(child, at(at(pointer, "properties"), key), reject);
-}
-
 type Checks = ReturnType<typeof documentChecks>;
 type Source = Capabilities["sources"][string];
 
 function checkActionList(actions: readonly string[], capabilities: Capabilities, c: Checks): void {
-  const seen = new Set<string>();
   for (const [i, name] of actions.entries()) {
     if (c.errors.length >= 20) break;
     if (!Object.hasOwn(capabilities.actions, name)) c.reject(`/actions/${i}`, "Undeclared action", "unknown-name");
-    if (seen.has(name)) c.reject(`/actions/${i}`, "Duplicate action");
-    seen.add(name);
   }
 }
 
@@ -156,32 +125,23 @@ function checkSourceParam(
     c.collect(checkValue(target, input), pointer);
     return;
   }
-  const checked = checkValue(binding, input);
-  c.collect(checked, pointer);
-  if (!checked.ok) return;
-  const resolved = resolveBindingPath(checked.value.from, checked.value.path, manifest);
+  const value = input as Infer<typeof binding>;
+  const resolved = resolveBindingPath(value.from, value.path, manifest);
   if (!resolved) c.reject(`${pointer}/path`, "Binding path does not resolve");
   else if ((resolved.type ?? "object") !== (target.type ?? "object"))
     c.reject(pointer, "Binding type does not match source parameter");
 }
 
-function checkSource(entry: unknown, pointer: string, manifest: Manifest, capabilities: Capabilities, c: Checks): void {
-  if (!isRecord(entry)) {
-    c.reject(pointer, "Expected a source object");
-    return;
-  }
-  const structure = checkValue(sourceFields, shell(entry, ["params"]));
-  c.collect(structure, pointer);
-  if (!structure.ok) return;
-  const source = Object.hasOwn(capabilities.sources, entry.source as string)
-    ? capabilities.sources[entry.source as string]
-    : undefined;
+function checkSource(
+  entry: Manifest["sources"][string],
+  pointer: string,
+  manifest: Manifest,
+  capabilities: Capabilities,
+  c: Checks,
+): void {
+  const source = Object.hasOwn(capabilities.sources, entry.source) ? capabilities.sources[entry.source] : undefined;
   if (!source) {
     c.reject(`${pointer}/source`, "Undeclared source", "unknown-name");
-    return;
-  }
-  if (!isRecord(entry.params)) {
-    c.reject(`${pointer}/params`, "Expected a source parameter map");
     return;
   }
   for (const key of source.params.required)
@@ -191,6 +151,27 @@ function checkSource(entry: unknown, pointer: string, manifest: Manifest, capabi
     if (c.errors.length >= 20) break;
     checkSourceParam(key, input, at(`${pointer}/params`, key), source, manifest, c);
   }
+}
+
+/** Preserve the widget-pattern diagnostic while structure comes from the transport definition. */
+function checkManifestStructure(doc: unknown, c: Checks): void {
+  const result = checkFormat(manifestSchema, doc);
+  if (!result.ok)
+    c.collect(
+      {
+        ok: false,
+        errors: result.errors.map((error) => {
+          const key = error.pointer.split("/")[1] ?? "";
+          const schema = isRecord(doc) ? doc[key] : undefined;
+          if (["params", "state", "context"].includes(key) && (!isRecord(schema) || schema.type !== "object"))
+            return { ...error, pointer: `/${key}` };
+          return error.expected === "no value" && error.pointer.endsWith("/pattern")
+            ? { ...error, expected: noPattern, message: "Expected no pattern in widget schemas" }
+            : error;
+        }),
+      },
+      "",
+    );
 }
 
 /** Context must contain an installed, validated catalog and capabilities. */
@@ -203,19 +184,25 @@ export function validateManifest(
   const c = documentChecks();
   if (!isRecord(doc)) c.reject("", "Expected a manifest object");
   else {
-    c.collect(checkValue(fields, shell(doc, ["params", "state", "context", "initialState", "sources", "meta"])), "");
-    for (const key of ["params", "state", "context"] as const) {
-      const schema = c.schema(doc[key], `/${key}`);
-      if (schema) rejectPatterns(schema, `/${key}`, c.reject);
-    }
     if (Object.hasOwn(doc, "meta")) checkMeta(doc.meta, "/meta", c);
+    if (c.errors.length) return { ok: false, errors: c.errors };
+    checkManifestStructure(doc, c);
+    if (c.errors.length) return { ok: false, errors: c.errors };
+    for (const key of ["params", "state", "context"] as const) {
+      c.schemaRelationships((doc as Manifest)[key], `/${key}`);
+    }
     // Schema checks must pass before traversing author-supplied schemas.
     if (c.errors.length) return { ok: false, errors: c.errors };
     const value = doc as Manifest;
     if (value.catalogId !== catalog.catalogId) c.reject("/catalogId", "Catalog does not match", "catalog-mismatch");
-    c.collect(checkValue(value.state, value.initialState), "/initialState");
+    const stateErrors: LiveframeError[] = [];
+    compileSchema(value.state)(value.initialState, "/initialState", { errors: stateErrors, maxErrors: 20 });
+    for (const error of stateErrors) c.reject(error.pointer, error.message, "invalid-document", error.expected);
     checkActionList(value.actions, capabilities, c);
-    c.map(value.sources, "/sources", (entry, pointer) => checkSource(entry, pointer, value, capabilities, c));
+    for (const [name, entry] of Object.entries(value.sources)) {
+      if (c.errors.length >= 20) break;
+      checkSource(entry, at("/sources", name), value, capabilities, c);
+    }
   }
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: doc as Manifest };
 }
@@ -225,38 +212,15 @@ export function validateManifestShape(doc: unknown): Result<Manifest> {
   const json = validateJson(doc);
   if (!json.ok) return json;
   const c = documentChecks();
-  if (!isRecord(doc)) c.reject("", "Expected a manifest object");
-  else {
-    c.collect(checkValue(fields, shell(doc, ["params", "state", "context", "initialState", "sources", "meta"])), "");
-    for (const key of ["params", "state", "context"] as const) {
-      const schema = c.schema(doc[key], `/${key}`);
-      if (schema) rejectPatterns(schema, `/${key}`, c.reject);
-    }
-    if (Object.hasOwn(doc, "meta")) checkMeta(doc.meta, "/meta", c);
-    if (Array.isArray(doc.actions)) {
-      const seen = new Set<unknown>();
-      for (const [i, name] of doc.actions.entries()) {
-        if (c.errors.length >= 20) break;
-        if (seen.has(name)) c.reject(`/actions/${i}`, "Duplicate action");
-        seen.add(name);
-      }
-    }
-    c.map(doc.sources, "/sources", (source, pointer) => {
-      if (!isRecord(source)) {
-        c.reject(pointer, "Expected a source object");
-        return;
-      }
-      c.collect(checkValue(sourceFields, shell(source, ["params"])), pointer);
-      if (!isRecord(source.params)) c.reject(`${pointer}/params`, "Expected a source parameter map");
-      else
-        for (const [key, value] of Object.entries(source.params)) {
-          if (c.errors.length >= 20) break;
-          if (isRecord(value) && Object.hasOwn(value, "from"))
-            c.collect(checkValue(binding, value), at(`${pointer}/params`, key));
-        }
-    });
+  if (isRecord(doc) && Object.hasOwn(doc, "meta")) checkMeta(doc.meta, "/meta", c);
+  if (c.errors.length) return { ok: false, errors: c.errors };
+  checkManifestStructure(doc, c);
+  if (c.errors.length) return { ok: false, errors: c.errors };
+  const value = doc as Manifest;
+  for (const key of ["params", "state", "context"] as const) {
+    c.schemaRelationships(value[key], `/${key}`);
   }
-  return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: doc as Manifest };
+  return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value };
 }
 
 /** Walks a dotted binding path through one input; anything absent answers undefined. */

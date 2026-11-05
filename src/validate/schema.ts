@@ -62,7 +62,7 @@ function checkProperty(
 }
 
 /** The object case of `compileSchema`: required properties first, then every declared property. */
-function objectCheck(spec: ObjectCheck): SchemaCheck {
+export function objectCheck(spec: ObjectCheck): SchemaCheck {
   return (value, at, sink) => {
     if (value === null || typeof value !== "object" || Array.isArray(value))
       return reject(at, sink, spec.objectExpected);

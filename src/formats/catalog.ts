@@ -1,8 +1,10 @@
 import type { Result } from "../errors.ts";
-import { arr, bool, checkValue, type Infer, int, type LanguageSchema, literal, obj, record, str } from "../schema.ts";
-import { at, documentChecks, isRecord, shell } from "./capabilities.ts";
+import { arr, bool, type Infer, int, type LanguageSchema, literal, obj, record, str } from "../schema.ts";
+import { at, documentChecks, isRecord } from "./capabilities.ts";
+import { checkFormat } from "./check.ts";
 import { styleProps } from "./fixed.ts";
 import { validateJson } from "./json.ts";
+import { objectSchema, schemaLanguage } from "./language.ts";
 import { type Vocabulary, validateVocabulary, vocabularySchema } from "./vocabulary.ts";
 
 const token = str({ maxLength: 64, pattern: "^[a-z][A-Za-z0-9-]*$" });
@@ -131,76 +133,11 @@ export const catalogSchema = {
     vocabulary: { $ref: "#/$defs/vocabulary" },
     definitions: { type: "array", items: definitionSchema, maxItems: 256 },
   },
-  $defs: { vocabulary: vocabularySchema },
+  $defs: { vocabulary: vocabularySchema, ...schemaLanguage.$defs, objectSchema },
 } as const;
 
 type Checks = ReturnType<typeof documentChecks>;
 type Change = (major: boolean, reason: string) => void;
-
-function checkUniqueNames(list: unknown, pointer: string, c: Checks): void {
-  if (!Array.isArray(list)) return;
-  const seen = new Set<unknown>();
-  for (const [j, name] of list.entries()) {
-    if (c.errors.length >= 20) break;
-    if (seen.has(name)) c.reject(`${pointer}/${j}`, "Names must be unique");
-    seen.add(name);
-  }
-}
-
-function checkCarries(carries: unknown, pointer: string, c: Checks): void {
-  if (!isRecord(carries)) {
-    c.collect(
-      checkValue(str({ maxLength: 7, enum: ["none", "string", "boolean", "number", "integer"] }), carries),
-      pointer,
-    );
-    return;
-  }
-  c.collect(checkValue(obj({ object: bool() }), shell(carries, ["object"])), pointer);
-  const schema = carries.object;
-  c.schema(schema, `${pointer}/object`);
-  if (!isRecord(schema) || schema.type !== "object" || schema.nullable === true)
-    c.reject(`${pointer}/object`, "Expected a non-nullable object schema");
-  if (isRecord(schema) && isRecord(schema.properties)) {
-    if (Object.keys(schema.properties).length > 32)
-      c.reject(`${pointer}/object/properties`, "Expected at most 32 properties");
-    for (const [name, property] of Object.entries(schema.properties))
-      if (!isRecord(property) || !["string", "number", "integer", "boolean"].includes(String(property.type)))
-        c.reject(at(`${pointer}/object/properties`, name), "Expected a scalar property schema");
-  }
-}
-
-function checkEvents(events: unknown, pointer: string, c: Checks): void {
-  if (!isRecord(events)) {
-    c.reject(`${pointer}/events`, "Expected an event map");
-    return;
-  }
-  if (Object.keys(events).length > 256) c.reject(`${pointer}/events`, "Expected at most 256 events");
-  for (const [key, value] of Object.entries(events)) {
-    if (c.errors.length >= 20) break;
-    const eventPointer = at(`${pointer}/events`, key);
-    if (!checkValue(eventName, key).ok) c.reject(eventPointer, "Expected an onCapitalised event name");
-    c.collect(checkValue(event, isRecord(value) ? shell(value, ["carries"]) : value), eventPointer);
-    if (!isRecord(value)) continue;
-    checkCarries(value.carries, `${eventPointer}/carries`, c);
-  }
-}
-
-/** One definition's structure, before any cross-reference is checked. */
-function checkDefinition(definition: unknown, pointer: string, c: Checks): void {
-  if (!isRecord(definition)) {
-    c.reject(pointer, "Expected a definition object");
-    return;
-  }
-  c.collect(checkValue(definitionFields, shell(definition, ["props", "events", "children"])), pointer);
-  c.schema(definition.props, `${pointer}/props`);
-  if (definition.children !== "none" && definition.children !== "any")
-    c.collect(checkValue(childRules, definition.children), `${pointer}/children`);
-  checkEvents(definition.events, pointer, c);
-  for (const key of ["variants", "slots", "styleProps"] as const)
-    checkUniqueNames(definition[key], `${pointer}/${key}`, c);
-  if (Array.isArray(definition.slots) && !definition.slots.includes("root"))
-    c.reject(`${pointer}/slots`, "Slots must include root");
-}
 
 function checkChildren(
   children: readonly Infer<typeof childRules>[number][],
@@ -244,17 +181,22 @@ export function validateCatalog(doc: unknown): Result<Catalog> {
   const c = documentChecks();
   if (!isRecord(doc))
     return { ok: false, errors: [{ kind: "invalid-document", pointer: "", message: "Expected a catalog object" }] };
-  const input = shell(doc, ["vocabulary"]);
-  if (Array.isArray(doc.definitions)) input.definitions = doc.definitions.map(() => true);
-  c.collect(checkValue(catalogFields, input), "");
-  c.collect(validateVocabulary(doc.vocabulary), "/vocabulary");
-  if (!Array.isArray(doc.definitions) || doc.definitions.length > 256) {
-    c.reject("/definitions", "Expected at most 256 definitions");
-    return { ok: false, errors: c.errors };
+  const shape = checkFormat(catalogSchema, doc);
+  if (!shape.ok) {
+    const seen = new Set<string>();
+    for (const error of shape.errors) {
+      const pointer = error.pointer.replace(/^(\/definitions\/\d+\/props)\/.*/, "$1");
+      if (!seen.has(pointer)) c.collect({ ok: false, errors: [{ ...error, pointer }] }, "");
+      seen.add(pointer);
+    }
   }
-  for (const [i, definition] of doc.definitions.entries()) {
-    if (c.errors.length >= 20) break;
-    checkDefinition(definition, `/definitions/${i}`, c);
+  if (c.errors.length) return { ok: false, errors: c.errors };
+  c.collect(validateVocabulary(doc.vocabulary), "/vocabulary");
+  for (const [i, definition] of (doc as Catalog).definitions.entries()) {
+    c.schemaRelationships(definition.props, `/definitions/${i}/props`);
+    for (const [name, event] of Object.entries(definition.events))
+      if (typeof event.carries === "object")
+        c.schemaRelationships(event.carries.object, `${at(`/definitions/${i}/events`, name)}/carries/object`);
   }
   if (c.errors.length) return { ok: false, errors: c.errors };
   const value = doc as Catalog;

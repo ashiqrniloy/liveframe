@@ -1,11 +1,10 @@
 import type { Result } from "../errors.ts";
 import { cascadeRecipes } from "../resolve.ts";
-import { bool, checkValue, type Infer, type LanguageSchema, num, obj, record, str } from "../schema.ts";
-import { at, documentChecks, isRecord, shell } from "./capabilities.ts";
+import { bool, type Infer, num, obj, record, str } from "../schema.ts";
+import { at, documentChecks, isRecord } from "./capabilities.ts";
 import type { Catalog } from "./catalog.ts";
+import { checkFormat } from "./check.ts";
 import {
-  alphaModifier,
-  bezierCoordinate,
   type ColourValue,
   type CubicBezier,
   colourReference,
@@ -15,7 +14,6 @@ import {
   roleName,
   type ShadowLayer,
   shadow,
-  shadowLayer,
   signedDimension,
 } from "./dtcg.ts";
 import { noPaint, scrollbarProperties, states } from "./fixed.ts";
@@ -154,74 +152,15 @@ export const designSystemSchema = {
   },
 };
 type Checks = ReturnType<typeof documentChecks>;
-function literalCheck(
-  kind: DesignValue["kind"],
-  value: unknown,
-  pointer: string,
-  c: Checks,
-  colours: ReadonlySet<string>,
-  signed = false,
-): void {
-  if (kind === "shadow") checkShadow(value, pointer, c, colours);
-  else if (kind === "easing") checkEasing(value, pointer, c);
-  else c.collect(checkValue(signed ? signedDimension : (literalSchemas[kind] as LanguageSchema), value), pointer);
-}
-
-function checkShadow(value: unknown, pointer: string, c: Checks, colours: ReadonlySet<string>): void {
-  const layers = Array.isArray(value) ? value : [value];
-  if (Array.isArray(value) && value.length > 16) {
-    c.reject(pointer, "Expected at most 16 shadow layers");
-    return;
-  }
-  for (const [i, layer] of layers.entries())
-    checkShadowLayer(layer, Array.isArray(value) ? at(pointer, i) : pointer, c, colours);
-}
-
-function checkShadowLayer(layer: unknown, path: string, c: Checks, colours: ReadonlySet<string>): void {
-  if (!isRecord(layer)) {
-    c.reject(path, "Expected a shadow layer");
-    return;
-  }
-  c.collect(checkValue(shadowLayer, { ...layer, ...(Object.hasOwn(layer, "color") ? { color: true } : {}) }), path);
-  // Check colour authority separately to report the specific trust-boundary error.
-  checkColour(layer.color, `${path}/color`, c, colours);
-}
-
-function checkAlpha(value: unknown, pointer: string, c: Checks): void {
-  if (typeof value === "string") c.collect(checkValue(roleName, value), pointer);
-  else if (
-    typeof value !== "number" ||
-    !Number.isFinite(value) ||
-    value < 0 ||
-    value > 1 ||
-    Number(value.toFixed(4)) !== value
-  )
-    c.reject(pointer, "Expected alpha in [0, 1] with at most four decimal places");
-}
+/** Theme-role authority remains an install relationship, independent of transport shape. */
 function checkColour(value: unknown, pointer: string, c: Checks, colours: ReadonlySet<string>): void {
-  if (isRecord(value)) {
-    c.collect(
-      checkValue(alphaModifier, { ...value, ...(Object.hasOwn(value, "alpha") ? { alpha: true } : {}) }),
-      pointer,
+  const role = isRecord(value) ? value.role : value;
+  if (typeof role !== "string" || !colours.has(role))
+    c.reject(
+      isRecord(value) && Object.hasOwn(value, "role") ? `${pointer}/role` : pointer,
+      "Colour must name a theme role",
+      "colour-outside-theme",
     );
-    if (typeof value.role !== "string" || !colours.has(value.role))
-      c.reject(
-        Object.hasOwn(value, "role") ? `${pointer}/role` : pointer,
-        "Colour must name a theme role",
-        "colour-outside-theme",
-      );
-    checkAlpha(value.alpha, `${pointer}/alpha`, c);
-  } else if (typeof value !== "string" || !colours.has(value))
-    c.reject(pointer, "Colour must name a theme role", "colour-outside-theme");
-}
-
-function checkEasing(value: unknown, pointer: string, c: Checks): void {
-  c.collect(checkValue({ type: "array", items: bezierCoordinate, maxItems: 4 }, value), pointer);
-  if (!Array.isArray(value) || value.length !== 4) {
-    c.reject(pointer, "Expected four cubic Bezier coordinates");
-    return;
-  }
-  for (const i of [0, 2]) c.collect(checkValue(num({ minimum: 0, maximum: 1 }), value[i]), at(pointer, i));
 }
 
 /** Checks one document of the chain and returns it, or undefined when it is invalid. */
@@ -241,7 +180,24 @@ function checkDocument(
     c.reject(base, "Expected a design system object");
     return undefined;
   }
-  c.collect(checkValue(fields, shell(input, ["values", "recipes"])), base);
+  const shape = checkFormat(designSystemSchema, input);
+  if (!shape.ok) {
+    checkMaps(input, base, c, context);
+    const authority = c.errors.filter((error) => error.kind === "colour-outside-theme").map((error) => error.pointer);
+    c.collect(
+      {
+        ok: false,
+        errors: shape.errors.filter(
+          (error) =>
+            !authority.some(
+              (pointer) => pointer === base + error.pointer || pointer.startsWith(`${base + error.pointer}/`),
+            ),
+        ),
+      },
+      base,
+    );
+    return undefined;
+  }
   if (typeof input.id === "string") {
     if (seen.has(input.id)) {
       c.reject(`${base}/extends`, "Cyclic design-system derivation", "cyclic-extends");
@@ -255,42 +211,14 @@ function checkDocument(
 /** Checks the `values` and `recipes` entries of one document; returns whether none failed. */
 function checkMaps(input: Record<string, unknown>, base: string, c: Checks, context: DesignSystemContext): boolean {
   const colours = new Set(context.catalog.vocabulary.colourRoles);
-  for (const field of ["values", "recipes"] as const) {
-    const map = input[field];
-    const pointer = `${base}/${field}`;
-    if (!isRecord(map)) {
-      c.reject(pointer, "Expected a name map");
-      continue;
-    }
-    if (Object.keys(map).length > (field === "values" ? 1024 : 16384)) {
-      c.reject(pointer, "Too many entries");
-      continue;
-    }
-    for (const [name, entry] of Object.entries(map)) {
-      if (c.errors.length >= 20) break;
-      const path = at(pointer, name);
-      c.collect(checkValue(field === "values" ? roleName : keyName, name), path);
-      if (!isRecord(entry)) {
-        c.reject(path, "Expected an object");
-        continue;
-      }
-      if (field === "values") checkDesignValue(entry, path, c, colours);
-      else checkRecipe(name, entry, path, c, context, colours);
-    }
+  for (const [name, entry] of Object.entries(isRecord(input.values) ? input.values : {}))
+    if (isRecord(entry) && entry.kind === "shadow")
+      checkShadowRoles(entry.value, `${at(`${base}/values`, name)}/value`, c, colours);
+  for (const [name, entry] of Object.entries(isRecord(input.recipes) ? input.recipes : {})) {
+    if (c.errors.length >= 20) break;
+    if (isRecord(entry)) checkRecipe(name, entry, at(`${base}/recipes`, name), c, context, colours);
   }
   return c.errors.length === 0;
-}
-
-function checkDesignValue(entry: Record<string, unknown>, path: string, c: Checks, colours: ReadonlySet<string>): void {
-  c.collect(
-    checkValue(
-      obj({ kind: str({ maxLength: 16, enum: Object.keys(literalSchemas) }), value: bool() }),
-      shell(entry, ["value"]),
-    ),
-    path,
-  );
-  if (typeof entry.kind === "string" && Object.hasOwn(literalSchemas, entry.kind))
-    literalCheck(entry.kind as DesignValue["kind"], entry.value, `${path}/value`, c, colours);
 }
 
 function checkRecipe(
@@ -326,19 +254,13 @@ function checkRecipeProperty(
   context: DesignSystemContext,
   colours: ReadonlySet<string>,
 ): void {
-  if (!Object.hasOwn(propertyKinds, property)) {
-    c.reject(pointer, "Unknown recipe property");
-    return;
-  }
   const kind = propertyKinds[property as Property];
   if (kind === "colour") {
     if (!(value === noPaint && property !== "textColor")) checkColour(value, pointer, c, colours);
-  } else if (kind === "typography") {
-    if (typeof value !== "string" || !context.catalog.vocabulary.typographyRoles.includes(value))
-      c.reject(pointer, "Unknown typography role", "unknown-name");
-  } else if (kind === "style") c.collect(checkValue(lineStyle, value), pointer);
-  else if (typeof value === "string") c.collect(checkValue(roleName, value), pointer);
-  else literalCheck(kind, value, pointer, c, colours, property === "translateY" || property === "outlineOffset");
+  } else if (kind === "shadow" && typeof value !== "string") {
+    checkShadowRoles(value, pointer, c, colours);
+  } else if (kind === "typography" && !context.catalog.vocabulary.typographyRoles.includes(value as string))
+    c.reject(pointer, "Unknown typography role", "unknown-name");
 }
 
 /** Values and recipes of every document in the chain, nearest document last. */
@@ -374,10 +296,17 @@ function checkAlphaReferences(
   c: Checks,
 ): void {
   function colourReference(value: unknown, pointer: string): void {
-    if (!isRecord(value) || typeof value.alpha !== "string") return;
+    if (!isRecord(value)) return;
+    if (typeof value.alpha === "number") {
+      if (Number(value.alpha.toFixed(4)) !== value.alpha)
+        c.reject(`${pointer}/alpha`, "Expected alpha in [0, 1] with at most four decimal places");
+      return;
+    }
+    if (typeof value.alpha !== "string") return;
     const token = values[value.alpha];
     if (token?.kind !== "opacity") c.reject(`${pointer}/alpha`, "Expected an opacity value reference", "unknown-name");
-    else checkAlpha(token.value, `${pointer}/alpha`, c);
+    else if (Number(token.value.toFixed(4)) !== token.value)
+      c.reject(`${pointer}/alpha`, "Expected alpha in [0, 1] with at most four decimal places");
   }
   function shadowReferences(value: unknown, pointer: string): void {
     for (const [i, layer] of (Array.isArray(value) ? value : [value]).entries())
@@ -457,4 +386,11 @@ export function prepareDesignSystem(
 export function validateDesignSystem(doc: unknown, context: DesignSystemContext): Result<DesignSystem> {
   const result = prepareDesignSystem(doc, context);
   return result.ok ? { ok: true, value: doc as DesignSystem } : result;
+}
+
+/** Every shadow layer still derives its colour from an installed theme role. */
+function checkShadowRoles(value: unknown, pointer: string, c: Checks, colours: ReadonlySet<string>): void {
+  for (const [i, layer] of (Array.isArray(value) ? value : [value]).entries())
+    if (isRecord(layer))
+      checkColour(layer.color, `${Array.isArray(value) ? at(pointer, i) : pointer}/color`, c, colours);
 }

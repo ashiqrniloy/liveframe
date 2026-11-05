@@ -1,6 +1,9 @@
 import type { LiveframeError, Result } from "./errors.ts";
 import { carriesValue } from "./formats/events.ts";
+import { schemaLanguage } from "./formats/language.ts";
 import { at } from "./internal.ts";
+import { compileFormatSchema } from "./validate/format-schema.ts";
+import type { SchemaCheck } from "./validate/schema.ts";
 
 type Annotations = { readonly description?: string; readonly deprecated?: boolean; readonly nullable?: boolean };
 type StringOptions = Annotations & {
@@ -133,10 +136,6 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function isBound(value: unknown): value is number {
-  return typeof value === "number" && Number.isInteger(value) && value >= 0;
-}
-
 export function codePointsWithin(value: string, maximum: number, minimum = 0): boolean {
   if (value.length < minimum) return false;
   if (minimum === 0 && value.length <= maximum) return true;
@@ -145,168 +144,95 @@ export function codePointsWithin(value: string, maximum: number, minimum = 0): b
   return count >= minimum;
 }
 
-const keywords: Record<string, readonly string[]> = {
-  string: ["maxLength", "minLength", "pattern", "enum"],
-  number: ["minimum", "maximum"],
-  integer: ["minimum", "maximum"],
-  boolean: [],
-  array: ["items", "maxItems", "minItems"],
-  object: ["properties", "required", "additionalProperties"],
-};
+let languageCheck: ReturnType<typeof compileFormatSchema> | undefined;
+const schemaProbe = { errors: [] as LiveframeError[], maxErrors: 0 };
 
 /** Checks untrusted schema data, including nested forms and Unicode regular expressions. */
 export function isLanguageSchema(value: unknown): value is LanguageSchema {
   return checkLanguageSchema(value);
 }
 
-/** Internal install check with keyword diagnostics, preserving the public predicate signature. */
+/** Structural meta-schema first, then relationships between schema keywords. */
 export function checkLanguageSchema(
   value: unknown,
   onError?: (pointer: string, expected: string) => void,
 ): value is LanguageSchema {
-  const ancestors = new Set<unknown>();
-  function visit(schema: unknown, pointer = ""): boolean {
-    if (!isRecord(schema) || ancestors.has(schema)) return false;
-    if (Object.hasOwn(schema, "discriminator")) {
-      ancestors.add(schema);
-      const valid = isUnionKeywordsValid(schema, visit, pointer);
-      ancestors.delete(schema);
-      return valid;
-    }
-    if (typeof schema.type !== "string" || !Object.hasOwn(keywords, schema.type)) return false;
-    const allowed = keywords[schema.type];
-    if (!allowed || !hasOnlyAllowedKeys(schema, allowed) || !hasValidAnnotations(schema)) return false;
-    const minimum = schema.type === "string" ? "minLength" : schema.type === "array" ? "minItems" : undefined;
-    const maximum = schema.type === "string" ? schema.maxLength : schema.maxItems;
-    if (
-      minimum &&
-      Object.hasOwn(schema, minimum) &&
-      (!isBound(schema[minimum]) || !isBound(maximum) || schema[minimum] > maximum)
-    ) {
-      onError?.(at(pointer, minimum), `a nonnegative integer <= ${maximum}`);
+  languageCheck ??= compileFormatSchema(
+    schemaLanguage,
+    () => {
+      throw new Error("Unexpected schema reference");
+    },
+    languageRefinement,
+  );
+  try {
+    if (languageCheck(value, "", schemaProbe)) return true;
+    const errors: LiveframeError[] = [];
+    if (!languageCheck(value, "", { errors, maxErrors: 1 })) {
+      const error = errors[0];
+      if (error) onError?.(error.pointer, error.expected ?? "a language schema");
       return false;
     }
-    ancestors.add(schema);
-    const valid = isWellFormed(schema, schema.type, visit, pointer);
-    ancestors.delete(schema);
-    return valid;
-  }
-  return visit(value);
-}
-
-function isUnionKeywordsValid(
-  schema: Record<string, unknown>,
-  visit: (schema: unknown, pointer: string) => boolean,
-  pointer: string,
-): boolean {
-  if (
-    Object.hasOwn(schema, "type") ||
-    !hasOnlyAllowedKeys(schema, ["discriminator", "mapping"]) ||
-    !hasValidAnnotations(schema)
-  )
-    return false;
-  const { discriminator, mapping } = schema;
-  if (typeof discriminator !== "string" || !isRecord(mapping)) return false;
-  const entries = Object.entries(mapping);
-  return (
-    entries.length >= 1 &&
-    entries.length <= 64 &&
-    entries.every(
-      ([tag, entry]) =>
-        codePointsWithin(tag, 64) &&
-        isRecord(entry) &&
-        entry.type === "object" &&
-        entry.nullable !== true &&
-        visit(entry, at(at(pointer, "mapping"), tag)) &&
-        isRecord(entry.properties) &&
-        !Object.hasOwn(entry.properties, discriminator),
-    )
-  );
-}
-
-/** Only the keywords a form declares, plus the shared annotations and nullable keyword. */
-function hasOnlyAllowedKeys(schema: Record<string, unknown>, allowed: readonly string[]): boolean {
-  return Object.keys(schema).every(
-    (key) =>
-      key === "type" || key === "description" || key === "deprecated" || key === "nullable" || allowed.includes(key),
-  );
-}
-
-function hasValidAnnotations(schema: Record<string, unknown>): boolean {
-  return (
-    (!Object.hasOwn(schema, "description") || typeof schema.description === "string") &&
-    (!Object.hasOwn(schema, "deprecated") || typeof schema.deprecated === "boolean") &&
-    (!Object.hasOwn(schema, "nullable") || typeof schema.nullable === "boolean")
-  );
-}
-
-/** Whether the keywords of one declared `type` are well formed, recursing through `visit`. */
-function isWellFormed(
-  schema: Record<string, unknown>,
-  type: string,
-  visit: (schema: unknown, pointer: string) => boolean,
-  pointer: string,
-): boolean {
-  switch (type) {
-    case "string":
-      return isStringKeywordsValid(schema);
-    case "number":
-    case "integer":
-      return isNumericKeywordsValid(schema);
-    case "boolean":
-      return true;
-    case "array":
-      return isBound(schema.maxItems) && visit(schema.items, at(pointer, "items"));
-    default:
-      return isObjectKeywordsValid(schema, visit, pointer);
-  }
-}
-
-function isStringKeywordsValid(schema: Record<string, unknown>): boolean {
-  if (!isBound(schema.maxLength)) return false;
-  if (Object.hasOwn(schema, "enum") && !isNonEmptyUniqueStrings(schema.enum)) return false;
-  return !Object.hasOwn(schema, "pattern") || isUnicodePattern(schema.pattern);
-}
-
-function isNonEmptyUniqueStrings(value: unknown): boolean {
-  return (
-    Array.isArray(value) &&
-    value.length > 0 &&
-    value.every((entry) => typeof entry === "string") &&
-    new Set(value).size === value.length
-  );
-}
-
-function isUnicodePattern(pattern: unknown): boolean {
-  if (typeof pattern !== "string" || !codePointsWithin(pattern, 256)) return false;
-  try {
-    new RegExp(pattern, "u");
-    return true;
   } catch {
     return false;
   }
+  return true;
 }
 
-function isNumericKeywordsValid(schema: Record<string, unknown>): boolean {
-  return ["minimum", "maximum"].every(
-    (key) => !Object.hasOwn(schema, key) || (typeof schema[key] === "number" && Number.isFinite(schema[key])),
-  );
-}
-
-function isObjectKeywordsValid(
-  schema: Record<string, unknown>,
-  visit: (schema: unknown, pointer: string) => boolean,
-  pointer: string,
+/** Keyword relationships after the generated structural meta-schema has passed. */
+export function checkSchemaRelationships(
+  schema: LanguageSchema,
+  onError?: (pointer: string, expected: string) => void,
+  pointer = "",
 ): boolean {
-  if (schema.additionalProperties !== false || !isRecord(schema.properties)) return false;
-  const { properties, required } = schema;
-  const base = at(pointer, "properties");
-  return (
-    Array.isArray(required) &&
-    required.every((key) => typeof key === "string" && Object.hasOwn(properties, key)) &&
-    new Set(required).size === required.length &&
-    Object.entries(properties).every(([key, child]) => visit(child, at(base, key)))
-  );
+  if (!checkSchemaKeywords(schema, onError, pointer)) return false;
+  if (schema.type === "array") return checkSchemaRelationships(schema.items, onError, at(pointer, "items"));
+  if (schema.type === "object")
+    return Object.entries(schema.properties).every(([key, child]) =>
+      checkSchemaRelationships(child, onError, at(at(pointer, "properties"), key)),
+    );
+  if ("discriminator" in schema)
+    return Object.entries(schema.mapping).every(([tag, entry]) =>
+      checkSchemaRelationships(entry, onError, at(at(pointer, "mapping"), tag)),
+    );
+  return true;
+}
+
+function checkSchemaKeywords(
+  schema: LanguageSchema,
+  onError?: (pointer: string, expected: string) => void,
+  pointer = "",
+): boolean {
+  if ("discriminator" in schema)
+    return Object.entries(schema.mapping).every(
+      ([tag, entry]) =>
+        !Object.hasOwn(entry.properties, schema.discriminator) &&
+        checkSchemaKeywords(entry, onError, at(at(pointer, "mapping"), tag)),
+    );
+  const minimum = schema.type === "string" ? schema.minLength : schema.type === "array" ? schema.minItems : undefined;
+  const maximum = schema.type === "string" ? schema.maxLength : schema.type === "array" ? schema.maxItems : undefined;
+  if (minimum !== undefined && maximum !== undefined && minimum > maximum) {
+    onError?.(at(pointer, schema.type === "string" ? "minLength" : "minItems"), `a nonnegative integer <= ${maximum}`);
+    return false;
+  }
+
+  return schema.type !== "object" || schema.required.every((key) => Object.hasOwn(schema.properties, key));
+}
+
+/** Relationships remain named code but run as each recursive schema form finishes. */
+function languageRefinement(definition: unknown, check: SchemaCheck): SchemaCheck {
+  if (definition !== schemaLanguage.$defs.schema) return check;
+  return (value, pointer, sink) =>
+    check(value, pointer, sink) &&
+    checkSchemaKeywords(
+      value as LanguageSchema,
+      sink.maxErrors === 0
+        ? undefined
+        : (path, expected) => {
+            if (sink.errors.length < sink.maxErrors)
+              sink.errors.push({ kind: "invalid-document", pointer: path, expected, message: `Expected ${expected}` });
+          },
+      pointer,
+    );
 }
 
 /** Interprets a language schema and returns at most maxErrors failures (default 20). */

@@ -402,10 +402,10 @@ Not in scope: nested surfaces (the analysis named the gap but proposed compositi
     - The next full run finished with 1,099 passing tests, 4 existing skips and the three guide/register failures described above; their focused rerun passed after correcting the expected markup, exported register target and literal adopter action. No unrelated implementation, test assertion or budget was changed.
     - Final verification: `timeout 900s bun run check` passed build, generated-file checks, typecheck, lint, formatting and all 1,102 tests (4 existing skips, 0 failures; 362.08 s test suite), including default-on and explicit-false focus regressions, server/browser renderer conformance, the API gate and the unchanged switching budget. `git diff --check` passed. Tasks 9–10 remain open.
 
-- [ ] Task 9: Derive structural checkers and published JSON Schemas from one source (Q9: R24)
+- [x] Task 9: Derive structural checkers and published JSON Schemas from one source (Q9: R24)
   - Acceptance Criteria:
     - Functional:
-      - Each format in `src/formats/registry.ts` is defined once, as a schema-language value plus named install-time relationship checks. The structural checker is compiled from it (the compiled schema machinery in `src/validate/schema.ts`), and `scripts/schemas.ts` emits `schemas/*.json` from the same value.
+      - Each format in `src/formats/registry.ts` is defined once, as an internal transport-schema value plus named install-time relationship checks. The structural checker is compiled from it (internal applicators reuse the compiled primitive machinery in `src/validate/schema.ts`), and `scripts/schemas.ts` emits `schemas/*.json` from the same value.
       - Published schemas are byte-identical to 0.2.3 unless a register entry says otherwise; `format-schema-differential.test.ts` keeps running as a regression guard.
       - Install-time relationships (catalog references, recipe completeness, contrast) remain separate code, named as such.
     - Performance: validator and install benches non-regression (≤ 2% via the A/B harness).
@@ -415,18 +415,25 @@ Not in scope: nested surfaces (the analysis named the gap but proposed compositi
   - Approach:
     - Skills to Use: `safe-refactor`; `liveframe-execution`.
     - Library Documentation to Check Before Implementation: JSON Schema 2020-12 (the published dialect) via `find-docs` if any keyword mapping is unclear.
-    - Documentation Reviewed: backlog "Derive format checkers and published JSON Schemas from one source"; `src/formats/registry.ts`; `scripts/schemas.ts`; plan 025 Task 6 notes.
+    - Documentation Reviewed: backlog "Derive format checkers and published JSON Schemas from one source"; `src/formats/registry.ts`; `scripts/schemas.ts`; plan 025 Task 6 notes; official JSON Schema applicator semantics via Context7 (`/json-schema-org/json-schema-spec`).
     - Options Considered: generate checkers from JSON Schema with a library (ajv). Rejected: new runtime dependency and `Function` constructor use (spec §10 forbids).
-    - Chosen Approach: the schema language is already the single source for widget data; use it for formats too.
+    - Chosen Approach: retain each existing transport definition, compile its JSON Schema subset with closures and reuse `compileSchema` for primitives. The public widget language cannot represent recursive references, open maps, tuples, or conditional applicators; widening it would change the public contract and published bytes. Keep its own structural meta-schema as its source too.
     - API Notes and Examples:
       ```ts
-      export const placementFormat = defineFormat("placement", obj({ id: str({ maxLength: 128 }), … }), [relationshipChecks…]);
+      // The registry publishes placementSchema; the checker compiles that same object.
+      checkFormat(placementSchema, doc);
       ```
-    - Files to Create/Edit: `src/formats/*.ts` (each format); `src/formats/registry.ts`; `scripts/schemas.ts`; `src/__tests__/format-schema-differential.test.ts`
+    - Files to Create/Edit: `src/formats/*.ts` (each format, shared checker and language meta-schema); `src/formats/registry.ts`; `src/schema.ts`; `src/validate/format-schema.ts`; shared envelope fields in `src/validate/{compile,intent,tree}.ts`; `src/__tests__/{format-structure,schemas,format-schema-differential,design-system,package-format,portability}.test.ts`; `docs/formats.md`; `CHANGELOG.md`; `bench/format-install.bench.ts`; `plans/backlog.md`; `roadmap.md` §3; this plan and its evidence record. `scripts/schemas.ts` already serializes the registry and needs no logic change.
   - Test Cases to Write:
     - `published_schemas_byte_identical_to_0_2_3` (unless registered).
-    - Existing corpus and differential suites pass unchanged.
-  - Notes (executed <date>):
+    - Existing corpus and install differential cases remain unchanged; add direct compiled-structure agreement against the same seeded mutations.
+    - `format-structure.test.ts`: applicators, recursive/offline refs, unknown-keyword rejection, and structural-versus-relationship boundaries.
+  - Notes (executed 2026-11-05):
+    - Each complete transport definition now supplies both the registry publisher and its compiled structural checker. Moved the language meta-schema into a shared internal module; consolidated recursive JSON definitions. The public widget schema language cannot represent transport references, maps, tuples and conditional applicators, so it stays unchanged. The internal compiler uses closures, the existing primitive/closed-object machinery and offline references; no runtime dependency or code generation was added.
+    - Removed duplicate format structure walkers while retaining named schema-keyword relationships, catalog/vocabulary references, manifest bindings and state matching, theme authority/completeness/contrast, design-system inheritance and recipe completeness, patch ordering and package budgets. Tree validation keeps one catalog-specialized walk, with envelope fields and scalar metadata derived from the shared definition. Existing corpus documents and pinned diagnostics are unchanged. Published schema bytes and public declarations are unchanged by this task; Task 4's registered UI-tree change remains.
+    - Added compiler regression cases, including overlapping tags, object-valued tag equality and reference scope. The existing 200 seeded install-checker mutations per seed remain; each valid seed and the first 20 mutations also compare compiled transport checks directly with Ajv. Added the baseline schema-byte guard. The bundle scanner now distinguishes an ordinary `node:` schema property from a module scheme; independent source/compiled host-API scans remain enabled. Production source: 862 lines removed, 835 added, **27 net lines deleted**, including the new compiler and shared definitions.
+    - Final `timeout 900s bun run check` passes: build, generated files, API/schema gates, typecheck, lint, format and **1,107 passing tests, four existing skips, zero failures** (366.52 seconds of tests). The focused schema/corpus/diagnostic tests also pass. Updated the formats guide, changelog, R24 backlog entry and roadmap status. No normative spec meaning changed.
+    - Nine-pair A/B comparisons against `d3155ee`, pinned to CPU 10, pass the relative gate for the budgeted paths: all whole-tree workloads 0.896–0.995, patch application 0.860, diffing 1.014, reused compilation 0.974 and first compilation 0.559; all five install validators 0.223–0.888. See [the full reports and commands](evidence/026-format-sources.md). Seven of nine validator children on each side miss absolute budgets under load; isolated reference submetrics reach 1.085. This does not claim a 2% limit for every reference microbenchmark or a quiet-host absolute pass. Task 10 retains the whole-plan benchmark and review of that reference variance.
 
 - [ ] Task 10: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:

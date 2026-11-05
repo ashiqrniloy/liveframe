@@ -1,6 +1,6 @@
-import { designSystemSchema } from "../formats/design-system.ts";
 import { expect, test } from "bun:test";
 import { Ajv2020 } from "ajv/dist/2020.js";
+import { designSystemSchema } from "../formats/design-system.ts";
 import { schemaDocument } from "../formats/registry.ts";
 import { type Catalog, type DesignSystem, obj, validateDesignSystem } from "../index.ts";
 
@@ -74,6 +74,7 @@ test("alpha_modifier_validates", () => {
     { role: "ink", alpha: -0.1 },
     { role: "ink", alpha: 1.1 },
     { role: "ink", alpha: 0.12345 },
+    { role: "ink", alpha: 0.1 + 0.2 },
     { role: "ink", alpha: Infinity },
     { role: "ink", alpha: "missing" },
     { role: "ink", alpha: "space.1" },

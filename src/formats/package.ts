@@ -1,9 +1,10 @@
 import type { Result } from "../errors.ts";
 import { utf8Length } from "../internal.ts";
-import { arr, bool, checkValue, type Infer, obj, str } from "../schema.ts";
-import { documentChecks, isRecord, shell } from "./capabilities.ts";
+import { arr, bool, type Infer, obj, str } from "../schema.ts";
+import { documentChecks, isRecord } from "./capabilities.ts";
+import { checkFormat } from "./check.ts";
 import { validateJson } from "./json.ts";
-import { type Manifest, validateManifestShape } from "./manifest.ts";
+import { type Manifest, manifestSchema, validateManifestShape } from "./manifest.ts";
 import { type Json, treeSchema } from "./tree.ts";
 
 const scenarioFields = obj(
@@ -42,7 +43,7 @@ export const widgetPackageSchema = {
   ...fields,
   properties: {
     ...fields.properties,
-    manifest: bool(), // replaced by a `$ref` to the manifest format id in registry.ts
+    manifest: { $ref: "urn:liveframe:manifest:1" },
     scenarios: { ...fields.properties.scenarios, minItems: 1, items: { $ref: "#/$defs/scenario" } },
   },
   $defs: { json: treeSchema.$defs.json, scenario: scenarioSchema },
@@ -53,11 +54,7 @@ export function validateScenario(doc: unknown): Result<Scenario> {
   const json = validateJson(doc);
   if (!json.ok) return json;
   const c = documentChecks();
-  if (!isRecord(doc)) c.reject("", "Expected a scenario object");
-  else {
-    c.collect(checkValue(scenarioFields, shell(doc, ["params", "context", "state", "data"])), "");
-    if (!isRecord(doc.data)) c.reject("/data", "Expected a data source map");
-  }
+  c.collect(checkFormat(widgetPackageSchema, doc, "/$defs/scenario"), "");
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: doc as Scenario };
 }
 
@@ -71,15 +68,12 @@ function checkCodeSize(code: unknown, c: Checks): void {
 
 /** Every scenario is valid and its name is unique. */
 function checkScenarios(scenarios: readonly unknown[], c: Checks): void {
-  if (!scenarios.length) c.reject("/scenarios", "Expected at least one scenario");
   const seen = new Set<string>();
   for (const [i, scenario] of scenarios.entries()) {
     if (c.errors.length >= 20) break;
-    const checked = validateScenario(scenario);
-    c.collect(checked, `/scenarios/${i}`);
-    if (!checked.ok) continue;
-    if (seen.has(checked.value.name)) c.reject(`/scenarios/${i}/name`, "Duplicate scenario name");
-    seen.add(checked.value.name);
+    const checked = scenario as Scenario;
+    if (seen.has(checked.name)) c.reject(`/scenarios/${i}/name`, "Duplicate scenario name");
+    seen.add(checked.name);
   }
 }
 
@@ -90,9 +84,20 @@ export function validateWidgetPackageShape(doc: unknown): Result<WidgetPackage> 
   const c = documentChecks();
   if (!isRecord(doc)) c.reject("", "Expected a widget package object");
   else {
-    const input = shell(doc, ["manifest"]);
-    if (Array.isArray(doc.scenarios)) input.scenarios = doc.scenarios.map(() => true);
-    c.collect(checkValue(fields, input), "");
+    const shape = checkFormat(widgetPackageSchema, doc, "", { "urn:liveframe:manifest:1": manifestSchema });
+    if (!shape.ok) {
+      c.collect(
+        {
+          ok: false,
+          errors: shape.errors.filter(
+            (error) => error.pointer !== "/manifest" && !error.pointer.startsWith("/manifest/"),
+          ),
+        },
+        "",
+      );
+      c.collect(validateManifestShape(doc.manifest), "/manifest");
+      return { ok: false, errors: c.errors };
+    }
     checkCodeSize(doc.code, c);
     c.collect(validateManifestShape(doc.manifest), "/manifest");
     if (Array.isArray(doc.scenarios)) checkScenarios(doc.scenarios, c);

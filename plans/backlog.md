@@ -563,6 +563,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 
 ## Derive format checkers and published JSON Schemas from one source
 
+- Status: closed 2026-11-05 by plan 026 Task 9. One internal transport definition compiles structural checks and emits each published schema; install relationships remain named code. Public declarations, schema bytes and corpus documents are unchanged by this task. See [the implementation and measurement record](evidence/026-format-sources.md).
+
 - Section: Validation and formats
 - Priority: P3
 - Source: plans/025-Phase-7-Part-L-Release-0-2-3-Simplification-And-Release.md, Task 6 (R24)

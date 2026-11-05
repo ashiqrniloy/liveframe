@@ -12,6 +12,8 @@ Added:
 
 Changed:
 
+- Structural format validators and published JSON Schemas share one definition per format. Install-time references, recipe completeness and contrast remain separate checks; published schema bytes and public declarations are unchanged.
+
 - `<Surface>` keeps keyboard focus by default when an update removes the focused element. Set `focusContinuity={false}` to retain the previous behaviour; see [the migration guide](docs/migration-0.3.md#surfaces-keep-focus-by-default).
 
 - Document validators consistently reject foreign-realm plain objects with `invalid-document` and the instruction to parse inside the sandbox. Compile and module-render errors identify the input document. See [migration](docs/migration-0.3.md#foreign-realm-documents-are-rejected-everywhere).

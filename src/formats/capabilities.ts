@@ -2,8 +2,7 @@ import type { LiveframeError, Result } from "../errors.ts";
 import { at } from "../internal.ts";
 import {
   bool,
-  checkLanguageSchema,
-  checkValue,
+  checkSchemaRelationships,
   type Infer,
   isRecord,
   type LanguageSchema,
@@ -12,7 +11,9 @@ import {
   str,
 } from "../schema.ts";
 import { stringBytes } from "../validate/bytes.ts";
+import { checkFormat } from "./check.ts";
 import { validateJson } from "./json.ts";
+import { jsonSchema, objectSchema, schemaLanguage } from "./language.ts";
 import type { Manifest } from "./manifest.ts";
 import type { Json } from "./tree.ts";
 
@@ -46,7 +47,7 @@ export type Capabilities = {
     >
   >;
 };
-export function namedMap(values: unknown, max = 512) {
+export function namedMap<S>(values: S, max = 512) {
   return { ...record(capabilityName.pattern, values, max), propertyNames: capabilityName };
 }
 export const capabilitiesSchema = {
@@ -67,6 +68,7 @@ export const capabilitiesSchema = {
       },
     }),
   },
+  $defs: { ...schemaLanguage.$defs, objectSchema, json: jsonSchema },
 };
 
 // Shared document checks preserve pointed, bounded failures for both formats.
@@ -85,37 +87,14 @@ export function documentChecks() {
       for (const error of result.errors)
         if (errors.length < 20) errors.push({ ...error, pointer: pointer + error.pointer });
   }
-  function map(value: unknown, pointer: string, visit: (value: unknown, pointer: string) => void) {
-    if (!isRecord(value)) {
-      reject(pointer, "Expected a name map");
-      return;
-    }
-    if (Object.keys(value).length > 512) {
-      reject(pointer, "Expected at most 512 names");
-      return;
-    }
-    for (const [name, entry] of Object.entries(value)) {
-      if (errors.length >= 20) break;
-      const path = at(pointer, name);
-      collect(checkValue(capabilityName, name), path);
-      visit(entry, path);
-    }
-  }
-  function schema(value: unknown, pointer: string, object = true): LanguageSchema | undefined {
+  function schemaRelationships(value: LanguageSchema, pointer: string): void {
     const start = errors.length;
-    if (
-      !checkLanguageSchema(value, (path, expected) =>
-        reject(pointer + path, `Expected ${expected}`, "invalid-document", expected),
-      ) ||
-      (object && value.type !== "object")
-    ) {
-      if (errors.length === start)
-        reject(pointer, object ? "Expected a language object schema" : "Expected a language schema");
-      return undefined;
-    }
-    return value;
+    const valid = checkSchemaRelationships(value, (path, expected) =>
+      reject(pointer + path, `Expected ${expected}`, "invalid-document", expected),
+    );
+    if (!valid && errors.length === start) reject(pointer, "Expected a language schema");
   }
-  return { errors, reject, collect, map, schema };
+  return { errors, reject, collect, schemaRelationships };
 }
 export { isRecord };
 
@@ -171,38 +150,30 @@ export function checkMeta(meta: unknown, pointer: string, c: ReturnType<typeof d
   walk(meta, pointer, 1);
 }
 export { at };
-export function shell(value: Record<string, unknown>, complex: readonly string[]) {
-  return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, complex.includes(key) ? true : entry]));
-}
 /** Describes available operations; the host still authorises every request. */
 export function validateCapabilities(doc: unknown): Result<Capabilities> {
   const json = validateJson(doc, true);
   if (!json.ok) return json;
   const c = documentChecks();
-  if (!isRecord(doc)) c.reject("", "Expected a capabilities object");
-  else {
-    c.collect(checkValue(fields, shell(doc, ["actions", "sources"])), "");
-    for (const key of ["actions", "sources"] as const)
-      c.map(doc[key], `/${key}`, (entry, pointer) => {
-        if (!isRecord(entry)) {
-          c.reject(pointer, "Expected a capability object");
-          return;
-        }
-        c.collect(
-          checkValue(
-            key === "actions" ? actionFields : sourceFields,
-            shell(entry, ["args", "params", "result", "meta"]),
-          ),
-          pointer,
-        );
-        if (Object.hasOwn(entry, "meta")) checkMeta(entry.meta, `${pointer}/meta`, c);
-        if (key === "actions") c.schema(entry.args, `${pointer}/args`);
-        else {
-          c.schema(entry.params, `${pointer}/params`);
-          c.schema(entry.result, `${pointer}/result`, false);
-        }
-      });
-  }
+  if (isRecord(doc))
+    for (const key of ["actions", "sources"] as const) {
+      if (!isRecord(doc[key])) continue;
+      for (const [name, entry] of Object.entries(doc[key]))
+        if (isRecord(entry) && Object.hasOwn(entry, "meta")) checkMeta(entry.meta, `${at(`/${key}`, name)}/meta`, c);
+    }
+  if (c.errors.length) return { ok: false, errors: c.errors };
+  c.collect(checkFormat(capabilitiesSchema, doc), "");
+  if (c.errors.length) return { ok: false, errors: c.errors };
+  const value = doc as Capabilities;
+  for (const [key, entries] of Object.entries({ actions: value.actions, sources: value.sources }))
+    for (const [name, entry] of Object.entries(entries)) {
+      const pointer = at(`/${key}`, name);
+      if ("args" in entry) c.schemaRelationships(entry.args, `${pointer}/args`);
+      else {
+        c.schemaRelationships(entry.params, `${pointer}/params`);
+        c.schemaRelationships(entry.result, `${pointer}/result`);
+      }
+    }
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: doc as Capabilities };
 }
 

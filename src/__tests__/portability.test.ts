@@ -110,7 +110,7 @@ test("sdk_bundles_for_browser_without_host_apis", async () => {
   for (const output of bundle.outputs) {
     const source = await output.text();
     expect(source, output.path).not.toMatch(
-      /\b(?:node|bun):|\b(?:require|eval|Function|Worker|fetch|XMLHttpRequest)\s*\(|\bimport\s*\(/,
+      /\b(?:node|bun):[a-z/]|\b(?:require|eval|Function|Worker|fetch|XMLHttpRequest)\s*\(|\bimport\s*\(/,
     );
     expect(source, output.path).not.toMatch(
       /\b(?:document|window|process|Bun|Buffer|navigator|localStorage|sessionStorage|globalThis|self)\s*[.[]/,

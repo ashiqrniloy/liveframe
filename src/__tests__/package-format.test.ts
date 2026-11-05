@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
-import { Ajv2020 } from "ajv/dist/2020.js";
 import { validateScenario, validateWidgetPackageShape } from "@arnilo/liveframe/pack";
 import { validatePlacement, validateState, validateStyleRecord } from "@arnilo/liveframe/store";
+import { Ajv2020 } from "ajv/dist/2020.js";
 import { formats, schemaDocument } from "../formats/registry.ts";
 import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 
@@ -40,6 +40,7 @@ test("package_format_rejects_malformed", () => {
     [{ ...pkg, code: "a".repeat(1048577) }, "/code"],
     [{ ...pkg, code: "👍".repeat(262145) }, "/code"],
     [{ ...pkg, extra: true }, "/extra"],
+    [{ ...pkg, manifestExtra: true }, "/manifestExtra"],
     [{ ...pkg, manifest: { ...manifest, id: 42 } }, "/manifest/id"],
     [{ ...pkg, manifest: { ...manifest, params: { type: "string" } } }, "/manifest/params"],
     [{ ...pkg, scenarios: [{ ...scenario, data: [] }] }, "/scenarios/0/data"],
