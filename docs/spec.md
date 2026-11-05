@@ -281,6 +281,13 @@ Matching an approved design is often a matter of these four fields, not of new p
 2. **Recipes own the look; style props own the structure.**
 3. **Completeness:** a design system is valid only if, after `extends` and the cascade, every `(kind, variant, slot)` the catalog declares has a `rest` style, and every kind that declares an event has a `focus` overlay.
 
+**Approved 0.3.0 design, pending implementation:** variant-axis overlays may alias declared colour
+roles through a `roles` map. The numbered cascade, matching, install-validation and projection
+rules are recorded in repository file `plans/evidence/022-variant-axes-design.md` §2.3 and §2.8
+and `decision-logs/2026-11-06-0035-variant-axes-role-aliases.md`.
+Plan 027 Task 5 integrates these rules with the format and projection contracts below; the
+currently implemented recipe format does not yet accept axes or `roles`.
+
 **Contract and examples**
 
 A design system contributes:

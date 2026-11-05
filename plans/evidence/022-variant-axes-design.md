@@ -1,7 +1,9 @@
 # Plan 022 Task 12 — multiple variant axes design
 
-Design only; no code. Status: **proposal, awaiting the owner's approval** (the recommendation is to
-approve it as 0.3.0 scope). Companion: [`022-extension-properties-design.md`](022-extension-properties-design.md).
+Design only; no code. Status: **approved for 0.3.0**, originally on 2026-11-02 and amended with
+role aliases by Plan 027 Task 1 on 2026-11-06. See the
+[amending decision](../../decision-logs/2026-11-06-0035-variant-axes-role-aliases.md).
+Companion: [`022-extension-properties-design.md`](022-extension-properties-design.md).
 
 ## Recommendation
 
@@ -10,7 +12,8 @@ existing `variant`. An axis is an **enum prop the catalog marks as a recipe axis
 patches, SDK and elements schema do not change. Recipes address an axis value with a new key form,
 `<kind>.<axis>:<value>.<slot>.<state>`, which is an overlay in the cascade, not a new combinatorial
 dimension to complete. The resolver expands the overlays into the same flat table the projection
-already consumes. Compound variants stay out. Every existing document, class name and CSS byte stays
+already consumes, rewriting colour roles through axis alias maps (§2.8). Compound variants stay out.
+For kinds without axes, every existing document, class name and CSS byte stays
 identical, so no format version bump is needed.
 
 ## 1. The problem
@@ -25,7 +28,7 @@ With one axis, a kind that varies by two independent things (a button that is `p
 `ghost-critical`, …). That is the duplication the cascade was meant to avoid, it makes the catalog
 the place where look combinations are enumerated, and a new tone multiplies every existing variant.
 
-## 2. Settled design (proposed for 0.3.0)
+## 2. Settled design (approved for 0.3.0)
 
 ### 2.1 Format change
 
@@ -69,8 +72,8 @@ Today a key is `<kind>.<variant>.<slot>.<state>` and `<variant>` may be `*` (`ke
 ```jsonc
 "button.*.root.rest":            { "backgroundColor": "surface.control", "padding": "space.2" },
 "button.primary.root.rest":      { "backgroundColor": "accent.fill" },
-"button.tone:critical.root.rest":{ "backgroundColor": "status.critical" },
-"button.tone:critical.root.hover":{ "backgroundColor": "status.critical.hover" }
+"button.tone:critical.root.rest": { "roles": { "accent": "status.critical" } },
+"button.tone:critical.root.hover":{ "roles": { "accent.fill": "status.critical.fill.hover" } }
 ```
 
 `:` is not a legal character in kind, variant, axis or value names (`^[a-z][A-Za-z0-9-]*$`), so a key
@@ -112,6 +115,8 @@ The flat table and the projection are kept, which is what keeps existing CSS byt
 - `cascadeRecipes` (`src/resolve.ts:16`) enumerates, for a kind with axes, every
   `(variant, axis values…)` combination and merges layers 1–6 for each. A kind without axes takes
   today's path unchanged.
+- After merging, resolve design-value references and apply §2.8's alias map once to each colour
+  reference. The projection consumes the resulting flat table; no runtime variable rewriting.
 - A slot's class gains a positional suffix only when the kind declares axes:
   `lf_<kind>_<variant>__<v1>__<v2>_<slot>`, the axis values in declared order, defaults filled in.
   `__` already separates fixed suffixes and names contain no `_` (§6.4), so the encoding stays
@@ -188,10 +193,97 @@ Nothing breaks for a document that does not use axes. Adopting is opt-in and has
    removing the old product variants is a **major** catalog change, so keep them until widgets have
    moved.
 
+### 2.8 Role aliases
+
+An axis overlay may carry `roles: { "<role-prefix-or-role>": "<role-prefix-or-role>" }`.
+Aliases change which theme roles a variant uses; ordinary axis properties still override properties
+as in §2.3. These numbered rules are the contract to carry into spec §6.2 with Task 5:
+
+1. **Placement and names.** `roles` is optional and legal only on axis overlays, including their
+   state overlays. Keys and values are nonempty dot-separated colour-role names or prefixes, using
+   the vocabulary's role-name grammar. A prefix denotes a family, not a colour value. `none`, literal
+   colours, CSS and typography roles are not alias names or targets. Malformed maps are
+   `invalid-prop` at the map or entry; `roles` on a wildcard or variant recipe is `invalid-prop`.
+2. **Merge order.** Resolve `extends` parent first, child last; merge each recipe's `roles` by source
+   name, like extension entries, rather than replacing the map. For each combination, merge alias
+   entries alongside §2.3's six layers: axis rest maps in declared axis order, then axis state maps
+   in declared axis order. A later entry for the same source wins. Thus a state alias beats a rest
+   alias, and a later axis wins within the same layer. Omission inherits; an identity mapping can
+   restore a source to itself. Maps stay local to that combination, slot and state.
+3. **Matching.** For an original colour role `r`, a source `s` matches only when `r === s` or
+   `r` starts with `s + "."`. Choose the longest matching source (exact roles beat broader prefixes).
+   Replace that source with its target and retain the suffix. `accent` → `status.critical` maps
+   `accent.fill` to `status.critical.fill`, never `accented.fill`. Resolve duplicate sources by
+   rule 2 before matching; recipe object order never decides a match.
+4. **One step.** Match against the original role exactly once. With `accent` → `status.critical`
+   and `status.critical` → `status.positive`, `accent.fill` becomes `status.critical.fill`.
+   Identity mappings and cycles terminate after that one step; no graph traversal or chaining.
+5. **Typed application.** Merge the style and resolve referenced design values first, then rewrite
+   every colour-typed property, the `role` in `{ role, alpha }`, each shadow layer's `color`
+   (including named shadow values), and each colour extension. Preserve alpha and the other fields;
+   preserve `none`. Do not rewrite typography, value names, non-colour extensions or other strings.
+   Work on resolved copies, so a shared shadow value is not changed for another combination.
+6. **Install validation.** Sources and targets must name declared colour roles or nonempty prefixes
+   of declared roles. Validate every resolved combination, slot and state against the catalog's
+   declared theme colour roles. Every rewritten full role must exist: merely declaring
+   `status.critical.fill` does not permit a rewrite to `status.critical.text`. A missing source,
+   target family or rewritten role is `unknown-name` at `/recipes/<key>/roles/<from>`, pointing at
+   the winning alias entry (JSON Pointer escaped, with the registry prefix for an inherited entry).
+   Even an unused entry's source and target must be declared roles or nonempty families.
+   Existing validation of original role references still applies; an alias cannot legitimise an
+   undeclared original role. No literal colour can enter through aliases (law 3).
+7. **Flat output.** Strip `roles` metadata from resolved styles. `resolveRecipes`, contrast audit
+   and CSS projection use the same aliased table, one rule set per
+   `(kind, variant, axes…, slot, state)`. The theme remains the only source of actual colours.
+   No axis-specific CSS-variable remapping, selectors or render-time alias work is added.
+
+**Worked example: emphasis × tone.** The definition has variants `primary` and `ghost`, and a
+`tone` enum `neutral | critical` defaulting to `neutral`. The theme declares `accent.fill`,
+`accent.on-fill`, `accent.text`, and the same three suffixes under `status.neutral` and
+`status.critical`. For this example those theme families supply neutral and critical colours;
+their exact colour values remain theme data. The rest recipes are:
+
+```jsonc
+"button.primary.root.rest": { "backgroundColor": "accent.fill", "textColor": "accent.on-fill" },
+"button.ghost.root.rest": { "backgroundColor": "none", "textColor": "accent.text" },
+"button.tone:neutral.root.rest": { "roles": { "accent": "status.neutral" } },
+"button.tone:critical.root.rest": { "roles": { "accent": "status.critical" } }
+```
+
+| Variant | Tone | Resolved background | Resolved text |
+|---|---|---|---|
+| primary | neutral | `status.neutral.fill` | `status.neutral.on-fill` |
+| primary | critical | `status.critical.fill` | `status.critical.on-fill` |
+| ghost | neutral | `none` | `status.neutral.text` |
+| ghost | critical | `none` | `status.critical.text` |
+
+Two alias entries cover all four pairs, with zero product variants or compound rules. A complete
+interactive fixture still supplies the base focus overlay required by §2.3. Hover and other states
+use the same rules: rest aliases also rewrite a variant's hover snapshot, while a state alias can
+override a rest alias. Prefix matching preserves suffixes such as `.fill.hover`, which must exist
+in the target family.
+
+**Task 5 proof obligations.** Derive tests for the four pairs above; partial target families;
+unknown sources/targets even when unused; map placement and literal rejection; dot boundaries and
+longest match; identity and one-step cycles/chains; same-source precedence across axes, states and
+`extends`; role-alpha preservation; inline and shared named-shadow colours; colour extensions;
+unaffected non-colour values; contrast audit of aliased combinations; and byte-identical output
+for kinds without axes. No runtime tests or implementation are added in this design task.
+
+**Prior art.** Radix Themes separates Button `variant` (including `solid` and `ghost`) from `color`
+(an accent choice inherited from the theme by default). This supports independent emphasis and
+colour selection; the alias rules above are Liveframe's design, not a claim about Radix's resolver.
+Reviewed through Context7 `/radix-ui/themes` on 2026-11-06, indexed version **3.x** (no exact release
+or version-specific ID returned), [shared Button props](https://github.com/radix-ui/themes/blob/main/_autodocs/api-reference/buttons.md)
+and [colour props](https://github.com/radix-ui/themes/blob/main/_autodocs/api-reference/props.md).
+
 ## 3. Cost and the benchmark 0.3.0 must meet
 
 - **Validation:** catalog check is linear in axes × values, once per `compileValidator` (and cached
-  by plan 022 Task 4). The tree validator already checks the prop; **zero** extra per-node work.
+  by plan 022 Task 4). Install validation also checks aliases over every resolved combination,
+  slot and state; its work scales with the expanded table and alias entries, bounded by the
+  existing combination and recipe caps. Measure it with Task 5 rather than claiming a timing here.
+  The tree validator already checks the prop; **zero** extra per-node alias work.
 - **Resolved table and CSS size:** linear in combinations. A kind goes from V entries to
   V × Πaxis-sizes. Illustration on Certified (616 recipes → 152,019 B, about 247 B per resolved
   recipe on average): a button with 3 variants × 3 tones × 2 emphasis is 18 combinations, six times

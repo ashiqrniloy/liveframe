@@ -1,0 +1,244 @@
+# Phase 7 Part N: Release 0.3.0 — Formats: Node References, Extension Properties, Variant Axes, App-Declared States and URL Strings
+
+Depends on: plan [026](026-Phase-7-Part-M-Release-0-3-0-Scope-Spec-And-Breaking-Changes.md) Tasks 1–2 (scope decision, 0.3.0 register, restructured spec) and Task 9 (one source for checkers and schemas, so every format change here is made once). Followed by plan [028](028-Phase-7-Part-O-Release-0-3-0-Template-Widgets-And-Streaming.md).
+
+## Objectives
+
+- Ship node references: `ref()`, a tree-unique `$anchor`, per-definition `refProps`, `not-found` for dangling references, and `item.domId` in `<Surface>` (Q1).
+- Ship extension recipe properties: `vocabulary.extensions`, a recipe's `extensions` map, and `--lf-p-<name>` for trusted primitive CSS (Q2).
+- Revise the variant-axes design so an axis value can **re-alias colour roles**, which covers tone × emphasis without compound variants, then ship axes (Q3).
+- Let an app declare its own recipe states and `semantics` values, so these lists stop being a library release bottleneck (W8a).
+- Add a `url` string form with a scheme allowlist to the schema language, so no host has to hand-roll `javascript:` blocking (W8b).
+
+## Expected Outcome
+
+- A widget writes `<TextField describedBy={ref("hint")} />` and `<Hint $anchor="hint" … />`; the tree carries the resolved key-path id; a dangling reference is `not-found`; `<Surface>` gives each node a stable DOM id. The proof catalog's `textField.describedBy` plus a `hint` kind prove it.
+- `vocabulary.extensions` and recipe `extensions` validate, resolve through the cascade and project to `--lf-p-<name>`. A design system without them projects byte-identical CSS.
+- `definition.axes` marks enum props as recipe axes; recipes use `kind.axis:value.slot.state` overlays and the new `roles` alias map; `button tone="critical"` gives a red fill under `variant="primary"` and red text under `variant="ghost"` from two alias entries, with no compound rule.
+- `vocabulary.states` and `vocabulary.semantics` extend the fixed lists with app names that map to data attributes and ARIA roles.
+- `{ type: "string", maxLength, url: { schemes: ["https", "mailto"], relative?: boolean } }` validates in every schema position including widget schemas, rejecting a disallowed scheme with `invalid-prop`.
+- Corpus cases, published schemas, generated types, the elements schema and the conformance suites cover every addition.
+
+This plan implements the format work of 0.3.0 in roadmap Phase 7: spec §5 (definitions and the schema language), §6.2–§6.5 (recipes, projection, vocabulary), §9–§10 (tree and validation), §11 (renderer) and §13 (codegen, corpus). All additions are optional fields under the existing format ids, which 0.2.x validators reject fail-closed (the 0.2.2 precedent). Every addition gets a register entry (`added`/`widened`). Nothing is published here.
+
+## Tasks
+
+- [x] Task 1: Revise the variant-axes design to alias colour roles, and record the decision
+  - Acceptance Criteria:
+    - Functional:
+      - Amend `plans/evidence/022-variant-axes-design.md` with §2.8 "Role aliases": an axis overlay may carry `roles: { "<role-prefix-or-role>": "<role-prefix-or-role>" }`, e.g. `"button.tone:critical.root.rest": { "roles": { "accent": "status.critical" } }`. Resolution: when a resolved recipe for `(kind, variant, axis values, slot, state)` references a colour role, the resolver rewrites it through the merged alias map of the active axis values (declared axis order; later axis wins; one rewrite step, no chains). Every rewritten role must be a declared theme role — checked at install, `unknown-name` at `/recipes/<key>/roles/<from>`. The alias map applies to colour-typed properties, `{ role, alpha }` objects, shadow colours and colour extensions.
+      - Projection: aliasing is resolved at projection time into the flat recipe table, so the CSS remains one rule set per `(kind, variant, axes…, slot, state)` and no runtime variable rewriting is needed.
+      - The worked example (primary/ghost × neutral/critical) resolves to the expected four colour pairs with two alias entries and zero product variants.
+      - Write `decision-logs/<date>-variant-axes-role-aliases.md` with `create-decision-log`, amending 2026-11-02-2208. The owner approves before Task 5 starts.
+    - Performance: n/a — design.
+    - Code Quality: the design states the cascade order and the alias rules as numbered rules for the spec.
+    - Security: law 3 — aliases name only declared theme roles; no literal colour can enter.
+  - Approach:
+    - Skills to Use: `create-decision-log`; `liveframe-execution` (styling reference).
+    - Library Documentation to Check Before Implementation: Radix Themes colour/variant model via `find-docs` (prior art for accent indirection), recorded with version.
+    - Documentation Retrieved (2026-11-06): Context7 `/radix-ui/themes`, indexed 3.x (no exact release pin returned); shared Button and colour props support independent `variant` and `color` choices. Sources and limits recorded in design §2.8.
+    - Documentation Reviewed: `plans/evidence/022-variant-axes-design.md` §2.3–§2.4, §5 (compounds rejected); `src/resolve.ts:16` (`cascadeRecipes`); spec §6.2.
+    - Options Considered:
+      - Compound variants. Rejected again: another cascade dimension, completeness questions per pair.
+      - Runtime CSS variable re-mapping per axis class. Rejected: a variant's state snapshot would shadow the axis variables in some orders, and it changes existing sheets.
+      - Product variants (status quo). Rejected: the duplication the axes exist to remove.
+    - Chosen Approach: resolve-time alias maps on axis overlays.
+    - API Notes and Examples:
+      ```jsonc
+      "button.primary.root.rest": { "backgroundColor": "accent.fill", "textColor": "accent.on-fill" },
+      "button.ghost.root.rest":   { "backgroundColor": "none", "textColor": "accent.text" },
+      "button.tone:critical.root.rest": { "roles": { "accent": "status.critical" } }
+      ```
+    - Files to Create/Edit: `plans/evidence/022-variant-axes-design.md`; `decision-logs/2026-11-06-0035-variant-axes-role-aliases.md`; `docs/spec.md` §6.2 (approved-design cross-reference); this plan; `roadmap.md` §3 (execution status)
+  - Test Cases to Write: n/a — design; Task 5 derives its tests from the worked example.
+  - Notes (executed 2026-11-06):
+    - Revised design §2.8 with seven numbered rules: axis-only maps, inheritance and cascade order, dot-boundary/longest-prefix matching, one-step rewriting, typed colour traversal, install validation and flat output. Added the four-pair example using two alias entries; corrected the stale proposal status and install-cost description.
+    - Recorded the approved amendment in `decision-logs/2026-11-06-0035-variant-axes-role-aliases.md`; the user's explicit instruction to complete and record this decision supplies approval before Task 5. The 2026-11-02 record remains immutable.
+    - Added an explicitly unimplemented design reference in spec §6.2. Published docs cannot link to files excluded from the archive, so the spec uses repository paths; the initially failing archive-link test passes after this correction.
+    - Expanded Task 5's handoff to require §2.8's alias edge cases. No format, schema, resolver, renderer or public API implementation changes in this design task.
+    - Verification: build, generated-file checks, typecheck, lint, format and local link checks passed. The first full `timeout 900s bun run check` ran 1,111 tests: the fixed documentation-link failure and an unrelated warm-runner timing failure (0.1173 ms versus <0.1 ms) prevented a green result. A second run passed the documentation-link test but hit unrelated MCP, benchmark subprocess and browser timeouts under host load (~58); stopped after those failures. Owner explicitly approved the verification exception: “Yes—complete and record the verification exception.” A focused rerun of `src/__tests__/docs-links.test.ts`, `src/__tests__/cli-mcp.test.ts` and `src/__tests__/runner-in-process.test.ts` passed all 91 tests. Task 1 is complete under that exception; a green full check remains outstanding and no test threshold was changed.
+
+- [ ] Task 2: Node references in the format, SDK and validator (Q1, part 1)
+  - Acceptance Criteria:
+    - Functional:
+      - `catalog.json` definitions gain optional `refProps: string[]`; each name must be a `string` prop (else `unknown-name`), at most 8 per definition.
+      - `/sdk` exports `ref(anchor)` and the `$anchor` element attribute. `render()` and `renderElements()` resolve each `ref` to the target's key-path id after the walk; the tree carries a plain string. Duplicate anchors are `duplicate-key` at the second anchor; a dangling reference is `not-found` at the referencing prop with the anchor name in `expected`.
+      - The compiled validator's `validateTree` checks every `refProps` value names an id present in the same tree (`not-found`), post-walk, without a second traversal of nodes.
+      - Root export type `NodeRef`; codegen types `refProps` as `NodeRef` in `liveframe gen` output and the elements schema (`{ "$ref": anchor }` in element JSON).
+      - Corpus cases: valid reference, dangling reference, reference in a responsive or nested composed component.
+    - Performance: ≤ 2% render and validation cost on the agent-home bench (the design's gate, `plans/evidence/022-node-reference-design.md` §5).
+    - Code Quality: follows the ratified design exactly; any deviation stops and goes to the owner.
+    - Security: law 2 — references resolve only within the same validated tree; law 4 unchanged.
+    - Compatibility: `added` for `ref`, `NodeRef`; `widened` for `catalog.json`, `render`, `renderElements`.
+  - Approach:
+    - Skills to Use: `liveframe-execution` (formats, sdk references); `typescript-advanced-types` (typed `ref` props).
+    - Library Documentation to Check Before Implementation: none beyond the design.
+    - Documentation Reviewed: `plans/evidence/022-node-reference-design.md` §2.1–§2.8; `decision-logs/2026-11-02-1219-defer-node-references-to-0-3-0.md`; `src/sdk/render.ts:413-492` (`emit`); `src/validate/tree.ts:198-239`.
+    - Options Considered: as rejected in the design §6.
+    - Chosen Approach: the ratified design.
+    - API Notes and Examples:
+      ```tsx
+      <TextField label="Reason" describedBy={ref("reason-hint")} />
+      <Hint $anchor="reason-hint" text="At most 200 characters" />
+      ```
+    - Files to Create/Edit: `src/formats/catalog.ts`; `src/sdk/` (`ref`, element attribute, render resolution); `src/sdk/elements.ts`; `src/validate/tree.ts`; `src/sdk/gen.ts`; `src/index.ts`; `schemas/catalog.json`; `conformance/corpus/ui-tree/…`; `docs/spec.md` §5, §7.2, §10; `docs/sdk.md`; `docs/formats.md`; `register-0.3.0.json`
+  - Test Cases to Write:
+    - `ref_resolves_to_target_key_path`; `dangling_ref_not_found`; `duplicate_anchor_duplicate_key`; `refProps_must_name_string_props`; `validateTree_rejects_ref_to_missing_id`; `generated_type_requires_NodeRef` (type-level).
+  - Notes (executed <date>):
+
+- [ ] Task 3: Node references in the renderer, the proof pair and conformance (Q1, part 2)
+  - Acceptance Criteria:
+    - Functional:
+      - `<Surface>` gives every item a `domId` (stable across re-renders, unique per surface instance via `useId`), and rewrites `refProps` values from key-path ids to the target's `domId` before passing props to implementations.
+      - The proof catalog gains `textField.describedBy` and a `hint` kind with implementations in the proof host and the demo host; a browser test asserts `aria-describedby` points at the hint element, survives a re-render and two surfaces with the same tree do not collide.
+      - `rendererSuite` gains a case that every `refProps` value resolves to an element in the surface.
+    - Performance: no arrival-budget regression (selection bench).
+    - Code Quality: `domId` lives in the node context; implementations need no new API to use it.
+    - Security: law 1 — no widget code; ids are derived, not authored HTML.
+    - Compatibility: `widened` for `ImplementationProps`/item context.
+  - Approach:
+    - Skills to Use: `liveframe-execution` (renderer reference).
+    - Library Documentation to Check Before Implementation: React 19 `useId` via `find-docs`.
+    - Documentation Reviewed: design §2.6; `src/react/renderer.tsx:276-348` (`context`).
+    - Options Considered: expose key-path ids as DOM ids. Rejected: collide across surfaces and leak structure into global id space.
+    - Chosen Approach: per-surface `useId` prefix plus the key path.
+    - API Notes and Examples:
+      ```tsx
+      implement(TextField, ({ props, item }) => <input aria-describedby={props.describedBy} id={item.domId} />)
+      ```
+    - Files to Create/Edit: `src/react/renderer.tsx`; `src/react/implement.ts`; `src/conformance/react/`; `src/__tests__/fixtures/proof/catalog.json`; proof host and `examples/demo-host/primitives/`; `docs/renderer.md`; `docs/conformance.md`
+  - Test Cases to Write:
+    - `describedBy_points_at_hint_element` (browser); `dom_ids_unique_across_two_surfaces`; `dom_ids_stable_across_rerender`; conformance `ref_props_resolve`.
+  - Notes (executed <date>):
+
+- [ ] Task 4: Extension recipe properties (Q2)
+  - Acceptance Criteria:
+    - Functional: exactly `plans/evidence/022-extension-properties-design.md` §2.1–§2.6: `vocabulary.extensions` (≤ 64, `colour` or `value` with a design-value kind), recipe `extensions` map, `unknown-name`/`invalid-prop` at `/recipes/<key>/extensions/<name>`, cascade by name, `--lf-p-<name>` emitted per slot rule, reduced-transparency and forced-colours handling for colour extensions, `colour-outside-theme` for literals. Design systems without extensions project byte-identical CSS (asserted against 0.2.3 fixtures).
+      - `auditContrast` ignores extensions (they are not text/border pairs) and says so in its docs.
+      - `designSystemSuite` covers an extension-bearing design system; `docs/styling.md` shows trusted primitive CSS reading `var(--lf-p-sheen)`.
+    - Performance: `designSystemCss` bench non-regression; CSS size growth reported.
+    - Code Quality: extensions use the existing property-schema helpers (`src/formats/design-system.ts:116`).
+    - Security: law 3 — colours only from theme roles; values only typed design values.
+    - Compatibility: `widened` for `catalog.json`, `design-system.json`, `Vocabulary`, `Recipe` types.
+  - Approach:
+    - Skills to Use: `liveframe-execution` (styling reference).
+    - Library Documentation to Check Before Implementation: none.
+    - Documentation Reviewed: the design; `src/css/design-system.ts:41,255`; spec §6.2, §6.4, §6.5.
+    - Options Considered: the design's §5.
+    - Chosen Approach: the approved design.
+    - API Notes and Examples: see the design §2.1.
+    - Files to Create/Edit: `src/formats/vocabulary.ts`; `src/formats/design-system.ts`; `src/resolve.ts`; `src/css/design-system.ts`; `src/css/` variable helpers (`extensionVar`); `src/conformance/design-system.ts`; schemas; corpus; `docs/spec.md` §6; `docs/styling.md`; `docs/formats.md`; `register-0.3.0.json`
+  - Test Cases to Write:
+    - `extension_unknown_name_rejected`; `extension_colour_literal_rejected`; `extension_projects_lf_p_variable`; `no_extensions_byte_identical_css`; `extension_recovers_under_reduced_transparency`; `extension_cascades_by_name`.
+  - Notes (executed <date>):
+
+- [ ] Task 5: Multiple variant axes with role aliases (Q3)
+  - Acceptance Criteria:
+    - Functional:
+      - `plans/evidence/022-variant-axes-design.md` §2.1–§2.8 as amended by Task 1: `definition.axes` (≤ 3 axes, ≤ 16 values, ≤ 256 combinations per kind), recipe keys `kind.axis:value.slot.state`, the six-layer cascade, axis-suffixed slot classes `lf_<kind>_<variant>__<v1>__<v2>_<slot>` only for kinds with axes, `slotClass(kind, variant, slot, axes?)`, `<Surface>` computing the class from node props and defaults, and `roles` alias maps.
+      - Kinds without axes keep byte-identical classes and CSS.
+      - The worked example from Task 1 renders the four expected colour pairs in a browser test under the proof design systems.
+      - `designSystemSuite` and `rendererSuite` cover axis classes; conformance fixtures require one example per axis value.
+    - Performance: CSS size per kind with axes is reported; `designSystemCss` and switching span A stay within budget on the proof design systems with one 2-axis kind added.
+    - Code Quality: the resolver expands overlays into the existing flat table; projection code paths are reused.
+    - Security: law 3 — aliases checked against declared roles at install.
+    - Compatibility: `widened` for `catalog.json`, `design-system.json`, `slotClass`, `Definition`.
+  - Approach:
+    - Skills to Use: `liveframe-execution` (styling, renderer references); `typescript-advanced-types`.
+    - Library Documentation to Check Before Implementation: none.
+    - Documentation Reviewed: amended design §2.8 (including its proof obligations); `decision-logs/2026-11-06-0035-variant-axes-role-aliases.md`; `src/resolve.ts:16`; `src/react/renderer.tsx:306-310` (`slot`).
+    - Options Considered: as in the design and Task 1.
+    - Chosen Approach: the amended design.
+    - API Notes and Examples:
+      ```tsx
+      <Button variant="ghost" tone="critical" label="Delete" />
+      ```
+    - Files to Create/Edit: `src/formats/catalog.ts`; `src/formats/design-system.ts`; `src/resolve.ts`; `src/css/design-system.ts`; `src/css/` class helpers; `src/react/renderer.tsx`; `src/sdk/gen.ts`; `src/conformance/`; schemas; corpus; proof fixtures; `docs/spec.md` §5, §6; `docs/styling.md`; `docs/formats.md`; `register-0.3.0.json`
+  - Test Cases to Write:
+    - `axis_must_name_enum_prop`; `axis_default_in_enum`; `axis_combination_limit`; `axis_overlay_cascade_order`; `role_alias_to_undeclared_role_rejected`; `tone_by_emphasis_four_pairs` (browser); `kinds_without_axes_byte_identical`; the alias edge cases listed in design §2.8 (matching, one-step rewriting, inheritance/state/axis precedence, placement, alpha, shadows, colour extensions and audit).
+  - Notes (executed <date>):
+
+- [ ] Task 6: App-declared recipe states and semantics values (W8a)
+  - Acceptance Criteria:
+    - Functional:
+      - `vocabulary.states?: Record<name, { attribute: "data-<name>", description }>` adds app states. Names must not collide with library states, match `^[a-z][a-zA-Z0-9]*$`, ≤ 16 per catalog. Recipes may key them; the projection matches only `[data-<name>]` (and `:where()` wrapping as for library states); source order places app states after `invalid` and before `disabled`, in declared order. Forced colours: an app state whose resolved recipe differs from rest gets the `hover/active/open` cue (1px `Highlight` outline). Completeness is unchanged (states stay optional overlays).
+      - `vocabulary.semantics?: Record<name, { role: <ARIA role from a fixed allowlist>, description }>` widens the `semantics` prop domain on layout primitives. The library's ARIA role allowlist is published; implementations decide the element.
+      - Write `decision-logs/<date>-app-declared-states-and-semantics.md` (owner approval) before implementing, recording the source-order and forced-colours choices.
+      - `designSystemSuite` requires a state fixture for each app state that differs from rest, as it does for library states.
+    - Performance: CSS projection non-regression; no render-path cost.
+    - Code Quality: library states and app states share one ordered list built at catalog compile time.
+    - Security: law 3 — app states only select on data attributes; no selector text is authored.
+    - Compatibility: `widened` for vocabulary, design-system recipe keys, `semantics` validation.
+  - Approach:
+    - Skills to Use: `create-decision-log`; `liveframe-execution` (styling).
+    - Library Documentation to Check Before Implementation: WAI-ARIA 1.2 role list via `find-docs` (for the allowlist).
+    - Documentation Reviewed: `src/formats/fixed.ts:9-41`; spec §5 (semantics), §6.2 (states), §6.4 (state table, forced colours).
+    - Options Considered: arbitrary selectors per state. Rejected: law 3 (no authored selectors). App states before `hover`. Rejected: states must beat rest-like interactions; after `invalid` keeps `disabled` last.
+    - Chosen Approach: data-attribute-only app states; ARIA-role-mapped semantics.
+    - API Notes and Examples:
+      ```jsonc
+      "states": { "dragging": { "attribute": "data-dragging", "description": "Being dragged." } },
+      "semantics": { "toolbar": { "role": "toolbar", "description": "A set of controls." } }
+      ```
+    - Files to Create/Edit: `src/formats/vocabulary.ts`; `src/formats/fixed.ts`; `src/formats/design-system.ts`; `src/css/design-system.ts`; `src/validate/` semantics check; `src/conformance/design-system.ts`; schemas; corpus; `docs/spec.md` §5, §6; `docs/styling.md`; `docs/formats.md`; `register-0.3.0.json`; decision log
+  - Test Cases to Write:
+    - `app_state_collides_with_library_state_rejected`; `app_state_projects_data_attribute_selector`; `app_state_source_order`; `app_state_forced_colours_cue`; `app_semantics_value_accepted`; `unknown_semantics_still_rejected`; `aria_role_outside_allowlist_rejected`.
+  - Notes (executed <date>):
+
+- [ ] Task 7: A `url` string form with a scheme allowlist (W8b)
+  - Acceptance Criteria:
+    - Functional:
+      - The schema language's string form gains `url?: { schemes: string[]; relative?: boolean }` (1–16 lowercase schemes matching RFC 3986 `scheme`). It is allowed in catalogs, capabilities **and** widget schemas (it is not a regex).
+      - The check is hand-written and host-API-free (no `URL` global in the root export). It rejects C0 controls, space, tab and newline anywhere in the value, which removes every input a browser would strip or rewrite before reading the scheme. It then reads the scheme (`ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )` before the first `:`) and compares it case-insensitively with the allowlist. A value with no scheme passes only with `relative: true`. A protocol-relative value (`//host…`) and a backslash-led value (`\\host…`) are always rejected. Failure is `invalid-prop` with `expected` naming the allowed schemes.
+      - `Infer` maps it to `string`; `liveframe gen` documents the schemes in the prop doc; JSON Schema output is `{ type: "string", pattern: <generated, linear anchored pattern>, … }` so external validators agree; a corpus case pins `javascript:`, `JaVaScRiPt:`, `java\tscript:`, `//evil.example` and `data:` as rejected under `["https"]`.
+      - `docs/security.md` "URL-valued props" changes from "the catalog's problem" to "declare `url`"; the proof and demo catalogs use it on `link.href` and `image.src`.
+    - Performance: linear in string length; validator bench non-regression.
+    - Code Quality: one `checkUrl` function shared by the compiled validator and install validation.
+    - Security: closes the `javascript:` XSS class for catalogs that declare it; law 2.
+    - Compatibility: `widened` for `schema-language.json`, `StringSchema`.
+  - Approach:
+    - Skills to Use: `liveframe-execution` (formats); `typescript-advanced-types`.
+    - Library Documentation to Check Before Implementation: WHATWG URL Standard scheme state (tab/newline stripping) via `find-docs`; RFC 3986 §3.1.
+    - Documentation Reviewed: spec §5 (schema language, widget schemas carry no `pattern`); `docs/security.md`; `src/schema.ts:6-14,163-195,265-288`.
+    - Options Considered: `format: "uri"`. Rejected: JSON Schema's `format` is annotation-only by default and has no scheme allowlist. Use the `URL` global. Rejected: the root export needs no non-ECMAScript globals (§13).
+    - Chosen Approach: a closed keyword with a hand-written linear check.
+    - API Notes and Examples:
+      ```ts
+      href: str({ maxLength: 2048, url: { schemes: ["https", "mailto"], relative: true } })
+      ```
+    - Files to Create/Edit: `src/schema.ts`; `src/validate/schema.ts`; `src/formats/` schema-language source; `src/sdk/gen.ts`; `schemas/schema-language.json`; corpus; `src/__tests__/fixtures/proof/catalog.json`; `examples/demo-host/catalog.json`; `docs/spec.md` §5; `docs/security.md`; `docs/formats.md`; `register-0.3.0.json`
+  - Test Cases to Write:
+    - `url_rejects_disallowed_scheme_case_insensitive`; `url_rejects_embedded_tab_and_newline`; `url_rejects_protocol_relative`; `url_relative_only_when_allowed`; `url_allowed_in_widget_schema`; `url_json_schema_agrees_with_checker` (differential over the corpus).
+  - Notes (executed <date>):
+
+- [ ] Task 8: Analyze architectural impact and dispose of every finding
+  - Acceptance Criteria:
+    - Functional: the twelve impact areas swept against Tasks 1–7 in `plans/evidence/027-impact-analysis.md`; findings presented, dispositions recorded and executed or backlogged.
+    - Performance: `bun run bench` once (switch span A, CSS, validator, render).
+    - Code Quality: findings cite `file:line`.
+    - Security: law 3 reviewed against every new style input.
+  - Approach:
+    - Skills to Use: `create-plan`; `liveframe-execution`.
+    - Library Documentation to Check Before Implementation: none.
+    - Documentation Reviewed: this plan's notes.
+    - Options Considered: n/a.
+    - Chosen Approach: the standard final task.
+    - API Notes and Examples: n/a.
+    - Files to Create/Edit: `plans/evidence/027-impact-analysis.md`; `plans/backlog.md`.
+  - Test Cases to Write: n/a.
+  - Notes (executed <date>):
+
+## Verification (whole plan)
+
+- `timeout 900 bun run check`
+- `LIVEFRAME_BROWSER=webkit timeout 900 bun test --conditions liveframe:source src/__tests__/css-browser.test.ts src/__tests__/react-browser.test.tsx` and the same for `firefox`
+- `timeout 900 bun run bench`
+- `bun run demo:test`
+
+## Compromises Made
+
+- To be filled after tasks are completed and tests pass.
+
+## Further Actions
+
+- To be filled after task completion with improvements, rationale, and priority.
