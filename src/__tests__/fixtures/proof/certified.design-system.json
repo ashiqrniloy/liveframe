@@ -842,6 +842,38 @@
       "textColor": "text.primary",
       "typography": "body"
     },
+    "hint.default.root.rest": {
+      "textColor": "text.muted",
+      "typography": "meta"
+    },
+    "hint.default.root.hover": {
+      "textColor": "text.muted",
+      "typography": "meta"
+    },
+    "hint.default.root.active": {
+      "textColor": "text.muted",
+      "typography": "meta"
+    },
+    "hint.default.root.focus": {
+      "textColor": "text.muted",
+      "typography": "meta"
+    },
+    "hint.default.root.disabled": {
+      "textColor": "text.muted",
+      "typography": "meta"
+    },
+    "hint.default.root.selected": {
+      "textColor": "text.muted",
+      "typography": "meta"
+    },
+    "hint.default.root.invalid": {
+      "textColor": "text.muted",
+      "typography": "meta"
+    },
+    "hint.default.root.open": {
+      "textColor": "text.muted",
+      "typography": "meta"
+    },
     "heading.default.root.rest": {
       "textColor": "text.primary",
       "typography": "heading.2"

@@ -1791,6 +1791,102 @@
       },
       "typography": "body"
     },
+    "hint.default.root.rest": {
+      "backgroundColor": "none",
+      "textColor": "text.meta",
+      "borderWidth": {
+        "value": 0,
+        "unit": "px"
+      },
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      }
+    },
+    "hint.default.root.hover": {
+      "backgroundColor": "none",
+      "textColor": "text.meta",
+      "borderWidth": {
+        "value": 0,
+        "unit": "px"
+      },
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      }
+    },
+    "hint.default.root.active": {
+      "backgroundColor": "none",
+      "textColor": "text.meta",
+      "borderWidth": {
+        "value": 0,
+        "unit": "px"
+      },
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      }
+    },
+    "hint.default.root.focus": {
+      "backgroundColor": "none",
+      "textColor": "text.meta",
+      "borderWidth": {
+        "value": 0,
+        "unit": "px"
+      },
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      }
+    },
+    "hint.default.root.disabled": {
+      "backgroundColor": "none",
+      "textColor": "text.meta",
+      "borderWidth": {
+        "value": 0,
+        "unit": "px"
+      },
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      }
+    },
+    "hint.default.root.selected": {
+      "backgroundColor": "none",
+      "textColor": "text.meta",
+      "borderWidth": {
+        "value": 0,
+        "unit": "px"
+      },
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      }
+    },
+    "hint.default.root.invalid": {
+      "backgroundColor": "none",
+      "textColor": "text.meta",
+      "borderWidth": {
+        "value": 0,
+        "unit": "px"
+      },
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      }
+    },
+    "hint.default.root.open": {
+      "backgroundColor": "none",
+      "textColor": "text.meta",
+      "borderWidth": {
+        "value": 0,
+        "unit": "px"
+      },
+      "borderRadius": {
+        "value": 0,
+        "unit": "px"
+      }
+    },
     "heading.default.root.rest": {
       "backgroundColor": "none",
       "textColor": "text.primary",

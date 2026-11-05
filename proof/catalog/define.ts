@@ -68,4 +68,5 @@ export interface Definition {
   readonly slots: readonly string[];
   readonly styleProps: readonly StyleProp[];
   readonly a11y: { readonly role: string; readonly name?: string };
+  readonly refProps?: readonly string[];
 }

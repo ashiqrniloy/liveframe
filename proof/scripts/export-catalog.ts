@@ -43,7 +43,7 @@ export const catalog = {
 if (import.meta.main) {
   const result = validateCatalog(catalog);
   if (!result.ok) throw new Error(JSON.stringify(result.errors));
-  if (result.value.definitions.length !== 24) throw new Error("Expected the 24-kind proof catalog");
+  if (result.value.definitions.length !== 25) throw new Error("Expected the 25-kind proof catalog");
   const output: Catalog = result.value;
   await Bun.write(
     new URL("../../src/__tests__/fixtures/catalog.json", import.meta.url),

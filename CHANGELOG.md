@@ -8,6 +8,8 @@ Added:
 
 - Node reference authoring: `/sdk` exports `ref(anchor)`, JSX and element JSON accept `$anchor`, and generated reference props use the root `NodeRef` marker type. Catalog `refProps` declare same-tree relations; rendering resolves them to string ids and validation rejects missing targets with `not-found`. See [the SDK guide](docs/sdk.md#node-references).
 
+- Node references in the renderer: implementations receive `domId`, a per-surface DOM id (unique across surfaces, stable across re-renders), and `<Surface>` rewrites `refProps` values to the target's `domId` before they reach an implementation. `rendererSuite` gains `ref_props_resolve_to_elements_in_the_surface`. See [the renderer guide](docs/renderer.md#write-primitive-implementations).
+
 - `/store` exports `verifiedPackages({ max? })`, an optional host-owned LRU passed as `{ verified }` to `loadPlacement`. Matching content and installation documents reuse package verification; stored structure, content hashes, placement identity, params and state are checked on every load.
 
 - `createPreview()`, `createAuthoring()` and the MCP `AuthoringConfig` accept `limits` for node count, depth and tree bytes, enforced by both the runner and host validation. Defaults and authoring response bounds are unchanged.

@@ -175,6 +175,11 @@ export const implementations = [
       {props.text}
     </span>
   )),
+  bind("hint", ({ props, slot, style, domId }) => (
+    <p id={domId} className={slot("root")} style={style}>
+      {props.text}
+    </p>
+  )),
   bind("heading", ({ props, slot, style }) =>
     createElement(`h${props.level}`, { className: slot("root"), style }, props.text),
   ),
@@ -242,6 +247,7 @@ export const implementations = [
         }}
         isDisabled={props.disabled ?? false}
         isReadOnly={props.readOnly ?? false}
+        {...(props.describedBy === undefined ? {} : { "aria-describedby": props.describedBy })}
       >
         <Aria.Label className={slot("label")}>{props.label}</Aria.Label>
         {props.multiline ? <Aria.TextArea {...input} /> : <Aria.Input {...input} />}

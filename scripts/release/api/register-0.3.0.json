@@ -353,6 +353,14 @@
     }
   },
   {
+    "subpath": "./react",
+    "name": "ImplementationProps",
+    "change": "widened",
+    "reason": "Implementations receive `domId`, a per-surface DOM id for the node, and reference props arrive already rewritten to the target's `domId`",
+    "hostAction": "Put `domId` on the element a reference-bearing target renders; a host that builds ImplementationProps by hand adds the field",
+    "task": "027 T3"
+  },
+  {
     "subpath": "./schemas/*",
     "name": "catalog.json",
     "change": "widened",

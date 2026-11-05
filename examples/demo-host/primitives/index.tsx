@@ -54,6 +54,11 @@ export const implementations = [
       {props.text}
     </span>
   )),
+  bind<{ text: string }>("hint", ({ props, slot, style, domId }) => (
+    <p id={domId} className={slot("root")} style={style}>
+      {props.text}
+    </p>
+  )),
   bind<{ text: string; level: number }>("heading", ({ props, slot, style }) =>
     createElement(`h${props.level}`, { className: slot("root"), style }, props.text),
   ),
@@ -80,6 +85,7 @@ export const implementations = [
     disabled?: boolean;
     readOnly?: boolean;
     maxLength?: number;
+    describedBy?: string;
   }>("textField", function TextField({ props, slot, style, emit }) {
     const [value, setValue] = useValue(props.value ?? "");
     const input = {
@@ -103,6 +109,7 @@ export const implementations = [
         }}
         isDisabled={props.disabled ?? false}
         isReadOnly={props.readOnly ?? false}
+        {...(props.describedBy === undefined ? {} : { "aria-describedby": props.describedBy })}
       >
         <Aria.Label className={slot("label")}>{props.label}</Aria.Label>
         {props.multiline ? <Aria.TextArea {...input} /> : <Aria.Input {...input} />}

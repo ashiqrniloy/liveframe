@@ -80,6 +80,7 @@ type _ExplicitIntent =
       readonly bind?: never;
       readonly bindAll?: never;
     };
+import type { NodeRef as _NodeRef } from "@arnilo/liveframe";
 
 /**
  * The box primitive.
@@ -265,6 +266,39 @@ export const Text = primitive<{
 }>("text");
 
 /**
+ * The hint primitive.
+ */
+export const Hint = primitive<{
+  readonly text: string;
+  readonly variant?: "default";
+  readonly padding?: _Responsive<_Space>;
+  readonly paddingX?: _Responsive<_Space>;
+  readonly paddingY?: _Responsive<_Space>;
+  readonly paddingTop?: _Responsive<_Space>;
+  readonly paddingRight?: _Responsive<_Space>;
+  readonly paddingBottom?: _Responsive<_Space>;
+  readonly paddingLeft?: _Responsive<_Space>;
+  readonly margin?: _Responsive<_Space>;
+  readonly marginX?: _Responsive<_Space>;
+  readonly marginY?: _Responsive<_Space>;
+  readonly marginTop?: _Responsive<_Space>;
+  readonly marginRight?: _Responsive<_Space>;
+  readonly marginBottom?: _Responsive<_Space>;
+  readonly marginLeft?: _Responsive<_Space>;
+  readonly width?: _Responsive<_Dimension>;
+  readonly height?: _Responsive<_Dimension>;
+  readonly minWidth?: _Responsive<_Dimension>;
+  readonly maxWidth?: _Responsive<_Dimension>;
+  readonly grow?: _Responsive<number>;
+  readonly shrink?: _Responsive<number>;
+  readonly basis?: _Responsive<number>;
+  readonly position?: _Responsive<"static" | "sticky">;
+  readonly insetTop?: _Responsive<_Space>;
+  readonly insetBottom?: _Responsive<_Space>;
+  readonly textAlign?: _Responsive<"start" | "center" | "end">;
+}>("hint");
+
+/**
  * The heading primitive.
  */
 export const Heading = primitive<{
@@ -327,6 +361,7 @@ export const TextField = primitive<{
   readonly disabled?: boolean;
   readonly readOnly?: boolean;
   readonly maxLength?: number;
+  readonly describedBy?: _NodeRef;
   readonly variant?: "default";
   readonly padding?: _Responsive<_Space>;
   readonly paddingX?: _Responsive<_Space>;

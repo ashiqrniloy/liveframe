@@ -2589,6 +2589,7 @@ export const rackMappings: Readonly<Record<string, string>> = {
   "scroll.default.scrollbar": "scroll.default.scrollbarThumb",
   "separator.default.root": "divider.default.root",
   "text.default.root": "label.body.root",
+  "hint.default.root": "label.caption.root",
   "heading.default.root": "label.title.root",
   "icon.default.root": "label.default.root",
   "link.default.root": "label.accent.root",

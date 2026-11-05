@@ -219,10 +219,11 @@ test("new_states_validate_and_project_in_order", () => {
 
 test("unused_new_states_leave_css_byte_identical", () => {
   // The 0.2.1 projection of the proof catalog with each proof design system, hashed before the
-  // vocabulary widened. Plan 022's other tasks touched no CSS projection.
+  // vocabulary widened. Plan 022's other tasks touched no CSS projection. Plan 027 T3 added the `hint`
+  // kind to both proof design systems, which grew each sheet by that kind's rules alone.
   const baseline: Record<string, { bytes: number; sha256: string }> = {
-    certified: { bytes: 152019, sha256: "4a51241934091e31a808bd2b0920eb54bbcfa9b960e62926548311b0daafddb3" },
-    rack: { bytes: 164152, sha256: "1fc1d0e59ad9dca98c608ae7fb54e8fe85327c39f3b2242d7de81eed67f437c2" },
+    certified: { bytes: 152457, sha256: "bd949d6ad8b073030ab221dd95bd37a9d19e5de4a14a9f09380b9ec2856ba9ec" },
+    rack: { bytes: 164425, sha256: "7b18125948c08ac19eb5c75c2a78774233a63905f0c649613e6e63a925d38cfa" },
   };
   for (const [i, name] of ["certified", "rack"].entries()) {
     const css = sheet(systems[i]!);

@@ -268,7 +268,7 @@ test("proof_catalog_validates_under_five_milliseconds", () => {
   const result = validateCatalog(proofCatalog);
   const elapsed = performance.now() - start;
   expect(result.ok).toBe(true);
-  expect(proofCatalog.definitions).toHaveLength(24);
+  expect(proofCatalog.definitions).toHaveLength(25);
   expect(elapsed).toBeLessThan(5);
 });
 

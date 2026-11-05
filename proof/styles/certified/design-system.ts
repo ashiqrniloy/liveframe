@@ -96,6 +96,7 @@ const seeds: Record<string, Recipe> = {
   "scroll.default.scrollbar.rest": { backgroundColor: "surface.scrollbar", borderRadius: "radius.control" },
   "separator.default.root.rest": { borderColor: "border.hairline", borderTopWidth: "border.hairline" },
   "text.default.root.rest": { textColor: "text.primary", typography: "body" },
+  "hint.default.root.rest": { textColor: "text.muted", typography: "meta" },
   "heading.default.root.rest": { textColor: "text.primary", typography: "heading.2" },
   "icon.default.root.rest": {},
   "image.default.root.rest": {},

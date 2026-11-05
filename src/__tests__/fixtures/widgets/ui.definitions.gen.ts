@@ -471,6 +471,57 @@ export const Text = {
   defaultVariant: "default",
 } as const satisfies Definition;
 
+export const Hint = {
+  kind: "hint",
+  props: {
+    type: "object",
+    properties: {
+      text: {
+        type: "string",
+        maxLength: 10000,
+      },
+    },
+    required: ["text"],
+    additionalProperties: false,
+  },
+  children: "none",
+  events: {},
+  variants: ["default"],
+  slots: ["root"],
+  styleProps: [
+    "padding",
+    "paddingX",
+    "paddingY",
+    "paddingTop",
+    "paddingRight",
+    "paddingBottom",
+    "paddingLeft",
+    "margin",
+    "marginX",
+    "marginY",
+    "marginTop",
+    "marginRight",
+    "marginBottom",
+    "marginLeft",
+    "width",
+    "height",
+    "minWidth",
+    "maxWidth",
+    "grow",
+    "shrink",
+    "basis",
+    "position",
+    "insetTop",
+    "insetBottom",
+    "textAlign",
+  ],
+  a11y: {
+    role: "generic",
+  },
+  description: "The hint primitive.",
+  defaultVariant: "default",
+} as const satisfies Definition;
+
 export const Heading = {
   kind: "heading",
   props: {
@@ -775,6 +826,10 @@ export const TextField = {
         minimum: 1,
         maximum: 10000,
       },
+      describedBy: {
+        type: "string",
+        maxLength: 1024,
+      },
     },
     required: ["label"],
     additionalProperties: false,
@@ -822,6 +877,7 @@ export const TextField = {
     role: "textbox",
     name: "label",
   },
+  refProps: ["describedBy"],
   description: "The textField primitive.",
   defaultVariant: "default",
 } as const satisfies Definition;

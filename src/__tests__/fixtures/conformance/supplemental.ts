@@ -12,6 +12,8 @@ export const supplementalExample: UiTree = {
     props: {},
     children: [
       { id: "root/image", kind: "image", props: { src: "/conformance.png", alt: "Conformance fixture" } },
+      { id: "root/hint", kind: "hint", props: { text: "At most 200 characters" } },
+      { id: "root/field", kind: "textField", props: { label: "Reason", describedBy: "root/hint" } },
       { id: "root/link", kind: "link", props: { label: "Details", href: "#details" } },
       { id: "root/danger", kind: "button", variant: "danger", props: { label: "Delete" } },
       { id: "root/select", kind: "select", props: { label: "Choice", options: [{ value: "one", label: "One" }] } },

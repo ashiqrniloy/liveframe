@@ -13,6 +13,7 @@ const candidates = [
   "scroll",
   "separator",
   "text",
+  "hint",
   "heading",
   "icon",
   "image",
@@ -39,9 +40,12 @@ test("catalog_has_no_product_shaped_kind", () => {
 test("definitions_are_plain_data_with_complete_contracts", () => {
   expect(JSON.parse(JSON.stringify(definitions))).toEqual(definitions);
   for (const definition of catalog) {
-    expect(Object.keys(definition).sort()).toEqual(
-      ["kind", "props", "children", "events", "variants", "slots", "styleProps", "a11y"].sort(),
-    );
+    expect(
+      Object.keys(definition)
+        .filter((key) => key !== "refProps")
+        .sort(),
+    ).toEqual(["kind", "props", "children", "events", "variants", "slots", "styleProps", "a11y"].sort());
+    for (const name of definition.refProps ?? []) expect(definition.props.properties[name]?.type).toBe("string");
     expect(definition.slots).toContain("root");
     expect(definition.variants).toContain("default");
     expect(new Set(definition.slots).size).toBe(definition.slots.length);
@@ -116,7 +120,7 @@ test("definitions_admit_no_colour_or_raw_style_props", () => {
     for (const prop of ["surface", "fill", "radius"] as const)
       if (definition.styleProps.includes(prop)) expect(definition.kind).toBe("box");
     for (const prop of ["textAlign"] as const)
-      if (definition.styleProps.includes(prop)) expect(["text", "heading"]).toContain(definition.kind);
+      if (definition.styleProps.includes(prop)) expect(["text", "heading", "hint"]).toContain(definition.kind);
   }
 });
 

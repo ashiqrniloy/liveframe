@@ -5,6 +5,7 @@ import {
   Fragment,
   type ReactNode,
   useContext,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -231,7 +232,25 @@ type ItemContext = IntentState & {
   portal: HTMLDivElement | null;
   diagnosed: boolean;
   failed: WeakSet<UiNode>;
+  domIdPrefix: string;
 };
+
+/**
+ * A DOM id for a key-path id: the surface's `useId` prefix keeps two surfaces of one tree apart, and
+ * the key path keeps the id stable across re-renders. `useId` output can hold `:`, `«` or `»`, which
+ * stay legal in an id but not in a CSS selector, so the prefix is percent-encoded.
+ */
+function domId(prefix: string, id: string): string {
+  return `${prefix}:${id}`;
+}
+
+/** Rewrites reference props from key-path ids to the targets' DOM ids; other props are untouched. */
+function referencedProps(node: UiNode, refProps: readonly string[] | undefined, prefix: string): UiNode["props"] {
+  if (!refProps?.length) return node.props;
+  const props: Record<string, unknown> = { ...node.props };
+  for (const name of refProps) if (typeof props[name] === "string") props[name] = domId(prefix, props[name]);
+  return props as UiNode["props"];
+}
 
 /**
  * The host's promise, when it returns one, with rejection contained: a failed intent must not
@@ -276,7 +295,7 @@ function raiseIntent(
 function context(state: ItemContext, node: UiNode): Item {
   const cached = state.contexts.get(node);
   if (cached) return cached;
-  const { contexts, registry, catalog, eventChecks, actions, current, portal, diagnosed, failed } = state;
+  const { contexts, registry, catalog, eventChecks, actions, current, portal, diagnosed, failed, domIdPrefix } = state;
   const implementation = registry.get(node.kind);
   if (!implementation) throw new Error(`Missing implementation: ${node.kind}`);
   const { definition } = implementation[binding];
@@ -301,7 +320,8 @@ function context(state: ItemContext, node: UiNode): Item {
     id: node.id,
     kind: node.kind,
     variant: node.variant,
-    props: node.props,
+    props: referencedProps(node, definition.refProps, domIdPrefix),
+    domId: domId(domIdPrefix, node.id),
     events,
     slot(name) {
       if (!definition.slots.includes(name)) throw new Error(`Undeclared slot: ${node.kind}.${name}`);
@@ -413,6 +433,7 @@ export function createRenderer({
     transparency,
     focusContinuity = true,
   }: SurfaceProps) {
+    const domIdPrefix = `lf-${encodeURIComponent(useId())}`;
     const mounted = useRef(false);
     const [failed] = useState(() => new WeakSet<UiNode>());
     const confirming = useRef(false);
@@ -486,10 +507,11 @@ export function createRenderer({
           portal,
           diagnosed,
           failed,
+          domIdPrefix,
         },
         tree.root,
       ).render();
-    }, [accepted.tree, accepted.validator, contexts, portal, diagnosed, failed]);
+    }, [accepted.tree, accepted.validator, contexts, portal, diagnosed, failed, domIdPrefix]);
     const scope = surfaceAttributes({ ...appliedScope, tree: accepted.tree ?? emptyTree });
     return (
       <FallbackContext value={fallback}>

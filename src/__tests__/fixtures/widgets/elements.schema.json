@@ -843,6 +843,92 @@
         },
         {
           "type": "object",
+          "description": "The hint primitive.",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "hint"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "variant": {
+              "enum": [
+                "default"
+              ]
+            },
+            "$anchor": {
+              "type": "string"
+            },
+            "props": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "maxLength": 10000
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "text"
+              ]
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "padding": {},
+                "paddingX": {},
+                "paddingY": {},
+                "paddingTop": {},
+                "paddingRight": {},
+                "paddingBottom": {},
+                "paddingLeft": {},
+                "margin": {},
+                "marginX": {},
+                "marginY": {},
+                "marginTop": {},
+                "marginRight": {},
+                "marginBottom": {},
+                "marginLeft": {},
+                "width": {},
+                "height": {},
+                "minWidth": {},
+                "maxWidth": {},
+                "grow": {},
+                "shrink": {},
+                "basis": {},
+                "position": {},
+                "insetTop": {},
+                "insetBottom": {},
+                "textAlign": {}
+              },
+              "additionalProperties": false
+            },
+            "events": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/element"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
           "description": "The heading primitive.",
           "additionalProperties": false,
           "required": [
@@ -1350,6 +1436,18 @@
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 10000
+                },
+                "describedBy": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "$ref"
+                  ],
+                  "properties": {
+                    "$ref": {
+                      "type": "string"
+                    }
+                  }
                 }
               },
               "additionalProperties": false,

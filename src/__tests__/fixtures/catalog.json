@@ -207,6 +207,7 @@
         "position",
         "insetTop",
         "insetBottom",
+        "deferOffscreen",
         "surface",
         "fill",
         "radius"
@@ -643,6 +644,62 @@
       "defaultVariant": "default"
     },
     {
+      "kind": "hint",
+      "props": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 10000
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "children": "none",
+      "events": {},
+      "variants": [
+        "default"
+      ],
+      "slots": [
+        "root"
+      ],
+      "styleProps": [
+        "padding",
+        "paddingX",
+        "paddingY",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "paddingLeft",
+        "margin",
+        "marginX",
+        "marginY",
+        "marginTop",
+        "marginRight",
+        "marginBottom",
+        "marginLeft",
+        "width",
+        "height",
+        "minWidth",
+        "maxWidth",
+        "grow",
+        "shrink",
+        "basis",
+        "position",
+        "insetTop",
+        "insetBottom",
+        "textAlign"
+      ],
+      "a11y": {
+        "role": "generic"
+      },
+      "description": "The hint primitive.",
+      "defaultVariant": "default"
+    },
+    {
       "kind": "heading",
       "props": {
         "type": "object",
@@ -983,6 +1040,10 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 10000
+          },
+          "describedBy": {
+            "type": "string",
+            "maxLength": 1024
           }
         },
         "required": [
@@ -1039,6 +1100,9 @@
         "role": "textbox",
         "name": "label"
       },
+      "refProps": [
+        "describedBy"
+      ],
       "description": "The textField primitive.",
       "defaultVariant": "default"
     },

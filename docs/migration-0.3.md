@@ -119,4 +119,20 @@ Catalogs can declare up to eight string reference props. Generated authoring typ
 use `NodeRef` markers (`ref("hint")`); element JSON uses `{ "$ref": "hint" }`
 with `$anchor: "hint"` on the target. Rendered trees still carry plain string ids.
 Missing targets fail with `not-found`. Catalogs without references keep their
-existing prop types. Renderer DOM-id integration follows separately in plan 027 Task 3.
+existing prop types.
+
+In the renderer, `<Surface>` gives every implementation a `domId` and rewrites
+`refProps` values from key-path ids to the target's `domId` before they reach
+`props`. The renderer adds no wrapper element, so the target's implementation
+renders `domId` as its own `id`:
+
+```tsx
+implement(Hint, ({ props, slot, domId }) => <p id={domId} className={slot("root")}>{props.text}</p>);
+implement(TextField, ({ props, domId }) => (
+  <input id={domId} aria-describedby={props.describedBy} />
+));
+```
+
+Put `domId` on the element a reference-bearing target renders; a host that builds ImplementationProps by hand adds the field.
+Existing implementations keep working unchanged: an implementation that ignores `domId` renders the same DOM.
+`rendererSuite` fails an example whose reference names no element.

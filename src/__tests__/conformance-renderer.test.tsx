@@ -35,6 +35,7 @@ function implementations(broken = ""): Implementation[] {
         throw new Error("Broken primary variant");
       return (
         <div
+          id={broken === "id" && definition.kind === "hint" ? undefined : input.domId}
           className={
             broken === "slot" && definition.kind === "text"
               ? undefined
@@ -59,6 +60,8 @@ const input: UiTree = {
       { id: "root/first", kind: "text", props: { text: "First" }, style: { padding: "space.2" } },
       { id: "root/second", kind: "text", props: { text: "Second" }, style: { padding: "space.2" } },
       { id: "root/button", kind: "button", variant: "primary", props: { label: "Save" } },
+      { id: "root/hint", kind: "hint", props: { text: "Hint" } },
+      { id: "root/field", kind: "textField", props: { label: "Field", describedBy: "root/hint" } },
     ],
     style: { gap: { base: "space.1", "bp.md": "space.2" } },
   },
@@ -93,6 +96,7 @@ test("renderer_server_cases_pass_and_are_runner_independent", async () => {
     "every_example_renders_on_the_server_under_every_design_system",
     "every_node_carries_its_root_slot_class_and_style",
     "invalid_arrival_renders_only_the_fallback",
+    "ref_props_resolve_to_elements_in_the_surface",
   ]);
   await Promise.all(cases.map((c) => c.run()));
 });
@@ -104,6 +108,8 @@ test("renderer_server_cases_catch_broken_implementations", async () => {
   await fails(implementations("classes"), slots);
   await fails(implementations("throw"), "every_example_renders_on_the_server_under_every_design_system");
   await fails(implementations().slice(1), "registry_check_passes");
+  // A reference whose target never renders its domId names no element.
+  await fails(implementations("id"), "ref_props_resolve_to_elements_in_the_surface");
   // One styled element cannot stand in for two nodes of the same kind/variant.
   let texts = 0;
   await fails(

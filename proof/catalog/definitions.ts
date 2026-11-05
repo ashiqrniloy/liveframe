@@ -29,6 +29,7 @@ const layout = [
 const flex = [...layout, "gap", "direction", "align", "justify", "wrap"] as const;
 const label = { type: "string", maxLength: 80 } as const;
 const text = { type: "string", maxLength: 10000 } as const;
+const nodeId = { type: "string", maxLength: 1024 } as const;
 const identifier = { type: "string", maxLength: 128, pattern: "^[a-zA-Z0-9][a-zA-Z0-9._-]*$" } as const;
 const disabled = { type: "boolean" } as const;
 const semantics = {
@@ -142,6 +143,16 @@ export const definitions = [
     a11y: { role: "generic" },
   },
   {
+    kind: "hint",
+    props: { type: "object", properties: { text }, required: ["text"], additionalProperties: false },
+    children: "none",
+    events: {},
+    variants: ["default"],
+    slots: ["root"],
+    styleProps: [...layout, "textAlign"],
+    a11y: { role: "generic" },
+  },
+  {
     kind: "heading",
     props: {
       type: "object",
@@ -223,6 +234,7 @@ export const definitions = [
         disabled,
         readOnly: { type: "boolean" },
         maxLength: { type: "integer", minimum: 1, maximum: 10000 },
+        describedBy: nodeId,
       },
       required: ["label"],
       additionalProperties: false,
@@ -233,6 +245,7 @@ export const definitions = [
     slots: ["root", "label", "input"],
     styleProps: layout,
     a11y: { role: "textbox", name: "label" },
+    refProps: ["describedBy"],
   },
   {
     kind: "select",

@@ -1858,6 +1858,38 @@
       "typography": "label",
       "transitionDuration": "motion.fast",
       "transitionTiming": "expo-out"
+    },
+    "hint.default.root.rest": {
+      "textColor": "text.primary",
+      "typography": "body"
+    },
+    "hint.default.root.hover": {
+      "textColor": "text.primary",
+      "typography": "body"
+    },
+    "hint.default.root.active": {
+      "textColor": "text.primary",
+      "typography": "body"
+    },
+    "hint.default.root.focus": {
+      "textColor": "text.primary",
+      "typography": "body"
+    },
+    "hint.default.root.disabled": {
+      "textColor": "text.primary",
+      "typography": "body"
+    },
+    "hint.default.root.selected": {
+      "textColor": "text.primary",
+      "typography": "body"
+    },
+    "hint.default.root.invalid": {
+      "textColor": "text.primary",
+      "typography": "body"
+    },
+    "hint.default.root.open": {
+      "textColor": "text.primary",
+      "typography": "body"
     }
   }
 }

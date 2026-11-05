@@ -1224,8 +1224,10 @@ const validator = compileValidator({ catalog, capabilities, manifest });
     Replacing the validator or portal, or turning diagnostics on or off, resets reuse; a new `fallback` value or a new diagnostics list does not.
 
     Reused handlers read the currently accepted tree and current callbacks when emitting.
+  - `domId`: a DOM id for this node's element, stable across re-renders and unique per `<Surface>` instance (the surface's `useId` prefix, percent-encoded, then `:` and the key-path id). It holds no whitespace, so it is valid in an `aria-*` id list. The renderer adds no wrapper: an implementation places `domId` on the element it renders, and a node that renders none is simply unreferenceable.
+  - `props` carry each `refProps` value (§5) rewritten from the target's key-path id to the target's `domId`. An absent optional reference stays absent; a catalog without `refProps` keeps `props` unchanged.
   - `children`: already rendered
-  - `items`: a node context for each child, with `id`, `kind`, `variant`, `props`, `slot(name)`, `style`, `events`, `children` (already rendered), `render()` (the child drawn through its own implementation) and `emit(event, value?)`. Slots, styles, metadata and intents belong to that child, so collection primitives can draw its parts themselves
+  - `items`: a node context for each child, with `id`, `domId`, `kind`, `variant`, `props`, `slot(name)`, `style`, `events`, `children` (already rendered), `render()` (the child drawn through its own implementation) and `emit(event, value?)`. Slots, styles, metadata and intents belong to that child, so collection primitives can draw its parts themselves
   - `portal`: the surface's scoped overlay container, or undefined when overlays use the top layer
 - It re-checks every arriving tree with the `validator`, compiled from the catalog, the capabilities and the widget's manifest (§10), before reading any tree field, including `surfaceId` or `revision`. A tree that fails renders the app's `fallback` for the whole surface, never part of an invalid tree and never nothing. After validation, a tree for the same `surfaceId` whose `revision` is lower than the current one is ignored; a different `surfaceId` replaces the current tree.
 - An implementation that throws renders the `fallback` at that node, through an error boundary.

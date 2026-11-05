@@ -256,8 +256,9 @@ arrival validation still establishes the contract either way.
 | `style` | Forward the projected inline declarations to the primitive root. These contain token-constrained layout, not arbitrary widget CSS. |
 | `emit(event, value?)` | Report the declared event with its carried value; do not invent or dispatch an action yourself. When `onIntent` returns a promise, it returns a `Promise<void>` that settles when the host's does (the host's value is dropped, and a rejection is contained, so it never becomes an unhandled rejection); otherwise it returns `undefined`. A primitive can set `aria-busy` until that promise settles. |
 | `events` | Read offered event metadata: `{ type, confirm, irreversible }`. Keys follow the definition's events; absent offers have no entry. Both flags are false for `setState`. No action names, arguments or host `meta` are exposed. |
+| `domId` | Put it on the element this node renders (`<p id={domId}>`), so another node's reference can name it. Stable across re-renders, unique per `<Surface>` instance. |
 | `children` | Render the already rendered child nodes once for an ordinary container. |
-| `items` | For collections, use each child's context: `id`, `kind`, `variant`, `props`, `slot`, `style`, `events`, `children`, `emit` and `render()`. Metadata belongs to that child. |
+| `items` | For collections, use each child's context: `id`, `domId`, `kind`, `variant`, `props`, `slot`, `style`, `events`, `children`, `emit` and `render()`. Metadata belongs to that child. |
 | `portal` | Use this surface's scoped overlay container after mount; it is initially `undefined`. |
 
 A collection can call `item.render()` to draw the child's implementation, or use
@@ -265,6 +266,24 @@ its slots, props and rendered children to build collection-specific parts such a
 a tab and its panel. Use `item.id` as the key for parts you map yourself, and
 `item.emit(...)` for that item's event. Drawing both `children` and `items.map(item
 => item.render())` would duplicate the children.
+
+A catalog's `refProps` ([node references](sdk.md#node-references)) arrive already rewritten:
+`props.describedBy` holds the target's `domId`, not its key-path id. The renderer adds no
+wrapper element, so the target's implementation must render its own `domId`, and the
+referring one passes the prop to the matching ARIA attribute:
+
+```tsx
+implement(Hint, ({ props, slot, domId }) => <p id={domId} className={slot("root")}>{props.text}</p>);
+implement(TextField, ({ props, slot, domId }) => (
+  <input id={domId} aria-describedby={props.describedBy} className={slot("input")} />
+));
+```
+
+Validation checks that the target is in the tree, not that its implementation renders the
+id: a target that renders no element leaves the relation inert in the browser, as a bad
+`aria-describedby` is today. `rendererSuite` checks that every reference resolves to an
+element. Two surfaces of one tree on a page never collide, because each `domId` carries
+that surface's `useId` prefix.
 
 Forward `slot("root")` and `style` to the primitive root; attach other slot classes
 to their corresponding elements. Keep classes unchanged across states, themes and

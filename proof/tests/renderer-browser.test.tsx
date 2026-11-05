@@ -40,7 +40,7 @@ function widget(revision = 1): UiTree {
               node(
                 "scroll/query",
                 "textField",
-                { label: "Query", value: "initial" },
+                { label: "Query", value: "initial", describedBy: "root/hint" },
                 {
                   events: {
                     onChange: { type: "setState", key: "query" },
@@ -52,6 +52,7 @@ function widget(revision = 1): UiTree {
             ],
           },
         ),
+        node("hint", "hint", { text: "Search runs on Enter" }),
         node(
           "save",
           "button",
@@ -236,6 +237,31 @@ async function openProductionPage() {
   await page.waitForFunction(() => window.ready);
   return { page, errors };
 }
+
+test(
+  "describedBy_points_at_hint_element",
+  () =>
+    visit(async (page) => {
+      const described = async () =>
+        page.getByRole("textbox", { name: "Query", exact: true }).evaluate((input) => {
+          const id = input.getAttribute("aria-describedby");
+          const target = id ? document.getElementById(id) : null;
+          return {
+            id,
+            text: target?.textContent,
+            tag: target?.tagName,
+            count: id ? document.querySelectorAll(`[id="${id}"]`).length : 0,
+          };
+        });
+      const before = await described();
+      expect(before).toMatchObject({ text: "Search runs on Enter", tag: "P", count: 1 });
+      expect(before.id).toContain(":root/hint");
+      // The id is derived from the surface and the key path, so a re-render keeps it.
+      await update(page, widget(2));
+      expect(await described()).toEqual(before);
+    }),
+  20000,
+);
 
 test("selection_rerender_cost_is_recorded", async () => {
   const session = await openPage("full", "agent-home", "ready");

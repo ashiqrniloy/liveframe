@@ -61,11 +61,12 @@ export const examples: UiTree[] = [
       { id: "root/inline", kind: "inline", props: {}, children: [text("root/inline/text", "Inline")] },
       { id: "root/heading", kind: "heading", props: { text: "Heading", level: 2 } },
       text("root/text", "Text"),
+      { id: "root/hint", kind: "hint", props: { text: "Hint" } },
       ...variants("button", ["default", "primary", "danger", "ghost"], { label: "Button" }),
       {
         id: "root/field",
         kind: "textField",
-        props: { label: "Draft", value: "initial" },
+        props: { label: "Draft", value: "initial", describedBy: "root/hint" },
         events: { onChange: { type: "setState", key: "query" }, onCommit: notify("", "message") },
       },
       // A dialog's content mounts in a portal after the page loads, so server examples leave it empty.

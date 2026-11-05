@@ -22,6 +22,9 @@ function elements(markup: string): Record<string, string>[] {
   );
 }
 
+const entities: Record<string, string> = { "&amp;": "&", "&quot;": '"', "&#x27;": "'", "&lt;": "<", "&gt;": ">" };
+const decoded = (value: string) => value.replace(/&(?:amp|quot|#x27|lt|gt);/g, (entity) => entities[entity] ?? entity);
+
 /** Server examples must expose all their nodes; exercise deferred content in browser fixtures. */
 export function rendererSuite({
   catalog,
@@ -154,6 +157,33 @@ export function rendererSuite({
         },
         "invalid_arrival_renders_only_the_fallback",
         counted,
+      );
+    },
+    ref_props_resolve_to_elements_in_the_surface() {
+      const seen: string[] = [];
+      const recorded = implementations.map((implementation) => {
+        const { definition, Component } = implementation[binding];
+        if (!definition.refProps?.length) return implementation;
+        return implement(definition, (props) => {
+          for (const name of definition.refProps ?? []) {
+            const value = (props.props as Record<string, unknown>)[name];
+            if (typeof value === "string") seen.push(value);
+          }
+          return <Component {...props} />;
+        });
+      });
+      const rule = "ref_props_resolve_to_elements_in_the_surface";
+      each(
+        (tree, render) => {
+          seen.length = 0;
+          const ids = new Set(elements(render(tree)).flatMap((element) => (element.id ? [decoded(element.id)] : [])));
+          for (const value of seen)
+            check(ids.has(value), rule, "§11", [
+              `${tree.surfaceId}: reference ${value} names no element; the target's implementation must render domId as its id`,
+            ]);
+        },
+        rule,
+        recorded,
       );
     },
   };

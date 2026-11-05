@@ -5,8 +5,8 @@
       {
         "kind": "unknown-component",
         "pointer": "/root/kind",
-        "expected": "a catalog kind: box, stack, inline, grid, scroll, separator, text, heading, icon, image, link, button, textField, select, checkbox, switch, menu, menuItem, popover, dialog, tooltip, tabs, disclosure, tab",
-        "message": "Expected a catalog kind: box, stack, inline, grid, scroll, separator, text, heading, icon, image, link, button, textField, select, checkbox, switch, menu, menuItem, popover, dialog, tooltip, tabs, disclosure, tab",
+        "expected": "a catalog kind: box, stack, inline, grid, scroll, separator, text, hint, heading, icon, image, link, button, textField, select, checkbox, switch, menu, menuItem, popover, dialog, tooltip, tabs, disclosure, tab",
+        "message": "Expected a catalog kind: box, stack, inline, grid, scroll, separator, text, hint, heading, icon, image, link, button, textField, select, checkbox, switch, menu, menuItem, popover, dialog, tooltip, tabs, disclosure, tab",
         "nodeId": "root"
       }
     ]
