@@ -199,6 +199,7 @@ test("sdk_export_surface", () => {
     "jsx",
     "jsxs",
     "primitive",
+    "ref",
     "render",
     "renderElements",
     "state",

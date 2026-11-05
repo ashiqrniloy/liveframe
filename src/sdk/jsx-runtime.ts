@@ -20,6 +20,7 @@ export namespace JSX {
   }
   export interface IntrinsicAttributes {
     readonly key?: string | number;
+    readonly $anchor?: string;
   }
   /** No host elements: `<div>` must fail to compile (spec §7.1). */
   export type IntrinsicElements = Record<never, never>;

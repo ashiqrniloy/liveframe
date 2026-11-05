@@ -220,10 +220,12 @@ test("published_schemas_byte_identical_to_0_2_3_unless_registered", async () => 
         expect.objectContaining({
           subpath: "./schemas/*",
           name: path.slice("schemas/".length),
-          change: "changed",
-          migration: expect.any(String),
+          change: expect.stringMatching(/^(changed|widened)$/),
         }),
       );
     else expect(actual).toBe(digest);
   }
+  for (const entry of register)
+    if (entry.subpath === "./schemas/*" && entry.change === "changed")
+      expect(entry.migration).toEqual(expect.any(String));
 });

@@ -1,0 +1,33 @@
+{
+  "kind": "stack",
+  "style": {
+    "gap": {
+      "base": "space.1",
+      "bp.sm": "space.2"
+    }
+  },
+  "children": [
+    {
+      "kind": "text",
+      "props": {
+        "text": "Field",
+        "describedBy": {
+          "$ref": "hint"
+        }
+      }
+    },
+    {
+      "kind": "fragment",
+      "key": "nested",
+      "children": [
+        {
+          "kind": "text",
+          "$anchor": "hint",
+          "props": {
+            "text": "Hint"
+          }
+        }
+      ]
+    }
+  ]
+}

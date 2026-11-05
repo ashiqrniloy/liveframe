@@ -25,6 +25,7 @@ export type KindFacts = {
   readonly styleProps: ReadonlySet<string>;
   readonly events: ReadonlySet<string>;
   readonly children: ChildRules | undefined;
+  readonly refProps: ReadonlySet<string> | undefined;
 };
 /** @internal Not part of the published surface; `render()` reads it from the validator. */
 export type CompiledBuild = {
@@ -268,6 +269,7 @@ function compileCatalog(catalogDoc: unknown, capabilitiesDoc: unknown): CatalogW
       eventExpected: `a declared event: ${Object.keys(definition.events).join(", ") || "none"}`,
       facts: {
         variants,
+        refProps: definition.refProps?.length ? new Set(definition.refProps) : undefined,
         styleProps: new Set(definition.styleProps),
         events: new Set(Object.keys(definition.events)),
         children: structure.children.get(definition.kind),

@@ -46,6 +46,7 @@ const FORMAT_KINDS = {
   capabilities: ["invalid-document", "limit-exceeded"],
   manifest: ["invalid-document", "catalog-mismatch", "unknown-name", "limit-exceeded"],
   "ui-tree": [
+    "not-found",
     "invalid-prop",
     "invalid-children",
     "unknown-component",
@@ -59,6 +60,7 @@ const FORMAT_KINDS = {
   placement: ["invalid-document"],
   "style-record": ["invalid-document"],
   elements: [
+    "not-found",
     "invalid-prop",
     "invalid-children",
     "unknown-component",

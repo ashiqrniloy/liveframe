@@ -163,7 +163,7 @@ function component(d: Catalog["definitions"][number], names: Set<string>): strin
     if (reserved.has(key)) throw new TypeError(`Prop name collision: ${d.kind}.${key}`);
   const props = [
     ...Object.entries(d.props.properties).map(([key, schema]) =>
-      member(key, !d.props.required.includes(key), schemaType(schema, "  ")),
+      member(key, !d.props.required.includes(key), d.refProps?.includes(key) ? "_NodeRef" : schemaType(schema, "  ")),
     ),
     member("variant", true, union(d.variants)),
     ...d.styleProps.map((key) => member(key, true, `_Responsive<${styleTypes[key]}>`)),
@@ -184,7 +184,10 @@ function component(d: Catalog["definitions"][number], names: Set<string>): strin
 export function generate(catalog: Catalog): string {
   const names = new Set<string>();
   const components = catalog.definitions.map((d) => component(d, names));
-  return `${prelude(catalog.vocabulary).join("\n")}\n\n${components.join("\n\n")}\n`;
+  const imports = catalog.definitions.some((d) => d.refProps?.length)
+    ? ['import type { NodeRef as _NodeRef } from "@arnilo/liveframe";']
+    : [];
+  return `${[...prelude(catalog.vocabulary), ...imports].join("\n")}\n\n${components.join("\n\n")}\n`;
 }
 
 const LINE = 120;
@@ -374,7 +377,23 @@ export function generateElementsSchema(catalog: Catalog): string {
           kind: { const: definition.kind },
           key: { anyOf: [{ type: "string" }, { type: "number" }] },
           ...(definition.variants.length ? { variant: { enum: [...definition.variants] } } : {}),
-          props: jsonSchema(definition.props),
+          $anchor: { type: "string" },
+          props: {
+            ...jsonSchema(definition.props),
+            properties: Object.fromEntries(
+              Object.entries(definition.props.properties).map(([name, schema]) => [
+                name,
+                definition.refProps?.includes(name)
+                  ? {
+                      type: "object",
+                      additionalProperties: false,
+                      required: ["$ref"],
+                      properties: { $ref: { type: "string" } },
+                    }
+                  : jsonSchema(schema),
+              ]),
+            ),
+          },
           style: {
             type: "object",
             properties: Object.fromEntries(definition.styleProps.map((name) => [name, {}])),

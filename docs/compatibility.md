@@ -129,17 +129,7 @@ These are future contracts, not APIs available in 0.2.3. The review-fix deferral
 
 - **Package and render-input immutability (R4, R5).** Implemented for 0.3.0; see [frozen packages](migration-0.3.md#packages-are-deeply-frozen) and [render input ownership](migration-0.3.md#render-inputs-keep-caller-ownership).
 - **Verified-package cache option for `loadPlacement` (R15).** Implemented for 0.3.0 as `verifiedPackages({ max? })` and `{ verified }`; see [adopter notes](migration-0.3.md#optional-verified-package-cache) and [loading](packages.md#loading-and-state-resets). Stored content is freshly hashed on every load.
-- **Node references (`ref`, `NodeRef`, `catalog.json` `refProps`).** A widget author cannot name another node today, so `aria-describedby`,
-  `aria-labelledby`, `aria-controls` and `aria-errormessage` cannot point at a node outside the
-  author's own subtree. The [deferral decision](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-11-02-1219-defer-node-references-to-0-3-0.md)
-  ratifies an additive design — `ref("anchor")` (`./sdk ref`) plus a tree-unique `$anchor`, an optional
-  per-definition `refProps` name list (`./schemas/* catalog.json`), and the resolved key-path id carried as a plain string prop with documentation type `NodeRef` (`. NodeRef`)
-  — and schedules it for 0.3.0. **Before:** wire ids by hand, in a composed component that renders
-  both elements (`id="hint-4812"`, `aria-describedby="hint-4812"`). **After (0.3.0):** `ref("hint")`
-  in the reference prop and `$anchor="hint"` on the target; the validator reports a dangling
-  reference as `not-found`. **Adopter checklist:** nothing to change for 0.2.2; a catalog declaring
-  `refProps` needs an updated port, since a 0.2.1 catalog validator rejects the field. Design:
-  [`plans/evidence/022-node-reference-design.md`](https://github.com/ashiqrniloy/liveframe/blob/main/plans/evidence/022-node-reference-design.md).
+- **Node references (`ref`, `NodeRef`, `catalog.json` `refProps`).** The format, SDK and validator are implemented for 0.3.0; renderer DOM-id integration remains plan 027 Task 3. `ref("hint")` and `$anchor="hint"` author a relation; rendered props carry resolved key-path ids. `NodeRef` is an author-side marker, not a string alias. **Adopter checklist:** regenerate reference-bearing SDK types and element schemas; update catalog validators before using `refProps`. See [node reference authoring](sdk.md#node-references) and [catalog rules](formats.md#definitions-and-catalogs).
 - **Fractions on dimension style props (implemented for 0.3.0).** The six dimension props now reject fractions with `invalid-prop`, including responsive values. Use `grow={2}` with `basis={0}`, or move fractions to the parent's `columns` / `rows`. The [migration checklist](migration-0.3.md#fractions-on-dimension-props-are-rejected) covers widgets, stored trees and generated types. 0.2.3 accepted these inert declarations and deprecated them; grid-track fractions are unchanged.
 
 ## Growth

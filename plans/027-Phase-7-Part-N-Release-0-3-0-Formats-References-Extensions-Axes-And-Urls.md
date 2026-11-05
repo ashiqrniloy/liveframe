@@ -58,7 +58,7 @@ This plan implements the format work of 0.3.0 in roadmap Phase 7: spec §5 (defi
     - Expanded Task 5's handoff to require §2.8's alias edge cases. No format, schema, resolver, renderer or public API implementation changes in this design task.
     - Verification: build, generated-file checks, typecheck, lint, format and local link checks passed. The first full `timeout 900s bun run check` ran 1,111 tests: the fixed documentation-link failure and an unrelated warm-runner timing failure (0.1173 ms versus <0.1 ms) prevented a green result. A second run passed the documentation-link test but hit unrelated MCP, benchmark subprocess and browser timeouts under host load (~58); stopped after those failures. Owner explicitly approved the verification exception: “Yes—complete and record the verification exception.” A focused rerun of `src/__tests__/docs-links.test.ts`, `src/__tests__/cli-mcp.test.ts` and `src/__tests__/runner-in-process.test.ts` passed all 91 tests. Task 1 is complete under that exception; a green full check remains outstanding and no test threshold was changed.
 
-- [ ] Task 2: Node references in the format, SDK and validator (Q1, part 1)
+- [x] Task 2: Node references in the format, SDK and validator (Q1, part 1)
   - Acceptance Criteria:
     - Functional:
       - `catalog.json` definitions gain optional `refProps: string[]`; each name must be a `string` prop (else `unknown-name`), at most 8 per definition.
@@ -75,16 +75,23 @@ This plan implements the format work of 0.3.0 in roadmap Phase 7: spec §5 (defi
     - Library Documentation to Check Before Implementation: none beyond the design.
     - Documentation Reviewed: `plans/evidence/022-node-reference-design.md` §2.1–§2.8; `decision-logs/2026-11-02-1219-defer-node-references-to-0-3-0.md`; `src/sdk/render.ts:413-492` (`emit`); `src/validate/tree.ts:198-239`.
     - Options Considered: as rejected in the design §6.
-    - Chosen Approach: the ratified design.
+    - Chosen Approach: the ratified design with the owner-approved authoring amendment in `decision-logs/2026-11-06-0109-node-reference-authoring-markers.md`: `NodeRef` is a marker, generated reference props require it, and element schemas accept markers. Wire values stay strings. Deferred references use empty string placeholders, correcting their two counted bytes to the resolved id's exact byte count; this avoids rejecting author markers whose spelling is longer than the wire id.
     - API Notes and Examples:
       ```tsx
       <TextField label="Reason" describedBy={ref("reason-hint")} />
       <Hint $anchor="reason-hint" text="At most 200 characters" />
       ```
-    - Files to Create/Edit: `src/formats/catalog.ts`; `src/sdk/` (`ref`, element attribute, render resolution); `src/sdk/elements.ts`; `src/validate/tree.ts`; `src/sdk/gen.ts`; `src/index.ts`; `schemas/catalog.json`; `conformance/corpus/ui-tree/…`; `docs/spec.md` §5, §7.2, §10; `docs/sdk.md`; `docs/formats.md`; `register-0.3.0.json`
+    - Files to Create/Edit: `src/formats/catalog.ts`; `src/sdk/` (`ref`, element attribute, render resolution); `src/sdk/elements.ts`; `src/validate/tree.ts`; `src/sdk/gen.ts`; `src/index.ts`; `schemas/catalog.json`; `conformance/corpus/ui-tree/…`; `docs/spec.md` §5, §7.2, §10; `docs/sdk.md`; `docs/formats.md`; `scripts/release/api/register-0.3.0.json`; `docs/compatibility.md`; `docs/migration-0.3.md`; dedicated reference catalog and elements corpus; `src/__tests__/node-references.test.tsx`; generated reference type fixture; `plans/evidence/027-node-reference-cost.ts`; authoring decision log and amended design; `CHANGELOG.md`; `src/__tests__/exports.test.ts`; `src/__tests__/schemas.test.ts`; MCP response fixture; `plans/evidence/027-node-reference-cost.md`
   - Test Cases to Write:
     - `ref_resolves_to_target_key_path`; `dangling_ref_not_found`; `duplicate_anchor_duplicate_key`; `refProps_must_name_string_props`; `validateTree_rejects_ref_to_missing_id`; `generated_type_requires_NodeRef` (type-level).
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-06):
+    - Implemented the owner-approved authoring amendment: root `NodeRef` is a marker, `/sdk` exports frozen `ref(anchor)`, and generated props and element JSON schemas use markers. The approval and superseded design clauses are recorded in `decision-logs/2026-11-06-0109-node-reference-authoring-markers.md`.
+    - Added optional, unique `refProps` (at most eight string prop names), install-time `unknown-name` checks, and catalog-change classification for changed reference semantics. `$anchor` resolves globally across composed components and keyed groups; duplicate and dangling errors retain source pointers. Wire props remain ordinary strings.
+    - Both emitters resolve pending references after the walk with exact byte correction; the arrival validator collects only supplied references and checks the completed id set without another node traversal. Arrival-reference error pointers are materialized only on failure. Optional absent references and catalogs without `refProps` retain their contracts.
+    - Added valid/dangling UI-tree and responsive, nested element corpus cases; generated type, packaging, malformed marker, same-tree membership, error-bound and exact-byte regression coverage. Updated schema generation, SDK exports, MCP response snapshots, spec, guides, adopter notes and API register. The schema guard now accepts registered widenings while preserving migration requirements for breaking changes. No runtime dependency added.
+    - Verification: final `timeout 900s bun run check` passed (1,119 passed, 4 existing skips, 0 failed). The first full run exposed the export snapshot, MCP schema snapshot and overly narrow schema-register assertion; all three were corrected and pass. Export/MCP focused checks passed all 98 tests; schema/reference focused checks passed all 22 tests.
+    - Performance: the 679-node, 50-reference paired gate passed at +1.87% validation and +0.56% rendering; method, limits and regeneration script are in `plans/evidence/027-node-reference-cost.md` and `.ts`. All repository benchmark components passed individually. The initial `bun run bench` stopped at core-queue.full validation (1.523 µs/node versus 1.5); its unchanged rerun passed at 1.493 µs/node. Render, CSS and streaming then passed; no thresholds were changed. Agent-home full widget render was 1.4731 ms (2.170 µs/node).
+    - Renderer DOM ids, the proof primitive pair and renderer conformance remain Task 3.
 
 - [ ] Task 3: Node references in the renderer, the proof pair and conformance (Q1, part 2)
   - Acceptance Criteria:

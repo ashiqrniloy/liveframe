@@ -149,6 +149,7 @@ A definition declares:
 - **`variants`** and **`defaultVariant`**: the closed variant axis that recipes key on, and the variant a node without one gets. The app chooses each kind's variants; a `box` may declare look variants such as `plate` or `rule` so that borders and rules stay recipe data.
 - **`slots`**: the named parts of the primitive that recipes style.
 - **`styleProps`**: which token-constrained layout props an author may set (see §6.3).
+- **`refProps`** (optional): at most eight unique string prop names that reference nodes in the same tree. A missing or non-string prop name is `unknown-name` at `/definitions/<i>/refProps/<j>`.
 - **`a11y`**: the role, and which prop provides the accessible name.
 - **`deprecated`** (optional): why the primitive or a prop is deprecated and what replaces it.
 
@@ -678,9 +679,9 @@ Capabilities are how an author, person or agent, learns what exists, and what le
 - **The emitters are also a host-side function.** `generate(catalog)`, `generateDefinitions(catalog)` and `generateElementsSchema(catalog)` ship from `@arnilo/liveframe/sdk/gen`, byte-identical to the CLI's modes, so a host build service can generate either module without the CLI. The subpath is host-API-free and takes a validated `Catalog`.
 - **Implementation definitions can be generated too.** `liveframe gen <catalog> --implementations --out <file>` writes a separate module of `as const satisfies Definition` exports, one per definition, so the app, when it implements a primitive itself, calls `implement()` (§11) on a JSON-loaded catalog and still infers props, slots, event names and carry value types as it does for a hand-written definition. Drift is checked the same way, and the generator neither imports the SDK nor generates a runtime implementation.
 - `state.set(key, value?)` and `action(name, args, { bind?, bindAll? }?)` return frozen intent data. Without a value, `state.set(key)` sends the value the event produced. `bind` fills a scalar argument; `bindAll: true` fills several arguments from one object event (§8).
-- **Agent element JSON.** `renderElements(json, { validator, surfaceId, revision, limits?, maxErrors? })` from `/sdk` builds a tree from an unpackaged surface an agent emitted as JSON: `{ kind, key?, variant?, props?, style?, events?, children? }`, with intents in the `Intent` shape.
+- **Agent element JSON.** `renderElements(json, { validator, surfaceId, revision, limits?, maxErrors? })` from `/sdk` builds a tree from an unpackaged surface an agent emitted as JSON: `{ kind, key?, $anchor?, variant?, props?, style?, events?, children? }`, with intents in the `Intent` shape.
 
-  It uses `render()`'s key-path ids, limits, validation and error kinds, checks every node in the same pass, and rewrites each error `pointer` to point into the JSON (`nodeId` stays the derived key-path id).
+  It uses `render()`'s key-path ids, limits, validation and error kinds, uses one node walk plus deferred reference checks, and rewrites each error `pointer` to point into the JSON (`nodeId` stays the derived key-path id).
 
   A `fragment` element groups keyed children without adding a node.
 
@@ -689,9 +690,10 @@ Capabilities are how an author, person or agent, learns what exists, and what le
   `ephemeralManifest({ catalogId, actions, state? })` builds a manifest the browser's arrival check accepts; `state` is the initial value, and its schema is derived from it.
 
   Neither API stores anything: a persistent surface is a real package.
-- **`render(widget, inputs, { validator, surfaceId, revision, limits?, maxErrors? })`** runs the function, builds the tree with key-path ids, and validates each node as it is emitted, so building and validating are one pass (§10). `validator` is a `CompiledValidator` from `compileValidator`; `limits` bounds nodes, depth and bytes (§10); `maxErrors` is the error bound below.
-  - It returns `Result<UiTree>`: `{ ok: true, value }` or `{ ok: false, errors }`, where `errors` is every error found, up to `maxErrors` (default 20, the bound §10 uses). Each is a `LiveframeError` (§10) whose `kind` is one of `host-element`, `unknown-component`, `invalid-prop`, `invalid-children`, `missing-key`, `duplicate-key`, `undeclared-event`, `undeclared-action`, `function-prop`, `async-render`, `render-failed`, `limit-exceeded`.
-  - An input that fails its manifest schema is `invalid-prop`, with a pointer into the inputs (`/state/filter`) and no `nodeId`.
+- **`render(widget, inputs, { validator, surfaceId, revision, limits?, maxErrors? })`** runs the function, builds the tree with key-path ids, and validates during emission, deferring reference-bearing node checks until targets resolve (§10). `validator` is a `CompiledValidator` from `compileValidator`; `limits` bounds nodes, depth and bytes (§10); `maxErrors` is the error bound below.
+  - It returns `Result<UiTree>`: `{ ok: true, value }` or `{ ok: false, errors }`, where `errors` is every error found, up to `maxErrors` (default 20, the bound §10 uses). Each is a `LiveframeError` (§10) whose `kind` is one of `host-element`, `unknown-component`, `invalid-prop`, `invalid-children`, `missing-key`, `duplicate-key`, `undeclared-event`, `undeclared-action`, `function-prop`, `async-render`, `render-failed`, `limit-exceeded`, `not-found`.
+- **Node references.** `/sdk` exports `ref(anchor)`, returning a frozen `{ "$ref": anchor }` marker of root-export type `NodeRef`. Generated `refProps` accept `NodeRef`; element JSON uses the same marker. `$anchor` is a tree-unique string attribute on a primitive, excluded from its emitted props. A duplicate is `duplicate-key` at the second `$anchor`, expected `a tree-unique anchor`. After emission, pending references resolve to key-path ids; missing anchors are `not-found` at the referencing prop, with the anchor name in `expected`. The resulting string must satisfy the catalog prop schema. Byte limits count resolved strings exactly. Nodes are walked once; only pending references and their node checks are deferred.
+  An input that fails its manifest schema is `invalid-prop`, with a pointer into the inputs (`/state/filter`) and no `nodeId`.
 
 **Rationale**
 
@@ -1158,13 +1160,13 @@ The complete kind list is:
 | `hash-mismatch` | Package content differs from its declared hash. |
 | `version-conflict` | A second hash under an existing package `(id, version)`. |
 | `stale-patch` | A tree patch names a different surface or base revision. |
-| `not-found` | A missing placement, package or patch target/parent. |
+| `not-found` | A missing placement, package, patch target/parent, anchor or same-tree reference target. |
 | `host-element` | A host element such as a raw HTML tag. |
 | `unknown-component` | A component outside the catalog. |
 | `invalid-prop` | A prop or placement param that fails its schema. |
 | `invalid-children` | Children that violate the definition's rules. |
 | `missing-key` | A repeated sibling without a key. |
-| `duplicate-key` | Duplicate sibling keys. |
+| `duplicate-key` | Duplicate sibling keys or tree-unique anchors. |
 | `undeclared-event` | An event outside the definition. |
 | `undeclared-action` | An action outside the manifest. |
 | `function-prop` | A function used as a prop. |
@@ -1174,7 +1176,7 @@ The complete kind list is:
 
 `kind` is open: a minor release may add kinds, so a consumer must handle an unknown kind by name — report it, never fail to compile or silently drop it. Removing a kind, or changing what one means, is a major change.
 
-The validator is **compiled per catalog**: when the catalog, vocabulary, capabilities and manifest are loaded, each definition and schema becomes a closure over precomputed sets and checks, instead of schemas interpreted on every render. Its per-node checks are what `render()` calls while it builds the tree, so building and validating are one pass; the same validator re-checks a whole tree on arrival. The single-pass budget is recorded in `docs/model.md`, "Performance", and `decision-logs/2026-10-22-1540-typescript-runtime-render-budget.md`.
+The validator is **compiled per catalog**: when the catalog, vocabulary, capabilities and manifest are loaded, each definition and schema becomes a closure over precomputed sets and checks, instead of schemas interpreted on every render. Its per-node checks are what `render()` calls while it builds the tree, with a deferred step for reference-bearing nodes; the same validator re-checks a whole tree on arrival. During its existing node walk, it records supplied string `refProps` and then checks them against the complete id set without traversing nodes again. A missing target is `not-found` at the referencing prop with the referring `nodeId`. Omitted optional references remain absent. The single-pass budget is recorded in `docs/model.md`, "Performance", and `decision-logs/2026-10-22-1540-typescript-runtime-render-budget.md`.
 
 It validates every other format on install: a catalog's definitions and schema language, the vocabulary, the capabilities, a manifest against its catalog and capabilities, a theme against the vocabulary (every role present and every declared contrast minimum, maximum and strict ordering satisfied, §6.5), and a design system against the catalog and vocabulary (values typed, every declared name defined, recipes complete after the cascade, and no colour outside the theme). The library publishes a JSON Schema for every format (§13).
 
@@ -1332,8 +1334,8 @@ Before building the library, prove the model's central claim: **that a small pri
 
   | Import | Holds |
   |---|---|
-  | `@arnilo/liveframe` | Definition, catalog, theme, design-system, UI-tree and tree-patch formats; `validateTreePatch`, `diffTrees` and `applyPatch`; the validator; `bindSources` (§7.1); `auditContrast` (§6.5); the recipe resolver; `LiveframeFailure` and `LiveframeError` |
-  | `@arnilo/liveframe/sdk` | The JSX runtime (`/sdk/jsx-runtime`, `/sdk/jsx-dev-runtime`), intent helpers, and `render()` |
+  | `@arnilo/liveframe` | Definition, catalog, theme, design-system, UI-tree and tree-patch formats; `validateTreePatch`, `diffTrees` and `applyPatch`; the validator; `bindSources` (§7.1); `auditContrast` (§6.5); the recipe resolver; `LiveframeFailure`, `LiveframeError` and `NodeRef` |
+  | `@arnilo/liveframe/sdk` | The JSX runtime (`/sdk/jsx-runtime`, `/sdk/jsx-dev-runtime`), intent helpers, `ref()`, `render()` and `renderElements()` |
   | `@arnilo/liveframe/sdk/gen` | The host-side emitters behind `liveframe gen`: `generate()`, `generateDefinitions()` and `generateElementsSchema()` |
   | `@arnilo/liveframe/react` | The renderer: `createRenderer()`, `<Surface>` and `implement()` (§11). `react` and `react-dom` are optional peer dependencies used by the React subpaths |
   | `@arnilo/liveframe/css` | Pure, host-API-free projection into three scoped sheets, plus class, style, scope and variable helpers (§6.4); the host inserts sheets |

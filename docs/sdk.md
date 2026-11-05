@@ -118,7 +118,7 @@ Text is a primitive prop such as `text="Hello"`; raw string children are invalid
 
 Compile once for a validated catalog/capabilities/manifest combination and reuse
 the validator. `render(widget, inputs, options)` checks inputs, runs the widget,
-and builds and validates nodes in one pass. It returns `Result<UiTree>`:
+and builds and validates nodes in one walk, followed by reference resolution. It returns `Result<UiTree>`:
 `{ ok: true, value }` or `{ ok: false, errors }`. Each error has `kind`, `pointer`
 and `message`, with `expected` and `nodeId` where applicable. Handle the failure
 branch before using the tree; an invalid partial tree is never returned.
@@ -166,7 +166,7 @@ const result = renderElements(json, { validator, surfaceId: "chat", revision: 1 
 Each element is `{ kind, key?, variant?, props?, style?, events?, children? }`.
 Intents use the normal `Intent` shape. `renderElements()` derives the same
 key-path ids as `render()`, applies the same props, style, event, child, limit
-and error checks in one pass, and reports every error with a JSON pointer into
+and error checks in one walk plus reference resolution, and reports every error with a JSON pointer into
 the input. A `fragment` element (`{ kind: "fragment", key?, children }`) groups
 keyed children without adding a tree node.
 
@@ -286,7 +286,7 @@ because the prop's schema rejects the value first.
 ## Public exports and executable examples
 
 `@arnilo/liveframe/sdk` exports `jsx`, `jsxs`, `Fragment`, `primitive`, `state`,
-`action`, `render`, `renderElements` and `ephemeralManifest`. Its type exports are
+`action`, `ref`, `render`, `renderElements` and `ephemeralManifest`. Its type exports are
 `Component`, `Element`, `Elements`, `DeepReadonly`, `Intent`, `Json`, `WidgetProps`,
 `RenderLimits` and `RenderOptions`. `/sdk/gen` exports `generate`,
 `generateDefinitions` and `generateElementsSchema`. `/sdk/jsx-runtime` exports
@@ -303,3 +303,25 @@ identity caching, schema errors and determinism;
 props and carried-value intents. CLI and drift behavior are covered by
 [`sdk-gen.test.ts`](https://github.com/ashiqrniloy/liveframe/blob/main/src/__tests__/sdk-gen.test.ts). These tests use local
 fixtures; no screenshot or browser renderer is needed.
+
+## Node references
+
+A catalog can declare string props as `refProps`. Generated component types require
+`NodeRef` from the root export for these props. Import `ref` from `/sdk`:
+
+```tsx
+<TextField label="Reason" describedBy={ref("reason-hint")} />
+<Hint $anchor="reason-hint" text="At most 200 characters" />
+```
+
+`ref()` returns a frozen `{ "$ref": "reason-hint" }` marker. Element JSON uses
+that same object in `props.describedBy` and puts `$anchor` alongside `kind` on
+the target. Anchors are unique across the tree, including composed components
+and keyed fragments. A composed component forwards `$anchor` to its target primitive.
+
+Both emitters resolve forward references after the node walk. The wire carries
+only string key-path ids; anchors and markers do not appear in the tree.
+Duplicate anchors are `duplicate-key` at the second `$anchor`; missing anchors
+are `not-found` at the referencing prop, with the anchor in `expected`.
+The resolved id must satisfy the catalog's string constraints, and byte budgets
+count the resolved string exactly. A reference cannot address another tree.

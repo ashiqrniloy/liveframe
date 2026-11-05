@@ -3,7 +3,7 @@ import type { Manifest } from "../formats/manifest.ts";
 import type { ObjectSchema } from "../formats/capabilities.ts";
 import { addBoundMarker, DEFAULT_MAX_ERRORS, type LiveframeError, type Result } from "../errors.ts";
 import { arr, bool, int, isRecord, num, obj, str, type Infer, type LanguageSchema } from "../schema.ts";
-import type { Intent, Json, UiTree } from "../formats/tree.ts";
+import type { Intent, Json, NodeRef, UiTree } from "../formats/tree.ts";
 import { Element } from "./element.ts";
 import { at } from "../internal.ts";
 import { Fragment } from "./jsx-runtime.ts";
@@ -15,7 +15,14 @@ type ElementFor<C extends Catalog, D> = D extends Catalog["definitions"][number]
       readonly kind: D["kind"];
       readonly key?: string | number;
       readonly variant?: D["variants"][number];
-      readonly props?: Infer<D["props"]>;
+      readonly $anchor?: string;
+      readonly props?: {
+        readonly [K in keyof Infer<D["props"]>]: D extends { readonly refProps: readonly string[] }
+          ? K extends D["refProps"][number]
+            ? NodeRef
+            : Infer<D["props"]>[K]
+          : Infer<D["props"]>[K];
+      };
       readonly style?: Readonly<Record<string, Json>>;
       readonly events?: { readonly [E in keyof D["events"]]?: Intent };
       readonly children?: readonly Elements<C>[];
@@ -27,7 +34,7 @@ export type Elements<C extends Catalog> =
   | { readonly kind: "fragment"; readonly key?: string | number; readonly children: readonly Elements<C>[] };
 
 const INPUT_DEPTH = 128;
-const ELEMENT_KEYS = new Set(["kind", "key", "variant", "props", "style", "events", "children"]);
+const ELEMENT_KEYS = new Set(["kind", "key", "$anchor", "variant", "props", "style", "events", "children"]);
 const STATE_MAX_LENGTH = 4096;
 const STATE_MAX_ITEMS = 256;
 const STATE_MAX_PROPERTIES = 64;
@@ -70,7 +77,7 @@ function merge(
   if (!source) return;
   for (const name in source) {
     if (!Object.hasOwn(source, name)) continue;
-    if (name === "key" || name === "children" || name === "variant")
+    if (name === "key" || name === "children" || name === "variant" || name === "$anchor")
       reject.at(at(pointer, name), `no ${name} in ${sectionName}`);
     else if (Object.hasOwn(target, name)) reject.at(at(pointer, name), "one property section per name");
     else target[name] = source[name];
@@ -96,10 +103,11 @@ function elementProps(
   const events = section(value.events, at(pointer, "events"), reject);
   if (reject.stopped) return undefined;
   const merged: Record<string, unknown> = { ...props };
-  for (const reserved of ["key", "children", "variant"] as const)
+  for (const reserved of ["key", "children", "variant", "$anchor"] as const)
     if (Object.hasOwn(merged, reserved)) reject.at(at(at(pointer, "props"), reserved), `no ${reserved} in props`);
   merge(merged, style, at(pointer, "style"), "style", reject);
   merge(merged, events, at(pointer, "events"), "events", reject);
+  if (Object.hasOwn(value, "$anchor")) merged.$anchor = value.$anchor;
   if (value.variant !== undefined) merged.variant = value.variant;
   return reject.stopped ? undefined : merged;
 }
@@ -135,7 +143,7 @@ function convertFragment(
   reject: Reject,
   pointers: WeakMap<Element, string>,
 ): Element | undefined {
-  for (const name of ["variant", "props", "style", "events"] as const)
+  for (const name of ["$anchor", "variant", "props", "style", "events"] as const)
     if (Object.hasOwn(value, name)) reject.at(at(pointer, name), `no ${name} on a fragment`);
   const children = elementChildren(value.children, at(pointer, "children"), depth, ancestors, reject, pointers);
   if (!children) return undefined;

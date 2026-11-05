@@ -111,3 +111,12 @@ host and share it across stores of one installation. Only insert verified frozen
 packages through its trusted `set` method. Stored structure and hashes are checked
 every time; changed content or installation documents miss automatically. Params
 still reject and invalid state still resets. This addition requires no migration.
+
+### Node references
+
+Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps.
+Catalogs can declare up to eight string reference props. Generated authoring types
+use `NodeRef` markers (`ref("hint")`); element JSON uses `{ "$ref": "hint" }`
+with `$anchor: "hint"` on the target. Rendered trees still carry plain string ids.
+Missing targets fail with `not-found`. Catalogs without references keep their
+existing prop types. Renderer DOM-id integration follows separately in plan 027 Task 3.

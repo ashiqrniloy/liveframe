@@ -81,6 +81,9 @@ type RenderContext = {
   readonly maxErrors: number;
   readonly errors: LiveframeError[];
   readonly ids: Set<string>;
+  readonly anchors: Map<string, string>;
+  readonly references: { props: Record<string, unknown>; name: string; anchor?: string; id: string; pointer: string }[];
+  readonly deferred: { node: UiNode; id: string; pointer: string }[];
   readonly idPointers: Map<string, string>;
   readonly path: (string | number)[];
   readonly ancestors: Set<object>;
@@ -112,6 +115,9 @@ function createContext(options: RenderOptions, sourcePointers: WeakMap<Element, 
     maxErrors,
     errors,
     ids: new Set<string>(),
+    anchors: new Map(),
+    references: [],
+    deferred: [],
     idPointers: new Map<string, string>(),
     path,
     ancestors,
@@ -207,10 +213,31 @@ function renderValue(
   emit(ctx, result, null, "", 1, false, new Set<string>(), roots);
   if (roots.length !== 1 && !ctx.stopped) fail(ctx, "invalid-children", "", "exactly one root element", "root");
   addBytes(ctx, BRACKET_BYTES, "", "root");
+  resolveReferences(ctx);
 
   if (errors.length) return { ok: false, errors: finish(ctx) };
   const root = roots[0];
   return { ok: true, value: { format: FORMAT, catalogId, surfaceId, revision, root } as UiTree };
+}
+
+/** Resolves forward references without walking nodes again; empty placeholders counted two bytes. */
+function resolveReferences(ctx: RenderContext): void {
+  for (const reference of ctx.references) {
+    if (ctx.stopped) break;
+    const { props, name, anchor, id, pointer } = reference;
+    const target = anchor === undefined ? (props[name] as string) : ctx.anchors.get(anchor);
+    if (target === undefined || !ctx.ids.has(target))
+      fail(ctx, "not-found", pointer, `a node in this tree for reference ${anchor ?? target}`, id);
+    else if (anchor !== undefined) {
+      props[name] = target;
+      addBytes(ctx, stringBytes(target) - 2, pointer, id);
+    }
+  }
+  if (ctx.errors.length) return;
+  for (const { node, id, pointer } of ctx.deferred) {
+    if (ctx.stopped) break;
+    checkNode(ctx, node, id, pointer);
+  }
 }
 
 function finish(ctx: RenderContext): LiveframeError[] {
@@ -468,7 +495,9 @@ function emit(
   const pointer = sourcePointer ?? `/${id}`;
   if (!admitNode(ctx, id, pointer, depth)) return;
 
+  const referenceStart = ctx.references.length;
   const record = classifyProps(ctx, element, definition, id, kind, pointer);
+  const hasReferences = ctx.references.length !== referenceStart;
   if (!record) return;
   const childrenOut: UiNode[] = [];
   if (Object.hasOwn(element.props, "children")) {
@@ -490,7 +519,7 @@ function emit(
   if (ctx.stopped) return;
   if (childrenOut.length) record.children = childrenOut;
   const node = record as unknown as UiNode;
-  checkNode(ctx, node, id, pointer);
+  checkNode(ctx, node, id, pointer, hasReferences);
   countNode(ctx, record, id, kind, pointer, childrenOut.length);
   out.push(node);
 }
@@ -684,10 +713,42 @@ function propTarget(definition: KindFacts, name: string): "variant" | "events" |
   return definition.styleProps.has(name) ? "style" : "props";
 }
 
-/**
- * Sorts the element's props into the node's `variant`, `props`, `style` and `events`, in the tree's
- * field order, rejecting function and promise values. Undefined once the error bound stops the render.
- */
+/** Consumes author-only anchors and reference markers before normal prop classification. */
+function authorReference(
+  ctx: RenderContext,
+  props: Record<string, unknown>,
+  definition: KindFacts,
+  name: string,
+  entry: unknown,
+  id: string,
+  pointer: string,
+): boolean {
+  if (name !== "$anchor" && !definition.refProps?.has(name)) return false;
+  if (name === "$anchor") {
+    if (typeof entry !== "string") fail(ctx, "invalid-prop", `${pointer}/$anchor`, "a string anchor", id);
+    else if (ctx.anchors.has(entry)) fail(ctx, "duplicate-key", `${pointer}/$anchor`, "a tree-unique anchor", id);
+    else ctx.anchors.set(entry, id);
+    return true;
+  }
+  const marker =
+    isRecord(entry) &&
+    (Object.getPrototypeOf(entry) === Object.prototype || Object.getPrototypeOf(entry) === null) &&
+    Object.keys(entry).length === 1 &&
+    Object.hasOwn(entry, "$ref") &&
+    typeof entry.$ref === "string";
+  if (!marker && typeof entry !== "string") return false;
+  props[name] = marker ? "" : entry;
+  ctx.references.push({
+    props,
+    name,
+    ...(marker ? { anchor: entry.$ref as string } : {}),
+    id,
+    pointer: at(`${pointer}/props`, name),
+  });
+  return true;
+}
+
+/** Sorts props into wire sections, rejecting function and promise values. */
 function classifyProps(
   ctx: RenderContext,
   element: Element,
@@ -706,6 +767,7 @@ function classifyProps(
   for (const name in element.props) {
     if (name === "children" || !Object.hasOwn(element.props, name)) continue;
     const entry = element.props[name];
+    if (authorReference(ctx, props, definition, name, entry, id, pointer)) continue;
     const target = propTarget(definition, name);
     const rejected = dataKind(entry);
     if (rejected) {
@@ -753,7 +815,11 @@ function checkStructure(
 }
 
 /** The compiled node check, its errors rebased onto the node's pointer. */
-function checkNode(ctx: RenderContext, node: UiNode, id: string, pointer: string): void {
+function checkNode(ctx: RenderContext, node: UiNode, id: string, pointer: string, defer = false): void {
+  if (defer) {
+    ctx.deferred.push({ node, id, pointer });
+    return;
+  }
   const { errors } = ctx;
   const before = errors.length;
   ctx.validator.checkNode(node, "", ctx.sink);

@@ -29,7 +29,7 @@ const definitionFields = obj(
     children: bool(),
     events: bool(),
   },
-  { deprecated: description },
+  { deprecated: description, refProps: arr(str({ maxLength: 64 }), { maxItems: 8 }) },
 );
 const catalogFields = obj({
   format: str({ maxLength: 20, enum: ["liveframe-catalog/1"] }),
@@ -121,6 +121,7 @@ const definitionSchema = {
       ),
       propertyNames: eventName,
     },
+    refProps: unique(definitionFields.properties.refProps),
     variants: unique(definitionFields.properties.variants),
     slots: { ...unique(definitionFields.properties.slots), contains: literal("root") },
     styleProps: unique(definitionFields.properties.styleProps),
@@ -170,6 +171,9 @@ function checkDefinitionReferences(value: Catalog, c: Checks): void {
       (!Object.hasOwn(d.props.properties, d.a11y.name) || d.props.properties[d.a11y.name]?.type !== "string")
     )
       c.reject(`${pointer}/a11y/name`, "Accessible name must name a string prop", "unknown-name");
+    for (const [j, name] of (d.refProps ?? []).entries())
+      if (!Object.hasOwn(d.props.properties, name) || d.props.properties[name]?.type !== "string")
+        c.reject(`${pointer}/refProps/${j}`, "Reference must name a string prop", "unknown-name");
     if (Array.isArray(d.children)) checkChildren(d.children, pointer, kinds, c);
   }
 }
@@ -322,6 +326,11 @@ function compareChildren(
 function compareDefinition(before: Definition, after: Definition, change: Change): void {
   const path = `kind ${before.kind}`;
   compareSchemas(before.props, after.props, path, change);
+  if (
+    (before.refProps ?? []).some((name) => !after.refProps?.includes(name)) ||
+    (after.refProps ?? []).some((name) => !before.refProps?.includes(name))
+  )
+    change(true, `${path} refProps changed`);
   for (const key of ["variants", "slots", "styleProps"] as const)
     compareNames(before[key], after[key], `${path} ${key}`, change);
   compareNames(Object.keys(before.events), Object.keys(after.events), `${path} event`, change);

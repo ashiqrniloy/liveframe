@@ -31,6 +31,15 @@
             "maxLength": 500,
             "type": "string"
           },
+          "refProps": {
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "maxLength": 64,
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
           "kind": {
             "maxLength": 64,
             "pattern": "^[a-z][A-Za-z0-9-]*$",

@@ -45,3 +45,5 @@ export { type CompiledValidator, type CompileValidatorOptions, compileValidator 
 export { checkOffered } from "./validate/offered.ts";
 export { applyPatch, diffTrees } from "./validate/patch.ts";
 export type { ValidateTreeOptions } from "./validate/tree.ts";
+
+export type { NodeRef } from "./formats/tree.ts";

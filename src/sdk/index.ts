@@ -4,3 +4,5 @@ export { Fragment, jsx, jsxs } from "./jsx-runtime.ts";
 export { type Elements, ephemeralManifest, renderElements } from "./elements.ts";
 export { type RenderLimits, type RenderOptions, render } from "./render.ts";
 export type { DeepReadonly, Intent, Json, WidgetProps } from "./types.ts";
+
+export { ref } from "./ref.ts";

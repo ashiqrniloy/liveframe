@@ -1,7 +1,8 @@
 # Plan 022 Task 9 — node reference design
 
-Design only; no code. Status: **proposal, awaiting the owner's approval** (the recommendation is
-deferral to 0.3.0 with this design ratified).
+Status: **ratified for 0.3.0**, with the authoring amendment approved on 2026-11-06
+in `decision-logs/2026-11-06-0109-node-reference-authoring-markers.md`. Historical recommendation
+and approval text below describe the original deferral; the accepted decision logs govern.
 
 ## Recommendation
 
@@ -130,8 +131,7 @@ on every arrival:
   `Set.has` per reference **after the walk**, because the whole id set must exist first.
 - `render()` uses the same check on the ids it built (§2.4), so a dangling reference never reaches a
   host as a tree.
-- `renderElements()` inherits it: element JSON references are strings too, and the agent emits ids it
-  built with `render()`'s key-path rules. Error pointers are rewritten into the JSON as they are now,
+- `renderElements()` inherits it: element JSON references are markers too, and the agent authors tree-unique anchors. Error pointers are rewritten into the JSON as they are now,
   `nodeId` staying the key-path id.
 - `checkOffered` needs no change: it checks origins and intents, and a reference grants no intent.
 - New error kinds: `not-found` (additive; `checkOffered` already uses it for an unknown node).
@@ -158,13 +158,15 @@ lf-<encodeURIComponent(useId())>:<key-path id>     →  lf-_r_3_:root/stack/hint
   passes validation, and the relation is then inert in the browser exactly as a bad `aria-describedby`
   is today. This is stated in the docs rather than guessed at in the renderer.
 
-### 2.7 Codegen
+### 2.7 Codegen (amended 2026-11-06)
 
-- `liveframe gen` keeps emitting the prop as `string`. `refProps` are documented on the component and
-  exported as a `NodeRef = string` alias for readability; no type changes, so
-  `liveframe gen --check` still passes on 0.2.1 output.
-- `generateElementsSchema` is unchanged: element JSON references are ids, and a JSON Schema cannot
-  express "an id in the same tree". The catalog schema gains the optional `refProps` array.
+- Root export `NodeRef = { readonly $ref: string }` describes author-side markers. `ref(anchor)`
+  returns a frozen marker. Generated component reference props require `NodeRef`.
+- `Elements<Catalog>` and `generateElementsSchema` accept `{ "$ref": anchor }` in reference props,
+  and `$anchor` on primitive elements. Both authoring paths resolve markers after the walk.
+- Wire props remain plain strings checked against the catalog's string schema. Membership in the
+  same tree requires the compiled validator; JSON Schema cannot express that relationship.
+- Catalog schema adds the optional unique `refProps` array, at most eight string prop names.
 
 ### 2.8 Ports and corpus
 

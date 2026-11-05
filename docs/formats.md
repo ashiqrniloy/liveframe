@@ -189,6 +189,14 @@ have at most 500 code points. Prop schemas may carry the language's boolean
 Each definition requires all fields in the example. Variant and slot lists
 contain at most 256 unique tokens; `defaultVariant` must be declared and slots
 must include `root`. `styleProps` is a unique subset of the exported fixed list.
+Optional `refProps` lists at most eight unique string prop names. Missing names
+and props whose schema is not `type: "string"` fail with `unknown-name`.
+On the wire these props contain ordinary key-path id strings. `validateTree`
+records supplied references during its node walk and checks membership against
+the completed id set afterward: a missing id is `not-found` at the referencing
+prop with the referring `nodeId`. Optional absent values are not references.
+See [SDK node references](sdk.md#node-references) for authoring markers and anchors.
+
 `a11y.role` is a lowercase token of at most 32 characters; the optional
 `a11y.name` names a string prop. Children are `"none"`, `"any"`, or at most 256
 `{ kind, min, max }` rules with unique declared kinds and nonnegative integer

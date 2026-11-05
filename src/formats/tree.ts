@@ -100,3 +100,6 @@ export const treeSchema = {
     },
   },
 } as const;
+
+/** Author-side reference marker; the emitted tree carries the resolved id string. */
+export type NodeRef = { readonly $ref: string };

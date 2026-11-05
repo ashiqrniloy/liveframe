@@ -42,9 +42,9 @@
     "subpath": "./sdk",
     "name": "render",
     "change": "changed",
-    "reason": "Ownership contract changes without declaration changes; dimension fractions are rejected (026 T4, Fractions on dimension props are rejected)",
+    "reason": "Ownership contract changes without declaration changes; dimension fractions are rejected (026 T4, Fractions on dimension props are rejected); resolves node-reference markers after emission (027 T2)",
     "hostAction": "Follow the migration checklist",
-    "task": "026 T3, 026 T4",
+    "task": "026 T3, 026 T4, 027 T2",
     "migration": "Render inputs keep caller ownership",
     "behavior": {
       "file": "src/__tests__/sdk-inputs.test.tsx",
@@ -75,9 +75,9 @@
   },
   {
     "change": "changed",
-    "reason": "Dimension fractions are rejected; grid tracks remain valid",
+    "reason": "Dimension fractions are rejected; grid tracks remain valid; resolves node-reference markers after emission (027 T2)",
     "hostAction": "replace dimension fractions",
-    "task": "026 T4",
+    "task": "026 T4, 027 T2",
     "migration": "Fractions on dimension props are rejected",
     "subpath": "./sdk",
     "name": "renderElements",
@@ -351,5 +351,133 @@
       "file": "src/__tests__/react-browser.test.tsx",
       "test": "focus_continuity_on_by_default"
     }
+  },
+  {
+    "subpath": "./schemas/*",
+    "name": "catalog.json",
+    "change": "widened",
+    "reason": "Node reference authoring markers, anchors and same-tree reference declarations",
+    "hostAction": "Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps",
+    "task": "027 T2"
+  },
+  {
+    "subpath": ".",
+    "name": "Definition",
+    "change": "widened",
+    "reason": "Node reference authoring markers, anchors and same-tree reference declarations",
+    "hostAction": "Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps",
+    "task": "027 T2"
+  },
+  {
+    "subpath": ".",
+    "name": "NodeRef",
+    "change": "added",
+    "reason": "Node reference authoring markers, anchors and same-tree reference declarations",
+    "hostAction": "Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps",
+    "task": "027 T2"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "Elements",
+    "change": "widened",
+    "reason": "Node reference authoring markers, anchors and same-tree reference declarations",
+    "hostAction": "Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps",
+    "task": "027 T2"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "ref",
+    "change": "added",
+    "reason": "Node reference authoring markers, anchors and same-tree reference declarations",
+    "hostAction": "Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps",
+    "task": "027 T2"
+  },
+  {
+    "subpath": "./sdk/jsx-dev-runtime",
+    "name": "JSX",
+    "change": "widened",
+    "reason": "Node reference authoring markers, anchors and same-tree reference declarations",
+    "hostAction": "Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps",
+    "task": "027 T2"
+  },
+  {
+    "subpath": "./sdk/jsx-runtime",
+    "name": "JSX",
+    "change": "widened",
+    "reason": "Node reference authoring markers, anchors and same-tree reference declarations",
+    "hostAction": "Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps",
+    "task": "027 T2"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/common/reference-catalog.json",
+    "change": "added",
+    "reason": "Same-tree node reference corpus and supporting catalog",
+    "hostAction": "Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps",
+    "task": "027 T2"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/elements/docs/reference-dangling.json",
+    "change": "added",
+    "reason": "Same-tree node reference corpus and supporting catalog",
+    "hostAction": "Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps",
+    "task": "027 T2"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/elements/docs/reference-valid.json",
+    "change": "added",
+    "reason": "Same-tree node reference corpus and supporting catalog",
+    "hostAction": "Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps",
+    "task": "027 T2"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/elements/reference-dangling.json",
+    "change": "added",
+    "reason": "Same-tree node reference corpus and supporting catalog",
+    "hostAction": "Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps",
+    "task": "027 T2"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/elements/reference-valid.json",
+    "change": "added",
+    "reason": "Same-tree node reference corpus and supporting catalog",
+    "hostAction": "Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps",
+    "task": "027 T2"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/docs/reference-dangling.json",
+    "change": "added",
+    "reason": "Same-tree node reference corpus and supporting catalog",
+    "hostAction": "Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps",
+    "task": "027 T2"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/docs/reference-valid.json",
+    "change": "added",
+    "reason": "Same-tree node reference corpus and supporting catalog",
+    "hostAction": "Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps",
+    "task": "027 T2"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/reference-dangling.json",
+    "change": "added",
+    "reason": "Same-tree node reference corpus and supporting catalog",
+    "hostAction": "Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps",
+    "task": "027 T2"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/reference-valid.json",
+    "change": "added",
+    "reason": "Same-tree node reference corpus and supporting catalog",
+    "hostAction": "Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps",
+    "task": "027 T2"
   }
 ]

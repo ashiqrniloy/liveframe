@@ -40,6 +40,8 @@ type TreeContext = {
   readonly path: (string | number)[];
   readonly sink: SchemaSink;
   readonly ids: Set<string>;
+  readonly refProps: ReadonlyMap<string, readonly string[]>;
+  readonly references: { target: string; nodeId: string; path: readonly (string | number)[]; name: string }[];
   readonly ancestors: Set<object>;
   readonly jsonSink: JsonWalk;
   readonly structureSink: StructureSink & { nodeId: string };
@@ -63,8 +65,11 @@ export function compileTree(
     ["surfaceId", compileSchema(treeSchema.properties.surfaceId)],
     ["revision", compileSchema({ ...treeSchema.properties.revision, maximum: Number.MAX_SAFE_INTEGER })],
   ]);
+  const refProps = new Map(
+    catalog.definitions.filter((d) => d.refProps?.length).map((d) => [d.kind, d.refProps?.slice() ?? []]),
+  );
   return (tree, options = {}) => {
-    const ctx = createContext(checkNode, structure, metadata, options);
+    const ctx = createContext(checkNode, structure, metadata, options, refProps);
     const { budget, errors, maxErrors } = ctx;
     if (!Number.isSafeInteger(maxErrors) || maxErrors < 1)
       return {
@@ -94,9 +99,35 @@ export function compileTree(
         ctx.lastNodeId,
       );
     }
+    checkReferences(ctx);
     if (ctx.bounded) addBoundMarker(errors, ctx.lastNodeId);
     return errors.length ? { ok: false, errors } : { ok: true, value: tree as UiTree };
   };
+}
+
+function collectReferences(ctx: TreeContext, props: unknown, names: readonly string[], nodeId: string): void {
+  if (!isRecord(props)) return;
+  for (const name of names) {
+    const target = props[name];
+    if (typeof target === "string") ctx.references.push({ target, nodeId, path: ctx.path.slice(), name });
+  }
+}
+
+function checkReferences(ctx: TreeContext): void {
+  for (const reference of ctx.references) {
+    if (ctx.stopped) break;
+    if (!ctx.ids.has(reference.target)) {
+      let prefix = "";
+      for (const key of reference.path) prefix = at(prefix, key);
+      fail(
+        ctx,
+        `a node in this tree for reference ${reference.target}`,
+        reference.nodeId,
+        "not-found",
+        at(`${prefix}/props`, reference.name),
+      );
+    }
+  }
 }
 
 function createContext(
@@ -104,6 +135,7 @@ function createContext(
   structure: CompiledStructure,
   metadata: ReadonlyMap<string, SchemaCheck>,
   options: ValidateTreeOptions,
+  refProps: ReadonlyMap<string, readonly string[]>,
 ): TreeContext {
   const errors: LiveframeError[] = [];
   const budget = { ...DEFAULT_LIMITS, ...options.limits };
@@ -120,6 +152,8 @@ function createContext(
     path,
     sink: { errors, maxErrors },
     ids: new Set<string>(),
+    refProps,
+    references: [],
     ancestors,
     jsonSink: {
       nodeId: "root",
@@ -279,6 +313,8 @@ function enterNode(
   }
   annotate(ctx, start, nodeId);
   if (ctx.stopped || !isRecord(value)) return;
+  const names = ctx.refProps.get(value.kind as string);
+  if (names) collectReferences(ctx, value.props, names, nodeId);
   if (typeof value.id === "string") checkId(ctx, value.id, depth, parentId, nodeId);
   ctx.structureSink.nodeId = nodeId;
   ctx.jsonSink.nodeId = nodeId;
