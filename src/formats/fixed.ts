@@ -3,8 +3,8 @@ export const noPaint = "none";
 
 /**
  * The fixed state vocabulary, in source order: `rest` first, then the overlays in cascade order
- * (spec §6.2). `current`, `mixed`, `pending` and `readonly` sit between `selected` and `invalid`;
- * apps cannot add states, only style these.
+ * (spec §6.2). `current`, `mixed`, `pending` and `readonly` sit between `selected` and `invalid`.
+ * Apps add their own through `vocabulary.states` (spec §5); these twelve are never replaced.
  */
 export const states = [
   "rest",
@@ -38,6 +38,62 @@ export const semantics = [
   "figure",
   "status",
   "alert",
+] as const;
+
+/**
+ * The data attributes the library states already select on, so an app state cannot reuse one
+ * (spec §6.4). `hover`, `focus` and `active` also match native pseudo-classes.
+ */
+export const libraryStateAttributes: readonly string[] = [
+  "data-hovered",
+  "data-focus-visible",
+  "data-pressed",
+  "data-open",
+  "data-expanded",
+  "data-selected",
+  "data-current",
+  "data-mixed",
+  "data-pending",
+  "data-readonly",
+  "data-invalid",
+  "data-disabled",
+];
+
+/**
+ * The ARIA 1.2 landmark, document-structure and live-region roles that name a region without
+ * required states or an accessible-name rule of their own. `vocabulary.semantics` maps an app's
+ * names onto these; implementations decide the element (spec §5).
+ */
+export const ariaRoles = [
+  "alert",
+  "article",
+  "banner",
+  "complementary",
+  "contentinfo",
+  "definition",
+  "directory",
+  "document",
+  "feed",
+  "figure",
+  "form",
+  "group",
+  "list",
+  "listitem",
+  "log",
+  "main",
+  "marquee",
+  "math",
+  "navigation",
+  "none",
+  "note",
+  "presentation",
+  "region",
+  "search",
+  "separator",
+  "status",
+  "term",
+  "timer",
+  "toolbar",
 ] as const;
 
 export const styleProps = [

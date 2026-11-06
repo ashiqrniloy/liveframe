@@ -551,6 +551,98 @@
             "pattern": "^[a-z][A-Za-z0-9-]*$",
             "type": "string"
           }
+        },
+        "states": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-z][a-zA-Z0-9]*$": {
+              "type": "object",
+              "properties": {
+                "attribute": {
+                  "maxLength": 64,
+                  "pattern": "^data-[a-z][a-z0-9-]*$",
+                  "type": "string"
+                },
+                "description": {
+                  "maxLength": 500,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "attribute",
+                "description"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "maxProperties": 16,
+          "additionalProperties": false,
+          "propertyNames": {
+            "maxLength": 32,
+            "pattern": "^[a-z][a-zA-Z0-9]*$",
+            "type": "string"
+          }
+        },
+        "semantics": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-z][a-zA-Z0-9]*$": {
+              "type": "object",
+              "properties": {
+                "role": {
+                  "maxLength": 16,
+                  "enum": [
+                    "alert",
+                    "article",
+                    "banner",
+                    "complementary",
+                    "contentinfo",
+                    "definition",
+                    "directory",
+                    "document",
+                    "feed",
+                    "figure",
+                    "form",
+                    "group",
+                    "list",
+                    "listitem",
+                    "log",
+                    "main",
+                    "marquee",
+                    "math",
+                    "navigation",
+                    "none",
+                    "note",
+                    "presentation",
+                    "region",
+                    "search",
+                    "separator",
+                    "status",
+                    "term",
+                    "timer",
+                    "toolbar"
+                  ],
+                  "type": "string"
+                },
+                "description": {
+                  "maxLength": 500,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "role",
+                "description"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "maxProperties": 16,
+          "additionalProperties": false,
+          "propertyNames": {
+            "maxLength": 32,
+            "pattern": "^[a-z][a-zA-Z0-9]*$",
+            "type": "string"
+          }
         }
       },
       "required": [

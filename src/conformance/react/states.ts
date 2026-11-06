@@ -1,5 +1,5 @@
 import type { Locator, Page } from "playwright";
-import { stateDeclarations, stateSelectors } from "../../css/design-system.ts";
+import { stateDeclarations, stateSelectors, stateSelectorsFor } from "../../css/design-system.ts";
 import { slotClass } from "../../css/names.ts";
 import { placeholderDeclarations, recipeDeclarations } from "../../css/recipe.ts";
 import { singleAxisKeys } from "../../formats/axes.ts";
@@ -30,7 +30,7 @@ function recordState(
   recipes: Recipes,
   definition: Catalog["definitions"][number],
   variant: string,
-  state: Exclude<keyof typeof stateSelectors, "rest">,
+  state: string,
 ): void {
   const slots = definition.slots.filter((slot) => {
     const prefix = `${definition.kind}.${variant}.${slot}` as const;
@@ -57,13 +57,13 @@ function requiredStates(
   registry: Readonly<Record<string, DesignSystem>>,
 ): Map<string, Set<string>> {
   const required = new Map<string, Set<string>>();
+  const names = Object.keys(stateSelectorsFor(catalog.vocabulary));
   for (const system of designSystems) {
     const recipes = resolveRecipes(system, { catalog, registry });
     // A kind with axes needs fixtures one axis at a time, not for the full product.
     for (const definition of catalog.definitions)
       for (const variant of singleAxisKeys(definition))
-        for (const state of Object.keys(stateSelectors) as (keyof typeof stateSelectors)[])
-          if (state !== "rest") recordState(required, recipes, definition, variant, state);
+        for (const state of names) if (state !== "rest") recordState(required, recipes, definition, variant, state);
   }
   return required;
 }
@@ -82,6 +82,7 @@ export async function styledStates(
     options.designSystems.map((system) => [`${system.id}@${system.version}`, system]),
   );
   const required = requiredStates(catalog.value, options.designSystems, registry);
+  const selectors = stateSelectorsFor(catalog.value.vocabulary);
   const missing = [...required.keys()].filter((key) => !Object.hasOwn(fixtures ?? {}, key)).sort();
   const details: string[] = [];
   for (let i = 0; i < missing.length; i += 10)
@@ -90,7 +91,7 @@ export async function styledStates(
   for (const [key, classes] of required) {
     const fixture = fixtures?.[key];
     check(fixture, rule, "§13", [`Missing state fixture: ${key}`]);
-    const state = key.slice(key.lastIndexOf(".") + 1) as Exclude<keyof typeof stateSelectors, "rest">;
+    const state = key.slice(key.lastIndexOf(".") + 1);
     try {
       await mount(fixture.tree);
       const target = fixture.target(page);
@@ -106,16 +107,14 @@ export async function styledStates(
           (element.matches(selector) || (hover && matchMedia("(hover: hover)").matches && element.matches(":hover"))) &&
           (!guarded || !element.matches(`:is(${disabled}),:is(${disabled}) *`)),
         {
-          selector: stateSelectors[state],
+          selector: selectors[state] ?? "",
           classes: [...classes],
           hover: state === "hover",
           guarded: state === "hover" || state === "active",
           disabled: stateSelectors.disabled,
         },
       );
-      check(matches, rule, "§6.4", [
-        `${key}: target must carry the affected slot class and match ${stateSelectors[state]}`,
-      ]);
+      check(matches, rule, "§6.4", [`${key}: target must carry the affected slot class and match ${selectors[state]}`]);
     } catch (error) {
       if (error instanceof ConformanceFailure) throw error;
       throw new ConformanceFailure(rule, "§6.4", [`${key}: ${String(error)}`]);

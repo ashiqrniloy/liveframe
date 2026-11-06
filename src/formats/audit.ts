@@ -5,7 +5,7 @@ import { type Catalog, validateCatalog } from "./catalog.ts";
 import { contrastRatio, over, toSrgb } from "./contrast.ts";
 import { type DesignSystem, prepareDesignSystem, type RecipeKey, type ResolvedRecipe } from "./design-system.ts";
 import { type Colour, type ColourValue, fontWeights } from "./dtcg.ts";
-import { states } from "./fixed.ts";
+import { catalogStates } from "./vocabulary.ts";
 import { type Theme, validateTheme } from "./theme.ts";
 
 /** One pair a catalog's recipes imply and the theme misses: the recipe, the pair, and the miss. */
@@ -145,11 +145,12 @@ function auditState(
 }
 
 function auditCatalog(audit: Audit, catalog: Catalog, table: ResolvedRecipes): void {
+  const stateNames = catalogStates(catalog.vocabulary);
   for (const definition of catalog.definitions) {
     const interactive = Object.keys(definition.events).length > 0;
     for (const variant of variantKeys(definition))
       for (const slot of definition.slots)
-        for (const state of states) auditState(audit, definition.kind, variant, slot, interactive, state, table);
+        for (const state of stateNames) auditState(audit, definition.kind, variant, slot, interactive, state, table);
   }
 }
 

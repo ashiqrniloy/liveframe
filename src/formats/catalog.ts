@@ -3,7 +3,7 @@ import { arr, bool, type Infer, int, type LanguageSchema, literal, obj, record, 
 import { at, documentChecks, isRecord } from "./capabilities.ts";
 import { maxAxisValues, maxCombinations } from "./axes.ts";
 import { checkFormat } from "./check.ts";
-import { styleProps } from "./fixed.ts";
+import { semantics, styleProps } from "./fixed.ts";
 import { validateJson } from "./json.ts";
 import { objectSchema, schemaLanguage } from "./language.ts";
 import { type Vocabulary, validateVocabulary, vocabularySchema } from "./vocabulary.ts";
@@ -187,6 +187,19 @@ function checkAxes(d: Definition, pointer: string, c: Checks): void {
     c.reject(`${pointer}/axes`, `At most ${maxCombinations} variant and axis combinations`);
 }
 
+/** A `semantics` enum holds library values and the vocabulary's declared names, nothing else (spec §5). */
+function checkSemantics(d: Definition, pointer: string, vocabulary: Vocabulary, c: Checks): void {
+  const schema = d.props.properties.semantics;
+  if (schema?.type !== "string" || !schema.enum) return;
+  for (const [i, value] of schema.enum.entries())
+    if (!(semantics as readonly string[]).includes(value) && !Object.hasOwn(vocabulary.semantics ?? {}, value))
+      c.reject(
+        `${pointer}/props/properties/semantics/enum/${i}`,
+        `Undeclared semantics value: ${value}`,
+        "unknown-name",
+      );
+}
+
 /** References between definitions: unique kinds, declared variants, a11y props and child rules. */
 function checkDefinitionReferences(value: Catalog, c: Checks): void {
   const kinds = new Set(value.definitions.map((d) => d.kind));
@@ -203,6 +216,7 @@ function checkDefinitionReferences(value: Catalog, c: Checks): void {
     )
       c.reject(`${pointer}/a11y/name`, "Accessible name must name a string prop", "unknown-name");
     checkAxes(d, pointer, c);
+    checkSemantics(d, pointer, value.vocabulary, c);
     for (const [j, name] of (d.refProps ?? []).entries())
       if (!Object.hasOwn(d.props.properties, name) || d.props.properties[name]?.type !== "string")
         c.reject(`${pointer}/refProps/${j}`, "Reference must name a string prop", "unknown-name");
@@ -402,9 +416,26 @@ function compareExtensions(before: Vocabulary, after: Vocabulary, change: Change
   }
 }
 
+/** An installed design system may key an app state, and a catalog enum may name a semantics value. */
+function compareAppNames(before: Vocabulary, after: Vocabulary, change: Change): void {
+  for (const key of ["states", "semantics"] as const) {
+    const was = before[key] ?? {};
+    const now = after[key] ?? {};
+    compareNames(Object.keys(was), Object.keys(now), `vocabulary ${key}`, change);
+    for (const [name, entry] of Object.entries(was)) {
+      const next = now[name];
+      if (!next) continue;
+      const field = key === "states" ? "attribute" : "role";
+      if ((entry as Record<string, string>)[field] !== (next as Record<string, string>)[field])
+        change(true, `vocabulary ${key} ${name} ${field} changed`);
+    }
+  }
+}
+
 function compareVocabulary(before: Vocabulary, after: Vocabulary, change: Change): void {
   for (const key of Object.keys(before) as (keyof Vocabulary)[]) {
     if (key === "contrast" || key === "contrastBase" || key === "extensions") continue;
+    if (key === "states" || key === "semantics") continue;
     if (key === "tones") {
       compareNames(Object.keys(before.tones), Object.keys(after.tones), "vocabulary tone", change);
       for (const [tone, role] of Object.entries(before.tones))
@@ -415,6 +446,7 @@ function compareVocabulary(before: Vocabulary, after: Vocabulary, change: Change
     } else compareNames(before[key], after[key], `vocabulary ${key}`, change);
   }
   compareExtensions(before, after, change);
+  compareAppNames(before, after, change);
   const gates = (v: Vocabulary) =>
     (v.contrast ?? []).map((p) => [p.foreground, p.background, p.minimum, p.maximum ?? 21, p.lessThan ?? null]);
   if (JSON.stringify(gates(before)) !== JSON.stringify(gates(after)) || before.contrastBase !== after.contrastBase)

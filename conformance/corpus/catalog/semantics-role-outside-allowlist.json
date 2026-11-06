@@ -1,0 +1,15 @@
+{
+  "inputs": {
+    "doc": "docs/semantics-role-outside-allowlist.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "invalid-document",
+        "pointer": "/vocabulary/semantics/toolbar/role"
+      }
+    ]
+  }
+}

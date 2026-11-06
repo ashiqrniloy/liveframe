@@ -84,6 +84,19 @@ If the host owns recovery, pass `focusContinuity={false}`; this takes no snapsho
 adds no attribute or `tabIndex`, and installs no listener. Check keyboard flows
 that remove a focused row or portal control.
 
+### Semantics enums and recipe states follow the vocabulary
+
+Before, a definition's `semantics` enum could hold any values, and a recipe key with an undeclared state failed both the published schema (`invalid-document`) and install (`unknown-name`). After, a string enum prop named `semantics` may hold only the sixteen library values and names declared in `vocabulary.semantics`; any other value is `unknown-name` at the enum item. The published design-system schema now accepts any state name, because it cannot know the catalog's app states, so an undeclared state such as `button.*.root.busy` is `unknown-name` at install only. `RecipeKey` ends in any string, so the compiler no longer rejects an unknown state.
+
+```jsonc
+// Before: any enum value passed install
+"semantics": { "type": "string", "enum": ["section", "banner"] }
+// After: declare each value that is not a library value
+"vocabulary": { "semantics": { "banner": { "role": "banner", "description": "Page header." } } }
+```
+
+Adopter checklist: list the values in each `semantics` enum and declare every non-library one in `vocabulary.semantics` with an `ariaRoles` role (a minor catalog change). Update design-system ports that rely on the schema alone to reject an unknown state: install now does. Catalogs that use only library values need no change.
+
 ## Compatible additions
 
 ### Preview and authoring validation limits
@@ -148,6 +161,25 @@ Adopting is opt-in: a catalog or design system without extensions is unchanged a
 3. Read `var(--lf-p-<name>, <fallback>)` in your primitive CSS, or build the name with `extensionVar` from `@arnilo/liveframe/css`.
 
 `auditContrast` ignores extensions, so audit any pair your CSS paints from one yourself. See [extension properties](styling.md#extension-properties).
+
+### App-declared states and semantics values
+
+Declare recipe states and `semantics` values of your own in the vocabulary instead of waiting for a library release.
+Update catalog and design-system validators and ports before installing documents that use them; a 0.2.x validator rejects them fail-closed.
+Adopting is opt-in: a catalog without `states` and `semantics` keeps its recipes, resolved tables and CSS bytes.
+
+```jsonc
+"states": { "dragging": { "attribute": "data-dragging", "description": "Being dragged." } },
+"semantics": { "toolbar": { "role": "toolbar", "description": "A set of controls." } }
+```
+
+1. Add the entry (a minor catalog change; removing one or changing its `attribute` or `role` is major). A state `attribute` must be `data-` plus the name in kebab case, and a `role` must be in `ariaRoles`.
+2. Key the state in recipes (`box.default.root.dragging`); a design system that ignores it stays complete. Set and remove the data attribute in your primitive, and supply a state fixture to `rendererBrowserSuite` for every app state a system styles.
+3. Add the semantics value to your layout primitive's `semantics` enum, and map it to an element in the implementation.
+
+Two checks tighten for existing documents; see [Semantics enums and recipe states follow the vocabulary](#semantics-enums-and-recipe-states-follow-the-vocabulary).
+
+See [app states](styling.md#app-states) and [app semantics](styling.md#app-semantics).
 
 ### Variant axes
 

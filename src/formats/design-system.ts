@@ -16,9 +16,9 @@ import {
   shadow,
   signedDimension,
 } from "./dtcg.ts";
-import { type extensionKinds, noPaint, scrollbarProperties, states } from "./fixed.ts";
+import { type extensionKinds, noPaint, scrollbarProperties } from "./fixed.ts";
 import { validateJson } from "./json.ts";
-import { extensionName } from "./vocabulary.ts";
+import { extensionName, isCatalogState } from "./vocabulary.ts";
 
 const literalSchemas = {
   radius: designDimension,
@@ -100,12 +100,13 @@ export type ResolvedRecipe = { readonly [P in Property]?: PropertyValue<P, numbe
   /** Colour extensions keep their role (or `none`); value extensions are resolved to literals. */
   readonly extensions?: Readonly<Record<string, string | ExtensionLiteral>>;
 };
-export type RecipeKey = `${string}.${string}.${string}.${(typeof states)[number]}`;
+/** The state is a library state or one the catalog's vocabulary declares (spec §6.2). */
+export type RecipeKey = `${string}.${string}.${string}.${string}`;
 const keyToken = "[a-z][A-Za-z0-9-]*";
 /** `<kind>.<variant | * | axis:value>.<slot>.<state>`; `:` is not a name character, so a key is unambiguous. */
 const keyName = str({
   maxLength: 270,
-  pattern: `^${keyToken}\\.(?:${keyToken}(?::${keyToken})?|\\*)\\.${keyToken}\\.(?:${states.join("|")})$`,
+  pattern: `^${keyToken}\\.(?:${keyToken}(?::${keyToken})?|\\*)\\.${keyToken}\\.${keyToken}$`,
 });
 const fields = obj(
   {
@@ -280,7 +281,7 @@ function checkRecipe(
       ? !declaresAxisValue(definition, variant ?? "")
       : variant !== "*" && !definition.variants.includes(variant ?? "")) ||
     !definition.slots.includes(slot ?? "") ||
-    !states.includes(state as (typeof states)[number])
+    !isCatalogState(context.catalog.vocabulary, state ?? "")
   )
     c.reject(path, "Unknown recipe kind, variant, slot or state", "unknown-name");
   for (const [property, value] of Object.entries(entry)) {

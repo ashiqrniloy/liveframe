@@ -19,7 +19,7 @@ export {
   type ResolvedRecipe,
   validateDesignSystem,
 } from "./formats/design-system.ts";
-export { recipeProperties, semantics, states, styleProps } from "./formats/fixed.ts";
+export { ariaRoles, recipeProperties, semantics, states, styleProps } from "./formats/fixed.ts";
 export { bindSources, type Manifest, validateManifest } from "./formats/manifest.ts";
 export { type Theme, validateTheme } from "./formats/theme.ts";
 export type { Intent, IntentOrigin, Json, UiNode, UiTree } from "./formats/tree.ts";

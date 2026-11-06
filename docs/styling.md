@@ -191,8 +191,8 @@ to the string `"false"`. ARIA attributes retain their accessibility semantics.
 | disabled | `:disabled`, `[data-disabled]`, `[aria-disabled=true]` |
 
 Precedence is
-`rest < hover < focus < active < open < selected < current < mixed < pending < readonly < invalid < disabled`.
-Recipe selectors have one class of specificity; source order decides between
+`rest < hover < focus < active < open < selected < current < mixed < pending < readonly < invalid < disabled`,
+with [app states](#app-states) between `invalid` and `disabled`. Recipe selectors have one class of specificity; source order decides between
 states. Equal-to-rest states emit no extra rule. Disabled roots suppress hover
 and active on themselves and their slots; once a system styles `pending`, a
 pending root suppresses them the same way. A system with no `pending` recipe
@@ -352,6 +352,46 @@ in the vocabulary, so a target family must cover each suffix the variants use.
   (`lf_button_primary_root` becomes `lf_button_primary__neutral_root`), so search
   host CSS and tests for `.lf_<kind>_` selectors. Adding an axis or a value is a
   minor catalog change; removing an axis or changing its default is major.
+
+## App states
+
+The twelve library states are fixed, but an app can add its own to
+`vocabulary.states` without a library release:
+
+```jsonc
+"states": { "dragOver": { "attribute": "data-drag-over", "description": "A drag is over it." } }
+```
+
+A recipe then keys the state like any other (`"box.default.root.dragOver"`, and
+axis overlays such as `"box.tone:critical.root.dragOver"`), and states stay optional
+overlays on `rest`, so a design system that ignores it stays complete. The
+projection matches **only** the attribute's presence, `[data-drag-over]`, so your
+primitive sets and removes it; nothing else (no ARIA attribute, no pseudo-class)
+selects it, and `attribute` must be `data-` plus the name in kebab case. An app
+state sits after `invalid` and before `disabled` in the precedence list above, in
+the order you declared them, so a later one beats an earlier one and `disabled`
+beats all of them. It does not suppress hover or press. Inside forced colours an
+app state that differs from rest gets the cue `hover`, `active` and `open` share, a
+1px `Highlight` outline. A catalog without app states projects exactly the CSS it
+did before.
+
+`rendererBrowserSuite` needs a state fixture for each app state a design system
+styles, keyed `<kind>.<variant>.<state>` like the library states; its target must
+carry the slot class and match the attribute selector. `auditContrast` checks app
+states like library states.
+
+## App semantics
+
+`vocabulary.semantics` adds `semantics` values to the library's sixteen:
+
+```jsonc
+"semantics": { "toolbar": { "role": "toolbar", "description": "A set of controls." } }
+```
+
+The `role` is one of the root export's `ariaRoles`. Your catalog's `semantics` enum
+may then contain `toolbar`; an enum value that is neither a library value nor
+declared is rejected on install. The library renders no element: your layout
+primitive maps the value to its element and applies the declared role.
 
 ## Extension properties
 

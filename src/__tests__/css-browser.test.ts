@@ -1065,6 +1065,59 @@ test("extension_variables_compute_inherit_and_follow_states", async () => {
   }
 });
 
+test("app_state_matches_its_data_attribute_and_disabled_still_wins", async () => {
+  const page = await browser.newPage();
+  try {
+    const declared: Catalog = {
+      ...catalog,
+      vocabulary: {
+        ...catalog.vocabulary,
+        states: { dragging: { attribute: "data-dragging", description: "Being dragged." } },
+      },
+    };
+    const sheets = [
+      baseCss(declared),
+      themeCss(theme, declared),
+      designSystemCss(
+        {
+          ...system,
+          recipes: {
+            ...recipes,
+            "button.default.root.dragging": { backgroundColor: "surface.hover" },
+            "button.default.root.disabled": { backgroundColor: "surface.active" },
+          },
+        },
+        { catalog: declared, registry: {} },
+      ),
+    ]
+      .map(css)
+      .join("\n");
+    await page.setContent(
+      `<style>${sheets}</style><section class="lf_surface" data-lf-theme="${theme.id}@${theme.version}" data-lf-ds="${system.id}@${system.version}"><button id="root" class="lf_button_default_root"><span class="lf_button_default_label">Button</span></button></section>`,
+    );
+    const background = () => page.locator("#root").evaluate((el) => getComputedStyle(el).backgroundColor);
+    const rest = await background();
+    await page.locator("#root").evaluate((el) => el.setAttribute("data-dragging", ""));
+    const dragging = await background();
+    expect(dragging).not.toBe(rest);
+    // An element is not dragging because it carries another state's attribute, and the app state needs its own.
+    await page.locator("#root").evaluate((el) => el.removeAttribute("data-dragging"));
+    await page.locator("#root").evaluate((el) => el.setAttribute("data-hovered", ""));
+    expect(await background()).not.toBe(dragging);
+    await page.locator("#root").evaluate((el) => el.removeAttribute("data-hovered"));
+    // `disabled` follows every app state in source order, so it wins when both apply.
+    await page.locator("#root").evaluate((el) => {
+      el.setAttribute("data-dragging", "");
+      el.setAttribute("data-disabled", "");
+    });
+    const both = await background();
+    expect(both).not.toBe(dragging);
+    expect(both).not.toBe(rest);
+  } finally {
+    await page.close();
+  }
+});
+
 test("tone_by_emphasis_four_pairs", async () => {
   const page = await browser.newPage();
   try {

@@ -1,0 +1,74 @@
+{
+  "format": "liveframe-catalog/1",
+  "catalogId": "corpus.ui@1",
+  "description": "Corpus primitives.",
+  "vocabulary": {
+    "colourRoles": [
+      "ink",
+      "focus"
+    ],
+    "typographyRoles": [
+      "body"
+    ],
+    "surfaceTypography": "body",
+    "surfaceRoles": [],
+    "fillableRoles": [],
+    "tones": {},
+    "space": [
+      "space.1"
+    ],
+    "radius": [],
+    "size": [],
+    "breakpoints": [],
+    "states": {
+      "dragging": {
+        "attribute": "data-dragging",
+        "description": "Being dragged."
+      },
+      "dragOver": {
+        "attribute": "data-drag-over",
+        "description": "A drag is over it."
+      }
+    },
+    "semantics": {
+      "toolbar": {
+        "role": "button",
+        "description": "A set of controls."
+      }
+    }
+  },
+  "definitions": [
+    {
+      "kind": "box",
+      "description": "A layout box.",
+      "variants": [
+        "default"
+      ],
+      "defaultVariant": "default",
+      "slots": [
+        "root"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "semantics": {
+            "type": "string",
+            "maxLength": 16,
+            "enum": [
+              "section",
+              "toolbar"
+            ]
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "children": "any",
+      "events": {},
+      "styleProps": [],
+      "a11y": {
+        "role": "none"
+      }
+    }
+  ]
+}

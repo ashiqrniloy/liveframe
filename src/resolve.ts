@@ -9,7 +9,8 @@ import {
 } from "./formats/design-system.ts";
 import type { ColourValue, ShadowLayer } from "./formats/dtcg.ts";
 import { axisCombinations, axisNames, joinVariant } from "./formats/axes.ts";
-import { colourProperties, noPaint, states } from "./formats/fixed.ts";
+import { colourProperties, noPaint } from "./formats/fixed.ts";
+import { catalogStates } from "./formats/vocabulary.ts";
 import { LiveframeFailure, type LiveframeError } from "./errors.ts";
 
 export type ResolvedRecipes = Readonly<Partial<Record<RecipeKey, ResolvedRecipe>>>;
@@ -98,6 +99,7 @@ function axisLayers(
   slot: string,
   wildcard: string,
   specific: string,
+  stateNames: readonly string[],
 ): [string, Recipe | undefined, Recipe | undefined, Aliases][] {
   const overlays = axes.map((axis, i) => `${kind}.${axis}:${values[i]}.${slot}`);
   const restKeys = overlays.map((key) => `${key}.rest` as RecipeKey);
@@ -106,7 +108,7 @@ function axisLayers(
     recipes[`${specific}.rest` as RecipeKey],
     ...restKeys.map((key) => recipes[key]),
   ]);
-  return states.map((state) => {
+  return stateNames.map((state) => {
     if (state === "rest") return [state, rest, undefined, aliasesOf(recipes, restKeys)];
     const stateKeys = overlays.map((key) => `${key}.${state}` as RecipeKey);
     const layers = [
@@ -126,6 +128,7 @@ function fillSlot(
   definition: Catalog["definitions"][number],
   variant: string,
   slot: string,
+  stateNames: readonly string[],
   resolveLayers: LayerResolver,
   reject: (pointer: string, message: string, kind: LiveframeError["kind"]) => void,
 ): void {
@@ -136,10 +139,19 @@ function fillSlot(
   for (const values of axisCombinations(definition)) {
     const resolvedKey = `${kind}.${joinVariant(variant, values)}.${slot}`;
     if (axes.length) {
-      for (const [state, first, second, aliases] of axisLayers(recipes, kind, axes, values, slot, wildcard, specific))
+      for (const [state, first, second, aliases] of axisLayers(
+        recipes,
+        kind,
+        axes,
+        values,
+        slot,
+        wildcard,
+        specific,
+        stateNames,
+      ))
         table[`${resolvedKey}.${state}` as RecipeKey] = resolveLayers(first, second, undefined, undefined, aliases);
     } else {
-      for (const state of states)
+      for (const state of stateNames)
         table[`${resolvedKey}.${state}` as RecipeKey] = resolveLayers(
           recipes[`${wildcard}.rest` as RecipeKey],
           recipes[`${specific}.rest` as RecipeKey],
@@ -215,6 +227,7 @@ export function cascadeRecipes(
     if (aliases.size) rewriteRoles(resolved, aliases, alias);
     return resolved as ResolvedRecipe;
   }
+  const stateNames = catalogStates(catalog.vocabulary);
   const table: Partial<Record<RecipeKey, ResolvedRecipe>> = Object.create(null);
   for (const definition of catalog.definitions) {
     const { kind } = definition;
@@ -226,7 +239,7 @@ export function cascadeRecipes(
         if (!Object.hasOwn(ds.recipes, `${wildcard}.rest`) && !Object.hasOwn(ds.recipes, `${specific}.rest`))
           reject(`/recipes/${specific}.rest`, "Missing rest recipe", "incomplete-design-system");
         focus ||= Object.hasOwn(ds.recipes, `${wildcard}.focus`) || Object.hasOwn(ds.recipes, `${specific}.focus`);
-        fillSlot(table, ds.recipes, definition, variant, slot, resolveLayers, reject);
+        fillSlot(table, ds.recipes, definition, variant, slot, stateNames, resolveLayers, reject);
       }
       if (Object.keys(definition.events).length && !focus)
         reject(

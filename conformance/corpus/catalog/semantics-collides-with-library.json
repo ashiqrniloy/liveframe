@@ -1,0 +1,15 @@
+{
+  "inputs": {
+    "doc": "docs/semantics-collides-with-library.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "invalid-document",
+        "pointer": "/vocabulary/semantics/section"
+      }
+    ]
+  }
+}

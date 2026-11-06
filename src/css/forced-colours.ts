@@ -14,6 +14,14 @@ export const forcedStateDeclarations = {
   disabled: "color:GrayText",
 } as const;
 
+/** An app state has no system colour of its own, so it takes the cue `hover`, `active` and `open` share. */
+const forcedAppStateDeclarations = "outline:1px solid Highlight";
+
+/** The forced-colours cue for a library or app state. */
+export function forcedStateCue(state: string): string {
+  return (forcedStateDeclarations as Readonly<Record<string, string>>)[state] ?? forcedAppStateDeclarations;
+}
+
 export function forcedEdgeDeclarations(recipe: ResolvedRecipe): string {
   const widths = [
     recipe.borderWidth,

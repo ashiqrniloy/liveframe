@@ -107,6 +107,16 @@ test("audit_reports_text_pair_from_recipe_not_declared_in_vocabulary", () => {
   });
 });
 
+test("app_states_are_audited_like_library_states", () => {
+  const withStates = {
+    ...catalog,
+    vocabulary: { ...vocabulary, states: { dragging: { attribute: "data-dragging", description: "Being dragged." } } },
+  } as Catalog;
+  const findings = audit({ "button.*.label.dragging": { textColor: "quiet" } }, { catalog: withStates });
+  expect(keys(findings)).toEqual(["button.default.label.dragging"]);
+  expect(findings[0]).toMatchObject({ kind: "text", foreground: "quiet", background: "paper" });
+});
+
 test("large_text_uses_three_to_one", () => {
   const finding = (role: string) => audit({ "button.*.label.rest": { typography: role, textColor: "quiet" } });
   // 24 px passes at 3:1 (quiet on paper is 3.43:1); 18.66 px at weight 700 also counts as large.

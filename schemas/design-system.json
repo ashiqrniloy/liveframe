@@ -688,7 +688,7 @@
     "recipes": {
       "type": "object",
       "patternProperties": {
-        "^[a-z][A-Za-z0-9-]*\\.(?:[a-z][A-Za-z0-9-]*(?::[a-z][A-Za-z0-9-]*)?|\\*)\\.[a-z][A-Za-z0-9-]*\\.(?:rest|hover|active|focus|disabled|selected|current|mixed|pending|readonly|invalid|open)$": {
+        "^[a-z][A-Za-z0-9-]*\\.(?:[a-z][A-Za-z0-9-]*(?::[a-z][A-Za-z0-9-]*)?|\\*)\\.[a-z][A-Za-z0-9-]*\\.[a-z][A-Za-z0-9-]*$": {
           "type": "object",
           "properties": {
             "backgroundColor": {
@@ -1954,7 +1954,7 @@
       "additionalProperties": false,
       "propertyNames": {
         "maxLength": 270,
-        "pattern": "^[a-z][A-Za-z0-9-]*\\.(?:[a-z][A-Za-z0-9-]*(?::[a-z][A-Za-z0-9-]*)?|\\*)\\.[a-z][A-Za-z0-9-]*\\.(?:rest|hover|active|focus|disabled|selected|current|mixed|pending|readonly|invalid|open)$",
+        "pattern": "^[a-z][A-Za-z0-9-]*\\.(?:[a-z][A-Za-z0-9-]*(?::[a-z][A-Za-z0-9-]*)?|\\*)\\.[a-z][A-Za-z0-9-]*\\.[a-z][A-Za-z0-9-]*$",
         "type": "string"
       }
     }

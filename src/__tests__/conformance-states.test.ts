@@ -94,3 +94,38 @@ test("new_states_require_fixtures_when_a_system_styles_them", async () => {
       expect(details).toContain(`button.primary.${state}`);
   }
 });
+
+test("app_states_require_fixtures_when_a_system_styles_them", async () => {
+  const catalog = {
+    ...pageOptions.catalog,
+    vocabulary: {
+      ...pageOptions.catalog.vocabulary,
+      states: { dragging: { attribute: "data-dragging", description: "Being dragged." } },
+    },
+  } as typeof pageOptions.catalog;
+  // Rest recipes only, so the library states need no fixtures and the app state is what remains.
+  const restOnly = pageOptions.designSystems.map((system) => ({
+    ...system,
+    recipes: Object.fromEntries(
+      Object.entries(system.recipes)
+        .filter(([key]) => key.endsWith(".rest"))
+        .flatMap(([key, recipe]) => [
+          [key, recipe],
+          [key.replace(/rest$/, "focus"), {}],
+        ]),
+    ),
+  })) as typeof pageOptions.designSystems;
+  // A declared state the systems leave at its rest declarations needs no fixture.
+  await styledStates({ ...pageOptions, catalog, designSystems: restOnly }, undefined, noPage, rule, unused, unused);
+  const styled = restOnly.map((system) => ({
+    ...system,
+    recipes: { ...system.recipes, "button.primary.root.dragging": { opacity: 0.5 } },
+  })) as typeof pageOptions.designSystems;
+  try {
+    await styledStates({ ...pageOptions, catalog, designSystems: styled }, undefined, noPage, rule, unused, unused);
+    throw new Error("A styled app state needed no fixture");
+  } catch (error) {
+    expect(error).toBeInstanceOf(ConformanceFailure);
+    expect((error as ConformanceFailure).details.join("\n")).toBe("Missing state fixtures: button.primary.dragging");
+  }
+});

@@ -364,7 +364,7 @@
     "subpath": "./schemas/*",
     "name": "catalog.json",
     "change": "widened",
-    "reason": "Node reference authoring markers, anchors and same-tree reference declarations; vocabulary extensions (app-declared recipe properties); definition axes (enum props addressed by recipe overlays)",
+    "reason": "Node reference authoring markers, anchors and same-tree reference declarations; vocabulary extensions (app-declared recipe properties); definition axes (enum props addressed by recipe overlays); vocabulary states and semantics (app-declared recipe states and semantics values)",
     "hostAction": "Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps",
     "task": "027 T2"
   },
@@ -492,7 +492,7 @@
     "subpath": "./schemas/*",
     "name": "design-system.json",
     "change": "widened",
-    "reason": "Recipes accept an optional extensions map for app-declared properties; recipe keys accept `axis:value` overlays and a `roles` alias map",
+    "reason": "Recipes accept an optional extensions map for app-declared properties; recipe keys accept `axis:value` overlays, a `roles` alias map and any state-name token (the catalog's app states are checked on install)",
     "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
     "task": "027 T4"
   },
@@ -500,7 +500,7 @@
     "subpath": ".",
     "name": "Vocabulary",
     "change": "widened",
-    "reason": "Optional extensions declare app-owned recipe properties",
+    "reason": "Optional extensions declare app-owned recipe properties; optional states and semantics declare app recipe states and app semantics values",
     "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
     "task": "027 T4"
   },
@@ -508,7 +508,7 @@
     "subpath": ".",
     "name": "Recipe",
     "change": "widened",
-    "reason": "Optional extensions map sets app-declared properties; optional `roles` aliases on axis overlays",
+    "reason": "Optional extensions map sets app-declared properties; optional `roles` aliases on axis overlays; keys accept app-declared states",
     "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
     "task": "027 T4"
   },
@@ -799,5 +799,170 @@
     "reason": "Variant axis and role alias corpus cases",
     "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
     "task": "027 T5"
+  },
+  {
+    "subpath": ".",
+    "name": "ariaRoles",
+    "change": "added",
+    "reason": "The ARIA role allowlist for vocabulary.semantics entries",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T6"
+  },
+  {
+    "subpath": ".",
+    "name": "RecipeKey",
+    "change": "widened",
+    "reason": "A key's state is a library state or one the catalog's vocabulary declares",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T6"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/design-system/unknown-state.json",
+    "change": "changed",
+    "reason": "The published schema accepts any state name, so an undeclared state is reported once, as unknown-name, instead of also as invalid-document",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T6",
+    "migration": "Semantics enums and recipe states follow the vocabulary",
+    "behavior": {
+      "file": "src/__tests__/app-states.test.ts",
+      "test": "app_state_recipes_validate_and_undeclared_states_stay_rejected"
+    }
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/app-state-attribute-mismatch.json",
+    "change": "added",
+    "reason": "App-declared states and semantics corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T6"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/app-state-collides-with-library.json",
+    "change": "added",
+    "reason": "App-declared states and semantics corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T6"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/app-states.json",
+    "change": "added",
+    "reason": "App-declared states and semantics corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T6"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/docs/app-state-attribute-mismatch.json",
+    "change": "added",
+    "reason": "App-declared states and semantics corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T6"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/docs/app-state-collides-with-library.json",
+    "change": "added",
+    "reason": "App-declared states and semantics corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T6"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/docs/app-states.json",
+    "change": "added",
+    "reason": "App-declared states and semantics corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T6"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/docs/semantics-collides-with-library.json",
+    "change": "added",
+    "reason": "App-declared states and semantics corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T6"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/docs/semantics-role-outside-allowlist.json",
+    "change": "added",
+    "reason": "App-declared states and semantics corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T6"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/docs/semantics-undeclared-value.json",
+    "change": "added",
+    "reason": "App-declared states and semantics corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T6"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/semantics-collides-with-library.json",
+    "change": "added",
+    "reason": "App-declared states and semantics corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T6"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/semantics-role-outside-allowlist.json",
+    "change": "added",
+    "reason": "App-declared states and semantics corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T6"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/semantics-undeclared-value.json",
+    "change": "added",
+    "reason": "App-declared states and semantics corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T6"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/common/app-states-catalog.json",
+    "change": "added",
+    "reason": "App-declared states and semantics corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T6"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/design-system/app-state-undeclared.json",
+    "change": "added",
+    "reason": "App-declared states and semantics corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T6"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/design-system/app-states.json",
+    "change": "added",
+    "reason": "App-declared states and semantics corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T6"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/design-system/docs/app-state-undeclared.json",
+    "change": "added",
+    "reason": "App-declared states and semantics corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T6"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/design-system/docs/app-states.json",
+    "change": "added",
+    "reason": "App-declared states and semantics corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T6"
   }
 ]

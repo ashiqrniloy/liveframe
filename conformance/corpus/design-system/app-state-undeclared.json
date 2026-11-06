@@ -1,0 +1,16 @@
+{
+  "inputs": {
+    "doc": "docs/app-state-undeclared.json",
+    "catalog": "../common/app-states-catalog.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "unknown-name",
+        "pointer": "/recipes/box.*.root.busy"
+      }
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "inputs": {
+    "doc": "docs/app-state-collides-with-library.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "invalid-document",
+        "pointer": "/vocabulary/states/hover"
+      }
+    ]
+  }
+}

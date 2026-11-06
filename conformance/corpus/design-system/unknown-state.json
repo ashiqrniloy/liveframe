@@ -8,10 +8,6 @@
     "ok": false,
     "errors": [
       {
-        "kind": "invalid-document",
-        "pointer": "/recipes/button.*.root.busy"
-      },
-      {
         "kind": "unknown-name",
         "pointer": "/recipes/button.*.root.busy"
       }

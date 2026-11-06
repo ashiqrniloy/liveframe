@@ -213,11 +213,14 @@ test("design_system_structure_agrees_with_schema", () => {
     recipe({ opacity: 2 }),
     recipe({ transitionTiming: [0, 2, 1, -2] }),
     recipe({ borderRadius: { value: 9999, unit: "px" } }),
-    // The schema's state pattern follows the fixed vocabulary.
     { ...system, recipes: { ...system.recipes, "button.*.root.pending": { opacity: 0.5 } } },
-    { ...system, recipes: { ...system.recipes, "button.*.root.busy": { opacity: 0.5 } } },
+    { ...system, recipes: { ...system.recipes, "button.*.root.PENDING": { opacity: 0.5 } } },
   ])
     expect(validate(doc)).toBe(validateDesignSystem(doc, context).ok);
+  // A state token is any name: the published schema cannot know the catalog's app states, so install rejects `busy`.
+  const busy = { ...system, recipes: { ...system.recipes, "button.*.root.busy": { opacity: 0.5 } } };
+  expect(validate(busy)).toBe(true);
+  expect(validateDesignSystem(busy, context).ok).toBe(false);
 });
 test("design_system_errors_are_bounded_and_escaped", () => {
   rejects({ ...system, values: { "bad/~": {} } }, "invalid-document", "/values/bad~1~0");
@@ -234,8 +237,8 @@ test("design_system_errors_are_bounded_and_escaped", () => {
 });
 // @ts-expect-error Structural properties belong to widgets.
 const invalidRecipe: DesignSystem["recipes"][string] = { display: "flex" };
-// @ts-expect-error States are fixed.
-const invalidKey: keyof DesignSystem["recipes"] = "button.*.root.clicked";
+// @ts-expect-error A key ends in a state; app states are checked on install, not by the type.
+const invalidKey: keyof DesignSystem["recipes"] = "button.*.root";
 void [invalidRecipe, invalidKey];
 
 test("design_values_and_literals_are_typed_and_bounded", () => {

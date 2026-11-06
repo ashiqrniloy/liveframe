@@ -11,13 +11,14 @@ import {
 } from "../formats/design-system.ts";
 import type { ColourValue, ShadowLayer } from "../formats/dtcg.ts";
 import { variantKeys } from "../formats/axes.ts";
-import { colourProperties, states } from "../formats/fixed.ts";
+import { colourProperties } from "../formats/fixed.ts";
+import { catalogStates } from "../formats/vocabulary.ts";
 import { cascadeRecipes } from "../resolve.ts";
 import {
   forcedEdgeDeclarations,
   forcedPlaceholderDeclarations,
   forcedScrollbarDeclarations,
-  forcedStateDeclarations,
+  forcedStateCue,
 } from "./forced-colours.ts";
 import { cssString, slotClass, valueVar } from "./names.ts";
 import { placeholderDeclarations, recipeDeclarations } from "./recipe.ts";
@@ -37,6 +38,20 @@ export const stateSelectors = {
   invalid: ":user-invalid,[data-invalid],[aria-invalid=true]",
   disabled: ":disabled,[data-disabled],[aria-disabled=true]",
 } as const;
+
+/**
+ * The selectors for one catalog, in source order: the library table with the app's states
+ * between `invalid` and `disabled`, in declared order (spec §6.4). An app state selects on its
+ * data attribute alone. A catalog without app states gets the library table itself.
+ */
+export function stateSelectorsFor(
+  vocabulary: DesignSystemContext["catalog"]["vocabulary"],
+): Readonly<Record<string, string>> {
+  if (!vocabulary.states) return stateSelectors;
+  const { disabled, ...before } = stateSelectors;
+  const app = Object.entries(vocabulary.states).map(([name, state]) => [name, `[${state.attribute}]`]);
+  return { ...before, ...Object.fromEntries(app), disabled };
+}
 
 /** The projection and conformance compare emitted declarations, including resolved defaults. */
 export function stateDeclarations(recipe: Parameters<typeof recipeDeclarations>[0], rest: string) {
@@ -138,6 +153,7 @@ function slotRules(
   reduced: string[],
   alphaSlots: ReadonlySet<string>,
   guard: readonly string[],
+  stateNames: readonly string[],
 ): void {
   const key = `${definition.kind}.${variant}.${slot}` as const;
   const root = `.${slotClass(definition.kind, variant, "root")}`;
@@ -168,7 +184,7 @@ function slotRules(
     const edge = forcedEdgeDeclarations(restRecipe);
     if (edge) forced.push(`${scope} ${cls}{${edge}}`);
     if (restRecipe.scrollbarThumbColor !== undefined) forced.push(`${scope} ${cls}{${forcedScrollbarDeclarations}}`);
-    if (states.some((name) => resolved[`${key}.${name}` as RecipeKey]?.placeholderColor !== undefined))
+    if (stateNames.some((name) => resolved[`${key}.${name}` as RecipeKey]?.placeholderColor !== undefined))
       forced.push(`${scope} ${cls}::placeholder{${forcedPlaceholderDeclarations}}`);
     return;
   }
@@ -176,7 +192,7 @@ function slotRules(
   const target = selector(scope, cls, root, condition, suppressing);
   rules.push(`${target}{${body}}`);
   if (reducedBody) reduced.push(`${target}{${reducedBody}}`);
-  const cue = forcedStateDeclarations[state as keyof typeof forcedStateDeclarations];
+  const cue = forcedStateCue(state);
   forced.push(`${target}{${cue}}`);
   if (state === "open") {
     const target = selector(scope, cls, root, condition, []);
@@ -201,6 +217,8 @@ function stateRules(
   reduced: string[],
   guard: readonly string[],
 ): void {
+  const selectors = stateSelectorsFor(context.catalog.vocabulary);
+  const stateNames = catalogStates(context.catalog.vocabulary);
   const alphaSlots = new Set(
     Object.entries(resolved)
       .filter(([, recipe]) =>
@@ -213,7 +231,7 @@ function stateRules(
       .map(([key]) => key.slice(0, key.lastIndexOf("."))),
   );
   const definitions = [...context.catalog.definitions].sort((a, b) => (a.kind < b.kind ? -1 : a.kind > b.kind ? 1 : 0));
-  for (const [state, condition] of Object.entries(stateSelectors))
+  for (const [state, condition] of Object.entries(selectors))
     for (const definition of definitions)
       for (const variant of [...variantKeys(definition)].sort())
         for (const slot of [...definition.slots].sort())
@@ -230,6 +248,7 @@ function stateRules(
             reduced,
             alphaSlots,
             guard,
+            stateNames,
           );
 }
 

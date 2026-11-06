@@ -230,7 +230,7 @@ type Catalog = {
 
 The proof primitives also provide:
 
-- **Semantics on layout primitives.** `box`, `stack`, `inline` and `grid` take an optional closed `semantics` prop (`section`, `article`, `aside`, `header`, `footer`, `nav`, `list`, `listItem`, `terms`, `term`, `detail`, `form`, `group`, `figure`, `status`, `alert`) and an optional accessible `label`. Landmarks, description lists, forms, groups, figures and live regions (`status`, `alert`) are structure, not styling. A live region must stay mounted for its text changes to be announced.
+- **Semantics on layout primitives.** `box`, `stack`, `inline` and `grid` take an optional closed `semantics` prop (`section`, `article`, `aside`, `header`, `footer`, `nav`, `list`, `listItem`, `terms`, `term`, `detail`, `form`, `group`, `figure`, `status`, `alert`) and an optional accessible `label`. Landmarks, description lists, forms, groups, figures and live regions (`status`, `alert`) are structure, not styling. A live region must stay mounted for its text changes to be announced. An app adds values through `vocabulary.semantics` (§5), which maps each to an ARIA role.
 - **Selection state on `button`.** `current` and `pressed` expose a selected row or toggle to assistive technology.
 
 The icon glyph set is the app's: status marks and brand marks are icons, not primitives.
@@ -326,7 +326,7 @@ A design system contributes:
 }
 ```
 
-- **States**: `rest`, `hover`, `active`, `focus`, `disabled`, `selected`, `current`, `mixed`, `pending`, `readonly`, `invalid`, `open`. The list is fixed by the library; a recipe may style any of them, and states are optional overlays on `rest`.
+- **States**: `rest`, `hover`, `active`, `focus`, `disabled`, `selected`, `current`, `mixed`, `pending`, `readonly`, `invalid`, `open`. The library fixes these twelve; an app adds its own through `vocabulary.states` (§5), each selected by one data attribute, and a recipe may style any of them. States, library or app, are optional overlays on `rest`, so a new state never makes an installed design system incomplete. An app state takes part in the cascade like a library state (all of the layers above, with the axis overlays, at its own key `kind.variant.slot.<name>`), and a recipe key whose state the catalog does not declare is `unknown-name`.
 - **Recipe properties** are a closed, typed list fixed by the library: colours, borders (width per side or all sides, style), outline, radius, padding, gap, typography role, opacity, shadow, backdrop blur and saturation, transition (a duration and an easing value), and a pressed offset (a `translateY` dimension). Every property's value type is fixed. Product-specific names, such as an easing called `expo-out` or a transform preset, are design values, not recipe vocabulary.
 - **Extension properties.** An app may declare recipe properties of its own in `vocabulary.extensions` (§6.5) and a design system sets them in a recipe's nested `extensions` map: `"button.primary.root.rest": { "backgroundColor": "accent.fill", "extensions": { "sheen": "accent.highlight", "notch": "size.notch" } }`. They sit in their own map so a later library property can never collide with an app's name.
 
@@ -464,7 +464,9 @@ Custom properties inherit, so a root slot's value reaches descendant slots that 
 
 A `colour` extension carries no alpha modifier and no forced-colours rule: reduced transparency has nothing to recover (the variable is declared once, by the ordinary rule), and `forced-color-adjust` stays `auto`, so the OS overrides whatever the app's CSS paints from the variable. `auditContrast` ignores extensions, because the library cannot know which background the app paints one against. A design system that sets none projects byte-identical CSS.
 
-**States and cascade.** Each recipe selector has specificity (0,1,0): the slot class contributes specificity, while scope, state and root qualifiers are inside `:where()`. Source order is `rest < hover < focus < active < open < selected < current < mixed < pending < readonly < invalid < disabled`. A state whose resolved declarations equal rest emits no extra rule. A root's state also reaches its slots. Hover and active never apply to a disabled element, including a slot of a disabled root, and never to a pending one once the design system styles `pending`: a control that is waiting for the host takes no hover or press feedback. A system that declares no `pending` recipe gains no pending-state rules.
+**States and cascade.** Each recipe selector has specificity (0,1,0): the slot class contributes specificity, while scope, state and root qualifiers are inside `:where()`. Source order is `rest < hover < focus < active < open < selected < current < mixed < pending < readonly < invalid < <app states, in declared order> < disabled`. A state whose resolved declarations equal rest emits no extra rule. A root's state also reaches its slots. Hover and active never apply to a disabled element, including a slot of a disabled root, and never to a pending one once the design system styles `pending`: a control that is waiting for the host takes no hover or press feedback. A system that declares no `pending` recipe gains no pending-state rules.
+
+**App states in the projection.** An app state beats every library state except `disabled`, and a later declared one beats an earlier. An app state matches only its data attribute (`[data-dragging]`, wrapped in `:where()` like the library selectors) and is not part of the hover and press suppression; a catalog without app states projects the table unchanged.
 
 | State | Matches |
 |---|---|
@@ -518,7 +520,7 @@ A surface whose long repeated content is not marked `deferOffscreen` (§6.3) has
 | disabled | `GrayText` text |
 | focus | 2px solid `Highlight` outline |
 | invalid | 2px dashed `CanvasText` outline |
-| hover, active, open | 1px `Highlight` outline |
+| hover, active, open, and every app state | 1px `Highlight` outline |
 | Explicit rest background (including `none`) with no positive border width | 1px `CanvasText` outline, offset inward |
 | `fill` indicator (`lf_fill`) | 1px `CanvasText` outline, offset inward |
 
@@ -563,7 +565,25 @@ type ExtensionKind = "spacing" | "radius" | "border-width" | "size" | "opacity"
                    | "motion-duration" | "saturation" | "backdrop-blur";
 ```
 
-Fixed by the library: the kinds above, the states (§6.2), the recipe properties (§6.2), the style props and their value rules (§6.3), and the `semantics` values (§5). A theme must define every declared role, a design system every declared value name, and a catalog carries its vocabulary.
+`vocabulary.states` and `vocabulary.semantics` (both optional, at most 16 entries each, names `^[a-z][a-zA-Z0-9]*$`) extend two lists the library otherwise fixes:
+
+```ts
+type VocabularyApp = {
+  states?: Record<string, { attribute: string; description: string }>;
+  // an app recipe state (§6.2); `attribute` is exactly `data-` plus the name in kebab case
+  // (`dragOver` → `data-drag-over`), and is never one of the library states' attributes
+  semantics?: Record<string, { role: AriaRole; description: string }>;
+  // an app `semantics` value (§5); `role` is one of the published `ariaRoles`
+};
+type AriaRole = "alert" | "article" | "banner" | "complementary" | "contentinfo" | "definition" | "directory"
+              | "document" | "feed" | "figure" | "form" | "group" | "list" | "listitem" | "log" | "main"
+              | "marquee" | "math" | "navigation" | "none" | "note" | "presentation" | "region" | "search"
+              | "separator" | "status" | "term" | "timer" | "toolbar";
+```
+
+A name that is a library state or a library `semantics` value is `invalid-document` at `/vocabulary/states/<name>` or `/vocabulary/semantics/<name>`; so is an `attribute` that is not the derived one (`/vocabulary/states/<name>/attribute`) or that a library state already selects on, and a `role` outside the allowlist. A `semantics` enum on a definition's props may hold the library values and the declared names only; any other value is `unknown-name` at that enum item. The allowlist holds the ARIA 1.2 landmark, document-structure and live-region roles that need no required state or accessible-name rule of their own; the library never renders an element, so an implementation decides which element and attributes carry a declared role.
+
+Fixed by the library: the kinds above, the states (§6.2), the recipe properties (§6.2), the style props and their value rules (§6.3), and the `semantics` values (§5), each extended only by the app declarations above. A theme must define every declared role, a design system every declared value name, and a catalog carries its vocabulary.
 
 **Contrast declarations.** At most 256 pairs may name declared colour roles, with finite inclusive thresholds in [1, 21] and `maximum >= minimum`. Descriptions are at most 500 code points. `lessThan` is a zero-based integer pair index: dangling, self and cyclic references are invalid. It requires the measured ratio to be strictly less than the referenced pair's ratio. A supplied `contrastBase` must name a declared surface role and its theme colour must be opaque, even when no background needs it. Translucent pair backgrounds require that base; missing/nonopaque bases are `invalid-document`. Vocabularies without contrast declarations retain their existing behaviour.
 

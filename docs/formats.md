@@ -115,7 +115,7 @@ validateVocabulary({
 });
 ```
 
-The first ten fields are required (`contrast`, `contrastBase` and `extensions` are optional), and unknown fields are rejected. Each list holds
+The first ten fields are required (`contrast`, `contrastBase`, `extensions`, `states` and `semantics` are optional), and unknown fields are rejected. Each list holds
 at most 256 unique names. Names contain at most 64 characters and match
 `^[a-z][a-z0-9-]*(\.[a-z0-9-]+)*$`. The design-value lists require their family
 prefix: `space.`, `radius.`, `size.` and `bp.`. Lists may be empty, and a name may
@@ -139,6 +139,23 @@ and typography roles cannot be extensions. A `value` entry without a `kind`, or 
 `colour` entry with one, is `invalid-document`. See
 [extension properties](styling.md#extension-properties).
 
+`states` adds recipe states of the app's own (at most 16). A name matches
+`^[a-z][a-zA-Z0-9]*$` and is not a library state; an entry is
+`{ attribute, description }` where `attribute` is exactly `data-` plus the name in
+kebab case (`dragOver` → `data-drag-over`) and is not a data attribute a library
+state selects on. A recipe may key the state (`box.default.root.dragging`), the
+projection selects on `[data-dragging]` alone, and a design system never has to
+style it. A collision, a different attribute or a library attribute is
+`invalid-document` at `/vocabulary/states/<name>` or `.../attribute`. See
+[app states](styling.md#app-states).
+
+`semantics` adds `semantics` values (at most 16). A name matches
+`^[a-z][a-zA-Z0-9]*$` and is not one of the library values; an entry is
+`{ role, description }` where `role` is a member of the root export's `ariaRoles`.
+A definition's `semantics` enum may hold the library values and these names only,
+else `unknown-name` at the enum item. The role names what the value means to
+assistive technology; the app's implementation picks the element.
+
 `surfaceTypography` names one role in `typographyRoles` for every surface root's
 base typography. It obeys the same bounded name rules and must be declared,
 so `typographyRoles` must contain at least that role.
@@ -150,12 +167,19 @@ checking references. The vocabulary's structural schema is embedded in
 the catalog schema; subset, tone and surface typography reference checks run on install.
 
 The root export also provides the library-fixed `states`, `styleProps`,
-`semantics` and `recipeProperties` arrays. These are format vocabulary, with no
+`semantics`, `ariaRoles` and `recipeProperties` arrays. These are format vocabulary, with no
 app roles or design values. `semantics` holds `section`, `article`, `aside`,
 `header`, `footer`, `nav`, `list`, `listItem`, `terms`, `term`, `detail`,
 `form`, `group`, `figure`, `status` and `alert`. A `form` needs a `label` to be
 exposed as a landmark; no rule requires it. Recipe motion uses `translateY`; the proof's
-`transformPreset` shorthand is not part of the format.
+`transformPreset` shorthand is not part of the format. `ariaRoles` is the
+allowlist for `vocabulary.semantics` roles: the ARIA 1.2 landmark,
+document-structure and live-region roles that need no required state or
+accessible-name rule (`alert`, `article`, `banner`, `complementary`,
+`contentinfo`, `definition`, `directory`, `document`, `feed`, `figure`, `form`,
+`group`, `list`, `listitem`, `log`, `main`, `marquee`, `math`, `navigation`,
+`none`, `note`, `presentation`, `region`, `search`, `separator`, `status`,
+`term`, `timer`, `toolbar`).
 
 ## Definitions and catalogs
 

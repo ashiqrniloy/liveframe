@@ -2,7 +2,7 @@ import type { LiveframeError, Result } from "../errors.ts";
 import { at } from "../internal.ts";
 import { arr, type Infer, int, num, obj, record, str } from "../schema.ts";
 import { checkFormat } from "./check.ts";
-import { extensionKinds, noPaint } from "./fixed.ts";
+import { ariaRoles, extensionKinds, libraryStateAttributes, noPaint, semantics, states } from "./fixed.ts";
 import { validateJson } from "./json.ts";
 
 const name = str({ maxLength: 64, pattern: "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$" });
@@ -50,13 +50,44 @@ export type Extension = {
   readonly description?: string;
 };
 
+const appName = str({ maxLength: 32, pattern: "^[a-z][a-zA-Z0-9]*$" });
+const appStateFields = obj({
+  attribute: str({ maxLength: 64, pattern: "^data-[a-z][a-z0-9-]*$" }),
+  description: str({ maxLength: 500 }),
+});
+const appSemanticFields = obj({
+  role: str({ maxLength: 16, enum: ariaRoles }),
+  description: str({ maxLength: 500 }),
+});
+/** An app state a recipe may key; the projection selects on `attribute` alone (spec §6.4). */
+export type AppState = Infer<typeof appStateFields>;
+/** An app `semantics` value and the ARIA role it stands for (spec §5). */
+export type AppSemantic = Infer<typeof appSemanticFields>;
+const maxAppNames = 16;
+
+/** `dragOver` → `data-drag-over`, the attribute `element.dataset.dragOver` writes. */
+export function stateAttribute(name: string): string {
+  return `data-${name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
+}
+
 export type Vocabulary = { readonly [K in keyof typeof lists]: Infer<(typeof lists)[K]> } & {
   readonly tones: Readonly<Record<string, string>>;
   readonly surfaceTypography: string;
   readonly contrast?: Infer<typeof contrast>;
   readonly contrastBase?: string;
   readonly extensions?: Readonly<Record<string, Extension>>;
+  readonly states?: Readonly<Record<string, AppState>>;
+  readonly semantics?: Readonly<Record<string, AppSemantic>>;
 };
+
+export function isCatalogState(vocabulary: Pick<Vocabulary, "states">, state: string): boolean {
+  return (states as readonly string[]).includes(state) || Object.hasOwn(vocabulary.states ?? {}, state);
+}
+
+/** The library states followed by the app's own in declared order (spec §6.2); one list for every consumer. */
+export function catalogStates(vocabulary: Pick<Vocabulary, "states">): readonly string[] {
+  return vocabulary.states ? [...states, ...Object.keys(vocabulary.states)] : states;
+}
 
 /** Embedded in the catalog schema; cross-references are checked on install. */
 export const vocabularySchema = {
@@ -68,6 +99,8 @@ export const vocabularySchema = {
     contrast,
     contrastBase: name,
     extensions: { ...record(extensionName.pattern, extension, 64), propertyNames: extensionName },
+    states: { ...record(appName.pattern, appStateFields, maxAppNames), propertyNames: appName },
+    semantics: { ...record(appName.pattern, appSemanticFields, maxAppNames), propertyNames: appName },
   },
   required: [...Object.keys(lists), "tones", "surfaceTypography"],
   additionalProperties: false,
@@ -89,6 +122,22 @@ function checkReferences(value: Vocabulary, pointer: (key: string) => string, c:
   if (!value.typographyRoles.includes(value.surfaceTypography))
     c.reject("unknown-name", "/surfaceTypography", `Undeclared typography role: ${value.surfaceTypography}`);
   checkContrastReferences(value, colours, c);
+  checkAppNames(value, pointer, c);
+}
+
+/** App states and semantics values extend the library lists; they never redefine one (spec §5). */
+function checkAppNames(value: Vocabulary, pointer: (key: string) => string, c: Checks): void {
+  for (const [name, state] of Object.entries(value.states ?? {})) {
+    const where = `/states${pointer(name)}`;
+    if ((states as readonly string[]).includes(name)) c.reject("invalid-document", where, `Library state: ${name}`);
+    else if (state.attribute !== stateAttribute(name))
+      c.reject("invalid-document", `${where}/attribute`, `Expected ${stateAttribute(name)}`);
+    else if (libraryStateAttributes.includes(state.attribute))
+      c.reject("invalid-document", `${where}/attribute`, `Library state attribute: ${state.attribute}`);
+  }
+  for (const name of Object.keys(value.semantics ?? {}))
+    if ((semantics as readonly string[]).includes(name))
+      c.reject("invalid-document", `/semantics${pointer(name)}`, `Library semantics value: ${name}`);
 }
 
 function checkContrastReferences(value: Vocabulary, colours: ReadonlySet<string>, c: Checks): void {

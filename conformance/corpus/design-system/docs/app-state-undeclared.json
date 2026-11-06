@@ -1,0 +1,28 @@
+{
+  "format": "liveframe-design-system/1",
+  "id": "corpus",
+  "version": "1",
+  "values": {
+    "space.1": {
+      "kind": "spacing",
+      "value": {
+        "value": 4,
+        "unit": "px"
+      }
+    }
+  },
+  "recipes": {
+    "box.*.root.rest": {
+      "padding": "space.1"
+    },
+    "box.*.root.dragging": {
+      "backgroundColor": "ink"
+    },
+    "box.*.root.dragOver": {
+      "outlineColor": "focus"
+    },
+    "box.*.root.busy": {
+      "backgroundColor": "ink"
+    }
+  }
+}

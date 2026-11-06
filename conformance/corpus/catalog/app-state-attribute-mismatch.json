@@ -1,0 +1,15 @@
+{
+  "inputs": {
+    "doc": "docs/app-state-attribute-mismatch.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "invalid-document",
+        "pointer": "/vocabulary/states/dragging/attribute"
+      }
+    ]
+  }
+}
