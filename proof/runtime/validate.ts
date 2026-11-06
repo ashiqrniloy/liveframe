@@ -1,3 +1,4 @@
+import { checkUrl } from "../../src/url.ts";
 import type { PropSchema } from "../catalog/define.ts";
 import { colourRoles, fillableRoles, typographyRoles, valueNames } from "../styles/types.ts";
 import { assertJson, freeze, isRecord } from "./data.ts";
@@ -19,7 +20,8 @@ export function checkSchema(schema: PropSchema, value: unknown, path: string): v
         typeof value !== "string" ||
         (schema.maxLength !== undefined && [...value].length > schema.maxLength) ||
         (schema.enum && !schema.enum.includes(value)) ||
-        (schema.pattern && !new RegExp(schema.pattern).test(value))
+        (schema.pattern && !new RegExp(schema.pattern).test(value)) ||
+        (schema.url && !checkUrl(value, schema.url))
       )
         reject("String does not match its schema", path);
       return;

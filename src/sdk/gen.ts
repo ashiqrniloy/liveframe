@@ -1,6 +1,7 @@
 import type { Catalog } from "../formats/catalog.ts";
 import type { styleProps } from "../formats/fixed.ts";
 import type { LanguageSchema } from "../schema.ts";
+import { type UrlRule, urlExpected, urlPattern } from "../url.ts";
 
 const quote = (value: string) => JSON.stringify(value);
 const property = (value: string) => (/^[A-Za-z_$][\w$]*$/.test(value) ? value : quote(value));
@@ -63,6 +64,11 @@ function member(key: string, optional: boolean, type: string, indent = "  "): st
   if (!type.includes("\n") && `${prefix} ${type};`.length > 120 && type.includes(" | "))
     return `${prefix}\n${wrapUnion(type, `${indent}  `)};`;
   return `${prefix} ${type};`;
+}
+
+/** A prop's doc comment naming the schemes a `url` string accepts. */
+function urlDoc(rule: UrlRule): string {
+  return `  /** Expects ${urlExpected(rule)}. */\n`;
 }
 
 function alias(name: string, type: string): string {
@@ -162,9 +168,10 @@ function component(d: Catalog["definitions"][number], names: Set<string>): strin
   for (const key of Object.keys(d.props.properties))
     if (reserved.has(key)) throw new TypeError(`Prop name collision: ${d.kind}.${key}`);
   const props = [
-    ...Object.entries(d.props.properties).map(([key, schema]) =>
-      member(key, !d.props.required.includes(key), d.refProps?.includes(key) ? "_NodeRef" : schemaType(schema, "  ")),
-    ),
+    ...Object.entries(d.props.properties).map(([key, schema]) => {
+      const doc = schema.type === "string" && schema.url ? urlDoc(schema.url) : "";
+      return `${doc}${member(key, !d.props.required.includes(key), d.refProps?.includes(key) ? "_NodeRef" : schemaType(schema, "  "))}`;
+    }),
     member("variant", true, union(d.variants)),
     ...d.styleProps.map((key) => member(key, true, `_Responsive<${styleTypes[key]}>`)),
     ...Object.entries(d.events).map(([key, event]) =>
@@ -340,6 +347,7 @@ function stringSchema(schema: Extract<LanguageSchema, { readonly type: "string" 
   const out: Record<string, unknown> = { type: "string", maxLength: schema.maxLength };
   if (schema.minLength !== undefined) out.minLength = schema.minLength;
   if (schema.pattern !== undefined) out.pattern = schema.pattern;
+  if (schema.url !== undefined) out.pattern = urlPattern(schema.url);
   if (schema.enum !== undefined) out.enum = [...schema.enum];
   return out;
 }

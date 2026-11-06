@@ -181,7 +181,7 @@ export const definitions = [
     kind: "image",
     props: {
       type: "object",
-      properties: { src: { type: "string", maxLength: 2048, pattern: "^(https://|/[^/])" }, alt: text },
+      properties: { src: { type: "string", maxLength: 2048, url: { schemes: ["https"], relative: true } }, alt: text },
       required: ["src", "alt"],
       additionalProperties: false,
     },
@@ -196,7 +196,7 @@ export const definitions = [
     kind: "link",
     props: {
       type: "object",
-      properties: { label, href: { type: "string", maxLength: 2048, pattern: "^(https://|/[^/]|#)" } },
+      properties: { label, href: { type: "string", maxLength: 2048, url: { schemes: ["https"], relative: true } } },
       required: ["label", "href"],
       additionalProperties: false,
     },

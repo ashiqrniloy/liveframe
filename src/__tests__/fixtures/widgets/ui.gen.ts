@@ -512,6 +512,7 @@ export const Icon = primitive<{
  * The image primitive.
  */
 export const Image = primitive<{
+  /** Expects a URL with scheme https or a relative reference. */
   readonly src: string;
   readonly alt: string;
   readonly variant?: "default";
@@ -546,6 +547,7 @@ export const Image = primitive<{
  */
 export const Link = primitive<{
   readonly label: string;
+  /** Expects a URL with scheme https or a relative reference. */
   readonly href: string;
   readonly variant?: "default";
   readonly padding?: _Responsive<_Space>;

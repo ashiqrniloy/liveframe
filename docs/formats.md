@@ -11,7 +11,7 @@ closed schema language based on JSON Schema 2020-12 with an RFC 8927 discriminat
 
 | Builder | Value | Constraints |
 | --- | --- | --- |
-| `str({ maxLength, minLength?, pattern?, enum? })` | string | Required maximum and optional minimum in code points; optional Unicode regular expression and nonempty, unique string enum |
+| `str({ maxLength, minLength?, pattern?, url?, enum? })` | string | Required maximum and optional minimum in code points; optional Unicode regular expression, URL scheme allowlist (not beside `pattern`) and nonempty, unique string enum |
 | `num({ minimum?, maximum? })` | finite number | Inclusive numeric bounds |
 | `int({ minimum?, maximum? })` | finite integer | Inclusive numeric bounds |
 | `bool()` | boolean | No coercion |
@@ -66,10 +66,20 @@ checkValue(Args, { id: "t-1", extra: 1 });
 // { ok: false, errors: [{ kind: "invalid-document", pointer: "/extra", ... }] }
 ```
 
-A prop that carries a URL is a string like any other: constrain it with
-`pattern` or sanitise it in the implementation that renders it. The library
-passes prop values through and never interprets one as a URL. See the
-[security model](security.md).
+A prop that carries a URL declares `url`:
+
+```ts
+href: str({ maxLength: 2048, url: { schemes: ["https", "mailto"], relative: true } }),
+```
+
+The check rejects any control character or space (so `java\tscript:` fails),
+reads the scheme and compares it case-insensitively with the allowlist, accepts
+a value without a scheme only with `relative: true`, and always rejects `//host`
+and backslash-led values. A failure is `invalid-prop` naming the schemes.
+`Infer` types the prop as `string`, `liveframe gen` documents the schemes in the
+prop's doc comment, and the elements schema carries an equivalent anchored
+`pattern`. `url` is allowed in widget schemas (it is not a regular expression)
+but not beside `pattern`. See the [security model](security.md).
 
 `checkValue(schema, value, maxErrors = 20)` interprets the schema without running
 generated code. It returns the original value on success and collects failures
@@ -278,7 +288,9 @@ Nested object and array schemas use the same rules. Removing style props,
 tightening child rules, changing default variants, accessible-name contracts
 or tone mappings, or changing `surfaceTypography`, also requires a major.
 Pattern changes are conservatively major when a new pattern remains:
-arbitrary regex inclusion is not inferred.
+arbitrary regex inclusion is not inferred. A `url` rule is compared by its
+parts: adding the rule, removing a scheme or dropping `relative` is major;
+removing the rule, adding a scheme or enabling `relative` is minor.
 Changing only the catalog id produces `none`.
 
 `@arnilo/liveframe/schemas/catalog.json` embeds the vocabulary and schema
@@ -657,7 +669,7 @@ catastrophic backtrack stalls them. A pattern anywhere inside them is
 before any value is matched by `validateManifest`, by the package's
 `validateManifestShape` and by the published `manifest.json` schema, which omits
 the keyword. Use `enum`, or an app capability that checks the value where it is
-trusted. Catalog definitions and capabilities keep `pattern`: they are the app's
+trusted. They may use `url`: it is a closed check, not a regular expression. Catalog definitions and capabilities keep `pattern`: they are the app's
 documents. Source parameters accept literals checked against the capability's parameter schema, or `{ from: "params" | "state" | "context", path }`. An object with a `from` field is interpreted as a binding. Paths traverse object properties only, with at most eight identifier segments; array indices and expressions are rejected. A binding's schema type must equal the destination type. Bound values still need checking against the destination's bounds when the host resolves them. Every required source parameter must be supplied; extra parameters are errors.
 
 `bindSources(manifest, capabilities, { params, state, context })` from

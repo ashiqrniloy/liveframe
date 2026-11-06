@@ -181,6 +181,22 @@ Two checks tighten for existing documents; see [Semantics enums and recipe state
 
 See [app states](styling.md#app-states) and [app semantics](styling.md#app-semantics).
 
+### URL strings
+
+Declare `url` on a prop that carries a URL, so no host has to hand-roll `javascript:` blocking.
+Update catalog and design-system validators and ports before installing documents that use them; a 0.2.x validator rejects the keyword fail-closed.
+Adopting is opt-in: a prop without `url` validates exactly as before.
+
+```ts
+href: str({ maxLength: 2048, url: { schemes: ["https", "mailto"], relative: true } })
+```
+
+1. Replace a hand-written `pattern` on a URL prop with `url` (the two cannot be combined). A value with a control character, an unlisted scheme (case-insensitively), or a `//host` or backslash start is `invalid-prop`.
+2. Widget schemas may use `url`; they still may not use `pattern`.
+3. Regenerate types and element schemas with `liveframe gen`: the prop doc names the schemes and the element schema carries a generated `pattern`.
+
+See [the security model](security.md) and [formats](formats.md#the-schema-language).
+
 ### Variant axes
 
 Declare a second look choice as an axis instead of enumerating product variants such as `primary-critical`; an axis value can alias colour roles, so one entry recolours every variant.

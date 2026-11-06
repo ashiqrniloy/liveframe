@@ -182,6 +182,7 @@ test("schema_publisher_detects_drift", async () => {
       "src/formats/vocabulary.ts",
       "src/formats/fixed.ts",
       "src/schema.ts",
+      "src/url.ts",
       "src/errors.ts",
       "src/internal.ts",
       "src/validate/bytes.ts",

@@ -7,6 +7,22 @@ const annotations = {
 } as const;
 const bound = { type: "integer", minimum: 0 } as const;
 const schemaRef = { $ref: "#/$defs/schema" } as const;
+/** The `url` keyword (spec §5). Widget schemas keep it: it is a closed check, not a regular expression. */
+const urlRule = {
+  type: "object",
+  properties: {
+    schemes: {
+      type: "array",
+      items: { type: "string", maxLength: 32, pattern: "^[a-z][a-z0-9+.-]*$" },
+      minItems: 1,
+      maxItems: 16,
+      uniqueItems: true,
+    },
+    relative: { type: "boolean" },
+  },
+  required: ["schemes"],
+  additionalProperties: false,
+} as const;
 
 function form(type: string, properties: Record<string, unknown>, required: readonly string[]) {
   return {
@@ -38,6 +54,7 @@ export function languageForms(pattern: boolean) {
             maxLength: bound,
             minLength: bound,
             ...(pattern ? { pattern: { type: "string", maxLength: 256, format: "regex" } } : {}),
+            url: urlRule,
             enum: { type: "array", items: { type: "string" }, minItems: 1, uniqueItems: true },
           },
           ["maxLength"],

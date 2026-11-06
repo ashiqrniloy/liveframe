@@ -33,6 +33,29 @@
               "maxLength": 256,
               "format": "regex"
             },
+            "url": {
+              "type": "object",
+              "properties": {
+                "schemes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "maxLength": 32,
+                    "pattern": "^[a-z][a-z0-9+.-]*$"
+                  },
+                  "minItems": 1,
+                  "maxItems": 16,
+                  "uniqueItems": true
+                },
+                "relative": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "schemes"
+              ],
+              "additionalProperties": false
+            },
             "enum": {
               "type": "array",
               "items": {

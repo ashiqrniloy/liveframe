@@ -871,7 +871,12 @@
           "src": {
             "type": "string",
             "maxLength": 2048,
-            "pattern": "^(https://|/[^/])"
+            "url": {
+              "schemes": [
+                "https"
+              ],
+              "relative": true
+            }
           },
           "alt": {
             "type": "string",
@@ -937,7 +942,12 @@
           "href": {
             "type": "string",
             "maxLength": 2048,
-            "pattern": "^(https://|/[^/]|#)"
+            "url": {
+              "schemes": [
+                "https"
+              ],
+              "relative": true
+            }
           }
         },
         "required": [

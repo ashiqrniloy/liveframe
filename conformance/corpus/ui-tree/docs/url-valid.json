@@ -1,0 +1,53 @@
+{
+  "format": "liveframe/1",
+  "catalogId": "proof.ui@1",
+  "surfaceId": "corpus",
+  "revision": 1,
+  "root": {
+    "id": "root",
+    "kind": "stack",
+    "props": {},
+    "children": [
+      {
+        "id": "root/link0",
+        "kind": "link",
+        "props": {
+          "label": "Go",
+          "href": "https://example.com/a?b=c"
+        }
+      },
+      {
+        "id": "root/link1",
+        "kind": "link",
+        "props": {
+          "label": "Go",
+          "href": "HTTPS://example.com"
+        }
+      },
+      {
+        "id": "root/link2",
+        "kind": "link",
+        "props": {
+          "label": "Go",
+          "href": "/path/to"
+        }
+      },
+      {
+        "id": "root/link3",
+        "kind": "link",
+        "props": {
+          "label": "Go",
+          "href": "../up"
+        }
+      },
+      {
+        "id": "root/link4",
+        "kind": "link",
+        "props": {
+          "label": "Go",
+          "href": "#top"
+        }
+      }
+    ]
+  }
+}

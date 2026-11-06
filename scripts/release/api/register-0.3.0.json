@@ -364,7 +364,7 @@
     "subpath": "./schemas/*",
     "name": "catalog.json",
     "change": "widened",
-    "reason": "Node reference authoring markers, anchors and same-tree reference declarations; vocabulary extensions (app-declared recipe properties); definition axes (enum props addressed by recipe overlays); vocabulary states and semantics (app-declared recipe states and semantics values)",
+    "reason": "Node reference authoring markers, anchors and same-tree reference declarations; vocabulary extensions (app-declared recipe properties); definition axes (enum props addressed by recipe overlays); vocabulary states and semantics (app-declared recipe states and semantics values); the string schema form's `url` rule",
     "hostAction": "Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps",
     "task": "027 T2"
   },
@@ -964,5 +964,117 @@
     "reason": "App-declared states and semantics corpus cases",
     "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
     "task": "027 T6"
+  },
+  {
+    "subpath": "./schemas/*",
+    "name": "capabilities.json",
+    "change": "widened",
+    "reason": "The string schema form accepts a `url` rule (a scheme allowlist, optionally relative references) in catalogs, capabilities and widget schemas",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T7"
+  },
+  {
+    "subpath": "./schemas/*",
+    "name": "manifest.json",
+    "change": "widened",
+    "reason": "The string schema form accepts a `url` rule (a scheme allowlist, optionally relative references) in catalogs, capabilities and widget schemas",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T7"
+  },
+  {
+    "subpath": "./schemas/*",
+    "name": "schema-language.json",
+    "change": "widened",
+    "reason": "The string schema form accepts a `url` rule (a scheme allowlist, optionally relative references) in catalogs, capabilities and widget schemas",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T7"
+  },
+  {
+    "subpath": ".",
+    "name": "LanguageSchema",
+    "change": "widened",
+    "reason": "String schemas accept an optional `url` rule",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T7"
+  },
+  {
+    "subpath": ".",
+    "name": "str",
+    "change": "widened",
+    "reason": "String options accept an optional `url` rule",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T7"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/common/url-catalog.json",
+    "change": "added",
+    "reason": "URL string form corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T7"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/url-valid.json",
+    "change": "added",
+    "reason": "URL string form corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T7"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/docs/url-valid.json",
+    "change": "added",
+    "reason": "URL string form corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T7"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/url-scheme-rejected.json",
+    "change": "added",
+    "reason": "URL string form corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T7"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/docs/url-scheme-rejected.json",
+    "change": "added",
+    "reason": "URL string form corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T7"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/url.json",
+    "change": "added",
+    "reason": "URL string form corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T7"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/docs/url.json",
+    "change": "added",
+    "reason": "URL string form corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T7"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/url-with-pattern.json",
+    "change": "added",
+    "reason": "URL string form corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T7"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/docs/url-with-pattern.json",
+    "change": "added",
+    "reason": "URL string form corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
+    "task": "027 T7"
   }
 ]

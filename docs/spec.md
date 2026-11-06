@@ -156,7 +156,7 @@ A definition declares:
 
 **The schema language.** Props, params, state, context, action arguments and data-source shapes all use one closed schema language based on JSON Schema 2020-12, with the discriminator form from JSON Type Definition (RFC 8927).
 
-Its forms are `string` (with `maxLength` in code points, and optional `minLength`, `pattern` and string `enum`), `number` and `integer` (with optional `minimum` and `maximum`), `boolean`, `array` (with `maxItems` and optional `minItems`) and `object` (closed: `additionalProperties: false`, with `required`).
+Its forms are `string` (with `maxLength` in code points, and optional `minLength`, `pattern`, `url` and string `enum`), `number` and `integer` (with optional `minimum` and `maximum`), `boolean`, `array` (with `maxItems` and optional `minItems`) and `object` (closed: `additionalProperties: false`, with `required`).
 
 Every string and array is bounded: `maxLength` and `maxItems` are required.
 
@@ -196,6 +196,21 @@ Equivalent JSON Schema value validators use `oneOf` with a required `const` tag 
 
 A schema outside the language is rejected at install.
 
+**URL strings.** A `string` may carry `url: { schemes, relative? }`: one to sixteen lowercase schemes (RFC 3986 `scheme`, at most 32 characters, unique) and an optional `relative` flag.
+
+The check is closed and linear, and uses no `URL` global.
+It rejects any C0 control character or space anywhere in the value, which removes every input a browser strips or trims before it reads the scheme (`java\tscript:`).
+
+It then reads a scheme (letters, digits, `+`, `-`, `.` before the first `:`, starting with a letter) and compares it to the allowlist ignoring ASCII case.
+A value with a scheme passes only if the scheme is listed.
+
+A value without one is a relative reference and passes only with `relative: true`; a value that starts `//`, `/\` or `\` is never accepted, since a browser reads each as a host.
+Failure is `invalid-prop` with `expected` naming the schemes.
+
+`url` is a closed keyword, not a regular expression, so widget schemas keep it.
+It may not appear beside `pattern` (`invalid-document` at `url`).
+Published JSON Schemas and element schemas carry an equivalent anchored linear `pattern`.
+
 **Widget schemas carry no `pattern`.** The three schemas a widget manifest declares — `params`, `state` and `context` — are matched against values the app does not author: what a user types, what an intent carries, and what storage holds.
 
 A pattern there is widget code running on the host thread and in the browser, where one catastrophic backtrack on a short value costs seconds.
@@ -204,7 +219,7 @@ So a `pattern` anywhere inside them is `invalid-document` at the keyword (`/stat
 
 Authors use `enum`, or ask the app for an action or source that checks the value where it is trusted.
 
-Catalog definitions and capabilities are the app's own documents and keep `pattern`.
+Catalog definitions and capabilities are the app's own documents and keep `pattern`. Widget schemas may use `url`, which is a closed check and not a regular expression.
 
 **The catalog.** A catalog is one document:
 

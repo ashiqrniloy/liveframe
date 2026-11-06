@@ -1,6 +1,7 @@
 import type { LiveframeError } from "../errors.ts";
 import { pointerSegment } from "../internal.ts";
 import { codePointsWithin, type LanguageSchema } from "../schema.ts";
+import { checkUrl, urlExpected } from "../url.ts";
 
 export type SchemaSink = {
   readonly errors: LiveframeError[];
@@ -118,13 +119,16 @@ function compileForm(schema: LanguageSchema): SchemaCheck {
           : `a string of ${minLength}–${maxLength} characters`;
       const enumExpected = `one of: ${schema.enum?.join(", ")}`;
       const patternExpected = `a string matching ${schema.pattern}`;
-      const typeExpected = `${lengthExpected}${choices ? `; ${enumExpected}` : ""}${pattern ? `; ${patternExpected}` : ""}`;
+      const { url } = schema;
+      const urlMessage = url && urlExpected(url);
+      const typeExpected = `${lengthExpected}${choices ? `; ${enumExpected}` : ""}${pattern ? `; ${patternExpected}` : ""}${urlMessage ? `; ${urlMessage}` : ""}`;
       return (value, at, sink) => {
         if (typeof value !== "string") return reject(at, sink, typeExpected);
         let valid = true;
         if (!codePointsWithin(value, maxLength, minLength)) valid = reject(at, sink, lengthExpected);
         if (choices && !choices.has(value)) valid = reject(at, sink, enumExpected);
         if (pattern && !pattern.test(value)) valid = reject(at, sink, patternExpected);
+        if (url && urlMessage && !checkUrl(value, url)) valid = reject(at, sink, urlMessage);
         return valid;
       };
     }

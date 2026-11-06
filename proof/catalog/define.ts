@@ -4,6 +4,7 @@ export type PropSchema =
       readonly type: "string";
       readonly maxLength?: number;
       readonly pattern?: string;
+      readonly url?: { readonly schemes: readonly string[]; readonly relative?: boolean };
       readonly enum?: readonly string[];
     }
   | { readonly type: "number" | "integer"; readonly minimum?: number; readonly maximum?: number }

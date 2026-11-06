@@ -2,6 +2,7 @@ import type { LiveframeError, Result } from "./errors.ts";
 import { carriesValue } from "./formats/events.ts";
 import { schemaLanguage } from "./formats/language.ts";
 import { at } from "./internal.ts";
+import { checkUrl, type UrlRule, urlExpected } from "./url.ts";
 import { compileFormatSchema } from "./validate/format-schema.ts";
 import type { SchemaCheck } from "./validate/schema.ts";
 
@@ -10,6 +11,7 @@ type StringOptions = Annotations & {
   readonly maxLength: number;
   readonly minLength?: number;
   readonly pattern?: string;
+  readonly url?: UrlRule;
   readonly enum?: readonly string[];
 };
 type NumberOptions = Annotations & { readonly minimum?: number; readonly maximum?: number };
@@ -214,6 +216,10 @@ function checkSchemaKeywords(
     onError?.(at(pointer, schema.type === "string" ? "minLength" : "minItems"), `a nonnegative integer <= ${maximum}`);
     return false;
   }
+  if (schema.type === "string" && schema.url && schema.pattern !== undefined) {
+    onError?.(at(pointer, "url"), "no pattern beside url");
+    return false;
+  }
 
   return schema.type !== "object" || schema.required.every((key) => Object.hasOwn(schema.properties, key));
 }
@@ -263,6 +269,7 @@ export function checkValue<const S extends LanguageSchema>(
       );
     if (s.enum && !s.enum.includes(input)) reject(pointer, `one of ${s.enum.join(", ")}`);
     if (s.pattern && !new RegExp(s.pattern, "u").test(input)) reject(pointer, `a string matching ${s.pattern}`);
+    if (s.url && !checkUrl(input, s.url)) reject(pointer, urlExpected(s.url));
   }
   function checkNumeric(s: NumericSchema, input: unknown, pointer: string) {
     if (!carriesValue(s.type, input)) return reject(pointer, `a finite ${s.type}`);

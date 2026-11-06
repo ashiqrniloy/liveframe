@@ -646,7 +646,10 @@ export const Image = {
       src: {
         type: "string",
         maxLength: 2048,
-        pattern: "^(https://|/[^/])",
+        url: {
+          schemes: ["https"],
+          relative: true,
+        },
       },
       alt: {
         type: "string",
@@ -706,7 +709,10 @@ export const Link = {
       href: {
         type: "string",
         maxLength: 2048,
-        pattern: "^(https://|/[^/]|#)",
+        url: {
+          schemes: ["https"],
+          relative: true,
+        },
       },
     },
     required: ["label", "href"],

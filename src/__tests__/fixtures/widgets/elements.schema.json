@@ -1147,7 +1147,7 @@
                 "src": {
                   "type": "string",
                   "maxLength": 2048,
-                  "pattern": "^(https://|/[^/])"
+                  "pattern": "^(?![\\s\\S]*[\\x00-\\x20])(?:(?:[hH][tT][tT][pP][sS]):|(?![A-Za-z][A-Za-z0-9+.-]*:)(?!\\\\)(?!/[/\\\\]))[\\s\\S]*$"
                 },
                 "alt": {
                   "type": "string",
@@ -1242,7 +1242,7 @@
                 "href": {
                   "type": "string",
                   "maxLength": 2048,
-                  "pattern": "^(https://|/[^/]|#)"
+                  "pattern": "^(?![\\s\\S]*[\\x00-\\x20])(?:(?:[hH][tT][tT][pP][sS]):|(?![A-Za-z][A-Za-z0-9+.-]*:)(?!\\\\)(?!/[/\\\\]))[\\s\\S]*$"
                 }
               },
               "additionalProperties": false,

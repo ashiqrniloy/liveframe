@@ -1,5 +1,6 @@
 import type { Result } from "../errors.ts";
 import { arr, bool, type Infer, int, type LanguageSchema, literal, obj, record, str } from "../schema.ts";
+import type { UrlRule } from "../url.ts";
 import { at, documentChecks, isRecord } from "./capabilities.ts";
 import { maxAxisValues, maxCombinations } from "./axes.ts";
 import { checkFormat } from "./check.ts";
@@ -273,6 +274,17 @@ function compareObjectSchema(
       compareSchemas(property, after.properties[key] as LanguageSchema, `${path}.${key}`, change);
 }
 
+/** A `url` rule narrows when it appears, loses a scheme or loses `relative`; the opposite widens. */
+function compareUrl(before: UrlRule | undefined, after: UrlRule | undefined, path: string, change: Change): void {
+  if (!before || !after) {
+    if (before || after) change(after !== undefined, `${path} url changed`);
+    return;
+  }
+  compareNames(before.schemes, after.schemes, `${path} url scheme`, change);
+  if ((before.relative === true) !== (after.relative === true))
+    change(before.relative === true, `${path} url relative changed`);
+}
+
 function compareStringSchema(
   before: Extract<LanguageSchema, { readonly type: "string" }>,
   after: Extract<LanguageSchema, { readonly type: "string" }>,
@@ -283,6 +295,7 @@ function compareStringSchema(
   if ((before.minLength ?? 0) !== (after.minLength ?? 0))
     change((after.minLength ?? 0) > (before.minLength ?? 0), `${path} minLength changed`);
   if (before.pattern !== after.pattern) change(after.pattern !== undefined, `${path} pattern changed`);
+  compareUrl(before.url, after.url, path, change);
   if (before.enum && after.enum) compareNames(before.enum, after.enum, `${path} enum value`, change);
   else if (before.enum || after.enum) change(after.enum !== undefined, `${path} enum changed`);
 }
