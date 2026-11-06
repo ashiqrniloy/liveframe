@@ -348,9 +348,21 @@ function compareDefinition(before: Definition, after: Definition, change: Change
   compareChildren(before.children, after.children, path, change);
 }
 
+/** An installed design system may set an extension, so removing one or changing its type is major. */
+function compareExtensions(before: Vocabulary, after: Vocabulary, change: Change): void {
+  const was = before.extensions ?? {};
+  const now = after.extensions ?? {};
+  compareNames(Object.keys(was), Object.keys(now), "vocabulary extension", change);
+  for (const [name, extension] of Object.entries(was)) {
+    const next = now[name];
+    if (next && (extension.type !== next.type || extension.kind !== next.kind))
+      change(true, `vocabulary extension ${name} type changed`);
+  }
+}
+
 function compareVocabulary(before: Vocabulary, after: Vocabulary, change: Change): void {
   for (const key of Object.keys(before) as (keyof Vocabulary)[]) {
-    if (key === "contrast" || key === "contrastBase") continue;
+    if (key === "contrast" || key === "contrastBase" || key === "extensions") continue;
     if (key === "tones") {
       compareNames(Object.keys(before.tones), Object.keys(after.tones), "vocabulary tone", change);
       for (const [tone, role] of Object.entries(before.tones))
@@ -360,6 +372,7 @@ function compareVocabulary(before: Vocabulary, after: Vocabulary, change: Change
       if (before[key] !== after[key]) change(true, `vocabulary ${key} mapping changed`);
     } else compareNames(before[key], after[key], `vocabulary ${key}`, change);
   }
+  compareExtensions(before, after, change);
   const gates = (v: Vocabulary) =>
     (v.contrast ?? []).map((p) => [p.foreground, p.background, p.minimum, p.maximum ?? 21, p.lessThan ?? null]);
   if (JSON.stringify(gates(before)) !== JSON.stringify(gates(after)) || before.contrastBase !== after.contrastBase)

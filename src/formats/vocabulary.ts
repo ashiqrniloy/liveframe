@@ -2,7 +2,7 @@ import type { LiveframeError, Result } from "../errors.ts";
 import { at } from "../internal.ts";
 import { arr, type Infer, int, num, obj, record, str } from "../schema.ts";
 import { checkFormat } from "./check.ts";
-import { noPaint } from "./fixed.ts";
+import { extensionKinds, noPaint } from "./fixed.ts";
 import { validateJson } from "./json.ts";
 
 const name = str({ maxLength: 64, pattern: "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$" });
@@ -32,11 +32,30 @@ const pair = obj(
 );
 const contrast = arr(pair, { maxItems: 256 });
 
+export const extensionName = str({ maxLength: 64, pattern: "^[a-z][A-Za-z0-9-]*$" });
+const extensionDescription = { description: str({ maxLength: 500 }) };
+/** An app's recipe property: a theme colour, or a typed design value of one kind. */
+const extension = {
+  oneOf: [
+    obj({ type: str({ maxLength: 6, enum: ["colour"] }) }, extensionDescription),
+    obj(
+      { type: str({ maxLength: 5, enum: ["value"] }), kind: str({ maxLength: 16, enum: extensionKinds }) },
+      extensionDescription,
+    ),
+  ],
+};
+export type Extension = {
+  readonly type: "colour" | "value";
+  readonly kind?: (typeof extensionKinds)[number];
+  readonly description?: string;
+};
+
 export type Vocabulary = { readonly [K in keyof typeof lists]: Infer<(typeof lists)[K]> } & {
   readonly tones: Readonly<Record<string, string>>;
   readonly surfaceTypography: string;
   readonly contrast?: Infer<typeof contrast>;
   readonly contrastBase?: string;
+  readonly extensions?: Readonly<Record<string, Extension>>;
 };
 
 /** Embedded in the catalog schema; cross-references are checked on install. */
@@ -48,6 +67,7 @@ export const vocabularySchema = {
     surfaceTypography: name,
     contrast,
     contrastBase: name,
+    extensions: { ...record(extensionName.pattern, extension, 64), propertyNames: extensionName },
   },
   required: [...Object.keys(lists), "tones", "surfaceTypography"],
   additionalProperties: false,

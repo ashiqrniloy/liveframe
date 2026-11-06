@@ -1,0 +1,37 @@
+{
+  "format": "liveframe-design-system/1",
+  "id": "corpus",
+  "version": "1",
+  "values": {
+    "space.1": {
+      "kind": "spacing",
+      "value": {
+        "value": 4,
+        "unit": "px"
+      }
+    },
+    "size.notch": {
+      "kind": "size",
+      "value": {
+        "value": 6,
+        "unit": "px"
+      }
+    }
+  },
+  "recipes": {
+    "button.*.root.rest": {
+      "padding": "space.1",
+      "extensions": {
+        "sheen": "ink",
+        "notch": "size.notch",
+        "glow": 0.35
+      }
+    },
+    "button.*.label.rest": {
+      "textColor": "ink"
+    },
+    "button.*.root.focus": {
+      "outlineColor": "focus"
+    }
+  }
+}

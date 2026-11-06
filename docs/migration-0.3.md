@@ -136,3 +136,15 @@ implement(TextField, ({ props, domId }) => (
 Put `domId` on the element a reference-bearing target renders; a host that builds ImplementationProps by hand adds the field.
 Existing implementations keep working unchanged: an implementation that ignores `domId` renders the same DOM.
 `rendererSuite` fails an example whose reference names no element.
+
+### Extension recipe properties
+
+Declare app-owned recipe properties in `vocabulary.extensions` and set them in a recipe's `extensions` map; the projection emits each as `--lf-p-<name>` for your trusted primitive CSS to read.
+Update catalog and design-system validators and ports before installing documents that use extensions; a 0.2.x validator rejects them fail-closed.
+Adopting is opt-in: a catalog or design system without extensions is unchanged and projects byte-identical CSS.
+
+1. Declare the name and type in the catalog vocabulary (`colour`, or `value` with a design-value `kind`). Adding one is a minor catalog change.
+2. Set it in each design system's recipes; a system that does not set it keeps working.
+3. Read `var(--lf-p-<name>, <fallback>)` in your primitive CSS, or build the name with `extensionVar` from `@arnilo/liveframe/css`.
+
+`auditContrast` ignores extensions, so audit any pair your CSS paints from one yourself. See [extension properties](styling.md#extension-properties).

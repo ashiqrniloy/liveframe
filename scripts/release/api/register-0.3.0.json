@@ -364,7 +364,7 @@
     "subpath": "./schemas/*",
     "name": "catalog.json",
     "change": "widened",
-    "reason": "Node reference authoring markers, anchors and same-tree reference declarations",
+    "reason": "Node reference authoring markers, anchors and same-tree reference declarations; vocabulary extensions (app-declared recipe properties)",
     "hostAction": "Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps",
     "task": "027 T2"
   },
@@ -487,5 +487,149 @@
     "reason": "Same-tree node reference corpus and supporting catalog",
     "hostAction": "Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps",
     "task": "027 T2"
+  },
+  {
+    "subpath": "./schemas/*",
+    "name": "design-system.json",
+    "change": "widened",
+    "reason": "Recipes accept an optional extensions map for app-declared properties",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
+    "task": "027 T4"
+  },
+  {
+    "subpath": ".",
+    "name": "Vocabulary",
+    "change": "widened",
+    "reason": "Optional extensions declare app-owned recipe properties",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
+    "task": "027 T4"
+  },
+  {
+    "subpath": ".",
+    "name": "Recipe",
+    "change": "widened",
+    "reason": "Optional extensions map sets app-declared properties",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
+    "task": "027 T4"
+  },
+  {
+    "subpath": ".",
+    "name": "ResolvedRecipe",
+    "change": "widened",
+    "reason": "Resolved recipes carry an optional extensions object",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
+    "task": "027 T4"
+  },
+  {
+    "subpath": "./css",
+    "name": "extensionVar",
+    "change": "added",
+    "reason": "Names the --lf-p-<name> variable a design system's extension projects to",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
+    "task": "027 T4"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/docs/extension-without-kind.json",
+    "change": "added",
+    "reason": "Extension recipe property corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
+    "task": "027 T4"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/docs/extensions.json",
+    "change": "added",
+    "reason": "Extension recipe property corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
+    "task": "027 T4"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/extension-without-kind.json",
+    "change": "added",
+    "reason": "Extension recipe property corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
+    "task": "027 T4"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/extensions.json",
+    "change": "added",
+    "reason": "Extension recipe property corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
+    "task": "027 T4"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/common/extensions-catalog.json",
+    "change": "added",
+    "reason": "Extension recipe property corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
+    "task": "027 T4"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/design-system/docs/extension-colour-outside-theme.json",
+    "change": "added",
+    "reason": "Extension recipe property corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
+    "task": "027 T4"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/design-system/docs/extension-unknown-name.json",
+    "change": "added",
+    "reason": "Extension recipe property corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
+    "task": "027 T4"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/design-system/docs/extension-value-wrong-kind.json",
+    "change": "added",
+    "reason": "Extension recipe property corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
+    "task": "027 T4"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/design-system/docs/extensions.json",
+    "change": "added",
+    "reason": "Extension recipe property corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
+    "task": "027 T4"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/design-system/extension-colour-outside-theme.json",
+    "change": "added",
+    "reason": "Extension recipe property corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
+    "task": "027 T4"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/design-system/extension-unknown-name.json",
+    "change": "added",
+    "reason": "Extension recipe property corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
+    "task": "027 T4"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/design-system/extension-value-wrong-kind.json",
+    "change": "added",
+    "reason": "Extension recipe property corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
+    "task": "027 T4"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/design-system/extensions.json",
+    "change": "added",
+    "reason": "Extension recipe property corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
+    "task": "027 T4"
   }
 ]

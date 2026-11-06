@@ -51,6 +51,31 @@ test("design_system_suite_catches_broken_styles", async () => {
   await fails("every_design_system_installs", { catalog: null });
 });
 
+test("design_system_suite_covers_extension_bearing_design_systems", async () => {
+  const role = catalog.vocabulary.colourRoles[0] ?? "";
+  const extended = { ...catalog, vocabulary: { ...catalog.vocabulary, extensions: { sheen: { type: "colour" } } } };
+  const recipe = (extensions: unknown) => ({
+    ...certified,
+    recipes: {
+      ...certified.recipes,
+      "button.ghost.root.rest": { ...certified.recipes["button.ghost.root.rest"], extensions },
+    },
+  });
+  const overrides = { catalog: extended, designSystems: [recipe({ sheen: role })] };
+  for (const c of designSystemSuite({ ...input, ...overrides })) await c.run();
+  // A literal colour is not a theme role, and an undeclared name is not in the catalog.
+  const literal = await fails("every_design_system_installs", {
+    ...overrides,
+    designSystems: [recipe({ sheen: "#fff" })],
+  });
+  expect(literal.details).toContainEqual(expect.objectContaining({ kind: "colour-outside-theme" }));
+  const unknown = await fails("every_design_system_installs", {
+    ...overrides,
+    designSystems: [recipe({ glint: role })],
+  });
+  expect(unknown.details).toContainEqual(expect.objectContaining({ kind: "unknown-name" }));
+});
+
 test("design_system_suite_resolves_inheritance_from_the_whole_registry", async () => {
   const child = { ...certified, id: "child", extends: certified.id, values: {}, recipes: {} };
   for (const c of designSystemSuite({ ...input, designSystems: [child, certified] })) await c.run();

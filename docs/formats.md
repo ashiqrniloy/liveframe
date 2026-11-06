@@ -115,7 +115,7 @@ validateVocabulary({
 });
 ```
 
-All ten fields are required, and unknown fields are rejected. Each list holds
+The first ten fields are required (`contrast`, `contrastBase` and `extensions` are optional), and unknown fields are rejected. Each list holds
 at most 256 unique names. Names contain at most 64 characters and match
 `^[a-z][a-z0-9-]*(\.[a-z0-9-]+)*$`. The design-value lists require their family
 prefix: `space.`, `radius.`, `size.` and `bp.`. Lists may be empty, and a name may
@@ -128,6 +128,16 @@ maps at most 256 tone names to declared colour roles; both keys and values obey
 the name rules. For example, `tone: "muted"` refers to the declared
 `text.muted` role, whose colour a theme will supply. No colour literal belongs
 in a vocabulary.
+
+`extensions` declares the app's own recipe properties (at most 64). A name matches
+`^[a-z][A-Za-z0-9-]*$` (at most 64 characters, no `_` or `.`, so its projected
+variable is injective). An entry is `{ type: "colour" }` or
+`{ type: "value", kind }` with an optional `description` (at most 500 characters).
+`kind` is one of `spacing`, `radius`, `border-width`, `size`, `opacity`,
+`motion-duration`, `saturation` or `backdrop-blur`; easings, shadows, breakpoints
+and typography roles cannot be extensions. A `value` entry without a `kind`, or a
+`colour` entry with one, is `invalid-document`. See
+[extension properties](styling.md#extension-properties).
 
 `surfaceTypography` names one role in `typographyRoles` for every surface root's
 base typography. It obeys the same bounded name rules and must be declared,
@@ -812,6 +822,28 @@ Liveframe state. Recipes accept only the exported `recipeProperties` list:
 | `borderStyle`, `outlineStyle` | `solid`, `dashed` or `none` |
 | `opacity`, `backgroundOpacity` | `opacity` reference or number |
 | `shadow`, `backdropBlur`, `backdropSaturate`, `transitionDuration`, `transitionTiming` | Respectively `shadow`, `backdrop-blur`, `saturation`, `motion-duration`, `easing` reference or literal |
+
+A recipe may also carry an `extensions` map for properties its catalog declared in
+`vocabulary.extensions` (at most 64 per recipe). A `colour` extension takes a
+declared theme role or `"none"`; the `{ role, alpha }` modifier is not offered. A
+`value` extension takes a design-value name of its declared kind, or a bounded
+literal of that kind. An undeclared name is `unknown-name`; a colour that is not a
+theme role is `colour-outside-theme`; a literal or reference of the wrong kind is
+`invalid-document` or `unknown-name`. Each is pointed at
+`/recipes/<key>/extensions/<name>`. Extensions merge by name, not as one block, in
+inheritance and in the cascade below, and `resolveRecipes` returns them as an
+`extensions` object on the resolved recipe with value references replaced by
+literals (colours keep their role). They are optional: a design system is complete
+without them.
+
+```json
+{
+  "button.primary.root.rest": {
+    "backgroundColor": "accent.fill",
+    "extensions": { "sheen": "accent.highlight", "notch": "size.notch" }
+  }
+}
+```
 
 A colour modifier is a closed object with both `role` and `alpha` required.
 The role must be declared and cannot be `none`. Alpha is a finite number in

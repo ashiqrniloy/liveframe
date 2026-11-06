@@ -52,7 +52,7 @@ test("alpha_projection_byte_stable", () => {
 
 test("every_recipe_property_projects", () => {
   const px = { value: 2, unit: "px" } as const;
-  const recipe: Required<ResolvedRecipe> = {
+  const recipe: Required<Omit<ResolvedRecipe, "extensions">> = {
     backgroundColor: "surface.base",
     textColor: "text.primary",
     borderColor: "border.hairline",

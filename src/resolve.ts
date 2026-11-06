@@ -28,6 +28,46 @@ export function cascadeRecipes(
       entry && typeof entry === "object" ? { ...entry, color: colour(entry.color) } : entry;
     return Array.isArray(value) ? value.map(layer) : layer(value as ShadowLayer);
   }
+  const declared = catalog.vocabulary.extensions ?? {};
+  /** Colour extensions keep their role; a value extension that names a design value takes its literal. */
+  function extensionValues(input: Readonly<Record<string, unknown>>) {
+    const names = Object.keys(input);
+    if (names.length > 1) names.sort();
+    const resolved: Record<string, unknown> = {};
+    for (const name of names) {
+      const value = input[name];
+      resolved[name] = typeof value === "string" && declared[name]?.type === "value" ? ds.values[value]?.value : value;
+    }
+    return resolved;
+  }
+  /** Later layers win per property; extensions merge by name, so a variant keeps a wildcard's other names. */
+  function resolveLayers(a?: Recipe, b?: Recipe, c?: Recipe, d?: Recipe): ResolvedRecipe {
+    const merged: Recipe = { ...a, ...b, ...c, ...d };
+    const resolved: Record<string, unknown> = Object.fromEntries(
+      Object.entries(merged).map(([property, input]) => {
+        const value =
+          typeof input === "string" &&
+          Object.hasOwn(ds.values, input) &&
+          !colourProperties.includes(property) &&
+          !["typography", "borderStyle", "outlineStyle"].includes(property)
+            ? ds.values[input]?.value
+            : input;
+        return [
+          property,
+          property === "shadow"
+            ? shadow(value as ShadowLayer | readonly ShadowLayer[])
+            : colourProperties.includes(property)
+              ? colour(value as ColourValue)
+              : value,
+        ];
+      }),
+    );
+    if (merged.extensions)
+      resolved.extensions = extensionValues(
+        Object.assign({}, a?.extensions, b?.extensions, c?.extensions, d?.extensions),
+      );
+    return resolved as ResolvedRecipe;
+  }
   const table: Partial<Record<RecipeKey, ResolvedRecipe>> = Object.create(null);
   for (const definition of catalog.definitions) {
     const { kind } = definition;
@@ -40,30 +80,11 @@ export function cascadeRecipes(
           reject(`/recipes/${specific}.rest`, "Missing rest recipe", "incomplete-design-system");
         focus ||= Object.hasOwn(ds.recipes, `${wildcard}.focus`) || Object.hasOwn(ds.recipes, `${specific}.focus`);
         for (const state of states) {
-          const merged: Recipe = {
-            ...ds.recipes[`${wildcard}.rest` as RecipeKey],
-            ...ds.recipes[`${specific}.rest` as RecipeKey],
-            ...ds.recipes[`${wildcard}.${state}` as RecipeKey],
-            ...ds.recipes[`${specific}.${state}` as RecipeKey],
-          };
-          table[`${specific}.${state}` as RecipeKey] = Object.fromEntries(
-            Object.entries(merged).map(([property, input]) => {
-              const value =
-                typeof input === "string" &&
-                Object.hasOwn(ds.values, input) &&
-                !colourProperties.includes(property) &&
-                !["typography", "borderStyle", "outlineStyle"].includes(property)
-                  ? ds.values[input]?.value
-                  : input;
-              return [
-                property,
-                property === "shadow"
-                  ? shadow(value as ShadowLayer | readonly ShadowLayer[])
-                  : colourProperties.includes(property)
-                    ? colour(value as ColourValue)
-                    : value,
-              ];
-            }),
+          table[`${specific}.${state}` as RecipeKey] = resolveLayers(
+            ds.recipes[`${wildcard}.rest` as RecipeKey],
+            ds.recipes[`${specific}.rest` as RecipeKey],
+            ds.recipes[`${wildcard}.${state}` as RecipeKey],
+            ds.recipes[`${specific}.${state}` as RecipeKey],
           );
         }
         const rest = table[`${specific}.rest` as RecipeKey];

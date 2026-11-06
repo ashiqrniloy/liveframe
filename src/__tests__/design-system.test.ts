@@ -315,7 +315,8 @@ test("rack_validates_and_resolves_under_50ms", async () => {
 test("recipe_schema_uses_the_fixed_property_vocabulary", async () => {
   const { recipeProperties } = await import("../index.ts");
   const entry = Object.values(designSystemSchema.properties.recipes.patternProperties)[0];
-  expect(Object.keys(entry!.properties).sort()).toEqual([...recipeProperties].sort());
+  // `extensions` is the nested map for app-declared properties (vocabulary.extensions), not a fixed property.
+  expect(Object.keys(entry!.properties).sort()).toEqual([...recipeProperties, "extensions"].sort());
 });
 
 test("inheritance_and_completeness_fail_closed", () => {

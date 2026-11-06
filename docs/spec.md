@@ -314,6 +314,11 @@ A design system contributes:
 
 - **States**: `rest`, `hover`, `active`, `focus`, `disabled`, `selected`, `current`, `mixed`, `pending`, `readonly`, `invalid`, `open`. The list is fixed by the library; a recipe may style any of them, and states are optional overlays on `rest`.
 - **Recipe properties** are a closed, typed list fixed by the library: colours, borders (width per side or all sides, style), outline, radius, padding, gap, typography role, opacity, shadow, backdrop blur and saturation, transition (a duration and an easing value), and a pressed offset (a `translateY` dimension). Every property's value type is fixed. Product-specific names, such as an easing called `expo-out` or a transform preset, are design values, not recipe vocabulary.
+- **Extension properties.** An app may declare recipe properties of its own in `vocabulary.extensions` (§6.5) and a design system sets them in a recipe's nested `extensions` map: `"button.primary.root.rest": { "backgroundColor": "accent.fill", "extensions": { "sheen": "accent.highlight", "notch": "size.notch" } }`. They sit in their own map so a later library property can never collide with an app's name.
+
+  A `colour` extension takes a declared theme role or `none`; the `{ role, alpha }` object is not offered. A `value` extension takes a design-value name of its declared kind, or a bounded literal of that kind, as the numeric properties do. A name the catalog does not declare is `unknown-name`, a colour that is not a theme role is `colour-outside-theme`, and a value of the wrong shape or kind is `invalid-document` or `unknown-name`, all at `/recipes/<key>/extensions/<name>`.
+
+  Extensions merge **by name** through the cascade below and through `extends`, so a variant can set one name without erasing a wildcard's others. They are optional overlays: declaring one never makes an installed design system incomplete. The projection emits each as `--lf-p-<name>` for the app's trusted primitive CSS to read (§6.4); nothing in the tree or in a style prop can name one, so law 3 holds.
 - A recipe never sets display mode, flex or grid layout, tracks, content alignment, size or position: those are style props (§6.3) chosen by the widget.
 - **Structural defaults belong to app primitives.** Headings' wrapping, an icon's box, controls' minimum heights and overlay positioning are trusted app implementation CSS. The library's base sheet supplies only a generic reset, surface typography, containment and environment overrides; it knows no app kinds. Law 3 constrains widget code and installed style data, not trusted app primitive CSS.
 - **Projection semantics.** `borderLeftWidth` and `borderRightWidth` mean inline start and inline end in left-to-right text and project to logical sides, mirroring under `dir="rtl"`; top and bottom remain physical.
@@ -437,7 +442,13 @@ Surface roots carry both scope attributes and `lf_surface`. Overlays follow §11
 
 Every surface root sets the theme's base typography from the app's vocabulary, and every slot that draws text has a typography role. Nothing inherits the host page's fonts. Only a surface whose tree uses responsive values gains `lf_container`, a named inline-size container `lf`. Responsive rules use `@container lf` with literal design-system breakpoint widths; values chain through narrower breakpoints (§6.3). A responsive surface supplies its own container rather than relying on a host container or viewport fallback.
 
-**Classes and names.** Each slot carries one stable class, `lf_<kind>_<variant>_<slot>`, independent of theme, design system and state. Dots in role/value names encode as `_`; `__` separates fixed suffixes. Vocabulary, catalog and id names contain no `_`, making the encoding injective. Variables are `--lf-c-<role>`, `--lf-t-<role>__<field>`, `--lf-v-<name>` and `--lf-r-<prop>__<breakpoint>__<cssProperty>`. `slotClass`, `styleDeclarations`, `surfaceAttributes`, `colourVar` and `valueVar` provide classes, plain style objects, scope attributes and variable names without a DOM dependency. Installed strings are escaped and validated, never inserted as raw CSS.
+**Classes and names.** Each slot carries one stable class, `lf_<kind>_<variant>_<slot>`, independent of theme, design system and state. Dots in role/value names encode as `_`; `__` separates fixed suffixes. Vocabulary, catalog and id names contain no `_`, making the encoding injective. Variables are `--lf-c-<role>`, `--lf-t-<role>__<field>`, `--lf-v-<name>`, `--lf-p-<extension>` and `--lf-r-<prop>__<breakpoint>__<cssProperty>`. `slotClass`, `styleDeclarations`, `surfaceAttributes`, `colourVar`, `valueVar` and `extensionVar` provide classes, plain style objects, scope attributes and variable names without a DOM dependency. Installed strings are escaped and validated, never inserted as raw CSS.
+
+**Extensions.** Each extension a resolved recipe sets adds one declaration to that recipe's rule, after the fixed declarations and sorted by name: a `colour` projects `var(--lf-c-<role>)` or `transparent`, a `value` its resolved literal (`6px`, `0.35`, `140ms`). An unset extension projects nothing, so the app's `var(--lf-p-sheen, <fallback>)` falls back, and a state whose declarations equal rest still emits no rule.
+
+Custom properties inherit, so a root slot's value reaches descendant slots that do not set their own; the app's CSS reads the variable on the slot that declares it, and the projection adds no reset rule. Extensions are not registered with `@property`.
+
+A `colour` extension carries no alpha modifier and no forced-colours rule: reduced transparency has nothing to recover (the variable is declared once, by the ordinary rule), and `forced-color-adjust` stays `auto`, so the OS overrides whatever the app's CSS paints from the variable. `auditContrast` ignores extensions, because the library cannot know which background the app paints one against. A design system that sets none projects byte-identical CSS.
 
 **States and cascade.** Each recipe selector has specificity (0,1,0): the slot class contributes specificity, while scope, state and root qualifiers are inside `:where()`. Source order is `rest < hover < focus < active < open < selected < current < mixed < pending < readonly < invalid < disabled`. A state whose resolved declarations equal rest emits no extra rule. A root's state also reaches its slots. Hover and active never apply to a disabled element, including a slot of a disabled root, and never to a pending one once the design system styles `pending`: a control that is waiting for the host takes no hover or press feedback. A system that declares no `pending` recipe gains no pending-state rules.
 
@@ -531,7 +542,11 @@ type Vocabulary = {
   contrast?: { foreground: string; background: string; minimum: number;
                maximum?: number; lessThan?: number; description?: string }[];
   contrastBase?: string;                  // declared surface role, opaque in the installed theme
-};
+  extensions?: Record<string, { type: "colour"; description?: string }
+                          | { type: "value"; kind: ExtensionKind; description?: string }>;
+};                                        // app recipe properties (§6.2); at most 64, names [a-z][A-Za-z0-9-]*
+type ExtensionKind = "spacing" | "radius" | "border-width" | "size" | "opacity"
+                   | "motion-duration" | "saturation" | "backdrop-blur";
 ```
 
 Fixed by the library: the kinds above, the states (§6.2), the recipe properties (§6.2), the style props and their value rules (§6.3), and the `semantics` values (§5). A theme must define every declared role, a design system every declared value name, and a catalog carries its vocabulary.
@@ -568,7 +583,7 @@ Each finding names the recipe key, both roles, the ratio to two decimals and the
 
 The audit is opt-in, runs at install time and never on the render path, and it changes no installation: a design system that installs today still installs.
 
-Changing the contrast contract or its base is conservatively classified as a major catalog change because it can invalidate installed themes. Description-only changes are ignored; an omitted maximum is equivalent to 21.
+Changing the contrast contract or its base is conservatively classified as a major catalog change because it can invalidate installed themes. Adding an extension is a minor change; removing one, or changing its `type` or `kind`, is major because an installed design system that sets it would stop validating. A description-only change is ignored. Description-only changes are ignored; an omitted maximum is equivalent to 21.
 
 **Rationale**
 

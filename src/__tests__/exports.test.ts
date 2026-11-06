@@ -69,6 +69,7 @@ test("css_exports_are_pinned", () => {
     "baseCss",
     "colourVar",
     "designSystemCss",
+    "extensionVar",
     "slotClass",
     "styleDeclarations",
     "surfaceAttributes",

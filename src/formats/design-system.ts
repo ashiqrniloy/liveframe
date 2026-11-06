@@ -16,8 +16,9 @@ import {
   shadow,
   signedDimension,
 } from "./dtcg.ts";
-import { noPaint, scrollbarProperties, states } from "./fixed.ts";
+import { type extensionKinds, noPaint, scrollbarProperties, states } from "./fixed.ts";
 import { validateJson } from "./json.ts";
+import { extensionName } from "./vocabulary.ts";
 
 const literalSchemas = {
   radius: designDimension,
@@ -85,10 +86,18 @@ type PropertyValue<P extends Property, Alpha = number | string> = (typeof proper
       : (typeof propertyKinds)[P] extends "shadow"
         ? ShadowLayer<Alpha> | readonly ShadowLayer<Alpha>[]
         : Extract<DesignValue, { kind: (typeof propertyKinds)[P] }>["value"];
+/** An extension's literal: one of the design-value kinds an app may declare (`extensionKinds`). */
+export type ExtensionLiteral = Extract<DesignValue, { kind: (typeof extensionKinds)[number] }>["value"];
 export type Recipe = {
   readonly [P in Property]?: PropertyValue<P> | ((typeof propertyKinds)[P] extends "style" ? never : string);
+} & {
+  /** App-declared properties (`vocabulary.extensions`): a theme role or `none`, a design-value name, or a literal. */
+  readonly extensions?: Readonly<Record<string, string | ExtensionLiteral>>;
 };
-export type ResolvedRecipe = { readonly [P in Property]?: PropertyValue<P, number> };
+export type ResolvedRecipe = { readonly [P in Property]?: PropertyValue<P, number> } & {
+  /** Colour extensions keep their role (or `none`); value extensions are resolved to literals. */
+  readonly extensions?: Readonly<Record<string, string | ExtensionLiteral>>;
+};
 export type RecipeKey = `${string}.${string}.${string}.${(typeof states)[number]}`;
 const keyName = str({
   maxLength: 203,
@@ -120,6 +129,8 @@ function propertySchema(property: Property) {
   const schema = property === "translateY" || property === "outlineOffset" ? signedDimension : literalSchemas[kind];
   return { oneOf: [roleName, schema] };
 }
+// Kind-specific literal checks need the catalog, so the schema only fixes the shapes an extension can take.
+const extensionValue = { anyOf: [roleName, designDimension, duration, num({ minimum: 0, maximum: 10 })] };
 export const designSystemSchema = {
   ...fields,
   properties: {
@@ -142,7 +153,10 @@ export const designSystemSchema = {
         keyName.pattern,
         {
           type: "object",
-          properties: Object.fromEntries((Object.keys(propertyKinds) as Property[]).map((p) => [p, propertySchema(p)])),
+          properties: {
+            ...Object.fromEntries((Object.keys(propertyKinds) as Property[]).map((p) => [p, propertySchema(p)])),
+            extensions: { ...record(extensionName.pattern, extensionValue, 64), propertyNames: extensionName },
+          },
           additionalProperties: false,
         },
         16384,
@@ -191,7 +205,9 @@ function checkDocument(
           (error) =>
             !authority.some(
               (pointer) => pointer === base + error.pointer || pointer.startsWith(`${base + error.pointer}/`),
-            ),
+            ) &&
+            // The extension literal check reports the same failure against its declared kind.
+            !c.errors.some((known) => known.pointer === base + error.pointer && known.message === error.message),
         ),
       },
       base,
@@ -240,10 +256,34 @@ function checkRecipe(
     c.reject(path, "Unknown recipe kind, variant, slot or state", "unknown-name");
   for (const [property, value] of Object.entries(entry)) {
     // Container hover/active is not thumb hover/active, so native scrollbar colours are rest-only.
+    if (property === "extensions") continue;
     if (state !== "rest" && scrollbarProperties.includes(property))
       c.reject(at(path, property), `${property} is declared only in rest recipes`);
     else checkRecipeProperty(property, value, at(path, property), c, context, colours);
   }
+  if (isRecord(entry.extensions))
+    for (const [extension, value] of Object.entries(entry.extensions))
+      checkExtension(extension, value, () => at(at(path, "extensions"), extension), c, context, colours);
+}
+
+/** An extension names a declared property and carries that property's type: colours only from the theme. */
+function checkExtension(
+  name: string,
+  value: unknown,
+  pointer: () => string,
+  c: Checks,
+  context: DesignSystemContext,
+  colours: ReadonlySet<string>,
+): void {
+  const extensions = context.catalog.vocabulary.extensions;
+  const declared = extensions && Object.hasOwn(extensions, name) ? extensions[name] : undefined;
+  if (!declared) c.reject(pointer(), `Undeclared extension: ${name}`, "unknown-name");
+  else if (declared.type === "colour") {
+    if (typeof value !== "string") c.reject(pointer(), "Extension colour must name a theme role");
+    else if (value !== noPaint && !colours.has(value))
+      c.reject(pointer(), "Colour must name a theme role", "colour-outside-theme");
+  } else if (typeof value !== "string" && declared.kind)
+    c.collect(checkFormat(literalSchemas[declared.kind], value), pointer());
 }
 
 function checkRecipeProperty(
@@ -269,8 +309,16 @@ function mergeChain(chain: readonly DesignSystem[]) {
   const recipes: Partial<Record<RecipeKey, Recipe>> = Object.create(null);
   for (const ds of chain) {
     Object.assign(values, ds.values);
-    for (const [key, recipe] of Object.entries(ds.recipes))
-      recipes[key as RecipeKey] = { ...recipes[key as RecipeKey], ...recipe };
+    for (const [key, recipe] of Object.entries(ds.recipes)) {
+      const before = recipes[key as RecipeKey];
+      recipes[key as RecipeKey] = {
+        ...before,
+        ...recipe,
+        ...(before?.extensions || recipe?.extensions
+          ? { extensions: { ...before?.extensions, ...recipe?.extensions } }
+          : {}),
+      };
+    }
   }
   return { values, recipes };
 }
@@ -346,6 +394,27 @@ function checkReferences(
       }
 }
 
+/** A `value` extension that names a design value must name one of its declared kind. */
+function checkExtensionReferences(
+  chain: readonly DesignSystem[],
+  values: Readonly<Record<string, DesignValue>>,
+  vocabulary: DesignSystemContext["catalog"]["vocabulary"],
+  c: Checks,
+): void {
+  const declared = vocabulary.extensions ?? {};
+  for (const ds of chain)
+    for (const [key, recipe] of Object.entries(ds.recipes))
+      for (const [name, value] of recipe?.extensions ? Object.entries(recipe.extensions) : []) {
+        const kind = Object.hasOwn(declared, name) ? declared[name]?.kind : undefined;
+        if (typeof value === "string" && kind !== undefined && values[value]?.kind !== kind)
+          c.reject(
+            at(at(at("/recipes", key), "extensions"), name),
+            `Expected a ${kind} value reference`,
+            "unknown-name",
+          );
+      }
+}
+
 /** Internal shared install pass: validate the chain, merge it, then check references. */
 export function prepareDesignSystem(
   doc: unknown,
@@ -378,6 +447,7 @@ export function prepareDesignSystem(
   const merged = mergeChain(ordered);
   checkDeclaredVocabulary(merged.values, context.catalog.vocabulary, c);
   checkReferences(ordered, merged.values, c);
+  checkExtensionReferences(ordered, merged.values, context.catalog.vocabulary, c);
   cascadeRecipes(merged, context.catalog, c.reject);
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: merged };
 }

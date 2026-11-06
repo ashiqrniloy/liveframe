@@ -117,6 +117,21 @@ export const recipeProperties = [
   "scrollbarTrackColor",
 ] as const;
 
+/**
+ * The design-value kinds an extension recipe property can carry (spec §6.5). Easings, shadows,
+ * breakpoints and typography roles are excluded: the app's CSS cannot use them as one variable.
+ */
+export const extensionKinds = [
+  "spacing",
+  "radius",
+  "border-width",
+  "size",
+  "opacity",
+  "motion-duration",
+  "saturation",
+  "backdrop-blur",
+] as const;
+
 /** Properties that take a theme role, `none` (except `textColor`) or a role-alpha object. */
 export const colourProperties: readonly string[] = [
   "backgroundColor",

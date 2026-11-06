@@ -1,0 +1,9 @@
+{
+  "inputs": {
+    "doc": "docs/extensions.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": true
+  }
+}

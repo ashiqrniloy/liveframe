@@ -1,5 +1,6 @@
 import {
   auditContrast,
+  resolveRecipes,
   validateCatalog,
   validateTheme,
   validateDesignSystem,
@@ -7,7 +8,7 @@ import {
   type DesignSystem,
   type Result,
 } from "../index.ts";
-import { baseCss, themeCss, designSystemCss } from "../css/index.ts";
+import { baseCss, designSystemCss, extensionVar, themeCss } from "../css/index.ts";
 import { check, type ConformanceCase } from "./case.ts";
 
 /** One audit finding as a test-runner message: the recipe, the pair, the ratio and the threshold. */
@@ -117,7 +118,21 @@ export function designSystemSuite({
         );
         for (const theme of installedThemes) {
           value(themeCss(theme, options.catalog), rule, "§6.4");
-          for (const system of installedSystems) value(designSystemCss(system, options), rule, "§6.4");
+          for (const system of installedSystems) {
+            const css = value(designSystemCss(system, options), rule, "§6.4");
+            // An extension a design system sets reaches the sheet as `--lf-p-<name>` (§6.4).
+            const set = new Set(
+              Object.values(resolveRecipes(system, options)).flatMap((recipe) => Object.keys(recipe?.extensions ?? {})),
+            );
+            check(
+              [...set].every((name) => css.includes(`${extensionVar(name)}:`)),
+              rule,
+              "§6.4",
+              [...set]
+                .filter((name) => !css.includes(`${extensionVar(name)}:`))
+                .map((name) => `${extensionVar(name)} is set but not projected`),
+            );
+          }
         }
       },
     },

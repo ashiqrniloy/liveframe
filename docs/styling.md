@@ -298,6 +298,62 @@ The platform floor is Baseline 2024: custom properties, `:is`/`:where`/`:has`,
 and `text-wrap: balance`. Shadow-DOM isolation, nested surfaces and vertical
 writing modes are outside this contract.
 
+## Extension properties
+
+The recipe property list is fixed by the library. An app that needs a look it does
+not name, such as an ornament colour or a corner-notch size, declares an
+**extension** in its catalog vocabulary and lets each design system supply the
+value:
+
+```jsonc
+// catalog.json, vocabulary
+"extensions": {
+  "sheen": { "type": "colour", "description": "Highlight along the top edge." },
+  "notch": { "type": "value", "kind": "size" }
+}
+// design-system.json
+"button.primary.root.rest": {
+  "backgroundColor": "accent.fill",
+  "extensions": { "sheen": "accent.highlight", "notch": "size.notch" }
+}
+```
+
+The projection adds one declaration per extension to the slot's rule, after the
+fixed declarations and sorted by name:
+
+```css
+.lf_button_primary_root{background-color:var(--lf-c-accent-fill);--lf-p-notch:6px;--lf-p-sheen:var(--lf-c-accent-highlight)}
+```
+
+Trusted app primitive CSS reads it with a fallback, so a design system that does
+not set the extension still renders:
+
+```ts
+import { extensionVar } from "@arnilo/liveframe/css";
+
+const primitiveCss = `
+  .app-button { box-shadow: inset 0 1px 0 var(${extensionVar("sheen")}, transparent); }
+`;
+```
+
+- A `colour` extension is a theme role or `none` (`transparent`); a `value` is a
+  design-value name or bounded literal of its declared kind. Widgets cannot set an
+  extension: the values live in the design system, so law 3 holds.
+- Extensions merge **by name** through `extends` and the cascade, so a variant can
+  set `notch` without erasing a wildcard's `sheen`. They are optional overlays; a
+  new extension never makes an installed design system incomplete.
+- Custom properties inherit: a root slot's extension reaches descendant slots that
+  do not set their own, so read the variable on the slot that declares it. The
+  projection adds no reset rule.
+- A colour extension has no alpha modifier, so reduced transparency has nothing to
+  recover; the variable is declared once. Forced colours are unchanged: the OS
+  overrides whatever your CSS paints from it.
+- `auditContrast` ignores extensions. The library cannot know which background
+  your CSS paints one against, so audit those pairs yourself.
+- A design system that sets no extension projects byte-identical CSS.
+- Adding an extension to the catalog is a minor change; removing one or changing
+  its type or kind is major.
+
 ## App primitive CSS
 
 The library knows no app kinds and supplies no visual components or design

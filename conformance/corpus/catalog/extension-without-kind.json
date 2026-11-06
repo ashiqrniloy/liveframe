@@ -1,0 +1,15 @@
+{
+  "inputs": {
+    "doc": "docs/extension-without-kind.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "invalid-document",
+        "pointer": "/vocabulary/extensions/notch/kind"
+      }
+    ]
+  }
+}

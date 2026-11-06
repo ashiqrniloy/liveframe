@@ -1,7 +1,7 @@
 import type { ColourValue } from "../formats/dtcg.ts";
 import type { ResolvedRecipe } from "../formats/design-system.ts";
 import { noPaint, recipeProperties } from "../formats/fixed.ts";
-import { colourVar, typographyVar } from "./names.ts";
+import { colourVar, extensionVar, typographyVar } from "./names.ts";
 
 function colourValue(value: ColourValue<number>): string {
   if (value === noPaint) return "transparent";
@@ -71,6 +71,12 @@ const properties: { [P in Property]: (value: NonNullable<ResolvedRecipe[P]>, rec
   scrollbarTrackColor: () => "",
 };
 
+/** A colour extension is a role or `none`; a value extension is the resolved literal. */
+function extensionDeclaration(name: string, value: string | number | object): string {
+  if (typeof value === "string") return `${extensionVar(name)}:${colourValue(value)}`;
+  return `${extensionVar(name)}:${typeof value === "number" ? value : dimension(value as Parameters<typeof dimension>[0])}`;
+}
+
 /** Input is the validated, flattened resolver output; fixed order makes comparison deterministic. */
 export function recipeDeclarations(recipe: ResolvedRecipe): string {
   function declaration<P extends Property>(property: P): string {
@@ -80,6 +86,8 @@ export function recipeDeclarations(recipe: ResolvedRecipe): string {
   const declarations = recipeProperties.map(declaration).filter(Boolean);
   if (recipe.transitionDuration !== undefined || recipe.transitionTiming !== undefined)
     declarations.push(`transition-property:${transitionProperties}`);
+  // The resolver sorts extension names, and a name starts with a letter, so insertion order is name order.
+  for (const name in recipe.extensions) declarations.push(extensionDeclaration(name, recipe.extensions[name] ?? ""));
   return declarations.join(";");
 }
 

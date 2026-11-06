@@ -1,0 +1,16 @@
+{
+  "inputs": {
+    "doc": "docs/extension-value-wrong-kind.json",
+    "catalog": "../common/extensions-catalog.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "invalid-document",
+        "pointer": "/recipes/button.*.root.rest/extensions/glow"
+      }
+    ]
+  }
+}

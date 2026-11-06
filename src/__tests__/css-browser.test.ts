@@ -1008,3 +1008,59 @@ test.skipIf(browserName === "webkit")("forced_colours_none_background", async ()
     await page.close();
   }
 });
+
+test("extension_variables_compute_inherit_and_follow_states", async () => {
+  const page = await browser.newPage();
+  try {
+    const extended: Catalog = {
+      ...catalog,
+      vocabulary: {
+        ...catalog.vocabulary,
+        extensions: { sheen: { type: "colour" }, glow: { type: "value", kind: "opacity" } },
+      },
+    };
+    const extensions = { sheen: "surface.hover", glow: 0.25 };
+    const sheets = [
+      baseCss(extended),
+      themeCss(theme, extended),
+      designSystemCss(
+        {
+          ...system,
+          recipes: {
+            ...recipes,
+            "button.default.root.rest": { ...recipes["button.default.root.rest"], extensions },
+            "button.default.root.hover": {
+              ...recipes["button.default.root.hover"],
+              extensions: { sheen: "surface.active" },
+            },
+          },
+        },
+        { catalog: extended, registry: {} },
+      ),
+    ]
+      .map(css)
+      .join("\n");
+    await page.setContent(
+      `<style>${sheets}</style><section class="lf_surface" data-lf-theme="${theme.id}@${theme.version}" data-lf-ds="${system.id}@${system.version}"><button id="root" class="lf_button_default_root"><span id="label" class="lf_button_default_label">Button</span></button></section>`,
+    );
+    const read = (id: string, name: string) =>
+      page.locator(`#${id}`).evaluate((el, n) => getComputedStyle(el).getPropertyValue(n).trim(), name);
+    // The colour is the theme's role, the value is the literal, and descendants inherit both.
+    const hover = await read("root", "--lf-c-surface_hover");
+    const active = await read("root", "--lf-c-surface_active");
+    expect(hover).not.toBe(active);
+    expect(await read("root", "--lf-p-sheen")).toBe(hover);
+    expect(await read("root", "--lf-p-glow")).toBe("0.25");
+    expect(await read("label", "--lf-p-sheen")).toBe(hover);
+    // A state overrides one name and keeps the others.
+    await page.locator("#root").evaluate((el) => el.setAttribute("data-hovered", ""));
+    expect(await read("root", "--lf-p-sheen")).toBe(active);
+    expect(await read("root", "--lf-p-glow")).toBe("0.25");
+    // Reduced transparency has nothing to recover: the variables are unchanged.
+    await page.locator("section").evaluate((el) => el.setAttribute("data-lf-transparency", "reduced"));
+    expect(await read("root", "--lf-p-sheen")).toBe(active);
+    expect(await read("root", "--lf-p-glow")).toBe("0.25");
+  } finally {
+    await page.close();
+  }
+});

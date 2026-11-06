@@ -10,6 +10,8 @@ Added:
 
 - Node references in the renderer: implementations receive `domId`, a per-surface DOM id (unique across surfaces, stable across re-renders), and `<Surface>` rewrites `refProps` values to the target's `domId` before they reach an implementation. `rendererSuite` gains `ref_props_resolve_to_elements_in_the_surface`. See [the renderer guide](docs/renderer.md#write-primitive-implementations).
 
+- Extension recipe properties: `vocabulary.extensions` declares app-owned properties (`colour`, or `value` with a design-value kind), a recipe's `extensions` map sets them (colours from theme roles only), they merge by name through `extends` and the cascade, and the projection emits `--lf-p-<name>` for trusted primitive CSS. `extensionVar` joins `/css`; `designSystemSuite` checks each set extension reaches the sheet. A design system without extensions projects byte-identical CSS. See [the styling guide](docs/styling.md#extension-properties).
+
 - `/store` exports `verifiedPackages({ max? })`, an optional host-owned LRU passed as `{ verified }` to `loadPlacement`. Matching content and installation documents reuse package verification; stored structure, content hashes, placement identity, params and state are checked on every load.
 
 - `createPreview()`, `createAuthoring()` and the MCP `AuthoringConfig` accept `limits` for node count, depth and tree bytes, enforced by both the runner and host validation. Defaults and authoring response bounds are unchanged.

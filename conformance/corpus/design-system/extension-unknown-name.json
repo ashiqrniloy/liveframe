@@ -1,0 +1,16 @@
+{
+  "inputs": {
+    "doc": "docs/extension-unknown-name.json",
+    "catalog": "../common/extensions-catalog.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "unknown-name",
+        "pointer": "/recipes/button.*.root.rest/extensions/sparkle"
+      }
+    ]
+  }
+}
