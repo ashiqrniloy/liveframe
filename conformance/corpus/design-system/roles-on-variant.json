@@ -1,0 +1,16 @@
+{
+  "inputs": {
+    "doc": "docs/roles-on-variant.json",
+    "catalog": "../common/axes-catalog.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "invalid-document",
+        "pointer": "/recipes/button.primary.root.hover/roles"
+      }
+    ]
+  }
+}

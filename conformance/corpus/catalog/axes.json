@@ -1,0 +1,9 @@
+{
+  "inputs": {
+    "doc": "docs/axes.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": true
+  }
+}

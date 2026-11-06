@@ -10,6 +10,7 @@ import {
   type ResolvedRecipe,
 } from "../formats/design-system.ts";
 import type { ColourValue, ShadowLayer } from "../formats/dtcg.ts";
+import { variantKeys } from "../formats/axes.ts";
 import { colourProperties, states } from "../formats/fixed.ts";
 import { cascadeRecipes } from "../resolve.ts";
 import {
@@ -214,7 +215,7 @@ function stateRules(
   const definitions = [...context.catalog.definitions].sort((a, b) => (a.kind < b.kind ? -1 : a.kind > b.kind ? 1 : 0));
   for (const [state, condition] of Object.entries(stateSelectors))
     for (const definition of definitions)
-      for (const variant of [...definition.variants].sort())
+      for (const variant of [...variantKeys(definition)].sort())
         for (const slot of [...definition.slots].sort())
           slotRules(
             scope,

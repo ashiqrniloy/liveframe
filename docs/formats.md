@@ -196,6 +196,15 @@ characters. Descriptions and the optional primitive `deprecated` explanation
 have at most 500 code points. Prop schemas may carry the language's boolean
 `deprecated` annotation and a replacement explanation in `description`.
 
+A definition may also declare `axes`: up to three extra look choices beside the
+variant, each naming an enum string prop and the value an absent prop takes
+(`axes: { tone: { default: "neutral" } }`). The prop must exist, be a string with
+an `enum` (else `unknown-name` at `/definitions/<i>/axes/<name>`), and its default
+must be one of the values. Values must be tokens (`^[a-z][A-Za-z0-9-]*$`), an axis
+has at most 16 values and a kind at most 256 variant and axis-value combinations
+(each `invalid-document`). The axis value is an ordinary prop, so trees, patches and
+generated types are unchanged. See [variant axes](styling.md#variant-axes).
+
 Each definition requires all fields in the example. Variant and slot lists
 contain at most 256 unique tokens; `defaultVariant` must be declared and slots
 must include `root`. `styleProps` is a unique subset of the exported fixed list.
@@ -806,8 +815,9 @@ The system must supply every declared `space`, `radius`, `size` and breakpoint
 name with its matching kind.
 
 Recipe keys are `kind.variant.slot.state`; `*` in the variant position applies
-to every variant. Keys must name catalog kinds, variants and slots, and a fixed
-Liveframe state. Recipes accept only the exported `recipeProperties` list:
+to every variant, and `axis:value` applies to one value of an axis the kind
+declares. Keys must name catalog kinds, variants (or declared axis values) and
+slots, and a fixed Liveframe state. Recipes accept only the exported `recipeProperties` list:
 
 | Properties | Accepted value |
 | --- | --- |
@@ -845,6 +855,16 @@ without them.
 }
 ```
 
+An axis overlay may also carry `roles`, a map from a colour role or family to
+another (at most 64 entries, role-name grammar), applied once when the recipe
+resolves: `"button.tone:critical.root.rest": { "roles": { "accent": "status.critical" } }`
+makes a combination read `status.critical.fill` where its variant says
+`accent.fill`. `roles` is rejected on wildcard and variant keys
+(`invalid-document` at `/recipes/<key>/roles`); a source or target that is not a
+declared role or a prefix of one, and a rewrite to a role the vocabulary does not
+declare, are `unknown-name` at `/recipes/<key>/roles/<from>`. The matching rules
+(dot boundaries, longest source, one step) are in spec §6.2.
+
 A colour modifier is a closed object with both `role` and `alpha` required.
 The role must be declared and cannot be `none`. Alpha is a finite number in
 [0, 1] with at most four decimal places, or a design-system value name of kind
@@ -869,7 +889,8 @@ literals follow the shapes above. No property accepts raw CSS or selectors.
 
 Inheritance merges parent values first, then child values; matching recipe keys
 merge per property, with child properties winning. Recipe resolution then merges
-wildcard rest, variant rest, wildcard state, variant state, in that order.
+wildcard rest, variant rest, each axis's rest overlay in declared axis order,
+wildcard state, variant state, then each axis's state overlay, in that order.
 All states resolve to rest plus their optional overlays. Every variant and slot
 needs a rest entry (an empty object counts); each interactive kind needs a focus
 overlay in at least one slot for each variant. A wildcard focus satisfies all
@@ -877,6 +898,10 @@ variants. Validation reports missing entries as `incomplete-design-system` and
 cycles as `cyclic-extends`.
 
 `resolveRecipes` returns the flat table for every catalog variant, slot and state.
+For a kind with axes it holds one entry per variant and axis-value combination,
+keyed `kind.variant__value….slot.state` with the values in declared axis order
+(`button.primary__critical.root.rest`); aliases are already applied and `roles` is
+stripped.
 It replaces design-value references with DTCG literals, preserving colour and
 typography role names. It does not mutate its inputs. Call it after validation;
 invalid input throws an error containing the install errors. The published

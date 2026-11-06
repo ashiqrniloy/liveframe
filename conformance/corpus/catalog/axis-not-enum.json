@@ -1,0 +1,15 @@
+{
+  "inputs": {
+    "doc": "docs/axis-not-enum.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "unknown-name",
+        "pointer": "/definitions/0/axes/label"
+      }
+    ]
+  }
+}

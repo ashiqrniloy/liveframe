@@ -7,6 +7,7 @@ import {
   type CompileValidatorOptions,
   type Result,
 } from "../index.ts";
+import { nodeAxisValues } from "../formats/axes.ts";
 import { check, type ConformanceCase } from "./case.ts";
 
 function value<T>(result: Result<T>, rule: string, spec: string): T {
@@ -57,19 +58,33 @@ export function catalogSuite({
         const rule = "every_kind_and_variant_has_a_valid_example";
         const options = installed(rule);
         const validator = compileValidator(options);
-        const defaults = new Map(options.catalog.definitions.map((d) => [d.kind, d.defaultVariant]));
+        const definitions = new Map(options.catalog.definitions.map((d) => [d.kind, d]));
         const covered = new Set<string>();
         for (const example of examples) {
           const tree = value(validator.validateTree(example), rule, "§10");
           const pending = [tree.root];
           for (const node of pending) {
-            covered.add(`${node.kind}.${node.variant ?? defaults.get(node.kind)}`);
+            const definition = definitions.get(node.kind);
+            covered.add(`${node.kind}.${node.variant ?? definition?.defaultVariant}`);
+            // One example per axis value (one axis at a time), not the product.
+            if (definition?.axes)
+              for (const [i, axis] of Object.keys(definition.axes).entries())
+                covered.add(`${node.kind}.${axis}:${nodeAxisValues(definition, node.props)[i]}`);
             pending.push(...(node.children ?? []));
           }
         }
-        const missing = options.catalog.definitions.flatMap((d) =>
-          d.variants.filter((variant) => !covered.has(`${d.kind}.${variant}`)).map((variant) => `${d.kind}.${variant}`),
-        );
+        const missing = options.catalog.definitions.flatMap((d) => [
+          ...d.variants
+            .filter((variant) => !covered.has(`${d.kind}.${variant}`))
+            .map((variant) => `${d.kind}.${variant}`),
+          ...Object.keys(d.axes ?? {}).flatMap((axis) => {
+            const schema = d.props.properties[axis];
+            const values = schema?.type === "string" ? (schema.enum ?? []) : [];
+            return values
+              .filter((value) => !covered.has(`${d.kind}.${axis}:${value}`))
+              .map((value) => `${d.kind}.${axis}:${value}`);
+          }),
+        ]);
         check(!missing.length, rule, "§13", [`Missing ${missing.length} kind/variant examples`, ...missing]);
       },
     },

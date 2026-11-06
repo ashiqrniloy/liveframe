@@ -8,7 +8,8 @@ import {
   type DesignSystem,
   type Result,
 } from "../index.ts";
-import { baseCss, designSystemCss, extensionVar, themeCss } from "../css/index.ts";
+import { baseCss, designSystemCss, extensionVar, slotClass, themeCss } from "../css/index.ts";
+import { variantKeys } from "../formats/axes.ts";
 import { check, type ConformanceCase } from "./case.ts";
 
 /** One audit finding as a test-runner message: the recipe, the pair, the ratio and the threshold. */
@@ -131,6 +132,21 @@ export function designSystemSuite({
               [...set]
                 .filter((name) => !css.includes(`${extensionVar(name)}:`))
                 .map((name) => `${extensionVar(name)} is set but not projected`),
+            );
+            // Every axis combination gets its own slot classes, so no value can render unstyled (§6.4).
+            const unprojected = options.catalog.definitions
+              .filter((definition) => definition.axes)
+              .flatMap((definition) =>
+                variantKeys(definition).flatMap((variant) =>
+                  definition.slots.map((slot) => slotClass(definition.kind, variant, slot)),
+                ),
+              )
+              .filter((name) => !css.includes(`.${name}{`));
+            check(
+              !unprojected.length,
+              rule,
+              "§6.4",
+              unprojected.map((name) => `.${name} is not projected`),
             );
           }
         }

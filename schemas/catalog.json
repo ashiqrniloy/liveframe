@@ -40,6 +40,31 @@
             },
             "uniqueItems": true
           },
+          "axes": {
+            "type": "object",
+            "patternProperties": {
+              "^[a-z][A-Za-z0-9-]*$": {
+                "type": "object",
+                "properties": {
+                  "default": {
+                    "maxLength": 64,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "default"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "maxProperties": 3,
+            "additionalProperties": false,
+            "propertyNames": {
+              "maxLength": 64,
+              "pattern": "^[a-z][A-Za-z0-9-]*$",
+              "type": "string"
+            }
+          },
           "kind": {
             "maxLength": 64,
             "pattern": "^[a-z][A-Za-z0-9-]*$",

@@ -148,3 +148,26 @@ Adopting is opt-in: a catalog or design system without extensions is unchanged a
 3. Read `var(--lf-p-<name>, <fallback>)` in your primitive CSS, or build the name with `extensionVar` from `@arnilo/liveframe/css`.
 
 `auditContrast` ignores extensions, so audit any pair your CSS paints from one yourself. See [extension properties](styling.md#extension-properties).
+
+### Variant axes
+
+Declare a second look choice as an axis instead of enumerating product variants such as `primary-critical`; an axis value can alias colour roles, so one entry recolours every variant.
+Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.
+A 0.2.x validator rejects these documents fail-closed. Adopting is opt-in: a kind without axes keeps its classes and projects byte-identical CSS.
+
+```ts
+// Before: one axis, product variants
+variants: ["primary", "primary-critical", "ghost", "ghost-critical"]; // <Button variant="primary-critical" />
+// After: an axis, and one alias entry per value
+props: { tone: str({ maxLength: 12, enum: ["neutral", "critical"] }) },
+variants: ["primary", "ghost"], axes: { tone: { default: "neutral" } }; // <Button variant="primary" tone="critical" />
+// design system: "button.tone:critical.root.rest": { "roles": { "accent": "status.critical" } }
+```
+
+1. Add the enum prop and `axes` to the definition (a minor catalog change) and keep the product variants until widgets have moved; removing them is major.
+2. Move product recipes into axis overlays with `roles` aliases; every rewritten role must be a declared theme role.
+3. Replace product variants in widgets and stored trees with the variant and the axis prop.
+4. Search host CSS and tests for `.lf_<kind>_` selectors: the class gains the axis values (`lf_button_primary__neutral_root`).
+5. Supply an example per axis value and, for styled states, a fixture for each non-default value (keyed `button.primary__critical.hover`).
+
+See [variant axes](styling.md#variant-axes).

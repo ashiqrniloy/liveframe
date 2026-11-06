@@ -2,7 +2,7 @@ import type { Result } from "../errors.ts";
 import { cascadeRecipes } from "../resolve.ts";
 import { bool, type Infer, num, obj, record, str } from "../schema.ts";
 import { at, documentChecks, isRecord } from "./capabilities.ts";
-import type { Catalog } from "./catalog.ts";
+import type { Catalog, Definition } from "./catalog.ts";
 import { checkFormat } from "./check.ts";
 import {
   type ColourValue,
@@ -91,6 +91,8 @@ export type ExtensionLiteral = Extract<DesignValue, { kind: (typeof extensionKin
 export type Recipe = {
   readonly [P in Property]?: PropertyValue<P> | ((typeof propertyKinds)[P] extends "style" ? never : string);
 } & {
+  /** Role aliases of an axis overlay (`kind.axis:value.slot.state`): a role or family → another, once, at resolve time. */
+  readonly roles?: Readonly<Record<string, string>>;
   /** App-declared properties (`vocabulary.extensions`): a theme role or `none`, a design-value name, or a literal. */
   readonly extensions?: Readonly<Record<string, string | ExtensionLiteral>>;
 };
@@ -99,9 +101,11 @@ export type ResolvedRecipe = { readonly [P in Property]?: PropertyValue<P, numbe
   readonly extensions?: Readonly<Record<string, string | ExtensionLiteral>>;
 };
 export type RecipeKey = `${string}.${string}.${string}.${(typeof states)[number]}`;
+const keyToken = "[a-z][A-Za-z0-9-]*";
+/** `<kind>.<variant | * | axis:value>.<slot>.<state>`; `:` is not a name character, so a key is unambiguous. */
 const keyName = str({
-  maxLength: 203,
-  pattern: `^[a-z][A-Za-z0-9-]*\\.(?:[a-z][A-Za-z0-9-]*|\\*)\\.[a-z][A-Za-z0-9-]*\\.(?:${states.join("|")})$`,
+  maxLength: 270,
+  pattern: `^${keyToken}\\.(?:${keyToken}(?::${keyToken})?|\\*)\\.${keyToken}\\.(?:${states.join("|")})$`,
 });
 const fields = obj(
   {
@@ -156,6 +160,7 @@ export const designSystemSchema = {
           properties: {
             ...Object.fromEntries((Object.keys(propertyKinds) as Property[]).map((p) => [p, propertySchema(p)])),
             extensions: { ...record(extensionName.pattern, extensionValue, 64), propertyNames: extensionName },
+            roles: { ...record(roleName.pattern, roleName, 64), propertyNames: roleName },
           },
           additionalProperties: false,
         },
@@ -230,11 +235,31 @@ function checkMaps(input: Record<string, unknown>, base: string, c: Checks, cont
   for (const [name, entry] of Object.entries(isRecord(input.values) ? input.values : {}))
     if (isRecord(entry) && entry.kind === "shadow")
       checkShadowRoles(entry.value, `${at(`${base}/values`, name)}/value`, c, colours);
+  const families = roleFamilies(colours);
   for (const [name, entry] of Object.entries(isRecord(input.recipes) ? input.recipes : {})) {
     if (c.errors.length >= 20) break;
-    if (isRecord(entry)) checkRecipe(name, entry, at(`${base}/recipes`, name), c, context, colours);
+    if (isRecord(entry)) checkRecipe(name, entry, at(`${base}/recipes`, name), c, context, colours, families);
   }
   return c.errors.length === 0;
+}
+
+/** Every declared colour role and each of its dot-separated prefixes: the names an alias may use. */
+function roleFamilies(colours: ReadonlySet<string>): ReadonlySet<string> {
+  const families = new Set<string>();
+  for (const role of colours)
+    for (let end = role.indexOf("."); ; end = role.indexOf(".", end + 1)) {
+      families.add(end < 0 ? role : role.slice(0, end));
+      if (end < 0) break;
+    }
+  return families;
+}
+
+/** Whether the definition declares the axis overlay named by a key's `axis:value` variant position. */
+function declaresAxisValue(definition: Definition, overlay: string): boolean {
+  const [axis = "", value = ""] = overlay.split(":");
+  const schema =
+    definition.axes && Object.hasOwn(definition.axes, axis) ? definition.props.properties[axis] : undefined;
+  return schema?.type === "string" && (schema.enum?.includes(value) ?? false);
 }
 
 function checkRecipe(
@@ -244,19 +269,23 @@ function checkRecipe(
   c: Checks,
   context: DesignSystemContext,
   colours: ReadonlySet<string>,
+  families: ReadonlySet<string>,
 ): void {
   const [kind, variant, slot, state] = name.split(".");
   const definition = context.catalog.definitions.find((d) => d.kind === kind);
+  const overlay = variant?.includes(":") ?? false;
   if (
     !definition ||
-    (variant !== "*" && !definition.variants.includes(variant ?? "")) ||
+    (overlay
+      ? !declaresAxisValue(definition, variant ?? "")
+      : variant !== "*" && !definition.variants.includes(variant ?? "")) ||
     !definition.slots.includes(slot ?? "") ||
     !states.includes(state as (typeof states)[number])
   )
     c.reject(path, "Unknown recipe kind, variant, slot or state", "unknown-name");
   for (const [property, value] of Object.entries(entry)) {
     // Container hover/active is not thumb hover/active, so native scrollbar colours are rest-only.
-    if (property === "extensions") continue;
+    if (property === "extensions" || property === "roles") continue;
     if (state !== "rest" && scrollbarProperties.includes(property))
       c.reject(at(path, property), `${property} is declared only in rest recipes`);
     else checkRecipeProperty(property, value, at(path, property), c, context, colours);
@@ -264,6 +293,24 @@ function checkRecipe(
   if (isRecord(entry.extensions))
     for (const [extension, value] of Object.entries(entry.extensions))
       checkExtension(extension, value, () => at(at(path, "extensions"), extension), c, context, colours);
+  if (isRecord(entry.roles)) checkRoles(entry.roles, at(path, "roles"), overlay, c, families);
+}
+
+/** Aliases belong to axis overlays and name declared colour roles or families, so no literal colour can enter. */
+function checkRoles(
+  roles: Record<string, unknown>,
+  path: string,
+  overlay: boolean,
+  c: Checks,
+  families: ReadonlySet<string>,
+): void {
+  if (!overlay) {
+    c.reject(path, "Role aliases are allowed only on axis recipes");
+    return;
+  }
+  for (const [from, to] of Object.entries(roles))
+    if (!families.has(from) || typeof to !== "string" || !families.has(to))
+      c.reject(at(path, from), "Alias must name declared colour roles or families", "unknown-name");
 }
 
 /** An extension names a declared property and carries that property's type: colours only from the theme. */
@@ -317,6 +364,7 @@ function mergeChain(chain: readonly DesignSystem[]) {
         ...(before?.extensions || recipe?.extensions
           ? { extensions: { ...before?.extensions, ...recipe?.extensions } }
           : {}),
+        ...(before?.roles || recipe?.roles ? { roles: { ...before?.roles, ...recipe?.roles } } : {}),
       };
     }
   }
@@ -415,6 +463,22 @@ function checkExtensionReferences(
       }
 }
 
+/**
+ * An alias error names the winning entry. When the nearest document defining it is a registry
+ * parent, the pointer carries that parent's `/registry/<id>` prefix, as every other chain error does.
+ */
+function inheritedPointer(pointer: string, ordered: readonly DesignSystem[]): string {
+  const entry = /^\/recipes\/([^/]+)\/roles\/([^/]+)$/.exec(pointer);
+  if (!entry) return pointer;
+  const [, key = "", from = ""] = entry;
+  for (let i = ordered.length - 1; i >= 0; i--) {
+    const roles = ordered[i]?.recipes[key as RecipeKey]?.roles;
+    if (roles && Object.hasOwn(roles, from))
+      return i === ordered.length - 1 ? pointer : at("/registry", ordered[i]?.id ?? "") + pointer;
+  }
+  return pointer;
+}
+
 /** Internal shared install pass: validate the chain, merge it, then check references. */
 export function prepareDesignSystem(
   doc: unknown,
@@ -448,7 +512,9 @@ export function prepareDesignSystem(
   checkDeclaredVocabulary(merged.values, context.catalog.vocabulary, c);
   checkReferences(ordered, merged.values, c);
   checkExtensionReferences(ordered, merged.values, context.catalog.vocabulary, c);
-  cascadeRecipes(merged, context.catalog, c.reject);
+  cascadeRecipes(merged, context.catalog, (pointer, message, kind) =>
+    c.reject(inheritedPointer(pointer, ordered), message, kind),
+  );
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: merged };
 }
 

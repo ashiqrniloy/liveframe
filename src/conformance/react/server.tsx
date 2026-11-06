@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { renderToString } from "react-dom/server";
 import { slotClass, styleDeclarations, surfaceAttributes } from "../../css/index.ts";
+import { nodeAxisValues } from "../../formats/axes.ts";
 import {
   compileValidator,
   type CompileValidatorOptions,
@@ -12,6 +13,12 @@ import {
 import { binding } from "../../react/implement.ts";
 import { createRenderer, implement, type Implementation } from "../../react/index.ts";
 import { check, type ConformanceCase, ConformanceFailure } from "../case.ts";
+
+/** The root slot class of a node: its variant (or the default) and, for a kind with axes, its axis values. */
+function rootClass(definition: Catalog["definitions"][number] | undefined, node: UiTree["root"]): string {
+  const axes = definition && nodeAxisValues(definition, node.props);
+  return slotClass(node.kind, node.variant ?? definition?.defaultVariant ?? "", "root", axes);
+}
 
 type Identity = { readonly id: string; readonly version: string };
 
@@ -68,15 +75,12 @@ export function rendererSuite({
     every_node_carries_its_root_slot_class_and_style() {
       each((tree, render, _theme, _designSystem, rule, installed) => {
         const html = elements(render(tree));
-        const defaults = new Map(installed.definitions.map((d) => [d.kind, d.defaultVariant]));
+        const definitions = new Map(installed.definitions.map((d) => [d.kind, d]));
         const pending = [tree.root];
         const requirements = new Map<string, { classes: string[]; styles: string[]; count: number }>();
         for (const node of pending) {
           const projection = styleDeclarations(node.style ?? {}, installed);
-          const classes = [
-            slotClass(node.kind, node.variant ?? defaults.get(node.kind) ?? "", "root"),
-            ...[...projection.classes].sort(),
-          ];
+          const classes = [rootClass(definitions.get(node.kind), node), ...[...projection.classes].sort()];
           const styles = (elements(renderToString(<div style={projection.style} />))[0]?.style ?? "")
             .split(";")
             .filter(Boolean)

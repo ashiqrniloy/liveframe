@@ -298,6 +298,61 @@ The platform floor is Baseline 2024: custom properties, `:is`/`:where`/`:has`,
 and `text-wrap: balance`. Shadow-DOM isolation, nested surfaces and vertical
 writing modes are outside this contract.
 
+## Variant axes
+
+A kind that varies by two independent things, such as a button that is `primary` or
+`ghost` and `neutral` or `critical`, does not need a variant per pair. Declare the
+second choice as an **axis**, an enum prop the catalog marks:
+
+```jsonc
+// catalog.json, the button definition
+"props": { "properties": { "label": { "type": "string", "maxLength": 80 },
+  "tone": { "type": "string", "maxLength": 12, "enum": ["neutral", "critical"] } } },
+"variants": ["primary", "ghost"],
+"axes": { "tone": { "default": "neutral" } }
+```
+
+A widget writes `<Button variant="ghost" tone="critical" label="Delete" />`. The
+design system gives each axis value an overlay recipe, and an overlay can **alias
+colour roles** so one entry recolours every variant:
+
+```jsonc
+// design-system.json
+"button.primary.root.rest": { "backgroundColor": "accent.fill", "textColor": "accent.on-fill" },
+"button.ghost.root.rest":   { "backgroundColor": "none", "textColor": "accent.text" },
+"button.tone:neutral.root.rest":  { "roles": { "accent": "status.neutral" } },
+"button.tone:critical.root.rest": { "roles": { "accent": "status.critical" } }
+```
+
+Two alias entries give the four colour pairs: `primary` + `critical` fills with
+`status.critical.fill` and `status.critical.on-fill`, `ghost` + `critical` keeps no
+fill and reads `status.critical.text`, and so on. `accent` matches `accent.fill`
+and `accent.text` on dot boundaries, never `accented.fill`; the rewrite happens
+once, when the recipes resolve, so the CSS is one rule set per combination and
+nothing remaps variables at runtime. Every role an alias produces must be declared
+in the vocabulary, so a target family must cover each suffix the variants use.
+
+- **Classes.** A kind with axes adds its axis values after the variant, defaults
+  filled in: `lf_button_primary__critical_root`. Call `slotClass(kind, variant,
+  slot, axes)` with the values in declared axis order, or use the `slot()` you
+  receive from `<Surface>`, which reads them from the node's props. Kinds without
+  axes keep their classes and CSS bytes.
+- **Cascade.** For each state: wildcard, variant, then each axis in declared order
+  (rest overlays, then state overlays). A state always beats rest; a later-declared
+  axis beats an earlier one. Overlays are optional, so a new axis value never makes
+  an installed design system incomplete.
+- **Cost.** The table holds one entry per combination, so a kind with 2 variants and
+  a 3-value axis has three times the entries of one without the axis. At most three
+  axes, 16 values each and 256 combinations per kind.
+- **Audit and conformance.** `auditContrast` checks every combination and names it
+  by its resolved key (`button.ghost__critical.root.rest`). `catalogSuite` needs an
+  example per axis value; the styled-state fixtures need each non-default value one
+  axis at a time, keyed by the class position (`button.primary__critical.hover`).
+- **Adopting.** Making an existing prop an axis changes that kind's class names
+  (`lf_button_primary_root` becomes `lf_button_primary__neutral_root`), so search
+  host CSS and tests for `.lf_<kind>_` selectors. Adding an axis or a value is a
+  minor catalog change; removing an axis or changing its default is major.
+
 ## Extension properties
 
 The recipe property list is fixed by the library. An app that needs a look it does

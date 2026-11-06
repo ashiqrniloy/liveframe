@@ -4,6 +4,7 @@ import { baseCss, designSystemCss, styleDeclarations, themeCss } from "@arnilo/l
 import type { Browser, Page } from "playwright";
 import { primitiveCss } from "../../proof/renderer/primitives/base.ts";
 import type { Catalog, DesignSystem, Result, Theme } from "../index.ts";
+import { axesCatalog, axesSystem } from "./fixtures/axes.ts";
 import { launchBrowser, measureSwitching } from "./fixtures/browser.ts";
 
 const read = (name: string) => Bun.file(new URL(`./fixtures/proof/${name}.json`, import.meta.url)).json();
@@ -15,12 +16,14 @@ function css(result: Result<string>) {
   return result.value;
 }
 // Hosts ship trusted primitive CSS before the projected sheets; without it the page is not one a host renders.
-const sheets = [
-  primitiveCss,
-  css(baseCss(catalog)),
-  ...themes.map((theme) => css(themeCss(theme, catalog))),
-  ...systems.map((system) => css(designSystemCss(system, { catalog, registry: {} }))),
-].join("\n");
+const sheetsFor = (installed: Catalog, designSystems: DesignSystem[]) =>
+  [
+    primitiveCss,
+    css(baseCss(installed)),
+    ...themes.map((theme) => css(themeCss(theme, installed))),
+    ...designSystems.map((system) => css(designSystemCss(system, { catalog: installed, registry: {} }))),
+  ].join("\n");
+const sheets = sheetsFor(catalog, systems);
 const scope = (name: string) => `data-lf-theme="${name}@1.0.0" data-lf-ds="${name}@1.0.0"`;
 const responsive = styleDeclarations({ position: { base: "static", "bp.md": "sticky" } }, catalog);
 let browser: Browser;
@@ -33,9 +36,9 @@ beforeAll(async () => {
 });
 afterAll(async () => browser?.close());
 
-async function mount(page: Page) {
+async function mount(page: Page, installed = { sheets, markup }) {
   page.setDefaultTimeout(5000);
-  await page.setContent(`<style>${sheets}</style><style>
+  await page.setContent(`<style>${installed.sheets}</style><style>
     body{display:flex;align-items:start;gap:16px}
     section{position:relative;flex-shrink:0;width:760px}
     .backdrop{position:absolute;inset:0;z-index:1}
@@ -46,7 +49,7 @@ async function mount(page: Page) {
         name,
         index,
       ) => `<section id="${index ? "b" : "a"}" class="lf_surface lf_container" ${scope(name)} data-lf-switching>
-      ${markup}<button class="lf_button_primary_root probe">Probe</button>
+      ${installed.markup}<button class="lf_button_primary_root probe">Probe</button>
       <div class="responsive ${responsive.classes.join(" ")}"></div>
       <div class="lf_dialog_default_root" data-open>
         <div class="backdrop lf_dialog_default_backdrop"></div>
@@ -289,6 +292,25 @@ test("switch_under_budget_with_blur", async () => {
     console.log(`Two-surface CSS switch with blur: ${JSON.stringify(result)}`);
     expect(result.nodes).toBeGreaterThan(500);
     expect(result.samples).toHaveLength(10);
+    expect(Math.max(...result.samples.map((sample) => sample.library))).toBeLessThanOrEqual(16.67);
+  } finally {
+    await page.close();
+  }
+}, 20000);
+
+test("switch_under_budget_with_a_two_axis_kind_installed", async () => {
+  const page = await browser.newPage({ viewport: { width: 1700, height: 1000 } });
+  try {
+    // The button gains 4 variants × 3 tones × 2 emphases of classes and rules; the markup uses the defaults.
+    const installed = {
+      sheets: sheetsFor(axesCatalog(catalog), systems.map(axesSystem)),
+      markup: markup.replace(/lf_button_([A-Za-z]+)_(root|label|icon)/g, "lf_button_$1__neutral__solid_$2"),
+    };
+    expect(installed.markup).toContain("lf_button_primary__neutral__solid_root");
+    await mount(page, installed);
+    const result = await measureSwitching(page, "css");
+    console.log(`Two-surface CSS switch with a two-axis kind: ${JSON.stringify(result)}`);
+    expect(result.nodes).toBeGreaterThan(500);
     expect(Math.max(...result.samples.map((sample) => sample.library))).toBeLessThanOrEqual(16.67);
   } finally {
     await page.close();

@@ -1,5 +1,6 @@
 import type { Result } from "../errors.ts";
 import { cascadeRecipes, type ResolvedRecipes } from "../resolve.ts";
+import { variantKeys } from "./axes.ts";
 import { type Catalog, validateCatalog } from "./catalog.ts";
 import { contrastRatio, over, toSrgb } from "./contrast.ts";
 import { type DesignSystem, prepareDesignSystem, type RecipeKey, type ResolvedRecipe } from "./design-system.ts";
@@ -146,7 +147,7 @@ function auditState(
 function auditCatalog(audit: Audit, catalog: Catalog, table: ResolvedRecipes): void {
   for (const definition of catalog.definitions) {
     const interactive = Object.keys(definition.events).length > 0;
-    for (const variant of definition.variants)
+    for (const variant of variantKeys(definition))
       for (const slot of definition.slots)
         for (const state of states) auditState(audit, definition.kind, variant, slot, interactive, state, table);
   }

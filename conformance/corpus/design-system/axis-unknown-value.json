@@ -1,0 +1,16 @@
+{
+  "inputs": {
+    "doc": "docs/axis-unknown-value.json",
+    "catalog": "../common/axes-catalog.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "unknown-name",
+        "pointer": "/recipes/button.tone:loud.root.rest"
+      }
+    ]
+  }
+}

@@ -13,6 +13,7 @@ import {
 } from "react";
 import { slotClass, styleDeclarations, surfaceAttributes } from "../css/index.ts";
 import { type LiveframeError, LiveframeFailure, type Result } from "../errors.ts";
+import { nodeAxisValues } from "../formats/axes.ts";
 import { carriesValue } from "../formats/events.ts";
 import { sameJson } from "../formats/json.ts";
 import {
@@ -300,6 +301,8 @@ function context(state: ItemContext, node: UiNode): Item {
   if (!implementation) throw new Error(`Missing implementation: ${node.kind}`);
   const { definition } = implementation[binding];
   const projected = styleDeclarations(node.style ?? {}, catalog);
+  // Validated props are enum members, so the axis values are catalog names, never free strings.
+  const axes = definition.axes ? nodeAxisValues(definition, node.props) : undefined;
   const items = (node.children ?? []).map((child) => context(state, child));
   const events = Object.freeze(
     Object.fromEntries(
@@ -325,7 +328,7 @@ function context(state: ItemContext, node: UiNode): Item {
     events,
     slot(name) {
       if (!definition.slots.includes(name)) throw new Error(`Undeclared slot: ${node.kind}.${name}`);
-      const recipe = slotClass(node.kind, node.variant ?? definition.defaultVariant, name);
+      const recipe = slotClass(node.kind, node.variant ?? definition.defaultVariant, name, axes);
       return [recipe, ...(name === "root" ? projected.classes : [])].join(" ");
     },
     style: projected.style,

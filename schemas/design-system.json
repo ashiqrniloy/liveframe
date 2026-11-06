@@ -688,7 +688,7 @@
     "recipes": {
       "type": "object",
       "patternProperties": {
-        "^[a-z][A-Za-z0-9-]*\\.(?:[a-z][A-Za-z0-9-]*|\\*)\\.[a-z][A-Za-z0-9-]*\\.(?:rest|hover|active|focus|disabled|selected|current|mixed|pending|readonly|invalid|open)$": {
+        "^[a-z][A-Za-z0-9-]*\\.(?:[a-z][A-Za-z0-9-]*(?::[a-z][A-Za-z0-9-]*)?|\\*)\\.[a-z][A-Za-z0-9-]*\\.(?:rest|hover|active|focus|disabled|selected|current|mixed|pending|readonly|invalid|open)$": {
           "type": "object",
           "properties": {
             "backgroundColor": {
@@ -1928,6 +1928,23 @@
                 "pattern": "^[a-z][A-Za-z0-9-]*$",
                 "type": "string"
               }
+            },
+            "roles": {
+              "type": "object",
+              "patternProperties": {
+                "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$": {
+                  "maxLength": 64,
+                  "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                  "type": "string"
+                }
+              },
+              "maxProperties": 64,
+              "additionalProperties": false,
+              "propertyNames": {
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+                "type": "string"
+              }
             }
           },
           "additionalProperties": false
@@ -1936,8 +1953,8 @@
       "maxProperties": 16384,
       "additionalProperties": false,
       "propertyNames": {
-        "maxLength": 203,
-        "pattern": "^[a-z][A-Za-z0-9-]*\\.(?:[a-z][A-Za-z0-9-]*|\\*)\\.[a-z][A-Za-z0-9-]*\\.(?:rest|hover|active|focus|disabled|selected|current|mixed|pending|readonly|invalid|open)$",
+        "maxLength": 270,
+        "pattern": "^[a-z][A-Za-z0-9-]*\\.(?:[a-z][A-Za-z0-9-]*(?::[a-z][A-Za-z0-9-]*)?|\\*)\\.[a-z][A-Za-z0-9-]*\\.(?:rest|hover|active|focus|disabled|selected|current|mixed|pending|readonly|invalid|open)$",
         "type": "string"
       }
     }

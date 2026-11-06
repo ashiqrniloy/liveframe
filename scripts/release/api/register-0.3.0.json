@@ -364,7 +364,7 @@
     "subpath": "./schemas/*",
     "name": "catalog.json",
     "change": "widened",
-    "reason": "Node reference authoring markers, anchors and same-tree reference declarations; vocabulary extensions (app-declared recipe properties)",
+    "reason": "Node reference authoring markers, anchors and same-tree reference declarations; vocabulary extensions (app-declared recipe properties); definition axes (enum props addressed by recipe overlays)",
     "hostAction": "Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps",
     "task": "027 T2"
   },
@@ -372,7 +372,7 @@
     "subpath": ".",
     "name": "Definition",
     "change": "widened",
-    "reason": "Node reference authoring markers, anchors and same-tree reference declarations",
+    "reason": "Node reference authoring markers, anchors and same-tree reference declarations; optional `axes`",
     "hostAction": "Regenerate reference-bearing SDK types and element schemas; update catalog validators before using refProps",
     "task": "027 T2"
   },
@@ -492,7 +492,7 @@
     "subpath": "./schemas/*",
     "name": "design-system.json",
     "change": "widened",
-    "reason": "Recipes accept an optional extensions map for app-declared properties",
+    "reason": "Recipes accept an optional extensions map for app-declared properties; recipe keys accept `axis:value` overlays and a `roles` alias map",
     "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
     "task": "027 T4"
   },
@@ -508,7 +508,7 @@
     "subpath": ".",
     "name": "Recipe",
     "change": "widened",
-    "reason": "Optional extensions map sets app-declared properties",
+    "reason": "Optional extensions map sets app-declared properties; optional `roles` aliases on axis overlays",
     "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
     "task": "027 T4"
   },
@@ -631,5 +631,173 @@
     "reason": "Extension recipe property corpus cases",
     "hostAction": "Update catalog and design-system validators and ports before installing documents that use extensions",
     "task": "027 T4"
+  },
+  {
+    "subpath": "./css",
+    "name": "slotClass",
+    "change": "widened",
+    "reason": "An optional fourth parameter adds a kind's axis values to the slot class",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/axes.json",
+    "change": "added",
+    "reason": "Variant axis and role alias corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/axis-default-not-in-enum.json",
+    "change": "added",
+    "reason": "Variant axis and role alias corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/axis-not-enum.json",
+    "change": "added",
+    "reason": "Variant axis and role alias corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/docs/axes.json",
+    "change": "added",
+    "reason": "Variant axis and role alias corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/docs/axis-default-not-in-enum.json",
+    "change": "added",
+    "reason": "Variant axis and role alias corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/docs/axis-not-enum.json",
+    "change": "added",
+    "reason": "Variant axis and role alias corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/common/axes-catalog.json",
+    "change": "added",
+    "reason": "Variant axis and role alias corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/common/axes-proof-catalog.json",
+    "change": "added",
+    "reason": "Variant axis and role alias corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/design-system/axes.json",
+    "change": "added",
+    "reason": "Variant axis and role alias corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/design-system/axis-unknown-value.json",
+    "change": "added",
+    "reason": "Variant axis and role alias corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/design-system/docs/axes.json",
+    "change": "added",
+    "reason": "Variant axis and role alias corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/design-system/docs/axis-unknown-value.json",
+    "change": "added",
+    "reason": "Variant axis and role alias corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/design-system/docs/role-alias-undeclared.json",
+    "change": "added",
+    "reason": "Variant axis and role alias corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/design-system/docs/roles-on-variant.json",
+    "change": "added",
+    "reason": "Variant axis and role alias corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/design-system/role-alias-undeclared.json",
+    "change": "added",
+    "reason": "Variant axis and role alias corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/design-system/roles-on-variant.json",
+    "change": "added",
+    "reason": "Variant axis and role alias corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/axis-off-enum.json",
+    "change": "added",
+    "reason": "Variant axis and role alias corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/axis-valid.json",
+    "change": "added",
+    "reason": "Variant axis and role alias corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/docs/axis-off-enum.json",
+    "change": "added",
+    "reason": "Variant axis and role alias corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/docs/axis-valid.json",
+    "change": "added",
+    "reason": "Variant axis and role alias corpus cases",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T5"
   }
 ]

@@ -1064,3 +1064,117 @@ test("extension_variables_compute_inherit_and_follow_states", async () => {
     await page.close();
   }
 });
+
+test("tone_by_emphasis_four_pairs", async () => {
+  const page = await browser.newPage();
+  try {
+    // Two aliases pick the tone's colours for both emphasis variants; no product variants, no compound rule.
+    const families = ["hue", "tone.neutral", "tone.critical"];
+    const roles = families.flatMap((family) => [`${family}.fill`, `${family}.on-fill`, `${family}.text`]);
+    const source = [
+      "surface.base",
+      "surface.raised",
+      "surface.case",
+      "surface.well",
+      "surface.hover",
+      "surface.active",
+    ];
+    const toned: Catalog = {
+      ...catalog,
+      vocabulary: { ...catalog.vocabulary, colourRoles: [...catalog.vocabulary.colourRoles, ...roles] },
+      definitions: [
+        {
+          ...button,
+          variants: ["primary", "ghost"],
+          defaultVariant: "primary",
+          slots: ["root"],
+          props: {
+            ...button.props,
+            properties: {
+              ...button.props.properties,
+              tone: { type: "string", maxLength: 12, enum: ["neutral", "critical"] },
+            },
+          },
+          axes: { tone: { default: "neutral" } },
+        },
+      ],
+    };
+    const palette = {
+      ...theme,
+      colours: {
+        ...theme.colours,
+        ...Object.fromEntries(roles.map((role, index) => [role, theme.colours[source[index % source.length] ?? ""]])),
+        // Distinct fills and text so that a wrong alias cannot pass by coincidence.
+        "tone.neutral.fill": theme.colours["surface.base"],
+        "tone.critical.fill": theme.colours["surface.active"],
+        "tone.neutral.on-fill": theme.colours["surface.case"],
+        "tone.critical.on-fill": theme.colours["surface.hover"],
+        "tone.neutral.text": theme.colours["surface.well"],
+        "tone.critical.text": theme.colours["surface.raised"],
+      },
+    } as Theme;
+    const toneSystem: DesignSystem = {
+      ...proofSystem,
+      recipes: {
+        "button.*.root.rest": {},
+        "button.*.root.focus": { outlineColor: "surface.base" },
+        "button.primary.root.rest": { backgroundColor: "hue.fill", textColor: "hue.on-fill" },
+        "button.ghost.root.rest": { backgroundColor: "none", textColor: "hue.text" },
+        "button.tone:neutral.root.rest": { roles: { hue: "tone.neutral" } },
+        "button.tone:critical.root.rest": { roles: { hue: "tone.critical" } },
+      } as DesignSystem["recipes"],
+    };
+    const sheets = [
+      baseCss(toned),
+      themeCss(palette, toned),
+      designSystemCss(toneSystem, { catalog: toned, registry: {} }),
+    ]
+      .map(css)
+      .join("\n");
+    const cells = ["primary", "ghost"].flatMap((variant) =>
+      ["neutral", "critical"].map((tone) => ({
+        id: `${variant}-${tone}`,
+        cls: slotClass("button", variant, "root", [tone]),
+      })),
+    );
+    await page.setContent(
+      `<style>${sheets}</style><section class="lf_surface" data-lf-theme="${palette.id}@${palette.version}" data-lf-ds="${toneSystem.id}@${toneSystem.version}">${cells
+        .map((cell) => `<button id="${cell.id}" class="${cell.cls}">x</button>`)
+        .join("")}</section>`,
+    );
+    const painted = (id: string) =>
+      page.locator(`#${id}`).evaluate((el) => {
+        const style = getComputedStyle(el);
+        return { background: style.backgroundColor, color: style.color };
+      });
+    const expected = (role: string) =>
+      page.locator("section").evaluate((el, name) => {
+        const probe = document.createElement("i");
+        probe.style.color = `var(--lf-c-${name.replaceAll(".", "_")})`;
+        el.append(probe);
+        const value = getComputedStyle(probe).color;
+        probe.remove();
+        return value;
+      }, role);
+    const results = new Map<string, { background: string; color: string }>();
+    for (const cell of cells) results.set(cell.id, await painted(cell.id));
+    const fill = (tone: string) => expected(`tone.${tone}.fill`);
+    expect(results.get("primary-neutral")).toEqual({
+      background: await fill("neutral"),
+      color: await expected("tone.neutral.on-fill"),
+    });
+    expect(results.get("primary-critical")).toEqual({
+      background: await fill("critical"),
+      color: await expected("tone.critical.on-fill"),
+    });
+    // A ghost button has no fill; its text takes the tone's text colour.
+    expect(results.get("ghost-neutral")?.background).toBe("rgba(0, 0, 0, 0)");
+    expect(results.get("ghost-neutral")?.color).toBe(await expected("tone.neutral.text"));
+    expect(results.get("ghost-critical")?.background).toBe("rgba(0, 0, 0, 0)");
+    expect(results.get("ghost-critical")?.color).toBe(await expected("tone.critical.text"));
+    // The four pairs are four different colour pairs.
+    expect(new Set([...results.values()].map((pair) => `${pair.background}|${pair.color}`)).size).toBe(4);
+  } finally {
+    await page.close();
+  }
+});

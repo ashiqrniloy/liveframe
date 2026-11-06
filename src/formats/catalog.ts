@@ -1,6 +1,7 @@
 import type { Result } from "../errors.ts";
 import { arr, bool, type Infer, int, type LanguageSchema, literal, obj, record, str } from "../schema.ts";
 import { at, documentChecks, isRecord } from "./capabilities.ts";
+import { maxAxisValues, maxCombinations } from "./axes.ts";
 import { checkFormat } from "./check.ts";
 import { styleProps } from "./fixed.ts";
 import { validateJson } from "./json.ts";
@@ -29,8 +30,9 @@ const definitionFields = obj(
     children: bool(),
     events: bool(),
   },
-  { deprecated: description, refProps: arr(str({ maxLength: 64 }), { maxItems: 8 }) },
+  { deprecated: description, refProps: arr(str({ maxLength: 64 }), { maxItems: 8 }), axes: bool() },
 );
+const axis = obj({ default: str({ maxLength: 64 }) });
 const catalogFields = obj({
   format: str({ maxLength: 20, enum: ["liveframe-catalog/1"] }),
   catalogId: str({ maxLength: 128, pattern: "^[a-z][a-z0-9.-]*@[1-9][0-9]*$" }),
@@ -39,7 +41,9 @@ const catalogFields = obj({
   definitions: arr(bool(), { maxItems: 256 }),
 });
 
-export type Definition = Omit<Infer<typeof definitionFields>, "props" | "children" | "events"> & {
+export type Definition = Omit<Infer<typeof definitionFields>, "props" | "children" | "events" | "axes"> & {
+  /** Enum props the recipes address as `kind.axis:value…` overlays; each names the value an absent prop takes. */
+  readonly axes?: Readonly<Record<string, Infer<typeof axis>>>;
   readonly props: Extract<LanguageSchema, { readonly type: "object" }>;
   readonly children: "none" | "any" | Infer<typeof childRules>;
   readonly events: Readonly<
@@ -122,6 +126,7 @@ const definitionSchema = {
       propertyNames: eventName,
     },
     refProps: unique(definitionFields.properties.refProps),
+    axes: { ...record(token.pattern, axis, 3), propertyNames: token },
     variants: unique(definitionFields.properties.variants),
     slots: { ...unique(definitionFields.properties.slots), contains: literal("root") },
     styleProps: unique(definitionFields.properties.styleProps),
@@ -156,6 +161,32 @@ function checkChildren(
   }
 }
 
+/** An axis names an enum string prop whose values can appear in a recipe key and a class name. */
+const tokenPattern = new RegExp(token.pattern ?? "");
+function checkAxes(d: Definition, pointer: string, c: Checks): void {
+  const start = c.errors.length;
+  for (const [name, { default: fallback }] of Object.entries(d.axes ?? {})) {
+    const schema = d.props.properties[name];
+    const where = at(`${pointer}/axes`, name);
+    if (schema?.type !== "string" || !schema.enum) {
+      c.reject(where, "Axis must name an enum string prop", "unknown-name");
+      continue;
+    }
+    if (schema.enum.length > maxAxisValues) c.reject(where, `At most ${maxAxisValues} values per axis`);
+    for (const value of schema.enum)
+      if (!tokenPattern.test(value))
+        c.reject(`${pointer}/props/properties/${name}/enum`, `Axis value is not a name: ${value}`);
+    if (!schema.enum.includes(fallback)) c.reject(`${where}/default`, "Axis default must be one of the prop's values");
+  }
+  const combinations = Object.keys(d.axes ?? {}).reduce(
+    (count, name) =>
+      count * (d.props.properties[name]?.type === "string" ? (d.props.properties[name].enum?.length ?? 1) : 1),
+    d.variants.length,
+  );
+  if (d.axes && c.errors.length === start && combinations > maxCombinations)
+    c.reject(`${pointer}/axes`, `At most ${maxCombinations} variant and axis combinations`);
+}
+
 /** References between definitions: unique kinds, declared variants, a11y props and child rules. */
 function checkDefinitionReferences(value: Catalog, c: Checks): void {
   const kinds = new Set(value.definitions.map((d) => d.kind));
@@ -171,6 +202,7 @@ function checkDefinitionReferences(value: Catalog, c: Checks): void {
       (!Object.hasOwn(d.props.properties, d.a11y.name) || d.props.properties[d.a11y.name]?.type !== "string")
     )
       c.reject(`${pointer}/a11y/name`, "Accessible name must name a string prop", "unknown-name");
+    checkAxes(d, pointer, c);
     for (const [j, name] of (d.refProps ?? []).entries())
       if (!Object.hasOwn(d.props.properties, name) || d.props.properties[name]?.type !== "string")
         c.reject(`${pointer}/refProps/${j}`, "Reference must name a string prop", "unknown-name");
@@ -322,6 +354,15 @@ function compareChildren(
       change(rule.min > 0, `${path} child ${rule.kind} added`);
 }
 
+/** Adding an axis or value is minor; removing an axis or changing a default changes classes and recipes: major. */
+function compareAxes(before: Definition, after: Definition, path: string, change: Change): void {
+  const was = before.axes ?? {};
+  const now = after.axes ?? {};
+  compareNames(Object.keys(was), Object.keys(now), `${path} axis`, change);
+  for (const [name, entry] of Object.entries(was))
+    if (now[name] && now[name].default !== entry.default) change(true, `${path} axis ${name} default changed`);
+}
+
 /** One definition present in both catalogs. */
 function compareDefinition(before: Definition, after: Definition, change: Change): void {
   const path = `kind ${before.kind}`;
@@ -331,6 +372,7 @@ function compareDefinition(before: Definition, after: Definition, change: Change
     (after.refProps ?? []).some((name) => !before.refProps?.includes(name))
   )
     change(true, `${path} refProps changed`);
+  compareAxes(before, after, path, change);
   for (const key of ["variants", "slots", "styleProps"] as const)
     compareNames(before[key], after[key], `${path} ${key}`, change);
   compareNames(Object.keys(before.events), Object.keys(after.events), `${path} event`, change);

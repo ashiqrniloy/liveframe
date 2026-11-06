@@ -1,0 +1,16 @@
+{
+  "inputs": {
+    "doc": "docs/role-alias-undeclared.json",
+    "catalog": "../common/axes-catalog.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "unknown-name",
+        "pointer": "/recipes/button.tone:critical.root.rest/roles/accent"
+      }
+    ]
+  }
+}

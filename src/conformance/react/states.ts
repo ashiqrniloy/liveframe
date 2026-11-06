@@ -2,6 +2,7 @@ import type { Locator, Page } from "playwright";
 import { stateDeclarations, stateSelectors } from "../../css/design-system.ts";
 import { slotClass } from "../../css/names.ts";
 import { placeholderDeclarations, recipeDeclarations } from "../../css/recipe.ts";
+import { singleAxisKeys } from "../../formats/axes.ts";
 import type { Catalog } from "../../formats/catalog.ts";
 import type { DesignSystem } from "../../formats/design-system.ts";
 import { type UiTree, validateCatalog } from "../../index.ts";
@@ -58,8 +59,9 @@ function requiredStates(
   const required = new Map<string, Set<string>>();
   for (const system of designSystems) {
     const recipes = resolveRecipes(system, { catalog, registry });
+    // A kind with axes needs fixtures one axis at a time, not for the full product.
     for (const definition of catalog.definitions)
-      for (const variant of definition.variants)
+      for (const variant of singleAxisKeys(definition))
         for (const state of Object.keys(stateSelectors) as (keyof typeof stateSelectors)[])
           if (state !== "rest") recordState(required, recipes, definition, variant, state);
   }

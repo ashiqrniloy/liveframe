@@ -12,6 +12,8 @@ Added:
 
 - Extension recipe properties: `vocabulary.extensions` declares app-owned properties (`colour`, or `value` with a design-value kind), a recipe's `extensions` map sets them (colours from theme roles only), they merge by name through `extends` and the cascade, and the projection emits `--lf-p-<name>` for trusted primitive CSS. `extensionVar` joins `/css`; `designSystemSuite` checks each set extension reaches the sheet. A design system without extensions projects byte-identical CSS. See [the styling guide](docs/styling.md#extension-properties).
 
+- Variant axes: `definition.axes` marks up to three enum props as recipe axes; recipes address them with `kind.axis:value.slot.state` overlays (a six-layer cascade) and may alias colour roles with a `roles` map, so tone × emphasis needs no product variants. Kinds with axes get axis-suffixed slot classes (`lf_<kind>_<variant>__<value>_<slot>`, `slotClass(kind, variant, slot, axes?)`); kinds without axes keep their classes and CSS bytes. `auditContrast`, `catalogSuite` and the styled-state coverage know axes. See [the styling guide](docs/styling.md#variant-axes).
+
 - `/store` exports `verifiedPackages({ max? })`, an optional host-owned LRU passed as `{ verified }` to `loadPlacement`. Matching content and installation documents reuse package verification; stored structure, content hashes, placement identity, params and state are checked on every load.
 
 - `createPreview()`, `createAuthoring()` and the MCP `AuthoringConfig` accept `limits` for node count, depth and tree bytes, enforced by both the runner and host validation. Defaults and authoring response bounds are unchanged.
