@@ -71,7 +71,7 @@ This plan adds spec §7.6 (template widgets) and amends §3, §4 (concepts), §7
       8. `throw` and regex sanitization are not expressible; parity is claimed over the proof scenarios, which exercise neither (T22).
     - Canonical hashing sorts keys, so no construct may depend on key order; every ordered list is an array (T6).
 
-- [ ] Task 2: The expression language: check, infer and evaluate
+- [x] Task 2: The expression language: check, infer and evaluate
   - Acceptance Criteria:
     - Functional:
       - `src/template/expr.ts` exports `checkExpression(expr, scope): Result<ExprType>` (shape, bounds, path resolution, operand inference) and `compileExpression(expr, scope)` and `evaluate(expr, values, { steps? }): Result<Json | Absent>` (one table-driven evaluator: `evaluate` compiles and runs once; `renderTemplate` runs the compiled closures). The operator set is the design's T7 table, not the shorter list in the objectives. Every operator has accept and reject tests; every bound (T10 at install, T11 fuel and value caps at render) has an at-limit and over-limit test.
@@ -95,7 +95,18 @@ This plan adds spec §7.6 (template widgets) and amends §3, §4 (concepts), §7
     - Files to Create/Edit: `src/template/expr.ts`; `src/template/scope.ts`; `bench/template.bench.ts`; `src/__tests__/template-expr.test.ts`
   - Test Cases to Write:
     - `every_operator_accepts_and_rejects` (table); `path_into_unknown_root_rejected`; `prototype_segments_rejected`; `fuel_exhaustion_is_limit_exceeded`; `let_doubling_hits_value_cap`; `name_shadowing_rejected`; `has_narrows_optional_path`; `round_half_away_from_zero_table`; `division_by_zero_is_evaluation_error`; `expression_depth_limit`; `deterministic_text_of_numbers` (`$text` of 0.1+0.2, -0, 1e21 matches ECMAScript).
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-07):
+    - Added `src/template/scope.ts` (scope, `ExprType`, path typing, `joinSchemas`, `binds`, `narrowedBy`) and `src/template/expr.ts` (one walk that checks, infers and compiles to closures: `checkExpression`, `compileExpression`, `evaluate`, `analyzeExpression`, `OPERATORS`, `EXPR_LIMITS`, `absent`, `Frame`, `ExprFailure`). The T7 table is 38 operators, all covered by accept and reject tests (`template-expr.test.ts`, 170 tests). `bench/template.bench.ts` records 13–18 ns per node (target 50, not gated) and is already in the `bench` script, so Task 4 only adds its gate. The module imports only `errors`, `internal`, `schema` and `formats/{capabilities,json,tree}`; a test scans for `eval`, `Function`, `globalThis` and host imports.
+    - Findings Tasks 3–4 build on:
+      1. **Types** are `{ schema, optional, literal? }` where `schema` is a language schema or one of three markers (`dynamic`, `null`, `absent`). `literal` carries a constant's value, and `binds(type, targetSchema, required)` runs the real `checkValue` on constants (T13 rule 6) and the shape check otherwise. Task 3 calls `binds` for every prop, `setState` value and action arg, and reports `invalid-prop` at the binding.
+      2. **Scope** is immutable: `rootScope({ params, state, data, context, actions })`, `componentScope(paramsSchema)`, `bindName`, `assume(scope, narrowedBy(test))`. Task 3 narrows a `$if` subtree with `assume(scope, narrowedBy(node.$if))`. One `Budget` (`nodes`, `slots`) is shared by every scope derived from a root, so the 20,000-node bound (T10) is per template as long as Task 3 passes one budget to the root scope and every component scope. After compiling, `scope.budget.slots` is the frame size.
+      3. **Errors** go into a caller-supplied `documentChecks()` sink through `analyzeExpression(expr, scope, pointer, sink)`, so `validateTemplate` collects one bounded list (20 errors) across expressions. Operator pointers address the operator key (`/root/props/label/$concat/1`).
+      4. **Frame**: `{ slots, steps }`, slot = scope size at binding time, so sibling scopes reuse slots. A component body is compiled against its own `componentScope` and run in its own frame; `$use` evaluates `with` in the caller's frame and fills the callee's slots (`scope.names.get(param).slot`).
+      5. **Absent**: `absent` is a symbol, never JSON. Array and object constructors omit absent members, which is how `[key, optionalValue]` loses its value; `$fromEntries` therefore takes entries `[key]` or `[key, value]` and skips a key-only entry (T7 "absent values skipped"). Task 4 drops a prop whose value is `absent` (optional prop) and reports it for a required one.
+      6. **Fuel**: every node costs one step, and linear-time operators on long values (`$len` of a string, `$concat`, `$join`, `$split`, `$slice`, `$contains`, `$flat`, `$sum`, `$merge`, `$fromEntries`) cost one more per 64 units, so a loop over big values cannot hide work in one step. This amends T11 and the design file records it.
+      7. **Validation of the document** (cycles, accessors, foreign realms) stays with the caller: the expression modules guard shape and depth but do not call `validateJson`, so `validateTemplate` must run it first (Task 3).
+      8. Inference falls back to `dynamic` (checked at render) for `$fromEntries`, mixed-kind arrays, unions in `$get`/`$merge`, and constructors holding a `null` or `dynamic` member. A path into a union resolves the tag as an enum and a property that every variant that has it agrees on (optional unless all variants require it).
+    - No spec change in this task (spec §7.6 arrives with Task 3). `bun run check`: 1362 pass, 0 fail.
 
 - [ ] Task 3: The template format, its JSON Schema and install validation
   - Acceptance Criteria:

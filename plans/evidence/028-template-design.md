@@ -66,7 +66,8 @@ A node with `$use` has no `kind`, `props`, `style`, `events`, `children`, `varia
 - an array is an **array constructor** of `Expr`s;
 - an object with **no** `$`-key is an **object constructor** whose members are `Expr`s; a member that evaluates to *absent* is omitted;
 - an object with **exactly one** `$`-key is an **operator application**; an object mixing a `$`-key with others, or with an unknown `$`-key, is `invalid-document` at that pointer;
-- `{ "$lit": json }` is a literal that is never interpreted (the way to write an object that contains `$`-keys).
+- `{ "$lit": json }` is a literal that is never interpreted (the way to write an object that contains `$`-keys);
+- array and object constructors **omit** a member that evaluates to absent, so `[key, optionalValue]` becomes `[key]`; `$fromEntries` accepts `[key]` and `[key, value]` and skips a key-only entry (Task 2).
 
 This amends the plan's "expressions are objects with exactly one `$`-key": literals need no wrapper, which keeps LLM output small and removes the `$lit` noise that a bound intent such as `{ type: "setState", key: "filter", value: { $path: … } }` would otherwise need.
 
@@ -143,6 +144,7 @@ This amends the plan's "expressions are objects with exactly one `$`-key": liter
 **T11. Bounds (enforced at render).** The plan's "work is bounded by input size × template size" is true only without nested loops: a `$filter` inside a `$map` inside a `$filter` is polynomial in the array bounds, and a `$let` chain that concatenates a string with itself doubles it per binding. So evaluation has explicit fuel and value caps:
 
 - `limits.steps` (new, default 1,000,000): one step per expression node evaluated. Exhaustion is `limit-exceeded` at the expression's pointer. The agent-home widget needs about 10⁴ steps; the default leaves a hundred-fold margin.
+- Operators that walk a long value (`$len` of a string, `$concat`, `$join`, `$split`, `$slice`, `$contains`, `$flat`, `$sum`, `$merge`, `$fromEntries`) cost one extra step per 64 units of input, so nested work cannot hide in one step (Task 2).
 - A string result is at most 1,048,576 UTF-16 units and an array result at most 65,536 items (`limit-exceeded`).
 - Inputs are bounded by their schemas (arrays always carry `maxItems`), so `$each`/`$map` iterate bounded arrays; the tree limits of §10 apply to the output as for `render()`.
 
