@@ -264,7 +264,28 @@ This plan implements the format work of 0.3.0 in roadmap Phase 7: spec §5 (defi
     - **Docs.** Spec §5 (schema-language forms, new "URL strings" paragraphs, widget-schema note), `docs/security.md` ("URL-valued props: declare `url`"), `docs/formats.md` (builder table, URL paragraph, widget schemas, classification), `docs/migration-0.3.md` (Compatible additions "URL strings"), `CHANGELOG.md`.
     - **Verification.** `timeout 600 bun run check` passed (1,188 passed, 0 failed, 4 skipped). Not run: `bun run bench` (Task 8 runs it once; the string check adds one pass only to props that declare `url`), WebKit/Firefox and `demo:test` (whole-plan verification).
 
-- [ ] Task 8: Analyze architectural impact and dispose of every finding
+- [x] Task 7a: Execute impact findings F1–F4 (bench measurement, proof exporter, catalog-wide axis limit, URL-prop conformance case)
+  - Acceptance Criteria:
+    - Functional:
+      - F1: `bench/validator.bench.ts` reports the median of five batches of 200 runs per figure; no limit or gate changes.
+      - F2: `proof/scripts/export-formats.ts` runs again: the recipe round-trip compares the proof's own eight states and the exported `resolved-recipes` is the library's full table; its output matches the committed fixtures.
+      - F3: `validateCatalog` rejects kinds with `axes` whose combinations total more than 512 (`invalid-document` at `/definitions`); kinds without axes add nothing.
+      - F4: `catalogSuite` adds `url_props_declare_a_url_rule`: a string prop named `href`, `src`, `url` or ending in `Href`, `Src`, `Url` (nested props included) must declare `url`, a `pattern` or an `enum`.
+    - Performance: validator bench measurement only; the install check multiplies enum sizes.
+    - Code Quality: one `definitionCombinations` shared by the per-kind and total checks; one `plainUrlProps` walker.
+    - Security: law 3 — bounds the CSS an installed catalog can expand to; F4 surfaces unconstrained URL props.
+    - Compatibility: no declaration change (suite and install-rule behaviour only; migration, changelog and corpus register entries added).
+  - Approach:
+    - Skills to Use: `create-decision-log`; `liveframe-execution`.
+    - Documentation Reviewed: `plans/evidence/027-impact-analysis.md`; `plans/evidence/027-axes-cost.md`; `src/conformance/catalog.ts`; `bench/validator.bench.ts`.
+    - Options Considered: for F3, totals of 256 (≤ 2 MB worst case; constrains large catalogs) and 1024 (≤ 8 MB); a projected-byte budget (needs a projection at install). For F1, a looser limit (rejected: the limit is not ours to move) and nine batches (dropped: measured during an unrelated load of 81).
+    - Chosen Approach: owner-approved 512 total (`decision-logs/2026-11-07-0108-catalog-wide-axis-combination-limit.md`); median-of-batches measurement; exporter filtered to the proof's states; a conformance case with `url`/`pattern`/`enum` as the ways to constrain a prop.
+    - Files to Create/Edit: `bench/validator.bench.ts`; `proof/scripts/export-formats.ts`; `src/formats/axes.ts`; `src/formats/catalog.ts`; `src/conformance/catalog.ts`; `src/__tests__/variant-axes.test.tsx`; `src/__tests__/conformance-catalog.test.ts`; `conformance/corpus/catalog/axes-total-too-large.json` and its document; `register-0.3.0.json`; `docs/spec.md` §5, §13; `docs/formats.md`; `docs/styling.md`; `docs/conformance.md`; `docs/migration-0.3.md`; `CHANGELOG.md`; the decision log
+  - Test Cases to Write:
+    - `axis_combinations_are_bounded_across_the_catalog` (two maximal kinds hold, a third fails at `/definitions`, a kind without axes adds nothing); `url_props_declare_a_url_rule` (plain prop fails naming `image.src`; `url`, `pattern` and `enum` pass; a null catalog reports its install error); suite case counts 5 → 6 and 4 → 5; corpus case `catalog/axes-total-too-large.json`.
+  - Notes (executed 2026-11-07): the owner answered "Execute all four" to the impact findings and "512 (Recommended)" for F3's number. The exporter regenerated into a scratch directory matches the committed `src/__tests__/fixtures/proof/*.json` (the three `*.manifest.json` files come from another path). A nine-batch bench variant was run and dropped because an unrelated build pushed the load to 81. The first full check after these changes failed one test (`spec_paragraphs_stay_short`: the new §13 sentence made the fixtures bullet too long), fixed by giving it its own bullet; the final run is recorded in Task 8.
+
+- [x] Task 8: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional: the twelve impact areas swept against Tasks 1–7 in `plans/evidence/027-impact-analysis.md`; findings presented, dispositions recorded and executed or backlogged.
     - Performance: `bun run bench` once (switch span A, CSS, validator, render).
@@ -279,7 +300,12 @@ This plan implements the format work of 0.3.0 in roadmap Phase 7: spec §5 (defi
     - API Notes and Examples: n/a.
     - Files to Create/Edit: `plans/evidence/027-impact-analysis.md`; `plans/backlog.md`.
   - Test Cases to Write: n/a.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-07):
+    - [`plans/evidence/027-impact-analysis.md`](evidence/027-impact-analysis.md) sweeps all twelve areas with `file:line` citations and re-checks law 3 against every new style input. No law bypass found. Four findings, all executed on the owner's "Execute all four" (see Task 7a): F1 bench measurement (the gate still sits within 1–2% of its limit), F2 the proof exporter, F3 a catalog-wide axis limit of 512 (owner-confirmed), F4 the `catalogSuite` URL-prop case.
+    - Whole-plan verification: `bun run check` (before Task 7a) passed 1,188 tests, 4 skips, 0 failures at load 2.5–5.4. WebKit 61 pass/6 skip/0 fail, Firefox 67 pass/0 fail. `bun run demo:test` 54 pass/0 fail after installing Chromium for the demo's Playwright (`bunx playwright install chromium` in `examples/demo-host`), which closes Task 3's unverified exception.
+    - Benchmarks: the single `bun run bench` (load 3.2) failed `core-queue.full` at 1.508 µs/node (limit 1.5) and stopped before the other stages. Six alternating runs against the plan 026 end commit show the same gate failing at both (baseline best 1.523, HEAD best 1.510), so plan 027 adds no measurable validator cost; render, CSS and streaming pass when run alone (agent-home render 1.855–2.168 µs/node, arrival validation 1.4 ms). The extension projection time gate, marginal in Task 4, passes on this host (paired growth 15.3–20.1%). The host load never went below 2.5 because of unrelated VMs and builds, so this is not the quiet-host proof (the existing backlog entry stays open). No threshold changed.
+    - Final `timeout 900 bun run check` after Task 7a: 1,192 passed, 4 existing skips, 0 failed (390 s of tests, load 5–12 from unrelated work). A mid-task run failed only `spec_paragraphs_stay_short`, fixed as noted in Task 7a.
+    - `plans/evidence/019-streaming-bench.md`, rewritten by the streaming bench, was restored to its committed content.
 
 ## Verification (whole plan)
 
@@ -290,8 +316,14 @@ This plan implements the format work of 0.3.0 in roadmap Phase 7: spec §5 (defi
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- The quiet-host proof is still open: no benchmark or full check ran with a load average below 2 (the host runs unrelated VMs), and `core-queue.full` sits within 1–2% of its 1.5 µs/node limit at both the plan 026 baseline and HEAD. No threshold was changed.
+- The proof catalog was not given an axis kind (it would renumber the shared proof fixtures); axes are proved with a derived catalog in `src/__tests__/fixtures/axes.ts` and the proof Certified theme.
+- `catalogSuite` gains a case that fails a catalog with unconstrained URL-named props, a new failure for adopters on upgrade (documented in the migration guide).
+- A nested `url` rule inside an object or array prop is documented only by the schema, not by a generated doc comment.
+- The 512-combination total is a judgement from measured CSS cost (about 8 KB each), not from a hard host limit.
 
 ## Further Actions
 
-- To be filled after task completion with improvements, rationale, and priority.
+- **Decide the validator gate's headroom (P3).** `core-queue.full` measures 1.47–1.62 µs/node against a 1.5 limit at both the plan 026 baseline and HEAD, so the gate flips on noise; either find ~5% in the hot path or move the limit, as an owner decision. Also make `bun run bench` run its four stages independently, so one failing gate no longer hides render, CSS and streaming (`package.json:150`). Handed to the backlog; plan 032 Task 3 carries the quiet-host run.
+- **Document nested `url` props in generated types (P4).** A `url` rule inside an object or array prop is documented only by its schema, not by a doc comment in `ui.gen.ts`. Rationale: an agent reads the comment, not the schema.
+- **Quiet-host proof (existing entry, P3).** Updated with this plan's figures; still requires a load below 2.

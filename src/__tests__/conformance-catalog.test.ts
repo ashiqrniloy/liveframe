@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { str, type Catalog } from "@arnilo/liveframe";
+import { str, type Catalog, type LanguageSchema } from "@arnilo/liveframe";
 import { catalogSuite, ConformanceFailure } from "@arnilo/liveframe/conformance";
 import { catalog, capabilities, manifest, examples, scenarioExamples } from "./fixtures/conformance/index.ts";
 import { supplementalExample } from "./fixtures/conformance/supplemental.ts";
@@ -21,8 +21,8 @@ async function fails(name: string, overrides: Partial<Parameters<typeof catalogS
 
 test("proof_catalog_passes_the_catalog_suite", async () => {
   const cases = catalogSuite({ ...input, published: catalog });
-  expect(cases).toHaveLength(5);
-  expect(catalogSuite(input)).toHaveLength(4);
+  expect(cases).toHaveLength(6);
+  expect(catalogSuite(input)).toHaveLength(5);
   await Promise.all(cases.map((c) => c.run()));
 });
 
@@ -80,6 +80,7 @@ test("catalog_suite_reports_install_errors_in_independent_cases", async () => {
     ["catalog_installs", { catalog: { ...catalog, vocabulary: {} } }, "/vocabulary/colourRoles"],
     ["capabilities_install", { capabilities: null }, ""],
     ["manifest_installs_against_the_catalog", { manifest: { ...manifest, catalogId: "other@1" } }, "/catalogId"],
+    ["url_props_declare_a_url_rule", { catalog: null }, ""],
     ["every_kind_and_variant_has_a_valid_example", { catalog: null }, ""],
     ["breaking_changes_take_a_new_major_catalog_id", { published: null }, ""],
   ] as const) {
@@ -111,4 +112,26 @@ test("catalog_version_case_accepts_only_the_required_identity_change", async () 
   await fails(rule, { catalog: { ...catalog, catalogId: "proof.ui@2" }, published: catalog });
   const large = "9007199254740993";
   await version({ ...removed, catalogId: `proof.ui@${large}` }, { ...catalog, catalogId: "proof.ui@9007199254740992" });
+});
+
+test("url_props_declare_a_url_rule", async () => {
+  const rule = "url_props_declare_a_url_rule";
+  const withSrc = (src: LanguageSchema): Catalog => ({
+    ...catalog,
+    definitions: catalog.definitions.map((d) =>
+      d.kind === "image" ? { ...d, props: { ...d.props, properties: { ...d.props.properties, src } } } : d,
+    ),
+  });
+  // An unconstrained URL-named prop fails and names the path.
+  const failure = await fails(rule, { catalog: withSrc(str({ maxLength: 2048 })) });
+  expect(failure.details).toContain("image.src");
+  // A url rule, a pattern or an enum each constrain it.
+  for (const constraint of [
+    { url: { schemes: ["https"] } },
+    { pattern: "^/assets/[a-z]+$" },
+    { enum: ["/assets/a.png"] },
+  ])
+    await catalogSuite({ ...input, catalog: withSrc(str({ maxLength: 2048, ...constraint })) })
+      .find((c) => c.name === rule)
+      ?.run();
 });

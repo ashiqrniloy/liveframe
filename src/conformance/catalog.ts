@@ -5,6 +5,7 @@ import {
   validateCapabilities,
   validateManifest,
   type CompileValidatorOptions,
+  type LanguageSchema,
   type Result,
 } from "../index.ts";
 import { nodeAxisValues } from "../formats/axes.ts";
@@ -13,6 +14,23 @@ import { check, type ConformanceCase } from "./case.ts";
 function value<T>(result: Result<T>, rule: string, spec: string): T {
   check(result.ok, rule, spec, result.ok ? [] : result.errors);
   return result.value;
+}
+
+const urlLike = /^(?:href|src|url)$|(?:Href|Src|Url)$/;
+
+/** Paths of string props named like URLs that nothing constrains: no `url` rule, `pattern` or `enum` (spec §5, security). */
+function plainUrlProps(schema: LanguageSchema, path: string): string[] {
+  if (schema.type === "array") return plainUrlProps(schema.items, `${path}[]`);
+  const members = schema.type === "object" ? [schema] : schema.type === undefined ? Object.values(schema.mapping) : [];
+  return members.flatMap((member) =>
+    Object.entries(member.properties).flatMap(([name, prop]) =>
+      prop.type === "string"
+        ? urlLike.test(name) && !prop.url && prop.pattern === undefined && !prop.enum
+          ? [`${path}.${name}`]
+          : []
+        : plainUrlProps(prop, `${path}.${name}`),
+    ),
+  );
 }
 
 /** Validate app documents and examples, with optional compatibility against a published catalog. */
@@ -50,6 +68,18 @@ export function catalogSuite({
       name: "manifest_installs_against_the_catalog",
       async run() {
         installed("manifest_installs_against_the_catalog");
+      },
+    },
+    {
+      name: "url_props_declare_a_url_rule",
+      async run() {
+        const rule = "url_props_declare_a_url_rule";
+        const checked = value(validateCatalog(catalog), rule, "§5");
+        const plain = checked.definitions.flatMap((d) => plainUrlProps(d.props, d.kind));
+        check(!plain.length, rule, "§5", [
+          `${plain.length} URL-named string props accept any string; declare url: { schemes: [...] }, a pattern or an enum`,
+          ...plain,
+        ]);
       },
     },
     {

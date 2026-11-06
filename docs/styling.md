@@ -343,7 +343,8 @@ in the vocabulary, so a target family must cover each suffix the variants use.
   an installed design system incomplete.
 - **Cost.** The table holds one entry per combination, so a kind with 2 variants and
   a 3-value axis has three times the entries of one without the axis. At most three
-  axes, 16 values each and 256 combinations per kind.
+  axes, 16 values each and 256 combinations per kind, and 512 combinations across
+  the whole catalog (about 8 KB of CSS each, so a catalog at the limit adds a few MB).
 - **Audit and conformance.** `auditContrast` checks every combination and names it
   by its resolved key (`button.ghost__critical.root.rest`). `catalogSuite` needs an
   example per axis value; the styled-state fixtures need each non-default value one

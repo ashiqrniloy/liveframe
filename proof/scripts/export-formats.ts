@@ -23,6 +23,7 @@ import { certifiedDesignSystem } from "../styles/certified/design-system.ts";
 import { rackDesignSystem } from "../styles/rack/design-system.ts";
 import {
   propertyTypes,
+  states as proofStates,
   type RecipeKey,
   type Theme as ProofTheme,
   type DesignSystem as ProofSystem,
@@ -203,7 +204,13 @@ for (const [i, source] of ([certifiedDesignSystem, rackDesignSystem] as ProofSys
   checked(validateDesignSystem(ds, { catalog, registry: {} }));
   const table = resolveRecipes(ds, { catalog, registry: {} });
   const expected = recipes(source, true);
-  deepStrictEqual(table, Object.assign(Object.create(null), expected), `${source.id} recipe conversion drift`);
+  // The proof knows the original eight states; the library table also holds the later ones (`current`, `mixed`, ...).
+  const known = Object.fromEntries(
+    Object.entries(table).filter(([key]) =>
+      (proofStates as readonly string[]).includes(key.slice(key.lastIndexOf(".") + 1)),
+    ),
+  );
+  deepStrictEqual(known, expected, `${source.id} recipe conversion drift`);
   // Compare role modifiers against the original proof shadow colour and opacity.
   for (const [key, recipe] of Object.entries(source.recipes)) {
     const value = typeof recipe.shadow === "string" ? source.values[recipe.shadow]?.value : recipe.shadow;
@@ -230,7 +237,7 @@ for (const [i, source] of ([certifiedDesignSystem, rackDesignSystem] as ProofSys
   }
   documents[`${source.id}.theme`] = convertedTheme;
   documents[`${source.id}.design-system`] = ds;
-  documents[`${source.id}.resolved-recipes`] = expected;
+  documents[`${source.id}.resolved-recipes`] = table;
 }
 const capabilities = checked(
   validateCapabilities({

@@ -26,15 +26,22 @@ function props(node: UiNode, checks: ReadonlyMap<string, (value: unknown) => boo
   return true;
 }
 
+/** Milliseconds per run: the median of five batches of 200, so one disturbed batch cannot decide a gate. */
 function measure(run: () => boolean): number {
   for (let i = 0; i < 200; i++) assert(run(), "Validation failed during warm-up");
-  const start = performance.now();
-  for (let i = 0; i < 1_000; i++) assert(run(), "Validation failed during timing");
-  return (performance.now() - start) / 1_000;
+  const batches: number[] = [];
+  for (let batch = 0; batch < 5; batch++) {
+    const start = performance.now();
+    for (let i = 0; i < 200; i++) assert(run(), "Validation failed during timing");
+    batches.push((performance.now() - start) / 200);
+  }
+  return batches.sort((a, b) => a - b)[2] as number;
 }
 
 console.log(`Bun ${Bun.version}; ${platform()} ${release()}; ${cpus()[0]?.model}; ${cpus().length} logical CPUs`);
-console.log(`Load average (1/5/15 min): ${loadavg().join(", ")}; 200 warm-ups, 1,000 runs per implementation`);
+console.log(
+  `Load average (1/5/15 min): ${loadavg().join(", ")}; 200 warm-ups, then the median of 5 batches of 200 runs per implementation`,
+);
 console.log("Generic baseline: checkValue on props only (includes its schema validation); compile/load excluded.");
 let failed = false;
 for (const { name, nodes, tree, validateTree } of fixtures) {

@@ -236,7 +236,8 @@ variant, each naming an enum string prop and the value an absent prop takes
 an `enum` (else `unknown-name` at `/definitions/<i>/axes/<name>`), and its default
 must be one of the values. Values must be tokens (`^[a-z][A-Za-z0-9-]*$`), an axis
 has at most 16 values and a kind at most 256 variant and axis-value combinations
-(each `invalid-document`). The axis value is an ordinary prop, so trees, patches and
+(each `invalid-document`); all kinds with axes together have at most 512
+combinations (`invalid-document` at `/definitions`). The axis value is an ordinary prop, so trees, patches and
 generated types are unchanged. See [variant axes](styling.md#variant-axes).
 
 Each definition requires all fields in the example. Variant and slot lists

@@ -1,0 +1,15 @@
+{
+  "inputs": {
+    "doc": "docs/axes-total-too-large.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "invalid-document",
+        "pointer": "/definitions"
+      }
+    ]
+  }
+}

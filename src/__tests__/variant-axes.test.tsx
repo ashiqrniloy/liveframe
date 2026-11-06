@@ -6,6 +6,7 @@ import {
   type Catalog,
   classifyCatalogChange,
   compileValidator,
+  type Definition,
   type DesignSystem,
   resolveRecipes,
   type Theme,
@@ -181,6 +182,29 @@ test("axis_combination_limit", () => {
   const four = Object.fromEntries(["a", "b", "c", "d"].map((name) => [name, { default: "v0" }]));
   const props = Object.fromEntries(["a", "b", "c", "d"].map((name) => [name, many(2)]));
   expect(validateCatalog(catalogWith(four, props)).ok).toBe(false);
+});
+
+test("axis_combinations_are_bounded_across_the_catalog", () => {
+  const many = (count: number) => ({
+    type: "string",
+    maxLength: 12,
+    enum: Array.from({ length: count }, (_, i) => `v${i}`),
+  });
+  const axes = { tone: { default: "v0" }, size: { default: "v0" } };
+  const base = catalogWith(axes, { tone: many(16), size: many(8) });
+  const [first] = base.definitions;
+  if (!first) throw new Error("fixture has a definition");
+  const kinds = (count: number): Catalog => ({
+    ...base,
+    definitions: Array.from({ length: count }, (_, i) => ({ ...first, kind: `kind${i}` })),
+  });
+  // Two kinds at the per-kind limit (2 x 256 = 512) hold; a third passes the total.
+  expect(validateCatalog(kinds(2)).ok).toBe(true);
+  failure(validateCatalog(kinds(3)), "invalid-document", "/definitions");
+  // A kind without axes adds nothing, however many variants it has.
+  const { axes: _axes, ...rest } = first;
+  const plain: Definition = { ...rest, kind: "plain" };
+  expect(validateCatalog({ ...base, definitions: [...kinds(2).definitions, plain] }).ok).toBe(true);
 });
 
 test("recipe_keys_name_declared_axes_and_values", () => {

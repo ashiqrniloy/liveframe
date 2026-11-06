@@ -2,7 +2,7 @@ import type { Result } from "../errors.ts";
 import { arr, bool, type Infer, int, type LanguageSchema, literal, obj, record, str } from "../schema.ts";
 import type { UrlRule } from "../url.ts";
 import { at, documentChecks, isRecord } from "./capabilities.ts";
-import { maxAxisValues, maxCombinations } from "./axes.ts";
+import { maxAxisValues, maxCatalogCombinations, maxCombinations } from "./axes.ts";
 import { checkFormat } from "./check.ts";
 import { semantics, styleProps } from "./fixed.ts";
 import { validateJson } from "./json.ts";
@@ -179,13 +179,28 @@ function checkAxes(d: Definition, pointer: string, c: Checks): void {
         c.reject(`${pointer}/props/properties/${name}/enum`, `Axis value is not a name: ${value}`);
     if (!schema.enum.includes(fallback)) c.reject(`${where}/default`, "Axis default must be one of the prop's values");
   }
-  const combinations = Object.keys(d.axes ?? {}).reduce(
+  const combinations = definitionCombinations(d);
+  if (d.axes && c.errors.length === start && combinations > maxCombinations)
+    c.reject(`${pointer}/axes`, `At most ${maxCombinations} variant and axis combinations`);
+}
+
+/** Variants times the value count of each axis, multiplied rather than expanded so a hostile catalog allocates nothing. */
+function definitionCombinations(d: Definition): number {
+  return Object.keys(d.axes ?? {}).reduce(
     (count, name) =>
       count * (d.props.properties[name]?.type === "string" ? (d.props.properties[name].enum?.length ?? 1) : 1),
     d.variants.length,
   );
-  if (d.axes && c.errors.length === start && combinations > maxCombinations)
-    c.reject(`${pointer}/axes`, `At most ${maxCombinations} variant and axis combinations`);
+}
+
+/** The expansion is one recipe table entry and one rule set per combination, so the total is bounded too (spec §5). */
+function checkAxisBudget(value: Catalog, c: Checks): void {
+  const total = value.definitions.reduce((sum, d) => sum + (d.axes ? definitionCombinations(d) : 0), 0);
+  if (total > maxCatalogCombinations)
+    c.reject(
+      "/definitions",
+      `At most ${maxCatalogCombinations} variant and axis combinations across all kinds with axes`,
+    );
 }
 
 /** A `semantics` enum holds library values and the vocabulary's declared names, nothing else (spec §5). */
@@ -252,6 +267,7 @@ export function validateCatalog(doc: unknown): Result<Catalog> {
   if (c.errors.length) return { ok: false, errors: c.errors };
   const value = doc as Catalog;
   checkDefinitionReferences(value, c);
+  if (!c.errors.length) checkAxisBudget(value, c);
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value };
 }
 

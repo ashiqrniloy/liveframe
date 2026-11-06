@@ -4,6 +4,8 @@ import type { Definition } from "./catalog.ts";
 export const maxAxes = 3;
 export const maxAxisValues = 16;
 export const maxCombinations = 256;
+/** Combinations summed over every kind with axes: about 8 KB of CSS each, so a catalog's worst case is a few MB. */
+export const maxCatalogCombinations = 512;
 
 /** The separator between a variant and its axis values in a resolved key and a slot class. */
 const separator = "__";

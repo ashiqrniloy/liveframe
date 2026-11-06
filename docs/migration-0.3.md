@@ -194,6 +194,7 @@ href: str({ maxLength: 2048, url: { schemes: ["https", "mailto"], relative: true
 1. Replace a hand-written `pattern` on a URL prop with `url` (the two cannot be combined). A value with a control character, an unlisted scheme (case-insensitively), or a `//host` or backslash start is `invalid-prop`.
 2. Widget schemas may use `url`; they still may not use `pattern`.
 3. Regenerate types and element schemas with `liveframe gen`: the prop doc names the schemes and the element schema carries a generated `pattern`.
+4. `catalogSuite` gains `url_props_declare_a_url_rule`, which fails a string prop named like a URL (`href`, `src`, `url`, or ending in `Href`, `Src`, `Url`) that has no `url` rule, `pattern` or `enum`. Declare `url` on it, or constrain it another way; nested props inside objects, arrays and unions are checked too.
 
 See [the security model](security.md) and [formats](formats.md#the-schema-language).
 
@@ -212,7 +213,7 @@ variants: ["primary", "ghost"], axes: { tone: { default: "neutral" } }; // <Butt
 // design system: "button.tone:critical.root.rest": { "roles": { "accent": "status.critical" } }
 ```
 
-1. Add the enum prop and `axes` to the definition (a minor catalog change) and keep the product variants until widgets have moved; removing them is major.
+1. Add the enum prop and `axes` to the definition (a minor catalog change; all kinds with axes together may have at most 512 variant and axis combinations) and keep the product variants until widgets have moved; removing them is major.
 2. Move product recipes into axis overlays with `roles` aliases; every rewritten role must be a declared theme role.
 3. Replace product variants in widgets and stored trees with the variant and the axis prop.
 4. Search host CSS and tests for `.lf_<kind>_` selectors: the class gains the axis values (`lf_button_primary__neutral_root`).

@@ -658,6 +658,22 @@
   },
   {
     "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/axes-total-too-large.json",
+    "change": "added",
+    "reason": "Catalog-wide variant axis combination limit corpus case",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T8"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/catalog/docs/axes-total-too-large.json",
+    "change": "added",
+    "reason": "Catalog-wide variant axis combination limit corpus case",
+    "hostAction": "Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.",
+    "task": "027 T8"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
     "name": "conformance/corpus/catalog/axis-not-enum.json",
     "change": "added",
     "reason": "Variant axis and role alias corpus cases",

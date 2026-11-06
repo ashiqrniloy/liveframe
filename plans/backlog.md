@@ -515,6 +515,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 
 - Update (2026-11-05, plan 026 Task 10): the required single sequential whole-plan benchmark attempt at load 4.02 / 4.39 / 4.91 failed core-queue.full at 1.509 µs/node against 1.5; the chained render/CSS/streaming stages were not reached. No retry or threshold change. [Impact review](evidence/026-impact-analysis.md) records all measurements and the Task 9 isolated reference variance (up to 1.085 interpreted / 1.037 props), distinguished from passing relative whole-tree/patch/diff/compilation/install gates. Retain this existing follow-up into plan 032 Task 3 under the approved scope; no quiet-host or cumulative absolute pass is claimed.
 
+- Update (2026-11-07, plan 027 Task 8): [impact review](evidence/027-impact-analysis.md). One `bun run bench` at load 3.2 failed `core-queue.full` at 1.508 µs/node and stopped before the other stages. Six alternating runs against the plan 026 end commit fail the same gate at both (baseline best 1.523, HEAD best 1.510), so plan 027 adds no measurable cost. Render, CSS and streaming pass when run alone; extension projection time passes its +20% gate (15.3–20.1%). The host load never went below 2.5 (unrelated VMs), so the quiet-host requirement stays open. The validator bench now reports a median of five batches (measurement only; no limit changed). Retained into plan 032 Task 3.
+
 ## Name the realm mismatch in a compiled validator's `validateTree`
 
 - Status: closed in the checkout 2026-11-05 by plan 026 Task 5: consistent invalid-document realm diagnostics across public document validators, with the VM entry-point matrix and migration. Recorded by [Task 10's impact review](evidence/026-impact-analysis.md). Not yet published as 0.3.0.
@@ -639,3 +641,19 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Source: plans/025-Phase-7-Part-L-Release-0-2-3-Simplification-And-Release.md Task 7; plans/evidence/024-hot-spots.md
 - What: measured, no change in 0.2.3. Removing the identity layer cost 1.25–1.33× in lookup plus validation, outside the 5% regression limit. Revisit only if content lookup and manifest compilation costs change enough to pass the same paired gate.
 - Why: the two caches serve different costs; deleting the identity layer currently adds repeated content checks and compilation.
+
+## Decide the validator gate's headroom and run bench stages independently
+
+- Section: Release automation (spec §13)
+- Priority: P3
+- Source: plans/027-Phase-7-Part-N-Release-0-3-0-Formats-References-Extensions-Axes-And-Urls.md
+- What: `core-queue.full` measures 1.47–1.62 µs/node against its 1.5 limit at both the plan 026 baseline and plan 027 HEAD, so the gate flips on noise even at load 3. Either find about 5% in the hot path or move the limit, as an owner decision. Make the `bench` script run its four stages independently, so one failing gate does not hide the render, CSS and streaming results (`package.json:150`).
+- Why: `bun run bench` cannot currently give a whole-suite pass or fail, and the quiet-host entry above depends on it.
+
+## Document nested `url` props in generated types
+
+- Section: Agent authoring (spec §13)
+- Priority: P4
+- Source: plans/027-Phase-7-Part-N-Release-0-3-0-Formats-References-Extensions-Axes-And-Urls.md Task 7
+- What: `liveframe gen` writes a doc comment for a top-level `url` prop only; a `url` rule inside an object or array prop is documented by the schema alone.
+- Why: an agent reads the generated comment, not the schema.

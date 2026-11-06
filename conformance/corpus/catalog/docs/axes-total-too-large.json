@@ -1,0 +1,278 @@
+{
+  "format": "liveframe-catalog/1",
+  "catalogId": "corpus.ui@1",
+  "description": "Corpus primitives whose variant axes expand past the catalog-wide combination limit.",
+  "vocabulary": {
+    "colourRoles": [
+      "ink",
+      "focus",
+      "accent.fill",
+      "accent.text",
+      "status.neutral.fill",
+      "status.neutral.text",
+      "status.critical.fill",
+      "status.critical.text"
+    ],
+    "typographyRoles": [
+      "body"
+    ],
+    "surfaceTypography": "body",
+    "surfaceRoles": [],
+    "fillableRoles": [],
+    "tones": {},
+    "space": [
+      "space.1"
+    ],
+    "radius": [],
+    "size": [],
+    "breakpoints": []
+  },
+  "definitions": [
+    {
+      "kind": "button",
+      "description": "Runs an intent.",
+      "variants": [
+        "primary",
+        "ghost"
+      ],
+      "defaultVariant": "primary",
+      "slots": [
+        "root",
+        "label"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "tone": {
+            "type": "string",
+            "maxLength": 12,
+            "enum": [
+              "t0",
+              "t1",
+              "t2",
+              "t3",
+              "t4",
+              "t5",
+              "t6",
+              "t7",
+              "t8",
+              "t9",
+              "t10",
+              "t11",
+              "t12",
+              "t13",
+              "t14",
+              "t15"
+            ]
+          },
+          "size": {
+            "type": "string",
+            "maxLength": 12,
+            "enum": [
+              "s0",
+              "s1",
+              "s2",
+              "s3",
+              "s4",
+              "s5",
+              "s6",
+              "s7"
+            ]
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "additionalProperties": false
+      },
+      "children": "none",
+      "events": {
+        "onPress": {
+          "carries": "none",
+          "description": "Pressed."
+        }
+      },
+      "styleProps": [],
+      "a11y": {
+        "role": "button",
+        "name": "label"
+      },
+      "axes": {
+        "tone": {
+          "default": "t0"
+        },
+        "size": {
+          "default": "s0"
+        }
+      }
+    },
+    {
+      "kind": "chip",
+      "description": "Runs an intent.",
+      "variants": [
+        "primary",
+        "ghost"
+      ],
+      "defaultVariant": "primary",
+      "slots": [
+        "root",
+        "label"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "tone": {
+            "type": "string",
+            "maxLength": 12,
+            "enum": [
+              "t0",
+              "t1",
+              "t2",
+              "t3",
+              "t4",
+              "t5",
+              "t6",
+              "t7",
+              "t8",
+              "t9",
+              "t10",
+              "t11",
+              "t12",
+              "t13",
+              "t14",
+              "t15"
+            ]
+          },
+          "size": {
+            "type": "string",
+            "maxLength": 12,
+            "enum": [
+              "s0",
+              "s1",
+              "s2",
+              "s3",
+              "s4",
+              "s5",
+              "s6",
+              "s7"
+            ]
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "additionalProperties": false
+      },
+      "children": "none",
+      "events": {
+        "onPress": {
+          "carries": "none",
+          "description": "Pressed."
+        }
+      },
+      "styleProps": [],
+      "a11y": {
+        "role": "button",
+        "name": "label"
+      },
+      "axes": {
+        "tone": {
+          "default": "t0"
+        },
+        "size": {
+          "default": "s0"
+        }
+      }
+    },
+    {
+      "kind": "tag",
+      "description": "Runs an intent.",
+      "variants": [
+        "primary",
+        "ghost"
+      ],
+      "defaultVariant": "primary",
+      "slots": [
+        "root",
+        "label"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "tone": {
+            "type": "string",
+            "maxLength": 12,
+            "enum": [
+              "t0",
+              "t1",
+              "t2",
+              "t3",
+              "t4",
+              "t5",
+              "t6",
+              "t7",
+              "t8",
+              "t9",
+              "t10",
+              "t11",
+              "t12",
+              "t13",
+              "t14",
+              "t15"
+            ]
+          },
+          "size": {
+            "type": "string",
+            "maxLength": 12,
+            "enum": [
+              "s0",
+              "s1",
+              "s2",
+              "s3",
+              "s4",
+              "s5",
+              "s6",
+              "s7"
+            ]
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "additionalProperties": false
+      },
+      "children": "none",
+      "events": {
+        "onPress": {
+          "carries": "none",
+          "description": "Pressed."
+        }
+      },
+      "styleProps": [],
+      "a11y": {
+        "role": "button",
+        "name": "label"
+      },
+      "axes": {
+        "tone": {
+          "default": "t0"
+        },
+        "size": {
+          "default": "s0"
+        }
+      }
+    }
+  ]
+}
