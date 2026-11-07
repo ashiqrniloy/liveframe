@@ -19,6 +19,12 @@ A template widget (`package.template`, [spec §7.6](spec.md#76-template-widgets)
 
 So `templateRunner()` executes no author code and is the recommended production runner for authors you do not trust who only need templates. It refuses code packages. A host that accepts both kinds still needs an isolated runner for the code packages and should route each package to the runner for its kind. A template still cannot make the host trust its output: size, depth and node limits, the manifest's schemas and the catalog all apply.
 
+`limits.steps` (default 1,000,000) is the only bound on a template's running time; `templateRunner()` has no wall-clock timeout. On the reference machine a hostile template that nests two `$map`s over 1,000-item arrays spends the whole default budget and stops with `limit-exceeded` after about 25 ms, and a string-doubling `$let` chain stops at the string cap in about 2 ms. A real widget needs about 10⁴ steps, so a host that accepts templates from untrusted authors can pass a much lower `limits.steps` (100,000 is ten times the proof widgets' need) to cap the cost of one render at about 2.5 ms. Run a template in `workerRunner()` when the host also wants a wall-clock timeout.
+
+## Streamed element JSON
+
+`streamElements()` parses text that an agent is still writing, so it treats the text as hostile. It does linear work (open containers and long strings cost the same per character as closed ones), stops at 1,024 levels of nesting (`limit-exceeded` at `/$stream/<offset>`), refuses text longer than four times `limits.bytes` characters, and draws only trees that pass the compiled validator. After a fatal failure it reads no further.
+
 ## What is not protected
 
 - **The reference runners are not sandboxes.** `inProcessRunner()` shares the host's realm, so widget code can reach anything the process can, and a synchronous loop cannot be interrupted (its timeout covers the return, not the loop). `workerRunner()` bounds time and crashes, but it does not restrict what code can access, and one worker serves every package: a draft that keeps running can answer a later render of a package it did not author. The host re-validates that tree against the later widget's manifest, and a worker that answers out of turn is terminated — but the answer still came from code you did not run. Verify packages, run only code you trust, and plug your own isolated runner into both preview and production for anything hostile. The preview, package and MCP guides repeat this where it applies.

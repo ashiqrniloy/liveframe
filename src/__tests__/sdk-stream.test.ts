@@ -301,3 +301,42 @@ test("references_draw_when_the_text_ends", () => {
   expect(final).toEqual(renderElements(doc, { ...refs, revision: seen.length + 1 }));
   expect(final.ok && final.value.root.children?.[1]?.props.describedBy).toBe("root/hint");
 });
+
+/** Feeds `text` in pieces of `size` and returns the first failure, as a host loop would see it. */
+function firstFailure(stream: ReturnType<typeof streamElements>, text: string, size: number) {
+  for (let at = 0; at < text.length; at += size) {
+    const result = stream.push(text.slice(at, at + size));
+    if (result && !result.ok) return failure(result);
+  }
+  return failure(stream.end());
+}
+
+test("stream_nesting_stops_at_1024", () => {
+  const nested = (depth: number) => `{"kind":"stack","props":{"a":${"[".repeat(depth)}`;
+  // Inside the bound the text is merely incomplete; past it the stream stops at the offset.
+  const inside = firstFailure(streamElements(options), nested(1000), 4096);
+  expect(inside.kind).toBe("invalid-document");
+  const past = firstFailure(streamElements(options), nested(1_000_000), 4096);
+  expect(past.kind).toBe("limit-exceeded");
+  expect(past.pointer).toStartWith("/$stream/");
+});
+
+test("stream_work_is_linear_in_open_containers", () => {
+  const time = (items: number) => {
+    const text = `{"kind":"text","props":{"text":"a","x":[${"1,".repeat(items)}`;
+    const started = performance.now();
+    firstFailure(streamElements({ ...options, limits: { bytes: 10_000_000 } }), text, 64);
+    return performance.now() - started;
+  };
+  time(10_000); // warm the paths
+  const small = time(50_000);
+  const large = time(400_000);
+  // Eight times the text must not cost anywhere near sixty-four times the work.
+  expect(large).toBeLessThan(Math.max(small, 1) * 32);
+});
+
+test("stream_refuses_text_past_four_times_the_byte_limit", () => {
+  const error = firstFailure(streamElements({ ...options, limits: { bytes: 1000 } }), " ".repeat(100_000), 4096);
+  expect(error.kind).toBe("limit-exceeded");
+  expect(error.pointer).toBe("/$stream/4000");
+});

@@ -71,6 +71,7 @@ The validated tree separates backend widget execution from trusted browser primi
 | The format for component definitions (props, children, events, variants, slots, style props) | Its primitive set: definitions plus React implementations |
 | The format for themes and design systems (values, recipes), with a resolver and a CSS projection | Its themes and design systems |
 | The TSX SDK: JSX runtime, intent helpers, a codegen CLI for typed components | Where widget code runs: its sandbox, plugged in as a runner (§7.5) |
+| Template widgets: element JSON plus a bounded expression language, evaluated by the library (§7.6) | Nothing for isolation: a template runs no author code, so it needs no sandbox |
 | The validator for widget output | Its capabilities (§7.1): data sources, resolved as the viewer, and actions, each declared with schemas |
 | The React renderer and the interaction plumbing | Actions, authorised and executed by the app |
 | `pack()`, the record formats, the `Store` interface and two reference stores (§7.3–§7.4) | Its storage backend (database, tenancy, encryption), or a reference store |
@@ -96,13 +97,13 @@ The division of responsibilities keeps app authority and trusted implementations
 | **Catalog** | The app's versioned set of definitions and its vocabulary (`catalogId`, for example `acme.ui@1`) |
 | **Vocabulary** | The names the app declares for colour roles, typography roles, tones and design values (§6.5) |
 | **Capabilities** | The app's declared actions and data sources, with descriptions and schemas (§7.1) |
-| **Widget** | A TSX module plus a manifest: a pure function `(params, state, data, context) → element tree` |
+| **Widget** | A manifest plus either a TSX module, a pure function `(params, state, data, context) → element tree`, or a **template**: element JSON with expressions that the library evaluates (§7.6) |
 | **Composed component** | A plain TSX function built from primitives and imported by widgets. Not a catalog entry |
 | **UI tree** | The validated JSON tree the renderer draws |
 | **Intent** | What an interaction asks for: `setState` or `action` |
 | **Theme** | The only source of colour roles and typography roles |
 | **Design system** | Geometry, material and motion values, plus **recipes** that map each primitive's variant, slot and state to styles |
-| **Package** | An installed widget version: its manifest and compiled code, immutable and identified by a SHA-256 hash (§7.3) |
+| **Package** | An installed widget version: its manifest and either compiled code or a template, immutable and identified by a SHA-256 hash (§7.3) |
 | **Placement** | One package version placed in one host slot, with its params. Each placement has its own state |
 | **Store** | Where a host keeps packages, placements, state and installed styles across launches (§7.4) |
 | **Scenario** | A named set of fixture inputs a package carries, such as `default`, `empty` or `failed`. Every package has at least one (§7.3) |

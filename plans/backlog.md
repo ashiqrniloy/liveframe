@@ -649,6 +649,7 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Source: plans/027-Phase-7-Part-N-Release-0-3-0-Formats-References-Extensions-Axes-And-Urls.md
 - What: `core-queue.full` measures 1.47–1.62 µs/node against its 1.5 limit at both the plan 026 baseline and plan 027 HEAD, so the gate flips on noise even at load 3. Either find about 5% in the hot path or move the limit, as an owner decision. Make the `bench` script run its four stages independently, so one failing gate does not hide the render, CSS and streaming results (`package.json:150`).
 - Why: `bun run bench` cannot currently give a whole-suite pass or fail, and the quiet-host entry above depends on it.
+- Plan 028 evidence: the same gate (`core-queue.full`, 1.51–1.72 µs/node) fails at the commit before plan 028 (`eedf1c1`) and at HEAD at load 6–13, and `bench/ab.ts eedf1c1 bench/render.bench.ts --runs 9` at load 13 gives render ratios 1.03–1.11 against 1.01–1.08 for the unchanged `validateTree` in the same runs, so about 0–4% of the render rise is unresolved. A quiet-host paired run (plan 032 Task 3) settles it.
 
 ## Document nested `url` props in generated types
 
@@ -657,3 +658,28 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Source: plans/027-Phase-7-Part-N-Release-0-3-0-Formats-References-Extensions-Axes-And-Urls.md Task 7
 - What: `liveframe gen` writes a doc comment for a top-level `url` prop only; a `url` rule inside an object or array prop is documented by the schema alone.
 - Why: an agent reads the generated comment, not the schema.
+
+## Draw `$ref` and fragment documents progressively in `streamElements`
+
+- Section: SDK rendering (spec §7.2)
+- Priority: P4
+- Source: plans/028-Phase-7-Part-O-Release-0-3-0-Template-Widgets-And-Streaming.md Task 7
+- What: `streamElements` holds back a node that holds an unresolved `$ref` (and any shell around it) and a fragment until the text ends, and a member after `children` stops progressive drawing. Resolve references and draw fragments as they close. Separately, find element objects by bracket matching too (the reader needs only the members before `children`), which would take the 2.4–2.9× margin against the 3× gate (`bench/stream-elements.bench.ts`) to about 2×.
+- Why: an agent that writes a reference-heavy or fragment-heavy document sees nothing until the end, and the bench margin is thin.
+
+## Make the template structured-output schema usable in strict modes
+
+- Section: Agent authoring (spec §13)
+- Priority: P3
+- Source: plans/028-Phase-7-Part-O-Release-0-3-0-Template-Widgets-And-Streaming.md Task 6
+- What: `liveframe gen --template-schema --structured-subset` drops constraint keywords but is not accepted by strict structured-output modes (recursive schema, optional fields, `oneOf` unions); Gemini's subset was never checked. Decide whether to emit a depth-limited, all-required form for one provider, with a measured agent success rate, or to keep telling hosts to use the full schema as a non-strict tool schema and rely on install errors.
+- Why: an agent constrained by the schema cannot emit a wrong operator; today the install errors are the only guard.
+
+## Stop `bench/streaming.bench.ts` rewriting a tracked evidence file
+
+- Section: Release automation (spec §13)
+- Priority: P4
+- Source: plans/028-Phase-7-Part-O-Release-0-3-0-Template-Widgets-And-Streaming.md Task 8
+- What: every `bun run bench` rewrites `plans/evidence/019-streaming-bench.md` (109 changed lines of timings), so the working tree is dirty after a bench and an unrelated diff can reach a commit. Write to the scratch directory unless a flag asks for the evidence file.
+- Why: benches should be safe to run before any commit.
+

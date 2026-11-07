@@ -297,7 +297,7 @@ This plan adds spec §7.6 (template widgets) and amends §3, §4 (concepts), §7
     - **For Task 8.** (1) `in_process_warm_overhead_under_point_one_ms` and `constructor timeout is not forwarded to the worker render` flaked once each in full runs under load and pass alone; neither touches this task. (2) `bun run check` shows many unrelated modified files in the working tree before this task (formatting only, e.g. `src/sdk/index.ts` import order was committed with this task's export). (3) A `streamElements` that survives `$ref` and fragment documents progressively is a possible follow-up (backlog), as is the bracket-matching element reader.
     - `bun run check`: 1492 pass, 0 fail apart from the one load flake above (passes alone).
 
-- [ ] Task 8: Analyze architectural impact and dispose of every finding
+- [x] Task 8: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional: the twelve impact areas swept in `plans/evidence/028-impact-analysis.md`, with special attention to the trust model (templates without a sandbox) and agent authoring; findings presented, dispositions recorded and executed or backlogged.
     - Performance: `bun run bench` including the new template and streaming benches.
@@ -312,7 +312,12 @@ This plan adds spec §7.6 (template widgets) and amends §3, §4 (concepts), §7
     - API Notes and Examples: n/a.
     - Files to Create/Edit: `plans/evidence/028-impact-analysis.md`; `plans/backlog.md`.
   - Test Cases to Write: n/a.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-07):
+    - Swept all twelve areas in `plans/evidence/028-impact-analysis.md` against `0c47e20` and checked the trust model by reading `src/template/expr.ts`/`scope.ts` and probing hostile inputs (paths `__proto__`, `constructor`, `globalThis`; a 1M-iteration nested `$map` stops at the step limit in 25.5 ms; a string-doubling `$let` chain stops at the string cap in 1.9 ms; `streamElements` on unclosed containers, 1,000,000 nested brackets and a whitespace flood is linear and bounded). No path from a template to a global, a prototype or unbounded work was found.
+    - Whole-plan verification: `bun run check` 1492 pass, 0 fail; `bun run demo:test` 57 pass; the template draft round trip is `cli-mcp.test.ts`, inside `check`. The new template (2.13 µs/node, `templateRunner` −0.5%) and `streamElements` (2.76×) gates pass. The validator and render gates in `bun run bench` fail at load 6–15, as they do at the commit before this plan (`eedf1c1`), and a paired render A/B at load 13 cannot rule out a 0–4% rise from the `src/sdk/render.ts` refactor, so that is a backlog item settled by plan 032 Task 3 on a quiet host.
+    - Dispositions (the recommended ones, taken without a separate owner round trip because each is a documentation, test or backlog change): **executed** F1 (spec §3 and §4 still described TSX-only widgets and code-only packages), F2 (`limits.steps` is the only time bound; its cost and the no-timeout statement are in `docs/security.md` and `docs/templates.md`), F3 (three stream hostile-input tests and a security section), F7 (first-render compile cost documented, with the warm-at-install advice); **backlog** F4 (extends the validator-gate entry), F5 (P4, progressive `$ref`/fragment drawing and a cheaper element reader), F6 (P3, strict structured-output schema), F8 (P4, a bench rewrites a tracked evidence file); **recorded** F9 (regex sanitisation and `Intl` are outside the language by design).
+    - Spec: §3 table row and the §4 Widget and Package rows. No decision log: nothing here changes a decision.
+    - Finding for plans 029–032: the `actions` root is the placeholder `NO_ACTIONS` (`src/template/render.ts:147,406`) until plan 029 Task 2; `runnerSuite()` (plan 031) must include a template package; `checkPackages` (plan 030) is the natural place to warm template compilation.
 
 ## Verification (whole plan)
 
@@ -323,8 +328,18 @@ This plan adds spec §7.6 (template widgets) and amends §3, §4 (concepts), §7
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- The language is larger than the plan's list: 38 operators, not about 20 (Task 1 amendments T5, T7, T9, T11, T13). Each added operator is traced to a proof-widget construct in the design file; the cost is a larger surface for agents to learn, mitigated by the generated schema and the install errors.
+- Regular expressions, `Intl`, dates and `throw` are not expressible (T22). Parity with the TSX proof widgets holds over the proof scenarios, with git-status labels pre-sanitised by the source. Widgets that need text cleaning stay TSX or take cleaned values from a source.
+- `templateRunner()` takes no `maxTemplates` option (nothing is loaded; the compile cache is a `WeakMap`), and the template hash vector is a new file rather than an entry in `packages.json` (Task 5).
+- `templateRunner()` has no wall-clock timeout: `limits.steps` bounds the work (about 25 ms at the default). `workerRunner()` adds a timeout when a host wants one.
+- `--structured-subset` is modest and is not accepted by strict structured-output modes (Task 6). Gemini's subset was not checked.
+- `streamElements` draws a `$ref` node or a fragment only when the text ends, and a member after `children` stops progressive drawing. Its bench margin is 2.4–2.9× of the 3× gate (Task 7).
+- Benchmarks ran at load 6–15 on a shared host; the render and validator gates cannot be certified here (Task 8 F4).
 
 ## Further Actions
 
-- To be filled after task completion with improvements, rationale, and priority.
+- P3: decide the validator gate's headroom and run the bench stages independently; settle the 0–4% render question on a quiet host (backlog, plan 032 Task 3).
+- P3: make the template schema usable in strict structured-output modes, or decide to keep the non-strict advice (backlog).
+- P4: draw `$ref` and fragment documents progressively in `streamElements`, and find element objects by bracket matching (backlog).
+- P4: stop `bench/streaming.bench.ts` rewriting a tracked evidence file (backlog).
+- Plan 030: warm template compilation from `checkPackages`; plan 031: include a template package in `runnerSuite()`; plan 029 Task 2: replace the `actions` placeholder.

@@ -139,7 +139,16 @@ Limits (all checked at install): 1 MiB of JSON, 10,000 nodes, 20,000 expression
 nodes, expression depth 32, 64 components, component nesting 16. At render, every
 expression node costs one step of a fuel budget (`limits.steps`, default
 1,000,000) and strings and arrays are capped, so a template cannot loop forever
-or build an unbounded value.
+or build an unbounded value. The default budget costs about 25 ms of work at most
+on a modern laptop; pass a lower `limits.steps` to a runner for untrusted
+authors (see [security](security.md#template-packages-need-no-isolation-runner)).
+
+The first render of a template compiles it to closures (about 15 ms for the
+680-node agent-home template, plus about 11 ms once per catalog for the shared
+tables); later renders take about 1.3 ms. `pack()` returns a frozen package, and the
+compiled form is cached on that object and on the validator, so a host should keep
+one package object and one validator per (catalog, capabilities, manifest) and
+warm them by rendering one scenario at install.
 
 ## Install-time errors an agent will see
 
