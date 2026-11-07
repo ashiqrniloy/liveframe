@@ -7,6 +7,7 @@ import type { WidgetProps } from "../sdk/types.ts";
 import { verifyPackageHash } from "./cache.ts";
 import { isModuleLoaded, type LoadedModule, loadedModuleCount, loadModule } from "./load.ts";
 import type { Runner, RunnerOptions } from "./runner.ts";
+import { renderTemplateRun } from "./template.ts";
 
 const expired = Symbol("expired");
 
@@ -51,7 +52,7 @@ export function inProcessRunner(options: { readonly maxModules?: number } = {}):
           ok: false,
           errors: [{ kind: "hash-mismatch", pointer: "/hash", message: "Package content does not match its hash" }],
         };
-      if (!isModuleLoaded(pkg.hash) && loadedModuleCount() >= maxModules)
+      if (pkg.template === undefined && !isModuleLoaded(pkg.hash) && loadedModuleCount() >= maxModules)
         return {
           ok: false,
           errors: [
@@ -77,11 +78,12 @@ export async function renderPackage(
   inputs: WidgetProps,
   options: RunnerOptions,
 ): Promise<Result<UiTree>> {
+  if (pkg.template !== undefined) return renderTemplateRun(pkg.template, pkg, inputs, options);
   const timeoutMs = options.timeoutMs ?? 100;
   const start = Date.now();
   let result: Result<UiTree>;
   try {
-    const module = await loadWithin(pkg.code, pkg.hash, timeoutMs);
+    const module = await loadWithin(pkg.code as string, pkg.hash, timeoutMs);
     if (module === expired)
       return {
         ok: false,

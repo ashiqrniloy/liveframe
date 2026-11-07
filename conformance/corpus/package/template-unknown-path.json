@@ -1,0 +1,17 @@
+{
+  "inputs": {
+    "doc": "docs/template-unknown-path.json",
+    "catalog": "../common/proof-catalog.json",
+    "capabilities": "../common/template-capabilities.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "unknown-name",
+        "pointer": "/template/root/children/1/$each/in/$path"
+      }
+    ]
+  }
+}

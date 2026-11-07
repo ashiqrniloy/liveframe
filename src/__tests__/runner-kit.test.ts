@@ -1,10 +1,10 @@
 import { expect, test } from "bun:test";
-import { render } from "@arnilo/liveframe/sdk";
 import { linkPackage, renderModule } from "@arnilo/liveframe/runner-kit";
+import { render } from "@arnilo/liveframe/sdk";
 import { compileValidator, type Result, validateCapabilities, validateCatalog } from "../index.ts";
 import { pack } from "../pack/index.ts";
-import { cachedValidatorCount } from "../runner-kit/cache.ts";
 import { loadModule } from "../preview/load.ts";
+import { cachedValidatorCount } from "../runner-kit/cache.ts";
 import catalogDoc from "./fixtures/proof/catalog.json" with { type: "json" };
 import capabilitiesDoc from "./fixtures/widgets/capabilities.json" with { type: "json" };
 import { drafts } from "./fixtures/widgets/drafts.ts";
@@ -46,9 +46,9 @@ export default [text, "@arnilo/liveframe/sdk"];`;
 test("link_package_rewrites_what_pack_emits", () => {
   for (const draft of drafts) {
     const packed = value(pack(draft, options));
-    const linked = value(linkPackage(packed.code, sandbox));
+    const linked = value(linkPackage(packed.code as string, sandbox));
     expect(linked).toContain('"sandbox:@arnilo/liveframe/sdk');
-    expect(linked.replaceAll("sandbox:", "")).toBe(packed.code);
+    expect(linked.replaceAll("sandbox:", "")).toBe(packed.code as string);
   }
 });
 
@@ -72,7 +72,7 @@ test("render_module_matches_render", async () => {
     const draft = drafts[i];
     if (!draft) throw new Error("Missing draft");
     const pkg = value(pack(draft, options));
-    const module = await loadModule(pkg.code, pkg.hash);
+    const module = await loadModule(pkg.code as string, pkg.hash);
     const validator = compileValidator({ ...options, manifest: pkg.manifest });
     for (const scenario of fixture.scenarios) {
       const expected = render(fixture.widget, scenario, { ...options, validator });

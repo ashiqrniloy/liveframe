@@ -345,7 +345,7 @@ test("subpath_export_surfaces", () => {
   expect(cases).toHaveLength(17);
   expect(Object.keys(previewReact).sort()).toEqual(["Preview"]);
   expect(Object.keys(fileStore).sort()).toEqual(["fileStore"]);
-  expect(Object.keys(preview).sort()).toEqual(["createPreview", "inProcessRunner"]);
+  expect(Object.keys(preview).sort()).toEqual(["createPreview", "inProcessRunner", "templateRunner"]);
   expect(Object.keys(worker).sort()).toEqual(["workerRunner"]);
   expect(Object.keys(pack).sort()).toEqual([
     "canonicalJson",
@@ -386,7 +386,7 @@ test("authoring_export_surface", () => {
 });
 
 test("runner_kit_export_surface", () => {
-  expect(Object.keys(runnerKit).sort()).toEqual(["linkPackage", "renderModule"]);
+  expect(Object.keys(runnerKit).sort()).toEqual(["linkPackage", "renderModule", "renderTemplatePackage"]);
   expect(Object.keys(template).sort()).toEqual(["checkExpression", "evaluate", "renderTemplate", "validateTemplate"]);
 });
 

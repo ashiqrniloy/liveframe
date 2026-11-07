@@ -11,7 +11,8 @@ const input = await draft();
 const pkg = valid(pack(input, options));
 valid(verifyPackage(pkg, options));
 for (const specifier of ["sdk", "sdk/jsx-runtime", "sdk/jsx-dev-runtime"])
-  if (!pkg.code.includes(`"@arnilo/liveframe/${specifier}"`)) throw new Error(`Code never imports ${specifier}`);
+  if (!(pkg.code as string).includes(`"@arnilo/liveframe/${specifier}"`))
+    throw new Error(`Code never imports ${specifier}`);
 
 const dir = new URL("./store/", import.meta.url).pathname;
 const placement = {

@@ -1,0 +1,202 @@
+{
+  "format": "liveframe-package/1",
+  "manifest": {
+    "format": "liveframe-manifest/1",
+    "id": "rows",
+    "version": "1.0.0",
+    "catalogId": "proof.ui@1",
+    "params": {
+      "type": "object",
+      "properties": {
+        "canEdit": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "canEdit"
+      ],
+      "additionalProperties": false
+    },
+    "state": {
+      "type": "object",
+      "properties": {
+        "filter": {
+          "type": "string",
+          "maxLength": 4,
+          "enum": [
+            "all",
+            "open"
+          ]
+        },
+        "selected": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "filter",
+        "selected",
+        "title"
+      ],
+      "additionalProperties": false
+    },
+    "context": {
+      "type": "object",
+      "properties": {
+        "size": {
+          "type": "string",
+          "maxLength": 6,
+          "enum": [
+            "small",
+            "large"
+          ]
+        }
+      },
+      "required": [
+        "size"
+      ],
+      "additionalProperties": false
+    },
+    "initialState": {
+      "filter": "all",
+      "selected": "",
+      "title": ""
+    },
+    "sources": {
+      "rows": {
+        "source": "rows.list",
+        "params": {}
+      }
+    },
+    "actions": [
+      "rows.open",
+      "rows.rename"
+    ]
+  },
+  "template": {
+    "format": "liveframe-template/1",
+    "components": {
+      "Row": {
+        "params": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "title": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "count"
+          ],
+          "additionalProperties": false
+        },
+        "root": {
+          "kind": "inline",
+          "children": [
+            {
+              "kind": "text",
+              "props": {
+                "text": {
+                  "$path": "title"
+                }
+              }
+            },
+            {
+              "kind": "button",
+              "props": {
+                "label": "Open"
+              },
+              "events": {
+                "onPress": {
+                  "type": "action",
+                  "name": "rows.open",
+                  "args": {
+                    "id": {
+                      "$path": "id"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "root": {
+      "kind": "stack",
+      "children": [
+        {
+          "kind": "heading",
+          "props": {
+            "text": "Rows",
+            "level": 2
+          }
+        },
+        {
+          "$each": {
+            "in": {
+              "$path": "data.rows"
+            },
+            "as": "row",
+            "key": {
+              "$path": "row.id"
+            }
+          },
+          "$use": "Row",
+          "with": {
+            "id": {
+              "$path": "row.id"
+            },
+            "title": {
+              "$path": "row.title"
+            },
+            "count": {
+              "$path": "row.count"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "scenarios": [
+    {
+      "name": "default",
+      "params": {
+        "canEdit": true
+      },
+      "context": {
+        "size": "large"
+      },
+      "data": {
+        "rows": [
+          {
+            "id": "r1",
+            "title": "Écrire — résumé 😀",
+            "count": 3
+          },
+          {
+            "id": "r2",
+            "title": "Review",
+            "count": 0
+          }
+        ]
+      }
+    }
+  ],
+  "hash": "sha256-0000000000000000000000000000000000000000000000000000000000000000"
+}

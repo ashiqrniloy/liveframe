@@ -240,6 +240,9 @@ export function renderKey({
   return sha256(utf8(canonicalJson({ hash, catalogId, params, state, data, context })));
 }
 
-export function packageHash({ format, manifest, code, scenarios }: Omit<WidgetPackage, "hash">): string {
-  return `sha256-${sha256(utf8(canonicalJson({ format, manifest, code, scenarios })))}`;
+/** The hash covers whichever of `code` and `template` the package holds, so a code package's hash is unchanged. */
+export function packageHash(pkg: Omit<WidgetPackage, "hash">): string {
+  const { format, manifest, scenarios } = pkg;
+  const body = pkg.template === undefined ? { code: pkg.code } : { template: pkg.template };
+  return `sha256-${sha256(utf8(canonicalJson({ format, manifest, scenarios, ...body })))}`;
 }

@@ -1484,5 +1484,133 @@
     "reason": "Template widgets: renderTemplate runs a validated template over its inputs and returns the validated tree, with limits.steps bounding evaluation",
     "hostAction": "Optional: render installed template widgets with renderTemplate; existing calls are unchanged",
     "task": "028 T4"
+  },
+  {
+    "subpath": "./pack",
+    "name": "WidgetPackage",
+    "change": "widened",
+    "reason": "Template packages: a widget package holds exactly one of `code` and `template`; the hash covers whichever is present",
+    "hostAction": "Handle a package without `code` (check `template`) wherever you read `pkg.code`; code packages are unchanged",
+    "task": "028 T5"
+  },
+  {
+    "subpath": "./pack",
+    "name": "packageHash",
+    "change": "widened",
+    "reason": "Template packages: a widget package holds exactly one of `code` and `template`; the hash covers whichever is present",
+    "hostAction": "None: the hash of a code package is unchanged",
+    "task": "028 T5"
+  },
+  {
+    "subpath": "./schemas/*",
+    "name": "widget-package.json",
+    "change": "widened",
+    "reason": "Template packages: a widget package holds exactly one of `code` and `template`; the hash covers whichever is present (`template` references urn:liveframe:template:1; `code` is no longer required)",
+    "hostAction": "Update widget-package validators and ports to accept a template package",
+    "task": "028 T5"
+  },
+  {
+    "subpath": "./preview",
+    "name": "templateRunner",
+    "change": "added",
+    "reason": "Renders template packages without loading any code and refuses code packages",
+    "hostAction": "Optional: use templateRunner for untrusted authors who only need template widgets",
+    "task": "028 T5"
+  },
+  {
+    "subpath": "./runner-kit",
+    "name": "renderTemplatePackage",
+    "change": "added",
+    "reason": "The in-sandbox half of a template runner",
+    "hostAction": "Optional: call it from a runner that renders template packages",
+    "task": "028 T5"
+  },
+  {
+    "subpath": "./conformance/hash/*",
+    "name": "conformance/hash/template-packages.json",
+    "change": "added",
+    "reason": "A template package hash vector",
+    "hostAction": "Port the package hash to cover `template` before accepting template packages",
+    "task": "028 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/package/template-valid.json",
+    "change": "added",
+    "reason": "Template package corpus cases",
+    "hostAction": "Port package verification against the corpus before accepting template packages",
+    "task": "028 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/package/docs/template-valid.json",
+    "change": "added",
+    "reason": "Template package corpus cases",
+    "hostAction": "Port package verification against the corpus before accepting template packages",
+    "task": "028 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/package/template-and-code.json",
+    "change": "added",
+    "reason": "Template package corpus cases",
+    "hostAction": "Port package verification against the corpus before accepting template packages",
+    "task": "028 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/package/docs/template-and-code.json",
+    "change": "added",
+    "reason": "Template package corpus cases",
+    "hostAction": "Port package verification against the corpus before accepting template packages",
+    "task": "028 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/package/template-unknown-path.json",
+    "change": "added",
+    "reason": "Template package corpus cases",
+    "hostAction": "Port package verification against the corpus before accepting template packages",
+    "task": "028 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/package/docs/template-unknown-path.json",
+    "change": "added",
+    "reason": "Template package corpus cases",
+    "hostAction": "Port package verification against the corpus before accepting template packages",
+    "task": "028 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/package/template-hash-mismatch.json",
+    "change": "added",
+    "reason": "Template package corpus cases",
+    "hostAction": "Port package verification against the corpus before accepting template packages",
+    "task": "028 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/package/docs/template-hash-mismatch.json",
+    "change": "added",
+    "reason": "Template package corpus cases",
+    "hostAction": "Port package verification against the corpus before accepting template packages",
+    "task": "028 T5"
+  },
+  {
+    "subpath": "./preview",
+    "name": "RunnerOptions",
+    "change": "widened",
+    "reason": "`limits` also accepts `steps`, the evaluation fuel of a template widget",
+    "hostAction": "Optional: pass `limits.steps` to bound a template widget's evaluation; existing calls are unchanged",
+    "task": "028 T5"
+  },
+  {
+    "subpath": "./runner-kit",
+    "name": "RenderModuleOptions",
+    "change": "widened",
+    "reason": "`limits` also accepts `steps`, the evaluation fuel of a template widget",
+    "hostAction": "Optional: pass `limits.steps` to bound a template widget's evaluation; existing calls are unchanged",
+    "task": "028 T5"
   }
 ]

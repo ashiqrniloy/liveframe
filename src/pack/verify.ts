@@ -5,6 +5,7 @@ import { validateManifest } from "../formats/manifest.ts";
 import { validateWidgetPackageShape, type WidgetPackage } from "../formats/package.ts";
 import { freezeCopy } from "../internal.ts";
 import type { LanguageSchema } from "../schema.ts";
+import { validateTemplate } from "../template/document.ts";
 import { compileSchema } from "../validate/schema.ts";
 import { checkModule } from "./bundle.ts";
 import { packageHash } from "./hash.ts";
@@ -42,9 +43,14 @@ export function validatePackageInputs(pkg: WidgetPackage, options: PackageContex
     checks.context(scenario.context, `/scenarios/${i}/context`, sink);
     checks.data(scenario.data, `/scenarios/${i}/data`, sink);
   }
-  return c.errors.length
-    ? { ok: false, errors: c.errors.map((error) => ({ ...error, kind: "invalid-document" })) }
-    : { ok: true, value: pkg };
+  if (c.errors.length) return { ok: false, errors: c.errors.map((error) => ({ ...error, kind: "invalid-document" })) };
+  // Template errors keep their own kinds (`unknown-name`, `invalid-prop`, …): they say what to fix.
+  if (pkg.template !== undefined) {
+    const template = validateTemplate(pkg.template, { ...options, manifest: manifest.value });
+    c.collect(template, "/template");
+    if (!template.ok) return { ok: false, errors: c.errors };
+  }
+  return { ok: true, value: pkg };
 }
 
 /** Re-check an untrusted package's structure, inputs, import rule and integrity without executing code. */
@@ -54,8 +60,10 @@ export function verifyPackage(doc: unknown, options: PackageContext): Result<Wid
   const inputs = validatePackageInputs(shape.value, options);
   if (!inputs.ok) return inputs;
   const pkg = inputs.value;
-  const code = checkModule(pkg.code, "/code");
-  if (!code.ok) return code;
+  if (pkg.template === undefined) {
+    const code = checkModule(pkg.code as string, "/code");
+    if (!code.ok) return code;
+  }
   try {
     if (packageHash(pkg) !== pkg.hash)
       return {

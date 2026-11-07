@@ -18,7 +18,7 @@ import { type Carries, carriesFits, objectFits } from "../validate/intent.ts";
 import { type CompiledStructure, compileStructure } from "../validate/structure.ts";
 import { compileStyles } from "../validate/style.ts";
 import { analyzeExpression, analyzeOperand, EXPR_LIMITS, itemsOf } from "./expr.ts";
-import { templateSchema } from "./schema.ts";
+import { TEMPLATE_BYTES, templateSchema } from "./schema.ts";
 import {
   assume,
   bindName,
@@ -75,7 +75,7 @@ export type Template = {
 
 /** Install bounds that are not expression bounds (design T10); expression bounds live in `EXPR_LIMITS`. */
 export const TEMPLATE_LIMITS = {
-  bytes: 1_048_576,
+  bytes: TEMPLATE_BYTES,
   nodes: 10_000,
   components: 64,
   useDepth: 16,

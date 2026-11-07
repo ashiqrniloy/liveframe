@@ -234,6 +234,30 @@ const checked = validateTemplate(doc, { catalog, capabilities, manifest }); // R
 
 1. Install templates only after `validateTemplate` passes; it is the only place a template is checked against the manifest.
 2. Optional: render installed template widgets with renderTemplate; existing calls are unchanged. `renderTemplate(template, { params, state, data, context }, { validator, surfaceId, revision })` returns the same validated `Result<UiTree>` as `render()`, with `limits.steps` (default 1,000,000) bounding evaluation. Its errors point into the template document.
-3. Packaging templates and running them in runners arrive with later changes.
+3. Packaging and running templates: see [Template packages](#template-packages).
 
 See [formats](formats.md#template-widgets) and [the spec](spec.md#76-template-widgets).
+
+### Template packages
+
+A template widget is installed, stored, placed and rendered like a TSX widget. `pack({ template, manifest, scenarios }, { catalog, capabilities })` validates the template and returns a `liveframe-package/1` package whose `template` field replaces `code`; exactly one of the two is present (both or neither is `invalid-document` at `/code`).
+Handle a package without `code` (check `template`) wherever you read `pkg.code`; code packages are unchanged.
+Update widget-package validators and ports to accept a template package: `schemas/widget-package.json` no longer requires `code` and references `urn:liveframe:template:1`. A 0.2.x verifier rejects a template package fail-closed.
+None: the hash of a code package is unchanged. A template package hashes `{ format, manifest, template, scenarios }`; `conformance/hash/template-packages.json` pins a vector.
+Port the package hash to cover `template` before accepting template packages.
+Port package verification against the corpus before accepting template packages: `conformance/corpus/package/template-*.json` cover a valid package, both fields, an unknown path and a hash mismatch.
+
+```ts
+// Before: every package has code, and every runner loads it.
+const code: string = pkg.code;
+// After: check which kind it is.
+if (pkg.template !== undefined) renderTemplate(pkg.template, inputs, options);
+else load(pkg.code as string);
+```
+
+1. Optional: use templateRunner for untrusted authors who only need template widgets. `templateRunner()` from `@arnilo/liveframe/preview` loads and runs no author code and refuses a code package; `inProcessRunner()`, `workerRunner()` and the runner kit render template packages too, with identical trees.
+2. Optional: call it from a runner that renders template packages: `renderTemplatePackage(template, inputs, options)` from `@arnilo/liveframe/runner-kit` is the in-sandbox half, and it needs no sandbox.
+3. Optional: pass `limits.steps` to bound a template widget's evaluation; existing calls are unchanged. `RunnerOptions.limits` and `RenderModuleOptions.limits` accept it, and a code widget ignores it.
+
+See [packages](packages.md#template-packages) and [the security model](security.md).
+

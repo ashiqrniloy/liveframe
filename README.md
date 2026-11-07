@@ -170,7 +170,7 @@ if (patch.ok) {
 | `@arnilo/liveframe/pack` | Package and scenario formats, structural validators, `pack()`, `verifyPackage()`, `canonicalJson()` and `packageHash()` |
 | `@arnilo/liveframe/store` | Record formats, the `Store` interface, `memoryStore()` and `loadPlacement()` |
 | `@arnilo/liveframe/store/fs` | `fileStore(dir)`, which reads and writes the file system |
-| `@arnilo/liveframe/preview` | The `Runner` interface, `inProcessRunner()` and `createPreview()` |
+| `@arnilo/liveframe/preview` | The `Runner` interface, `inProcessRunner()`, `templateRunner()` and `createPreview()` |
 | `@arnilo/liveframe/authoring` | Eight typed authoring operations without MCP; the host supplies its runner |
 | `@arnilo/liveframe/runner-kit` | `renderModule()` and `linkPackage()`, the in-sandbox half of a runner |
 | `@arnilo/liveframe/template` | `validateTemplate()`, `renderTemplate()` and the expression language of template widgets |

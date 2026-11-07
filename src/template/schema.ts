@@ -5,6 +5,9 @@ import { jsonSchema, languageForms, objectSchema } from "../formats/language.ts"
 import { treeSchema } from "../formats/tree.ts";
 import { str } from "../schema.ts";
 
+/** The most UTF-8 bytes of JSON text a template document may hold. */
+export const TEMPLATE_BYTES = 1_048_576;
+
 const json = { $ref: "#/$defs/json" } as const;
 const jsonMap = { type: "object", additionalProperties: json } as const;
 const nameForm = str({ maxLength: 32, pattern: "^[a-z][A-Za-z0-9]{0,31}$" });

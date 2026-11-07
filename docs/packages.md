@@ -90,6 +90,18 @@ Store writes and reads return promises and can reject; handle storage failures
 at the app's boundary as well. `loadPlacement` converts malformed-record errors
 to results but lets other I/O failures reject.
 
+## Template packages
+
+A template widget ([spec §7.6](spec.md#76-template-widgets)) packs without files or imports:
+
+```ts
+const pkg = pack({ template, manifest, scenarios }, { catalog, capabilities });
+```
+
+`pack()` validates the template against the manifest and the install documents (`unknown-name` for a wrong data path, `invalid-prop` for a type mismatch, with pointers under `/template`), checks the scenarios as for code, never transpiles, and hashes `{ format, manifest, template, scenarios }`. A package holds exactly one of `code` and `template`. `verifyPackage()`, the stores, `loadPlacement()` and `renderKey()` need no change.
+
+Render it with any runner. `templateRunner()` from `@arnilo/liveframe/preview` renders template packages only, loads no code and needs no isolation, so it is the one to give untrusted authors; a code package is `invalid-document` at `/code`. `limits.steps` bounds the evaluation. A runner built on the kit calls `renderTemplatePackage(pkg.template, inputs, { catalog, capabilities, manifest: pkg.manifest, surfaceId, revision })`. All runners return the same tree for the same package and inputs.
+
 ## Scenarios and import rules
 
 A package requires 1–64 scenarios, each with a unique, nonempty name of at most

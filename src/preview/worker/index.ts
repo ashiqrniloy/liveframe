@@ -1,8 +1,8 @@
 import { DEFAULT_MAX_ERRORS, type LiveframeError, type Result } from "../../errors.ts";
 import type { WidgetPackage } from "../../formats/package.ts";
 import type { UiTree } from "../../formats/tree.ts";
-import { compiledValidator } from "../../runner-kit/cache.ts";
 import { errorMessage, queue } from "../../internal.ts";
+import { compiledValidator } from "../../runner-kit/cache.ts";
 import { isRecord } from "../../schema.ts";
 import { verifyPackageHash } from "../cache.ts";
 import type { Runner, RunnerOptions } from "../runner.ts";
@@ -141,8 +141,11 @@ export function workerRunner(defaults: { timeoutMs?: number; maxPackages?: numbe
 
   /** Starts or reuses the worker, sends it the configuration it lacks, then the render. */
   function send(pkg: WidgetPackage, inputs: Parameters<Runner["render"]>[1], options: RunnerOptions, id: number): void {
-    if (!loaded.has(pkg.hash) && loaded.size >= maxPackages) recycle();
-    loaded.add(pkg.hash);
+    // Only code is loaded into the worker, and modules cannot be unloaded; a template is data.
+    if (pkg.template === undefined) {
+      if (!loaded.has(pkg.hash) && loaded.size >= maxPackages) recycle();
+      loaded.add(pkg.hash);
+    }
     if (!worker) {
       const current = new Worker(entry);
       worker = current;

@@ -1,6 +1,8 @@
 import type { Result } from "../errors.ts";
 import { utf8Length } from "../internal.ts";
 import { arr, bool, type Infer, obj, str } from "../schema.ts";
+import type { Template } from "../template/document.ts";
+import { TEMPLATE_BYTES, templateSchema } from "../template/schema.ts";
 import { documentChecks, isRecord } from "./capabilities.ts";
 import { checkFormat } from "./check.ts";
 import { validateJson } from "./json.ts";
@@ -17,17 +19,27 @@ export type Scenario = Omit<Infer<typeof scenarioFields>, "params" | "context" |
   readonly state?: Json;
   readonly data: Readonly<Record<string, Json>>;
 };
-const fields = obj({
-  format: str({ maxLength: 32, enum: ["liveframe-package/1"] }),
-  manifest: bool(),
-  code: str({ maxLength: 1048576 }),
-  scenarios: arr(bool(), { maxItems: 64 }),
-  hash: str({ maxLength: 71, pattern: "^sha256-[0-9a-f]{64}$" }),
-});
-export type WidgetPackage = Omit<Infer<typeof fields>, "manifest" | "scenarios"> & {
+const fields = obj(
+  {
+    format: str({ maxLength: 32, enum: ["liveframe-package/1"] }),
+    manifest: bool(),
+    scenarios: arr(bool(), { maxItems: 64 }),
+    hash: str({ maxLength: 71, pattern: "^sha256-[0-9a-f]{64}$" }),
+  },
+  { code: str({ maxLength: 1048576 }), template: bool() },
+);
+type PackageFields = {
+  readonly format: "liveframe-package/1";
   readonly manifest: Manifest;
   readonly scenarios: readonly Scenario[];
+  readonly hash: string;
 };
+/**
+ * Exactly one of `code` (a TSX widget's linked module) and `template` (a template widget's
+ * document) is present; `validateWidgetPackageShape` enforces it, so a verified package that has no
+ * `template` has `code`.
+ */
+export type WidgetPackage = PackageFields & { readonly code?: string; readonly template?: Template };
 const json = { $ref: "#/$defs/json" } as const;
 const scenarioSchema = {
   ...scenarioFields,
@@ -45,6 +57,7 @@ export const widgetPackageSchema = {
     ...fields.properties,
     manifest: { $ref: "urn:liveframe:manifest:1" },
     scenarios: { ...fields.properties.scenarios, minItems: 1, items: { $ref: "#/$defs/scenario" } },
+    template: { $ref: "urn:liveframe:template:1" },
   },
   $defs: { json: treeSchema.$defs.json, scenario: scenarioSchema },
 } as const;
@@ -77,6 +90,16 @@ function checkScenarios(scenarios: readonly unknown[], c: Checks): void {
   }
 }
 
+/** Exactly one of `code` and `template`, and a template within its size bound. */
+function checkBody(doc: Record<string, unknown>, c: Checks): void {
+  const hasCode = Object.hasOwn(doc, "code");
+  const hasTemplate = Object.hasOwn(doc, "template");
+  if (hasCode === hasTemplate) c.reject("/code", "Expected exactly one of code and template", "invalid-document");
+  else if (hasCode) checkCodeSize(doc.code, c);
+  else if (utf8Length(JSON.stringify(doc.template), TEMPLATE_BYTES) > TEMPLATE_BYTES)
+    c.reject("/template", "Expected at most 1 MiB of UTF-8 JSON", "limit-exceeded");
+}
+
 /** Transport structure only: never executes code or checks hashes and manifest semantics. */
 export function validateWidgetPackageShape(doc: unknown): Result<WidgetPackage> {
   const json = validateJson(doc, true);
@@ -84,7 +107,10 @@ export function validateWidgetPackageShape(doc: unknown): Result<WidgetPackage> 
   const c = documentChecks();
   if (!isRecord(doc)) c.reject("", "Expected a widget package object");
   else {
-    const shape = checkFormat(widgetPackageSchema, doc, "", { "urn:liveframe:manifest:1": manifestSchema });
+    const shape = checkFormat(widgetPackageSchema, doc, "", {
+      "urn:liveframe:manifest:1": manifestSchema,
+      "urn:liveframe:template:1": templateSchema,
+    });
     if (!shape.ok) {
       c.collect(
         {
@@ -98,7 +124,7 @@ export function validateWidgetPackageShape(doc: unknown): Result<WidgetPackage> 
       c.collect(validateManifestShape(doc.manifest), "/manifest");
       return { ok: false, errors: c.errors };
     }
-    checkCodeSize(doc.code, c);
+    checkBody(doc, c);
     c.collect(validateManifestShape(doc.manifest), "/manifest");
     if (Array.isArray(doc.scenarios)) checkScenarios(doc.scenarios, c);
   }

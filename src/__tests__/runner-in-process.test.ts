@@ -3,9 +3,9 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { render } from "@arnilo/liveframe/sdk";
-import { compileValidator, type Result, validateCatalog, validateCapabilities } from "../index.ts";
-import { pack, type WidgetPackage } from "../pack/index.ts";
+import { compileValidator, type Result, validateCapabilities, validateCatalog } from "../index.ts";
 import { packageHash } from "../pack/hash.ts";
+import { pack, type WidgetPackage } from "../pack/index.ts";
 import { cachedValidatorCount } from "../preview/cache.ts";
 import { inProcessRunner, type Runner } from "../preview/index.ts";
 import { loadModule } from "../preview/load.ts";
@@ -75,7 +75,7 @@ test("in_process_preserves_sdk_errors_and_limits", async () => {
   const runner = inProcessRunner();
   const pkg = withCode(simpleCode);
   const validator = compileValidator({ ...options, manifest: pkg.manifest });
-  const module = await loadModule(pkg.code, pkg.hash);
+  const module = await loadModule(pkg.code as string, pkg.hash);
   if (typeof module.default !== "function") throw new Error("Expected a widget");
   const widget = module.default;
   for (const [input, limits] of [
@@ -227,7 +227,7 @@ console.log(JSON.stringify(await inProcessRunner().render(${JSON.stringify(base)
 
 test("in_process_warm_overhead_under_point_one_ms", async () => {
   const runner = inProcessRunner();
-  const module = await loadModule(base.code, base.hash);
+  const module = await loadModule(base.code as string, base.hash);
   if (typeof module.default !== "function") throw new Error("Expected a widget");
   const widget = module.default;
   const validator = compileValidator({ ...options, manifest: base.manifest });

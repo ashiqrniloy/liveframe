@@ -1,11 +1,13 @@
 import { strict as assert } from "node:assert";
-import { arr, compileValidator, int, obj, str } from "@arnilo/liveframe";
+import { arr, compileValidator, int, obj, str, validateCapabilities, validateCatalog } from "@arnilo/liveframe";
 import catalog from "../src/__tests__/fixtures/proof/catalog.json" with { type: "json" };
 import { countNodes } from "../src/__tests__/fixtures/render-workloads.ts";
 import { agentHomeTemplate } from "../src/__tests__/fixtures/templates/agent-home.ts";
 import capabilities from "../src/__tests__/fixtures/widgets/capabilities.json" with { type: "json" };
 import { proofWidgets } from "../src/__tests__/fixtures/widgets/index.ts";
 import { freezeCopy } from "../src/internal.ts";
+import { pack } from "../src/pack/index.ts";
+import { templateRunner } from "../src/preview/template.ts";
 import { compileExpression, type Frame } from "../src/template/expr.ts";
 import { renderTemplate } from "../src/template/render.ts";
 import { rootScope } from "../src/template/scope.ts";
@@ -103,3 +105,46 @@ console.log(
   `agent-home template: ${outputNodes.toFixed(1)} mean nodes; renderTemplate ${renderMs.toFixed(4)} ms, ${perNode.toFixed(3)} µs/node (budget 3)`,
 );
 budget(perNode <= 3, `agent-home template: ${perNode.toFixed(3)} µs/node exceeds the 3 µs budget`);
+
+// templateRunner (plan 028 Task 5): it adds the hash check (cached for a frozen package), a validator lookup,
+// a clock read and a promise to renderTemplate. Budget: ≤ 5% over it on the same template and inputs.
+const installed = { catalog: validateCatalog(catalog), capabilities: validateCapabilities(capabilities) };
+assert(installed.catalog.ok && installed.capabilities.ok, "proof documents invalid");
+const packed = pack(
+  { template: agentHomeTemplate, manifest: home.manifest, scenarios: home.scenarios },
+  { catalog: installed.catalog.value, capabilities: installed.capabilities.value },
+);
+assert(packed.ok, `agent-home template package: ${JSON.stringify(!packed.ok && packed.errors)}`);
+const runner = templateRunner();
+const runnerOptions = {
+  catalog: catalog as never,
+  capabilities: capabilities as never,
+  surfaceId: "proof",
+  revision: 0,
+};
+const runnerAt = async (i: number) => {
+  const result = await runner.render(packed.value, inputsAt(i), runnerOptions);
+  assert(result.ok, "agent-home template package");
+};
+async function asyncBatch(run: (i: number) => Promise<void>): Promise<number> {
+  let iterations = 16;
+  for (;;) {
+    const start = performance.now();
+    for (let i = 0; i < iterations; i++) await run(i);
+    const elapsed = performance.now() - start;
+    if (elapsed >= BATCH_MS || iterations >= 10_000_000) return elapsed / iterations;
+    iterations *= 2;
+  }
+}
+for (let i = 0; i < 200; i++) await runnerAt(i);
+const direct: number[] = [];
+const viaRunner: number[] = [];
+for (let round = 0; round < 7; round++) {
+  direct.push(batch(treeAt));
+  viaRunner.push(await asyncBatch(runnerAt));
+}
+const middle = (values: number[]) => values.sort((a, b) => a - b)[values.length >> 1] as number;
+const overhead = middle(viaRunner) / middle(direct) - 1;
+metric("template.runner.overhead", overhead);
+console.log(`templateRunner: ${(overhead * 100).toFixed(2)}% over renderTemplate (budget 5%)`);
+budget(overhead <= 0.05, `templateRunner adds ${(overhead * 100).toFixed(2)}% over renderTemplate, over the 5% budget`);

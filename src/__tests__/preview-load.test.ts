@@ -196,7 +196,7 @@ test("nested_package_mutation_cannot_reach_a_runner", () => {
 
 test("frozen_package_accessors_are_rehashed", () => {
   const original = freezeCopy(packedWidget());
-  let code = original.code;
+  let code = original.code as string;
   const pkg = Object.freeze({
     ...original,
     get code() {

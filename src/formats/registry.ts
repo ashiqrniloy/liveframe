@@ -22,11 +22,11 @@ export const formats = {
   "schema-language": schemaLanguage,
   capabilities: capabilitiesSchema,
   manifest: manifestSchema,
+  template: templateSchema,
   "widget-package": widgetPackageSchema,
   placement: placementSchema,
   "style-record": styleRecordSchema,
   catalog: catalogSchema,
-  template: templateSchema,
 } as const;
 
 export function schemaDocument(name: keyof typeof formats) {

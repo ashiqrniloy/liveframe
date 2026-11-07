@@ -3,6 +3,13 @@
   "$id": "urn:liveframe:widget-package:1",
   "type": "object",
   "properties": {
+    "code": {
+      "maxLength": 1048576,
+      "type": "string"
+    },
+    "template": {
+      "$ref": "urn:liveframe:template:1"
+    },
     "format": {
       "maxLength": 32,
       "enum": [
@@ -12,10 +19,6 @@
     },
     "manifest": {
       "$ref": "urn:liveframe:manifest:1"
-    },
-    "code": {
-      "maxLength": 1048576,
-      "type": "string"
     },
     "scenarios": {
       "maxItems": 64,
@@ -34,7 +37,6 @@
   "required": [
     "format",
     "manifest",
-    "code",
     "scenarios",
     "hash"
   ],

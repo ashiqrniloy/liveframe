@@ -2,8 +2,8 @@ import { expect, test } from "bun:test";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { packageHash } from "@arnilo/liveframe/pack";
 import type { WidgetPackage } from "@arnilo/liveframe/pack";
+import { packageHash } from "@arnilo/liveframe/pack";
 import { canonicalJson, sha256, utf8 } from "../pack/hash.ts";
 
 const hashRoot = fileURLToPath(new URL("../../conformance/hash/", import.meta.url));
@@ -118,18 +118,20 @@ test("rejected_inputs_rejected", async () => {
 });
 
 test("package_hash_vectors_through_public_exports", async () => {
-  const vectors = await read("packages.json");
-  expect(vectors.length).toBeGreaterThanOrEqual(2);
+  const vectors = [...(await read("packages.json")), ...(await read("template-packages.json"))];
+  expect(vectors.length).toBeGreaterThanOrEqual(3);
+  expect(vectors.some((vector) => (vector as PackageVector).package.template !== undefined)).toBe(true);
   for (const [index, vector] of vectors.entries()) {
-    const where = `packages.json[${index}]`;
+    const where = `package vector ${index}`;
     expect(isPackageVector(vector, where), where).toBe(true);
     const { package: pkg, hash } = vector as PackageVector;
     const { hash: _, ...content } = pkg;
-    const { format, manifest, code, scenarios } = content;
+    const { format, manifest, code, template, scenarios } = content;
+    const body = template === undefined ? { code } : { template };
     expect(hash, where).toMatch(/^sha256-[0-9a-f]{64}$/);
     expect(hash, where).toBe(pkg.hash);
-    expect(`sha256-${sha256(utf8(canonicalJson({ format, manifest, code, scenarios })))}`, where).toBe(hash);
+    expect(`sha256-${sha256(utf8(canonicalJson({ format, manifest, scenarios, ...body })))}`, where).toBe(hash);
     expect(packageHash(content), where).toBe(hash);
   }
-  expect(vectors.some((vector) => /\P{ASCII}/u.test((vector as PackageVector).package.code))).toBe(true);
+  expect(vectors.some((vector) => /\P{ASCII}/u.test((vector as PackageVector).package.code ?? ""))).toBe(true);
 });

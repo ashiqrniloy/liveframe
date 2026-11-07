@@ -978,6 +978,7 @@ installation additionally checks names, references, inheritance and completeness
 
 Package and scenario types and validators are exported from `@arnilo/liveframe/pack`:
 `WidgetPackage`, `Scenario`, `validateWidgetPackageShape(doc)` and `validateScenario(doc)`.
+A package holds exactly one of `code` and `template` (a [template widget](#template-widgets)); the shape check reports both or neither as `invalid-document` at `/code`.
 Placement and style record types and validators are exported from `@arnilo/liveframe/store`:
 `Placement`, `StyleRecord`, `validatePlacement(doc)`, `validateStyleRecord(doc)` and `validateState(doc)`.
 Each validator returns `Result<T>` with at most 20 pointed `invalid-document` errors.
