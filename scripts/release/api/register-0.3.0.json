@@ -1636,5 +1636,29 @@
     "reason": "Template widgets: a per-catalog JSON Schema for template documents, narrowed by an optional manifest and capabilities",
     "hostAction": "Optional: generate the template schema with generateTemplateSchema or liveframe gen --template-schema; existing calls are unchanged",
     "task": "028 T6"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "streamElements",
+    "change": "added",
+    "reason": "Streamed element JSON: streamElements draws an agent's element JSON progressively as chunks arrive, returning a valid tree of the nodes completed so far",
+    "hostAction": "Optional: stream an agent's element JSON through streamElements and send diffTrees patches; existing calls are unchanged",
+    "task": "028 T7"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "ElementStream",
+    "change": "added",
+    "reason": "Streamed element JSON: streamElements draws an agent's element JSON progressively as chunks arrive, returning a valid tree of the nodes completed so far",
+    "hostAction": "Optional: stream an agent's element JSON through streamElements and send diffTrees patches; existing calls are unchanged",
+    "task": "028 T7"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "StreamElementsOptions",
+    "change": "added",
+    "reason": "Streamed element JSON: streamElements draws an agent's element JSON progressively as chunks arrive, returning a valid tree of the nodes completed so far",
+    "hostAction": "Optional: stream an agent's element JSON through streamElements and send diffTrees patches; existing calls are unchanged",
+    "task": "028 T7"
   }
 ]

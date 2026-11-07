@@ -754,6 +754,19 @@ Capabilities are how an author, person or agent, learns what exists, and what le
   `ephemeralManifest({ catalogId, actions, state? })` builds a manifest the browser's arrival check accepts; `state` is the initial value, and its schema is derived from it.
 
   Neither API stores anything: a persistent surface is a real package.
+- **Streamed element JSON.** `streamElements({ validator, surfaceId, revision?, limits?, maxErrors? })` from `/sdk` returns `{ push(chunk), end() }` and draws an agent's element JSON while it is still arriving.
+
+  It reads the JSON text incrementally (host-API-free, linear in the input, at most four times `limits.bytes` characters held). After each chunk it returns a new `Result<UiTree>` when the set of **completed** nodes changed, else `undefined`.
+
+  A tree holds every node whose object has closed and passed the checks `renderElements` makes, plus the shell of each node still open once its own fields are in (the members before its `children`), around the children completed so far. A half-written node and the siblings after it are left out. A shell the catalog's child rules do not yet accept (a kind that requires children, before its first child closes) is left out until it is valid.
+
+  Every tree is a valid tree (law 2), numbered `revision + 1`, `revision + 2`, … so a host can send `diffTrees(previous, next)` patches (§9.1).
+
+  A node that fails its checks is left out of the trees and is not fatal; `end()` reports it. A node that carries a `$ref` is drawn when the text ends, once references resolve. A member written after `children` stops further trees, and `end()` is still exact.
+
+  `end()` returns what `renderElements` returns for the whole text, with a revision one past the last tree returned.
+
+  Malformed JSON is `invalid-document` at `/$stream/<offset>` (the character offset), reported as soon as the value containing it closes. A tree over the byte budget, too many errors, or too long a text is `limit-exceeded`. After either, `push` and `end` return that failure.
 - **`render(widget, inputs, { validator, surfaceId, revision, limits?, maxErrors? })`** runs the function, builds the tree with key-path ids, and validates during emission, deferring reference-bearing node checks until targets resolve (§10). `validator` is a `CompiledValidator` from `compileValidator`; `limits` bounds nodes, depth and bytes (§10); `maxErrors` is the error bound below.
   - It returns `Result<UiTree>`: `{ ok: true, value }` or `{ ok: false, errors }`, where `errors` is every error found, up to `maxErrors` (default 20, the bound §10 uses). Each is a `LiveframeError` (§10) whose `kind` is one of `host-element`, `unknown-component`, `invalid-prop`, `invalid-children`, `missing-key`, `duplicate-key`, `undeclared-event`, `undeclared-action`, `function-prop`, `async-render`, `render-failed`, `limit-exceeded`, `not-found`.
 - **Node references.** `/sdk` exports `ref(anchor)`, returning a frozen `{ "$ref": anchor }` marker of root-export type `NodeRef`. Generated `refProps` accept `NodeRef`; element JSON uses the same marker. `$anchor` is a tree-unique string attribute on a primitive, excluded from its emitted props. A duplicate is `duplicate-key` at the second `$anchor`, expected `a tree-unique anchor`. After emission, pending references resolve to key-path ids; missing anchors are `not-found` at the referencing prop, with the anchor name in `expected`. The resulting string must satisfy the catalog prop schema. Byte limits count resolved strings exactly. Nodes are walked once; only pending references and their node checks are deferred.
@@ -1455,7 +1468,7 @@ Before building the library, prove the model's central claim: **that a small pri
   | Import | Holds |
   |---|---|
   | `@arnilo/liveframe` | Definition, catalog, theme, design-system, UI-tree and tree-patch formats; `validateTreePatch`, `diffTrees` and `applyPatch`; the validator; `bindSources` (§7.1); `auditContrast` (§6.5); the recipe resolver; `LiveframeFailure`, `LiveframeError` and `NodeRef` |
-  | `@arnilo/liveframe/sdk` | The JSX runtime (`/sdk/jsx-runtime`, `/sdk/jsx-dev-runtime`), intent helpers, `ref()`, `render()` and `renderElements()` |
+  | `@arnilo/liveframe/sdk` | The JSX runtime (`/sdk/jsx-runtime`, `/sdk/jsx-dev-runtime`), intent helpers, `ref()`, `render()`, `renderElements()` and `streamElements()` |
   | `@arnilo/liveframe/sdk/gen` | The host-side emitters behind `liveframe gen`: `generate()`, `generateDefinitions()` and `generateElementsSchema()` |
   | `@arnilo/liveframe/react` | The renderer: `createRenderer()`, `<Surface>` and `implement()` (§11). `react` and `react-dom` are optional peer dependencies used by the React subpaths |
   | `@arnilo/liveframe/css` | Pure, host-API-free projection into three scoped sheets, plus class, style, scope and variable helpers (§6.4); the host inserts sheets |

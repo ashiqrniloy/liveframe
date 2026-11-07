@@ -277,3 +277,9 @@ liveframe gen catalog.json --template-schema --capabilities capabilities.json --
 
 See [template widgets](templates.md) and [the agent guide](mcp.md).
 
+### Streamed element JSON
+
+`streamElements({ validator, surfaceId, revision?, limits?, maxErrors? })` from `/sdk` draws an agent's element JSON while it is still arriving: `push(chunk)` returns a new valid tree when the nodes completed so far changed, and `end()` returns what `renderElements` returns for the whole text. Trees are numbered `revision + 1`, `revision + 2`, … so a host can send `diffTrees` patches.
+Optional: stream an agent's element JSON through streamElements and send diffTrees patches; existing calls are unchanged.
+
+See [the SDK guide](sdk.md#draw-agent-json-while-it-streams) and [spec §7.2](spec.md#72-the-sdk).

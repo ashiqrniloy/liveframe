@@ -101,6 +101,154 @@ export function renderExpansion(
   return rejected ? { ok: false, errors: rejected } : result;
 }
 
+/** A node a stream has opened: its own fields are checked, its children are still arriving. */
+export type StreamNode = OpenNode;
+/** What a stream step added to its parent: the nodes, and whether any still holds an unresolved reference. */
+export type Placed = { readonly nodes: readonly UiNode[]; readonly references: boolean };
+
+export type StreamBuild = {
+  /** True once a limit or the error bound stopped the build; nothing more can be added. */
+  readonly stopped: boolean;
+  readonly errors: LiveframeError[];
+  /** Opens a node under `parent` (null for the root) without its children; undefined after recording why. */
+  open(element: Element, parent: StreamNode | null): StreamNode | undefined;
+  /** Emits a complete element, children and all, under `parent`. Undefined (and nothing kept) if it was invalid. */
+  whole(element: Element, parent: StreamNode | null): Placed | undefined;
+  /** Finishes an opened node once its children are all in. Undefined (and nothing kept) if it was invalid. */
+  close(node: StreamNode): Placed | undefined;
+  /** The node as it stands with the children `shown` (`counts` is how many of each kind), or undefined when that is not a valid node yet. */
+  shell(node: StreamNode, shown: readonly UiNode[], counts: ReadonlyMap<string, number>): UiNode | undefined;
+  /** A tree around a root, with the framing `renderElements` would give it. */
+  tree(root: UiNode, revision: number): UiTree;
+  /** The end of the document: the same closing steps `renderElements` takes. */
+  finish(revision: number): Result<UiTree>;
+  /** The errors of a stopped build, with the bound marker. */
+  failure(): LiveframeError[];
+};
+
+/**
+ * Internal: `renderElements`'s single pass, resumable, for `streamElements` (plan 028 Task 7). The
+ * caller feeds nodes as they complete, in document order; the steps and their order are the ones
+ * `emit` takes, so a stream with no errors ends in exactly the tree `renderElements` builds.
+ * Returns the option errors instead when the options are unusable.
+ */
+export function streamBuild(options: RenderOptions): StreamBuild | LiveframeError[] {
+  const { catalogId } = buildFacts(options.validator);
+  const ctx = createContext(options, undefined);
+  if (!checkOptions(ctx, options)) return ctx.errors;
+  addFraming(ctx, options, catalogId);
+  const roots: UiNode[] = [];
+  const rootSiblings = new Set<string>();
+  const scratch: LiveframeError[] = [];
+  const scratchSink = { errors: scratch, maxErrors: 1 };
+  let silent = true;
+  const quiet = {
+    reject() {
+      silent = false;
+    },
+  };
+
+  return {
+    get stopped() {
+      return ctx.stopped;
+    },
+    errors: ctx.errors,
+    open(element, parent) {
+      if (ctx.stopped) return;
+      const parentId = parent ? parent.id : null;
+      if (element.key !== undefined && !isValidKey(element.key)) {
+        rejectKey(ctx, undefined, parentId);
+        return;
+      }
+      return openNode(
+        ctx,
+        element,
+        element.key,
+        undefined,
+        parentId,
+        parent ? parent.kind : "",
+        parent ? parent.depth + 1 : 1,
+        false,
+        parent ? parent.siblings : rootSiblings,
+        parent ? parent.out : roots,
+      );
+    },
+    whole(element, parent) {
+      if (ctx.stopped) return;
+      const into = parent ? parent.out : roots;
+      const before = into.length;
+      const errors = ctx.errors.length;
+      const references = ctx.references.length;
+      emit(
+        ctx,
+        element,
+        parent ? parent.id : null,
+        parent ? parent.kind : "",
+        parent ? parent.depth + 1 : 1,
+        false,
+        parent ? parent.siblings : rootSiblings,
+        into,
+      );
+      if (ctx.errors.length > errors) {
+        into.length = before;
+        return undefined;
+      }
+      return { nodes: into.slice(before), references: ctx.references.length > references };
+    },
+    close(node) {
+      if (ctx.stopped) return;
+      const before = node.into.length;
+      const errors = ctx.errors.length;
+      closeNode(ctx, node);
+      if (ctx.errors.length > errors) {
+        node.into.length = before;
+        return undefined;
+      }
+      // References made while the node's children arrived count too.
+      return { nodes: node.into.slice(before), references: ctx.references.length > node.referenceStart };
+    },
+    shell(node, shown, counts) {
+      if (node.hasReferences) return undefined;
+      if (node.fieldsValid === undefined) {
+        scratch.length = 0;
+        node.fieldsValid = options.validator.checkNode(node.record, "", scratchSink);
+      }
+      if (!node.fieldsValid) return undefined;
+      const { structure } = ctx;
+      const has = shown.length > 0 ? 1 : 0;
+      node.placement ??= [undefined, undefined];
+      let placed = node.placement[has];
+      if (placed === undefined) {
+        silent = true;
+        structure.node(node.parentKind, node.kind, node.depth, has === 1, quiet);
+        placed = node.placement[has] = silent;
+      }
+      if (!placed) return undefined;
+      if (has) {
+        const last = (shown[shown.length - 1] as UiNode).kind;
+        if (node.countsLength !== shown.length || node.countsKind !== last) {
+          silent = true;
+          structure.counts(node.kind, counts, quiet);
+          node.countsLength = shown.length;
+          node.countsKind = last;
+          node.countsValid = silent;
+        }
+        if (!node.countsValid) return undefined;
+      }
+      return copyNode(node.record, has ? shown : undefined);
+    },
+    tree(root, revision) {
+      return { format: FORMAT, catalogId, surfaceId: options.surfaceId, revision, root } as UiTree;
+    },
+    finish(revision) {
+      return conclude(ctx, roots, { ...options, revision }, catalogId);
+    },
+    failure() {
+      return finish(ctx);
+    },
+  };
+}
+
 /**
  * One render's state, passed to every step below. A plain object, not closures over locals, so
  * each step is a module-level function with explicit inputs.
@@ -192,20 +340,11 @@ function createContext(options: RenderOptions, sourcePointers: WeakMap<Element, 
   return ctx;
 }
 
-function renderValue(
-  getResult: (inputs: Readonly<Record<string, unknown>>) => unknown,
-  inputs: Readonly<Record<string, unknown>>,
-  options: RenderOptions,
-  validateInputs: boolean,
-  sourcePointers?: WeakMap<Element, string>,
-): Result<UiTree> {
+/** Checks the options; false after reporting what is wrong with them. */
+function checkOptions(ctx: RenderContext, options: RenderOptions): boolean {
   const { surfaceId, revision } = options;
-  const { catalogId } = buildFacts(options.validator);
-  const ctx = createContext(options, sourcePointers);
-  const { budget, errors } = ctx;
-
   for (const key of ["nodes", "depth", "bytes"] as const) {
-    if (!Number.isSafeInteger(budget[key]) || budget[key] < 1)
+    if (!Number.isSafeInteger(ctx.budget[key]) || ctx.budget[key] < 1)
       fail(ctx, "invalid-prop", "", `limits.${key} to be a positive safe integer`, "root");
   }
   if (!Number.isSafeInteger(ctx.maxErrors) || ctx.maxErrors < 1)
@@ -214,17 +353,52 @@ function renderValue(
     fail(ctx, "invalid-prop", "", "a nonempty surfaceId of at most 128 characters", "root");
   if (!Number.isSafeInteger(revision) || revision < 0)
     fail(ctx, "invalid-prop", "", "a revision that is a non-negative safe integer", "root");
-  if (errors.length) return { ok: false, errors };
-  const owned = validateInputs ? checkInputs(ctx, inputs) : inputs;
-  if (errors.length) return { ok: false, errors: finish(ctx) };
+  return ctx.errors.length === 0;
+}
 
+/** Counts the tree's own framing against the byte budget; false once a limit stopped the build. */
+function addFraming(ctx: RenderContext, options: RenderOptions, catalogId: string): boolean {
   addBytes(ctx, BRACKET_BYTES, "/root", "root");
   addBytes(ctx, treeFieldBytes("format", true, stringBytes(FORMAT)), "/root", "root");
   addBytes(ctx, treeFieldBytes("catalogId", false, stringBytes(catalogId)), "/root", "root");
-  addBytes(ctx, treeFieldBytes("surfaceId", false, stringBytes(surfaceId)), "/root", "root");
-  addBytes(ctx, treeFieldBytes("revision", false, String(revision).length), "/root", "root");
+  addBytes(ctx, treeFieldBytes("surfaceId", false, stringBytes(options.surfaceId)), "/root", "root");
+  addBytes(ctx, treeFieldBytes("revision", false, String(options.revision).length), "/root", "root");
   addBytes(ctx, treeFieldBytes("root", false, 0), "/root", "root");
-  if (ctx.stopped) return { ok: false, errors: finish(ctx) };
+  return !ctx.stopped;
+}
+
+/** The end of a build: the root count, the closing bracket, forward references, then the tree or the errors. */
+function conclude(
+  ctx: RenderContext,
+  roots: readonly UiNode[],
+  options: RenderOptions,
+  catalogId: string,
+): Result<UiTree> {
+  if (roots.length !== 1 && !ctx.stopped) fail(ctx, "invalid-children", "", "exactly one root element", "root");
+  addBytes(ctx, BRACKET_BYTES, "", "root");
+  resolveReferences(ctx);
+
+  if (ctx.errors.length) return { ok: false, errors: finish(ctx) };
+  const { surfaceId, revision } = options;
+  const root = roots[0];
+  return { ok: true, value: { format: FORMAT, catalogId, surfaceId, revision, root } as UiTree };
+}
+
+function renderValue(
+  getResult: (inputs: Readonly<Record<string, unknown>>) => unknown,
+  inputs: Readonly<Record<string, unknown>>,
+  options: RenderOptions,
+  validateInputs: boolean,
+  sourcePointers?: WeakMap<Element, string>,
+): Result<UiTree> {
+  const { catalogId } = buildFacts(options.validator);
+  const ctx = createContext(options, sourcePointers);
+  const { errors } = ctx;
+
+  if (!checkOptions(ctx, options)) return { ok: false, errors };
+  const owned = validateInputs ? checkInputs(ctx, inputs) : inputs;
+  if (errors.length) return { ok: false, errors: finish(ctx) };
+  if (!addFraming(ctx, options, catalogId)) return { ok: false, errors: finish(ctx) };
 
   let result: unknown;
   try {
@@ -243,13 +417,7 @@ function renderValue(
   }
   const roots: UiNode[] = [];
   emit(ctx, result, null, "", 1, false, new Set<string>(), roots);
-  if (roots.length !== 1 && !ctx.stopped) fail(ctx, "invalid-children", "", "exactly one root element", "root");
-  addBytes(ctx, BRACKET_BYTES, "", "root");
-  resolveReferences(ctx);
-
-  if (errors.length) return { ok: false, errors: finish(ctx) };
-  const root = roots[0];
-  return { ok: true, value: { format: FORMAT, catalogId, surfaceId, revision, root } as UiTree };
+  return conclude(ctx, roots, options, catalogId);
 }
 
 /** Resolves forward references without walking nodes again; empty placeholders counted two bytes. */
@@ -497,19 +665,89 @@ function emit(
     [element, key] = expanded;
   }
   if (key !== undefined && !isValidKey(key)) {
-    fail(
-      ctx,
-      "invalid-prop",
-      sourcePointer ?? parentPointer(ctx, parentId),
-      "a nonempty bounded string without lone surrogates or finite number key",
-      parentId ?? "root",
-    );
+    rejectKey(ctx, sourcePointer, parentId);
     return;
   }
   if (element.type === Fragment) {
     emitFragment(ctx, element, key, parentId, parentKind, depth, requireKey, siblings, out);
     return;
   }
+  const open = openNode(ctx, element, key, sourcePointer, parentId, parentKind, depth, requireKey, siblings, out);
+  if (!open) return;
+  if (Object.hasOwn(element.props, "children")) {
+    children(
+      ctx,
+      element.props.children,
+      open.id,
+      open.kind,
+      depth + 1,
+      false,
+      open.siblings,
+      open.out,
+      element.staticChildren,
+    );
+  }
+  closeNode(ctx, open);
+}
+
+function rejectKey(ctx: RenderContext, sourcePointer: string | undefined, parentId: string | null): void {
+  fail(
+    ctx,
+    "invalid-prop",
+    sourcePointer ?? parentPointer(ctx, parentId),
+    "a nonempty bounded string without lone surrogates or finite number key",
+    parentId ?? "root",
+  );
+}
+
+/** The node's record with `children`, as a new object: the record itself becomes the final node. */
+function copyNode(record: Readonly<Record<string, unknown>>, children: readonly UiNode[] | undefined): UiNode {
+  const copy: Record<string, unknown> = { id: record.id, kind: record.kind };
+  if (record.variant !== undefined) copy.variant = record.variant;
+  copy.props = record.props;
+  if (record.style !== undefined) copy.style = record.style;
+  if (record.events !== undefined) copy.events = record.events;
+  if (children) copy.children = children;
+  return copy as unknown as UiNode;
+}
+
+/** A node whose own fields are classified and whose id is claimed, but whose children are not yet emitted. */
+type OpenNode = {
+  readonly id: string;
+  readonly kind: string;
+  readonly pointer: string;
+  readonly record: Record<string, unknown>;
+  readonly hasReferences: boolean;
+  readonly referenceStart: number;
+  readonly depth: number;
+  readonly parentKind: string;
+  /** Where the finished node goes. */
+  readonly into: UiNode[];
+  /** The node's children as they are emitted, and the ids already taken among them. */
+  readonly out: UiNode[];
+  readonly siblings: Set<string>;
+  /** What a stream learned about the node's own fields and placement, so a shell is checked once. */
+  fieldsValid?: boolean;
+  placement?: [boolean | undefined, boolean | undefined];
+  /** The last children-count check: children only ever arrive, so a length and a last kind identify the counts. */
+  countsLength?: number;
+  countsKind?: string;
+  countsValid?: boolean;
+};
+
+/** The first half of a node: kind, id, budgets and its own fields. Undefined after reporting why. */
+function openNode(
+  ctx: RenderContext,
+  element: Element,
+  key: Element["key"],
+  sourcePointer: string | undefined,
+  parentId: string | null,
+  parentKind: string,
+  depth: number,
+  requireKey: boolean,
+  siblings: Set<string>,
+  into: UiNode[],
+): OpenNode | undefined {
   const kind = kindOf(ctx, element, sourcePointer, parentId);
   if (kind === undefined) return;
   const definition = ctx.kinds.get(kind) as KindFacts;
@@ -529,31 +767,35 @@ function emit(
 
   const referenceStart = ctx.references.length;
   const record = classifyProps(ctx, element, definition, id, kind, pointer);
-  const hasReferences = ctx.references.length !== referenceStart;
   if (!record) return;
-  const childrenOut: UiNode[] = [];
-  if (Object.hasOwn(element.props, "children")) {
-    children(
-      ctx,
-      element.props.children,
-      id,
-      kind,
-      depth + 1,
-      false,
-      new Set<string>(),
-      childrenOut,
-      element.staticChildren,
-    );
-    if (ctx.structure.forbidsChildren(kind) && childrenOut.length)
-      fail(ctx, "invalid-children", `${pointer}/children`, "no children for this kind", id);
-  }
-  checkStructure(ctx, id, kind, parentKind, depth, childrenOut);
+  return {
+    id,
+    kind,
+    pointer,
+    record,
+    hasReferences: ctx.references.length !== referenceStart,
+    referenceStart,
+    depth,
+    parentKind,
+    into,
+    out: [],
+    siblings: new Set<string>(),
+  };
+}
+
+/** The second half: the children rules, the node check and the byte count. Pushes the node into its parent. */
+function closeNode(ctx: RenderContext, open: OpenNode): UiNode | undefined {
+  const { id, kind, pointer, record, out: childrenOut } = open;
+  if (ctx.structure.forbidsChildren(kind) && childrenOut.length)
+    fail(ctx, "invalid-children", `${pointer}/children`, "no children for this kind", id);
+  checkStructure(ctx, id, kind, open.parentKind, open.depth, childrenOut);
   if (ctx.stopped) return;
   if (childrenOut.length) record.children = childrenOut;
   const node = record as unknown as UiNode;
-  checkNode(ctx, node, id, pointer, hasReferences);
+  checkNode(ctx, node, id, pointer, open.hasReferences);
   countNode(ctx, record, id, kind, pointer, childrenOut.length);
-  out.push(node);
+  open.into.push(node);
+  return node;
 }
 
 /**

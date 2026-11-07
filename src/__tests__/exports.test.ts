@@ -205,6 +205,7 @@ test("sdk_export_surface", () => {
     "render",
     "renderElements",
     "state",
+    "streamElements",
   ]);
   expect(Object.keys(runtime).sort()).toEqual(["Fragment", "jsx", "jsxs"]);
   expect(Object.keys(devRuntime).sort()).toEqual(["Fragment", "jsxDEV"]);

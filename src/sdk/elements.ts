@@ -124,15 +124,9 @@ function convert(
     reject.at(pointer, "acyclic element JSON");
     return undefined;
   }
-  rejectUnknownFields(value, pointer, ELEMENT_KEYS, reject);
-  const kind = value.kind;
-  if (typeof kind !== "string" || kind.length === 0) {
-    reject.at(at(pointer, "kind"), "a nonempty catalog kind");
-    return undefined;
-  }
-  const key = value.key;
-  if (key !== undefined && !(typeof key === "string" || (typeof key === "number" && Number.isFinite(key))))
-    reject.at(at(pointer, "key"), "a string or finite number key");
+  const head = elementHead(value, pointer, reject);
+  if (!head) return undefined;
+  const { kind, key } = head;
   if (kind === "fragment") return convertFragment(value, pointer, depth, ancestors, reject, pointers);
 
   const merged = elementProps(value, pointer, reject);
@@ -147,6 +141,54 @@ function convert(
   const element = new Element(kindTag(kind), merged, key, true);
   pointers.set(element, pointer);
   return element;
+}
+
+/** What every element object carries: no unknown fields, a catalog-shaped kind and a usable key. */
+function elementHead(
+  value: Record<string, unknown>,
+  pointer: string,
+  reject: Reject,
+): { readonly kind: string; readonly key: unknown } | undefined {
+  rejectUnknownFields(value, pointer, ELEMENT_KEYS, reject);
+  const kind = value.kind;
+  if (typeof kind !== "string" || kind.length === 0) {
+    reject.at(at(pointer, "kind"), "a nonempty catalog kind");
+    return undefined;
+  }
+  const key = value.key;
+  if (key !== undefined && !(typeof key === "string" || (typeof key === "number" && Number.isFinite(key))))
+    reject.at(at(pointer, "key"), "a string or finite number key");
+  return { kind, key };
+}
+
+/**
+ * Internal: converts one element object's own fields, leaving `children` to the caller, for a stream
+ * that has seen everything but the children (`streamElements`, plan 028 Task 7). Not for fragments.
+ */
+export function convertShell(
+  value: Record<string, unknown>,
+  pointer: string,
+  reject: Reject,
+  pointers: WeakMap<Element, string>,
+): Element | undefined {
+  const head = elementHead(value, pointer, reject);
+  if (!head) return undefined;
+  const merged = elementProps(value, pointer, reject);
+  if (!merged) return undefined;
+  const element = new Element(kindTag(head.kind), merged, head.key, true);
+  pointers.set(element, pointer);
+  return element;
+}
+
+/** Internal: converts a whole element subtree that sits `depth` levels down, as `renderElements` does. */
+export function convertElement(
+  value: unknown,
+  pointer: string,
+  depth: number,
+  reject: Reject,
+  pointers: WeakMap<Element, string>,
+): Element | undefined {
+  return convert(value, pointer, depth, new Set<object>(), reject, pointers);
 }
 
 /**

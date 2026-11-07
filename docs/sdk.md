@@ -191,6 +191,61 @@ agent tool. A *template widget* (data-bound, installable, no sandbox) has its ow
 per-catalog schema, `liveframe gen catalog.json --template-schema`; see
 [template widgets](templates.md#a-json-schema-for-the-model).
 
+## Draw agent JSON while it streams
+
+An agent that writes element JSON token by token can be drawn before it finishes.
+`streamElements({ validator, surfaceId })` returns `{ push, end }`. Feed it each
+chunk of the text; it returns a new tree whenever the nodes completed so far
+changed (and `undefined` when they did not), numbered `revision + 1`, `revision + 2`,
+and so on:
+
+```ts
+import { applyPatch, diffTrees, type UiTree } from "@arnilo/liveframe";
+import { streamElements } from "@arnilo/liveframe/sdk";
+
+const stream = streamElements({ validator, surfaceId: "chat-42" });
+let shown: UiTree | undefined;
+for await (const chunk of llm) {
+  const next = stream.push(chunk);
+  if (!next) continue; // nothing new has completed
+  if (!next.ok) break; // malformed JSON or a limit: `next.errors` says where
+  if (shown) {
+    const patch = diffTrees(shown, next.value);
+    if (patch.ok) send({ patch: patch.value });
+  } else send({ tree: next.value });
+  shown = next.value;
+}
+const final = stream.end(); // the same result `renderElements` gives the whole text
+if (final.ok) send({ tree: final.value });
+```
+
+A tree holds each node whose object has closed and passed every check
+`renderElements` makes, and the shells of the nodes still open (their own fields
+are in; their `children` are arriving). A half-written node, and the siblings after
+it, are left out until it closes, and a shell that the catalog's child rules would
+reject yet (a `list` that needs an item, before the first item closes) waits for its
+first valid child. Every tree is a validated tree, so `<Surface tree={shown}>` can
+draw each one, and successive trees are valid inputs to `diffTrees`, so the loop
+above sends patches.
+
+Things to know:
+
+- **Order.** Progressive drawing needs `children` after the element's other members,
+  which is the order `generateElementsSchema` gives. A member written after
+  `children` stops further trees for that stream; `end()` is still exact.
+- **Invalid nodes.** A node that fails its checks is left out of the trees, not fatal.
+  `end()` returns the errors, as `renderElements` would, with pointers into the text.
+- **References.** A node with a `$ref` is drawn when the text ends, when the reference
+  can be resolved.
+- **Failure.** Malformed JSON is `invalid-document` at `/$stream/<offset>`, reported
+  once the value that holds the fault closes. A tree past `limits.bytes`, `limits.nodes`
+  or `limits.depth`, or a text longer than four times `limits.bytes` characters, is
+  `limit-exceeded`. After a failure `push` and `end` keep returning it; the stream
+  holds nothing more.
+- **Cost.** The work over a whole stream is linear in the text: about 2.8 times one
+  `renderElements` of the same 679-node document fed in 64-byte chunks (`bun run bench`
+  gates it at 3 times).
+
 ## Intents and author constraints
 
 An event prop carries one frozen intent, never a callback:
@@ -288,9 +343,9 @@ because the prop's schema rejects the value first.
 ## Public exports and executable examples
 
 `@arnilo/liveframe/sdk` exports `jsx`, `jsxs`, `Fragment`, `primitive`, `state`,
-`action`, `ref`, `render`, `renderElements` and `ephemeralManifest`. Its type exports are
-`Component`, `Element`, `Elements`, `DeepReadonly`, `Intent`, `Json`, `WidgetProps`,
-`RenderLimits` and `RenderOptions`. `/sdk/gen` exports `generate`,
+`action`, `ref`, `render`, `renderElements`, `streamElements` and `ephemeralManifest`. Its type exports are
+`Component`, `Element`, `Elements`, `DeepReadonly`, `ElementStream`, `Intent`, `Json`,
+`StreamElementsOptions`, `WidgetProps`, `RenderLimits` and `RenderOptions`. `/sdk/gen` exports `generate`,
 `generateDefinitions`, `generateElementsSchema` and `generateTemplateSchema`. `/sdk/jsx-runtime` exports
 `jsx`, `jsxs`, `Fragment` and the `JSX` type namespace; `/sdk/jsx-dev-runtime`
 exports `jsxDEV`, `Fragment` and that namespace. Element branding helpers are
