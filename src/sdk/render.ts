@@ -76,6 +76,32 @@ export function renderPrepared(
 }
 
 /**
+ * Internal: renders what `expand` builds from the checked, frozen inputs, for template widgets
+ * (plan 028). `expand` returns the root element, or the errors that stopped it, which are then the
+ * result as they are.
+ */
+export function renderExpansion(
+  expand: (owned: Readonly<Record<string, unknown>>) => Element | readonly LiveframeError[],
+  inputs: Readonly<Record<string, unknown>>,
+  options: RenderOptions,
+  sourcePointers: WeakMap<Element, string>,
+): Result<UiTree> {
+  let rejected: readonly LiveframeError[] | undefined;
+  const result = renderValue(
+    (owned) => {
+      const built = expand(owned);
+      if (!isElement(built)) rejected = built;
+      return built;
+    },
+    inputs,
+    options,
+    true,
+    sourcePointers,
+  );
+  return rejected ? { ok: false, errors: rejected } : result;
+}
+
+/**
  * One render's state, passed to every step below. A plain object, not closures over locals, so
  * each step is a module-level function with explicit inputs.
  */

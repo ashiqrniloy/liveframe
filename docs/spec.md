@@ -1052,9 +1052,15 @@ Nobody publishes a widget blind. A person or an agent writes it, looks at it, ch
 ```
 
 ```ts
-import { validateTemplate } from "@arnilo/liveframe/template";
-validateTemplate(doc, { catalog, capabilities, manifest }); // Result<Template>
+import { renderTemplate, validateTemplate } from "@arnilo/liveframe/template";
+validateTemplate(doc, { catalog, capabilities, manifest }); // Result<Template>, once, at install
+renderTemplate(template, { params, state, data, context }, { validator, surfaceId, revision }); // Result<UiTree>
 ```
+
+- **Rendering.** `renderTemplate` takes the same options as `render()`, and its `limits` also accept `steps` (default 1,000,000), the evaluation fuel: one step per expression node, plus one per 64 units of input for operators that walk a long string or array. Exhausting it is `limit-exceeded`. The inputs are checked against the manifest and left unmodified, exactly as `render()` does, then the template expands to elements that go through the same single build-and-validate pass: ids are key paths, a `$use` leaves no node, and an `$each` body's key is its `$each.key`. A prop that evaluates to nothing (`$omit`, or an absent optional path) is left out, and a required one is reported by the build.
+- **Errors.** An evaluation error (division by zero, a value of the wrong kind that was known only at render) is `invalid-prop` at the operator's pointer in the template, with the `nodeId` of the nearest enclosing element, and is collected up to `maxErrors`; the siblings still render so one run reports several. Errors from the build (a prop that fails its schema, a wrong child kind, a duplicate key) point at the template node, as `renderElements` points into its input.
+- **Compiling.** A frozen template compiles to closures once per validator and is cached; an unfrozen one compiles on each call. Compiling re-runs the install analysis against the validator's own input schemas, so a template that does not fit that validator's manifest fails with the install errors.
+- **Parity.** A template and a TSX widget that mean the same thing produce equal trees, proved for the proof widgets over every proof scenario. One thing a template cannot do is sanitise text with a regular expression or throw: a source supplies clean labels, or the widget is TSX.
 
 **Rationale**
 
@@ -1450,7 +1456,7 @@ Before building the library, prove the model's central claim: **that a small pri
   | `@arnilo/liveframe/preview` | The `Runner` interface, `inProcessRunner()` and `createPreview()` (§7.5), plus the type-only `PreviewSession`, `PreviewBinding` and `AuthoringConfig` |
   | `@arnilo/liveframe/authoring` | Host-API-free `createAuthoring()` with eight typed authoring operations; requires the host's runner |
   | `@arnilo/liveframe/runner-kit` | Host-API-free `renderModule()` and `linkPackage()`, the in-sandbox half of a runner (§7.5) |
-  | `@arnilo/liveframe/template` | Host-API-free `validateTemplate()` and the expression language: `checkExpression()`, `evaluate()` and the `Template`, `TemplateNode` and `Expr` types (§7.6) |
+  | `@arnilo/liveframe/template` | Host-API-free `validateTemplate()`, `renderTemplate()` and the expression language: `checkExpression()`, `evaluate()` and the `Template`, `TemplateNode` and `Expr` types (§7.6) |
   | `@arnilo/liveframe/runner-kit.bundle.js` | The same kit with the SDK and validator as one self-contained ES module: no `import()`, `import.meta`, relative or bare imports, and no `node:`/`bun:` references (checked with `acorn` by the archive gate). One namespace serves all three SDK specifiers. Not an isolation boundary |
   | `@arnilo/liveframe/validator.bundle.js` | The root exports as one self-contained ES module under the same archive checks. No SDK render path, `renderModule` or `linkPackage`: a validating host never runs widget code. Needs no non-ECMAScript globals |
   | `@arnilo/liveframe/preview/capture` | Host-API-free `capture()`, `CaptureBackend` and `playwrightBackend(playwright)` (§7.5) |

@@ -64,6 +64,15 @@ export type CompiledBuild = {
   readonly structure: CompiledStructure;
   /** The manifest's input schemas, plus a `data` schema built from each source's result. */
   readonly inputs: CompiledInputs;
+  /** The same four schemas as documents, for template widgets to type their paths against. */
+  readonly schemas: InputSchemas;
+};
+/** @internal */
+export type InputSchemas = {
+  readonly params: ObjectSchema;
+  readonly state: ObjectSchema;
+  readonly context: ObjectSchema;
+  readonly data: ObjectSchema;
 };
 /** @internal `render()` checks the four inputs against these before it runs the widget. */
 export type CompiledInputs = {
@@ -364,6 +373,7 @@ function compile(work: CatalogWork, manifest: Manifest): CompiledValidator {
     ),
   );
   offeredChecks.set(validator, { intent: intent("none"), events: work.offered });
+  const data = dataSchema(manifest, work.capabilities);
   builds.set(validator, {
     catalogId: catalog.catalogId,
     kinds: facts,
@@ -372,8 +382,9 @@ function compile(work: CatalogWork, manifest: Manifest): CompiledValidator {
       params: compileSchema(manifest.params),
       state: compileSchema(manifest.state),
       context: compileSchema(manifest.context),
-      data: compileSchema(dataSchema(manifest, work.capabilities)),
+      data: compileSchema(data),
     },
+    schemas: { params: manifest.params, state: manifest.state, context: manifest.context, data },
   });
   return validator;
 }

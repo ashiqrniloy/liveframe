@@ -2,4 +2,6 @@
 export type { Expr, Template, TemplateComponent, TemplateIntent, TemplateNode } from "./document.ts";
 export { validateTemplate } from "./document.ts";
 export { checkExpression, evaluate } from "./expr.ts";
+export type { TemplateLimits, TemplateRenderOptions } from "./render.ts";
+export { renderTemplate } from "./render.ts";
 export type { ExprType } from "./scope.ts";

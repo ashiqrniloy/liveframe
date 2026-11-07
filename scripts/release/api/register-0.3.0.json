@@ -1460,5 +1460,29 @@
     "reason": "Template validation corpus cases and their supporting documents",
     "hostAction": "Port the template validator against the corpus before installing templates",
     "task": "028 T3"
+  },
+  {
+    "subpath": "./template",
+    "name": "renderTemplate",
+    "change": "added",
+    "reason": "Template widgets: renderTemplate runs a validated template over its inputs and returns the validated tree, with limits.steps bounding evaluation",
+    "hostAction": "Optional: render installed template widgets with renderTemplate; existing calls are unchanged",
+    "task": "028 T4"
+  },
+  {
+    "subpath": "./template",
+    "name": "TemplateRenderOptions",
+    "change": "added",
+    "reason": "Template widgets: renderTemplate runs a validated template over its inputs and returns the validated tree, with limits.steps bounding evaluation",
+    "hostAction": "Optional: render installed template widgets with renderTemplate; existing calls are unchanged",
+    "task": "028 T4"
+  },
+  {
+    "subpath": "./template",
+    "name": "TemplateLimits",
+    "change": "added",
+    "reason": "Template widgets: renderTemplate runs a validated template over its inputs and returns the validated tree, with limits.steps bounding evaluation",
+    "hostAction": "Optional: render installed template widgets with renderTemplate; existing calls are unchanged",
+    "task": "028 T4"
   }
 ]

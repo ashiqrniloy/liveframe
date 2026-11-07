@@ -491,6 +491,11 @@ manifest's schemas, and every binding into a prop, a `setState` value, an action
 argument or a component param. Errors carry pointers into the template.
 See [the spec](spec.md#76-template-widgets) for the language and its rules.
 
+`renderTemplate(template, { params, state, data, context }, { validator, surfaceId,
+revision })` then runs a validated template and returns the same `Result<UiTree>` as
+`render()`, with `limits.steps` bounding evaluation. See
+[the spec](spec.md#76-template-widgets).
+
 Corpus cases are under `conformance/corpus/template/`, run with the support
 documents `common/template-manifest.json` and `common/template-capabilities.json`.
 

@@ -387,7 +387,7 @@ test("authoring_export_surface", () => {
 
 test("runner_kit_export_surface", () => {
   expect(Object.keys(runnerKit).sort()).toEqual(["linkPackage", "renderModule"]);
-  expect(Object.keys(template).sort()).toEqual(["checkExpression", "evaluate", "validateTemplate"]);
+  expect(Object.keys(template).sort()).toEqual(["checkExpression", "evaluate", "renderTemplate", "validateTemplate"]);
 });
 
 test("tree_patch_types_and_schema_are_public", () => {

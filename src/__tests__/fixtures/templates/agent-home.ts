@@ -1,22 +1,9 @@
 // A template port of the proof agent-home queue (plan 028): the same data, state and actions as
 // `fixtures/widgets/agent-home/queue.tsx`, written as element JSON with expressions. Task 3 validates
-// it and times the install check; Task 4 extends it to full parity and renders it.
-import { arr, bool, num, obj, str } from "../../../schema.ts";
-import type { Expr, Template, TemplateNode } from "../../../template/index.ts";
-
-const p = (path: string) => ({ $path: path });
-const text = (value: Expr, style: Record<string, unknown> = {}, key?: string): TemplateNode => ({
-  kind: "text",
-  ...(key ? { key } : {}),
-  props: { text: value },
-  style: style as never,
-});
-const heading = (value: Expr, level: number, style: Record<string, unknown> = {}, key?: string): TemplateNode => ({
-  kind: "heading",
-  ...(key ? { key } : {}),
-  props: { text: value, level },
-  style: style as never,
-});
+// it and times the install check; Task 4 renders it and proves it equal to the TSX widget.
+import { arr, bool, type LanguageSchema, num, obj, str } from "../../../schema.ts";
+import type { Template, TemplateNode } from "../../../template/index.ts";
+import { heading, p, rowSchema, text } from "./common.ts";
 
 const category = str({ maxLength: 9, enum: ["decisions", "tasks", "alerts"] });
 
@@ -211,7 +198,36 @@ const ready: TemplateNode = {
             shrink: 1,
           },
           children: [
-            { $if: { $has: p("focus") }, ...heading(p("focus.title"), 3) },
+            {
+              $if: { $and: [{ $has: p("focus") }, { $eq: [p("focus.category"), "tasks"] }] },
+              $use: "TaskCard",
+              key: p("focus.id"),
+              with: {
+                task: p("focus"),
+                canAct: p("params.canAct"),
+                canEscalate: p("params.canEscalate"),
+                escalating: p("state.escalating"),
+                reason: p("state.reason"),
+              },
+            },
+            {
+              $if: { $and: [{ $has: p("focus") }, { $eq: [p("focus.category"), "alerts"] }] },
+              $use: "AlertCard",
+              key: p("focus.id"),
+              with: { alert: p("focus"), canAct: p("params.canAct") },
+            },
+            {
+              $if: {
+                $and: [
+                  { $has: p("focus") },
+                  { $ne: [p("focus.category"), "tasks"] },
+                  { $ne: [p("focus.category"), "alerts"] },
+                ],
+              },
+              $use: "DecisionCard",
+              key: p("focus.id"),
+              with: { focus: p("focus"), canAct: p("params.canAct") },
+            },
             { $if: { $not: { $has: p("focus") } }, ...heading("Nothing else waits on you", 3) },
           ],
         },
@@ -345,92 +361,392 @@ const ready: TemplateNode = {
   ],
 };
 
-export const agentHomeTemplate: Template = {
-  format: "liveframe-template/1",
-  components: {
-    QueueRow: {
-      params: obj({
-        id: str({ maxLength: 128 }),
-        category,
-        title: str({ maxLength: 10000 }),
-        status: str({ maxLength: 10000 }),
-        meta: arr(str({ maxLength: 10000 }), { maxItems: 100 }),
-        foldedAlerts: num({ minimum: 0, maximum: 100 }),
-        selected: bool(),
-      }),
-      root: queueRow,
+/** The widget's whole body, reusable as a component whose params are named `params`, `state` and `data`. */
+export const agentHomeRoot: TemplateNode = {
+  kind: "box",
+  props: { semantics: "section" },
+  style: { surface: "surface.raised", radius: "radius.plate", padding: "space.5" },
+  children: [
+    {
+      kind: "stack",
+      style: { gap: "space.3" },
+      children: [
+        {
+          kind: "stack",
+          key: "header",
+          props: { semantics: "header" },
+          style: { gap: "space.0", marginBottom: "space.3" },
+          children: [
+            {
+              kind: "inline",
+              key: "head",
+              style: { justify: "between", align: "end", wrap: "wrap", gap: "space.4", paddingBottom: "space.2" },
+              children: [
+                heading("Queue", 2, { textStyle: { base: "heading.2.compact", "bp.md": "heading.2" } }, "title"),
+                text({ $concat: ["Checked ", p("data.checked")] }, { textStyle: "fine", tone: "muted" }, "checked"),
+              ],
+            },
+            { kind: "separator", key: "rule" },
+          ],
+        },
+        { $if: { $not: p("params.canAct") }, ...text("Read-only desk", { tone: "info" }, "readonly") },
+        {
+          $if: { $eq: [p("data.status"), "loading"] },
+          kind: "stack",
+          key: "loading",
+          style: { gap: "space.2" },
+          children: [
+            heading("Loading", 3),
+            text("Loading the queue. Static rows, no animated skeleton.", { tone: "muted" }),
+            { kind: "box", key: "row-1", style: { surface: "surface.well", height: "space.4" } },
+            { kind: "box", key: "row-2", style: { surface: "surface.well", height: "space.4" } },
+            { kind: "box", key: "row-3", style: { surface: "surface.well", height: "space.4" } },
+          ],
+        },
+        {
+          $if: { $eq: [p("data.status"), "failed"] },
+          kind: "stack",
+          key: "failed",
+          style: { gap: "space.3" },
+          children: [
+            heading("The queue did not load", 3, { tone: "danger" }),
+            text(
+              "Synapta could not reach your queue just now. Your draft and the dock still work; try the queue again.",
+            ),
+            {
+              kind: "inline",
+              key: "retry",
+              children: [
+                {
+                  kind: "button",
+                  props: { label: "Retry the queue" },
+                  events: { onPress: { type: "action", name: "queue.retry", args: {} } },
+                },
+              ],
+            },
+          ],
+        },
+        {
+          $if: { $eq: [p("data.status"), "empty"] },
+          kind: "stack",
+          key: "empty",
+          style: { gap: "space.2" },
+          children: [
+            heading("Nothing else waits on you", 3),
+            text("You have reached the end of the queue. Standing orders keep running, and new work appears here.", {
+              tone: "muted",
+            }),
+          ],
+        },
+        ready,
+      ],
     },
-  },
-  root: {
+  ],
+};
+
+const factsSchema = rowSchema.properties.facts as LanguageSchema;
+const kickerStyle = { gap: "space.2", align: "center" } as const;
+
+const decideBox = (note: TemplateNode, acts: TemplateNode): TemplateNode => ({
+  kind: "box",
+  key: "decide",
+  variant: "rule",
+  style: { paddingX: "space.0", paddingTop: "space.4", paddingBottom: "space.0", marginTop: "space.1" },
+  children: [
+    {
+      kind: "inline",
+      style: {
+        wrap: { base: "wrap", "bp.sm": "nowrap" },
+        justify: "between",
+        align: "center",
+        gap: "space.3",
+      },
+      children: [note, acts],
+    },
+  ],
+});
+
+/** The focus plate shared by the decision, task and alert cards. */
+function plate(
+  item: string,
+  marker: { name: string; tone: string },
+  extra: { lead?: TemplateNode; acts: TemplateNode; dialog?: TemplateNode },
+): TemplateNode {
+  return {
     kind: "box",
-    props: { semantics: "section" },
-    style: { surface: "surface.raised", radius: "radius.plate", padding: "space.5" },
+    props: { semantics: "article" },
+    variant: "plate",
     children: [
       {
-        kind: "stack",
-        style: { gap: "space.3" },
+        kind: "inline",
+        key: "kicker",
+        style: kickerStyle,
         children: [
           {
-            kind: "stack",
-            key: "header",
-            props: { semantics: "header" },
-            style: { gap: "space.0", marginBottom: "space.3" },
-            children: [
-              {
-                kind: "inline",
-                key: "head",
-                style: { justify: "between", align: "end", wrap: "wrap", gap: "space.4", paddingBottom: "space.2" },
-                children: [
-                  heading("Queue", 2, { textStyle: { base: "heading.2.compact", "bp.md": "heading.2" } }, "title"),
-                  text({ $concat: ["Checked ", p("data.checked")] }, { textStyle: "fine", tone: "muted" }, "checked"),
-                ],
-              },
-              { kind: "separator", key: "rule" },
-            ],
+            kind: "icon",
+            key: "brand",
+            props: { name: "seal-brand" },
+            style: { tone: "foil", width: "size.glyph", height: "size.glyph" },
           },
-          { $if: { $not: p("params.canAct") }, ...text("Read-only desk", { tone: "info" }, "readonly") },
-          {
-            $if: { $eq: [p("data.status"), "loading"] },
-            kind: "stack",
-            key: "loading",
-            style: { gap: "space.2" },
-            children: [
-              heading("Loading", 3),
-              text("Loading the queue. Static rows, no animated skeleton.", { tone: "muted" }),
-              { kind: "box", key: "row-1", style: { surface: "surface.well", height: "space.4" } },
-              { kind: "box", key: "row-2", style: { surface: "surface.well", height: "space.4" } },
-            ],
-          },
-          {
-            $if: { $eq: [p("data.status"), "failed"] },
-            kind: "stack",
-            key: "failed",
-            style: { gap: "space.3" },
-            children: [
-              heading("The queue did not load", 3, { tone: "danger" }),
-              {
-                kind: "inline",
-                key: "retry",
-                children: [
-                  {
-                    kind: "button",
-                    props: { label: "Retry the queue" },
-                    events: { onPress: { type: "action", name: "queue.retry", args: {} } },
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            $if: { $eq: [p("data.status"), "empty"] },
-            kind: "stack",
-            key: "empty",
-            style: { gap: "space.2" },
-            children: [heading("Nothing else waits on you", 3)],
-          },
-          ready,
+          text(p(`${item}.kicker`), { textStyle: "ui", tone: "foil" }, "word"),
         ],
       },
+      {
+        kind: "stack",
+        key: "head",
+        style: { gap: "space.2" },
+        children: [
+          heading(p(`${item}.title`), 2, { textStyle: "heading.3" }),
+          {
+            kind: "inline",
+            key: "state",
+            style: { gap: "space.2", wrap: "wrap", align: "center" },
+            children: [
+              {
+                kind: "inline",
+                key: "stamp",
+                style: { gap: "space.2", align: "center", paddingRight: "space.2" },
+                children: [
+                  { kind: "icon", key: "marker", props: { name: marker.name }, style: { tone: marker.tone } },
+                  text(p(`${item}.status`), { textStyle: "mono.strong", tone: marker.tone }, "word"),
+                ],
+              },
+              text(p(`${item}.meta`), { textStyle: "meta", tone: "muted" }, "when"),
+            ],
+          },
+        ],
+      },
+      ...(extra.lead ? [extra.lead] : []),
+      { $use: "Facts", with: { facts: p(`${item}.facts`) } },
+      {
+        kind: "disclosure",
+        key: "reference",
+        props: { label: "Reference" },
+        children: [text(p(`${item}.reference`), { textStyle: "meta" })],
+      },
+      decideBox(text(p(`${item}.note`), { textStyle: "meta", tone: "muted", maxWidth: "56ch" }, "note"), extra.acts),
+      ...(extra.dialog ? [extra.dialog] : []),
     ],
+  };
+}
+
+const button = (
+  key: string | undefined,
+  label: string,
+  intent: TemplateNode["events"],
+  variant?: string,
+): TemplateNode => ({
+  kind: "button",
+  ...(key ? { key } : {}),
+  ...(variant ? { variant } : {}),
+  props: { label },
+  ...(intent ? { events: intent } : {}),
+});
+const act = (name: string, args: Record<string, unknown>) => ({ type: "action" as const, name, args: args as never });
+const clear = { type: "setState" as const, key: "escalating", value: "" };
+
+const dialog: TemplateNode = {
+  $if: { $and: [p("canAct"), p("canEscalate"), { $eq: [p("escalating"), p("task.id")] }] },
+  kind: "dialog",
+  props: { label: "Escalate this task?", open: true },
+  events: { onClose: clear },
+  children: [
+    {
+      kind: "stack",
+      style: { gap: "space.3" },
+      children: [
+        text(
+          "It goes to the people who can reassign it, with your reason attached. The task stays open.",
+          {},
+          "explanation",
+        ),
+        {
+          kind: "textField",
+          props: { label: "Reason", value: p("reason"), maxLength: 500 },
+          events: { onChange: { type: "setState", key: "reason" } },
+        },
+        text(
+          "1–500 characters. Everyone who sees the task sees the reason. Leave the field to confirm your draft.",
+          { textStyle: "meta" },
+          "help",
+        ),
+        {
+          kind: "inline",
+          style: { gap: "space.2" },
+          children: [
+            button("cancel", "Cancel", { onPress: clear }, "ghost"),
+            {
+              $let: [{ as: "length", value: { $len: p("reason") } }],
+              $if: { $and: [{ $gte: [p("length"), 1] }, { $lte: [p("length"), 500] }] },
+              ...button(
+                "send",
+                "Escalate",
+                { onPress: act("tasks.escalate", { id: p("task.id"), reason: p("reason") }) },
+                "primary",
+              ),
+            },
+            {
+              $let: [{ as: "length", value: { $len: p("reason") } }],
+              $if: { $not: { $and: [{ $gte: [p("length"), 1] }, { $lte: [p("length"), 500] }] } },
+              kind: "button",
+              key: "send",
+              variant: "primary",
+              props: { label: "Escalate", disabled: true },
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
+export const agentHomeComponents: NonNullable<Template["components"]> = {
+  QueueRow: {
+    params: obj({
+      id: str({ maxLength: 128 }),
+      category,
+      title: str({ maxLength: 10000 }),
+      status: str({ maxLength: 10000 }),
+      meta: arr(str({ maxLength: 10000 }), { maxItems: 100 }),
+      foldedAlerts: num({ minimum: 0, maximum: 100 }),
+      selected: bool(),
+    }),
+    root: queueRow,
   },
+  Facts: {
+    params: obj({ facts: factsSchema }),
+    root: {
+      kind: "box",
+      key: "facts",
+      children: [
+        { kind: "separator", key: "rule" },
+        {
+          kind: "inline",
+          style: {
+            wrap: { base: "wrap", "bp.sm": "nowrap" },
+            align: "start",
+            paddingTop: "space.3",
+            gap: { base: "space.3", "bp.sm": "space.5" },
+          },
+          children: [
+            {
+              $each: { in: p("facts"), as: "fact", key: p("fact.label") },
+              kind: "stack",
+              props: { semantics: "terms" },
+              style: { gap: "space.0", width: { base: "fill", "bp.sm": "48.67%" } },
+              children: [
+                {
+                  kind: "inline",
+                  key: "term",
+                  props: { semantics: "term" },
+                  children: [text(p("fact.label"), { textStyle: "meta", tone: "muted" })],
+                },
+                {
+                  kind: "inline",
+                  key: "detail",
+                  props: { semantics: "detail" },
+                  children: [text(p("fact.value"), { textStyle: "meta" })],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  },
+  DecisionCard: {
+    params: obj({ focus: rowSchema, canAct: bool() }),
+    root: plate(
+      "focus",
+      { name: "mk-dashed", tone: "warning" },
+      {
+        acts: {
+          $if: p("canAct"),
+          kind: "inline",
+          key: "acts",
+          style: { shrink: 0 },
+          children: [
+            button(
+              undefined,
+              "Review and decide",
+              { onPress: act("decisions.review", { id: p("focus.id") }) },
+              "primary",
+            ),
+          ],
+        },
+      },
+    ),
+  },
+  TaskCard: {
+    params: obj({
+      task: rowSchema,
+      canAct: bool(),
+      canEscalate: bool(),
+      escalating: str({ maxLength: 128 }),
+      reason: str({ maxLength: 500 }),
+    }),
+    root: plate(
+      "task",
+      { name: "mk-dashed", tone: "warning" },
+      {
+        acts: {
+          $if: p("canAct"),
+          kind: "inline",
+          key: "acts",
+          style: { gap: "space.2", wrap: "wrap", shrink: 0 },
+          children: [
+            button("claim", "Claim", { onPress: act("tasks.claim", { id: p("task.id") }) }, "primary"),
+            {
+              $if: p("canEscalate"),
+              ...button("escalate", "Escalate…", {
+                onPress: { type: "setState", key: "escalating", value: p("task.id") },
+              }),
+            },
+          ],
+        },
+        dialog,
+      },
+    ),
+  },
+  AlertCard: {
+    params: obj({ alert: rowSchema, canAct: bool() }),
+    root: plate(
+      "alert",
+      { name: "mk-struck", tone: "danger" },
+      {
+        lead: { $if: { $has: p("alert.lead") }, ...text(p("alert.lead"), { textStyle: "meta" }, "lead") },
+        acts: {
+          $if: p("canAct"),
+          kind: "inline",
+          key: "acts",
+          style: { gap: "space.2", wrap: "wrap", shrink: 0 },
+          children: [
+            button(
+              "acknowledge",
+              "Acknowledge",
+              { onPress: act("alerts.acknowledge", { id: p("alert.id") }) },
+              "primary",
+            ),
+            {
+              kind: "menu",
+              props: { label: "Snooze" },
+              children: [
+                button("hour", "For 1 hour", {
+                  onPress: act("alerts.snooze", { id: p("alert.id"), duration: "hour" }),
+                }),
+                button("day", "For 1 day", { onPress: act("alerts.snooze", { id: p("alert.id"), duration: "day" }) }),
+              ].map((node) => ({ ...node, kind: "menuItem" })),
+            },
+            button("convert", "Convert to task", { onPress: act("alerts.convert", { id: p("alert.id") }) }),
+          ],
+        },
+      },
+    ),
+  },
+};
+
+export const agentHomeTemplate: Template = {
+  format: "liveframe-template/1",
+  components: agentHomeComponents,
+  root: agentHomeRoot,
 };
