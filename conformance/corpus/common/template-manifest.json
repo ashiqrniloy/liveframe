@@ -1,0 +1,77 @@
+{
+  "format": "liveframe-manifest/1",
+  "id": "rows",
+  "version": "1.0.0",
+  "catalogId": "proof.ui@1",
+  "params": {
+    "type": "object",
+    "properties": {
+      "canEdit": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "canEdit"
+    ],
+    "additionalProperties": false
+  },
+  "state": {
+    "type": "object",
+    "properties": {
+      "filter": {
+        "type": "string",
+        "maxLength": 4,
+        "enum": [
+          "all",
+          "open"
+        ]
+      },
+      "selected": {
+        "type": "string",
+        "maxLength": 128
+      },
+      "title": {
+        "type": "string",
+        "maxLength": 200
+      }
+    },
+    "required": [
+      "filter",
+      "selected",
+      "title"
+    ],
+    "additionalProperties": false
+  },
+  "context": {
+    "type": "object",
+    "properties": {
+      "size": {
+        "type": "string",
+        "maxLength": 6,
+        "enum": [
+          "small",
+          "large"
+        ]
+      }
+    },
+    "required": [
+      "size"
+    ],
+    "additionalProperties": false
+  },
+  "initialState": {
+    "filter": "all",
+    "selected": "",
+    "title": ""
+  },
+  "sources": {
+    "rows": {
+      "source": "rows.list",
+      "params": {}
+    }
+  },
+  "actions": [
+    "rows.open",
+    "rows.rename"
+  ]
+}

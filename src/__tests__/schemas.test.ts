@@ -168,6 +168,7 @@ test("schema_publisher_detects_drift", async () => {
       "src/formats/records.ts",
       "src/formats/json.ts",
       "src/formats/tree.ts",
+      "src/template/schema.ts",
       "src/formats/tree-patch.ts",
       "src/formats/catalog.ts",
       "src/formats/axes.ts",

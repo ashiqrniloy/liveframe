@@ -1,0 +1,29 @@
+{
+  "format": "liveframe-template/1",
+  "components": {
+    "Banner": {
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "root": {
+        "kind": "text",
+        "props": {
+          "text": {
+            "$path": "state.title"
+          }
+        }
+      }
+    }
+  },
+  "root": {
+    "kind": "stack",
+    "children": [
+      {
+        "$use": "Banner"
+      }
+    ]
+  }
+}

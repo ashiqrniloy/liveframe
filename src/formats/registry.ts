@@ -1,3 +1,4 @@
+import { templateSchema } from "../template/schema.ts";
 import { capabilitiesSchema } from "./capabilities.ts";
 import { catalogSchema } from "./catalog.ts";
 import { designSystemSchema } from "./design-system.ts";
@@ -25,6 +26,7 @@ export const formats = {
   placement: placementSchema,
   "style-record": styleRecordSchema,
   catalog: catalogSchema,
+  template: templateSchema,
 } as const;
 
 export function schemaDocument(name: keyof typeof formats) {

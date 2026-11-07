@@ -15,6 +15,7 @@ const subpaths = [
     globals: ["TextEncoder", "TextDecoder", "URL", "console"],
   },
   { path: "runner-kit", dependencies: false, loader: false, host: "none", globals: [] },
+  { path: "template", dependencies: false, loader: false, host: "none", globals: [] },
   {
     path: "preview/capture",
     dependencies: false,

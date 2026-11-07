@@ -1,0 +1,22 @@
+{
+  "format": "liveframe-template/1",
+  "root": {
+    "kind": "stack",
+    "children": [
+      {
+        "$each": {
+          "in": {
+            "$path": "data.rows"
+          },
+          "as": "row"
+        },
+        "kind": "text",
+        "props": {
+          "text": {
+            "$path": "row.title"
+          }
+        }
+      }
+    ]
+  }
+}

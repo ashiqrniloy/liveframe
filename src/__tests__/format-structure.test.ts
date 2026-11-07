@@ -96,5 +96,5 @@ test("registered_structure_rejects_before_relationship_checks", () => {
   };
   expect(checkFormat(formats["tree-patch"], patch).ok).toBe(true);
   expect(validateTreePatch(patch).ok).toBe(false);
-  expect(Object.keys(formats)).toHaveLength(11);
+  expect(Object.keys(formats)).toHaveLength(12);
 });

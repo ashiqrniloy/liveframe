@@ -642,7 +642,7 @@ This settles portability without imposing one naming scheme (`decision-logs/2026
 
 **Rules**
 
-1. Widgets, their SDK, packages, storage and preview follow §7.1–§7.5.
+1. Widgets, their SDK, packages, storage, preview and template widgets follow §7.1–§7.6.
 
 **Rationale**
 
@@ -1020,6 +1020,45 @@ Playwright is an optional peer dependency, lazily loaded only by CLI capture pat
 **Rationale**
 
 Nobody publishes a widget blind. A person or an agent writes it, looks at it, changes it and looks again. Liveframe ships that loop; the app keeps the isolation.
+
+### 7.6 Template widgets
+
+**Rules**
+
+1. A template widget is **element JSON plus a bounded expression language**, a registered format `liveframe-template/1`. It is evaluated by the library on the backend, so it needs no isolation runner.
+2. A template is **validated at install against the manifest**: structure, bounds, the component graph and every expression. Errors point into the template document.
+3. Expressions are **JSON, never parsed strings**: a scalar is a literal, an array or an object without a `$`-key is a constructor, and an object with exactly one `$`-key is an operator. `{ "$lit": json }` escapes.
+4. The operators are a **closed table** with no globals, no recursion, no function values and counted work, so a template cannot reach the host or fail to terminate.
+5. A template **names actions statically**. It can bind their arguments, never compute which action runs, and the app re-checks every intent as for any widget.
+6. Template bounds: 1 MiB of JSON, 10,000 template nodes, 20,000 expression nodes, expression depth 32, 64 components, component use 16 deep, 32 `$let` bindings and node nesting 128.
+
+**Contract and examples**
+
+- Document: `{ format, components?, root }`. A component is `{ params, root }`, and `params` is an object schema. A node is element JSON (`kind`, `key`, `variant`, `$anchor`, `props`, `style`, `events`, `children`) whose values may be expressions, plus the directives below. `kind` is a catalog kind or `fragment`.
+- Directives run in this order on one node: `$let` (an array of `{ as, value }`), `$if` (a boolean expression), `$each` (`{ in, as, index?, key }`), then the body, which is an element or `$use` with `with`. `$each` emits one body per item with `$each.key` as its key, so the node carries no `key` or `$anchor` of its own. A `$use` expands to its component's root and leaves no node.
+- Names: the roots are `params`, `state`, `data`, `context` and `actions`, plus names bound by `$let`, `$each`, `$filter`, `$map` and `$findIndex`. A name never shadows another. **A component is hermetic**: its body sees its own `params` as bare names and nothing else.
+- Paths such as `data.queue.rows.0.id` are checked against the manifest's schemas, the data schema built from its sources, or a bound name. A path into a missing property is `unknown-name`; a segment such as `__proto__` or a `$`-prefixed one is `invalid-document`.
+- Each binding is checked for shape against the target: a prop, a `setState` value, an action argument or a component param. A constant is checked with the real schema check, so its length, range and `url` rules apply at install. A value whose type is known only at render (`dynamic`) is checked then. `$has` guards narrow an optional path inside a `$if`, a conditional and the later operands of `$and`.
+- Kinds, variants, props, events and style props are checked as for element JSON. A child kind is checked against its parent's rules where both are known, and a `$use` is placed by its component's root. Unknown kinds are `unknown-component`, undeclared events `undeclared-event`, undeclared actions `undeclared-action`, a repeated `$anchor` `duplicate-key`, an `$each` without `key` `missing-key`, and a `$ref` that names no anchor in the template `unknown-name`.
+- The widget root renders exactly one element: it takes no `$if` or `$each`, and is not a fragment. A component root takes no `$each` and may be a fragment; use `$if` for an optional component.
+- A cyclic component graph is `invalid-document`; deeper than 16 or past any bound above is `limit-exceeded`.
+
+```jsonc
+{ "format": "liveframe-template/1",
+  "root": { "kind": "stack", "children": [
+    { "$each": { "in": { "$path": "data.queue.rows" }, "as": "row", "key": { "$path": "row.id" } },
+      "kind": "button", "props": { "label": { "$path": "row.title" } },
+      "events": { "onPress": { "type": "action", "name": "tasks.claim", "args": { "id": { "$path": "row.id" } } } } } ] } }
+```
+
+```ts
+import { validateTemplate } from "@arnilo/liveframe/template";
+validateTemplate(doc, { catalog, capabilities, manifest }); // Result<Template>
+```
+
+**Rationale**
+
+TSX widgets are a full language and need a sandbox. Element JSON needs none but is static, unbound and ephemeral. A template fills the gap: data-bound, installable and type-checked, but only data, so an app can install what an agent or a user writes without an isolation runner.
 
 ## 8. Interaction (Synapta's three tiers)
 
@@ -1411,6 +1450,7 @@ Before building the library, prove the model's central claim: **that a small pri
   | `@arnilo/liveframe/preview` | The `Runner` interface, `inProcessRunner()` and `createPreview()` (§7.5), plus the type-only `PreviewSession`, `PreviewBinding` and `AuthoringConfig` |
   | `@arnilo/liveframe/authoring` | Host-API-free `createAuthoring()` with eight typed authoring operations; requires the host's runner |
   | `@arnilo/liveframe/runner-kit` | Host-API-free `renderModule()` and `linkPackage()`, the in-sandbox half of a runner (§7.5) |
+  | `@arnilo/liveframe/template` | Host-API-free `validateTemplate()` and the expression language: `checkExpression()`, `evaluate()` and the `Template`, `TemplateNode` and `Expr` types (§7.6) |
   | `@arnilo/liveframe/runner-kit.bundle.js` | The same kit with the SDK and validator as one self-contained ES module: no `import()`, `import.meta`, relative or bare imports, and no `node:`/`bun:` references (checked with `acorn` by the archive gate). One namespace serves all three SDK specifiers. Not an isolation boundary |
   | `@arnilo/liveframe/validator.bundle.js` | The root exports as one self-contained ES module under the same archive checks. No SDK render path, `renderModule` or `linkPackage`: a validating host never runs widget code. Needs no non-ECMAScript globals |
   | `@arnilo/liveframe/preview/capture` | Host-API-free `capture()`, `CaptureBackend` and `playwrightBackend(playwright)` (§7.5) |
@@ -1432,6 +1472,7 @@ Before building the library, prove the model's central claim: **that a small pri
 | `css` | none |
 | `authoring` | `TextEncoder`, `TextDecoder`, `URL`, `console` |
 | `runner-kit` | none |
+| `template` | none |
 | `preview/capture` | `TextEncoder`, `TextDecoder`, `URL` |
 | `conformance` | `TextDecoder`, `console` |
 | `pack` | `TextDecoder`, `console` |

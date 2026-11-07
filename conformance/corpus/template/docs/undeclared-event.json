@@ -1,0 +1,21 @@
+{
+  "format": "liveframe-template/1",
+  "root": {
+    "kind": "stack",
+    "children": [
+      {
+        "kind": "button",
+        "props": {
+          "label": "Go"
+        },
+        "events": {
+          "onTap": {
+            "type": "setState",
+            "key": "filter",
+            "value": "all"
+          }
+        }
+      }
+    ]
+  }
+}

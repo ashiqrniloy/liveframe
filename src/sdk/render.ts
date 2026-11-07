@@ -13,7 +13,13 @@ import {
   treeFieldBytes,
   VARIANT_MEMBER_BYTES,
 } from "../validate/bytes.ts";
-import { buildFacts, type CompiledBuild, type CompiledValidator, type KindFacts } from "../validate/compile.ts";
+import {
+  buildFacts,
+  type CompiledBuild,
+  type CompiledValidator,
+  type KindFacts,
+  propTarget,
+} from "../validate/compile.ts";
 import type { SchemaCheck, SchemaSink } from "../validate/schema.ts";
 import { encodeSegment, type JsonWalk, walkJson } from "../validate/structure.ts";
 import { DEFAULT_LIMITS } from "../validate/tree.ts";
@@ -704,13 +710,6 @@ function admitNode(ctx: RenderContext, id: string, pointer: string, depth: numbe
   }
   ctx.nodes++;
   return true;
-}
-
-/** Which node field a prop goes to: `on…` names are events even when the kind declares none. */
-function propTarget(definition: KindFacts, name: string): "variant" | "events" | "style" | "props" {
-  if (name === "variant") return "variant";
-  if (definition.events.has(name) || /^on[A-Z]/.test(name)) return "events";
-  return definition.styleProps.has(name) ? "style" : "props";
 }
 
 /** Consumes author-only anchors and reference markers before normal prop classification. */

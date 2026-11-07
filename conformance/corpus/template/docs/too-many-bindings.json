@@ -1,0 +1,141 @@
+{
+  "format": "liveframe-template/1",
+  "root": {
+    "$let": [
+      {
+        "as": "naa",
+        "value": 0
+      },
+      {
+        "as": "nab",
+        "value": 1
+      },
+      {
+        "as": "nac",
+        "value": 2
+      },
+      {
+        "as": "nad",
+        "value": 3
+      },
+      {
+        "as": "nae",
+        "value": 4
+      },
+      {
+        "as": "naf",
+        "value": 5
+      },
+      {
+        "as": "nag",
+        "value": 6
+      },
+      {
+        "as": "nah",
+        "value": 7
+      },
+      {
+        "as": "nai",
+        "value": 8
+      },
+      {
+        "as": "naj",
+        "value": 9
+      },
+      {
+        "as": "nak",
+        "value": 10
+      },
+      {
+        "as": "nal",
+        "value": 11
+      },
+      {
+        "as": "nam",
+        "value": 12
+      },
+      {
+        "as": "nan",
+        "value": 13
+      },
+      {
+        "as": "nao",
+        "value": 14
+      },
+      {
+        "as": "nap",
+        "value": 15
+      },
+      {
+        "as": "naq",
+        "value": 16
+      },
+      {
+        "as": "nar",
+        "value": 17
+      },
+      {
+        "as": "nas",
+        "value": 18
+      },
+      {
+        "as": "nat",
+        "value": 19
+      },
+      {
+        "as": "nau",
+        "value": 20
+      },
+      {
+        "as": "nav",
+        "value": 21
+      },
+      {
+        "as": "naw",
+        "value": 22
+      },
+      {
+        "as": "nax",
+        "value": 23
+      },
+      {
+        "as": "nay",
+        "value": 24
+      },
+      {
+        "as": "naz",
+        "value": 25
+      },
+      {
+        "as": "nba",
+        "value": 26
+      },
+      {
+        "as": "nbb",
+        "value": 27
+      },
+      {
+        "as": "nbc",
+        "value": 28
+      },
+      {
+        "as": "nbd",
+        "value": 29
+      },
+      {
+        "as": "nbe",
+        "value": 30
+      },
+      {
+        "as": "nbf",
+        "value": 31
+      },
+      {
+        "as": "nbg",
+        "value": 32
+      }
+    ],
+    "kind": "stack",
+    "children": []
+  }
+}

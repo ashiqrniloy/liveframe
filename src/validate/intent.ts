@@ -14,9 +14,9 @@ const actionFields = new Set([
   ...treeSchema.$defs.intent.oneOf[1].required,
   ...Object.keys(treeSchema.$defs.intent.oneOf[1].properties),
 ]);
-type Carries = Definition["events"][string]["carries"];
+export type Carries = Definition["events"][string]["carries"];
 
-function carriesFits(carries: Carries, type: string): boolean {
+export function carriesFits(carries: Carries, type: string): boolean {
   return (
     typeof carries === "string" &&
     carries !== "none" &&
@@ -25,7 +25,7 @@ function carriesFits(carries: Carries, type: string): boolean {
 }
 
 /** Bounds are checked on the completed value; this compares the event's scalar shape only. */
-function objectFits(
+export function objectFits(
   event: Extract<Carries, object>["object"],
   target: LanguageSchema,
   literals: Record<string, unknown> = {},

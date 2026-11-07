@@ -1,0 +1,12 @@
+{
+  "inputs": {
+    "doc": "docs/valid.json",
+    "catalog": "../common/proof-catalog.json",
+    "capabilities": "../common/template-capabilities.json",
+    "manifest": "../common/template-manifest.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": true
+  }
+}

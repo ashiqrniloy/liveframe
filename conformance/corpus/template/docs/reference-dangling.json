@@ -1,0 +1,17 @@
+{
+  "format": "liveframe-template/1",
+  "root": {
+    "kind": "stack",
+    "children": [
+      {
+        "kind": "text",
+        "props": {
+          "text": "Field",
+          "describedBy": {
+            "$ref": "missing"
+          }
+        }
+      }
+    ]
+  }
+}

@@ -131,6 +131,11 @@
       "types": "./dist/runner-kit/index.d.ts",
       "default": "./dist/runner-kit/index.js"
     },
+    "./template": {
+      "liveframe:source": "./src/template/index.ts",
+      "types": "./dist/template/index.d.ts",
+      "default": "./dist/template/index.js"
+    },
     "./runner-kit.bundle.js": "./dist/runner-kit.bundle.js",
     "./validator.bundle.js": "./dist/validator.bundle.js"
   },

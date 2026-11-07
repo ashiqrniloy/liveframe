@@ -38,6 +38,7 @@ The backend subpaths (`/store/fs`, `/preview/worker`, the in-process package loa
 | `css` | none |
 | `authoring` | `TextEncoder`, `TextDecoder`, `URL`, `console` |
 | `runner-kit` | none |
+| `template` | none |
 | `preview/capture` | `TextEncoder`, `TextDecoder`, `URL` |
 | `conformance` | `TextDecoder`, `console` |
 | `pack` | `TextDecoder`, `console` |
@@ -172,6 +173,7 @@ if (patch.ok) {
 | `@arnilo/liveframe/preview` | The `Runner` interface, `inProcessRunner()` and `createPreview()` |
 | `@arnilo/liveframe/authoring` | Eight typed authoring operations without MCP; the host supplies its runner |
 | `@arnilo/liveframe/runner-kit` | `renderModule()` and `linkPackage()`, the in-sandbox half of a runner |
+| `@arnilo/liveframe/template` | `validateTemplate()` and the expression language of template widgets |
 | `@arnilo/liveframe/runner-kit.bundle.js` | The kit, SDK and validator as one import-free ES module for isolates |
 | `@arnilo/liveframe/validator.bundle.js` | The root exports as one import-free ES module for hosts that validate without rendering |
 | `@arnilo/liveframe/preview/capture` | Capture as bytes with a pluggable backend |

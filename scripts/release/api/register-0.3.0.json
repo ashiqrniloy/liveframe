@@ -1092,5 +1092,373 @@
     "reason": "URL string form corpus cases",
     "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
     "task": "027 T7"
+  },
+  {
+    "subpath": "./template",
+    "name": "validateTemplate",
+    "change": "added",
+    "reason": "Template widgets: the liveframe-template/1 format, its validator and expression language",
+    "hostAction": "Optional: validate template widgets with validateTemplate before installing them; existing calls are unchanged",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./template",
+    "name": "checkExpression",
+    "change": "added",
+    "reason": "Template widgets: the liveframe-template/1 format, its validator and expression language",
+    "hostAction": "Optional: validate template widgets with validateTemplate before installing them; existing calls are unchanged",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./template",
+    "name": "evaluate",
+    "change": "added",
+    "reason": "Template widgets: the liveframe-template/1 format, its validator and expression language",
+    "hostAction": "Optional: validate template widgets with validateTemplate before installing them; existing calls are unchanged",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./template",
+    "name": "Template",
+    "change": "added",
+    "reason": "Template widgets: the liveframe-template/1 format, its validator and expression language",
+    "hostAction": "Optional: validate template widgets with validateTemplate before installing them; existing calls are unchanged",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./template",
+    "name": "TemplateNode",
+    "change": "added",
+    "reason": "Template widgets: the liveframe-template/1 format, its validator and expression language",
+    "hostAction": "Optional: validate template widgets with validateTemplate before installing them; existing calls are unchanged",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./template",
+    "name": "TemplateComponent",
+    "change": "added",
+    "reason": "Template widgets: the liveframe-template/1 format, its validator and expression language",
+    "hostAction": "Optional: validate template widgets with validateTemplate before installing them; existing calls are unchanged",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./template",
+    "name": "TemplateIntent",
+    "change": "added",
+    "reason": "Template widgets: the liveframe-template/1 format, its validator and expression language",
+    "hostAction": "Optional: validate template widgets with validateTemplate before installing them; existing calls are unchanged",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./template",
+    "name": "Expr",
+    "change": "added",
+    "reason": "Template widgets: the liveframe-template/1 format, its validator and expression language",
+    "hostAction": "Optional: validate template widgets with validateTemplate before installing them; existing calls are unchanged",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./template",
+    "name": "ExprType",
+    "change": "added",
+    "reason": "Template widgets: the liveframe-template/1 format, its validator and expression language",
+    "hostAction": "Optional: validate template widgets with validateTemplate before installing them; existing calls are unchanged",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./schemas/*",
+    "name": "template.json",
+    "change": "added",
+    "reason": "The liveframe-template/1 transport schema (urn:liveframe:template:1)",
+    "hostAction": "Optional: validate template widgets with validateTemplate before installing them; existing calls are unchanged",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/common/template-capabilities.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/common/template-manifest.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/component-reads-widget-root.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/cyclic-use.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/docs/component-reads-widget-root.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/docs/cyclic-use.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/docs/duplicate-anchor.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/docs/each-without-key.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/docs/invalid-children.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/docs/kind-and-use.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/docs/reference-dangling.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/docs/reference-valid.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/docs/too-many-bindings.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/docs/type-mismatched-binding.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/docs/undeclared-action.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/docs/undeclared-event.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/docs/unknown-field.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/docs/unknown-kind.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/docs/unknown-path.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/docs/valid.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/docs/with-unknown-param.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/duplicate-anchor.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/each-without-key.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/invalid-children.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/kind-and-use.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/reference-dangling.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/reference-valid.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/too-many-bindings.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/type-mismatched-binding.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/undeclared-action.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/undeclared-event.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/unknown-field.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/unknown-kind.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/unknown-path.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/valid.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/with-unknown-param.json",
+    "change": "added",
+    "reason": "Template validation corpus cases and their supporting documents",
+    "hostAction": "Port the template validator against the corpus before installing templates",
+    "task": "028 T3"
   }
 ]

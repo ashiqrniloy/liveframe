@@ -1,0 +1,8 @@
+{
+  "format": "liveframe-template/1",
+  "root": {
+    "kind": "stack",
+    "children": []
+  },
+  "extra": true
+}

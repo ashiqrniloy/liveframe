@@ -1,0 +1,18 @@
+{
+  "inputs": {
+    "doc": "docs/with-unknown-param.json",
+    "catalog": "../common/proof-catalog.json",
+    "capabilities": "../common/template-capabilities.json",
+    "manifest": "../common/template-manifest.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "unknown-name",
+        "pointer": "/root/children/0/with/extra"
+      }
+    ]
+  }
+}

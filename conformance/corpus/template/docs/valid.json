@@ -1,0 +1,96 @@
+{
+  "format": "liveframe-template/1",
+  "components": {
+    "Row": {
+      "params": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "count"
+        ],
+        "additionalProperties": false
+      },
+      "root": {
+        "kind": "inline",
+        "children": [
+          {
+            "kind": "text",
+            "props": {
+              "text": {
+                "$path": "title"
+              }
+            }
+          },
+          {
+            "kind": "button",
+            "props": {
+              "label": "Open"
+            },
+            "events": {
+              "onPress": {
+                "type": "action",
+                "name": "rows.open",
+                "args": {
+                  "id": {
+                    "$path": "id"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "root": {
+    "kind": "stack",
+    "children": [
+      {
+        "kind": "heading",
+        "props": {
+          "text": "Rows",
+          "level": 2
+        }
+      },
+      {
+        "$each": {
+          "in": {
+            "$path": "data.rows"
+          },
+          "as": "row",
+          "key": {
+            "$path": "row.id"
+          }
+        },
+        "$use": "Row",
+        "with": {
+          "id": {
+            "$path": "row.id"
+          },
+          "title": {
+            "$path": "row.title"
+          },
+          "count": {
+            "$path": "row.count"
+          }
+        }
+      }
+    ]
+  }
+}

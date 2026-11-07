@@ -4,6 +4,7 @@ import { validateManifestShape } from "../formats/manifest.ts";
 import { validateWidgetPackageShape } from "../formats/package.ts";
 import { validatePlacement, validateStyleRecord } from "../formats/records.ts";
 import { formats } from "../formats/registry.ts";
+import { validateTemplateShape } from "../template/document.ts";
 import {
   compileValidator,
   isLanguageSchema,
@@ -225,6 +226,7 @@ const checks: Record<string, { matches: (doc: Record<string, Json>) => boolean; 
     matches: (doc) => doc.format === "liveframe-package/1",
     check: (doc) => validateWidgetPackageShape(doc).ok,
   },
+  template: { matches: (doc) => doc.format === "liveframe-template/1", check: (doc) => validateTemplateShape(doc).ok },
   placement: { matches: (doc) => "slot" in doc && "widget" in doc, check: (doc) => validatePlacement(doc).ok },
   "style-record": {
     matches: (doc) => "kind" in doc && "body" in doc && "version" in doc,

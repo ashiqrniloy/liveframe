@@ -16,6 +16,7 @@ import {
 } from "../index.ts";
 import { verifyPackage } from "../pack/verify.ts";
 import { renderElements } from "../sdk/elements.ts";
+import { validateTemplate } from "../template/index.ts";
 
 const FORMATS = [
   "catalog",
@@ -29,6 +30,7 @@ const FORMATS = [
   "placement",
   "style-record",
   "elements",
+  "template",
 ] as const;
 type Format = (typeof FORMATS)[number];
 
@@ -61,6 +63,18 @@ const FORMAT_KINDS = {
   "style-record": ["invalid-document"],
   elements: [
     "not-found",
+    "invalid-prop",
+    "invalid-children",
+    "unknown-component",
+    "missing-key",
+    "duplicate-key",
+    "undeclared-event",
+    "undeclared-action",
+    "limit-exceeded",
+  ],
+  template: [
+    "invalid-document",
+    "unknown-name",
     "invalid-prop",
     "invalid-children",
     "unknown-component",
@@ -242,6 +256,21 @@ function runner(corpusCase: CorpusCase): Result<unknown> {
         manifest: support.manifest as never,
       });
       return validator.validateTree(corpusCase.doc, corpusCase.options);
+    }
+    case "template": {
+      const catalog = validateCatalog(support.catalog);
+      const capabilities = validateCapabilities(support.capabilities);
+      if (!catalog.ok || !capabilities.ok) return catalog.ok ? capabilities : catalog;
+      const manifest = validateManifest(support.manifest, {
+        catalog: catalog.value,
+        capabilities: capabilities.value,
+      });
+      if (!manifest.ok) return manifest;
+      return validateTemplate(corpusCase.doc, {
+        catalog: catalog.value,
+        capabilities: capabilities.value,
+        manifest: manifest.value,
+      });
     }
     case "elements": {
       const validator = compileValidator({

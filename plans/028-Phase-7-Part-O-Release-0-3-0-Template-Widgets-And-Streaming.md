@@ -108,7 +108,7 @@ This plan adds spec §7.6 (template widgets) and amends §3, §4 (concepts), §7
       8. Inference falls back to `dynamic` (checked at render) for `$fromEntries`, mixed-kind arrays, unions in `$get`/`$merge`, and constructors holding a `null` or `dynamic` member. A path into a union resolves the tag as an enum and a property that every variant that has it agrees on (optional unless all variants require it).
     - No spec change in this task (spec §7.6 arrives with Task 3). `bun run check`: 1362 pass, 0 fail.
 
-- [ ] Task 3: The template format, its JSON Schema and install validation
+- [x] Task 3: The template format, its JSON Schema and install validation
   - Acceptance Criteria:
     - Functional:
       - `liveframe-template/1` is a registered format (one source, per plan 026 Task 9) with `schemas/template.json` (`$id: urn:liveframe:template:1`).
@@ -133,7 +133,20 @@ This plan adds spec §7.6 (template widgets) and amends §3, §4 (concepts), §7
     - Files to Create/Edit: `src/template/document.ts`; `src/template/index.ts`; `src/formats/registry.ts`; `schemas/template.json`; `conformance/corpus/template/*`; `package.json` (`exports`, files); `scripts/build.ts`; `src/__tests__/portability.test.ts`; `src/__tests__/exports.test.ts`; `docs/spec.md` §7.6, §13; `register-0.3.0.json`
   - Test Cases to Write:
     - `template_unknown_path_unknown_name`; `template_cyclic_use_rejected`; `each_requires_key`; `use_with_must_match_params`; `binding_type_mismatch_invalid_prop`; `template_undeclared_action_rejected`; `template_subpath_host_api_free`; corpus runner covers `template/`.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-07):
+    - Added `src/template/document.ts` (types, `validateTemplate`, `validateTemplateShape`, `TEMPLATE_LIMITS`; one `Walk` class of small methods), `src/template/schema.ts` (the transport schema, kept apart so the schema publisher does not import validation code), `src/template/index.ts` (`validateTemplate`, `checkExpression`, `evaluate`, types), `schemas/template.json` (`urn:liveframe:template:1`, the 12th registered format), `package.json` `./template`, spec §7.6 and the §13 rows (subpath table, runtime matrix, README), formats and migration docs, CHANGELOG, 36 register entries.
+    - Shared element-JSON checks: `src/sdk/element-node.ts` now owns `Reject`, `mergeSections` (props/style/events into one flat set, reserved and duplicate names), `rejectFragmentFields`, `rejectUnknownFields`; `renderElements` uses it with identical errors. `kindFacts`, `propTarget` and `dataSchema` moved to `validate/compile.ts` and `carriesFits`/`objectFits` are exported from `validate/intent.ts`, so templates classify a name and complete an intent exactly as `render()` and the tree validator do.
+    - Tests: `template-document.test.ts` (40), the template corpus (17 cases; every error kind the validator can return has a failing case), the differential harness gained `template`. Install validation of the agent-home port (`fixtures/templates/agent-home.ts`, about 40% of the widget: header, status branches, groups/tabs/rows through `$use`, pager, stale, footer) takes **0.9 ms** warm (budget 5 ms; first call 11 ms including the per-catalog tables).
+    - Findings for Tasks 4–6:
+      1. `validateTemplate` takes **validated** `Catalog`, `Capabilities` and `Manifest` (as `validateManifest` does), not raw documents; per-catalog tables are cached in a `WeakMap`. `validateTemplateShape` (transport only, no context) is what Task 5's package shape check should call.
+      2. Error kinds follow element JSON, not design T16's first draft: `unknown-component`, `undeclared-event`, `undeclared-action`, `duplicate-key`, `missing-key`, `invalid-children`; design T16 and a new T15a record this. A component root may not carry `$each` and the widget root no `$if`/`$each` or fragment, so `renderTemplate` expands a root to exactly one element and a component to at most one.
+      3. `$if` is evaluated before `$each` (T3), so it cannot read `$each` names. `$let` entries and `$each` names are bound even when malformed, so one bad name reports once.
+      4. A `dynamic` value binds anywhere, so Task 4 must check at render: `$if` is boolean, `$each.in` is an array, a key is a string or number of 1–128 characters, a prop value passes its schema, and a `$ref` marker resolves. Style values are checked at install only when constant.
+      5. `$ref` uses are collected in the shared `Budget.refs` and resolved against the template's anchors after the walk; Task 4 should reuse the SDK's own reference resolution at render.
+      6. Expression-node overflow is now reported once where it is crossed (it reported at every later node before).
+      7. Structure rules are applied for statically known parents and children (through fragments and `$use` roots); child counts (min/max) are left to render because `$if` and `$each` change them.
+      8. The agent-home fixture is a partial port. Task 4 extends it to full parity and re-measures install time.
+    - `bun run check` passes.
 
 - [ ] Task 4: `renderTemplate`: expand, build and validate in one pass
   - Acceptance Criteria:

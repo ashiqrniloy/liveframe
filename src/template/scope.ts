@@ -16,9 +16,9 @@ export type ExprType = { readonly schema: ExprSchema; readonly optional: boolean
 export const MAX_STRING = 1_048_576;
 export const MAX_ITEMS = 65_536;
 
-/** Counters shared by every scope of one template: expression nodes checked and slots needed. */
-export type Budget = { nodes: number; slots: number };
-export const newBudget = (): Budget => ({ nodes: 0, slots: 0 });
+/** Counters shared by every scope of one template: expression nodes checked, slots needed, and the `$ref`s seen. */
+export type Budget = { nodes: number; slots: number; refs: { readonly anchor: string; readonly pointer: string }[] };
+export const newBudget = (): Budget => ({ nodes: 0, slots: 0, refs: [] });
 
 export type Binding = { readonly slot: number; readonly type: ExprType };
 
@@ -190,7 +190,13 @@ export function resolvePath(scope: Scope, path: string): PathResult {
   const rootName = parts[0] as string;
   const root = scope.names.get(rootName);
   if (!root)
-    return pathFailure("unknown-name", `Unknown name "${rootName}"`, `one of: ${[...scope.names.keys()].join(", ")}`);
+    return pathFailure(
+      "unknown-name",
+      `Unknown name "${rootName}"`,
+      scope.names.size
+        ? `one of: ${[...scope.names.keys()].join(", ")}`
+        : "a name in scope; a component sees only its params",
+    );
   const segments: (string | number)[] = [];
   let schema = root.type.schema;
   let optional = root.type.optional && !scope.present.has(rootName);

@@ -1,13 +1,14 @@
+import { addBoundMarker, DEFAULT_MAX_ERRORS, type Result } from "../errors.ts";
+import type { ObjectSchema } from "../formats/capabilities.ts";
 import type { Catalog } from "../formats/catalog.ts";
 import type { Manifest } from "../formats/manifest.ts";
-import type { ObjectSchema } from "../formats/capabilities.ts";
-import { addBoundMarker, DEFAULT_MAX_ERRORS, type LiveframeError, type Result } from "../errors.ts";
-import { arr, bool, int, isRecord, num, obj, str, type Infer, type LanguageSchema } from "../schema.ts";
 import type { Intent, Json, NodeRef, UiTree } from "../formats/tree.ts";
-import { Element } from "./element.ts";
 import { at } from "../internal.ts";
+import { arr, bool, type Infer, int, isRecord, type LanguageSchema, num, obj, str } from "../schema.ts";
+import { Element } from "./element.ts";
+import { ELEMENT_KEYS, mergeSections, Reject, rejectFragmentFields, rejectUnknownFields } from "./element-node.ts";
 import { Fragment } from "./jsx-runtime.ts";
-import { renderPrepared, type RenderOptions } from "./render.ts";
+import { type RenderOptions, renderPrepared } from "./render.ts";
 
 /** JSON input for an ephemeral surface: an element tree with no ids, drawn from one catalog (spec §7.2). */
 type ElementFor<C extends Catalog, D> = D extends Catalog["definitions"][number]
@@ -34,55 +35,12 @@ export type Elements<C extends Catalog> =
   | { readonly kind: "fragment"; readonly key?: string | number; readonly children: readonly Elements<C>[] };
 
 const INPUT_DEPTH = 128;
-const ELEMENT_KEYS = new Set(["kind", "key", "$anchor", "variant", "props", "style", "events", "children"]);
 const STATE_MAX_LENGTH = 4096;
 const STATE_MAX_ITEMS = 256;
 const STATE_MAX_PROPERTIES = 64;
 const STATE_MAX_DEPTH = 16;
 /** Bounded share of frozen `{ kind }` tags across calls; a hostile catalog cannot grow it without bound. */
 const kindTags = new Map<string, Readonly<{ kind: string }>>();
-
-class Reject {
-  readonly errors: LiveframeError[] = [];
-  readonly maxErrors: number;
-  stopped = false;
-
-  constructor(maxErrors: number) {
-    this.maxErrors = maxErrors;
-  }
-
-  at(pointer: string, expected: string): void {
-    if (this.stopped) return;
-    this.errors.push({ kind: "invalid-prop", pointer, expected, message: `Expected ${expected}` });
-    if (this.errors.length >= this.maxErrors) this.stopped = true;
-  }
-}
-
-function section(value: unknown, pointer: string, reject: Reject): Record<string, unknown> | undefined {
-  if (value === undefined) return undefined;
-  if (!isRecord(value)) {
-    reject.at(pointer, "an object");
-    return undefined;
-  }
-  return value;
-}
-
-function merge(
-  target: Record<string, unknown>,
-  source: Record<string, unknown> | undefined,
-  pointer: string,
-  sectionName: string,
-  reject: Reject,
-): void {
-  if (!source) return;
-  for (const name in source) {
-    if (!Object.hasOwn(source, name)) continue;
-    if (name === "key" || name === "children" || name === "variant" || name === "$anchor")
-      reject.at(at(pointer, name), `no ${name} in ${sectionName}`);
-    else if (Object.hasOwn(target, name)) reject.at(at(pointer, name), "one property section per name");
-    else target[name] = source[name];
-  }
-}
 
 function kindTag(kind: string): Readonly<{ kind: string }> {
   let tag = kindTags.get(kind);
@@ -98,18 +56,11 @@ function elementProps(
   pointer: string,
   reject: Reject,
 ): Record<string, unknown> | undefined {
-  const props = section(value.props, at(pointer, "props"), reject);
-  const style = section(value.style, at(pointer, "style"), reject);
-  const events = section(value.events, at(pointer, "events"), reject);
-  if (reject.stopped) return undefined;
-  const merged: Record<string, unknown> = { ...props };
-  for (const reserved of ["key", "children", "variant", "$anchor"] as const)
-    if (Object.hasOwn(merged, reserved)) reject.at(at(at(pointer, "props"), reserved), `no ${reserved} in props`);
-  merge(merged, style, at(pointer, "style"), "style", reject);
-  merge(merged, events, at(pointer, "events"), "events", reject);
+  const merged = mergeSections(value, pointer, reject);
+  if (!merged) return undefined;
   if (Object.hasOwn(value, "$anchor")) merged.$anchor = value.$anchor;
   if (value.variant !== undefined) merged.variant = value.variant;
-  return reject.stopped ? undefined : merged;
+  return merged;
 }
 
 function elementChildren(
@@ -143,8 +94,7 @@ function convertFragment(
   reject: Reject,
   pointers: WeakMap<Element, string>,
 ): Element | undefined {
-  for (const name of ["$anchor", "variant", "props", "style", "events"] as const)
-    if (Object.hasOwn(value, name)) reject.at(at(pointer, name), `no ${name} on a fragment`);
+  rejectFragmentFields(value, pointer, reject);
   const children = elementChildren(value.children, at(pointer, "children"), depth, ancestors, reject, pointers);
   if (!children) return undefined;
   const element = new Element(Fragment, { children }, value.key, true);
@@ -174,8 +124,7 @@ function convert(
     reject.at(pointer, "acyclic element JSON");
     return undefined;
   }
-  for (const name in value)
-    if (Object.hasOwn(value, name) && !ELEMENT_KEYS.has(name)) reject.at(at(pointer, name), "no such element field");
+  rejectUnknownFields(value, pointer, ELEMENT_KEYS, reject);
   const kind = value.kind;
   if (typeof kind !== "string" || kind.length === 0) {
     reject.at(at(pointer, "kind"), "a nonempty catalog kind");

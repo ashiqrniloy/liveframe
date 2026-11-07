@@ -66,6 +66,7 @@ test("spec_preserves_section_anchors_and_the_four_laws", () => {
     "### 7.3 Packages",
     "### 7.4 Storage",
     "### 7.5 Runners and preview",
+    "### 7.6 Template widgets",
     "## 8. Interaction (Synapta's three tiers)",
     "## 9. The UI tree (wire format)",
     "### 9.1 Optional tree patches",

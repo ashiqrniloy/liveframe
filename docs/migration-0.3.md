@@ -220,3 +220,19 @@ variants: ["primary", "ghost"], axes: { tone: { default: "neutral" } }; // <Butt
 5. Supply an example per axis value and, for styled states, a fixture for each non-default value (keyed `button.primary__critical.hover`).
 
 See [variant axes](styling.md#variant-axes).
+
+### Template widgets
+
+A widget can now be a JSON template: element JSON plus a bounded expression language, validated at install against the manifest and evaluated by the library, so it needs no isolation runner. `@arnilo/liveframe/template` exports `validateTemplate`, `checkExpression` and `evaluate`, and `schemas/template.json` publishes the transport schema.
+Optional: validate template widgets with validateTemplate before installing them; existing calls are unchanged.
+Port the template validator against the corpus before installing templates: `conformance/corpus/template/` holds the cases and `common/template-manifest.json` and `common/template-capabilities.json` their support documents. Nothing in a 0.2.x install changes, and a 0.2.x validator does not know the format.
+
+```ts
+import { validateTemplate } from "@arnilo/liveframe/template";
+const checked = validateTemplate(doc, { catalog, capabilities, manifest }); // Result<Template>
+```
+
+1. Install templates only after `validateTemplate` passes; it is the only place a template is checked against the manifest.
+2. Rendering templates and packaging them arrive with later changes; this one adds the format and its validation.
+
+See [formats](formats.md#template-widgets) and [the spec](spec.md#76-template-widgets).

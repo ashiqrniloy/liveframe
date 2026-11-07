@@ -82,7 +82,7 @@ const charge = (f: Frame, p: string, units: number) => {
 };
 
 type Checks = ReturnType<typeof documentChecks>;
-type Typed = { readonly type: ExprType; readonly run: Fn };
+export type Typed = { readonly type: ExprType; readonly run: Fn };
 
 const BAD: Typed = {
   type: DYNAMIC,
@@ -202,7 +202,7 @@ const STR = typeOf({ type: "string", maxLength: MAX_STRING });
 const isInteger = (t: ExprType) =>
   lang(t) !== undefined && plain(lang(t) as LanguageSchema, (p) => p.type === "integer");
 const arrayOf = (items: LanguageSchema, maxItems: number) => typeOf({ type: "array", items, maxItems });
-const itemsOf = (t: ExprType): LanguageSchema | undefined => {
+export const itemsOf = (t: ExprType): LanguageSchema | undefined => {
   const s = lang(t);
   return s && plain(s, (p) => p.type === "array") ? (s as Extract<Plain, { type: "array" }>).items : undefined;
 };
@@ -711,12 +711,13 @@ const SPECIAL: Readonly<Record<string, Special>> = {
     };
   },
 
-  $ref(raw, _scope, base, _depth, c) {
+  $ref(raw, scope, base, _depth, c) {
     const p = at(base, "$ref");
     if (typeof raw !== "string" || raw === "" || raw.length > 128) {
       c.reject(p, "Expected an anchor name", "invalid-document", "a non-empty anchor name");
       return BAD;
     }
+    scope.budget.refs.push({ anchor: raw, pointer: p });
     const value = Object.freeze({ $ref: raw });
     const type = typeOf({
       type: "object",
@@ -987,6 +988,14 @@ function constant(value: Json, p: string): Typed {
   };
 }
 
+/**
+ * Analyses the expression of an element field, such as a `$if` test or an `$each` source, as an
+ * operand of `kind`: the same checks an operator applies to its operands.
+ */
+export function analyzeOperand(expr: unknown, kind: "bool" | "arr", scope: Scope, pointer: string, c: Checks): Typed {
+  return operand(expr, kind, scope, pointer, 1, c);
+}
+
 /** Checks and compiles one expression in `scope`, reporting into `c` (shared by `validateTemplate`). */
 export function analyzeExpression(expr: unknown, scope: Scope, pointer: string, c: Checks, depth = 1): Typed {
   return analyze(expr, scope, pointer, depth, c);
@@ -1003,12 +1012,14 @@ function analyze(expr: unknown, scope: Scope, base: string, depth: number, c: Ch
     return BAD;
   }
   if (++scope.budget.nodes > EXPR_LIMITS.nodes) {
-    c.reject(
-      base,
-      `Expected at most ${EXPR_LIMITS.nodes} expression nodes`,
-      "limit-exceeded",
-      `at most ${EXPR_LIMITS.nodes} nodes`,
-    );
+    // Reported where the bound is crossed; the nodes after it only repeat the news.
+    if (scope.budget.nodes === EXPR_LIMITS.nodes + 1)
+      c.reject(
+        base,
+        `Expected at most ${EXPR_LIMITS.nodes} expression nodes`,
+        "limit-exceeded",
+        `at most ${EXPR_LIMITS.nodes} nodes`,
+      );
     return BAD;
   }
   if (expr === null || typeof expr === "string" || typeof expr === "boolean") return constant(expr, base);

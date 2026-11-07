@@ -470,6 +470,30 @@ catalogs: `liveframe gen <catalog> --elements-schema --out <file>` writes JSON
 Schema 2020-12 with `$id: "urn:liveframe:elements:1"`. See
 [the SDK guide](sdk.md#ephemeral-surfaces-from-agent-json).
 
+## Template widgets
+
+A template widget is element JSON whose values may be expressions, so it binds to
+`params`, `state`, `data` and `context` without any code to run. It is the
+format `liveframe-template/1` (`schemas/template.json`, `$id`
+`urn:liveframe:template:1`), checked by `validateTemplate` from
+`@arnilo/liveframe/template`:
+
+```ts
+import { validateTemplate } from "@arnilo/liveframe/template";
+
+const result = validateTemplate(doc, { catalog, capabilities, manifest }); // Result<Template>
+```
+
+`catalog`, `capabilities` and `manifest` are validated documents, as for
+`validateManifest`. The schema checks structure only; everything else is
+`validateTemplate`: bounds, the component graph, every `$path` against the
+manifest's schemas, and every binding into a prop, a `setState` value, an action
+argument or a component param. Errors carry pointers into the template.
+See [the spec](spec.md#76-template-widgets) for the language and its rules.
+
+Corpus cases are under `conformance/corpus/template/`, run with the support
+documents `common/template-manifest.json` and `common/template-capabilities.json`.
+
 ## Validation
 
 Compile once when the host loads a catalog, its capabilities and a widget's

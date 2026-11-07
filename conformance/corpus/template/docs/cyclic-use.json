@@ -1,0 +1,45 @@
+{
+  "format": "liveframe-template/1",
+  "components": {
+    "A": {
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "root": {
+        "kind": "stack",
+        "children": [
+          {
+            "$use": "B"
+          }
+        ]
+      }
+    },
+    "B": {
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "root": {
+        "kind": "stack",
+        "children": [
+          {
+            "$use": "A"
+          }
+        ]
+      }
+    }
+  },
+  "root": {
+    "kind": "stack",
+    "children": [
+      {
+        "$use": "A"
+      }
+    ]
+  }
+}

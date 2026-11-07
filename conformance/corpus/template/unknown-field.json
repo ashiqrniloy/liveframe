@@ -1,0 +1,18 @@
+{
+  "inputs": {
+    "doc": "docs/unknown-field.json",
+    "catalog": "../common/proof-catalog.json",
+    "capabilities": "../common/template-capabilities.json",
+    "manifest": "../common/template-manifest.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "invalid-document",
+        "pointer": "/extra"
+      }
+    ]
+  }
+}

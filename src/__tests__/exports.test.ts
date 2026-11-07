@@ -38,6 +38,7 @@ import type { JSX } from "@arnilo/liveframe/sdk/jsx-runtime";
 import * as runtime from "@arnilo/liveframe/sdk/jsx-runtime";
 import * as store from "@arnilo/liveframe/store";
 import * as fileStore from "@arnilo/liveframe/store/fs";
+import * as template from "@arnilo/liveframe/template";
 import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
 import catalog from "./fixtures/proof/catalog.json" with { type: "json" };
@@ -386,6 +387,7 @@ test("authoring_export_surface", () => {
 
 test("runner_kit_export_surface", () => {
   expect(Object.keys(runnerKit).sort()).toEqual(["linkPackage", "renderModule"]);
+  expect(Object.keys(template).sort()).toEqual(["checkExpression", "evaluate", "validateTemplate"]);
 });
 
 test("tree_patch_types_and_schema_are_public", () => {

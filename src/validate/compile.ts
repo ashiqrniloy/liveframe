@@ -1,5 +1,5 @@
 import { LiveframeFailure } from "../errors.ts";
-import { at, type Capabilities, isRecord, validateCapabilities } from "../formats/capabilities.ts";
+import { at, type Capabilities, isRecord, type ObjectSchema, validateCapabilities } from "../formats/capabilities.ts";
 import { type Catalog, type Definition, validateCatalog } from "../formats/catalog.ts";
 import { sameJson } from "../formats/json.ts";
 import { type Manifest, validateManifest } from "../formats/manifest.ts";
@@ -27,6 +27,36 @@ export type KindFacts = {
   readonly children: ChildRules | undefined;
   readonly refProps: ReadonlySet<string> | undefined;
 };
+/** @internal The per-kind facts `render()` and template validation read from a catalog definition. */
+export function kindFacts(definition: Definition, structure: CompiledStructure): KindFacts {
+  return {
+    variants: new Set(definition.variants),
+    refProps: definition.refProps?.length ? new Set(definition.refProps) : undefined,
+    styleProps: new Set(definition.styleProps),
+    events: new Set(Object.keys(definition.events)),
+    children: structure.children.get(definition.kind),
+  };
+}
+
+/** @internal Which node field a prop goes to: `on…` names are events even when the kind declares none. */
+export function propTarget(definition: KindFacts, name: string): "variant" | "events" | "style" | "props" {
+  if (name === "variant") return "variant";
+  if (definition.events.has(name) || /^on[A-Z]/.test(name)) return "events";
+  return definition.styleProps.has(name) ? "style" : "props";
+}
+
+/** @internal The `data` input's schema: one required property per manifest source, shaped by its result. */
+export function dataSchema(manifest: Manifest, capabilities: Capabilities): ObjectSchema {
+  const properties: Record<string, LanguageSchema> = {};
+  for (const [alias, declared] of Object.entries(manifest.sources)) {
+    const source = Object.hasOwn(capabilities.sources, declared.source)
+      ? capabilities.sources[declared.source]
+      : undefined;
+    if (source) properties[alias] = source.result;
+  }
+  return { type: "object", properties, required: Object.keys(properties), additionalProperties: false };
+}
+
 /** @internal Not part of the published surface; `render()` reads it from the validator. */
 export type CompiledBuild = {
   readonly catalogId: string;
@@ -245,7 +275,7 @@ function compileCatalog(catalogDoc: unknown, capabilitiesDoc: unknown): CatalogW
   const structure = compileStructure(catalog);
   const kinds = new Map<string, CatalogKind>();
   for (const definition of catalog.definitions) {
-    const variants = new Set(definition.variants);
+    const facts = kindFacts(definition, structure);
     const allowedStyles = new Map(definition.styleProps.map((prop) => [prop, styles.get(prop)]));
     const styleExpected = `a declared style prop: ${definition.styleProps.join(", ") || "none"}`;
     const style: SchemaCheck = (value, path, sink) => {
@@ -263,17 +293,11 @@ function compileCatalog(catalogDoc: unknown, capabilitiesDoc: unknown): CatalogW
     kinds.set(definition.kind, {
       props: compileSchema(definition.props),
       style,
-      variants,
+      variants: facts.variants,
       variantExpected: `one of: ${definition.variants.join(", ")}`,
       events: definition.events,
       eventExpected: `a declared event: ${Object.keys(definition.events).join(", ") || "none"}`,
-      facts: {
-        variants,
-        refProps: definition.refProps?.length ? new Set(definition.refProps) : undefined,
-        styleProps: new Set(definition.styleProps),
-        events: new Set(Object.keys(definition.events)),
-        children: structure.children.get(definition.kind),
-      },
+      facts,
     });
   }
   const offered = new Map(
@@ -323,12 +347,6 @@ function compile(work: CatalogWork, manifest: Manifest): CompiledValidator {
     if (!valid) rebaseErrors(sink, start, path, node);
     return valid;
   };
-  const dataProperties: Record<string, LanguageSchema> = {};
-  for (const key of Object.keys(manifest.sources)) {
-    const declared = manifest.sources[key];
-    const source = declared ? work.capabilities.sources[declared.source] : undefined;
-    if (source) dataProperties[key] = source.result;
-  }
   const validator: CompiledValidator = {
     checkNode,
     validateTree: compileTree(catalog, checkNode, work.structure),
@@ -354,12 +372,7 @@ function compile(work: CatalogWork, manifest: Manifest): CompiledValidator {
       params: compileSchema(manifest.params),
       state: compileSchema(manifest.state),
       context: compileSchema(manifest.context),
-      data: compileSchema({
-        type: "object",
-        properties: dataProperties,
-        required: Object.keys(dataProperties),
-        additionalProperties: false,
-      }),
+      data: compileSchema(dataSchema(manifest, work.capabilities)),
     },
   });
   return validator;
