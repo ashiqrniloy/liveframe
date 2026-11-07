@@ -19,6 +19,7 @@ import { createPreview } from "../preview/session.ts";
 import outcomesConfig from "./fixtures/mcp-outcomes.config.ts";
 import mcpTexts from "./fixtures/mcp-texts.json" with { type: "json" };
 import catalog from "./fixtures/proof/catalog.json" with { type: "json" };
+import { agentHomeTemplate } from "./fixtures/templates/agent-home.ts";
 import capabilities from "./fixtures/widgets/capabilities.json" with { type: "json" };
 import { drafts } from "./fixtures/widgets/drafts.ts";
 
@@ -404,7 +405,7 @@ test("generated_types_rejects_unknown_module", async () => {
         expect.objectContaining({
           kind: "invalid-document",
           pointer: "/module",
-          expected: '"types", "implementations", "elementsSchema"',
+          expected: '"types", "implementations", "elementsSchema", "templateSchema"',
         }),
       ]);
     }
@@ -705,7 +706,7 @@ test("pack_draft_schema_embeds_the_published_schemas", async () => {
   };
   // The handler validates the nested documents, so the argument object stays permissive and documented.
   expect(schema.required ?? []).toEqual([]);
-  expect(Object.keys(schema.properties).sort()).toEqual(["dir", "entry", "files", "manifest", "scenarios"]);
+  expect(Object.keys(schema.properties).sort()).toEqual(["dir", "entry", "files", "manifest", "scenarios", "template"]);
   for (const shape of Object.values(schema.properties)) expect(Object.keys(shape)).toEqual(["description"]);
   // The published shapes stay visible to an agent reading `tools/list`.
   expect(schema.$defs.scenario).toEqual(packageDoc.$defs.scenario);
@@ -1261,3 +1262,105 @@ test("mcp_capture_layout_over_bound_is_limit_exceeded", async () => {
     { config: `${fixtures}/mcp-capture.config.ts`, env: { LF_HUGE_LAYOUT: "1" } },
   );
 }, 30000);
+
+test("generated_template_schema_matches_cli_bytes", async () => {
+  const dir = await temp();
+  try {
+    await withClient(async (client) => {
+      const out = join(dir, "template.schema.json");
+      const proc = Bun.spawnSync([
+        "bun",
+        "src/cli/liveframe.ts",
+        "gen",
+        `${fixtures}/proof/catalog.json`,
+        "--template-schema",
+        "--capabilities",
+        `${fixtures}/widgets/capabilities.json`,
+        "--out",
+        out,
+      ]);
+      expect(proc.exitCode).toBe(0);
+      const result = await call(client, "generated_types", { module: "templateSchema" });
+      expect(result.isError).toBe(false);
+      expect(result.json()).toEqual({
+        note: expect.stringContaining("template.schema.json"),
+        types: await Bun.file(out).text(),
+      });
+      // A draft manifest narrows the schema; one that does not validate is an error rooted at /manifest.
+      const narrowed = await call(client, "generated_types", { module: "templateSchema", manifest: agentManifest });
+      expect(narrowed.isError).toBe(false);
+      expect((narrowed.json() as { types: string }).types).toContain('"state.filter"');
+      const bad = await call(client, "generated_types", { module: "templateSchema", manifest: { id: "Bad Id" } });
+      expect(bad.isError).toBe(true);
+      expect(bad.json()).toContainEqual(expect.objectContaining({ pointer: expect.stringMatching(/^\/manifest/) }));
+    });
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}, 30000);
+
+const templateDraft = { template: agentHomeTemplate, manifest: agentManifest, scenarios: drafts[0]!.scenarios };
+
+test("mcp_pack_draft_template_inline", async () => {
+  const library = createPreview({ catalog: proofCatalog, capabilities: proofCapabilities, runner: inProcessRunner() });
+  const packed = valid(library.update(templateDraft));
+  await withClient(async (client) => {
+    const result = await call(client, "pack_draft", templateDraft);
+    expect(result.isError).toBe(false);
+    expect(result.json()).toMatchObject({ hash: packed.hash, id: packed.manifest.id });
+    // The packed template renders, and the tree equals the library's own.
+    const scenario = drafts[0]!.scenarios[0]!.name;
+    const rendered = await call(client, "render_scenarios", { scenario });
+    expect(rendered.isError).toBe(false);
+    expect(rendered.json()).toMatchObject({ format: "liveframe/1", catalogId: proofCatalog.catalogId });
+    // Errors point into the template document, and a failed pack keeps the previous draft current.
+    const broken = JSON.parse(JSON.stringify(agentHomeTemplate).replace('"state.filter"', '"state.nope"'));
+    const failed = await call(client, "pack_draft", { ...templateDraft, template: broken });
+    expect(failed.isError).toBe(true);
+    expect(failed.json()).toContainEqual(
+      expect.objectContaining({ kind: "unknown-name", pointer: expect.stringMatching(/^\/template\/root\//) }),
+    );
+    expect((await call(client, "render_scenarios", { scenario })).isError).toBe(false);
+    // A draft is code or a template, never both.
+    const both = await call(client, "pack_draft", { ...templateDraft, files: { "a.ts": "" }, entry: "a.ts" });
+    expect(both.isError).toBe(true);
+    expect(both.json()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ pointer: "/files" }),
+        expect.objectContaining({ pointer: "/entry" }),
+      ]),
+    );
+  });
+}, 60000);
+
+test("mcp_pack_draft_template_directory", async () => {
+  const root = await temp();
+  try {
+    await Bun.write(join(root, "widget", "template.json"), JSON.stringify(agentHomeTemplate));
+    await Bun.write(join(root, "widget", "manifest.json"), JSON.stringify(agentManifest));
+    await Bun.write(join(root, "widget", "scenarios.json"), JSON.stringify(drafts[0]!.scenarios));
+    await withClient(
+      async (client) => {
+        const inline = await call(client, "pack_draft", templateDraft);
+        const directory = await call(client, "pack_draft", { dir: "widget" });
+        expect(directory.isError).toBe(false);
+        expect(directory.json()).toEqual(inline.json());
+        // Source files or an entry beside template.json are ambiguous.
+        const withEntry = await call(client, "pack_draft", { dir: "widget", entry: "entry.tsx" });
+        expect(withEntry.isError).toBe(true);
+        expect(withEntry.json()).toEqual([expect.objectContaining({ kind: "invalid-document", pointer: "/dir" })]);
+        await Bun.write(join(root, "widget", "helper.ts"), "export {};");
+        const withSource = await call(client, "pack_draft", { dir: "widget" });
+        expect(withSource.isError).toBe(true);
+        const combined = await call(client, "pack_draft", { dir: "widget", template: {} });
+        expect(combined.json()).toEqual([expect.objectContaining({ pointer: "/dir" })]);
+      },
+      {
+        config: `${fixtures}/mcp-draft-root.config.ts`,
+        env: { LIVEFRAME_TEST_DRAFT_ROOT: relative(process.cwd(), root) },
+      },
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+}, 60000);

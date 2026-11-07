@@ -168,7 +168,11 @@ test("generated_types_default_unchanged", async () => {
       expect(await a.generatedTypes({ module } as never)).toMatchObject({
         ok: false,
         errors: [
-          { kind: "invalid-document", pointer: "/module", expected: '"types", "implementations", "elementsSchema"' },
+          {
+            kind: "invalid-document",
+            pointer: "/module",
+            expected: '"types", "implementations", "elementsSchema", "templateSchema"',
+          },
         ],
       });
   } finally {

@@ -1,0 +1,133 @@
+[
+  {
+    "name": "first-page",
+    "params": {
+      "pageSize": 5
+    },
+    "context": {},
+    "data": {
+      "tasks": [
+        {
+          "id": "t1",
+          "title": "Review the release notes"
+        },
+        {
+          "id": "t2",
+          "title": "Reply to the design thread"
+        },
+        {
+          "id": "t3",
+          "title": "Triage new issues"
+        },
+        {
+          "id": "t4",
+          "title": "Update the roadmap"
+        },
+        {
+          "id": "t5",
+          "title": "Pair on the importer"
+        },
+        {
+          "id": "t6",
+          "title": "Write the migration guide"
+        },
+        {
+          "id": "t7",
+          "title": "Check the nightly build"
+        },
+        {
+          "id": "t8",
+          "title": "Rotate the API keys"
+        },
+        {
+          "id": "t9",
+          "title": "Plan the next sprint"
+        },
+        {
+          "id": "t10",
+          "title": "Archive old placements"
+        },
+        {
+          "id": "t11",
+          "title": "Tidy the backlog"
+        },
+        {
+          "id": "t12",
+          "title": "Sync with support"
+        }
+      ]
+    }
+  },
+  {
+    "name": "last-page",
+    "params": {
+      "pageSize": 5
+    },
+    "state": {
+      "page": 2
+    },
+    "context": {},
+    "data": {
+      "tasks": [
+        {
+          "id": "t1",
+          "title": "Review the release notes"
+        },
+        {
+          "id": "t2",
+          "title": "Reply to the design thread"
+        },
+        {
+          "id": "t3",
+          "title": "Triage new issues"
+        },
+        {
+          "id": "t4",
+          "title": "Update the roadmap"
+        },
+        {
+          "id": "t5",
+          "title": "Pair on the importer"
+        },
+        {
+          "id": "t6",
+          "title": "Write the migration guide"
+        },
+        {
+          "id": "t7",
+          "title": "Check the nightly build"
+        },
+        {
+          "id": "t8",
+          "title": "Rotate the API keys"
+        },
+        {
+          "id": "t9",
+          "title": "Plan the next sprint"
+        },
+        {
+          "id": "t10",
+          "title": "Archive old placements"
+        },
+        {
+          "id": "t11",
+          "title": "Tidy the backlog"
+        },
+        {
+          "id": "t12",
+          "title": "Sync with support"
+        }
+      ]
+    }
+  },
+  {
+    "name": "empty",
+    "params": {
+      "pageSize": 5
+    },
+    "context": {},
+    "data": {
+      "tasks": []
+    }
+  }
+]

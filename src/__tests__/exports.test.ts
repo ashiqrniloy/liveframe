@@ -214,7 +214,12 @@ test("sdk_export_surface", () => {
 });
 
 test("exports_list_sdk_gen", () => {
-  expect(Object.keys(sdkGen).sort()).toEqual(["generate", "generateDefinitions", "generateElementsSchema"]);
+  expect(Object.keys(sdkGen).sort()).toEqual([
+    "generate",
+    "generateDefinitions",
+    "generateElementsSchema",
+    "generateTemplateSchema",
+  ]);
 });
 
 test("sdk_public_types", () => {

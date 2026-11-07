@@ -146,8 +146,8 @@ and omit `structuredContent`.
 | `list_primitives` | `{ kinds? }` | Every definition in full, or the named kinds |
 | `list_vocabulary` | — | `{ catalogId, vocabulary }`: the id a manifest must name, then colours, surfaces, typography, tones and the `space`/`radius`/`size`/`bp` names |
 | `list_capabilities` | — | Each source's params and result schema and each action's args schema (capability `meta` only with `exposeMeta`) |
-| `generated_types` | `{ module? }` | `{ note, types }`: byte-identical `liveframe gen` output for `"types"` (default), `"implementations"` (`--implementations`) or `"elementsSchema"` (`--elements-schema`) |
-| `pack_draft` | `{ files, entry, manifest, scenarios }` or `{ dir, entry? }` | `{ hash, id, version, description?, scenarios }` (plus `meta` with `exposeMeta`) |
+| `generated_types` | `{ module?, manifest? }` | `{ note, types }`: byte-identical `liveframe gen` output for `"types"` (default), `"implementations"` (`--implementations`), `"elementsSchema"` (`--elements-schema`) or `"templateSchema"` (`--template-schema`; `manifest` adds the draft's own paths, state keys and actions) |
+| `pack_draft` | `{ files, entry, manifest, scenarios }`, `{ template, manifest, scenarios }` or `{ dir, entry? }` | `{ hash, id, version, description?, scenarios }` (plus `meta` with `exposeMeta`) |
 | `render_scenarios` | `{ scenario?, state?, context?, outcomes? }` | One scenario's tree (at most 256 KiB), or scenario statuses and each distinct error once; `outcomes: true` expands source outcomes and always returns statuses |
 | `set_state` | `{ origin: { nodeId, event }, value? }` | Applies an offered state event and returns its new tree (at most 256 KiB); refuses actions |
 | `capture_preview` | `{ scenarios?, widths?, themes?, designSystems?, layout?, media? }` | Each cell's coordinates, errors, accessibility snapshot and PNG, plus its box layout with `layout: true` and its media point with `media`; default 12 cells, configurable up to 48 |
@@ -183,9 +183,9 @@ revisions or screenshot bytes. `set_state` is conservative because rendering may
 change the offered event.
 
 `generated_types` keeps the generated content in `types` for every module; its
-`note` names the file to save (`ui.gen.ts`, `ui.definitions.gen.ts` or
-`elements.schema.json`). Omitting `module` preserves the original response.
-An unknown selector returns `invalid-document` at `/module`, with all three
+`note` names the file to save (`ui.gen.ts`, `ui.definitions.gen.ts`,
+`elements.schema.json` or `template.schema.json`). Omitting `module` preserves the original response.
+An unknown selector returns `invalid-document` at `/module`, with all four
 accepted values in `expected`. In-process callers use
 `authoring.generatedTypes({ module: "implementations" })`, or omit the argument
 for the typed components.
@@ -237,7 +237,10 @@ not a sandbox against a local process replacing files concurrently. Do not point
 a directory other users or services can write to. `/authoring` continues to accept
 inline drafts only.
 
-`pack_draft` takes the same inline input as `session.update()`. A failed pack returns
+`pack_draft` takes the same inline input as `session.update()`: source files and an
+`entry`, or a [template widget](templates.md) (`template`, which is data and never
+executed). A `dir` that holds `template.json` is a template draft and takes no source
+files or `entry`. Errors inside a template are rooted at `/template`. A failed pack returns
 the errors and keeps the previous package, so the agent can fix a draft without
 losing the page it was looking at.
 
@@ -384,7 +387,8 @@ the handler and comes back as these errors instead of the MCP layer's bare
 string. The cost is that `tools/list` does not machine-validate a draft's
 nested fields; read `$defs` for the shapes. Each required `pack_draft` property
 says "Required" in its description. Missing keys return `invalid-document` at
-`/files`, `/entry`, `/manifest` or `/scenarios`, with every missing key reported.
+`/files`, `/entry`, `/manifest` or `/scenarios`, with every missing key reported; `files`
+or `entry` beside `template` is `invalid-document` at that key.
 Omitted arguments behave as an empty object. Non-object `arguments` (null,
 arrays, strings or numbers) are protocol errors rejected before the handler.
 

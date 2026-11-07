@@ -1,6 +1,38 @@
 {
   "format": "liveframe-capabilities/1",
-  "sources": {},
+  "sources": {
+    "demo.tasks": {
+      "description": "The host's task list.",
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "title": {
+              "type": "string",
+              "maxLength": 80
+            }
+          },
+          "required": [
+            "id",
+            "title"
+          ],
+          "additionalProperties": false
+        },
+        "maxItems": 50
+      }
+    }
+  },
   "actions": {
     "demo.notify": {
       "description": "Log a message in the host's action log.",

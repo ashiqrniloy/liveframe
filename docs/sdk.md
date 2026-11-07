@@ -187,7 +187,9 @@ bunx liveframe gen catalog.json --elements-schema --out elements.schema.json
 same bytes. The schema uses JSON Schema 2020-12, has the id
 `urn:liveframe:elements:1`, and is drift-checked like the other generated files.
 `/authoring` exposes no tool for this path; wire `renderElements()` into your own
-agent tool.
+agent tool. A *template widget* (data-bound, installable, no sandbox) has its own
+per-catalog schema, `liveframe gen catalog.json --template-schema`; see
+[template widgets](templates.md#a-json-schema-for-the-model).
 
 ## Intents and author constraints
 
@@ -289,7 +291,7 @@ because the prop's schema rejects the value first.
 `action`, `ref`, `render`, `renderElements` and `ephemeralManifest`. Its type exports are
 `Component`, `Element`, `Elements`, `DeepReadonly`, `Intent`, `Json`, `WidgetProps`,
 `RenderLimits` and `RenderOptions`. `/sdk/gen` exports `generate`,
-`generateDefinitions` and `generateElementsSchema`. `/sdk/jsx-runtime` exports
+`generateDefinitions`, `generateElementsSchema` and `generateTemplateSchema`. `/sdk/jsx-runtime` exports
 `jsx`, `jsxs`, `Fragment` and the `JSX` type namespace; `/sdk/jsx-dev-runtime`
 exports `jsxDEV`, `Fragment` and that namespace. Element branding helpers are
 internal.

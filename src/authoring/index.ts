@@ -2,7 +2,7 @@ import { type LiveframeError, LiveframeFailure, type Result } from "../errors.ts
 import { type Capabilities, isRecord } from "../formats/capabilities.ts";
 import type { Catalog, Definition } from "../formats/catalog.ts";
 import { validateJson } from "../formats/json.ts";
-import { validateManifestShape } from "../formats/manifest.ts";
+import { validateManifest, validateManifestShape } from "../formats/manifest.ts";
 import { type Scenario, validateScenario, type WidgetPackage } from "../formats/package.ts";
 import type { Json, UiTree } from "../formats/tree.ts";
 import { errorMessage, pointerSegment, queue, utf8Length } from "../internal.ts";
@@ -22,7 +22,7 @@ import type { Runner } from "../preview/runner.ts";
 import { createPreview } from "../preview/session.ts";
 import { compiledValidator } from "../runner-kit/cache.ts";
 import { isLanguageSchema, sourceOutcome } from "../schema.ts";
-import { generate, generateDefinitions, generateElementsSchema } from "../sdk/gen.ts";
+import { generate, generateDefinitions, generateElementsSchema, generateTemplateSchema } from "../sdk/gen.ts";
 import type { RenderLimits } from "../sdk/render.ts";
 import { complete } from "../validate/complete.ts";
 import { findNode } from "../validate/patch.ts";
@@ -112,14 +112,19 @@ function setStateArguments(input: unknown): Result<SetStateInput> {
   return { ok: true, value: input as SetStateInput };
 }
 
-/** `pack_draft`'s arguments, checked before the packer so its error set is the whole answer. */
-function packArguments(input: unknown): Result<PackInput> {
-  if (!isRecord(input))
-    return { ok: false, errors: [at("", "Expected an object with files, entry, manifest and scenarios")] };
-  const { files, entry, manifest, scenarios } = input;
+/** What a draft carries besides its manifest and scenarios: source files and an entry, or one template. */
+function draftBodyErrors(input: Record<string, unknown>): LiveframeError[] {
+  const { files, entry } = input;
   const errors: LiveframeError[] = [];
+  if (Object.hasOwn(input, "template")) {
+    // A template draft is data: the packer validates the document, so only the exclusive choice is checked here.
+    for (const field of ["files", "entry"])
+      if (Object.hasOwn(input, field))
+        errors.push(at(`/${field}`, "A template draft has no source files: drop it or drop template"));
+    return errors;
+  }
   if (!isRecord(files) || Object.keys(files).length === 0)
-    errors.push(at("/files", "Expected a non-empty object of source files"));
+    errors.push(at("/files", "Expected a non-empty object of source files, or a template"));
   else
     for (const [path, source] of Object.entries(files))
       if (typeof source !== "string") errors.push(at(`/files/${pointerSegment(path)}`, "Expected a source string"));
@@ -127,6 +132,23 @@ function packArguments(input: unknown): Result<PackInput> {
     errors.push(at("/entry", "Expected the entry file path", "one of the keys of files"));
   else if (!isRecord(files) || !Object.hasOwn(files, entry))
     errors.push(at("/entry", `No file is named "${entry}"`, "one of the keys of files"));
+  return errors;
+}
+
+/** `pack_draft`'s arguments, checked before the packer so its error set is the whole answer. */
+function packArguments(input: unknown): Result<PackInput> {
+  if (!isRecord(input))
+    return {
+      ok: false,
+      errors: [
+        at(
+          "",
+          "Expected an object with files, entry, manifest and scenarios, or with template, manifest and scenarios",
+        ),
+      ],
+    };
+  const { manifest, scenarios } = input;
+  const errors = draftBodyErrors(input);
   const shaped = validateManifestShape(manifest);
   if (!shaped.ok) errors.push(...rooted("/manifest", shaped.errors));
   if (!Array.isArray(scenarios) || scenarios.length === 0 || scenarios.length > 64)
@@ -432,7 +454,22 @@ export function createAuthoring(options: AuthoringOptions) {
     async listCapabilities() {
       return success(exposeMeta ? capabilities : withoutMeta(capabilities));
     },
-    async generatedTypes({ module = "types" }: { module?: "types" | "implementations" | "elementsSchema" } = {}) {
+    async generatedTypes({
+      module = "types",
+      manifest,
+    }: {
+      module?: "types" | "implementations" | "elementsSchema" | "templateSchema";
+      manifest?: unknown;
+    } = {}) {
+      if (module === "templateSchema") {
+        // A draft manifest narrows the schema to the widget's own paths, state keys and actions.
+        const checked = manifest === undefined ? undefined : validateManifest(manifest, { catalog, capabilities });
+        if (checked && !checked.ok) return { ok: false as const, errors: rooted("/manifest", checked.errors) };
+        return success({
+          note: "Save this as template.schema.json to validate agent-authored templates.",
+          types: generateTemplateSchema(catalog, { capabilities, ...(checked ? { manifest: checked.value } : {}) }),
+        });
+      }
       if (module === "implementations")
         return success({
           note: 'Save this as ui.definitions.gen.ts and import from "./ui.definitions.gen".',
@@ -446,7 +483,9 @@ export function createAuthoring(options: AuthoringOptions) {
       if (module !== "types")
         return {
           ok: false as const,
-          errors: [at("/module", "Unknown generated module", '"types", "implementations", "elementsSchema"')],
+          errors: [
+            at("/module", "Unknown generated module", '"types", "implementations", "elementsSchema", "templateSchema"'),
+          ],
         };
       return success({
         note: 'Save this as ui.gen.ts beside the widget and import from "./ui.gen".',

@@ -148,13 +148,17 @@ function registerCatalogTools(sdk: Sdk, server: Server, authoring: Authoring): v
       outputSchema: sdk.fromJsonSchema(outputSchemas.generated_types),
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       description:
-        "A generated catalog module, byte-identical to `liveframe gen` output: types (default), implementations or elementsSchema. The result's note names the file to save.",
+        "A generated catalog module, byte-identical to `liveframe gen` output: types (default), implementations, elementsSchema or templateSchema (a JSON Schema for template drafts, from this server's capabilities; pass `manifest` to enumerate the widget's own paths, state keys and actions). The result's note names the file to save.",
       inputSchema: sdk.fromJsonSchema<Parameters<Authoring["generatedTypes"]>[0]>({
         type: "object",
         properties: {
           module: {
             description:
-              'Optional module: "types" (default, ui.gen.ts), "implementations" (--implementations, ui.definitions.gen.ts) or "elementsSchema" (--elements-schema, elements.schema.json).',
+              'Optional module: "types" (default, ui.gen.ts), "implementations" (--implementations, ui.definitions.gen.ts), "elementsSchema" (--elements-schema, elements.schema.json) or "templateSchema" (--template-schema, template.schema.json).',
+          },
+          manifest: {
+            description:
+              'Optional, with module "templateSchema" only: a draft manifest. The schema then lists the `$path`s it can read and the state keys and actions it can use.',
           },
         },
       }),
@@ -307,15 +311,19 @@ const packSchema = {
   properties: {
     dir: {
       description:
-        "Optional directory beneath config.draftRoot. Reads top-level .ts/.tsx, manifest.json and scenarios.json; entry defaults to entry.tsx. Cannot combine with files, manifest or scenarios.",
+        "Optional directory beneath config.draftRoot. Reads top-level .ts/.tsx, manifest.json and scenarios.json; entry defaults to entry.tsx. A directory holding template.json is a template draft: it reads template.json, manifest.json and scenarios.json and takes no source files or entry. Cannot combine with files, template, manifest or scenarios.",
+    },
+    template: {
+      description:
+        'Alternative to files and entry: a template widget document (format "liveframe-template/1"), data only and never executed. Generate its schema with generated_types({ module: "templateSchema" }).',
     },
     files: {
       description:
-        'Required for inline drafts. Source files by path: a non-empty object of file path to module source. See "$defs".',
+        'Required for inline code drafts. Source files by path: a non-empty object of file path to module source. See "$defs".',
     },
     entry: {
       description:
-        "Required for inline drafts; defaults to entry.tsx with dir. The entry file path: one of `files`' keys.",
+        "Required for inline code drafts; defaults to entry.tsx with dir. The entry file path: one of `files`' keys.",
     },
     manifest: {
       description:
@@ -357,7 +365,7 @@ function registerDraftTools(sdk: Sdk, server: Server, authoring: Authoring): voi
       outputSchema: sdk.fromJsonSchema(outputSchemas.pack_draft),
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       description:
-        "Packs a draft — inline files, entry, manifest and scenarios, or dir beneath config.draftRoot with optional entry — through the same packer production uses, and returns its hash plus manifest id, version, description and scenario names. A failed pack returns its LiveframeErrors and keeps the previous draft current.",
+        "Packs a draft — inline files, entry, manifest and scenarios; a template, manifest and scenarios; or dir beneath config.draftRoot with optional entry — through the same packer production uses, and returns its hash plus manifest id, version, description and scenario names. A failed pack returns its LiveframeErrors and keeps the previous draft current.",
       inputSchema: sdk.fromJsonSchema<PackInput>(schema(packSchema)),
     },
     async (input) => mapped(await authoring.packDraft(input)),

@@ -19,7 +19,9 @@ for: one worker serves every package, so a hostile draft can still answer a
 later render with a tree that is valid for it. For hostile drafts, plug your
 isolated runner into `createPreview`, and use that same runner in production.
 `templateRunner()` renders template widgets only: it loads no code, so it needs no isolation (see
-[packages](packages.md#template-packages)).
+[packages](packages.md#template-packages)). A session takes a [template draft](templates.md),
+`update({ template, manifest, scenarios })`, wherever it takes a code draft; the page, capture and
+intent log do not change, since they only see trees.
 
 ## Run a session on the backend
 

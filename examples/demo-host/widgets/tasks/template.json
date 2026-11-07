@@ -1,0 +1,226 @@
+{
+  "format": "liveframe-template/1",
+  "root": {
+    "kind": "stack",
+    "props": {
+      "label": "Tasks"
+    },
+    "style": {
+      "gap": "space.3",
+      "padding": "space.4"
+    },
+    "$let": [
+      {
+        "as": "total",
+        "value": {
+          "$len": {
+            "$path": "data.tasks"
+          }
+        }
+      },
+      {
+        "as": "start",
+        "value": {
+          "$mul": [
+            {
+              "$path": "state.page"
+            },
+            {
+              "$path": "params.pageSize"
+            }
+          ]
+        }
+      },
+      {
+        "as": "end",
+        "value": {
+          "$add": [
+            {
+              "$path": "start"
+            },
+            {
+              "$path": "params.pageSize"
+            }
+          ]
+        }
+      },
+      {
+        "as": "last",
+        "value": {
+          "$cond": [
+            {
+              "$lt": [
+                {
+                  "$path": "end"
+                },
+                {
+                  "$path": "total"
+                }
+              ]
+            },
+            {
+              "$path": "end"
+            },
+            {
+              "$path": "total"
+            }
+          ]
+        }
+      }
+    ],
+    "children": [
+      {
+        "kind": "heading",
+        "props": {
+          "text": "Tasks",
+          "level": 2
+        }
+      },
+      {
+        "$each": {
+          "in": {
+            "$slice": [
+              {
+                "$path": "data.tasks"
+              },
+              {
+                "$path": "start"
+              },
+              {
+                "$path": "end"
+              }
+            ]
+          },
+          "as": "task",
+          "key": {
+            "$path": "task.id"
+          }
+        },
+        "kind": "text",
+        "props": {
+          "text": {
+            "$path": "task.title"
+          }
+        }
+      },
+      {
+        "kind": "hint",
+        "key": "range",
+        "$if": {
+          "$gt": [
+            {
+              "$path": "total"
+            },
+            0
+          ]
+        },
+        "props": {
+          "text": {
+            "$concat": [
+              "Showing ",
+              {
+                "$text": {
+                  "$add": [
+                    {
+                      "$path": "start"
+                    },
+                    1
+                  ]
+                }
+              },
+              " to ",
+              {
+                "$text": {
+                  "$path": "last"
+                }
+              },
+              " of ",
+              {
+                "$text": {
+                  "$path": "total"
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "kind": "hint",
+        "key": "none",
+        "$if": {
+          "$eq": [
+            {
+              "$path": "total"
+            },
+            0
+          ]
+        },
+        "props": {
+          "text": "No tasks"
+        }
+      },
+      {
+        "kind": "button",
+        "key": "previous",
+        "variant": "ghost",
+        "$if": {
+          "$gt": [
+            {
+              "$path": "state.page"
+            },
+            0
+          ]
+        },
+        "props": {
+          "label": "Previous"
+        },
+        "events": {
+          "onPress": {
+            "type": "setState",
+            "key": "page",
+            "value": {
+              "$sub": [
+                {
+                  "$path": "state.page"
+                },
+                1
+              ]
+            }
+          }
+        }
+      },
+      {
+        "kind": "button",
+        "key": "next",
+        "variant": "primary",
+        "$if": {
+          "$gt": [
+            {
+              "$path": "total"
+            },
+            {
+              "$path": "end"
+            }
+          ]
+        },
+        "props": {
+          "label": "Next"
+        },
+        "events": {
+          "onPress": {
+            "type": "setState",
+            "key": "page",
+            "value": {
+              "$add": [
+                {
+                  "$path": "state.page"
+                },
+                1
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+}

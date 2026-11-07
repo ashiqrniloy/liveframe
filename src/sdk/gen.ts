@@ -1,5 +1,7 @@
+import type { Capabilities } from "../formats/capabilities.ts";
 import type { Catalog } from "../formats/catalog.ts";
 import type { styleProps } from "../formats/fixed.ts";
+import type { Manifest } from "../formats/manifest.ts";
 import type { LanguageSchema } from "../schema.ts";
 import { type UrlRule, urlExpected, urlPattern } from "../url.ts";
 
@@ -428,4 +430,446 @@ export function generateElementsSchema(catalog: Catalog): string {
     $defs: { json: intents.json, intent: intents.intent, element },
   };
   return `${JSON.stringify(document, null, 2)}\n`;
+}
+
+// ---- Template schema (plan 028 Task 6) ------------------------------------------------------------
+
+/** What `generateTemplateSchema` narrows by. Everything is optional; each document adds precision. */
+export type TemplateSchemaOptions = {
+  /** Enumerates the `$path`s the widget can read, the state keys it can set and the actions it can request. */
+  readonly manifest?: Manifest;
+  /** Types action arguments and, with no manifest, lists every declared action. */
+  readonly capabilities?: Capabilities;
+  /** Drop the constraint keywords structured-output APIs reject (see `structuredSubset`). */
+  readonly structuredSubset?: boolean;
+};
+
+const ref = (name: string) => ({ $ref: `#/$defs/${name}` });
+const expr = ref("expr");
+const exprList = (min: number, max?: number) => ({
+  type: "array",
+  items: expr,
+  minItems: min,
+  ...(max === undefined ? {} : { maxItems: max }),
+});
+const bindingName = { type: "string", maxLength: 32, pattern: "^[a-z][A-Za-z0-9]{0,31}$" };
+const binder = (body: "where" | "value") => ({
+  type: "object",
+  additionalProperties: false,
+  required: ["in", "as", body],
+  properties: { in: expr, as: bindingName, index: bindingName, [body]: expr },
+});
+
+/** Operand shape of each operator, in the order of the design's table (evidence/028-template-design.md T7). */
+function operatorOperands(path: Record<string, unknown>): Record<string, unknown> {
+  return {
+    $path: path,
+    $lit: ref("json"),
+    $ref: { type: "string", maxLength: 128 },
+    $omit: { type: "null" },
+    $has: expr,
+    $eq: exprList(2, 2),
+    $ne: exprList(2, 2),
+    $lt: exprList(2, 2),
+    $lte: exprList(2, 2),
+    $gt: exprList(2, 2),
+    $gte: exprList(2, 2),
+    $and: exprList(2),
+    $or: exprList(2),
+    $not: expr,
+    $cond: exprList(3, 3),
+    $coalesce: exprList(2),
+    $len: expr,
+    $concat: exprList(2),
+    $join: exprList(2, 2),
+    $text: expr,
+    $contains: exprList(2, 2),
+    $split: exprList(2, 2),
+    $slice: exprList(2, 3),
+    $add: exprList(2),
+    $mul: exprList(2),
+    $sub: exprList(2, 2),
+    $div: exprList(2, 2),
+    $round: exprList(1, 2),
+    $sum: expr,
+    $filter: binder("where"),
+    $map: binder("value"),
+    $findIndex: binder("where"),
+    $flat: expr,
+    $at: exprList(2, 2),
+    $get: exprList(2, 2),
+    $merge: exprList(2),
+    $fromEntries: expr,
+    $let: {
+      type: "object",
+      additionalProperties: false,
+      required: ["bind", "in"],
+      properties: {
+        bind: {
+          type: "array",
+          minItems: 1,
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["as", "value"],
+            properties: { as: bindingName, value: expr },
+          },
+        },
+        in: expr,
+      },
+    },
+  };
+}
+
+const PATH_ROOTS = ["params", "state", "context", "data"] as const;
+const MAX_PATHS = 1000;
+const PATH_SEGMENT = /^[A-Za-z0-9]+$/;
+
+/** Every dotted path into a schema that stops at arrays, in document order. */
+function collectPaths(prefix: string, schema: LanguageSchema, depth: number, out: Set<string>): void {
+  out.add(prefix);
+  if (depth === 0 || out.size > MAX_PATHS) return;
+  const members =
+    "discriminator" in schema
+      ? [[schema.discriminator, undefined] as const, ...Object.values(schema.mapping).flatMap(propertiesOf)]
+      : schema.type === "object"
+        ? propertiesOf(schema)
+        : [];
+  for (const [name, child] of members)
+    if (PATH_SEGMENT.test(name)) {
+      if (child) collectPaths(`${prefix}.${name}`, child, depth - 1, out);
+      else out.add(`${prefix}.${name}`);
+    }
+}
+const propertiesOf = (schema: Extract<LanguageSchema, { readonly type: "object" }>) =>
+  Object.entries(schema.properties);
+
+/** The `$path`s a widget with this manifest can read, or undefined when there are too many to list. */
+function knownPaths(manifest: Manifest, capabilities: Capabilities | undefined): string[] | undefined {
+  const out = new Set<string>();
+  const data: Record<string, LanguageSchema> = {};
+  for (const [alias, declared] of Object.entries(manifest.sources)) {
+    const result = capabilities?.sources[declared.source]?.result;
+    if (result) data[alias] = result;
+  }
+  const roots: Record<(typeof PATH_ROOTS)[number], LanguageSchema> = {
+    params: manifest.params,
+    state: manifest.state,
+    context: manifest.context,
+    data: { type: "object", properties: data, required: Object.keys(data), additionalProperties: false },
+  };
+  for (const root of PATH_ROOTS) collectPaths(root, roots[root], 6, out);
+  return out.size > MAX_PATHS ? undefined : [...out];
+}
+
+/** A `$path` is one of the widget's own inputs, or a bound name (`row.id`) that no root shadows. */
+function pathOperand(paths: string[] | undefined): Record<string, unknown> {
+  if (!paths) return { type: "string", maxLength: 256 };
+  return {
+    anyOf: [
+      { enum: paths },
+      {
+        type: "string",
+        maxLength: 256,
+        pattern: "^(?!(?:params|state|data|context|actions)(?:\\.|$))[a-z][A-Za-z0-9]*(?:\\.[A-Za-z0-9]+)*$",
+      },
+    ],
+  };
+}
+
+/** `setState` and `action` intents whose `value` and `args` members are expressions. */
+function templateIntent(manifest: Manifest | undefined, capabilities: Capabilities | undefined) {
+  const stateKeys = manifest ? Object.keys(manifest.state.properties) : undefined;
+  const actionNames = manifest ? manifest.actions : capabilities ? Object.keys(capabilities.actions) : undefined;
+  const branches: Record<string, unknown>[] = [];
+  if (!stateKeys || stateKeys.length)
+    branches.push({
+      type: "object",
+      additionalProperties: false,
+      required: ["type", "key"],
+      properties: {
+        type: { const: "setState" },
+        key: stateKeys ? { enum: stateKeys } : { type: "string", maxLength: 128 },
+        value: expr,
+      },
+    });
+  const bind = { bind: { type: "string", maxLength: 128 }, bindAll: { const: true } };
+  const action = (name: string | undefined) => {
+    const capability =
+      name !== undefined && capabilities && Object.hasOwn(capabilities.actions, name)
+        ? capabilities.actions[name]
+        : undefined;
+    return {
+      type: "object",
+      additionalProperties: false,
+      required: ["type", "name", "args"],
+      properties: {
+        type: { const: "action" },
+        name: name === undefined ? { type: "string", maxLength: 128 } : { const: name },
+        args: capability
+          ? {
+              type: "object",
+              additionalProperties: false,
+              properties: Object.fromEntries(Object.keys(capability.args.properties).map((key) => [key, expr])),
+            }
+          : { type: "object", additionalProperties: expr },
+        ...bind,
+      },
+    };
+  };
+  if (actionNames) for (const name of actionNames) branches.push(action(name));
+  else branches.push(action(undefined));
+  // A widget with no state keys and no actions can offer no intent: the schema that accepts nothing.
+  return branches.length ? { anyOf: branches } : false;
+}
+
+/** The language-schema meta-form a component's `params` is written in; closed forms only. */
+const paramsSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["type", "properties", "required", "additionalProperties"],
+  properties: {
+    type: { const: "object" },
+    properties: { type: "object", additionalProperties: ref("schemaNode") },
+    required: { type: "array", items: { type: "string" } },
+    additionalProperties: { const: false },
+  },
+};
+const schemaNode = {
+  anyOf: [
+    {
+      type: "object",
+      additionalProperties: false,
+      required: ["type", "maxLength"],
+      properties: {
+        type: { const: "string" },
+        maxLength: { type: "integer" },
+        minLength: { type: "integer" },
+        enum: { type: "array", items: { type: "string" } },
+      },
+    },
+    ...["number", "integer"].map((type) => ({
+      type: "object",
+      additionalProperties: false,
+      required: ["type"],
+      properties: { type: { const: type }, minimum: { type: "number" }, maximum: { type: "number" } },
+    })),
+    { type: "object", additionalProperties: false, required: ["type"], properties: { type: { const: "boolean" } } },
+    {
+      type: "object",
+      additionalProperties: false,
+      required: ["type", "items", "maxItems"],
+      properties: { type: { const: "array" }, items: ref("schemaNode"), maxItems: { type: "integer" } },
+    },
+    ref("paramsSchema"),
+  ],
+};
+
+/** A node of one catalog kind: typed props, closed style and event names, and the directives. */
+function templateKind(
+  definition: Catalog["definitions"][number],
+  styleRef: (names: readonly string[]) => Record<string, unknown>,
+): Record<string, unknown> {
+  const prop = (name: string, schema: LanguageSchema) =>
+    definition.refProps?.includes(name)
+      ? ref("nodeRef")
+      : !("discriminator" in schema) && ["string", "number", "integer", "boolean"].includes(schema.type)
+        ? { anyOf: [jsonSchema(schema), ref("operator")] }
+        : expr;
+  const props = {
+    type: "object",
+    additionalProperties: false,
+    properties: Object.fromEntries(
+      Object.entries(definition.props.properties).map(([name, schema]) => [name, prop(name, schema)]),
+    ),
+    ...(definition.props.required.length ? { required: [...definition.props.required] } : {}),
+  };
+  return {
+    type: "object",
+    description: definition.description,
+    additionalProperties: false,
+    required: definition.props.required.length ? ["kind", "props"] : ["kind"],
+    properties: {
+      kind: { const: definition.kind },
+      key: expr,
+      ...(definition.variants.length ? { variant: { enum: [...definition.variants] } } : {}),
+      $anchor: { type: "string", maxLength: 128 },
+      props,
+      style: styleRef(definition.styleProps),
+      events: {
+        type: "object",
+        additionalProperties: false,
+        properties: Object.fromEntries(Object.keys(definition.events).map((name) => [name, ref("intent")])),
+      },
+      ...(definition.children === "none" ? {} : { children: { type: "array", items: ref("node") } }),
+      ...directives,
+    },
+  };
+}
+const directives = { $let: ref("let"), $if: expr, $each: ref("each") };
+
+/** Keywords some structured-output APIs reject (checked against OpenAI and Claude docs, plan 028 Task 6). */
+const SUBSET_DROPPED = new Set([
+  "minLength",
+  "maxLength",
+  "pattern",
+  "format",
+  "minimum",
+  "maximum",
+  "multipleOf",
+  "minItems",
+  "maxItems",
+  "uniqueItems",
+  "minProperties",
+  "maxProperties",
+  "patternProperties",
+  "propertyNames",
+  "allOf",
+  "not",
+]);
+
+/** The reduced form: constraint keywords removed and `oneOf` read as `anyOf`; the shape is unchanged. */
+function structuredSubset(schema: unknown): unknown {
+  if (!schema || typeof schema !== "object" || Array.isArray(schema)) return schema;
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(schema)) {
+    if (SUBSET_DROPPED.has(key)) continue;
+    const target = key === "oneOf" ? "anyOf" : key;
+    if (key === "properties" || key === "$defs")
+      out[target] = Object.fromEntries(
+        Object.entries(value as object).map(([name, child]) => [name, structuredSubset(child)]),
+      );
+    else if (key === "anyOf" || key === "oneOf") out[target] = (value as unknown[]).map(structuredSubset);
+    else if (key === "items" || key === "additionalProperties") out[target] = structuredSubset(value);
+    else out[target] = value;
+  }
+  return out;
+}
+
+/**
+ * Deterministic agent-facing JSON Schema for template documents over one catalog. Kinds, variants,
+ * props, style names and event names come from the catalog; a manifest adds the readable `$path`s,
+ * state keys and actions; capabilities type action arguments. The install validator stays the
+ * authority: this schema guides generation and cannot express scope, types or bounds.
+ */
+export function generateTemplateSchema(catalog: Catalog, options: TemplateSchemaOptions = {}): string {
+  const { manifest, capabilities } = options;
+  const operands = operatorOperands(pathOperand(manifest ? knownPaths(manifest, capabilities) : undefined));
+  const operator = {
+    anyOf: Object.entries(operands).map(([name, operand]) => ({
+      type: "object",
+      additionalProperties: false,
+      required: [name],
+      properties: { [name]: operand },
+    })),
+  };
+  const intents = intentSchemas();
+  // Kinds that accept the same style names share one definition.
+  const styles = new Map<string, Record<string, unknown>>();
+  const sharedStyles: Record<string, unknown> = {};
+  const styleRef = (names: readonly string[]) => {
+    const id = `style${styles.size}`;
+    const known = styles.get(names.join(","));
+    if (known) return known;
+    const reference = ref(id);
+    styles.set(names.join(","), reference);
+    sharedStyles[id] = {
+      type: "object",
+      additionalProperties: false,
+      properties: Object.fromEntries(names.map((name) => [name, expr])),
+    };
+    return reference;
+  };
+  const node = {
+    anyOf: [
+      {
+        type: "object",
+        description: "A keyed group with no node of its own.",
+        additionalProperties: false,
+        required: ["kind", "children"],
+        properties: {
+          kind: { const: "fragment" },
+          key: expr,
+          children: { type: "array", items: ref("node") },
+          ...directives,
+        },
+      },
+      {
+        type: "object",
+        description: "Expands a component in place; the component's params receive `with`.",
+        additionalProperties: false,
+        required: ["$use"],
+        properties: {
+          $use: { type: "string", maxLength: 64, pattern: "^[A-Z][A-Za-z0-9]{0,63}$" },
+          with: { type: "object", additionalProperties: expr },
+          key: expr,
+          ...directives,
+        },
+      },
+      ...catalog.definitions.map((definition) => templateKind(definition, styleRef)),
+    ],
+  };
+  const document = {
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    $id: "urn:liveframe:template-schema:1",
+    title: `Liveframe template for ${catalog.catalogId}`,
+    type: "object",
+    additionalProperties: false,
+    required: ["format", "root"],
+    properties: {
+      format: { const: "liveframe-template/1" },
+      components: { type: "object", additionalProperties: ref("component") },
+      root: ref("node"),
+    },
+    $defs: {
+      json: intents.json,
+      expr: {
+        anyOf: [
+          { type: "string" },
+          { type: "number" },
+          { type: "boolean" },
+          { type: "null" },
+          { type: "array", items: expr },
+          ref("operator"),
+          // An object constructor: no `$` key, so a misspelt operator is not one.
+          { type: "object", propertyNames: { pattern: "^[^$]" }, additionalProperties: expr },
+        ],
+      },
+      operator,
+      nodeRef: {
+        type: "object",
+        additionalProperties: false,
+        required: ["$ref"],
+        properties: { $ref: { type: "string", maxLength: 128 } },
+      },
+      let: {
+        type: "array",
+        minItems: 1,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["as", "value"],
+          properties: { as: bindingName, value: expr },
+        },
+      },
+      each: {
+        type: "object",
+        additionalProperties: false,
+        required: ["in", "as", "key"],
+        properties: { in: expr, as: bindingName, index: bindingName, key: expr },
+      },
+      intent: templateIntent(manifest, capabilities),
+      component: {
+        type: "object",
+        additionalProperties: false,
+        required: ["params", "root"],
+        properties: { params: ref("paramsSchema"), root: ref("node") },
+      },
+      paramsSchema,
+      schemaNode,
+      ...sharedStyles,
+      node,
+    },
+  };
+  return `${JSON.stringify(options.structuredSubset ? structuredSubset(document) : document, null, 2)}\n`;
 }

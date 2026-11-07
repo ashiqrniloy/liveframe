@@ -1,10 +1,10 @@
 import {
-  checkOffered,
-  compileValidator,
   type CompiledValidator,
+  checkOffered,
+  checkValue,
+  compileValidator,
   type Intent,
   type IntentOrigin,
-  checkValue,
   type Json,
   LiveframeFailure,
   type Manifest,
@@ -51,6 +51,30 @@ const operations: Record<string, (args: Record<string, Json>) => void> = {
   "demo.notify": ({ message }) => console.log(`demo.notify: ${String(message)}`),
 };
 
+/** The data this host offers behind `capabilities.json`. A widget only asks for it by name; the host resolves it. */
+const tasks: Json = [
+  { id: "t1", title: "Review the release notes" },
+  { id: "t2", title: "Reply to the design thread" },
+  { id: "t3", title: "Triage new issues" },
+  { id: "t4", title: "Update the roadmap" },
+  { id: "t5", title: "Pair on the importer" },
+  { id: "t6", title: "Write the migration guide" },
+  { id: "t7", title: "Check the nightly build" },
+  { id: "t8", title: "Rotate the API keys" },
+  { id: "t9", title: "Plan the next sprint" },
+  { id: "t10", title: "Archive old placements" },
+  { id: "t11", title: "Tidy the backlog" },
+  { id: "t12", title: "Sync with support" },
+];
+const sources: Record<string, () => Json> = { "demo.tasks": () => tasks };
+
+/** The `data` input of a widget: each source its manifest declares, resolved by the host. */
+function resolveData(manifest: Manifest): Record<string, Json> {
+  return Object.fromEntries(
+    Object.entries(manifest.sources).map(([alias, { source }]) => [alias, (sources[source] ?? (() => null))()]),
+  );
+}
+
 const error = (message: string, status: number) => Response.json({ error: message }, { status });
 const isRecord = (value: unknown): value is Record<string, Json> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -89,7 +113,7 @@ export async function startHost({ dataDir = dataDirectory, port = 3300 }: { data
     revisions.set(id, revision);
     const tree = await runner.render(
       pkg,
-      { params, state, context: {}, data: {} },
+      { params, state, context: {}, data: resolveData(pkg.manifest) },
       { ...documents, surfaceId: id, revision, timeoutMs },
     );
     if (!tree.ok) return { ok: false as const, errors: tree.errors };

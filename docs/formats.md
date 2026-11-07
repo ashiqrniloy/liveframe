@@ -468,7 +468,9 @@ as `render()`, and reports errors with pointers into the JSON. A
 The per-catalog schema for this input is generated, not published for all
 catalogs: `liveframe gen <catalog> --elements-schema --out <file>` writes JSON
 Schema 2020-12 with `$id: "urn:liveframe:elements:1"`. See
-[the SDK guide](sdk.md#ephemeral-surfaces-from-agent-json).
+[the SDK guide](sdk.md#ephemeral-surfaces-from-agent-json). Template widgets have a
+per-catalog schema too, `--template-schema` (`urn:liveframe:template-schema:1`); see
+[the template guide](templates.md#a-json-schema-for-the-model).
 
 ## Template widgets
 

@@ -28,6 +28,20 @@ const validDirectory = (dir: unknown): dir is string =>
   !dir.split(/[\\/]/).includes("..") &&
   !dir.includes("\0");
 
+/** Which files a directory's draft reads: a template's `template.json`, or the sources of a code draft. */
+function draftFiles(names: string[], input: Record<string, unknown>): Result<{ files: string[]; template: boolean }> {
+  const sources = names.filter((name) => /\.tsx?$/.test(name));
+  // A directory holding template.json is a template draft: data only, no entry and no source files.
+  const template = names.includes("template.json");
+  if (template && (sources.length > 0 || Object.hasOwn(input, "entry")))
+    return failure("invalid-document", "A template draft has template.json and no source files or entry");
+  if (sources.length > 128) return failure("limit-exceeded", "Draft exceeds 128 source files");
+  const { entry = "entry.tsx" } = input;
+  if (!template && (typeof entry !== "string" || !sources.includes(entry)))
+    return failure("not-found", "Draft entry file is missing");
+  return { ok: true, value: { files: template ? ["template.json"] : sources, template } };
+}
+
 /** Read only data beneath the host's opt-in root; the packer still validates the documents. */
 export async function readDraftDirectory(
   root: string | undefined,
@@ -37,23 +51,20 @@ export async function readDraftDirectory(
   const { dir, entry = "entry.tsx" } = input;
   if (!validDirectory(dir))
     return failure("invalid-document", "dir must be a non-empty relative path without .. segments");
-  if (["files", "manifest", "scenarios"].some((key) => Object.hasOwn(input, key)))
-    return failure("invalid-document", "dir cannot be combined with files, manifest or scenarios");
+  if (["files", "template", "manifest", "scenarios"].some((key) => Object.hasOwn(input, key)))
+    return failure("invalid-document", "dir cannot be combined with files, template, manifest or scenarios");
   /** The file being read, or undefined while the directory itself is. Errors name it relative to `draftRoot`. */
   let target: string | undefined;
   try {
     const directory = await realpath(join(root, dir));
     if (!contained(root, directory)) return failure("invalid-document", "Draft directory escapes draftRoot");
     if (!(await lstat(directory)).isDirectory()) return failure("invalid-document", "Expected a draft directory");
-    const sources = (await readdir(directory, { withFileTypes: true }))
-      .map(({ name }) => name)
-      .filter((name) => /\.tsx?$/.test(name));
-    if (sources.length > 128) return failure("limit-exceeded", "Draft exceeds 128 source files");
-    if (typeof entry !== "string" || !sources.includes(entry))
-      return failure("not-found", "Draft entry file is missing");
+    const names = (await readdir(directory, { withFileTypes: true })).map(({ name }) => name);
+    const chosen = draftFiles(names, input);
+    if (!chosen.ok) return chosen;
     const selected: { name: string; path: string }[] = [];
     let size = 0;
-    for (const name of [...sources, "manifest.json", "scenarios.json"]) {
+    for (const name of [...chosen.value.files, "manifest.json", "scenarios.json"]) {
       target = name;
       const path = await realpath(join(directory, name));
       if (!contained(root, path)) return failure("invalid-document", `Draft file ${name} escapes draftRoot`);
@@ -76,12 +87,20 @@ export async function readDraftDirectory(
       contents[name] = new TextDecoder().decode(bytes);
     }
     // Sources end in .ts or .tsx, so the rest is exactly the source files, in read order.
-    const { "manifest.json": manifestText, "scenarios.json": scenariosText, ...files } = contents;
+    const {
+      "manifest.json": manifestText,
+      "scenarios.json": scenariosText,
+      "template.json": templateText,
+      ...files
+    } = contents;
     if (manifestText === undefined || scenariosText === undefined)
       return failure("not-found", "Draft manifest.json or scenarios.json is missing");
     const manifest: unknown = JSON.parse(manifestText);
     const scenarios: unknown = JSON.parse(scenariosText);
-    return { ok: true, value: { files, entry, manifest, scenarios } };
+    if (templateText !== undefined)
+      return { ok: true, value: { template: JSON.parse(templateText), manifest, scenarios } };
+    // `entry` was checked above for every draft that is not a template.
+    return { ok: true, value: { files, entry: entry as string, manifest, scenarios } };
   } catch (error) {
     if (error instanceof SyntaxError) return failure("invalid-document", "Draft contains malformed JSON");
     return readFailure(error, dir, target);

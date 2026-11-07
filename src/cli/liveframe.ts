@@ -1,7 +1,9 @@
 #!/usr/bin/env bun
-import { validateCatalog } from "../formats/catalog.ts";
+import { validateCapabilities } from "../formats/capabilities.ts";
+import { type Catalog, validateCatalog } from "../formats/catalog.ts";
+import { validateManifest } from "../formats/manifest.ts";
 import { errorMessage } from "../internal.ts";
-import { generate, generateDefinitions, generateElementsSchema } from "../sdk/gen.ts";
+import { generate, generateDefinitions, generateElementsSchema, generateTemplateSchema } from "../sdk/gen.ts";
 import { CaptureError } from "./capture.ts";
 
 const captureUsage =
@@ -104,40 +106,99 @@ async function mcpCommand(args: string[]): Promise<number> {
   }
 }
 
-const genUsage = "Usage: liveframe gen <catalog.json> --out <file> [--check] [--implementations | --elements-schema]";
+const genUsage =
+  "Usage: liveframe gen <catalog.json> --out <file> [--check] [--implementations | --elements-schema | --template-schema [--manifest <file>] [--capabilities <file>] [--structured-subset]]";
+
+const genBooleans = ["--check", "--implementations", "--elements-schema", "--template-schema", "--structured-subset"];
+const genValued = ["--out", "--manifest", "--capabilities"];
 
 function genFlags(flags: string[]) {
-  let out: string | undefined;
-  let check = false;
-  let implementations = false;
-  let elements = false;
+  const given = new Set<string>();
+  const values = new Map<string, string>();
   for (let i = 0; i < flags.length; i++) {
-    if (flags[i] === "--out" && !out && flags[i + 1] && !flags[i + 1]?.startsWith("--")) out = flags[++i];
-    else if (flags[i] === "--check" && !check) check = true;
-    else if (flags[i] === "--implementations" && !implementations) implementations = true;
-    else if (flags[i] === "--elements-schema" && !elements) elements = true;
+    const flag = flags[i] ?? "";
+    const next = flags[i + 1];
+    if (genBooleans.includes(flag) && !given.has(flag)) given.add(flag);
+    else if (genValued.includes(flag) && !values.has(flag) && next && !next.startsWith("--"))
+      values.set(flag, flags[++i] as string);
     else throw new Error(genUsage);
   }
-  if (implementations && elements) throw new Error(genUsage);
-  return { out, check, implementations, elements };
+  const implementations = given.has("--implementations");
+  const elements = given.has("--elements-schema");
+  const template = given.has("--template-schema");
+  if (Number(implementations) + Number(elements) + Number(template) > 1) throw new Error(genUsage);
+  const subset = given.has("--structured-subset");
+  const manifest = values.get("--manifest");
+  const capabilities = values.get("--capabilities");
+  if (!template && (subset || manifest || capabilities)) throw new Error(genUsage);
+  return {
+    out: values.get("--out"),
+    check: given.has("--check"),
+    implementations,
+    elements,
+    template,
+    subset,
+    manifest,
+    capabilities,
+  };
+}
+
+/** `--template-schema`: the per-catalog template schema, narrowed by the optional manifest and capabilities. */
+async function templateSchema(
+  catalog: Catalog,
+  flags: { subset: boolean; manifest: string | undefined; capabilities: string | undefined },
+): Promise<{ ok: true; text: string } | { ok: false; errors: readonly unknown[] }> {
+  let capabilities: ReturnType<typeof validateCapabilities> | undefined;
+  if (flags.capabilities) {
+    capabilities = validateCapabilities(await Bun.file(flags.capabilities).json());
+    if (!capabilities.ok) return capabilities;
+  }
+  let manifest: ReturnType<typeof validateManifest> | undefined;
+  if (flags.manifest) {
+    // A manifest is checked against its capabilities, so naming one without the other cannot be validated.
+    if (!capabilities?.ok) throw new Error("--manifest needs --capabilities");
+    manifest = validateManifest(await Bun.file(flags.manifest).json(), {
+      catalog,
+      capabilities: capabilities.value,
+    });
+    if (!manifest.ok) return manifest;
+  }
+  return {
+    ok: true,
+    text: generateTemplateSchema(catalog, {
+      ...(manifest?.ok ? { manifest: manifest.value } : {}),
+      ...(capabilities?.ok ? { capabilities: capabilities.value } : {}),
+      structuredSubset: flags.subset,
+    }),
+  };
 }
 
 async function main(args: string[]): Promise<number> {
   if (args[0] === "mcp") return mcpCommand(args.slice(1));
   if (args[0] === "preview" && args[1] === "capture") return previewCapture(args.slice(2));
   const [command, catalogPath, ...flags] = args;
-  const { out, check, implementations, elements } = genFlags(flags);
+  const gen = genFlags(flags);
+  const { out, check, implementations, elements } = gen;
   if (command !== "gen" || !catalogPath || !out) throw new Error(genUsage);
   const catalog = validateCatalog(await Bun.file(catalogPath).json());
   if (!catalog.ok) {
     console.error(JSON.stringify(catalog.errors, null, 2));
     return 2;
   }
-  const expected = elements
-    ? generateElementsSchema(catalog.value)
-    : implementations
-      ? generateDefinitions(catalog.value)
-      : generate(catalog.value);
+  let expected: string;
+  if (gen.template) {
+    const schema = await templateSchema(catalog.value, gen);
+    if (!schema.ok) {
+      console.error(JSON.stringify(schema.errors, null, 2));
+      return 2;
+    }
+    expected = schema.text;
+  } else
+    expected = elements
+      ? generateElementsSchema(catalog.value)
+      : implementations
+        ? generateDefinitions(catalog.value)
+        : generate(catalog.value);
   if (check) {
     const file = Bun.file(out);
     if (!(await file.exists())) {

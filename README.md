@@ -164,7 +164,7 @@ if (patch.ok) {
 |---|---|
 | `@arnilo/liveframe` | Definition, catalog, theme, design-system, UI-tree and tree-patch formats; `validateTreePatch`, `diffTrees` and `applyPatch`; the validator; the recipe resolver; `LiveframeFailure` and `LiveframeError` |
 | `@arnilo/liveframe/sdk` | The JSX runtime (`/sdk/jsx-runtime`, `/sdk/jsx-dev-runtime`), intent helpers and `render()` |
-| `@arnilo/liveframe/sdk/gen` | The host-side emitters behind `liveframe gen`: `generate()`, `generateDefinitions()` and `generateElementsSchema()` |
+| `@arnilo/liveframe/sdk/gen` | The host-side emitters behind `liveframe gen`: `generate()`, `generateDefinitions()`, `generateElementsSchema()` and `generateTemplateSchema()` |
 | `@arnilo/liveframe/react` | The renderer: `createRenderer()`, `<Surface>` and `implement()` |
 | `@arnilo/liveframe/css` | The scoped CSS projection and the class, style, scope and variable helpers; the host inserts sheets |
 | `@arnilo/liveframe/pack` | Package and scenario formats, structural validators, `pack()`, `verifyPackage()`, `canonicalJson()` and `packageHash()` |
@@ -206,6 +206,7 @@ The client starts the server itself. The [MCP guide](docs/mcp.md) covers the eig
 - [Writing widgets](docs/sdk.md) — the TSX SDK, intent helpers and `liveframe gen`
 - [The renderer](docs/renderer.md) — primitives, implementations, `<Surface>` and intent handling
 - [Styling](docs/styling.md) — recipes, the three sheets and scoped CSS
+- [Template widgets](docs/templates.md) — data-bound widgets as JSON, installable without a sandbox
 - [Packages, stores and runners](docs/packages.md) — `pack()`, `fileStore`, `inProcessRunner`, `workerRunner`
 - [Preview and capture](docs/preview.md) — preview sessions, `<Preview>` and `liveframe preview capture`
 - [Conformance](docs/conformance.md) — the test kit for an app's catalog, styling, renderer and store

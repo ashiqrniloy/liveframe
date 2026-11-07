@@ -1612,5 +1612,29 @@
     "reason": "`limits` also accepts `steps`, the evaluation fuel of a template widget",
     "hostAction": "Optional: pass `limits.steps` to bound a template widget's evaluation; existing calls are unchanged",
     "task": "028 T5"
+  },
+  {
+    "subpath": "./authoring",
+    "name": "createAuthoring",
+    "change": "widened",
+    "reason": "Template widgets in preview and authoring: a draft may be `{ template, manifest, scenarios }`, `pack_draft({ dir })` reads `template.json`, and `generatedTypes` accepts `module: \"templateSchema\"` with an optional draft `manifest`",
+    "hostAction": "Optional: send template drafts to createAuthoring().packDraft and the MCP pack_draft; existing calls are unchanged",
+    "task": "028 T6"
+  },
+  {
+    "subpath": "./sdk/gen",
+    "name": "generateTemplateSchema",
+    "change": "added",
+    "reason": "Template widgets: a per-catalog JSON Schema for template documents, narrowed by an optional manifest and capabilities",
+    "hostAction": "Optional: generate the template schema with generateTemplateSchema or liveframe gen --template-schema; existing calls are unchanged",
+    "task": "028 T6"
+  },
+  {
+    "subpath": "./sdk/gen",
+    "name": "TemplateSchemaOptions",
+    "change": "added",
+    "reason": "Template widgets: a per-catalog JSON Schema for template documents, narrowed by an optional manifest and capabilities",
+    "hostAction": "Optional: generate the template schema with generateTemplateSchema or liveframe gen --template-schema; existing calls are unchanged",
+    "task": "028 T6"
   }
 ]

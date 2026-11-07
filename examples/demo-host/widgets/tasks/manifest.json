@@ -1,0 +1,50 @@
+{
+  "format": "liveframe-manifest/1",
+  "id": "tasks",
+  "version": "1.0.0",
+  "catalogId": "demo.ui@1",
+  "params": {
+    "type": "object",
+    "properties": {
+      "pageSize": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10
+      }
+    },
+    "required": [
+      "pageSize"
+    ],
+    "additionalProperties": false
+  },
+  "state": {
+    "type": "object",
+    "properties": {
+      "page": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 1000
+      }
+    },
+    "required": [
+      "page"
+    ],
+    "additionalProperties": false
+  },
+  "context": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+  },
+  "initialState": {
+    "page": 0
+  },
+  "sources": {
+    "tasks": {
+      "source": "demo.tasks",
+      "params": {}
+    }
+  },
+  "actions": []
+}

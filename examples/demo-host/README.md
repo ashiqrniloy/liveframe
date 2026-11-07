@@ -28,6 +28,17 @@ curl -X PUT http://127.0.0.1:3300/placements/hello -H 'content-type: application
 Open <http://127.0.0.1:3300/?placement=hello>. Press the buttons, then stop and restart the server:
 the widget and its state are still there. Records live in `.data/` through `fileStore`.
 
+A **template widget** installs the same way, with no code and no sandbox. `widgets/tasks/` is a
+`template.json` that reads the host's `demo.tasks` source and pages through it with `state`:
+
+```sh
+bun install-widget.ts widgets/tasks
+curl -X PUT http://127.0.0.1:3300/placements/tasks -H 'content-type: application/json' \
+  -d '{"slot":"home.main","widget":{"id":"tasks","version":"1.0.0"},"params":{"pageSize":5}}'
+```
+
+Open <http://127.0.0.1:3300/?placement=tasks>. See [template widgets](../../docs/templates.md).
+
 ## What it does
 
 | Route | Does |
@@ -67,6 +78,8 @@ Chromium.
   portal before it mounts, so a dialog that arrives already open is modal and dismissable.
 - `widgets/hello/`: a widget with a composed `ui.gen.ts` (made by `liveframe gen`), a manifest and two
   scenarios, one with its dialog open.
+- `widgets/tasks/`: a template widget (`template.json`, a manifest and three scenarios). The host resolves its
+  `demo.tasks` source in `server.ts` (`resolveData`), as it would any data a widget asks for by name.
 - `preview.ts`, `preview.html`, `preview-client.tsx`: the preview routes (shared with `mcp.config.ts`) and page.
 - `conformance-host.ts`, `conformance-client.tsx`: the page options and the page entry that calls
   `conformancePage`. Browser fixtures live in `tests/conformance-fixtures.ts`.

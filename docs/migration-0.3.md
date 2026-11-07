@@ -261,3 +261,19 @@ else load(pkg.code as string);
 
 See [packages](packages.md#template-packages) and [the security model](security.md).
 
+### Template authoring and the template schema
+
+A template widget can be previewed and authored like a TSX widget. `createPreview().update`, `createAuthoring().packDraft` and the MCP `pack_draft` accept `{ template, manifest, scenarios }`; `pack_draft({ dir })` reads a directory holding `template.json`; and `generated_types({ module: "templateSchema", manifest? })` returns a per-catalog JSON Schema an LLM can target. `generateTemplateSchema(catalog, { manifest?, capabilities?, structuredSubset? })` in `/sdk/gen` and `liveframe gen --template-schema` emit the same bytes.
+Optional: send template drafts to createAuthoring().packDraft and the MCP pack_draft; existing calls are unchanged.
+Optional: generate the template schema with generateTemplateSchema or liveframe gen --template-schema; existing calls are unchanged.
+
+```sh
+liveframe gen catalog.json --template-schema --capabilities capabilities.json --manifest manifest.json --out template.schema.json
+```
+
+1. A draft is code (`files` and `entry`) or a template (`template`), never both: `files` or `entry` beside `template` is `invalid-document` at that key.
+2. A draft directory is a template draft when it holds `template.json`; it takes no source files and no `entry`.
+3. The schema guides generation; `validateTemplate` stays the authority.
+
+See [template widgets](templates.md) and [the agent guide](mcp.md).
+
