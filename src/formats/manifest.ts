@@ -35,14 +35,17 @@ const fields = obj(
     sources: bool(),
     actions: arr(capabilityName, { maxItems: 512 }),
   },
-  { description: str({ maxLength: 500 }), meta: bool() },
+  { description: str({ maxLength: 500 }), meta: bool(), local: bool(), initialLocal: bool() },
 );
 const sourceFields = obj({ source: capabilityName, params: bool() });
 export type Manifest = Omit<
   Infer<typeof fields>,
-  "params" | "state" | "context" | "initialState" | "sources" | "meta"
+  "params" | "state" | "context" | "initialState" | "sources" | "meta" | "local" | "initialLocal"
 > & {
   readonly meta?: Json;
+  /** Scalar state the renderer keeps per mounted surface and `setLocal` writes (plan 029 L1); absent means none. */
+  readonly local?: ObjectSchema;
+  readonly initialLocal?: Json;
   readonly params: ObjectSchema;
   readonly state: ObjectSchema;
   readonly context: ObjectSchema;
@@ -59,7 +62,9 @@ export const manifestSchema = {
     params: { $ref: "#/$defs/objectSchema" },
     state: { $ref: "#/$defs/objectSchema" },
     context: { $ref: "#/$defs/objectSchema" },
+    local: { $ref: "#/$defs/objectSchema" },
     initialState: json,
+    initialLocal: json,
     meta: json,
     actions: { ...fields.properties.actions, uniqueItems: true },
     sources: namedMap({
@@ -89,6 +94,62 @@ const noPattern = "no pattern in widget schemas; use enum or a capability";
 
 type Checks = ReturnType<typeof documentChecks>;
 type Source = Capabilities["sources"][string];
+
+const MAX_LOCAL_PROPERTIES = 32;
+const MAX_LOCAL_STRING = 256;
+/** Local keys are path segments (`local.q`), so they follow the template name rule. */
+const LOCAL_NAME = /^[a-z][A-Za-z0-9]{0,31}$/;
+const LOCAL_TYPES: readonly (string | undefined)[] = ["boolean", "integer", "number", "string"];
+
+/** The schema `local` takes when a manifest declares none: a closed object with no properties. */
+export const NO_LOCAL: ObjectSchema = { type: "object", properties: {}, required: [], additionalProperties: false };
+
+/** `local` holds bounded scalars and every property is required, so `local.<key>` is always present (plan 029 L1). */
+function checkLocal(local: ObjectSchema, c: Checks): void {
+  const names = Object.keys(local.properties);
+  if (names.length > MAX_LOCAL_PROPERTIES)
+    c.reject(
+      "/local/properties",
+      `Expected at most ${MAX_LOCAL_PROPERTIES} local properties`,
+      "limit-exceeded",
+      `at most ${MAX_LOCAL_PROPERTIES} properties`,
+    );
+  for (const name of names) {
+    if (c.errors.length >= 20) break;
+    const schema = local.properties[name] as LanguageSchema;
+    const pointer = at("/local/properties", name);
+    if (!LOCAL_NAME.test(name))
+      c.reject(pointer, "Expected a local name of 1–32 letters and digits starting with a lowercase letter");
+    if ("discriminator" in schema || !LOCAL_TYPES.includes(schema.type))
+      c.reject(pointer, "Expected a boolean, integer, number or string property", "invalid-document");
+    else if (schema.type === "string" && schema.url !== undefined)
+      c.reject(`${pointer}/url`, "Expected no url rule on a local property", "invalid-document");
+    else if (schema.type === "string" && !schema.enum && schema.maxLength > MAX_LOCAL_STRING)
+      c.reject(
+        `${pointer}/maxLength`,
+        `Expected maxLength of at most ${MAX_LOCAL_STRING}`,
+        "limit-exceeded",
+        `at most ${MAX_LOCAL_STRING} characters`,
+      );
+    if (!local.required.includes(name))
+      c.reject("/local/required", `Expected local property ${name} to be required`, "invalid-document");
+  }
+}
+
+/** The `local` schema is a language schema first, then the narrower scalar form. */
+function checkLocalSchema(manifest: Manifest, c: Checks): void {
+  if (!manifest.local) return;
+  c.schemaRelationships(manifest.local, "/local");
+  if (!c.errors.length) checkLocal(manifest.local, c);
+}
+
+/** `initialLocal` defaults to `{}`; with every property required, a manifest that declares `local` must give one. */
+function checkInitialLocal(manifest: Manifest, c: Checks): void {
+  if (c.errors.length) return;
+  const errors: LiveframeError[] = [];
+  compileSchema(manifest.local ?? NO_LOCAL)(manifest.initialLocal ?? {}, "/initialLocal", { errors, maxErrors: 20 });
+  for (const error of errors) c.reject(error.pointer, error.message, "invalid-document", error.expected);
+}
 
 function checkActionList(actions: readonly string[], capabilities: Capabilities, c: Checks): void {
   for (const [i, name] of actions.entries()) {
@@ -163,7 +224,7 @@ function checkManifestStructure(doc: unknown, c: Checks): void {
         errors: result.errors.map((error) => {
           const key = error.pointer.split("/")[1] ?? "";
           const schema = isRecord(doc) ? doc[key] : undefined;
-          if (["params", "state", "context"].includes(key) && (!isRecord(schema) || schema.type !== "object"))
+          if (["params", "state", "context", "local"].includes(key) && (!isRecord(schema) || schema.type !== "object"))
             return { ...error, pointer: `/${key}` };
           return error.expected === "no value" && error.pointer.endsWith("/pattern")
             ? { ...error, expected: noPattern, message: "Expected no pattern in widget schemas" }
@@ -192,12 +253,14 @@ export function validateManifest(
       c.schemaRelationships((doc as Manifest)[key], `/${key}`);
     }
     // Schema checks must pass before traversing author-supplied schemas.
+    checkLocalSchema(doc as Manifest, c);
     if (c.errors.length) return { ok: false, errors: c.errors };
     const value = doc as Manifest;
     if (value.catalogId !== catalog.catalogId) c.reject("/catalogId", "Catalog does not match", "catalog-mismatch");
     const stateErrors: LiveframeError[] = [];
     compileSchema(value.state)(value.initialState, "/initialState", { errors: stateErrors, maxErrors: 20 });
     for (const error of stateErrors) c.reject(error.pointer, error.message, "invalid-document", error.expected);
+    checkInitialLocal(value, c);
     checkActionList(value.actions, capabilities, c);
     for (const [name, entry] of Object.entries(value.sources)) {
       if (c.errors.length >= 20) break;
@@ -220,6 +283,7 @@ export function validateManifestShape(doc: unknown): Result<Manifest> {
   for (const key of ["params", "state", "context"] as const) {
     c.schemaRelationships(value[key], `/${key}`);
   }
+  checkLocalSchema(value, c);
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value };
 }
 

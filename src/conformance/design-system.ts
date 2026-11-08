@@ -1,16 +1,16 @@
+import { baseCss, designSystemCss, extensionVar, slotClass, themeCss } from "../css/index.ts";
+import { variantKeys } from "../formats/axes.ts";
 import {
   auditContrast,
-  resolveRecipes,
-  validateCatalog,
-  validateTheme,
-  validateDesignSystem,
   type ContrastFinding,
   type DesignSystem,
   type Result,
+  resolveRecipes,
+  validateCatalog,
+  validateDesignSystem,
+  validateTheme,
 } from "../index.ts";
-import { baseCss, designSystemCss, extensionVar, slotClass, themeCss } from "../css/index.ts";
-import { variantKeys } from "../formats/axes.ts";
-import { check, type ConformanceCase } from "./case.ts";
+import { type ConformanceCase, check } from "./case.ts";
 
 /** One audit finding as a test-runner message: the recipe, the pair, the ratio and the threshold. */
 function finding({ key, foreground, background, ratio, minimum }: ContrastFinding): string {

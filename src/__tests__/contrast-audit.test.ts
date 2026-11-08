@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { contrastRatio, toSrgb } from "../formats/contrast.ts";
 import {
   auditContrast,
   type Catalog,
@@ -10,7 +11,6 @@ import {
   type Theme,
   validateTheme,
 } from "../index.ts";
-import { contrastRatio, toSrgb } from "../formats/contrast.ts";
 
 // A palette whose ratios the test can state: black ink on white paper is 21:1, mid grey (quiet) is
 // 3.98:1, and light grey (line) is 2.11:1 — under non-text contrast and over it for large text only.

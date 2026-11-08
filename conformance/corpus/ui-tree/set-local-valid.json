@@ -1,0 +1,12 @@
+{
+  "inputs": {
+    "doc": "docs/set-local-valid.json",
+    "catalog": "../common/proof-catalog.json",
+    "capabilities": "../common/capabilities.json",
+    "manifest": "../common/local-manifest.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": true
+  }
+}

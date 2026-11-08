@@ -20,6 +20,7 @@ describe("sdk types", () => {
       state: { filter: "all" },
       data: { rows: [] },
       context: { size: "md" },
+      actions: {},
     });
     expect(element.type).toEqual({ kind: "button" });
 
@@ -42,6 +43,7 @@ describe("sdk types", () => {
       state: { filter: "all" },
       data: { rows: [{ id: "t1" }] },
       context: { size: "md" },
+      actions: {},
     };
 
     // @ts-expect-error: params are readonly

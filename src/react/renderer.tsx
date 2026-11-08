@@ -10,27 +10,14 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
-import { slotClass, styleDeclarations, surfaceAttributes } from "../css/index.ts";
-import { type LiveframeError, LiveframeFailure, type Result } from "../errors.ts";
-import { nodeAxisValues } from "../formats/axes.ts";
-import { carriesValue } from "../formats/events.ts";
+import { surfaceAttributes } from "../css/index.ts";
+import { type LiveframeError, LiveframeFailure } from "../errors.ts";
 import { sameJson } from "../formats/json.ts";
-import {
-  type Catalog,
-  type CompiledValidator,
-  type Intent,
-  type IntentOrigin,
-  type UiNode,
-  type UiTree,
-  validateCatalog,
-} from "../index.ts";
-import { isThenable } from "../internal.ts";
-import { actionFacts } from "../validate/compile.ts";
-import { complete } from "../validate/complete.ts";
-import { compileSchema } from "../validate/schema.ts";
+import { type CompiledValidator, type Intent, type IntentOrigin, type UiTree, validateCatalog } from "../index.ts";
+import { createSurfaceCore, type NodeContext, type SurfaceCore, type SurfaceEvent } from "../surface/index.ts";
 import { binding, type Implementation, type Item } from "./implement.ts";
-import { shareNodes } from "./share.ts";
 
 /** The registry check's failures, with the diagnostics the other install-time APIs throw. */
 export class RendererError extends LiveframeFailure {
@@ -61,6 +48,8 @@ type SurfaceProps = {
   readonly transparency?: "auto" | "reduced";
   readonly focusContinuity?: boolean;
   readonly confirm?: (intent: Intent, meta: Readonly<{ confirm: boolean; irreversible: boolean }>) => Promise<boolean>;
+  /** Frozen observability events from the surface core (rejected arrivals and emits, failed nodes and bindings). */
+  readonly onEvent?: (event: SurfaceEvent) => unknown;
 };
 
 /**
@@ -88,14 +77,15 @@ function Diagnosed({ id, children }: { id: string; children: ReactNode }) {
 }
 
 class Boundary extends Component<{
-  node: UiNode;
+  context: NodeContext;
   children: ReactNode;
-  failed: WeakSet<UiNode>;
+  core: SurfaceCore;
 }> {
-  state = { node: this.props.node, failed: false };
+  state = { context: this.props.context, failed: false };
 
-  static getDerivedStateFromProps(props: { node: UiNode }, state: { node: UiNode }) {
-    return props.node === state.node ? null : { node: props.node, failed: false };
+  // A rebuilt context (new tree node, or a bound value that changed) gets a fresh attempt.
+  static getDerivedStateFromProps(props: { context: NodeContext }, state: { context: NodeContext }) {
+    return props.context === state.context ? null : { context: props.context, failed: false };
   }
 
   static getDerivedStateFromError() {
@@ -103,7 +93,7 @@ class Boundary extends Component<{
   }
 
   componentDidCatch() {
-    this.props.failed.add(this.props.node);
+    this.props.core.fail(this.props.context.node);
   }
 
   render() {
@@ -192,182 +182,55 @@ class FocusContinuity extends Component<{
   }
 }
 
-type AcceptedTree = {
-  arrival: Result<UiTree>;
-  validator: CompiledValidator;
-  tree: UiTree | undefined;
-};
-
-function acceptTree(
-  accepted: AcceptedTree,
-  arrival: Result<UiTree>,
-  validator: CompiledValidator,
-  failed: WeakSet<UiNode>,
-): AcceptedTree {
-  const previous = validator === accepted.validator ? accepted.tree : undefined;
-  const next = arrival.ok ? arrival.value : undefined;
-  return {
-    arrival,
-    validator,
-    tree:
-      next && !(previous && previous.surfaceId === next.surfaceId && previous.revision > next.revision)
-        ? shareNodes(previous, next, failed)
-        : previous,
-  };
-}
-
-type IntentState = {
-  current: {
-    current: { tree: UiTree | undefined; onIntent: SurfaceProps["onIntent"]; confirm: SurfaceProps["confirm"] };
-  };
-  confirming: { current: boolean };
-  mounted: { current: boolean };
-};
-
-type ItemContext = IntentState & {
-  contexts: WeakMap<UiNode, Item>;
-  registry: Map<string, Implementation>;
-  catalog: Catalog;
-  eventChecks: Map<string, Map<string, ReturnType<typeof compileSchema> | undefined>>;
-  actions: ReturnType<typeof actionFacts>;
+/** What an element needs beyond the core's contexts: the framework's own pieces. */
+type Elements = {
+  core: SurfaceCore;
+  registry: ReadonlyMap<string, Implementation>;
+  items: WeakMap<NodeContext, Item>;
   portal: HTMLDivElement | null;
   diagnosed: boolean;
-  failed: WeakSet<UiNode>;
-  domIdPrefix: string;
 };
 
-/**
- * A DOM id for a key-path id: the surface's `useId` prefix keeps two surfaces of one tree apart, and
- * the key path keeps the id stable across re-renders. `useId` output can hold `:`, `«` or `»`, which
- * stay legal in an id but not in a CSS selector, so the prefix is percent-encoded.
- */
-function domId(prefix: string, id: string): string {
-  return `${prefix}:${id}`;
-}
-
-/** Rewrites reference props from key-path ids to the targets' DOM ids; other props are untouched. */
-function referencedProps(node: UiNode, refProps: readonly string[] | undefined, prefix: string): UiNode["props"] {
-  if (!refProps?.length) return node.props;
-  const props: Record<string, unknown> = { ...node.props };
-  for (const name of refProps) if (typeof props[name] === "string") props[name] = domId(prefix, props[name]);
-  return props as UiNode["props"];
-}
-
-/**
- * The host's promise, when it returns one, with rejection contained: a failed intent must not
- * surface as an unhandled rejection from a primitive's `emit`.
- */
-function settled(result: unknown): Promise<void> | undefined {
-  if (!isThenable(result)) return undefined;
-  return Promise.resolve(result).then(
-    () => undefined,
-    () => undefined,
-  );
-}
-function raiseIntent(
-  { current, confirming, mounted }: IntentState,
-  intent: Intent,
-  origin: IntentOrigin,
-  meta: { confirm: boolean; irreversible: boolean } | undefined,
-): Promise<void> | undefined {
-  const { onIntent, confirm } = current.current;
-  if (!confirm || !meta?.confirm) return settled(onIntent(intent, origin));
-  if (confirming.current) return undefined;
-  confirming.current = true;
-  const confirmationMeta = Object.freeze({ confirm: meta.confirm, irreversible: meta.irreversible });
-  return (async () => {
-    let approved = false;
-    try {
-      approved = await confirm(intent, confirmationMeta);
-    } catch {
-      // A failed confirmation is a cancellation.
-    } finally {
-      confirming.current = false;
-    }
-    if (!approved || !mounted.current) return;
-    try {
-      await onIntent(intent, origin);
-    } catch {
-      // The host's failure is not the primitive's: `emit`'s promise never rejects.
-    }
-  })();
-}
-
-function context(state: ItemContext, node: UiNode): Item {
-  const cached = state.contexts.get(node);
+/** The implementation's props and the cached element for one core context, built once per context. */
+function item(state: Elements, context: NodeContext): Item {
+  const cached = state.items.get(context);
   if (cached) return cached;
-  const { contexts, registry, catalog, eventChecks, actions, current, portal, diagnosed, failed, domIdPrefix } = state;
-  const implementation = registry.get(node.kind);
-  if (!implementation) throw new Error(`Missing implementation: ${node.kind}`);
-  const { definition } = implementation[binding];
-  const projected = styleDeclarations(node.style ?? {}, catalog);
-  // Validated props are enum members, so the axis values are catalog names, never free strings.
-  const axes = definition.axes ? nodeAxisValues(definition, node.props) : undefined;
-  const items = (node.children ?? []).map((child) => context(state, child));
-  const events = Object.freeze(
-    Object.fromEntries(
-      Object.entries(node.events ?? {}).map(([event, intent]) => {
-        const action = intent.type === "action" ? actions.get(intent.name) : undefined;
-        return [
-          event,
-          Object.freeze({
-            type: intent.type,
-            confirm: action?.confirm ?? false,
-            irreversible: action?.irreversible ?? false,
-          }),
-        ];
-      }),
-    ),
-  );
-  const item: Item = {
-    id: node.id,
-    kind: node.kind,
-    variant: node.variant,
-    props: referencedProps(node, definition.refProps, domIdPrefix),
-    domId: domId(domIdPrefix, node.id),
-    events,
-    slot(name) {
-      if (!definition.slots.includes(name)) throw new Error(`Undeclared slot: ${node.kind}.${name}`);
-      const recipe = slotClass(node.kind, node.variant ?? definition.defaultVariant, name, axes);
-      return [recipe, ...(name === "root" ? projected.classes : [])].join(" ");
-    },
-    style: projected.style,
-    emit(event, value) {
-      const acceptedTree = current.current.tree;
-      if (!acceptedTree || !node.events || !Object.hasOwn(node.events, event)) return;
-      const intent = node.events[event];
-      if (!intent) return;
-      const carries = definition.events[event]?.carries;
-      const check = eventChecks.get(node.kind)?.get(event);
-      if (!(check ? check(value, "", { errors: [], maxErrors: 1 }) : carriesValue(carries, value)))
-        throw new Error(`Invalid event value: ${node.kind}.${event}`);
-      const completed = complete(intent, value);
-      const origin = Object.freeze({
-        surfaceId: acceptedTree.surfaceId,
-        revision: acceptedTree.revision,
-        nodeId: node.id,
-        event,
-      });
-      return raiseIntent(state, completed, origin, events[event]);
-    },
+  const { core, registry, items: cache, portal, diagnosed } = state;
+  const implementation = registry.get(context.kind);
+  if (!implementation) throw new Error(`Missing implementation: ${context.kind}`);
+  const items = context.items.map((child) => item(state, child));
+  const result: Item = {
+    id: context.id,
+    kind: context.kind,
+    variant: context.variant,
+    props: context.props,
+    domId: context.domId,
+    events: context.events,
+    slot: context.slot,
+    style: context.style,
+    emit: context.emit,
     children: items.map((child) => child.render()),
     items,
     portal: portal ?? undefined,
     render: () => element,
   };
+  // A node whose bindings failed draws the node fallback, as an implementation that throws does.
+  const body = context.fault ? (
+    <NodeFallback />
+  ) : diagnosed ? (
+    <Diagnosed id={context.id}>
+      <Node item={result} implementation={implementation} />
+    </Diagnosed>
+  ) : (
+    <Node item={result} implementation={implementation} />
+  );
   const element = (
-    <Boundary key={node.id} node={node} failed={failed}>
-      {diagnosed ? (
-        <Diagnosed id={node.id}>
-          <Node item={item} implementation={implementation} />
-        </Diagnosed>
-      ) : (
-        <Node item={item} implementation={implementation} />
-      )}
+    <Boundary key={context.id} context={context} core={core}>
+      {body}
     </Boundary>
   );
-  contexts.set(node, item);
-  return item;
+  cache.set(context, result);
+  return result;
 }
 
 export function createRenderer({
@@ -381,17 +244,6 @@ export function createRenderer({
   if (!checked.ok) throw new RendererError([...checked.errors]);
   const validatedCatalog = checked.value;
   const definitions = validatedCatalog.definitions;
-  const eventChecks = new Map(
-    definitions.map((definition) => [
-      definition.kind,
-      new Map(
-        Object.entries(definition.events).map(([event, { carries }]) => [
-          event,
-          typeof carries === "object" ? compileSchema(carries.object) : undefined,
-        ]),
-      ),
-    ]),
-  );
   const registry = new Map<string, Implementation>();
   const errors: LiveframeError[] = [];
   function reject(pointer: string, message: string) {
@@ -431,26 +283,43 @@ export function createRenderer({
     fallback,
     diagnostics,
     confirm,
+    onEvent,
     wrapperProps,
     portalProps,
     transparency,
     focusContinuity = true,
   }: SurfaceProps) {
     const domIdPrefix = `lf-${encodeURIComponent(useId())}`;
-    const mounted = useRef(false);
-    const [failed] = useState(() => new WeakSet<UiNode>());
-    const confirming = useRef(false);
+    // The core reads the host's callbacks when it uses them, so a new `onIntent` needs no new core.
+    const host = useRef({ onIntent, confirm, onEvent });
     useLayoutEffect(() => {
-      mounted.current = true;
-      return () => {
-        mounted.current = false;
-      };
-    }, []);
-    const arrival = useMemo(() => validator.validateTree(tree), [tree, validator]);
-    const [accepted, setAccepted] = useState({ arrival, validator, tree: arrival.ok ? arrival.value : undefined });
-    if (arrival !== accepted.arrival || validator !== accepted.validator) {
-      setAccepted(acceptTree(accepted, arrival, validator, failed));
+      host.current = { onIntent, confirm, onEvent };
+    }, [onIntent, confirm, onEvent]);
+    const make = (compiled: CompiledValidator) =>
+      createSurfaceCore({
+        catalog: validatedCatalog,
+        validator: compiled,
+        domIdPrefix,
+        get onIntent() {
+          return host.current.onIntent;
+        },
+        get confirm() {
+          return host.current.confirm;
+        },
+        get onEvent() {
+          return host.current.onEvent;
+        },
+      });
+    // A new validator starts a new core: node reuse and local state never cross validators.
+    const [held, setHeld] = useState(() => ({ validator, core: make(validator) }));
+    let core = held.core;
+    if (held.validator !== validator) {
+      core = make(validator);
+      setHeld({ validator, core });
     }
+    useLayoutEffect(() => core.attach(), [core]);
+    core.accept(tree);
+    const snapshot = useSyncExternalStore(core.subscribe, core.snapshot, core.snapshot);
     const [portal, setPortal] = useState<HTMLDivElement | null>(null);
     const wrapper = useRef<HTMLDivElement>(null);
     const requestedScope = useMemo(
@@ -483,45 +352,25 @@ export function createRenderer({
         clear();
       };
     }, [requestedScope, portal]);
-    const current = useRef({ tree: accepted.tree, onIntent, confirm });
-    useLayoutEffect(() => {
-      current.current = { tree: arrival.ok ? accepted.tree : undefined, onIntent, confirm };
-    }, [accepted.tree, arrival.ok, onIntent, confirm]);
     const diagnosed = diagnostics !== undefined;
     // The set is keyed on its content, so a new array naming the same nodes keeps the context value.
     const flaggedKey = JSON.stringify(diagnostics?.map((error) => error.nodeId).sort() ?? []);
     // biome-ignore lint/correctness/useExhaustiveDependencies: The key stands for the array's content.
     const flagged = useMemo(() => new Set(diagnostics?.flatMap((error) => error.nodeId ?? [])), [flaggedKey]);
-    // biome-ignore lint/correctness/useExhaustiveDependencies: Cached contexts capture these generation inputs.
-    const contexts = useMemo(() => new WeakMap<UiNode, Item>(), [accepted.validator, portal, diagnosed]);
-    const root = useMemo(() => {
-      const tree = accepted.tree;
-      if (!tree) return null;
-      return context(
-        {
-          contexts,
-          registry,
-          catalog: validatedCatalog,
-          eventChecks,
-          actions: actionFacts(accepted.validator),
-          current,
-          confirming,
-          mounted,
-          portal,
-          diagnosed,
-          failed,
-          domIdPrefix,
-        },
-        tree.root,
-      ).render();
-    }, [accepted.tree, accepted.validator, contexts, portal, diagnosed, failed, domIdPrefix]);
-    const scope = surfaceAttributes({ ...appliedScope, tree: accepted.tree ?? emptyTree });
+    // The cached elements capture these generation inputs; a change of any of them draws afresh.
+    // biome-ignore lint/correctness/useExhaustiveDependencies: The inputs are keys, not read.
+    const items = useMemo(() => new WeakMap<NodeContext, Item>(), [core, portal, diagnosed]);
+    const root = useMemo(
+      () => (snapshot.root ? item({ core, registry, items, portal, diagnosed }, snapshot.root).render() : null),
+      [snapshot.root, core, items, portal, diagnosed],
+    );
+    const scope = surfaceAttributes({ ...appliedScope, tree: snapshot.tree ?? emptyTree });
     return (
       <FallbackContext value={fallback}>
         <DiagnosedContext value={flagged}>
           <div {...mergeHostProps(scope, wrapperProps)} ref={wrapper} tabIndex={focusContinuity ? -1 : undefined}>
-            {arrival.ok ? (
-              <Fragment key={accepted.tree?.surfaceId}>
+            {snapshot.valid ? (
+              <Fragment key={snapshot.tree?.surfaceId}>
                 {focusContinuity ? (
                   <FocusContinuity scope={() => [wrapper.current, portal]} wrapper={() => wrapper.current}>
                     {root}

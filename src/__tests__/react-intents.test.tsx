@@ -1,11 +1,11 @@
 import { expect, test } from "bun:test";
 import { renderToString } from "react-dom/server";
-import { checkOffered, type IntentOrigin, type Intent, type UiNode } from "../index.ts";
+import { checkOffered, type Intent, type IntentOrigin, type UiNode } from "../index.ts";
 import type { ImplementationProps } from "../react/index.ts";
 import { createRenderer, implement } from "../react/index.ts";
+import { confirmationValidator } from "./fixtures/confirmation.tsx";
 import * as numeric from "./fixtures/numeric-events.ts";
 import { renderer, surfaceProps, withRoot } from "./fixtures/react-surface.tsx";
-import { confirmationValidator } from "./fixtures/confirmation.tsx";
 
 test("events_metadata_reaches_nested_and_collection_nodes", () => {
   const contexts = new Map<string, ImplementationProps>();

@@ -309,14 +309,14 @@ authority. `bindSources(manifest, capabilities, { params, state, context })` fro
 the root export returns each data key's `{ source, params }` with its bindings
 resolved and checked against the source's parameter schema, ready for the host's
 own authorised read ([format guide](formats.md#manifest)). `renderKey({ hash,
-catalogId, params, state, data, context })` from `/pack` is the re-run cache key
-of spec §8: the SHA-256 of those inputs in canonical JSON, so a key that is
-unchanged lets the host skip the re-run and the transfer.
+catalogId, params, state, data, context, actions })` from `/pack` is the re-run cache key
+of spec §8: the SHA-256 of those inputs in canonical JSON (an absent `actions`
+hashes as `{}`), so a key that is unchanged lets the host skip the re-run and the transfer.
 
 ```ts
 const bound = value(bindSources(pkg.manifest, capabilities, { params, state, context }));
 const data = await resolveAll(bound, viewer); // the host's own resolver
-const key = renderKey({ hash: pkg.hash, catalogId: catalog.catalogId, params, state, data, context });
+const key = renderKey({ hash: pkg.hash, catalogId: catalog.catalogId, params, state, data, context, actions });
 ```
 
 ## Runner limits and ownership

@@ -1,4 +1,5 @@
 import type { Result } from "../errors.ts";
+import { variantKeys } from "../formats/axes.ts";
 import type { Definition } from "../formats/catalog.ts";
 import { validateCatalog } from "../formats/catalog.ts";
 import {
@@ -10,7 +11,6 @@ import {
   type ResolvedRecipe,
 } from "../formats/design-system.ts";
 import type { ColourValue, ShadowLayer } from "../formats/dtcg.ts";
-import { variantKeys } from "../formats/axes.ts";
 import { colourProperties } from "../formats/fixed.ts";
 import { catalogStates } from "../formats/vocabulary.ts";
 import { cascadeRecipes } from "../resolve.ts";

@@ -453,6 +453,7 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Source: plans/018-Phase-7-Part-E-Runner-Kit-Capture-And-Authoring-Library.md Task 6 notes
 - What: one full `bun run check` run after the bundle test was added reported a single failing test whose name was not captured; later full runs (Tasks 6 and 7, and 833 pass / 0 fail on 2026-10-29) were green. If it recurs, capture the test name and the machine load at the time before changing anything; the CSS switch budget under VM load (plan 018 Task 4) is the known candidate.
 - Why: an uncaptured intermittent failure is cheap to diagnose the first time it is logged and expensive after it has become routine to re-run.
+- Update (2026-11-08, plan 029 Task 8): at load 17–27 two full `bun run check` runs failed 4 and 8 tests, all gated on absolute milliseconds or a 5 s test timeout (`all_proof_scenarios_render_with_both_scoped_design_systems` 100 ms cap, the CSS-switch frame budgets, `in_process_warm_overhead_under_point_one_ms`, `validator_smoke_under_5us_per_node`, five `cli-mcp` timeouts, `install_validation_of_agent_home_within_budget` in plan 029 Task 6). Six of the eight passed when re-run alone. Decide whether timing gates read `os.loadavg()` and skip above a threshold, or move to the bench stage; the test names and load are now captured.
 
 ## Test the capture snapshot format across the Playwright peer range
 
@@ -516,6 +517,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Update (2026-11-05, plan 026 Task 10): the required single sequential whole-plan benchmark attempt at load 4.02 / 4.39 / 4.91 failed core-queue.full at 1.509 µs/node against 1.5; the chained render/CSS/streaming stages were not reached. No retry or threshold change. [Impact review](evidence/026-impact-analysis.md) records all measurements and the Task 9 isolated reference variance (up to 1.085 interpreted / 1.037 props), distinguished from passing relative whole-tree/patch/diff/compilation/install gates. Retain this existing follow-up into plan 032 Task 3 under the approved scope; no quiet-host or cumulative absolute pass is claimed.
 
 - Update (2026-11-07, plan 027 Task 8): [impact review](evidence/027-impact-analysis.md). One `bun run bench` at load 3.2 failed `core-queue.full` at 1.508 µs/node and stopped before the other stages. Six alternating runs against the plan 026 end commit fail the same gate at both (baseline best 1.523, HEAD best 1.510), so plan 027 adds no measurable cost. Render, CSS and streaming pass when run alone; extension projection time passes its +20% gate (15.3–20.1%). The host load never went below 2.5 (unrelated VMs), so the quiet-host requirement stays open. The validator bench now reports a median of five batches (measurement only; no limit changed). Retained into plan 032 Task 3.
+
+- Update (2026-11-08, plan 029 Task 8): [impact review](evidence/029-impact-analysis.md) F3. Stage-by-stage `bun run bench` and a 9-run paired render A/B against `6041e0b` ran at load 14–19 and then 40–70 from unrelated work; absolute gates read 1.6–2× for unchanged code and paired ratios scattered 0.89–1.20, so nothing was proved. Plan 032 Task 3 should also settle, paired against `v0.2.3` and `6041e0b`: the validator with 50 distinct `when` (gate 1.75 µs/node, measured 1.47–1.57 in Task 3), the live-filter keystroke (4 ms budget, 1.6 ms measured), the `actions` input check on the agent-home render (1% budget, never stated), and the production selection bench's 4–8% against 0.2.3 with focus continuity off on both sides.
 
 ## Name the realm mismatch in a compiled validator's `validateTree`
 
@@ -683,3 +686,26 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - What: every `bun run bench` rewrites `plans/evidence/019-streaming-bench.md` (109 changed lines of timings), so the working tree is dirty after a bench and an unrelated diff can reach a commit. Write to the scratch directory unless a flag asks for the evidence file.
 - Why: benches should be safe to run before any commit.
 
+## Add `when` and `bind` to element JSON
+
+- Section: SDK rendering (spec §7.2)
+- Priority: P4
+- Source: plans/029-Phase-7-Part-P-Release-0-3-0-Interaction-Outcomes-Local-Bindings-And-Surface-Core.md Task 3 finding 4, plans/evidence/029-impact-analysis.md F5
+- What: `renderElements` and `streamElements` element JSON accepts no `when`/`bind` (an ephemeral manifest declares no `local`, so it could only gate on `self`). Decide whether element JSON may reference a `local` schema supplied alongside it, or whether live filters stay TSX and template only.
+- Why: an agent writing element JSON cannot ask for a live filter.
+
+## Cover the surface core and local bindings in the renderer conformance suites
+
+- Section: Conformance (spec §13)
+- Priority: P3
+- Source: plans/029-Phase-7-Part-P-Release-0-3-0-Interaction-Outcomes-Local-Bindings-And-Surface-Core.md Task 7, plans/evidence/029-impact-analysis.md F6
+- What: `rendererSuite`/`rendererBrowserSuite` have no case that a renderer hides a `when`-false node, applies `setLocal` without raising an intent, draws the node fallback for a failed binding or reports `binding-failed`. A renderer written on `/surface` has no suite for the adapter duties in spec §11 ("Writing another renderer"). Add cases, and consider a `surfaceCoreSuite` for adopters of another framework.
+- Why: nothing but the proof host's own tests would catch an adopter's renderer applying `setLocal` through `onIntent` (law 4) or drawing a hidden node.
+
+## Let a filtered list know it is empty
+
+- Section: Interaction (spec §8)
+- Priority: P3
+- Source: plans/029-Phase-7-Part-P-Release-0-3-0-Interaction-Outcomes-Local-Bindings-And-Surface-Core.md Task 7, plans/evidence/029-impact-analysis.md F7
+- What: an expression reads only `local` (scalars) and the node's own props, so a "No matches" row cannot learn that every filtered row is hidden. Choose between a bounded derived value over a node's `when`-visible siblings, an aggregate `local` key written by the core, or documenting the `setState` workaround. Local state stays scalars only unless the decision says otherwise.
+- Why: the first thing an adopter builds with a live filter is its empty state, and today it needs a round trip.

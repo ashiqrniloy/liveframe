@@ -19,6 +19,7 @@ Spec §11 (renderer), §8 (interaction tiers). Roadmap Phase 4 (renderer) and Ph
 - An invalid tree renders `fallback` for the whole surface (never part of an invalid tree). An implementation that throws renders `fallback` at that node through an error boundary.
 - `emit()` checks values against the definition's `carries`; a mismatch throws and raises no intent. `onIntent` receives complete intents: fill a missing `setState.value`, or fill action `args[bind]` and remove `bind`. Preserve explicit state values; the host re-checks the filled intent.
 - Changing `theme` / `designSystem` runs the §6.4 switching sequence on the wrapper and portal together. Overlay exit motion, scroll lock and inert background are delivered by the app's implementations (e.g. React Aria) and proved by browser tests.
+- Everything before drawing lives in the framework-free `@arnilo/liveframe/surface` core (`src/surface/`): arrival validation and revision rules, `NodeContext`s, `emit` checks and intent completion, single-flight confirmation, local state (`setLocal` never reaches `onIntent`), `when`/`bind` evaluation and node sharing. `/react` only maps contexts to elements; keep logic in the core.
 - Contracts: `decision-logs/2026-10-24-0306-phase-4-renderer-and-preview-contracts.md`.
 - Server-side rendering is supported.
 - Tier 1 lives inside primitives. `setState` and actions go to `onIntent`, and the app passes the new tree back.

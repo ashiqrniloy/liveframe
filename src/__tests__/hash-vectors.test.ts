@@ -3,7 +3,7 @@ import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { WidgetPackage } from "@arnilo/liveframe/pack";
-import { packageHash } from "@arnilo/liveframe/pack";
+import { packageHash, renderKey } from "@arnilo/liveframe/pack";
 import { canonicalJson, sha256, utf8 } from "../pack/hash.ts";
 
 const hashRoot = fileURLToPath(new URL("../../conformance/hash/", import.meta.url));
@@ -70,6 +70,19 @@ test("hash_vectors_match", async () => {
       expect(sha256(utf8(canonical)), `${file}[${index}]`).toBe(vector.sha256);
     }
   }
+});
+
+test("render_key_vectors_through_public_exports", async () => {
+  const vectors = await read("render-keys.json");
+  expect(vectors.length).toBeGreaterThanOrEqual(3);
+  for (const [index, vector] of vectors.entries()) {
+    const { value, sha256: digest } = vector as Extract<ValueVector, { sha256: string }>;
+    // An absent `actions` hashes as `{}` (plan 029 A8), so the input without it has the first vector's key.
+    expect(renderKey(value as Parameters<typeof renderKey>[0]), `render-keys.json[${index}]`).toBe(digest);
+  }
+  const first = (vectors[0] as { value: Parameters<typeof renderKey>[0] }).value;
+  const { actions: _, ...without } = first as typeof first & { actions?: unknown };
+  expect(renderKey(without)).toBe((vectors[0] as { sha256: string }).sha256);
 });
 
 test("hash_vectors_include_rfc8785_appendix_b", async () => {

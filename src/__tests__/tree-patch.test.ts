@@ -1,10 +1,10 @@
 import { expect, test } from "bun:test";
-import { Ajv2020 } from "ajv/dist/2020.js";
 import { applyPatch, compileValidator, diffTrees } from "@arnilo/liveframe";
 import { canonicalJson } from "@arnilo/liveframe/pack";
-import { difference } from "../validate/difference.ts";
+import { Ajv2020 } from "ajv/dist/2020.js";
 import { schemaDocument } from "../formats/registry.ts";
 import { type PatchOp, type Result, type TreePatch, type UiNode, type UiTree, validateTreePatch } from "../index.ts";
+import { difference } from "../validate/difference.ts";
 
 const node = (id: string): UiNode => ({ id, kind: "text", props: { text: id } });
 const base: UiTree = {
@@ -266,10 +266,14 @@ type DiffVector = { name: string; prev: UiTree; next: UiTree; patch: TreePatch }
 const vectors: DiffVector[] = await Bun.file(
   new URL(import.meta.resolve("@arnilo/liveframe/conformance/patch/diff.json")),
 ).json();
+const bindingVectors: DiffVector[] = await Bun.file(
+  new URL(import.meta.resolve("@arnilo/liveframe/conformance/patch/bindings.json")),
+).json();
 
 test("patch_vectors_through_public_exports_and_deterministic_edit_order", () => {
   expect(vectors).toHaveLength(9);
-  for (const { name, prev, next, patch } of vectors) {
+  expect(bindingVectors).toHaveLength(2);
+  for (const { name, prev, next, patch } of [...vectors, ...bindingVectors]) {
     const first = value(diffTrees(prev, next));
     expect(canonicalJson(first), name).toBe(canonicalJson(patch));
     expect(canonicalJson(value(diffTrees(prev, next))), name).toBe(canonicalJson(first));

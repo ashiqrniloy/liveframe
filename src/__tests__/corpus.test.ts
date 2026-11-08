@@ -49,6 +49,7 @@ const FORMAT_KINDS = {
   manifest: ["invalid-document", "catalog-mismatch", "unknown-name", "limit-exceeded"],
   "ui-tree": [
     "not-found",
+    "unknown-name",
     "invalid-prop",
     "invalid-children",
     "unknown-component",

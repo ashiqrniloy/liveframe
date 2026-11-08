@@ -1,6 +1,6 @@
-import type { Json } from "../../index.ts";
-import { capture, type CaptureBackend } from "@arnilo/liveframe/preview/capture";
+import { type CaptureBackend, capture } from "@arnilo/liveframe/preview/capture";
 import type { Placement, Store } from "@arnilo/liveframe/store";
+import type { Json } from "../../index.ts";
 
 // Both samples below also appear verbatim in docs/migration-0.2.md; the guide test
 // asserts that and runs these functions, so a guide edit that would not compile fails.

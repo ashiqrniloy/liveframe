@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { render, type WidgetProps } from "@arnilo/liveframe/sdk";
+import { render, type WidgetInputs } from "@arnilo/liveframe/sdk";
 import {
   compileValidator,
   type UiNode,
@@ -35,7 +35,7 @@ const fixture = (name: string) => {
 };
 
 /** Label sanitising needs regular expressions, so a source does it (design T22); the template gets clean labels. */
-function cleaned(inputs: WidgetProps): WidgetProps {
+function cleaned(inputs: WidgetInputs): WidgetInputs {
   const data = inputs.data as { statuses: Record<string, unknown>[] };
   return {
     ...inputs,
@@ -138,7 +138,7 @@ const doc = (root: TemplateNode, components?: Template["components"]): Template 
 const stack = (...children: TemplateNode[]): TemplateNode => ({ kind: "stack", children });
 const text = (value: unknown, key?: string): TemplateNode =>
   ({ kind: "text", ...(key ? { key } : {}), props: { text: value } }) as TemplateNode;
-const run = (template: Template, inputs: WidgetProps = scenario, extra = {}) =>
+const run = (template: Template, inputs: WidgetInputs = scenario, extra = {}) =>
   renderTemplate(template, inputs, { ...options(validator), ...extra });
 const ok = (result: ReturnType<typeof run>): UiTree => {
   if (!result.ok) throw new Error(JSON.stringify(result.errors));

@@ -1,0 +1,87 @@
+[
+  {
+    "value": {
+      "hash": "sha256-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "catalogId": "proof.ui@1",
+      "params": {
+        "b": 1,
+        "a": [
+          2,
+          3
+        ]
+      },
+      "state": {
+        "filter": "all"
+      },
+      "data": {},
+      "context": {
+        "size": "md"
+      },
+      "actions": {}
+    },
+    "canonical": "{\"actions\":{},\"catalogId\":\"proof.ui@1\",\"context\":{\"size\":\"md\"},\"data\":{},\"hash\":\"sha256-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\",\"params\":{\"a\":[2,3],\"b\":1},\"state\":{\"filter\":\"all\"}}",
+    "sha256": "4cbdee97fbd33593f5146bd8cbe1a27198312a0928dace6e109e0633e4965776"
+  },
+  {
+    "value": {
+      "hash": "sha256-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "catalogId": "proof.ui@1",
+      "params": {
+        "b": 1,
+        "a": [
+          2,
+          3
+        ]
+      },
+      "state": {
+        "filter": "all"
+      },
+      "data": {},
+      "context": {
+        "size": "md"
+      },
+      "actions": {
+        "tasks.claim": {
+          "status": "pending"
+        }
+      }
+    },
+    "canonical": "{\"actions\":{\"tasks.claim\":{\"status\":\"pending\"}},\"catalogId\":\"proof.ui@1\",\"context\":{\"size\":\"md\"},\"data\":{},\"hash\":\"sha256-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\",\"params\":{\"a\":[2,3],\"b\":1},\"state\":{\"filter\":\"all\"}}",
+    "sha256": "f8db3ded5a9be101b5138be606efeee2703e7bc6f308117345e0f49d1f3b5f9e"
+  },
+  {
+    "value": {
+      "hash": "sha256-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "catalogId": "proof.ui@1",
+      "params": {
+        "b": 1,
+        "a": [
+          2,
+          3
+        ]
+      },
+      "state": {
+        "filter": "all"
+      },
+      "data": {},
+      "context": {
+        "size": "md"
+      },
+      "actions": {
+        "claim:t1": {
+          "status": "failed",
+          "action": "tasks.claim",
+          "reason": "Already claimed"
+        },
+        "tasks.claim": {
+          "status": "ok",
+          "value": {
+            "owner": "ana"
+          }
+        }
+      }
+    },
+    "canonical": "{\"actions\":{\"claim:t1\":{\"action\":\"tasks.claim\",\"reason\":\"Already claimed\",\"status\":\"failed\"},\"tasks.claim\":{\"status\":\"ok\",\"value\":{\"owner\":\"ana\"}}},\"catalogId\":\"proof.ui@1\",\"context\":{\"size\":\"md\"},\"data\":{},\"hash\":\"sha256-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\",\"params\":{\"a\":[2,3],\"b\":1},\"state\":{\"filter\":\"all\"}}",
+    "sha256": "e336b7f232fe0a0a0c35bba347bbbcc1232fa110713a7b249c76c05939a1841a"
+  }
+]

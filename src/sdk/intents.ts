@@ -1,5 +1,5 @@
 import { isThenable } from "../internal.ts";
-import type { Intent, Json } from "./types.ts";
+import type { Intent, Json, LocalIntent } from "./types.ts";
 
 type SetStateIntent = Extract<Intent, { type: "setState" }>;
 type ActionIntent = Extract<Intent, { type: "action" }>;
@@ -64,44 +64,66 @@ function setState(key: string, value?: Json): SetStateIntent {
   return freeze(intent);
 }
 
-/** `bind` fills one scalar argument; `bindAll: true` merges an object event (spec §8). */
+/**
+ * `local.set(key, value?)` writes the surface's local state in the renderer; it never reaches the host
+ * (plan 029 L3). Without a value the event's value fills it, as for `state.set`.
+ */
+export function setLocal(key: string, value: Json): LocalIntent & { readonly value: Json };
+export function setLocal(key: string, value?: undefined): LocalIntent & { readonly value?: never };
+export function setLocal(key: string, value?: Json): LocalIntent;
+export function setLocal(key: string, value?: Json): LocalIntent {
+  const localKey = name(key, "local key");
+  if (value !== undefined) assertJson(value, localKey);
+  return freeze(
+    value === undefined
+      ? { type: "setLocal" as const, key: localKey }
+      : { type: "setLocal" as const, key: localKey, value },
+  );
+}
+
+/**
+ * `bind` fills one scalar argument; `bindAll: true` merges an object event (spec §8). `resultKey` is the
+ * key the host reports this intent's status under in `actions`; it defaults to the action name.
+ */
+type ActionOptions = { readonly resultKey?: string };
 export function action(
   actionName: string,
   args?: Readonly<Record<string, Json>>,
-  options?: { readonly bind?: never; readonly bindAll?: never },
+  options?: ActionOptions & { readonly bind?: never; readonly bindAll?: never },
 ): ActionIntent & { readonly bind?: never; readonly bindAll?: never };
 export function action(
   actionName: string,
   args: Readonly<Record<string, Json>>,
-  options: { readonly bind: string; readonly bindAll?: never },
+  options: ActionOptions & { readonly bind: string; readonly bindAll?: never },
 ): ActionIntent & { readonly bind: string; readonly bindAll?: never };
 export function action(
   actionName: string,
   args: Readonly<Record<string, Json>>,
-  options: { readonly bindAll: true; readonly bind?: never },
+  options: ActionOptions & { readonly bindAll: true; readonly bind?: never },
 ): ActionIntent & { readonly bindAll: true; readonly bind?: never };
 export function action(
   actionName: string,
   args?: Readonly<Record<string, Json>>,
-  options?: { readonly bind?: string; readonly bindAll?: true },
+  options?: ActionOptions & { readonly bind?: string; readonly bindAll?: true },
 ): ActionIntent;
 export function action(
   actionName: string,
   args: Readonly<Record<string, Json>> = {},
-  options: { readonly bind?: string; readonly bindAll?: true } = {},
+  options: ActionOptions & { readonly bind?: string; readonly bindAll?: true } = {},
 ): ActionIntent {
   const action_ = name(actionName, "action name");
   assertJson(args, "args");
+  const resultKey = options.resultKey === undefined ? {} : { resultKey: name(options.resultKey, "result key") };
   if (options.bindAll !== undefined) {
     if (options.bindAll !== true || options.bind !== undefined)
       throw new TypeError("Expected bindAll: true without bind");
-    return freeze({ type: "action" as const, name: action_, args, bindAll: true });
+    return freeze({ type: "action" as const, name: action_, args, bindAll: true, ...resultKey });
   }
   if (options.bind !== undefined) {
     const bind = name(options.bind, "bind argument name");
-    return freeze({ type: "action" as const, name: action_, args, bind });
+    return freeze({ type: "action" as const, name: action_, args, bind, ...resultKey });
   }
-  return freeze({ type: "action" as const, name: action_, args });
+  return freeze({ type: "action" as const, name: action_, args, ...resultKey });
 }
 
 /** `state.set(key, value?)`; without a value the app fills the event's value (spec §7.2). */

@@ -9,11 +9,14 @@ export function TaskCard({
   task,
   params,
   current,
+  actions,
 }: {
   task: QueueItem;
   params: QueueProps["params"];
   current: QueueProps["state"];
+  actions: QueueProps["actions"];
 }) {
+  const claim = actions["tasks.claim"];
   const validReason = Array.from(current.reason).length >= 1 && Array.from(current.reason).length <= 500;
   return (
     <Box semantics="article" variant="plate">
@@ -48,9 +51,22 @@ export function TaskCard({
           <Text key="note" text={task.note} textStyle="meta" tone="muted" maxWidth="56ch" />
           {params.canAct && (
             <Inline key="acts" gap="space.2" wrap="wrap" shrink={0}>
-              <Button key="claim" label="Claim" variant="primary" onPress={action("tasks.claim", { id: task.id })} />
+              <Button
+                key="claim"
+                label={claim?.status === "pending" ? "Claiming…" : "Claim"}
+                variant="primary"
+                onPress={action("tasks.claim", { id: task.id })}
+              />
               {params.canEscalate && (
                 <Button key="escalate" label="Escalate…" onPress={state.set("escalating", task.id)} />
+              )}
+              {claim?.status === "failed" && (
+                <Text
+                  key="claim-failed"
+                  text={`Could not claim: ${claim.reason ?? "unknown reason"}`}
+                  textStyle="meta"
+                  tone="danger"
+                />
               )}
             </Inline>
           )}

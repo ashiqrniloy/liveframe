@@ -3,12 +3,12 @@ import { createRoot, hydrateRoot } from "react-dom/client";
 import { applyPatch, compileValidator, type Intent, type TreePatch, type UiTree } from "../../index.ts";
 import type { ImplementationProps } from "../../react/index.ts";
 import { createRenderer, implement } from "../../react/index.ts";
+import { installConfirmation } from "./confirmation.tsx";
 import * as form from "./object-events.ts";
 import { ObjectForm } from "./object-form.tsx";
-import { installConfirmation } from "./confirmation.tsx";
+import manifest from "./proof/agent-home.manifest.json" with { type: "json" };
 import agentHome from "./proof/agent-home.tree.json" with { type: "json" };
 import capabilities from "./proof/capabilities.json" with { type: "json" };
-import manifest from "./proof/agent-home.manifest.json" with { type: "json" };
 import { catalog, failing, hydrationTree, renderer, surfaceProps, tree, validator } from "./react-surface.tsx";
 
 let renders = 0;
@@ -94,6 +94,7 @@ const { Surface } = renderer((kind, props) => {
   if (kind === "button") button = props;
 });
 let intents: Intent[] = [];
+const events: import("../../surface/index.ts").SurfaceEvent[] = [];
 const origins: import("../../index.ts").IntentOrigin[] = [];
 let onIntent = (intent: Intent, origin: import("../../index.ts").IntentOrigin) => {
   intents.push(intent);
@@ -166,6 +167,7 @@ function draw() {
         validator={currentValidator}
         tree={input}
         onIntent={onIntent}
+        onEvent={(event) => void events.push(event)}
         fallback={inlineFallback ? <p>Unavailable</p> : fallback}
         {...(continuity === undefined ? {} : { focusContinuity: continuity })}
         {...(diagnostics ? { diagnostics } : {})}
@@ -189,6 +191,7 @@ declare global {
       checks(): number;
       hydration(): { errors: string[]; firstPortals: Record<string, boolean>; retained: boolean };
       intents(): readonly Intent[];
+      events(): readonly import("../../surface/index.ts").SurfaceEvent[];
       origins(): readonly import("../../index.ts").IntentOrigin[];
       emit(): void;
       replaceIntentHandler(): void;
@@ -265,6 +268,7 @@ window.surfaceTest = {
     retained: serverNodes.every((node) => container.contains(node)),
   }),
   intents: () => intents,
+  events: () => events,
   origins: () => origins,
   emit: () => button?.emit("onPress"),
   replaceIntentHandler() {

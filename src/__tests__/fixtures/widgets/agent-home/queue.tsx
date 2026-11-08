@@ -7,7 +7,7 @@ import type { QueueProps } from "./manifest.ts";
 import { QueueRow } from "./queue-row.tsx";
 import { TaskCard } from "./task-card.tsx";
 
-export function AgentHomeQueue({ params, state: s, data }: QueueProps) {
+export function AgentHomeQueue({ params, state: s, data, actions }: QueueProps) {
   const permitted = data.groups.filter((group) => group.id !== "alerts" || params.canViewAlerts);
   if (s.filter === "alerts" && !params.canViewAlerts) throw new Error("Alerts are unavailable");
   const groups = permitted.map((group) => {
@@ -86,7 +86,7 @@ export function AgentHomeQueue({ params, state: s, data }: QueueProps) {
                 shrink={1}
               >
                 {focus?.category === "tasks" ? (
-                  <TaskCard key={focus.id} task={focus} params={params} current={s} />
+                  <TaskCard key={focus.id} task={focus} params={params} current={s} actions={actions} />
                 ) : focus?.category === "alerts" ? (
                   <AlertCard key={focus.id} alert={focus} canAct={params.canAct} />
                 ) : focus ? (

@@ -10,6 +10,12 @@
     "meta": {
       "$ref": "#/$defs/json"
     },
+    "local": {
+      "$ref": "#/$defs/objectSchema"
+    },
+    "initialLocal": {
+      "$ref": "#/$defs/json"
+    },
     "format": {
       "maxLength": 32,
       "enum": [

@@ -2,6 +2,7 @@
 import type { ObjectSchema } from "../../../formats/capabilities.ts";
 import type { Manifest } from "../../../formats/manifest.ts";
 import type { Expr, TemplateNode } from "../../../template/index.ts";
+import { actionsSchema } from "../../../validate/actions.ts";
 import capabilities from "../widgets/capabilities.json" with { type: "json" };
 
 export const p = (path: string): Expr => ({ $path: path });
@@ -30,9 +31,15 @@ const groups = capabilities.sources["queue.groups"].result;
 /** One queue row's schema, as the `queue.groups` source declares it. */
 export const rowSchema = groups.items.properties.pages.items.properties.rows.items as unknown as ObjectSchema;
 
-type Schemas = { params: ObjectSchema; state: ObjectSchema; context: ObjectSchema; data: ObjectSchema };
+type Schemas = {
+  params: ObjectSchema;
+  state: ObjectSchema;
+  context: ObjectSchema;
+  data: ObjectSchema;
+  actions: ObjectSchema;
+};
 
-/** The four input schemas of a manifest, `data` built from its sources' results (what `dataSchema` yields). */
+/** The five input schemas of a manifest, `data` built from its sources' results (what `dataSchema` yields). */
 export function inputSchemas(manifest: unknown): Schemas {
   const { params, state, context, sources } = manifest as Manifest;
   const properties = Object.fromEntries(
@@ -42,5 +49,11 @@ export function inputSchemas(manifest: unknown): Schemas {
     ]),
   );
   const data = { type: "object", properties, required: Object.keys(properties), additionalProperties: false };
-  return { params, state, context, data } as unknown as Schemas;
+  return {
+    params,
+    state,
+    context,
+    data,
+    actions: actionsSchema(manifest as Manifest, capabilities as never),
+  } as unknown as Schemas;
 }

@@ -24,6 +24,7 @@ import {
   type ObjectSchema,
   objectType,
   PRESENT,
+  type Restriction,
   resolvePath,
   type Scope,
   typeOf,
@@ -956,11 +957,13 @@ function iterate(
   };
 }
 
+const limitsOf = (scope: Scope) => scope.restrict ?? EXPR_LIMITS;
+
 /** Why a `$lit` payload is not a JSON value within bounds, counting its values as expression nodes. */
 function literalProblem(value: unknown, depth: number, scope: Scope): [LiveframeError["kind"], string] | undefined {
-  if (++scope.budget.nodes > EXPR_LIMITS.nodes)
-    return ["limit-exceeded", `Expected at most ${EXPR_LIMITS.nodes} expression nodes`];
-  if (depth > EXPR_LIMITS.depth) return ["limit-exceeded", `Expected at most ${EXPR_LIMITS.depth} levels of nesting`];
+  const { depth: maxDepth, nodes: maxNodes } = limitsOf(scope);
+  if (++scope.budget.nodes > maxNodes) return ["limit-exceeded", `Expected at most ${maxNodes} expression nodes`];
+  if (depth > maxDepth) return ["limit-exceeded", `Expected at most ${maxDepth} levels of nesting`];
   if (value === null || typeof value === "string" || typeof value === "boolean") return;
   if (typeof value === "number")
     return Number.isFinite(value) ? undefined : ["invalid-document", "Expected a finite number"];
@@ -1002,23 +1005,24 @@ export function analyzeExpression(expr: unknown, scope: Scope, pointer: string, 
 }
 
 function analyze(expr: unknown, scope: Scope, base: string, depth: number, c: Checks): Typed {
-  if (depth > EXPR_LIMITS.depth) {
+  const limits = limitsOf(scope);
+  if (depth > limits.depth) {
     c.reject(
       base,
-      `Expected at most ${EXPR_LIMITS.depth} levels of nesting`,
+      `Expected at most ${limits.depth} levels of nesting`,
       "limit-exceeded",
-      `at most ${EXPR_LIMITS.depth} levels`,
+      `at most ${limits.depth} levels`,
     );
     return BAD;
   }
-  if (++scope.budget.nodes > EXPR_LIMITS.nodes) {
+  if (++scope.budget.nodes > limits.nodes) {
     // Reported where the bound is crossed; the nodes after it only repeat the news.
-    if (scope.budget.nodes === EXPR_LIMITS.nodes + 1)
+    if (scope.budget.nodes === limits.nodes + 1)
       c.reject(
         base,
-        `Expected at most ${EXPR_LIMITS.nodes} expression nodes`,
+        `Expected at most ${limits.nodes} expression nodes`,
         "limit-exceeded",
-        `at most ${EXPR_LIMITS.nodes} nodes`,
+        `at most ${limits.nodes} nodes`,
       );
     return BAD;
   }
@@ -1061,6 +1065,24 @@ function analyze(expr: unknown, scope: Scope, base: string, depth: number, c: Ch
     );
     return BAD;
   }
+  // Only a template's tree expression may hold `$embed`; it is replaced before any expression runs (plan 029 B12).
+  if (name === "$embed" && scope.restrict?.operators.has(name))
+    return {
+      type: DYNAMIC,
+      run: () => {
+        throw new Error("A $embed was evaluated before its template expanded");
+      },
+    };
+  const known = Object.hasOwn(SPECIAL, name) || Object.hasOwn(EAGER, name);
+  if (known && scope.restrict && !scope.restrict.operators.has(name)) {
+    c.reject(
+      at(base, name),
+      `Operator ${name} is not allowed here`,
+      "invalid-prop",
+      "an operator allowed in a tree expression",
+    );
+    return BAD;
+  }
   if (Object.hasOwn(SPECIAL, name)) return (SPECIAL[name] as Special)(expr[name], scope, base, depth, c);
   if (Object.hasOwn(EAGER, name)) return eagerNode(name, EAGER[name] as Eager, expr[name], scope, base, depth, c);
   c.reject(at(base, name), `Unknown operator ${name}`, "invalid-document", `one of: ${OPERATORS.join(", ")}`);
@@ -1095,17 +1117,20 @@ function objectConstructor(
   };
 }
 
-/** Checks an expression against a scope: its inferred type, or the errors at their pointers. */
-export function checkExpression(expr: unknown, scope: Scope, pointer = ""): Result<ExprType> {
+/**
+ * Checks an expression against a scope: its inferred type, or the errors at their pointers. `restrict`
+ * narrows the language to an operator allow-list and smaller bounds, for expressions a renderer evaluates.
+ */
+export function checkExpression(expr: unknown, scope: Scope, pointer = "", restrict?: Restriction): Result<ExprType> {
   const c = documentChecks();
-  const typed = analyze(expr, scope, pointer, 1, c);
+  const typed = analyze(expr, restrict ? { ...scope, restrict } : scope, pointer, 1, c);
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: typed.type };
 }
 
 /** Checks an expression and returns its closure; run it with a `Frame` whose slots follow the scope. */
-export function compileExpression(expr: unknown, scope: Scope, pointer = ""): Result<Fn> {
+export function compileExpression(expr: unknown, scope: Scope, pointer = "", restrict?: Restriction): Result<Fn> {
   const c = documentChecks();
-  const typed = analyze(expr, scope, pointer, 1, c);
+  const typed = analyze(expr, restrict ? { ...scope, restrict } : scope, pointer, 1, c);
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: typed.run };
 }
 

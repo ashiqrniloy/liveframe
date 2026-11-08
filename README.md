@@ -39,6 +39,7 @@ The backend subpaths (`/store/fs`, `/preview/worker`, the in-process package loa
 | `authoring` | `TextEncoder`, `TextDecoder`, `URL`, `console` |
 | `runner-kit` | none |
 | `template` | none |
+| `surface` | none |
 | `preview/capture` | `TextEncoder`, `TextDecoder`, `URL` |
 | `conformance` | `TextDecoder`, `console` |
 | `pack` | `TextDecoder`, `console` |
@@ -166,6 +167,7 @@ if (patch.ok) {
 | `@arnilo/liveframe/sdk` | The JSX runtime (`/sdk/jsx-runtime`, `/sdk/jsx-dev-runtime`), intent helpers and `render()` |
 | `@arnilo/liveframe/sdk/gen` | The host-side emitters behind `liveframe gen`: `generate()`, `generateDefinitions()`, `generateElementsSchema()` and `generateTemplateSchema()` |
 | `@arnilo/liveframe/react` | The renderer: `createRenderer()`, `<Surface>` and `implement()` |
+| `@arnilo/liveframe/surface` | The framework-independent surface core under `/react`: `createSurfaceCore()`, node contexts and local state |
 | `@arnilo/liveframe/css` | The scoped CSS projection and the class, style, scope and variable helpers; the host inserts sheets |
 | `@arnilo/liveframe/pack` | Package and scenario formats, structural validators, `pack()`, `verifyPackage()`, `canonicalJson()` and `packageHash()` |
 | `@arnilo/liveframe/store` | Record formats, the `Store` interface, `memoryStore()` and `loadPlacement()` |
@@ -206,6 +208,7 @@ The client starts the server itself. The [MCP guide](docs/mcp.md) covers the eig
 - [Writing widgets](docs/sdk.md) — the TSX SDK, intent helpers and `liveframe gen`
 - [The renderer](docs/renderer.md) — primitives, implementations, `<Surface>` and intent handling
 - [Styling](docs/styling.md) — recipes, the three sheets and scoped CSS
+- [Localisation](docs/localisation.md) — locale through `context`, host-formatted text and what stays deterministic
 - [Template widgets](docs/templates.md) — data-bound widgets as JSON, installable without a sandbox
 - [Packages, stores and runners](docs/packages.md) — `pack()`, `fileStore`, `inProcessRunner`, `workerRunner`
 - [Preview and capture](docs/preview.md) — preview sessions, `<Preview>` and `liveframe preview capture`

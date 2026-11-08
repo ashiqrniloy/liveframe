@@ -11,7 +11,7 @@ import {
 } from "@arnilo/liveframe";
 import { pack, type WidgetPackage } from "@arnilo/liveframe/pack";
 import { inProcessRunner } from "@arnilo/liveframe/preview";
-import type { WidgetProps } from "@arnilo/liveframe/sdk";
+import type { WidgetInputs } from "@arnilo/liveframe/sdk";
 import { drafts, packageOptions, value } from "../../src/__tests__/fixtures/widgets/drafts.ts";
 import { proofWidgets } from "../../src/__tests__/fixtures/widgets/index.ts";
 
@@ -38,11 +38,11 @@ export interface Snapshot {
   readonly manifest: Manifest;
   readonly actions: readonly Intent[];
 }
-export async function createSession(pkg: WidgetPackage, initial: WidgetProps) {
+export async function createSession(pkg: WidgetPackage, initial: WidgetInputs) {
   const surfaceId = crypto.randomUUID();
   const validator = compileValidator({ ...packageOptions, manifest: pkg.manifest });
   let inputs = structuredClone(initial);
-  const draw = async (next: WidgetProps, revision: number) =>
+  const draw = async (next: WidgetInputs, revision: number) =>
     value(await runner.render(pkg, next, { ...packageOptions, surfaceId, revision }));
   let tree = await draw(inputs, 1);
   const actions: Intent[] = [];

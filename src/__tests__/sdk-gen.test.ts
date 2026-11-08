@@ -2,13 +2,13 @@ import { expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { validateCatalog } from "../formats/catalog.ts";
 import {
-  generate as generateFromSubpath,
   generateDefinitions as generateDefinitionsFromSubpath,
+  generate as generateFromSubpath,
 } from "@arnilo/liveframe/sdk/gen";
-import { generate, generateDefinitions } from "../sdk/gen.ts";
+import { validateCatalog } from "../formats/catalog.ts";
 import { arr, bool, obj, str } from "../schema.ts";
+import { generate, generateDefinitions } from "../sdk/gen.ts";
 import proof from "./fixtures/proof/catalog.json" with { type: "json" };
 
 const catalog = validateCatalog(proof);

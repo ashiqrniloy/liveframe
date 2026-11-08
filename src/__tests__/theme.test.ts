@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { schemaDocument } from "../formats/registry.ts";
-import { validateTheme, type Theme, type Vocabulary } from "../index.ts";
+import { type Theme, type Vocabulary, validateTheme } from "../index.ts";
 import vocabulary from "./fixtures/vocabulary.json" with { type: "json" };
 
 const names: Vocabulary = { ...vocabulary, colourRoles: ["surface.base"], typographyRoles: ["body"] };

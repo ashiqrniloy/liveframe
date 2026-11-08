@@ -102,6 +102,8 @@ Nothing after this point needs a deployment.
 
 **Tier 1, local.** The user opens a menu. The host's `menu` primitive handles it in the browser. Nothing leaves the browser, and the widget does not re-run.
 
+A widget can also declare **local state** in its manifest (`local`, `initialLocal`) and let nodes read it. A `setLocal` event writes one key in the browser, and the nodes' `when` (show or hide) and `bind` (replace a prop) expressions are evaluated again there, so a live filter over 50 rows makes no round trip and never reaches `onIntent`. The expressions are data from a closed operator list whose only inputs are `local` and the node's own props; the renderer checks every bound value against the prop schema before an implementation reads it (spec §8).
+
 **Tier 2, `setState`.** The user clicks the "Mine" tab.
 1. **LF:** the renderer sees the event's intent `{ type: "setState", key: "filter", value: "mine" }` and calls `onIntent`.
 2. **Host:** checks the key against the state schema, saves the new state to the store (`putState`), and repeats C2–C4.
@@ -110,6 +112,8 @@ Nothing after this point needs a deployment.
 **Tier 3, action.** The user clicks "Claim".
 1. **LF:** passes `{ type: "action", name: "tasks.claim", args: { id: "t-4812" } }` to `onIntent`.
 2. **Host:** checks that the action is in the widget's manifest and the args match its schema, authorises it **as the viewer**, asks for confirmation if it is irreversible, and runs it. It then usually re-renders the widget so the data reflects the change.
+
+3. **Host:** reports the outcome back as the `actions` input of the next render (`pending` while it runs, then `ok`, `failed` or `refused`, with an optional reason), so the widget can draw "Claiming…" and "Could not claim: name taken". The library stores none of it (spec §8).
 
 An intent carries no authority. It is a request the host may refuse.
 

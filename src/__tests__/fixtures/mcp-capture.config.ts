@@ -1,5 +1,6 @@
-import config from "./mcp.config.ts";
 import { fakeCapture } from "./capture-backend.ts";
+import config from "./mcp.config.ts";
+
 const axes = process.env.LF_CAPTURE_WIDTHS
   ? {
       scenarios: ["ready"],

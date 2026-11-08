@@ -3,8 +3,8 @@ import { createHash } from "node:crypto";
 import { stateSelectors } from "../css/design-system.ts";
 import { designSystemCss, slotClass } from "../css/index.ts";
 import { recipeDeclarations } from "../css/recipe.ts";
-import { recipeProperties } from "../formats/fixed.ts";
 import type { RecipeKey } from "../formats/design-system.ts";
+import { recipeProperties } from "../formats/fixed.ts";
 import {
   type Catalog,
   type DesignSystem,

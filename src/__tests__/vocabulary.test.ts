@@ -1,9 +1,9 @@
 import { expect, test } from "bun:test";
 import { Ajv2020 } from "ajv/dist/2020.js";
-import proofVocabulary from "./fixtures/vocabulary.json" with { type: "json" };
 import { vocabularySchema } from "../formats/vocabulary.ts";
-import { type Vocabulary, semantics, validateVocabulary } from "../index.ts";
+import { semantics, type Vocabulary, validateVocabulary } from "../index.ts";
 import proofCatalog from "./fixtures/proof/catalog.json" with { type: "json" };
+import proofVocabulary from "./fixtures/vocabulary.json" with { type: "json" };
 
 const vocabulary = {
   colourRoles: ["surface.base", "text.muted"],

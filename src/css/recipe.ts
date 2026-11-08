@@ -1,5 +1,5 @@
-import type { ColourValue } from "../formats/dtcg.ts";
 import type { ResolvedRecipe } from "../formats/design-system.ts";
+import type { ColourValue } from "../formats/dtcg.ts";
 import { noPaint, recipeProperties } from "../formats/fixed.ts";
 import { colourVar, extensionVar, typographyVar } from "./names.ts";
 

@@ -51,6 +51,11 @@
       "types": "./dist/react/index.d.ts",
       "default": "./dist/react/index.js"
     },
+    "./surface": {
+      "liveframe:source": "./src/surface/index.ts",
+      "types": "./dist/surface/index.d.ts",
+      "default": "./dist/surface/index.js"
+    },
     "./sdk": {
       "liveframe:source": "./src/sdk/index.ts",
       "types": "./dist/sdk/index.d.ts",

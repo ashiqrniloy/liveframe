@@ -1,4 +1,4 @@
-import { DEFAULT_MAX_ERRORS, LiveframeFailure, type LiveframeError, type Result } from "../errors.ts";
+import { DEFAULT_MAX_ERRORS, type LiveframeError, LiveframeFailure, type Result } from "../errors.ts";
 import type { WidgetPackage } from "../formats/package.ts";
 import { validatePlacement, validateState } from "../formats/records.ts";
 import type { Json } from "../formats/tree.ts";
@@ -6,7 +6,7 @@ import type { verifyPackage } from "../pack/verify.ts";
 import { compileSchema } from "../validate/schema.ts";
 import type { Store } from "./index.ts";
 import { assertScope } from "./scope.ts";
-import { verifyStoredPackage, type verifiedPackages } from "./verified.ts";
+import { type verifiedPackages, verifyStoredPackage } from "./verified.ts";
 
 /** Check host inputs against a verified package without reading or writing a store. */
 export function verifyPlacementInputs(

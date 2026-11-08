@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { action, type Element, jsx, primitive, render, type WidgetProps } from "@arnilo/liveframe/sdk";
+import { action, type Element, jsx, primitive, render, type WidgetInputs } from "@arnilo/liveframe/sdk";
 import { compileValidator } from "../index.ts";
 import { utf8Length } from "../internal.ts";
 import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
@@ -8,7 +8,7 @@ import catalogDocument from "./fixtures/proof/catalog.json" with { type: "json" 
 
 const validator = compileValidator({ catalog: catalogDocument, capabilities, manifest });
 const options = { validator, surfaceId: "home", revision: 1 };
-const inputs: WidgetProps = {
+const inputs: WidgetInputs = {
   params: { canAct: true, canEscalate: false, canViewAlerts: true },
   state: {
     filter: "all",

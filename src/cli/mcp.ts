@@ -331,7 +331,7 @@ const packSchema = {
     },
     scenarios: {
       description:
-        'Required for inline drafts. One to 64 scenarios: name, params, context, optional state and data sources. See "$defs.scenario".',
+        'Required for inline drafts. One to 64 scenarios: name, params, context, optional state, data sources and action statuses. See "$defs.scenario".',
     },
   },
   // `json` is byte-identical in both published schemas, so one copy serves both.
@@ -347,6 +347,10 @@ const renderSchema = {
     },
     context: {
       description: 'Optional context override for this render: any JSON value. "$defs.json" is the value schema.',
+    },
+    actions: {
+      description:
+        'Optional action statuses for this render: an object keyed by action name or result key, each {status: "pending"|"ok"|"failed"|"refused", action?, reason?, value?, at?}. Checked against the manifest; defaults to the scenario\'s actions.',
     },
     outcomes: {
       description:

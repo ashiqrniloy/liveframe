@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
 import { Ajv2020 } from "ajv/dist/2020.js";
+import { validateManifestShape } from "../formats/manifest.ts";
+import { schemaDocument } from "../formats/registry.ts";
 import {
   arr,
   bool,
@@ -15,13 +17,11 @@ import {
   validateCatalog,
   validateManifest,
 } from "../index.ts";
-import { compileSchema, type SchemaSink } from "../validate/schema.ts";
-import { compileIntents } from "../validate/intent.ts";
-import { schemaDocument } from "../formats/registry.ts";
 import { generate } from "../sdk/gen.ts";
-import { validateManifestShape } from "../formats/manifest.ts";
-import proof from "./fixtures/proof/catalog.json" with { type: "json" };
+import { compileIntents } from "../validate/intent.ts";
+import { compileSchema, type SchemaSink } from "../validate/schema.ts";
 import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
+import proof from "./fixtures/proof/catalog.json" with { type: "json" };
 
 const task = obj({ title: str({ maxLength: 20 }) });
 const alert = obj({ level: str({ maxLength: 8, enum: ["info", "error"] }) });

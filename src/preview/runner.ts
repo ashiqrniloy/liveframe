@@ -3,7 +3,7 @@ import type { Capabilities } from "../formats/capabilities.ts";
 import type { Catalog } from "../formats/catalog.ts";
 import type { WidgetPackage } from "../formats/package.ts";
 import type { UiTree } from "../formats/tree.ts";
-import type { WidgetProps } from "../sdk/types.ts";
+import type { WidgetInputs } from "../sdk/types.ts";
 import type { TemplateLimits } from "../template/render.ts";
 
 export type RunnerOptions = {
@@ -18,5 +18,5 @@ export type RunnerOptions = {
 
 /** Backend execution supplied by the app, shared by preview and production. */
 export interface Runner {
-  render(pkg: WidgetPackage, inputs: WidgetProps, options: RunnerOptions): Promise<Result<UiTree>>;
+  render(pkg: WidgetPackage, inputs: WidgetInputs, options: RunnerOptions): Promise<Result<UiTree>>;
 }

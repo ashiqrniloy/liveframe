@@ -6,6 +6,7 @@ import { validateWidgetPackageShape, type WidgetPackage } from "../formats/packa
 import { freezeCopy } from "../internal.ts";
 import type { LanguageSchema } from "../schema.ts";
 import { validateTemplate } from "../template/document.ts";
+import { compileActions } from "../validate/actions.ts";
 import { compileSchema } from "../validate/schema.ts";
 import { checkModule } from "./bundle.ts";
 import { packageHash } from "./hash.ts";
@@ -34,6 +35,7 @@ export function validatePackageInputs(pkg: WidgetPackage, options: PackageContex
       required: Object.keys(sources),
       additionalProperties: false,
     }),
+    actions: compileActions(manifest.value, options.capabilities),
   };
   const sink = { errors: c.errors, maxErrors: 20 };
   for (const [i, scenario] of pkg.scenarios.entries()) {
@@ -42,6 +44,7 @@ export function validatePackageInputs(pkg: WidgetPackage, options: PackageContex
     checks.state(scenario.state === undefined ? initialState : scenario.state, `/scenarios/${i}/state`, sink);
     checks.context(scenario.context, `/scenarios/${i}/context`, sink);
     checks.data(scenario.data, `/scenarios/${i}/data`, sink);
+    if (scenario.actions !== undefined) checks.actions(scenario.actions, `/scenarios/${i}/actions`, sink);
   }
   if (c.errors.length) return { ok: false, errors: c.errors.map((error) => ({ ...error, kind: "invalid-document" })) };
   // Template errors keep their own kinds (`unknown-name`, `invalid-prop`, …): they say what to fix.

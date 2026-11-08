@@ -1,6 +1,6 @@
 import { LiveframeFailure } from "../errors.ts";
 import { loadPlacement, type Store } from "../store/index.ts";
-import { check, type ConformanceCase, ConformanceFailure } from "./case.ts";
+import { type ConformanceCase, ConformanceFailure, check } from "./case.ts";
 import { storeFixture } from "./fixture.ts";
 
 // Compare JSON records independent of the backend's object-key order.

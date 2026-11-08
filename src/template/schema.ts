@@ -31,7 +31,18 @@ export const templateSchema = {
     ...languageForms(false),
     objectSchema,
     json: jsonSchema,
-    intent: treeSchema.$defs.intent,
+    // An action's `resultKey` is a label and may be an expression, so a row can key its own result (plan 029 A5).
+    intent: {
+      ...treeSchema.$defs.intent,
+      oneOf: [
+        treeSchema.$defs.intent.oneOf[0],
+        {
+          ...treeSchema.$defs.intent.oneOf[1],
+          properties: { ...treeSchema.$defs.intent.oneOf[1].properties, resultKey: json },
+        },
+        treeSchema.$defs.intent.oneOf[2],
+      ],
+    },
     component: {
       type: "object",
       properties: { params: { $ref: "#/$defs/objectSchema" }, root: { $ref: "#/$defs/node" } },
@@ -48,6 +59,9 @@ export const templateSchema = {
         props: jsonMap,
         style: jsonMap,
         events: { type: "object", additionalProperties: { $ref: "#/$defs/intent" } },
+        // Tree expressions, copied verbatim; only `{ "$embed": Expr }` inside them is a template value (plan 029 B12).
+        when: json,
+        bind: jsonMap,
         children: { type: "array", items: { $ref: "#/$defs/node" } },
         $let: {
           type: "array",

@@ -3,7 +3,7 @@ import type { WidgetPackage } from "../formats/package.ts";
 import type { UiTree } from "../formats/tree.ts";
 import { errorMessage } from "../internal.ts";
 import { renderWidget } from "../runner-kit/render.ts";
-import type { WidgetProps } from "../sdk/types.ts";
+import type { WidgetInputs } from "../sdk/types.ts";
 import { verifyPackageHash } from "./cache.ts";
 import { isModuleLoaded, type LoadedModule, loadedModuleCount, loadModule } from "./load.ts";
 import type { Runner, RunnerOptions } from "./runner.ts";
@@ -75,7 +75,7 @@ export function inProcessRunner(options: { readonly maxModules?: number } = {}):
  */
 export async function renderPackage(
   pkg: WidgetPackage,
-  inputs: WidgetProps,
+  inputs: WidgetInputs,
   options: RunnerOptions,
 ): Promise<Result<UiTree>> {
   if (pkg.template !== undefined) return renderTemplateRun(pkg.template, pkg, inputs, options);

@@ -848,6 +848,26 @@
           "additionalProperties": false,
           "required": [
             "type",
+            "key"
+          ],
+          "properties": {
+            "type": {
+              "const": "setLocal"
+            },
+            "key": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "value": {
+              "$ref": "#/$defs/expr"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
             "name",
             "args"
           ],
@@ -2174,6 +2194,21 @@
               "additionalProperties": false,
               "properties": {}
             },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "semantics": {
+                  "$ref": "#/$defs/expr"
+                },
+                "label": {
+                  "$ref": "#/$defs/expr"
+                }
+              }
+            },
             "children": {
               "type": "array",
               "items": {
@@ -2267,6 +2302,21 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {}
+            },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "semantics": {
+                  "$ref": "#/$defs/expr"
+                },
+                "label": {
+                  "$ref": "#/$defs/expr"
+                }
+              }
             },
             "children": {
               "type": "array",
@@ -2362,6 +2412,21 @@
               "additionalProperties": false,
               "properties": {}
             },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "semantics": {
+                  "$ref": "#/$defs/expr"
+                },
+                "label": {
+                  "$ref": "#/$defs/expr"
+                }
+              }
+            },
             "children": {
               "type": "array",
               "items": {
@@ -2456,6 +2521,21 @@
               "additionalProperties": false,
               "properties": {}
             },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "semantics": {
+                  "$ref": "#/$defs/expr"
+                },
+                "label": {
+                  "$ref": "#/$defs/expr"
+                }
+              }
+            },
             "children": {
               "type": "array",
               "items": {
@@ -2541,6 +2621,21 @@
               "additionalProperties": false,
               "properties": {}
             },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "label": {
+                  "$ref": "#/$defs/expr"
+                },
+                "axis": {
+                  "$ref": "#/$defs/expr"
+                }
+              }
+            },
             "children": {
               "type": "array",
               "items": {
@@ -2610,6 +2705,18 @@
               "additionalProperties": false,
               "properties": {}
             },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "orientation": {
+                  "$ref": "#/$defs/expr"
+                }
+              }
+            },
             "$let": {
               "$ref": "#/$defs/let"
             },
@@ -2673,6 +2780,18 @@
               "additionalProperties": false,
               "properties": {}
             },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "text": {
+                  "$ref": "#/$defs/expr"
+                }
+              }
+            },
             "$let": {
               "$ref": "#/$defs/let"
             },
@@ -2735,6 +2854,18 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {}
+            },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "text": {
+                  "$ref": "#/$defs/expr"
+                }
+              }
             },
             "$let": {
               "$ref": "#/$defs/let"
@@ -2812,6 +2943,21 @@
               "additionalProperties": false,
               "properties": {}
             },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "text": {
+                  "$ref": "#/$defs/expr"
+                },
+                "level": {
+                  "$ref": "#/$defs/expr"
+                }
+              }
+            },
             "$let": {
               "$ref": "#/$defs/let"
             },
@@ -2886,6 +3032,21 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {}
+            },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "$ref": "#/$defs/expr"
+                },
+                "label": {
+                  "$ref": "#/$defs/expr"
+                }
+              }
             },
             "$let": {
               "$ref": "#/$defs/let"
@@ -2963,6 +3124,21 @@
               "additionalProperties": false,
               "properties": {}
             },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "src": {
+                  "$ref": "#/$defs/expr"
+                },
+                "alt": {
+                  "$ref": "#/$defs/expr"
+                }
+              }
+            },
             "$let": {
               "$ref": "#/$defs/let"
             },
@@ -3038,6 +3214,21 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {}
+            },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "label": {
+                  "$ref": "#/$defs/expr"
+                },
+                "href": {
+                  "$ref": "#/$defs/expr"
+                }
+              }
             },
             "$let": {
               "$ref": "#/$defs/let"
@@ -3148,6 +3339,30 @@
               "properties": {
                 "onPress": {
                   "$ref": "#/$defs/intent"
+                }
+              }
+            },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "label": {
+                  "$ref": "#/$defs/expr"
+                },
+                "icon": {
+                  "$ref": "#/$defs/expr"
+                },
+                "disabled": {
+                  "$ref": "#/$defs/expr"
+                },
+                "current": {
+                  "$ref": "#/$defs/expr"
+                },
+                "pressed": {
+                  "$ref": "#/$defs/expr"
                 }
               }
             },
@@ -3288,6 +3503,36 @@
                 }
               }
             },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "label": {
+                  "$ref": "#/$defs/expr"
+                },
+                "value": {
+                  "$ref": "#/$defs/expr"
+                },
+                "placeholder": {
+                  "$ref": "#/$defs/expr"
+                },
+                "multiline": {
+                  "$ref": "#/$defs/expr"
+                },
+                "disabled": {
+                  "$ref": "#/$defs/expr"
+                },
+                "readOnly": {
+                  "$ref": "#/$defs/expr"
+                },
+                "maxLength": {
+                  "$ref": "#/$defs/expr"
+                }
+              }
+            },
             "$let": {
               "$ref": "#/$defs/let"
             },
@@ -3381,6 +3626,27 @@
                 }
               }
             },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "label": {
+                  "$ref": "#/$defs/expr"
+                },
+                "value": {
+                  "$ref": "#/$defs/expr"
+                },
+                "disabled": {
+                  "$ref": "#/$defs/expr"
+                },
+                "options": {
+                  "$ref": "#/$defs/expr"
+                }
+              }
+            },
             "$let": {
               "$ref": "#/$defs/let"
             },
@@ -3465,6 +3731,24 @@
               "properties": {
                 "onChange": {
                   "$ref": "#/$defs/intent"
+                }
+              }
+            },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "label": {
+                  "$ref": "#/$defs/expr"
+                },
+                "checked": {
+                  "$ref": "#/$defs/expr"
+                },
+                "disabled": {
+                  "$ref": "#/$defs/expr"
                 }
               }
             },
@@ -3555,6 +3839,24 @@
                 }
               }
             },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "label": {
+                  "$ref": "#/$defs/expr"
+                },
+                "checked": {
+                  "$ref": "#/$defs/expr"
+                },
+                "disabled": {
+                  "$ref": "#/$defs/expr"
+                }
+              }
+            },
             "$let": {
               "$ref": "#/$defs/let"
             },
@@ -3627,6 +3929,21 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {}
+            },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "label": {
+                  "$ref": "#/$defs/expr"
+                },
+                "disabled": {
+                  "$ref": "#/$defs/expr"
+                }
+              }
             },
             "children": {
               "type": "array",
@@ -3724,6 +4041,24 @@
                 }
               }
             },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "label": {
+                  "$ref": "#/$defs/expr"
+                },
+                "icon": {
+                  "$ref": "#/$defs/expr"
+                },
+                "disabled": {
+                  "$ref": "#/$defs/expr"
+                }
+              }
+            },
             "$let": {
               "$ref": "#/$defs/let"
             },
@@ -3786,6 +4121,18 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {}
+            },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "label": {
+                  "$ref": "#/$defs/expr"
+                }
+              }
             },
             "children": {
               "type": "array",
@@ -3870,6 +4217,21 @@
                 }
               }
             },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "label": {
+                  "$ref": "#/$defs/expr"
+                },
+                "open": {
+                  "$ref": "#/$defs/expr"
+                }
+              }
+            },
             "children": {
               "type": "array",
               "items": {
@@ -3938,6 +4300,18 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {}
+            },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "text": {
+                  "$ref": "#/$defs/expr"
+                }
+              }
             },
             "children": {
               "type": "array",
@@ -4024,6 +4398,21 @@
                 }
               }
             },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "label": {
+                  "$ref": "#/$defs/expr"
+                },
+                "value": {
+                  "$ref": "#/$defs/expr"
+                }
+              }
+            },
             "children": {
               "type": "array",
               "items": {
@@ -4104,6 +4493,21 @@
               "properties": {
                 "onToggle": {
                   "$ref": "#/$defs/intent"
+                }
+              }
+            },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "label": {
+                  "$ref": "#/$defs/expr"
+                },
+                "open": {
+                  "$ref": "#/$defs/expr"
                 }
               }
             },
@@ -4209,6 +4613,27 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {}
+            },
+            "when": {
+              "$ref": "#/$defs/expr"
+            },
+            "bind": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "label": {
+                  "$ref": "#/$defs/expr"
+                },
+                "count": {
+                  "$ref": "#/$defs/expr"
+                },
+                "value": {
+                  "$ref": "#/$defs/expr"
+                },
+                "disabled": {
+                  "$ref": "#/$defs/expr"
+                }
+              }
             },
             "children": {
               "type": "array",

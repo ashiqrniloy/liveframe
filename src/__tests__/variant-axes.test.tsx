@@ -14,8 +14,8 @@ import {
   validateDesignSystem,
 } from "../index.ts";
 import { createRenderer, implement } from "../react/index.ts";
-import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
 import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
+import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
 import proofCatalog from "./fixtures/proof/catalog.json" with { type: "json" };
 
 const tone = { type: "string", maxLength: 12, enum: ["neutral", "critical"] } as const;

@@ -61,6 +61,15 @@
                   "$ref": "#/$defs/intent"
                 }
               },
+              "when": {
+                "$ref": "#/$defs/json"
+              },
+              "bind": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/$defs/json"
+                }
+              },
               "id": {
                 "type": "string",
                 "pattern": "^root(?:/(?:[a-zA-Z0-9_.!~*'():-]|%[0-9A-F]{2})+)*$"
@@ -247,6 +256,11 @@
             "bindAll": {
               "const": true
             },
+            "resultKey": {
+              "maxLength": 128,
+              "pattern": "^.+$",
+              "type": "string"
+            },
             "type": {
               "maxLength": 6,
               "enum": [
@@ -282,6 +296,31 @@
               "bindAll"
             ]
           }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "value": {
+              "$ref": "#/$defs/json"
+            },
+            "type": {
+              "maxLength": 8,
+              "enum": [
+                "setLocal"
+              ],
+              "type": "string"
+            },
+            "key": {
+              "maxLength": 128,
+              "pattern": "^.+$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "key"
+          ],
+          "additionalProperties": false
         }
       ]
     },
@@ -303,6 +342,15 @@
           "type": "object",
           "additionalProperties": {
             "$ref": "#/$defs/intent"
+          }
+        },
+        "when": {
+          "$ref": "#/$defs/json"
+        },
+        "bind": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/json"
           }
         },
         "children": {

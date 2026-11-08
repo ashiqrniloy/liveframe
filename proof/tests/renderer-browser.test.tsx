@@ -2,8 +2,8 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import type { UiNode, UiTree } from "@arnilo/liveframe";
 import { type Browser, chromium, type Page } from "playwright";
 import { renderToString } from "react-dom/server";
-import { base, proofSheets, systemSheets, themeSheets } from "../css/sheets.ts";
 import { startRenderTrace, stopRenderTrace, TRACE_MARKS } from "../../bench/trace.ts";
+import { base, proofSheets, systemSheets, themeSheets } from "../css/sheets.ts";
 import { openPage } from "../host/pages.ts";
 import { primitiveCss } from "../renderer/primitives/base.ts";
 import { certifiedTheme } from "../styles/certified/theme.ts";
@@ -794,3 +794,94 @@ test(
     }),
   15000,
 );
+
+// Plan 029 Task 4 (design P1): 50 rows carry a `when` over local state and a keystroke flips up to 10 of them.
+// The filter commit is a `setLocal` write: it must not reach `onIntent`.
+test("live_filter_50_rows_no_round_trip", async () => {
+  const session = await openPage("full", "agent-home", "ready");
+  const { tree, manifest } = session.snapshot();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  let rows = 0;
+  const gate = (node: UiNode): UiNode => {
+    const children = node.children?.map(gate);
+    const row = /\/tasks\/task-(\d+)$/.exec(node.id);
+    if (row) rows++;
+    return {
+      ...node,
+      ...(row ? { when: { $contains: [`Row ${pad(Number(row[1]))}`, { $path: "local.q" }] } } : {}),
+      ...(children ? { children } : {}),
+    };
+  };
+  const gated = gate(tree.root);
+  expect(rows).toBe(50);
+  const filter: UiNode = {
+    id: "root/stack/header/filter",
+    kind: "textField",
+    props: { label: "Filter" },
+    events: { onChange: { type: "setLocal", key: "q" } },
+  };
+  const header = gated.children?.[0]?.children?.[0];
+  if (!header) throw new Error("Missing header");
+  const withFilter: UiTree = {
+    ...tree,
+    root: {
+      ...gated,
+      children: gated.children?.map((child, i) =>
+        i === 0
+          ? {
+              ...child,
+              children: child.children?.map((c, j) =>
+                j === 0 ? { ...c, children: [...(c.children ?? []), filter] } : c,
+              ),
+            }
+          : child,
+      ),
+    } as UiNode,
+  };
+  const localManifest = {
+    ...manifest,
+    local: {
+      type: "object",
+      properties: { q: { type: "string", maxLength: 64 } },
+      required: ["q"],
+      additionalProperties: false,
+    },
+    initialLocal: { q: "" },
+  };
+  const median = (values: number[]) => {
+    const sorted = [...values].sort((a, b) => a - b);
+    return ((sorted[(sorted.length - 1) >> 1] as number) + (sorted[sorted.length >> 1] as number)) / 2;
+  };
+  const { page, errors } = await openProductionPage();
+  try {
+    // "Row 0" shows 10 rows and "Row 00" one: each keystroke flips 9. "" shows all 50 and "zzz" none: 50.
+    const typing = await page.evaluate(
+      (json) => {
+        const { tree, manifest } = JSON.parse(json);
+        return window.measureLiveFilter(tree, manifest, ["Row 0", "Row 00"], 52);
+      },
+      JSON.stringify({ tree: withFilter, manifest: localManifest }),
+    );
+    const worst = await page.evaluate(
+      (json) => {
+        const { tree, manifest } = JSON.parse(json);
+        return window.measureLiveFilter(tree, manifest, ["", "zzz"], 52);
+      },
+      JSON.stringify({ tree: withFilter, manifest: localManifest }),
+    );
+    expect(typing.production).toBe(true);
+    // Round 0 mounts nothing new; 2 warm-up rounds are dropped from each median.
+    const steady = typing.walls.slice(2);
+    const flipped = typing.elements.slice(2);
+    expect(new Set(flipped).size).toBe(2);
+    console.log(
+      `679-node live filter production: keystroke flipping 9 of 50 rows median ${median(steady).toFixed(3)} ms (${steady.length} keystrokes, budget 4); all 50 flip median ${median(worst.walls.slice(2)).toFixed(3)} ms (recorded, not gated)`,
+    );
+    expect(typing.intents).toBe(0);
+    expect(worst.intents).toBe(0);
+    expect(median(steady)).toBeLessThanOrEqual(4);
+    expect(errors).toEqual([]);
+  } finally {
+    await page.close();
+  }
+}, 60000);

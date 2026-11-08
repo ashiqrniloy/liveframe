@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { Ajv2020 } from "ajv/dist/2020.js";
+import { schemaDocument } from "../formats/registry.ts";
 import {
   arr,
   bool,
@@ -13,7 +14,6 @@ import {
   str,
 } from "../schema.ts";
 import { compileSchema } from "../validate/schema.ts";
-import { schemaDocument } from "../formats/registry.ts";
 
 const forms = [
   str({ minLength: 1, maxLength: 2, enum: ["ok"] }),

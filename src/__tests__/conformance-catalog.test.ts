@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
-import { str, type Catalog, type LanguageSchema } from "@arnilo/liveframe";
-import { catalogSuite, ConformanceFailure } from "@arnilo/liveframe/conformance";
-import { catalog, capabilities, manifest, examples, scenarioExamples } from "./fixtures/conformance/index.ts";
+import { type Catalog, type LanguageSchema, str } from "@arnilo/liveframe";
+import { ConformanceFailure, catalogSuite } from "@arnilo/liveframe/conformance";
+import { capabilities, catalog, examples, manifest, scenarioExamples } from "./fixtures/conformance/index.ts";
 import { supplementalExample } from "./fixtures/conformance/supplemental.ts";
 
 const input = { catalog, capabilities, manifest, examples };

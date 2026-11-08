@@ -5,8 +5,8 @@ import { type Catalog, validateCatalog } from "./catalog.ts";
 import { contrastRatio, over, toSrgb } from "./contrast.ts";
 import { type DesignSystem, prepareDesignSystem, type RecipeKey, type ResolvedRecipe } from "./design-system.ts";
 import { type Colour, type ColourValue, fontWeights } from "./dtcg.ts";
-import { catalogStates } from "./vocabulary.ts";
 import { type Theme, validateTheme } from "./theme.ts";
+import { catalogStates } from "./vocabulary.ts";
 
 /** One pair a catalog's recipes imply and the theme misses: the recipe, the pair, and the miss. */
 export type ContrastFinding = {

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { ConformanceFailure, storeSuite, type ConformanceCase } from "@arnilo/liveframe/conformance";
+import { type ConformanceCase, ConformanceFailure, storeSuite } from "@arnilo/liveframe/conformance";
 import { memoryStore, type Store } from "@arnilo/liveframe/store";
 
 const rule = (suffix: string) => `store_${suffix}`;

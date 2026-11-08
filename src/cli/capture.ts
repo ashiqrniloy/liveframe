@@ -2,12 +2,13 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import type * as Playwright from "playwright";
 import {
-  capture as captureBytes,
   CaptureError,
-  playwrightBackend,
-  type CaptureOptions as LibraryOptions,
   type CaptureIndex,
+  capture as captureBytes,
+  type CaptureOptions as LibraryOptions,
+  playwrightBackend,
 } from "../preview/capture/index.ts";
+
 export { CaptureError } from "../preview/capture/index.ts";
 export type CaptureOptions = Omit<LibraryOptions, "backend"> & { readonly out: string };
 export class PlaywrightMissing extends CaptureError {

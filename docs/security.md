@@ -21,6 +21,14 @@ So `templateRunner()` executes no author code and is the recommended production 
 
 `limits.steps` (default 1,000,000) is the only bound on a template's running time; `templateRunner()` has no wall-clock timeout. On the reference machine a hostile template that nests two `$map`s over 1,000-item arrays spends the whole default budget and stops with `limit-exceeded` after about 25 ms, and a string-doubling `$let` chain stops at the string cap in about 2 ms. A real widget needs about 10⁴ steps, so a host that accepts templates from untrusted authors can pass a much lower `limits.steps` (100,000 is ten times the proof widgets' need) to cap the cost of one render at about 2.5 ms. Run a template in `workerRunner()` when the host also wants a wall-clock timeout.
 
+## Local bindings run in the browser
+
+A node's `when` and `bind` are expressions evaluated by the renderer ([spec §8](spec.md#8-interaction-synaptas-three-tiers)), so this is the one place the browser computes anything from tree data. They are data, not code: the evaluator is the template language's fixed table of library closures cut down to an operator list with no iteration, binding or collection builders. Their only inputs are `local` (the surface's own local state) and `self` (the node's own props), so an expression cannot reach data the widget did not put in the tree. Each is limited to 16 levels, 64 expression nodes and 256 evaluation steps, a node to 16 `bind` entries and a tree to 10,000 expression nodes. The validator checks every expression against the manifest's `local` schema and the kind's prop schema before the tree arrives, and the renderer checks each bound value again before an implementation reads it; a failure draws the node fallback and reports `binding-failed`.
+
+`setLocal` carries no authority: the renderer applies it, checks the value against the local schema, and never calls `onIntent` or `confirm`. `checkOffered` rejects it on the host side, so no host dispatches it. Local state is never sent anywhere; a widget that wants the host to know a value commits it with a `setState` event. Action results (`actions`) are host facts the widget reads, and a result's `value` must match the capability's `result` schema.
+
+At the largest tree the validator accepts (about 1,200 rows each with a `when` and a `bind`), a keystroke costs under 15 ms in the core and the first arrival about 130 ms, both measured under load, so the bounds also bound the browser's work.
+
 ## Streamed element JSON
 
 `streamElements()` parses text that an agent is still writing, so it treats the text as hostile. It does linear work (open containers and long strings cost the same per character as closed ones), stops at 1,024 levels of nesting (`limit-exceeded` at `/$stream/<offset>`), refuses text longer than four times `limits.bytes` characters, and draws only trees that pass the compiled validator. After a fatal failure it reads no further.

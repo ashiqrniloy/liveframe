@@ -38,6 +38,7 @@ import type { JSX } from "@arnilo/liveframe/sdk/jsx-runtime";
 import * as runtime from "@arnilo/liveframe/sdk/jsx-runtime";
 import * as store from "@arnilo/liveframe/store";
 import * as fileStore from "@arnilo/liveframe/store/fs";
+import * as surface from "@arnilo/liveframe/surface";
 import * as template from "@arnilo/liveframe/template";
 import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
@@ -77,6 +78,10 @@ test("css_exports_are_pinned", () => {
     "themeCss",
     "valueVar",
   ]);
+});
+
+test("surface_export_surface", () => {
+  expect(Object.keys(surface).sort()).toEqual(["createSurfaceCore"]);
 });
 
 test("react_export_surface", () => {
@@ -198,12 +203,15 @@ test("sdk_export_surface", () => {
     "Fragment",
     "action",
     "ephemeralManifest",
+    "ex",
     "jsx",
     "jsxs",
+    "local",
     "primitive",
     "ref",
     "render",
     "renderElements",
+    "self",
     "state",
     "streamElements",
   ]);
@@ -241,6 +249,7 @@ test("sdk_public_types", () => {
     state: { selected: "a" },
     data: {},
     context: {},
+    actions: {},
   };
   const selected: DeepReadonly<{ selected: string }> = props.state;
   const json: Json = selected;

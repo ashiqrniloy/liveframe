@@ -1,3 +1,5 @@
+import { type LiveframeError, LiveframeFailure } from "./errors.ts";
+import { axisCombinations, axisNames, joinVariant } from "./formats/axes.ts";
 import type { Catalog } from "./formats/catalog.ts";
 import {
   type DesignSystem,
@@ -8,10 +10,8 @@ import {
   type ResolvedRecipe,
 } from "./formats/design-system.ts";
 import type { ColourValue, ShadowLayer } from "./formats/dtcg.ts";
-import { axisCombinations, axisNames, joinVariant } from "./formats/axes.ts";
 import { colourProperties, noPaint } from "./formats/fixed.ts";
 import { catalogStates } from "./formats/vocabulary.ts";
-import { LiveframeFailure, type LiveframeError } from "./errors.ts";
 
 export type ResolvedRecipes = Readonly<Partial<Record<RecipeKey, ResolvedRecipe>>>;
 /** Alias entries by source, each with the recipe key that supplied it, so a bad rewrite names the winning entry. */

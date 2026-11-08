@@ -7,6 +7,8 @@ export type SchemaSink = {
   readonly errors: LiveframeError[];
   readonly maxErrors: number;
   readonly nodeId?: string;
+  /** A running count of tree-expression nodes, when the caller bounds them for the whole tree (plan 029 B4). */
+  readonly expressions?: { nodes: number };
 };
 
 export type SchemaCheck = (value: unknown, at: string, sink: SchemaSink) => boolean;

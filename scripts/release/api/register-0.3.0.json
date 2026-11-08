@@ -1660,5 +1660,511 @@
     "reason": "Streamed element JSON: streamElements draws an agent's element JSON progressively as chunks arrive, returning a valid tree of the nodes completed so far",
     "hostAction": "Optional: stream an agent's element JSON through streamElements and send diffTrees patches; existing calls are unchanged",
     "task": "028 T7"
+  },
+  {
+    "subpath": ".",
+    "name": "Capabilities",
+    "change": "widened",
+    "reason": "Action results: an action may declare a `result` schema that types the `value` of an ok status (plan 029 T2)",
+    "hostAction": "Optional: declare `result` on an action to type its ok value",
+    "task": "029 T2"
+  },
+  {
+    "subpath": ".",
+    "name": "Intent",
+    "change": "widened",
+    "reason": "Action results: an action intent may carry a `resultKey` naming the key its status is reported under (plan 029 T2)",
+    "hostAction": "Optional: pass `{ resultKey }` to `action()` when one action runs for many rows",
+    "task": "029 T2"
+  },
+  {
+    "subpath": "./authoring",
+    "name": "RenderInput",
+    "change": "widened",
+    "reason": "Action results: the host reports each action's status to the widget as an optional `actions` input (plan 029 T2)",
+    "hostAction": "Optional: pass `actions` when a widget should draw pending, failed or refused actions; omitting it is `{}`",
+    "task": "029 T2"
+  },
+  {
+    "subpath": "./pack",
+    "name": "Scenario",
+    "change": "widened",
+    "reason": "Action results: the host reports each action's status to the widget as an optional `actions` input (plan 029 T2)",
+    "hostAction": "Optional: pass `actions` when a widget should draw pending, failed or refused actions; omitting it is `{}`",
+    "task": "029 T2"
+  },
+  {
+    "subpath": "./preview",
+    "name": "PreviewSession",
+    "change": "widened",
+    "reason": "Action results: the host reports each action's status to the widget as an optional `actions` input (plan 029 T2)",
+    "hostAction": "Optional: pass `actions` when a widget should draw pending, failed or refused actions; omitting it is `{}`",
+    "task": "029 T2"
+  },
+  {
+    "subpath": "./preview",
+    "name": "Runner",
+    "change": "widened",
+    "reason": "Action results: the host reports each action's status to the widget as an optional `actions` input (plan 029 T2)",
+    "hostAction": "Optional: pass `actions` when a widget should draw pending, failed or refused actions; omitting it is `{}`",
+    "task": "029 T2"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "Intent",
+    "change": "widened",
+    "reason": "Action results: an action intent may carry a `resultKey` naming the key its status is reported under (plan 029 T2)",
+    "hostAction": "Optional: pass `{ resultKey }` to `action()` when one action runs for many rows",
+    "task": "029 T2"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "action",
+    "change": "widened",
+    "reason": "Action results: an action intent may carry a `resultKey` naming the key its status is reported under (plan 029 T2)",
+    "hostAction": "Optional: pass `{ resultKey }` to `action()` when one action runs for many rows",
+    "task": "029 T2"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "ActionStatus",
+    "change": "added",
+    "reason": "Action results: the status type a widget reads, and `WidgetInputs`, the render input with `actions` optional (plan 029 T2)",
+    "hostAction": "Optional: type render inputs as `WidgetInputs`; type a widget's `actions` with `WidgetProps`'s fifth parameter",
+    "task": "029 T2"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "ActionStatuses",
+    "change": "added",
+    "reason": "Action results: the status type a widget reads, and `WidgetInputs`, the render input with `actions` optional (plan 029 T2)",
+    "hostAction": "Optional: type render inputs as `WidgetInputs`; type a widget's `actions` with `WidgetProps`'s fifth parameter",
+    "task": "029 T2"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "WidgetInputs",
+    "change": "added",
+    "reason": "Action results: the status type a widget reads, and `WidgetInputs`, the render input with `actions` optional (plan 029 T2)",
+    "hostAction": "Optional: type render inputs as `WidgetInputs`; type a widget's `actions` with `WidgetProps`'s fifth parameter",
+    "task": "029 T2"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "WidgetProps",
+    "change": "changed",
+    "reason": "Action results: `WidgetProps` has a required `actions` member, so code that builds a `WidgetProps` literal needs it (plan 029 T2)",
+    "hostAction": "Type host-built render inputs as `WidgetInputs`, or add `actions: {}`",
+    "task": "029 T2",
+    "migration": "Render keys and widget props include actions"
+  },
+  {
+    "subpath": "./pack",
+    "name": "renderKey",
+    "change": "changed",
+    "reason": "Action results: `renderKey` hashes `actions` (absent as `{}`), so every key differs from 0.2 (plan 029 T2)",
+    "hostAction": "Recompute cached keys; they are not comparable with 0.2 keys",
+    "task": "029 T2",
+    "migration": "Render keys and widget props include actions"
+  },
+  {
+    "subpath": "./schemas/*",
+    "name": "tree-patch.json",
+    "change": "widened",
+    "reason": "Action results: an action intent may carry `resultKey` (plan 029 T2)",
+    "hostAction": "Update patch consumers that reject unknown intent fields before sending resultKey",
+    "task": "029 T2"
+  },
+  {
+    "subpath": "./conformance/hash/*",
+    "name": "conformance/hash/render-keys.json",
+    "change": "added",
+    "reason": "Render-key hash vectors, including `actions` (plan 029 T2)",
+    "hostAction": "Port `renderKey` to hash `actions` (absent as `{}`) before sending or accepting actions",
+    "task": "029 T2"
+  },
+  {
+    "subpath": ".",
+    "name": "Manifest",
+    "change": "widened",
+    "reason": "Local state and bindings: a manifest may declare `local` state, a node may carry `when` and `bind`, and an event may carry `setLocal` (plan 029 T3)",
+    "hostAction": "Optional: declare `local` and `initialLocal` in a manifest, and use `local.set`, `local`, `ex`, `when` and `bind` from `/sdk`; existing widgets are unchanged.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": ".",
+    "name": "UiNode",
+    "change": "widened",
+    "reason": "Local state and bindings: a manifest may declare `local` state, a node may carry `when` and `bind`, and an event may carry `setLocal` (plan 029 T3)",
+    "hostAction": "Update tree consumers that reject unknown node or intent fields before a widget sends `when`, `bind` or `setLocal`; a renderer from 0.2.x fails closed on them.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": ".",
+    "name": "LocalIntent",
+    "change": "added",
+    "reason": "Local state and bindings: a manifest may declare `local` state, a node may carry `when` and `bind`, and an event may carry `setLocal` (plan 029 T3)",
+    "hostAction": "`Intent` stays `setState | action` (what `onIntent` receives); a node's `events` may now hold the new `LocalIntent`. Narrow with `TreeIntent` when reading a tree's events.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": ".",
+    "name": "TreeIntent",
+    "change": "added",
+    "reason": "Local state and bindings: a manifest may declare `local` state, a node may carry `when` and `bind`, and an event may carry `setLocal` (plan 029 T3)",
+    "hostAction": "`Intent` stays `setState | action` (what `onIntent` receives); a node's `events` may now hold the new `LocalIntent`. Narrow with `TreeIntent` when reading a tree's events.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "Expr",
+    "change": "added",
+    "reason": "Local state and bindings: a manifest may declare `local` state, a node may carry `when` and `bind`, and an event may carry `setLocal` (plan 029 T3)",
+    "hostAction": "Optional: declare `local` and `initialLocal` in a manifest, and use `local.set`, `local`, `ex`, `when` and `bind` from `/sdk`; existing widgets are unchanged.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "LocalIntent",
+    "change": "added",
+    "reason": "Local state and bindings: a manifest may declare `local` state, a node may carry `when` and `bind`, and an event may carry `setLocal` (plan 029 T3)",
+    "hostAction": "`Intent` stays `setState | action` (what `onIntent` receives); a node's `events` may now hold the new `LocalIntent`. Narrow with `TreeIntent` when reading a tree's events.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "TreeIntent",
+    "change": "added",
+    "reason": "Local state and bindings: a manifest may declare `local` state, a node may carry `when` and `bind`, and an event may carry `setLocal` (plan 029 T3)",
+    "hostAction": "`Intent` stays `setState | action` (what `onIntent` receives); a node's `events` may now hold the new `LocalIntent`. Narrow with `TreeIntent` when reading a tree's events.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "ex",
+    "change": "added",
+    "reason": "Local state and bindings: a manifest may declare `local` state, a node may carry `when` and `bind`, and an event may carry `setLocal` (plan 029 T3)",
+    "hostAction": "Optional: declare `local` and `initialLocal` in a manifest, and use `local.set`, `local`, `ex`, `when` and `bind` from `/sdk`; existing widgets are unchanged.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "local",
+    "change": "added",
+    "reason": "Local state and bindings: a manifest may declare `local` state, a node may carry `when` and `bind`, and an event may carry `setLocal` (plan 029 T3)",
+    "hostAction": "Optional: declare `local` and `initialLocal` in a manifest, and use `local.set`, `local`, `ex`, `when` and `bind` from `/sdk`; existing widgets are unchanged.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "self",
+    "change": "added",
+    "reason": "Local state and bindings: a manifest may declare `local` state, a node may carry `when` and `bind`, and an event may carry `setLocal` (plan 029 T3)",
+    "hostAction": "Optional: declare `local` and `initialLocal` in a manifest, and use `local.set`, `local`, `ex`, `when` and `bind` from `/sdk`; existing widgets are unchanged.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/patch/*",
+    "name": "conformance/patch/bindings.json",
+    "change": "added",
+    "reason": "Patch vectors for a node's `when` and `bind` (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/when-data-root.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/when-not-boolean.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/when-operator-not-allowed.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/when-valid.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/bind-type-mismatch.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/bind-undeclared-prop.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/set-local-type-mismatch.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/set-local-unknown-key.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/set-local-valid.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/reference-gated.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/docs/when-data-root.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/docs/when-not-boolean.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/docs/when-operator-not-allowed.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/docs/when-valid.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/docs/bind-type-mismatch.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/docs/bind-undeclared-prop.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/docs/set-local-type-mismatch.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/docs/set-local-unknown-key.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/docs/set-local-valid.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/ui-tree/docs/reference-gated.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/manifest/local-initial-mismatch.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/manifest/local-not-required.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/manifest/local-not-scalar.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/manifest/local-valid.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/manifest/docs/local-initial-mismatch.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/manifest/docs/local-not-required.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/manifest/docs/local-not-scalar.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/manifest/docs/local-valid.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/common/local-manifest.json",
+    "change": "added",
+    "reason": "Conformance case for local state and bindings (plan 029 T3)",
+    "hostAction": "Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.",
+    "task": "029 T3"
+  },
+  {
+    "subpath": "./surface",
+    "name": "createSurfaceCore",
+    "change": "added",
+    "reason": "The framework-independent surface core under /react: arrival validation, revision rules, node contexts, intent completion, confirmation, local state and bindings (plan 029 T4)",
+    "hostAction": "Optional: write a renderer for another framework on the core, or keep using `/react`.",
+    "task": "029 T4"
+  },
+  {
+    "subpath": "./surface",
+    "name": "SurfaceCore",
+    "change": "added",
+    "reason": "The framework-independent surface core under /react: arrival validation, revision rules, node contexts, intent completion, confirmation, local state and bindings (plan 029 T4)",
+    "hostAction": "Optional: write a renderer for another framework on the core, or keep using `/react`.",
+    "task": "029 T4"
+  },
+  {
+    "subpath": "./surface",
+    "name": "SurfaceCoreOptions",
+    "change": "added",
+    "reason": "The framework-independent surface core under /react: arrival validation, revision rules, node contexts, intent completion, confirmation, local state and bindings (plan 029 T4)",
+    "hostAction": "Optional: write a renderer for another framework on the core, or keep using `/react`.",
+    "task": "029 T4"
+  },
+  {
+    "subpath": "./surface",
+    "name": "SurfaceSnapshot",
+    "change": "added",
+    "reason": "The framework-independent surface core under /react: arrival validation, revision rules, node contexts, intent completion, confirmation, local state and bindings (plan 029 T4)",
+    "hostAction": "Optional: write a renderer for another framework on the core, or keep using `/react`.",
+    "task": "029 T4"
+  },
+  {
+    "subpath": "./surface",
+    "name": "NodeContext",
+    "change": "added",
+    "reason": "The framework-independent surface core under /react: arrival validation, revision rules, node contexts, intent completion, confirmation, local state and bindings (plan 029 T4)",
+    "hostAction": "Optional: write a renderer for another framework on the core, or keep using `/react`.",
+    "task": "029 T4"
+  },
+  {
+    "subpath": "./surface",
+    "name": "EventMeta",
+    "change": "added",
+    "reason": "The framework-independent surface core under /react: arrival validation, revision rules, node contexts, intent completion, confirmation, local state and bindings (plan 029 T4)",
+    "hostAction": "Optional: write a renderer for another framework on the core, or keep using `/react`.",
+    "task": "029 T4"
+  },
+  {
+    "subpath": "./surface",
+    "name": "LocalState",
+    "change": "added",
+    "reason": "The framework-independent surface core under /react: arrival validation, revision rules, node contexts, intent completion, confirmation, local state and bindings (plan 029 T4)",
+    "hostAction": "Optional: write a renderer for another framework on the core, or keep using `/react`.",
+    "task": "029 T4"
+  },
+  {
+    "subpath": "./surface",
+    "name": "SurfaceEvent",
+    "change": "added",
+    "reason": "Observability events from the surface core and `<Surface onEvent>`: rejected arrivals, stale revisions, rejected emits, failed implementations and bindings, dropped confirmations (plan 029 T5)",
+    "hostAction": "Optional: pass `onEvent` to log or count what the surface drops silently.",
+    "task": "029 T5"
   }
 ]

@@ -1,11 +1,11 @@
-import { LiveframeFailure, type LiveframeError, type Result } from "../errors.ts";
+import { type LiveframeError, LiveframeFailure, type Result } from "../errors.ts";
 import { isRecord } from "../formats/capabilities.ts";
 import type { Scenario, WidgetPackage } from "../formats/package.ts";
-import type { Intent, IntentOrigin, Json, UiTree } from "../formats/tree.ts";
-import { compileValidator, type CompiledValidator } from "../validate/compile.ts";
-import { checkOffered } from "../validate/offered.ts";
+import type { ActionStatus, Intent, IntentOrigin, Json, UiTree } from "../formats/tree.ts";
 import { pack } from "../pack/pack.ts";
 import { checkValue } from "../schema.ts";
+import { type CompiledValidator, compileValidator } from "../validate/compile.ts";
+import { checkOffered } from "../validate/offered.ts";
 import type { PreviewSession } from "./authoring.ts";
 import type { Runner, RunnerOptions } from "./runner.ts";
 
@@ -42,7 +42,13 @@ export function createPreview({
   let revision = 0;
   let pkg: WidgetPackage | undefined;
   let validator: CompiledValidator | undefined;
-  type Selection = { scenario: Scenario; state: Json; context: Json; result?: Result<UiTree> };
+  type Selection = {
+    scenario: Scenario;
+    state: Json;
+    context: Json;
+    actions: Readonly<Record<string, ActionStatus>>;
+    result?: Result<UiTree>;
+  };
   let current: Selection | undefined;
   let log: readonly Intent[] = [];
 
@@ -50,11 +56,18 @@ export function createPreview({
     return { ok: false, errors: [{ kind, pointer, message }] };
   }
 
-  function selection(pkg: WidgetPackage, scenario: Scenario, state?: Json, context?: Json): Selection {
+  function selection(
+    pkg: WidgetPackage,
+    scenario: Scenario,
+    state?: Json,
+    context?: Json,
+    actions?: Readonly<Record<string, ActionStatus>>,
+  ): Selection {
     return {
       scenario,
       state: state === undefined ? (scenario.state ?? pkg.manifest.initialState) : state,
       context: context === undefined ? scenario.context : context,
+      actions: actions === undefined ? (scenario.actions ?? {}) : actions,
     };
   }
 
@@ -64,6 +77,7 @@ export function createPreview({
       state: selected.state,
       context: selected.context,
       data: selected.scenario.data,
+      actions: selected.actions,
     };
     // A custom runner is host code the session does not trust: its tree is validated before anyone sees it.
     const checker = validator ?? compileValidator({ catalog, capabilities, manifest: active.manifest });
@@ -139,11 +153,13 @@ export function createPreview({
       scenario,
       state,
       context,
+      actions,
       preserveState = false,
     }: {
       scenario: string;
       state?: Json;
       context?: Json;
+      actions?: Readonly<Record<string, ActionStatus>>;
       preserveState?: boolean;
     }): Promise<Result<UiTree>> {
       if (!pkg) return failure("not-found", "", "No draft has been packed");
@@ -155,6 +171,7 @@ export function createPreview({
         found,
         state === undefined ? previous?.state : state,
         context === undefined ? previous?.context : context,
+        actions === undefined ? previous?.actions : actions,
       );
       return run(pkg, current);
     },

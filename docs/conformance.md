@@ -73,7 +73,7 @@ requires a format version, as `docs/compatibility.md` says.
 
 ## Tree-diff vectors
 
-`conformance/patch/diff.json` is an array of `{ name, prev, next, patch }` vectors. `prev` and `next` are complete UI trees; `patch` is the exact expected `liveframe/tree-patch/1` document. Resolve it with `import.meta.resolve("@arnilo/liveframe/conformance/patch/diff.json")`.
+`conformance/patch/diff.json` is an array of `{ name, prev, next, patch }` vectors. `prev` and `next` are complete UI trees; `patch` is the exact expected `liveframe/tree-patch/1` document. Resolve it with `import.meta.resolve("@arnilo/liveframe/conformance/patch/diff.json")`. `conformance/patch/bindings.json` holds the same vectors for a node's `when` and `bind` (added and removed by a `set`).
 
 A port runs `diffTrees(prev, next)` and compares canonical JSON with `patch`, then checks that `applyPatch(prev, patch)` deep-equals `next`. Compare object properties independently of insertion order, preserving optional fields and array order. The vectors pin next-tree preorder, reverse removals, left-to-right inserts/moves, independent edits, optional-field deletion, object property order and the LF-17 one-row change on 679 nodes. They cover kind and parent changes too. The archive gate checks that every vector file ships.
 
@@ -89,6 +89,11 @@ B's number table, the required ECMAScript number edges, key ordering by UTF-16
 code units including non-BMP keys, escapes, non-BMP strings and rejected inputs.
 `src/__tests__/hash-vectors.test.ts` runs every vector through
 `canonicalJson` and the hash.
+
+`render-keys.json` holds render-key vectors: `value` is the key's input
+(`hash`, `catalogId`, `params`, `state`, `data`, `context` and `actions`), and
+`sha256` is the key `renderKey` returns. A host that omits `actions` hashes it
+as `{}`.
 
 `packages.json` holds package vectors, `{ package, hash }`: `hash` is `sha256-`
 plus the lowercase hex SHA-256 of the UTF-8 canonical text of

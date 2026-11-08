@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { capabilitiesFor, type Capabilities, type Manifest, obj, validateCapabilities } from "../index.ts";
+import { type Capabilities, capabilitiesFor, type Manifest, obj, validateCapabilities } from "../index.ts";
 import manifestDocument from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 
 const action = { description: "Action", args: obj({}), confirm: true, meta: { label: "host" } };

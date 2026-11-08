@@ -10,7 +10,13 @@ import { heading, inputSchemas, p, text } from "./common.ts";
 
 const schemas = inputSchemas(coreManifest);
 const inputs = obj(schemas);
-const given = { params: p("params"), state: p("state"), data: p("data"), context: p("context") };
+const given = {
+  params: p("params"),
+  state: p("state"),
+  data: p("data"),
+  context: p("context"),
+  actions: p("actions"),
+};
 
 /** The decision pages, the page the cursor is on, and every row up to it. */
 const decisionLets = [
@@ -206,7 +212,7 @@ export const coreQueueTemplate: Template = {
   components: {
     ...agentHomeComponents,
     AgentHome: {
-      params: obj({ params: schemas.params, state: schemas.state, data: schemas.data }),
+      params: obj({ params: schemas.params, state: schemas.state, data: schemas.data, actions: schemas.actions }),
       root: agentHomeRoot,
     },
     Metric: { params: obj({ value: int() }), root: metric },
@@ -219,7 +225,7 @@ export const coreQueueTemplate: Template = {
           {
             $if: { $or: [size("full"), { $ne: [p("data.status"), "ready"] }] },
             $use: "AgentHome",
-            with: { params: p("params"), state: p("state"), data: p("data") },
+            with: { params: p("params"), state: p("state"), data: p("data"), actions: p("actions") },
           },
           {
             $let: decisionLets,

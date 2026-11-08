@@ -59,6 +59,10 @@ export const STYLE_MEMBER_BYTES = memberBytes("style", false);
 /** `,"events":` before a node's events object. */
 export const EVENTS_MEMBER_BYTES = memberBytes("events", false);
 
+/** `,"when":` and `,"bind":` before a node's browser-evaluated expressions. */
+export const WHEN_MEMBER_BYTES = memberBytes("when", false);
+export const BIND_MEMBER_BYTES = memberBytes("bind", false);
+
 /** A node's opening `{"id":…,"kind":…`. */
 export function nodeOpenBytes(id: string, kind: string): number {
   return BRACKET_BYTES + ID_MEMBER + stringBytes(id) + KIND_MEMBER + stringBytes(kind);

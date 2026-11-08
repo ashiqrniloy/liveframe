@@ -390,7 +390,7 @@ JSON values. Each event carries one intent:
 
 - `{ type: "setState", key, value? }`: an absent `value` uses the event's
   value; an explicit `null` sets null.
-- `{ type: "action", name, args, bind?, bindAll? }`: `args` is required, even when empty.
+- `{ type: "action", name, args, bind?, bindAll?, resultKey? }`: `args` is required, even when empty. `resultKey` (1–128 characters) names the key the host reports the action's status under; the renderer and `checkOffered` carry it unchanged.
   `bind` names the argument filled by the event's value; it carries no value
   or authority. The host checks and authorises the completed arguments.
   `bindAll: true` instead merges an object event into `args`; no other value is
@@ -399,6 +399,9 @@ JSON values. Each event carries one intent:
   fields and match scalar types (`integer` also fits `number`); nullable fields
   need nullable targets. Bounds and enums are checked on the completed value.
   Implicit object `setState` uses the same structural fit rule and replaces a whole key.
+- `{ type: "setLocal", key, value? }`: writes the surface's local state (below). `key` names a property of the manifest's `local` schema (`unknown-name` otherwise) and `value` follows `setState`'s fill rules against that property. The renderer applies it; it never reaches `onIntent`, and `checkOffered` rejects it with `invalid-prop` at `/type`. In TypeScript `Intent` is `setState | action` (what a host can dispatch); `LocalIntent` is `setLocal`, and an event may carry `TreeIntent = Intent | LocalIntent`.
+
+A node may also carry `when` and `bind`, expressions the renderer evaluates in the browser from the template expression language narrowed to the operators `$path $lit $omit $has $eq $ne $lt $lte $gt $gte $and $or $not $cond $coalesce $len $concat $text $contains $slice $add $sub $mul $div $round $get $at` with two roots, `local` and `self` (the node's own `props`). `when` must be boolean and hides the node when false; `bind` maps bindable prop names to expressions whose value replaces the static prop. The compiled validator rejects, at the expression's pointer, an operator outside the list (`invalid-prop`), a path whose root is not `local` or `self` or that names an undeclared `local` key or prop (`unknown-name`), a `when` that is not boolean, a `bind` target that is not a bindable prop (`variant`, style props, events and `refProps` props are not) or whose inferred type does not fit it, and any expression over 16 levels or 64 nodes, a node with more than 16 `bind` entries, or a tree over 10,000 expression nodes (`limit-exceeded`). A prop named by a `refProps` prop must not carry a `when` or sit under one, and child-count rules hold with every `when` child present (maximum) and absent (minimum). Bound values are checked again against the prop schema when the renderer evaluates them.
 
 The catalog-independent schema is published at
 `@arnilo/liveframe/schemas/ui-tree.json`. It rejects unknown tree, node and
@@ -439,7 +442,7 @@ if (result.ok) {
 
 `validateTreePatch(unknown)` checks closed shapes and JSON values, including node and intent fields. `schemas/tree-patch.json` (`urn:liveframe:tree-patch:1`) agrees on standalone shape; the validator additionally checks `revision > base`. Revisions and indexes are nonnegative safe integers. Empty ops advance the revision.
 
-Operations address node ids and run in order: `set` replaces kind, props and optional variant/style/events, deleting omitted optional fields and preserving id/children; `insert` carries `{ parent, index, node }` and accepts zero through current child count; `remove` carries `{ id }` and omits children when the last is removed; `move` carries `{ id, index }` within the current parent, with the index measured after detachment. Root set is allowed; root removal/move is rejected. Parent changes require remove plus insert with new key-path ids. Inserted descendants are immediately addressable; removed descendants cease to be targets.
+Operations address node ids and run in order: `set` replaces kind, props and optional variant/style/events/when/bind, deleting omitted optional fields and preserving id/children; `insert` carries `{ parent, index, node }` and accepts zero through current child count; `remove` carries `{ id }` and omits children when the last is removed; `move` carries `{ id, index }` within the current parent, with the index measured after detachment. Root set is allowed; root removal/move is rejected. Parent changes require remove plus insert with new key-path ids. Inserted descendants are immediately addressable; removed descendants cease to be targets.
 
 `applyPatch` returns `stale-patch` for a wrong surface or base revision, `not-found` for an absent target/parent, and `invalid-document` for malformed patches, catalog mismatch, invalid indexes or root removal/move. An ambiguous duplicate target is `duplicate-key`; otherwise full-tree validation rejects duplicates and checks catalog rules and destination key paths. Application is atomic and never returns a partial result.
 
@@ -626,7 +629,7 @@ const capabilities = {
 validateCapabilities(capabilities);
 ```
 
-Each map holds at most 512 entries. Names start with a lowercase letter and contain letters or digits, optionally separated into dot segments (`tasks.queue`); names are at most 128 characters. Descriptions are at most 500 code points. Actions accept independent optional booleans `confirm` and `irreversible`, defaulting to false. `irreversible` marks the control; it does not force the renderer's optional confirmation hook. See [renderer confirmation](renderer.md#handle-intents-at-the-host-boundary). Capabilities carry no authority: the host authorises every read and action as the viewer and re-checks action arguments and confirmation policy on dispatch.
+Each map holds at most 512 entries. Names start with a lowercase letter and contain letters or digits, optionally separated into dot segments (`tasks.queue`); names are at most 128 characters. Descriptions are at most 500 code points. Actions accept independent optional booleans `confirm` and `irreversible`, defaulting to false, and an optional `result` schema: the shape of the `value` of an `ok` entry in the widget's `actions` input (spec §8). `irreversible` marks the control; it does not force the renderer's optional confirmation hook. See [renderer confirmation](renderer.md#handle-intents-at-the-host-boundary). Capabilities carry no authority: the host authorises every read and action as the viewer and re-checks action arguments and confirmation policy on dispatch.
 
 `capabilitiesFor(capabilities, manifest)` from `@arnilo/liveframe` takes installed,
 validated documents and returns `Result<Capabilities>` containing exactly the
@@ -691,6 +694,15 @@ const manifest = {
 } as const;
 validateManifest(manifest, { catalog, capabilities });
 ```
+
+A manifest may also declare `local` and `initialLocal`: the surface's local
+state, written by `setLocal` events and read by `when` and `bind`. `local` is a
+closed object of at most 32 properties named like template names (`q`,
+`expanded`), each a `boolean`, `integer`, `number` or `string` (also nullable;
+strings of at most 256 characters or an `enum`), with no `pattern`, `url`, array or
+object, and every property required. `initialLocal` must satisfy it (`/initialLocal/<key>`
+otherwise). Both are absent in a manifest without local state, and a manifest
+that declares `local` without `initialLocal` fails unless `local` has no properties.
 
 `params`, `state` and `context` are closed language object schemas without
 `pattern`. Those three are matched against values the app does not author (typed
@@ -989,7 +1001,7 @@ A package has `format: "liveframe-package/1"`, a manifest, code, 1–64 scenario
 `sha256-` hash followed by 64 lowercase hexadecimal digits. Code is limited to
 1 MiB of UTF-8 bytes. Scenario names are non-empty, unique within the package and
 at most 128 code points. A scenario contains `name`, `params`, `context`,
-`data` (a map of source names to JSON values), and optional `state`.
+`data` (a map of source names to JSON values), and optional `state` and `actions` (action statuses to render with, checked against the manifest by `pack()`).
 
 A placement contains `id`, `slot`, `widget: { id, version }` and JSON `params`.
 A style record contains `kind: "theme" | "designSystem"`, `id`, `version` and

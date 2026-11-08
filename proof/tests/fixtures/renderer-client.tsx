@@ -22,6 +22,12 @@ declare global {
       rounds?: number,
       focusContinuity?: boolean,
     ) => Promise<{ samples: { validation: number; react: number; wall: number }[]; production: boolean }>;
+    measureLiveFilter: (
+      tree: UiTree,
+      manifest: unknown,
+      queries: readonly string[],
+      rounds: number,
+    ) => Promise<{ walls: number[]; elements: number[]; intents: number; production: boolean }>;
   }
 }
 const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
@@ -153,4 +159,50 @@ window.measureSelectionWall = async (before, after, rounds = 10, focusContinuity
   }
   performance.mark("lf-recorded-end");
   return { samples, production: process.env.NODE_ENV === "production" };
+};
+
+// Plan 029 Task 4 (design P1): a live filter. The tree's rows carry `when` over `local.q`; the filter field
+// commits each query as a `setLocal` write, which the surface applies without a round trip.
+window.measureLiveFilter = async (tree, manifest, queries, rounds) => {
+  const checked = validateCapabilities(capabilities);
+  if (!checked.ok) throw new Error(JSON.stringify(checked.errors));
+  const compiled = compileValidator({ catalog, capabilities: checked.value, manifest });
+  let intents = 0;
+  flushSync(() =>
+    root.render(
+      <Surface
+        {...scope}
+        validator={compiled}
+        tree={tree}
+        theme={themes[designSystem]}
+        designSystem={systems[designSystem]}
+        fallback={fallback}
+        onIntent={() => void intents++}
+      />,
+    ),
+  );
+  await nextFrame();
+  const label = [...container.querySelectorAll("label")].find((element) => element.textContent === "Filter");
+  const input = label?.parentElement?.querySelector("input");
+  if (!input) throw new Error("Missing filter field");
+  const write = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+  if (!write) throw new Error("Missing value setter");
+  const walls: number[] = [];
+  const elements: number[] = [];
+  performance.mark("lf-recorded-start");
+  for (let round = 0; round < rounds; round++) {
+    const query = queries[round % queries.length] ?? "";
+    // Typing is the field's own tier-1 state; the timed span is the commit that writes local state.
+    flushSync(() => {
+      write.call(input, query);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    const start = performance.now();
+    flushSync(() => void input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+    walls.push(performance.now() - start);
+    elements.push(container.querySelectorAll("*").length);
+    await nextFrame();
+  }
+  performance.mark("lf-recorded-end");
+  return { walls, elements, intents, production: process.env.NODE_ENV === "production" };
 };

@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { canonicalJson, packageHash, renderKey, sha256, utf8 } from "../pack/hash.ts";
 import type { Manifest } from "../formats/manifest.ts";
+import { canonicalJson, packageHash, renderKey, sha256, utf8 } from "../pack/hash.ts";
 import manifestDoc from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 
 const manifest = manifestDoc as Manifest;
@@ -133,7 +133,9 @@ test("render_key_ignores_key_order_and_changes_with_any_input", () => {
   };
   const key = renderKey(inputs);
   expect(key).toMatch(/^[0-9a-f]{64}$/);
-  expect(key).toBe(oracle(canonicalJson(inputs)));
+  // Absent `actions` hashes as `{}` (plan 029 A8).
+  expect(key).toBe(oracle(canonicalJson({ ...inputs, actions: {} })));
+  expect(renderKey({ ...inputs, actions: {} })).toBe(key);
   expect(renderKey({ ...inputs, params: { a: [2, 3], b: 1 } })).toBe(key);
   expect(renderKey({ ...inputs, state: { flag: false, cursors: { tasks: "t1" } } })).toBe(key);
   for (const [field, value] of [
@@ -143,6 +145,7 @@ test("render_key_ignores_key_order_and_changes_with_any_input", () => {
     ["state", { cursors: { tasks: "t2" }, flag: false }],
     ["data", { queue: { rows: [{}] } }],
     ["context", { size: "lg" }],
+    ["actions", { "tasks.claim": { status: "pending" } }],
   ] as const)
     expect(renderKey({ ...inputs, [field]: value })).not.toBe(key);
 });

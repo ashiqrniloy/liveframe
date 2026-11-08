@@ -2,6 +2,7 @@
 export const LIVEFRAME_FORMAT = "liveframe/1" as const;
 
 export { type LiveframeError, LiveframeFailure, type Result } from "./errors.ts";
+export { auditContrast, type ContrastFinding } from "./formats/audit.ts";
 export { type Capabilities, capabilitiesFor, validateCapabilities } from "./formats/capabilities.ts";
 export {
   type Catalog,
@@ -22,7 +23,16 @@ export {
 export { ariaRoles, recipeProperties, semantics, states, styleProps } from "./formats/fixed.ts";
 export { bindSources, type Manifest, validateManifest } from "./formats/manifest.ts";
 export { type Theme, validateTheme } from "./formats/theme.ts";
-export type { Intent, IntentOrigin, Json, UiNode, UiTree } from "./formats/tree.ts";
+export type {
+  Intent,
+  IntentOrigin,
+  Json,
+  LocalIntent,
+  NodeRef,
+  TreeIntent,
+  UiNode,
+  UiTree,
+} from "./formats/tree.ts";
 export { type PatchOp, type TreePatch, validateTreePatch } from "./formats/tree-patch.ts";
 export { type Vocabulary, validateVocabulary } from "./formats/vocabulary.ts";
 export { type ResolvedRecipes, resolveRecipes } from "./resolve.ts";
@@ -40,10 +50,7 @@ export {
   str,
   union,
 } from "./schema.ts";
-export { auditContrast, type ContrastFinding } from "./formats/audit.ts";
 export { type CompiledValidator, type CompileValidatorOptions, compileValidator } from "./validate/compile.ts";
 export { checkOffered } from "./validate/offered.ts";
 export { applyPatch, diffTrees } from "./validate/patch.ts";
 export type { ValidateTreeOptions } from "./validate/tree.ts";
-
-export type { NodeRef } from "./formats/tree.ts";

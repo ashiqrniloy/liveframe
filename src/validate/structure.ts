@@ -32,8 +32,16 @@ export type CompiledStructure = {
    * its kind requires but does not have. `depth` 1 is the root, which has no parent.
    */
   node(parentKind: string, childKind: string, depth: number, hasChildren: boolean, sink: StructureSink): void;
-  /** Rejects a parent's children that break their min or max counts. */
-  counts(parentKind: string, counts: ReadonlyMap<string, number>, sink: StructureSink): void;
+  /**
+   * Rejects a parent's children that break their min or max counts. `gated` counts, per kind, the children
+   * that carry a `when`: they may be absent, so they count toward the maximum but not the minimum (plan 029 B5.7).
+   */
+  counts(
+    parentKind: string,
+    counts: ReadonlyMap<string, number>,
+    sink: StructureSink,
+    gated?: ReadonlyMap<string, number>,
+  ): void;
   /** True when the kind forbids children. */
   forbidsChildren(kind: string): boolean;
 };
@@ -59,6 +67,16 @@ function checkPlacement(
   if (rule === undefined || typeof rule === "string" || rule.has(childKind)) return;
   const expected = placementExpected.get(parentKind);
   if (expected) sink.reject(expected, "/kind");
+}
+
+/** Child kinds counted for `counts`, with the ones that carry a `when` counted again. */
+export type KindTally = { readonly all: Map<string, number>; gated: Map<string, number> | undefined };
+export const newTally = (): KindTally => ({ all: new Map(), gated: undefined });
+export function tallyKind(tally: KindTally, kind: string, gated: boolean): void {
+  tally.all.set(kind, (tally.all.get(kind) ?? 0) + 1);
+  if (!gated) return;
+  tally.gated ??= new Map();
+  tally.gated.set(kind, (tally.gated.get(kind) ?? 0) + 1);
 }
 
 export function compileStructure(catalog: Catalog): CompiledStructure {
@@ -91,12 +109,12 @@ export function compileStructure(catalog: Catalog): CompiledStructure {
         if (required) for (const expected of required) sink.reject(expected, "/children");
       }
     },
-    counts(parentKind, counts, sink) {
+    counts(parentKind, counts, sink, gated) {
       const rule = children.get(parentKind);
       if (rule === undefined || typeof rule === "string") return;
       for (const [kind, bounds] of rule) {
         const count = counts.get(kind) ?? 0;
-        if (count < bounds.min || count > bounds.max)
+        if (count - (gated?.get(kind) ?? 0) < bounds.min || count > bounds.max)
           sink.reject(`between ${bounds.min} and ${bounds.max} ${kind} children`);
       }
     },

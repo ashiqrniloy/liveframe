@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test";
-import { toSrgb, contrastRatio } from "../formats/contrast.ts";
+import { contrastRatio, toSrgb } from "../formats/contrast.ts";
 import { type Theme, type Vocabulary, validateTheme } from "../index.ts";
-import vocabulary from "./fixtures/vocabulary.json" with { type: "json" };
 import fixture from "./fixtures/certified.theme.json" with { type: "json" };
+import vocabulary from "./fixtures/vocabulary.json" with { type: "json" };
 
 const rgb = (r: number, g = r, b = r, alpha = 1) => ({ colorSpace: "srgb", components: [r, g, b], alpha }) as const;
 const names: Vocabulary = {

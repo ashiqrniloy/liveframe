@@ -93,6 +93,10 @@
           "full"
         ],
         "maxLength": 6
+      },
+      "locale": {
+        "type": "string",
+        "maxLength": 35
       }
     },
     "required": [

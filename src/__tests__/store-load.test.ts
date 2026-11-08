@@ -1,16 +1,16 @@
 import { expect, test } from "bun:test";
-import { pack, packageHash, type WidgetPackage, verifyPackage } from "@arnilo/liveframe/pack";
+import { pack, packageHash, verifyPackage, type WidgetPackage } from "@arnilo/liveframe/pack";
 import {
   loadPlacement,
   memoryStore,
-  verifiedPackages,
-  verifyPlacementInputs,
   type Placement,
   type Store,
+  verifiedPackages,
+  verifyPlacementInputs,
 } from "@arnilo/liveframe/store";
-import { int, obj, str, type Result, validateCatalog, validateCapabilities } from "../index.ts";
-import catalogDoc from "./fixtures/proof/catalog.json" with { type: "json" };
+import { int, obj, type Result, str, validateCapabilities, validateCatalog } from "../index.ts";
 import capabilitiesDoc from "./fixtures/proof/capabilities.json" with { type: "json" };
+import catalogDoc from "./fixtures/proof/catalog.json" with { type: "json" };
 
 function value<T>(r: Result<T>): T {
   if (!r.ok) throw new Error(JSON.stringify(r.errors));

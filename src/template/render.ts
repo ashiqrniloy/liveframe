@@ -2,14 +2,15 @@
 // over the checked inputs to SDK elements, and those go through the SDK's one build-and-validate
 // pass. Nothing here builds a tree node, assigns an id or checks a prop: `render()` owns those rules.
 import { addBoundMarker, DEFAULT_MAX_ERRORS, type LiveframeError, type Result } from "../errors.ts";
-import { documentChecks, type ObjectSchema } from "../formats/capabilities.ts";
+import { documentChecks } from "../formats/capabilities.ts";
 import type { UiTree } from "../formats/tree.ts";
 import { at } from "../internal.ts";
 import { isRecord } from "../schema.ts";
 import { Element } from "../sdk/element.ts";
 import { Fragment } from "../sdk/jsx-runtime.ts";
 import { type RenderLimits, type RenderOptions, renderExpansion } from "../sdk/render.ts";
-import type { WidgetProps } from "../sdk/types.ts";
+import type { WidgetInputs } from "../sdk/types.ts";
+import { EMBED } from "../validate/bindings.ts";
 import { buildFacts, type CompiledValidator, type InputSchemas } from "../validate/compile.ts";
 import { encodeSegment } from "../validate/structure.ts";
 import { TEMPLATE_LIMITS, type Template, validateTemplateShape } from "./document.ts";
@@ -69,10 +70,8 @@ type Compiled = {
 };
 
 const NOTHING: Emitter = () => {};
-const NO_ACTIONS = Object.freeze({});
 /** `rootScope` numbers its roots from 0 in this order, and `expand` fills the frame the same way. */
 const ROOTS = ["params", "state", "data", "context", "actions"] as const;
-const NO_ACTIONS_SCHEMA: ObjectSchema = { type: "object", properties: {}, required: [], additionalProperties: false };
 
 function nodeId(path: readonly string[]): string {
   let id = "root";
@@ -102,6 +101,15 @@ function guarded(emit: Emitter): Emitter {
       report(run, thrown.error);
     }
   };
+}
+
+/** Deepest nesting an expression is searched for `$embed`; tree expressions are shallower (16). */
+const EMBED_DEPTH = 17;
+
+function hasEmbed(value: unknown, depth: number): boolean {
+  if (depth > EMBED_DEPTH || value === null || typeof value !== "object") return false;
+  if (Array.isArray(value)) return value.some((member) => hasEmbed(member, depth + 1));
+  return Object.hasOwn(value, EMBED) || Object.values(value).some((member) => hasEmbed(member, depth + 1));
 }
 
 function failure(pointer: string, expected: string, message = `Expected ${expected}`): never {
@@ -143,10 +151,7 @@ class Compiler {
     }
     this.owner = "";
     this.budget = newBudget();
-    const scope = rootScope(
-      Object.fromEntries(ROOTS.map((name) => [name, name === "actions" ? NO_ACTIONS_SCHEMA : this.schemas[name]])),
-      this.budget,
-    );
+    const scope = rootScope(Object.fromEntries(ROOTS.map((name) => [name, this.schemas[name]])), this.budget);
     const root = this.node(this.template.root as Raw, "/root", scope, 1);
     this.checkGraph();
     if (this.c.errors.length) return { ok: false, errors: this.c.errors };
@@ -320,6 +325,12 @@ class Compiler {
     for (const [name, intent] of Object.entries(events))
       props.push([name, this.intent(intent as Raw, scope, at(at(pointer, "events"), name))]);
 
+    // Browser-evaluated expressions are copied verbatim, but for each `$embed` (plan 029 B12).
+    const expressions: (readonly [string, Fn])[] = [];
+    for (const field of ["when", "bind"])
+      if (Object.hasOwn(node, field))
+        expressions.push([field, this.embedded(node[field], scope, at(pointer, field), 0)]);
+
     return (run, frame, out, over) => {
       const key = keyOf(frame, over);
       const record: Record<string, unknown> = {};
@@ -328,6 +339,7 @@ class Compiler {
         const value = fn(frame);
         if (value !== absent) record[name] = value;
       }
+      for (const [name, fn] of expressions) record[name] = fn(frame);
       run.path.push(key === undefined ? kind : String(key));
       const children: Element[] = [];
       for (const child of kids) child(run, frame, children);
@@ -339,6 +351,28 @@ class Compiler {
     };
   }
 
+  /** A tree expression with each `{ "$embed": Expr }` replaced by that template value, as a literal. */
+  embedded(raw: unknown, scope: Scope, pointer: string, depth: number): Fn {
+    if (!hasEmbed(raw, depth)) return () => raw;
+    if (Array.isArray(raw)) {
+      const parts = raw.map((member, i) => this.embedded(member, scope, at(pointer, i), depth + 1));
+      return (frame) => parts.map((part) => part(frame));
+    }
+    const record = raw as Raw;
+    const keys = Object.keys(record);
+    if (keys.length === 1 && keys[0] === EMBED) {
+      const where = at(pointer, EMBED);
+      const value = this.expr(record[EMBED], scope, where);
+      return (frame) => {
+        const v = value(frame);
+        if (v === absent) failure(where, "a value", "An $embed value is absent");
+        return { $lit: v };
+      };
+    }
+    const members = keys.map((key) => [key, this.embedded(record[key], scope, at(pointer, key), depth + 1)] as const);
+    return (frame) => Object.fromEntries(members.map(([key, part]) => [key, part(frame)]));
+  }
+
   children(node: Raw, pointer: string, scope: Scope, depth: number): Emitter[] {
     if (!Array.isArray(node.children)) return [];
     return node.children.map((child, i) => this.node(child as Raw, at(at(pointer, "children"), i), scope, depth + 1));
@@ -346,15 +380,16 @@ class Compiler {
 
   /** An intent whose `value` and `args` members are expressions (design T14). */
   intent(intent: Raw, scope: Scope, pointer: string): Fn {
-    if (intent.type === "setState") {
+    if (intent.type === "setState" || intent.type === "setLocal") {
+      const { type } = intent;
       const key = intent.key as string;
-      if (!Object.hasOwn(intent, "value")) return () => ({ type: "setState", key });
+      if (!Object.hasOwn(intent, "value")) return () => ({ type, key });
       const value = this.expr(intent.value, scope, at(pointer, "value"));
       const where = at(pointer, "value");
       return (frame) => {
         const v = value(frame);
         if (v === absent) failure(where, "a value", "A setState value is absent");
-        return { type: "setState", key, value: v };
+        return { type, key, value: v };
       };
     }
     const args = isRecord(intent.args) ? intent.args : {};
@@ -362,6 +397,8 @@ class Compiler {
       ([name, value]) => [name, this.expr(value, scope, at(at(pointer, "args"), name))] as const,
     );
     const base: Record<string, unknown> = { type: "action", name: intent.name };
+    const where = at(pointer, "resultKey");
+    const resultKey = Object.hasOwn(intent, "resultKey") ? this.expr(intent.resultKey, scope, where) : undefined;
     return (frame) => {
       const record: Record<string, unknown> = {};
       for (const [name, fn] of members) {
@@ -371,6 +408,11 @@ class Compiler {
       const built: Record<string, unknown> = { ...base, args: record };
       if (Object.hasOwn(intent, "bind")) built.bind = intent.bind;
       if (intent.bindAll === true) built.bindAll = true;
+      if (resultKey) {
+        const v = resultKey(frame);
+        if (v === absent) failure(where, "a result key", "A resultKey is absent");
+        built.resultKey = v;
+      }
       return built;
     };
   }
@@ -403,7 +445,7 @@ function expand(
   const run: Run = { pointers, errors: [], maxErrors, path: [], stopped: false, bounded: false };
   const frame: Frame = { slots: new Array<unknown>(compiled.size), steps };
   ROOTS.forEach((name, slot) => {
-    frame.slots[slot] = name === "actions" ? NO_ACTIONS : owned[name];
+    frame.slots[slot] = owned[name];
   });
   const out: Element[] = [];
   compiled.root(run, frame, out);
@@ -427,7 +469,7 @@ function expand(
  */
 export function renderTemplate(
   template: Template,
-  inputs: WidgetProps,
+  inputs: WidgetInputs,
   options: TemplateRenderOptions,
 ): Result<UiTree> {
   const { steps = EXPR_LIMITS.steps, ...limits } = options.limits ?? {};

@@ -5,6 +5,7 @@ export {
   validateState,
   validateStyleRecord,
 } from "../formats/records.ts";
+
 import type { WidgetPackage } from "../formats/package.ts";
 import type { Placement, StyleRecord } from "../formats/records.ts";
 import type { Json } from "../formats/tree.ts";

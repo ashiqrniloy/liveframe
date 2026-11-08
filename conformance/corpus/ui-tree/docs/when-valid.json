@@ -1,0 +1,38 @@
+{
+  "format": "liveframe/1",
+  "catalogId": "proof.ui@1",
+  "surfaceId": "corpus",
+  "revision": 1,
+  "root": {
+    "id": "root",
+    "kind": "stack",
+    "props": {},
+    "children": [
+      {
+        "id": "root/text",
+        "kind": "text",
+        "props": {
+          "text": "Row"
+        },
+        "when": {
+          "$contains": [
+            "Row",
+            {
+              "$path": "local.q"
+            }
+          ]
+        },
+        "bind": {
+          "text": {
+            "$concat": [
+              {
+                "$path": "self.text"
+              },
+              "!"
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

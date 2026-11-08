@@ -11,7 +11,7 @@ import {
 import { outcomeScenarios, pack } from "@arnilo/liveframe/pack";
 import { createPreview, inProcessRunner, type Runner } from "@arnilo/liveframe/preview";
 import { workerRunner } from "@arnilo/liveframe/preview/worker";
-import type { WidgetProps } from "@arnilo/liveframe/sdk";
+import type { WidgetInputs } from "@arnilo/liveframe/sdk";
 import { loadPlacement, memoryStore } from "@arnilo/liveframe/store";
 import * as numeric from "./fixtures/numeric-events.ts";
 import * as form from "./fixtures/object-events.ts";
@@ -155,7 +155,7 @@ function rejects(result: Result<unknown>, kind: string, pointer?: string) {
 }
 
 function setup() {
-  const calls: { inputs: WidgetProps; revision: number; surfaceId: string }[] = [];
+  const calls: { inputs: WidgetInputs; revision: number; surfaceId: string }[] = [];
   const delegate = inProcessRunner();
   const runner: Runner = {
     render(pkg, inputs, options) {

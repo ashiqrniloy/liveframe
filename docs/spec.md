@@ -100,7 +100,7 @@ The division of responsibilities keeps app authority and trusted implementations
 | **Widget** | A manifest plus either a TSX module, a pure function `(params, state, data, context) → element tree`, or a **template**: element JSON with expressions that the library evaluates (§7.6) |
 | **Composed component** | A plain TSX function built from primitives and imported by widgets. Not a catalog entry |
 | **UI tree** | The validated JSON tree the renderer draws |
-| **Intent** | What an interaction asks for: `setState` or `action` |
+| **Intent** | What an interaction asks for: `setState` or `action`; `setLocal` is the renderer's own write to local state (§8) |
 | **Theme** | The only source of colour roles and typography roles |
 | **Design system** | Geometry, material and motion values, plus **recipes** that map each primitive's variant, slot and state to styles |
 | **Package** | An installed widget version: its manifest and either compiled code or a template, immutable and identified by a SHA-256 hash (§7.3) |
@@ -693,12 +693,12 @@ The app publishes its **capabilities**: what a widget may read and ask for.
 ```ts
 type Capabilities = {
   format: "liveframe-capabilities/1";
-  actions: Record<string, { description: string; args: ObjectSchema; confirm?: boolean; irreversible?: boolean }>;
+  actions: Record<string, { description: string; args: ObjectSchema; result?: Schema; confirm?: boolean; irreversible?: boolean }>;
   sources: Record<string, { description: string; params: ObjectSchema; result: Schema }>;
 };
 ```
 
-`confirm` and `irreversible` are independent optional booleans, defaulting to false. `irreversible` marks an action for the control's presentation; it does not force the renderer's confirmation hook. The host still owns confirmation and authorisation on dispatch.
+`result` is the optional shape of an `ok` action's reported `value` (§8). `confirm` and `irreversible` are independent optional booleans, defaulting to false. `irreversible` marks an action for the control's presentation; it does not force the renderer's confirmation hook. The host still owns confirmation and authorisation on dispatch.
 
 A widget **manifest** declares:
 
@@ -708,11 +708,14 @@ A widget **manifest** declares:
 - the **data sources** it reads: `sources: Record<dataKey, { source, params }>`. Each `source` names a declared capability, and each of its params is bound to a literal or to `{ from: "params" | "state" | "context", path }`, checked against the source's params schema. `data[dataKey]` holds the source's result. The root export's `bindSources(manifest, capabilities, { params, state, context })` performs that request-time evaluation: it returns each key's `{ source, params }`, omits an absent optional binding, reports an absent required one as `invalid-prop` at `/sources/<key>/params/<name>`, and resolves no data and runs no action
 - the **actions** it may invoke, each a declared capability
 - the **initial `state`**, valid against its schema, used for a new placement and when a stored state no longer fits (§7.4)
+- optional **local state**: `local`, a closed object schema of at most 32 scalar properties (`boolean`, `integer`, `number` or `string`, each also nullable, strings of at most 256 characters or an `enum`; no `pattern`, `url`, arrays or objects), every property required and named like a template name (`q`, `expanded`), and `initialLocal`, which must satisfy it. Absent `local` means none (§8)
 
 The widget function's rules:
 
-- All four inputs are frozen. Time and randomness come only through `context`. A module may not suspend while it evaluates: top-level `await`, `for await` and `await using` are rejected (§7.3), because a module that never settles would hold the runner. Inside functions they are ordinary async code, which the renderer never waits for.
+- All inputs (`params`, `state`, `data`, `context` and `actions`) are frozen. Time and randomness come only through `context`. A module may not suspend while it evaluates: top-level `await`, `for await` and `await using` are rejected (§7.3), because a module that never settles would hold the runner. Inside functions they are ordinary async code, which the renderer never waits for.
 
+- `actions` is the host's report on each action (§8). It is an input like `context`: the library stores none of it, and an absent `actions` is `{}`.
+- **Locale, direction and time zone** reach a widget only through `context`, like time and randomness. The conventional keys are `locale` (a BCP 47 tag), `direction` (`"ltr"` or `"rtl"`) and `timeZone` (an IANA name); they are conventions the manifest's `context` schema declares if it wants them, not reserved names. A widget that calls `Intl` or `toLocale*` formats with the data of the runtime it runs on, which ECMA-402 leaves implementation-defined, so its output is deterministic only within one runtime build and a `renderKey` cache (§8) shared across runtimes is unsafe for it. The portable pattern is for the host to format and hand the text over as data (a source bound to `context.locale`), which keeps the tree a function of the inputs. A template (§7.6) has no locale-dependent operator, so its output is runtime-independent. Text direction is the host's: it sets `dir` on the surface, and logical-side projection (§6.2–§6.3) mirrors the layout.
 - It uses only catalog primitives and composed components. **Host elements are errors** (`<div>`, `<span>`), and so are function props, promises, async functions, and string `className` or `style`. Props are JSON at every depth: a composed component's props are walked before it runs, so a nested function or promise is rejected even if the component would discard it.
 - Every element in a list needs a **`key`**. Node ids are key paths (`root/queue/row:4812/claim`), never positions, so the renderer keeps focus, scroll and local state across re-renders.
 - **Long lists are paged or windowed.** A widget renders what a surface shows, and loads more through `setState`. Render cost grows with node count, and performance budgets are measured on these realistic sizes.
@@ -1062,6 +1065,7 @@ Nobody publishes a widget blind. A person or an agent writes it, looks at it, ch
 - Paths such as `data.queue.rows.0.id` are checked against the manifest's schemas, the data schema built from its sources, or a bound name. A path into a missing property is `unknown-name`; a segment such as `__proto__` or a `$`-prefixed one is `invalid-document`.
 - Each binding is checked for shape against the target: a prop, a `setState` value, an action argument or a component param. A constant is checked with the real schema check, so its length, range and `url` rules apply at install. A value whose type is known only at render (`dynamic`) is checked then. `$has` guards narrow an optional path inside a `$if`, a conditional and the later operands of `$and`.
 - Kinds, variants, props, events and style props are checked as for element JSON. A child kind is checked against its parent's rules where both are known, and a `$use` is placed by its component's root. Unknown kinds are `unknown-component`, undeclared events `undeclared-event`, undeclared actions `undeclared-action`, a repeated `$anchor` `duplicate-key`, an `$each` without `key` `missing-key`, and a `$ref` that names no anchor in the template `unknown-name`.
+- A node may carry `when` and `bind`, which are **tree expressions** (§8), not template expressions: they are copied into the tree as written and checked at install against the manifest's `local` schema and the kind's props. `{ "$embed": Expr }` inside them is the one connection to template scope; expansion replaces it with the evaluated value as a `$lit`, so `{ "$contains": [{ "$embed": { "$path": "row.title" } }, { "$path": "local.q" }] }` filters on a row's title. `$embed` is valid only there, never reaches a tree, and its operand must be present. A `$use` node and a fragment take neither field; a `setLocal` intent is written like `setState`.
 - The widget root renders exactly one element: it takes no `$if` or `$each`, and is not a fragment. A component root takes no `$each` and may be a fragment; use `$if` for an optional component.
 - A cyclic component graph is `invalid-document`; deeper than 16 or past any bound above is `limit-exceeded`.
 
@@ -1105,6 +1109,34 @@ TSX widgets are a full language and need a sandbox. Element JSON needs none but 
 | **2. Declared state** | Change a filter, load the next page, select a row that changes what is shown | The app re-runs the widget with new `state`; the renderer reconciles the new tree by id | One, to where widgets run | `state.set(key, value?)` |
 | **3. Action** | Claim a task, run a command, save a record | The app's dispatcher: authorises as the viewer, confirms per its policy, executes | One, to the app | `action(name, args)` |
 
+**Action results (tier 3 feedback).** The host reports the status of recent actions to the widget as the input `actions: Record<string, ActionStatus>`, so "Saving…" and "Failed: name taken" are drawn by the widget instead of improvised by each host:
+
+```ts
+type ActionStatus = {
+  status: "pending" | "ok" | "failed" | "refused"; // refused: the offered-intent check or authorisation rejected the intent
+  action?: string;  // the manifest action; required when the key is not an action name
+  reason?: string;  // display text, at most 500 characters
+  value?: Json;     // only with "ok"; matches the action's capability `result`
+  at?: string;      // opaque host text, at most 64 characters
+};
+```
+
+The key is the action name, or the `resultKey` an intent carries (`action("tasks.claim", { id }, { resultKey: "claim:" + id })`, a literal in the tree) when one action runs for many rows. At most 64 entries, keys of at most 128 characters. The host writes `pending`, dispatches as the viewer, writes the outcome, and re-renders each time; it decides when an entry expires by omitting it. The library has no timers or history. `actions` is validated before the widget runs (`invalid-prop` at `/actions/<key>`), so a host bug cannot hand widget code an arbitrary shape. A result grants nothing and is not an intent: it only changes what the widget draws.
+
+**Local state and bindings (between tiers 1 and 2).** Interactions that span nodes but need no data (a live filter over rows already in the tree, a disclosure that opens a sibling) cost no round trip, and no widget code runs in the browser. The manifest declares `local` and `initialLocal` (§7.1); the tree carries data the renderer evaluates:
+
+```ts
+type LocalIntent = { type: "setLocal"; key: string; value?: Json };  // value absent ⇒ the event's value
+// on UiNode:  when?: Expr;  bind?: Record<string, Expr>;
+```
+
+- **`setLocal`** is offered in `events` like `setState` and follows its fill rules (`key` names a `local` property, `unknown-name` otherwise; a scalar event fills a scalar property; a literal `value` must satisfy the property). The renderer applies it and it never reaches `onIntent`, never asks for confirmation, and is never sent anywhere. `checkOffered` rejects it (`invalid-prop` at `/type`): no host dispatches it (law 4). Local state belongs to one mounted surface, starts at `initialLocal`, and resets when the surface or the validator changes. A widget that wants the host to know a value commits it with a `setState` event.
+- **`when`** renders the node only when the expression is true; a hidden node is not mounted and its parent omits it. **`bind`** names props whose value the expression supplies at render; `props` stays the static, complete fallback, so a consumer that does not evaluate bindings sees a valid tree. Nothing else is bindable: not `variant`, a style prop, an event, or a `refProps` prop.
+- **Expressions** are the template language's (§7.6) restricted to an operator allow-list (`$path`, `$lit`, `$omit`, `$has`, comparison, `$and`, `$or`, `$not`, `$cond`, `$coalesce`, `$len`, `$concat`, `$text`, `$contains`, `$slice`, arithmetic, `$round`, `$get`, `$at`: no iteration, binding or collection builders) with two roots, `local` and `self` (the node's own `props`). An expression can therefore read only what the widget put in the tree and the surface's local state. Per expression at most 16 levels and 64 nodes, per node at most 16 `bind` entries, per tree at most 10,000 expression nodes.
+- **Checked on arrival and in `render()`:** every expression is well formed and inside those bounds; `local.<key>` and `self.<prop>` exist; `when` is a boolean; each `bind` target is a bindable prop the inferred type fits (the template type-fit rule, §7.6). A node referenced by a `refProps` prop may not carry a `when` or sit under one, and a parent's child-count bounds hold with every `when` child present (maximum) and absent (minimum). The renderer re-validates each bound value against the prop schema before an implementation sees it; a failure draws the node's fallback and is reported, never a stale value.
+- **TSX:** `local("q")`, `self("title")`, `local.set("q")`, the `when` and `bind` attributes and `ex` (one builder per allowed operator): `<Row when={ex.contains(r.title, local("q"))} />`.
+- **Templates (§7.6)** copy `when` and `bind` verbatim and check them against the manifest at install; `{ "$embed": Expr }` inside them is replaced by the template value as a literal during expansion, so a row's title can sit in a browser-time test.
+
 - If a primitive needs two behaviours, it gets two events.
 - **Several values can commit together.** `action("escalate", { id }, { bindAll: true })` merges an object event into the literal args and removes `bindAll`.
 
@@ -1144,7 +1176,7 @@ TSX widgets are a full language and need a sandbox. Element JSON needs none but 
 - **Confirmation is UI, authorisation is the host's.** `confirm` gates the renderer's optional confirmation hook; `irreversible` is presentation and never gates emission. Neither grants authority: the host still applies its own confirmation policy and authorisation on dispatch (§11).
 - The intent must be declared by the widget's manifest, and its args must match the action's schema in the app's capabilities. The validator checks this on every render; the app checks it again on dispatch. Intents carry no authority.
 - Widget state is persisted per placement and host scope, in the app's store (§7.4), or supplied explicitly by the host. The widget only ever receives it as input.
-- **Re-runs are cacheable.** A host may skip a re-run, and the transfer, when the hash of the package (§7.3), `catalogId`, params, state, data and context is unchanged; `/pack` publishes that key as `renderKey`, the SHA-256 of those inputs in canonical JSON, so inputs that differ only in key order share it.
+- **Re-runs are cacheable.** A host may skip a re-run, and the transfer, when the hash of the package (§7.3), `catalogId`, params, state, data, context and actions is unchanged; `/pack` publishes that key as `renderKey`, the SHA-256 of those inputs in canonical JSON, so inputs that differ only in key order share it. The key covers `actions` too (an absent `actions` hashes as `{}`). A widget that formats with `Intl` is cacheable only within one runtime build (§7.1).
 
 **Rationale**
 
@@ -1175,14 +1207,19 @@ type UiNode = {
   variant?: string;
   props: Record<string, Json>;
   style?: Record<string, Json>; // declared style props only
-  events?: Record<string, Intent>;
+  events?: Record<string, Intent | LocalIntent>;
+  when?: Expr;                  // browser-evaluated; render only when true (§8)
+  bind?: Record<string, Expr>;  // browser-evaluated prop overrides (§8)
   children?: UiNode[];
 };
+type Expr = Json;               // a tree expression (§8); data the renderer evaluates
+type LocalIntent = { type: "setLocal"; key: string; value?: Json };  // applied by the renderer (§8)
 type Intent =
   | { type: "setState"; key: string; value?: Json }   // value absent ⇒ the event's value
-  | { type: "action"; name: string; args: Record<string, Json>; bind?: string; bindAll?: true }; // bind and bindAll are exclusive
+  | { type: "action"; name: string; args: Record<string, Json>; bind?: string; bindAll?: true; resultKey?: string }; // bind and bindAll are exclusive; resultKey names the key the host reports the status under (§8)
 ```
 
+- `when`, `bind` and `setLocal` are optional fields of `liveframe/1`. A renderer that predates them fails closed (it rejects unknown node and intent fields), never ignores them. `Intent` is exactly what a host can dispatch (`setState` and `action`); `LocalIntent` is the renderer's own.
 - Whole-tree transport remains valid. Hosts may instead transport `liveframe/tree-patch/1` against a previously validated tree. The renderer still receives a whole tree and reconciles by `id`, so unchanged nodes keep their DOM and local state.
 
 - Optional patches follow the approved design in `decision-logs/2026-10-30-1928-tree-patch-format.md`.
@@ -1215,7 +1252,8 @@ type PatchOp =
   | { readonly op: "set"; readonly id: string; readonly kind: string;
       readonly variant?: string; readonly props: Readonly<Record<string, Json>>;
       readonly style?: Readonly<Record<string, Json>>;
-      readonly events?: Readonly<Record<string, Intent>> }
+      readonly events?: Readonly<Record<string, Intent | LocalIntent>>;
+      readonly when?: Json; readonly bind?: Readonly<Record<string, Json>> }
   | { readonly op: "insert"; readonly parent: string; readonly index: number; readonly node: UiNode }
   | { readonly op: "remove"; readonly id: string }
   | { readonly op: "move"; readonly id: string; readonly index: number };
@@ -1225,7 +1263,7 @@ type PatchOp =
 
 `applyPatch(base: UiTree, patch: unknown): Result<UiTree>` takes a previously validated base. It checks patch shape first, then identity, then applies operations in order against the preceding result. Wrong surface or base revision is `stale-patch` at `/surfaceId` or `/base`; catalog mismatch is `invalid-document` at `/catalogId`. Hosts must assign unique content to each catalog/surface/revision identity; there is no base hash.
 
-- `set` replaces the complete kind/variant/props/style/events payload; omitted optional fields are deleted. It preserves id and children exactly and may target the root.
+- `set` replaces the complete kind/variant/props/style/events/when/bind payload; omitted optional fields are deleted. It preserves id and children exactly and may target the root.
 - `insert` inserts a complete subtree before the current child at `index`; zero through child count is allowed, including append. Absent children count as zero. Subtree ids must follow the destination key path; application never rewrites them.
 - `remove` deletes a non-root subtree and its descendants. Removing the last child omits the parent's children field.
 - `move` reorders a non-root child within its current parent. Its final index is measured after detachment, from zero through the remaining child count. Moving to the same position is valid. Parent changes require remove plus insert with new ids.
@@ -1260,6 +1298,7 @@ It checks:
 - props match their schemas, and strings and arrays are bounded
 - children match the definition, and style props are declared and in range; a dimension that names a design value (`space.*`, `radius.*`, `size.*`, a breakpoint) fails when the app did not declare that name
 - variants exist
+- `when` and `bind` expressions and `setLocal` intents are well formed, bounded and fit the manifest's `local` schema and the kind's props (§8)
 - event names are declared, `setState` keys exist in the state schema and their values match it, action names are in the manifest, action args match the action's schema in the app's capabilities, a scalar `bind` names a compatible argument, and object `bindAll` and implicit object `setState` satisfy the structural fit rule (§8)
 - ids are unique and key-derived
 - limits hold: node count (default 5,000), depth (default 64), and tree size in bytes (default 1 MiB), all configurable. Tree size is the UTF-8 length of the tree's `JSON.stringify` output, counted during the walk without serialising. String bounds count code points. The runner adds a time limit (§7.5)
@@ -1325,64 +1364,27 @@ The renderer re-checks every tree on arrival with the app's compiled validator (
 1. **The renderer never trusts its transport.**
 2. Surfaces never nest.
 3. Nodes render keyed by `id`, so focus, scroll and local state survive re-renders.
+4. **The surface core is framework-independent.** Everything a renderer does before it draws lives in `@arnilo/liveframe/surface`; `@arnilo/liveframe/react` only maps the core's node contexts to elements.
 
 **Contract and examples**
 
-`@arnilo/liveframe/react`:
+**The surface core**
 
-```tsx
-const { Surface } = createRenderer({ catalog, implementations }); // the registry check
-const validator = compileValidator({ catalog, capabilities, manifest });
-<Surface tree={tree} validator={validator} theme={theme} designSystem={designSystem} onIntent={onIntent} fallback={<Unavailable />} />;
+`@arnilo/liveframe/surface` is host-API-free: it imports no framework and touches no DOM. A renderer for another framework is written on it; the library ships none besides React's (§14).
+
+```ts
+const core = createSurfaceCore({ catalog, validator, onIntent, confirm, domIdPrefix, onEvent });
+const accepted = core.accept(tree);            // Result<SurfaceSnapshot>
+core.subscribe(() => draw(core.snapshot()));   // after a local-state change
+const detach = core.attach();                  // mounted: a confirmed intent may still dispatch
 ```
 
-- **`createRenderer({ catalog, implementations })`** runs the registry check once, at startup: it fails if a catalog kind has no implementation, two implementations bind one kind, or an implementation's definition differs from the catalog's. It returns `{ Surface }`; a failed check throws `RendererError`, a `LiveframeFailure` whose `errors` name each discrepancy (`catalog-mismatch`), so a host catches it with the same handler as every other install failure.
-- **`<Surface>`** draws one surface. `theme` and `designSystem` are `{ id, version }` identities for §6.4's scope attributes. `transparency` is `"auto"` (default) or `"reduced"`: it adds §6.4's `data-lf-transparency` attribute to the wrapper and portal container together and, when it changes, runs the same switching sequence as a theme change.
-- **`implement(definition, Component)`** binds a primitive's React implementation. The implementation receives:
-  - `props`: validated values
-  - `slot(name)`: the single stable recipe class for that slot in its current variant (§6.4). The root slot also carries the node's style-prop classes; surface and container classes belong to the surface wrapper. Implementations expose state through the normative selector table there
-  - `style`: the root's inline declarations from the node's style props (`styleDeclarations`, §6.4)
-  - `emit(event, value?)`: raises the declared intent
-  - `events`: a readonly map keyed by the definition's events, populated only for events offered by this node.
-
-    Each entry is `{ type: "action" | "setState", confirm: boolean, irreversible: boolean }`, resolved from the validator's compiled capabilities; `setState` reports both flags false.
-
-    No action names, argument values or host `meta` reach implementations.
-
-    The renderer caches each node context, including this metadata and its rendered element, by node object identity.
-
-    Untouched subtrees retain their contexts and elements across patches and across whole-tree arrivals whose values they already hold, with children matched to their previous values by `id` within the same parent.
-
-    Replacing the validator or portal, or turning diagnostics on or off, resets reuse; a new `fallback` value or a new diagnostics list does not.
-
-    Reused handlers read the currently accepted tree and current callbacks when emitting.
-  - `domId`: a DOM id for this node's element, stable across re-renders and unique per `<Surface>` instance (the surface's `useId` prefix, percent-encoded, then `:` and the key-path id). It holds no whitespace, so it is valid in an `aria-*` id list. The renderer adds no wrapper: an implementation places `domId` on the element it renders, and a node that renders none is simply unreferenceable.
-  - `props` carry each `refProps` value (§5) rewritten from the target's key-path id to the target's `domId`. An absent optional reference stays absent; a catalog without `refProps` keeps `props` unchanged.
-  - `children`: already rendered
-  - `items`: a node context for each child, with `id`, `domId`, `kind`, `variant`, `props`, `slot(name)`, `style`, `events`, `children` (already rendered), `render()` (the child drawn through its own implementation) and `emit(event, value?)`. Slots, styles, metadata and intents belong to that child, so collection primitives can draw its parts themselves
-  - `portal`: the surface's scoped overlay container, or undefined when overlays use the top layer
-- It re-checks every arriving tree with the `validator`, compiled from the catalog, the capabilities and the widget's manifest (§10), before reading any tree field, including `surfaceId` or `revision`. A tree that fails renders the app's `fallback` for the whole surface, never part of an invalid tree and never nothing. After validation, a tree for the same `surfaceId` whose `revision` is lower than the current one is ignored; a different `surfaceId` replaces the current tree.
-- An implementation that throws renders the `fallback` at that node, through an error boundary.
-- After a whole tree passes validation, the renderer substitutes the accepted tree's node objects for every subtree that is deep-equal to it (object key order ignored, array order kept) when the `surfaceId` and validator are unchanged, so React skips those subtrees by element identity and their local state, focus and scroll survive. Substitution only replaces a value with an equal one, so the drawn tree is exactly the validated arrival. A node whose implementation threw is never reused, nor are its ancestors, so a later arrival retries it as it did before.
-- `focusContinuity` defaults to `true` and keeps keyboard focus inside the surface across updates. With `<Surface>`, if the element focused inside the wrapper or portal container is disconnected by an update, focus moves to the next element in document order that was tabbable before the update and is still connected, else the closest previous one, else the wrapper, which carries `tabIndex={-1}` in this mode only; every move uses `focus({ preventScroll: true })`. Focus the host or a primitive has already placed elsewhere is never taken back, and moving focus emits no intent. With `focusContinuity={false}` the surface takes no snapshot, adds no attribute or `tabIndex` and installs no listener.
-- Server-side rendering is supported. React error boundaries do not catch server rendering errors: if an implementation throws during `renderToString`, the host catches the error and supplies fallback markup. Hydrating that replacement markup can recover through client rendering; successful server renders and invalid-tree fallbacks hydrate without mismatch. The scoped `portal` container is supplied to implementations only after mounting, so it is undefined during SSR and the first client render.
-- `<Surface>` renders its own wrapper element around the tree and a sibling `portal` container. Both carry `surfaceAttributes({ theme, designSystem, tree })`: §6.4's theme/design-system scope attributes, `lf_surface` and, when the tree uses responsive values, `lf_container`. Node slots do not carry these scope classes, and parents of responsive nodes do not gain containers. Changing `theme`, `designSystem` or `transparency` runs §6.4's switching sequence on the wrapper and portal container together; it preserves node identities and slot classes and runs no widget code.
-- Host-only `wrapperProps` and `portalProps` accept `{ className?: string; style?: CSSProperties }`.
-
-  Host classes append to the library classes and inline styles apply to their container; no other fields pass through, so scope attributes and `data-lf-portal` remain library-owned.
-
-  Widget trees cannot supply these hooks.
-
-  The base sheet emits `:where([data-lf-portal]){position:fixed;inset:0;pointer-events:none}` and `:where([data-lf-portal])>*{pointer-events:auto}`.
-
-  The portal takes no grid track or flex gap, keeps a viewport-sized box for responsive containment and inherited scope variables, and allows clicks on overlay content.
-
-  Responsive overlay values use viewport width, including in narrow preview cells, instead of the old block portal's host-dependent width.
-
-  Host classes may override these zero-specificity defaults.
-
-  Ancestors with `transform`, `filter` or layout/paint `contain` may establish a containing block instead of the viewport; hosts account for this and obey the backdrop rule below.
-- Overlays stay within their surface's scope: use the top layer while retaining DOM ancestry, or the `portal` container. A backdrop slot and its overlay content are siblings. No backdrop ancestor may set opacity below 1 or a filter that creates a backdrop root; the backdrop must be able to sample the page behind it. Exit motion, scroll locking and making the background inert are part of the renderer contract: the renderer supplies the scoped container, and the app's implementations deliver the lifecycle (for example through React Aria). Browser tests and the renderer conformance suite (§13) prove it.
+- **`core.accept(input)`** re-checks every arriving tree with the `validator`, compiled from the catalog, the capabilities and the widget's manifest (§10), before reading any tree field, including `surfaceId` or `revision`. It returns the accepted `SurfaceSnapshot` or the validation errors; a renderer draws its app's `fallback` for the whole surface when `snapshot().valid` is false, never part of an invalid tree and never nothing. After validation, a tree for the same `surfaceId` whose `revision` is lower than the current one is ignored; a different `surfaceId` replaces the current tree and resets local state. Accepting the same input twice does nothing, and `accept` never notifies subscribers, so a framework may call it while rendering.
+- **`SurfaceSnapshot`** is `{ valid, errors, tree, root, local }`: a new frozen object whenever anything a renderer reads changes. `tree` stays the last accepted tree across an invalid arrival, so a later revision compares against it. `root` is the root's node context, or undefined before any tree or when the root's `when` is false.
+- **`NodeContext`** is one drawable node, built once per tree node and cached by node object identity. It holds `id`, `kind`, `variant`, effective `props`, `domId`, `events`, `slot(name)`, `style`, `emit(event, value?)`, `items` (the child contexts that render) and `fault`, plus the tree `node` it came from. A renderer draws the contexts and adds only what its framework needs.
+- **Node reuse.** After a whole tree passes validation, the core substitutes the accepted tree's node objects for every subtree that is deep-equal to it (object key order ignored, array order kept; `when` and `bind` included) when the `surfaceId` is unchanged, so a renderer skips those subtrees by identity and their local state, focus and scroll survive. Substitution only replaces a value with an equal one, so the drawn tree is exactly the validated arrival. Children match their previous values by `id` within the same parent. A node reported through `core.fail(node)` is never reused, nor are its ancestors, so a later arrival retries it.
+- **Local state and bindings** (§8). The core holds the surface's `local` object, starting at the manifest's `initialLocal`. A `setLocal` event is applied by `emit` and never reaches `onIntent` or `confirm`: the value is checked against the local schema, written, and only the nodes whose `when` or `bind` read a changed key are evaluated again. Ancestors of a changed node get a new context and unaffected nodes keep theirs. A node whose `when` is false is absent from its parent's `items`. A bound value replaces its prop only after the validator's node check accepts the effective props; an evaluation error or a failed check gives that node a `fault` and leaves the surface valid, and a renderer draws the node fallback. A value outside the local schema throws like a `carries` mismatch.
+- **Observability.** The optional `onEvent(event)` receives a frozen `SurfaceEvent` where the core makes each decision: `arrival-rejected` (`surfaceId?`, `errors`), `stale-revision` (`surfaceId`, `revision`, `current`), `emit-rejected` (`nodeId`, `event`, `reason`: `invalid-value` or `invalid-local`), `implementation-failed` (`nodeId`, `kind`, raised by `core.fail`), `binding-failed` (`nodeId`, `prop?`, `errors`, once per change) and `confirm-dropped` (`nodeId`: a single-flight drop, or approval after unmount). Events carry ids, kinds, event names, revisions and `LiveframeError`s, never prop, state or local values. The set of `type`s is open: a handler ignores one it does not know. `onEvent` is read when used; a throw or a rejected promise is contained; with no `onEvent` the core allocates no event. The library never logs on the render path.
 - `emit(event, value?)` checks the event value against the definition's `carries` (`none`: no value; `string`; `boolean`; `number`: a finite number; `integer`: a finite integer; `{ object: ObjectSchema }`: the declared schema, compiled once per definition event in the renderer factory).
 
   A mismatch is an implementation bug: it throws and raises no intent.
@@ -1403,6 +1405,62 @@ const validator = compileValidator({ catalog, capabilities, manifest });
 
 - Optional `<Surface confirm={(intent, meta) => Promise<boolean>}>` awaits approval before `onIntent` for actions whose resolved `confirm` is true. It receives the completed frozen intent and readonly `{ confirm, irreversible }`. False, rejection or a throw emits nothing. Confirmation is single-flight per mounted surface: further confirmation-requiring emits are dropped while pending; other emits continue. Approval after unmount is dropped; otherwise the original origin is retained even if the tree changed. Without the hook, emission is unchanged. `irreversible` alone never gates emission. This is UI convenience: the host still re-checks the offered intent, schema, confirmation policy and authorisation on dispatch (§8).
 
+
+**The React adapter**
+
+`@arnilo/liveframe/react`:
+
+```tsx
+const { Surface } = createRenderer({ catalog, implementations }); // the registry check
+const validator = compileValidator({ catalog, capabilities, manifest });
+<Surface tree={tree} validator={validator} theme={theme} designSystem={designSystem} onIntent={onIntent} fallback={<Unavailable />} />;
+```
+
+- **`createRenderer({ catalog, implementations })`** runs the registry check once, at startup: it fails if a catalog kind has no implementation, two implementations bind one kind, or an implementation's definition differs from the catalog's. It returns `{ Surface }`; a failed check throws `RendererError`, a `LiveframeFailure` whose `errors` name each discrepancy (`catalog-mismatch`), so a host catches it with the same handler as every other install failure.
+- **`<Surface>`** draws one surface. `theme` and `designSystem` are `{ id, version }` identities for §6.4's scope attributes. `transparency` is `"auto"` (default) or `"reduced"`: it adds §6.4's `data-lf-transparency` attribute to the wrapper and portal container together and, when it changes, runs the same switching sequence as a theme change.
+- **`implement(definition, Component)`** binds a primitive's React implementation. The implementation receives:
+  - `props`: validated values
+  - `slot(name)`: the single stable recipe class for that slot in its current variant (§6.4). The root slot also carries the node's style-prop classes; surface and container classes belong to the surface wrapper. Implementations expose state through the normative selector table there
+  - `style`: the root's inline declarations from the node's style props (`styleDeclarations`, §6.4)
+  - `emit(event, value?)`: raises the declared intent
+  - `events`: a readonly map keyed by the definition's events, populated only for events offered by this node.
+
+    Each entry is `{ type: "action" | "setLocal" | "setState", confirm: boolean, irreversible: boolean }`, resolved from the validator's compiled capabilities; `setLocal` and `setState` report both flags false.
+
+    No action names, argument values or host `meta` reach implementations.
+
+    The adapter caches each node context's element by the core context's identity.
+
+    Untouched subtrees retain their contexts and elements across patches and across whole-tree arrivals whose values they already hold.
+
+    Reused handlers read the currently accepted tree and current callbacks when emitting.
+  - `domId`: a DOM id for this node's element, stable across re-renders and unique per `<Surface>` instance (the surface's `useId` prefix, percent-encoded, then `:` and the key-path id). It holds no whitespace, so it is valid in an `aria-*` id list. The renderer adds no wrapper: an implementation places `domId` on the element it renders, and a node that renders none is simply unreferenceable.
+  - `props` carry each `refProps` value (§5) rewritten from the target's key-path id to the target's `domId`. An absent optional reference stays absent; a catalog without `refProps` keeps `props` unchanged.
+  - `children`: already rendered
+  - `items`: a node context for each child, with `id`, `domId`, `kind`, `variant`, `props`, `slot(name)`, `style`, `events`, `children` (already rendered), `render()` (the child drawn through its own implementation) and `emit(event, value?)`. Slots, styles, metadata and intents belong to that child, so collection primitives can draw its parts themselves
+  - `portal`: the surface's scoped overlay container, or undefined when overlays use the top layer
+- `<Surface>` runs one core per validator: replacing the validator starts a new core, so node reuse and local state never cross validators. It subscribes to the core with `useSyncExternalStore`, draws `fallback` for an invalid arrival, and reads `onIntent`, `confirm` and the optional `onEvent` through the core when it uses them.
+- An implementation that throws renders the `fallback` at that node, through an error boundary and reports the node to the core. A node whose bindings failed renders the same fallback.
+- Replacing the portal or turning diagnostics on or off resets the adapter's cached elements; a new `fallback` value or a new diagnostics list does not.
+- `focusContinuity` defaults to `true` and keeps keyboard focus inside the surface across updates. With `<Surface>`, if the element focused inside the wrapper or portal container is disconnected by an update, focus moves to the next element in document order that was tabbable before the update and is still connected, else the closest previous one, else the wrapper, which carries `tabIndex={-1}` in this mode only; every move uses `focus({ preventScroll: true })`. Focus the host or a primitive has already placed elsewhere is never taken back, and moving focus emits no intent. With `focusContinuity={false}` the surface takes no snapshot, adds no attribute or `tabIndex` and installs no listener.
+- Server-side rendering is supported. React error boundaries do not catch server rendering errors: if an implementation throws during `renderToString`, the host catches the error and supplies fallback markup. Hydrating that replacement markup can recover through client rendering; successful server renders and invalid-tree fallbacks hydrate without mismatch. The scoped `portal` container is supplied to implementations only after mounting, so it is undefined during SSR and the first client render.
+- `<Surface>` renders its own wrapper element around the tree and a sibling `portal` container. Both carry `surfaceAttributes({ theme, designSystem, tree })`: §6.4's theme/design-system scope attributes, `lf_surface` and, when the tree uses responsive values, `lf_container`. Node slots do not carry these scope classes, and parents of responsive nodes do not gain containers. Changing `theme`, `designSystem` or `transparency` runs §6.4's switching sequence on the wrapper and portal container together; it preserves node identities and slot classes and runs no widget code.
+- Host-only `wrapperProps` and `portalProps` accept `{ className?: string; style?: CSSProperties }`.
+
+  Host classes append to the library classes and inline styles apply to their container; no other fields pass through, so scope attributes and `data-lf-portal` remain library-owned.
+
+  Widget trees cannot supply these hooks.
+
+  The base sheet emits `:where([data-lf-portal]){position:fixed;inset:0;pointer-events:none}` and `:where([data-lf-portal])>*{pointer-events:auto}`.
+
+  The portal takes no grid track or flex gap, keeps a viewport-sized box for responsive containment and inherited scope variables, and allows clicks on overlay content.
+
+  Responsive overlay values use viewport width, including in narrow preview cells, instead of the old block portal's host-dependent width.
+
+  Host classes may override these zero-specificity defaults.
+
+  Ancestors with `transform`, `filter` or layout/paint `contain` may establish a containing block instead of the viewport; hosts account for this and obey the backdrop rule below.
+- Overlays stay within their surface's scope: use the top layer while retaining DOM ancestry, or the `portal` container. A backdrop slot and its overlay content are siblings. No backdrop ancestor may set opacity below 1 or a filter that creates a backdrop root; the backdrop must be able to sample the page behind it. Exit motion, scroll locking and making the background inert are part of the renderer contract: the renderer supplies the scoped container, and the app's implementations deliver the lifecycle (for example through React Aria). Browser tests and the renderer conformance suite (§13) prove it.
 **Rationale**
 
 Recommended, not required: build interactive primitives on a behaviour library such as React Aria, for accessibility.
@@ -1471,6 +1529,7 @@ Before building the library, prove the model's central claim: **that a small pri
   | `@arnilo/liveframe` | Definition, catalog, theme, design-system, UI-tree and tree-patch formats; `validateTreePatch`, `diffTrees` and `applyPatch`; the validator; `bindSources` (§7.1); `auditContrast` (§6.5); the recipe resolver; `LiveframeFailure`, `LiveframeError` and `NodeRef` |
   | `@arnilo/liveframe/sdk` | The JSX runtime (`/sdk/jsx-runtime`, `/sdk/jsx-dev-runtime`), intent helpers, `ref()`, `render()`, `renderElements()` and `streamElements()` |
   | `@arnilo/liveframe/sdk/gen` | The host-side emitters behind `liveframe gen`: `generate()`, `generateDefinitions()` and `generateElementsSchema()` |
+  | `@arnilo/liveframe/surface` | Host-API-free `createSurfaceCore()` and its `NodeContext` and `SurfaceSnapshot` types: the framework-independent half of a renderer (§11) |
   | `@arnilo/liveframe/react` | The renderer: `createRenderer()`, `<Surface>` and `implement()` (§11). `react` and `react-dom` are optional peer dependencies used by the React subpaths |
   | `@arnilo/liveframe/css` | Pure, host-API-free projection into three scoped sheets, plus class, style, scope and variable helpers (§6.4); the host inserts sheets |
   | `@arnilo/liveframe/pack` | Package and scenario formats, structural validators, `pack()`, `verifyPackage()` and `renderKey()` (§7.3, §8) |
@@ -1502,6 +1561,7 @@ Before building the library, prove the model's central claim: **that a small pri
 | `authoring` | `TextEncoder`, `TextDecoder`, `URL`, `console` |
 | `runner-kit` | none |
 | `template` | none |
+| `surface` | none |
 | `preview/capture` | `TextEncoder`, `TextDecoder`, `URL` |
 | `conformance` | `TextDecoder`, `console` |
 | `pack` | `TextDecoder`, `console` |

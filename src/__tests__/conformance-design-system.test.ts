@@ -1,9 +1,9 @@
 import { expect, test } from "bun:test";
-import { designSystemSuite, ConformanceFailure } from "@arnilo/liveframe/conformance";
+import { ConformanceFailure, designSystemSuite } from "@arnilo/liveframe/conformance";
 import { catalog } from "./fixtures/conformance/index.ts";
 import certified from "./fixtures/proof/certified.design-system.json" with { type: "json" };
-import rack from "./fixtures/proof/rack.design-system.json" with { type: "json" };
 import certifiedTheme from "./fixtures/proof/certified.theme.json" with { type: "json" };
+import rack from "./fixtures/proof/rack.design-system.json" with { type: "json" };
 import rackTheme from "./fixtures/proof/rack.theme.json" with { type: "json" };
 
 const input = { catalog, themes: [certifiedTheme, rackTheme], designSystems: [certified, rack] };

@@ -101,6 +101,27 @@ directives, which run in this order on one node:
 | `$each: { in, as, index?, key }` | Emit one body per item of an array; `key` is required |
 | `$use: "Name"` + `with: { … }` | Expand a component in place (it leaves no node of its own) |
 
+A node can also carry `when` and `bind`, expressions the **renderer** evaluates in the
+browser against the manifest's `local` state and the node's own props, so a filter
+over rows already in the tree needs no round trip (see the
+[SDK guide](sdk.md#intents-and-author-constraints) for the operators and roots).
+They are copied into the tree as written. The one template value they can hold is
+`{ "$embed": <expression> }`, replaced by its value as a literal when the template
+expands:
+
+```jsonc
+{
+  "$each": { "in": { "$path": "data.rows" }, "as": "row", "key": { "$path": "row.id" } },
+  "kind": "text",
+  "props": { "text": { "$path": "row.title" } },
+  // Visible while the viewer's local filter text appears in this row's title.
+  "when": { "$contains": [{ "$embed": { "$path": "row.title" } }, { "$path": "local.q" }] }
+}
+```
+
+A `setLocal` event (`{ "type": "setLocal", "key": "q" }`) writes the local state like
+`setState` writes state. A `$use` node and a fragment take neither `when` nor `bind`.
+
 A **component** is `{ params, root }`: `params` is an object schema, and the body
 sees only its own params. This is how a template reuses a row without the row
 seeing the rest of the widget.

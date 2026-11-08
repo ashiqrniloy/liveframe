@@ -1,9 +1,9 @@
 import { expect, test } from "bun:test";
 import { LiveframeFailure } from "../errors.ts";
 import { buildFacts, catalogCompileCount, compileValidator } from "../validate/compile.ts";
+import manifestDocument from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
 import catalogDocument from "./fixtures/proof/catalog.json" with { type: "json" };
-import manifestDocument from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 import { validatorFixtures } from "./fixtures/validator.ts";
 
 test("validator_smoke_under_5us_per_node", async () => {

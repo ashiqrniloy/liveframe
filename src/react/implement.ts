@@ -46,7 +46,7 @@ export type ImplementationProps<D extends Definition = Definition, P = Props<D>>
   readonly emit: Emit<D>;
   readonly events: {
     readonly [E in keyof D["events"]]?: Readonly<{
-      type: "action" | "setState";
+      type: "action" | "setLocal" | "setState";
       confirm: boolean;
       irreversible: boolean;
     }>;

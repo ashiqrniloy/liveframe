@@ -7,7 +7,7 @@ import type { UiTree } from "../formats/tree.ts";
 import { errorMessage } from "../internal.ts";
 import { canonicalJson } from "../pack/hash.ts";
 import { render } from "../sdk/render.ts";
-import type { WidgetProps } from "../sdk/types.ts";
+import type { WidgetInputs } from "../sdk/types.ts";
 import type { Template } from "../template/document.ts";
 import { renderTemplate, type TemplateLimits } from "../template/render.ts";
 import { compiledValidator } from "./cache.ts";
@@ -55,7 +55,7 @@ function manifestKeyOrErrors(manifest: Manifest): string | Result<never> {
  */
 export function renderWidget(
   widget: unknown,
-  inputs: WidgetProps,
+  inputs: WidgetInputs,
   options: RenderModuleOptions,
   key: string,
 ): Result<UiTree> {
@@ -84,7 +84,7 @@ export function renderWidget(
  */
 export function renderTemplateWidget(
   template: Template,
-  inputs: WidgetProps,
+  inputs: WidgetInputs,
   options: RenderModuleOptions,
   key: string,
 ): Result<UiTree> {
@@ -113,7 +113,7 @@ export function renderTemplateWidget(
  */
 export function renderModule(
   widgetDefault: unknown,
-  inputs: WidgetProps,
+  inputs: WidgetInputs,
   options: RenderModuleOptions,
 ): Result<UiTree> {
   const key = manifestKeyOrErrors(options.manifest);
@@ -128,7 +128,7 @@ export function renderModule(
  */
 export function renderTemplatePackage(
   template: Template,
-  inputs: WidgetProps,
+  inputs: WidgetInputs,
   options: RenderModuleOptions,
 ): Result<UiTree> {
   const key = manifestKeyOrErrors(options.manifest);

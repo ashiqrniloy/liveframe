@@ -1,21 +1,22 @@
 import { expect, test } from "bun:test";
 import { Ajv2020 } from "ajv/dist/2020.js";
-import { schemaDocument } from "../formats/registry.ts";
 import { LiveframeFailure } from "../errors.ts";
 import { bindSources, validateManifestShape } from "../formats/manifest.ts";
+import { schemaDocument } from "../formats/registry.ts";
+import type { Catalog } from "../index.ts";
 import {
   arr,
   bool,
+  type Capabilities,
+  type Manifest,
   obj,
   str,
   validateCapabilities,
   validateCatalog,
   validateManifest,
-  type Capabilities,
-  type Manifest,
 } from "../index.ts";
 import catalogData from "./fixtures/catalog.json" with { type: "json" };
-import type { Catalog } from "../index.ts";
+
 const catalog = catalogData as Catalog;
 
 const text = str({ maxLength: 128 });

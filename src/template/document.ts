@@ -8,11 +8,13 @@ import { at, type Capabilities, documentChecks, isRecord, type ObjectSchema } fr
 import type { Catalog, Definition } from "../formats/catalog.ts";
 import { checkFormat } from "../formats/check.ts";
 import { validateJson } from "../formats/json.ts";
-import type { Manifest } from "../formats/manifest.ts";
+import { type Manifest, NO_LOCAL } from "../formats/manifest.ts";
 import type { Json } from "../formats/tree.ts";
 import { utf8Length } from "../internal.ts";
 import type { LanguageSchema } from "../schema.ts";
 import { type ElementReject, mergeSections, rejectFragmentFields } from "../sdk/element-node.ts";
+import { actionsSchema } from "../validate/actions.ts";
+import { type BindingCheck, compileBindings, EMBED } from "../validate/bindings.ts";
 import { dataSchema, type KindFacts, kindFacts, propTarget } from "../validate/compile.ts";
 import { type Carries, carriesFits, objectFits } from "../validate/intent.ts";
 import { type CompiledStructure, compileStructure } from "../validate/structure.ts";
@@ -46,6 +48,8 @@ export type TemplateIntent =
       readonly args: Readonly<Record<string, Expr>>;
       readonly bind?: string;
       readonly bindAll?: true;
+      /** The key the host reports this action's status under (plan 029 A5); may be an expression. */
+      readonly resultKey?: Expr;
     };
 
 /** An element-JSON node whose values may be expressions, plus the directives (design T2, T3). */
@@ -115,8 +119,9 @@ function factsFor(catalog: Catalog): CatalogFacts {
   return facts;
 }
 
-const NO_ACTIONS: ObjectSchema = { type: "object", properties: {}, required: [], additionalProperties: false };
 const FRAGMENT = "fragment";
+/** Deepest nesting `embeds` follows; tree expressions are shallower (16). */
+const EMBED_DEPTH = 17;
 const VISITING = -1;
 
 /** Where in a template a node sits: what its children are placed under, and how deep. */
@@ -144,6 +149,7 @@ class Walk {
   readonly capabilities: Capabilities;
   readonly manifest: Manifest;
   nodes = 0;
+  readonly bindingChecks = new Map<string, BindingCheck>();
 
   constructor(
     readonly template: Template,
@@ -220,7 +226,7 @@ class Walk {
         state: manifest.state,
         data: dataSchema(manifest, capabilities),
         context: manifest.context,
-        actions: NO_ACTIONS,
+        actions: actionsSchema(manifest, capabilities),
       },
       this.budget,
     );
@@ -375,7 +381,7 @@ class Walk {
 
   /** A `$use` node: no element fields of its own, and `with` against the component's params. */
   componentNode(node: Raw, pointer: string, scope: Scope, here: Place): void {
-    for (const field of ["props", "style", "events", "children", "variant", "$anchor"])
+    for (const field of ["props", "style", "events", "children", "variant", "$anchor", "when", "bind"])
       if (Object.hasOwn(node, field))
         this.reject(at(pointer, field), `no ${field} on a $use node (set it in the component)`, "invalid-document");
     const name = node.$use as string;
@@ -431,7 +437,53 @@ class Walk {
     if (facts.children === "none" && list.length > 0)
       this.reject(at(pointer, "children"), `no children in ${kind}`, "invalid-children");
     this.members(node, pointer, entry, scope);
+    this.expressions(node, pointer, entry, scope);
     this.children(node, pointer, scope, here, kind);
+  }
+
+  // ---- when and bind (plan 029 B12) ----
+
+  /**
+   * A node's browser-evaluated `when` and `bind`. Each `$embed` operand is a template expression; the rest is
+   * a tree expression, checked as the validator would once expanded, with every `$embed` an unknown value.
+   */
+  expressions(node: Raw, pointer: string, entry: Kind, scope: Scope): void {
+    const present = ["when", "bind"].filter((field) => Object.hasOwn(node, field));
+    if (!present.length) return;
+    for (const field of present) this.embeds(node[field], at(pointer, field), scope, 0);
+    const kind = entry.definition.kind;
+    let check = this.bindingChecks.get(kind);
+    if (!check) {
+      check = compileBindings({
+        local: this.manifest.local ?? NO_LOCAL,
+        props: entry.definition.props,
+        refProps: entry.facts.refProps,
+        embed: true,
+      });
+      this.bindingChecks.set(kind, check);
+    }
+    const sink = { errors: [] as LiveframeError[], maxErrors: 20 };
+    check(node, sink);
+    for (const error of sink.errors) this.c.reject(pointer + error.pointer, error.message, error.kind, error.expected);
+  }
+
+  /** Checks the operand of every `$embed` in a tree expression as a template expression; it must be present. */
+  embeds(value: unknown, pointer: string, scope: Scope, depth: number): void {
+    // Past the tree-expression depth the checker reports the expression itself.
+    if (depth > EMBED_DEPTH) return;
+    if (Array.isArray(value)) {
+      for (const [i, member] of value.entries()) this.embeds(member, at(pointer, i), scope, depth + 1);
+      return;
+    }
+    if (!isRecord(value)) return;
+    const keys = Object.keys(value);
+    if (keys.length === 1 && keys[0] === EMBED) {
+      const where = at(pointer, EMBED);
+      const type = this.expression(value[EMBED], scope, where);
+      if (type.optional || type.schema === "absent") this.reject(where, "a value that is always present");
+      return;
+    }
+    for (const key of keys) this.embeds(value[key], at(pointer, key), scope, depth + 1);
   }
 
   anchor(name: string, pointer: string): void {
@@ -501,17 +553,20 @@ class Walk {
 
   intent(value: unknown, pointer: string, carries: Carries, scope: Scope): void {
     if (!isRecord(value)) this.reject(pointer, "one setState or action intent");
-    else if (value.type === "setState") this.setState(value, pointer, carries, scope);
+    else if (value.type === "setState") this.write(value, pointer, carries, scope, this.manifest.state, "state");
+    else if (value.type === "setLocal")
+      this.write(value, pointer, carries, scope, this.manifest.local ?? NO_LOCAL, "local");
     else if (value.type === "action") this.action(value, pointer, carries, scope);
     else this.reject(at(pointer, "type"), "intent type setState or action");
   }
 
-  setState(value: Raw, pointer: string, carries: Carries, scope: Scope): void {
+  /** A `setState` or `setLocal`: a key of the manifest's state or local schema, with an expression or an event's value. */
+  write(value: Raw, pointer: string, carries: Carries, scope: Scope, schema: ObjectSchema, what: string): void {
     const key = value.key;
-    const { properties } = this.manifest.state;
+    const { properties } = schema;
     const state = typeof key === "string" && Object.hasOwn(properties, key) ? properties[key] : undefined;
     if (!state) {
-      this.reject(at(pointer, "key"), `a declared state key: ${expected(Object.keys(properties))}`);
+      this.reject(at(pointer, "key"), `a declared ${what} key: ${expected(Object.keys(properties))}`);
       return;
     }
     if (Object.hasOwn(value, "value")) {
@@ -536,6 +591,15 @@ class Walk {
     if (!isRecord(args)) {
       this.reject(at(pointer, "args"), "an object of action arguments");
       return;
+    }
+    if (Object.hasOwn(value, "resultKey")) {
+      const where = at(pointer, "resultKey");
+      this.bindTo(
+        this.expression(value.resultKey, scope, where),
+        { type: "string", maxLength: 128, minLength: 1 },
+        true,
+        where,
+      );
     }
     const completion = this.completion(value, args, pointer, carries, schema);
     for (const key of Object.keys(args)) {

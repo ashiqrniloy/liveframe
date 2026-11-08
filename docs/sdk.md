@@ -266,6 +266,47 @@ An event prop carries one frozen intent, never a callback:
   The host and Preview check bounds and enums after completion. An object event
   can also replace a whole object state key with `state.set("draft")`.
 
+- `action("tasks.claim", { id }, { resultKey: "claim:" + id })` names the key
+  the host reports this intent's status under. Without it the key is the action
+  name. A widget reads the status from `actions`:
+
+  ```tsx
+  export default function Queue({ data, actions }: WidgetProps<Params, State, Data, Ctx>) {
+    const claim = actions["tasks.claim"];
+    return <Button label={claim?.status === "pending" ? "Claiming…" : "Claim"} onPress={action("tasks.claim", { id })} />;
+  }
+  ```
+
+  `actions` is `{}` until the host reports something. Each entry has a `status`
+  (`pending`, `ok`, `failed` or `refused`), and optionally `reason`, `at`, `action`
+  and an `ok` `value` that matches the capability's `result` schema. Type a widget's
+  `actions` with the fifth parameter of `WidgetProps`, using `ActionStatus<Value>`.
+
+- `local.set("q")` writes the surface's local state from an event, and `when`
+  and `bind` read it, so a filter over rows already in the tree needs no round
+  trip. The manifest declares the state (`local`, `initialLocal`); the renderer
+  applies the write and never calls `onIntent`:
+
+  ```tsx
+  <TextField label="Filter" onChange={local.set("q")} />
+  {rows.map((r) => (
+    <Row key={r.id} when={ex.contains(r.title, local("q"))}>
+      <Text text={r.title} bind={{ text: ex.concat(r.title, "!") }} />
+    </Row>
+  ))}
+  ```
+
+  `local(key)` and `self(prop)` build expressions (the node's own props are the
+  `self` root), and `ex` has one builder per operator an expression may use
+  (`eq ne lt lte gt gte and or not cond coalesce len concat text contains slice add
+  sub mul div round get at lit has omit`). A bare string, number or boolean is a
+  literal operand; wrap an object or array in `ex.lit`. `when` and `bind` are node
+  fields, not props, so a kind cannot declare props with those names. `bind`
+  overrides a prop's static value (still sent in `props` as the fallback) and cannot
+  reach `variant`, style props, events or `refProps` props. The validator and
+  `render()` check each expression statically; `liveframe gen` types `when` and
+  `bind` per prop. Expressions are data the renderer evaluates, never widget code.
+
 The helpers produce data; they do not update state or dispatch actions. They
 reject functions, promises, class instances, cycles and non-finite numbers with
 a `TypeError` naming the offending path. A helper exception inside the widget is
@@ -297,6 +338,10 @@ expanded widget still needs exactly one primitive root.
 
 Widgets must be pure and synchronous. Supply time and randomness through
 `context`; do not read clocks, random generators or external mutable state.
+Locale, direction and time zone come the same way (`context.locale`, `direction`,
+`timeZone`), and text is best formatted by the host and passed as data: a widget
+that calls `Intl` is deterministic only within one runtime build. See the
+[localisation guide](localisation.md).
 The same widget, inputs and render options give byte-identical serialized trees,
 including across fresh validators. Changing `revision` changes the tree envelope.
 

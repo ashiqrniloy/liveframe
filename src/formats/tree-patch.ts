@@ -37,7 +37,7 @@ const { children: _children, ...ownFields } = nodeProperties;
 const id = str({ ...ownFields.id, maxLength: Number.MAX_SAFE_INTEGER });
 const setFields = obj(
   { op: tag("set"), id, kind: ownFields.kind, props: bool() },
-  { variant: ownFields.variant, style: bool(), events: bool() },
+  { variant: ownFields.variant, style: bool(), events: bool(), when: bool(), bind: bool() },
 );
 const insertFields = obj({ op: tag("insert"), parent: id, index: natural, node: bool() });
 const removeFields = obj({ op: tag("remove"), id });

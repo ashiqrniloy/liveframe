@@ -22,6 +22,9 @@
             "irreversible": {
               "type": "boolean"
             },
+            "result": {
+              "$ref": "#/$defs/schema"
+            },
             "meta": {
               "$ref": "#/$defs/json"
             },

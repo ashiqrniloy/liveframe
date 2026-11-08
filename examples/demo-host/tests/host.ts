@@ -43,6 +43,7 @@ export function find(node: UiNode, id: string): UiNode | undefined {
 /** The intent a node offers for an event, as the browser would send it. */
 export function offeredIntent(snapshot: Snapshot, nodeId: string, event: string): Intent {
   const intent = find(snapshot.tree.root, nodeId)?.events?.[event];
-  if (!intent) throw new Error(`${nodeId} offers no ${event}`);
+  // A `setLocal` event is the renderer's own write and never leaves the browser.
+  if (!intent || intent.type === "setLocal") throw new Error(`${nodeId} offers no ${event}`);
   return intent;
 }

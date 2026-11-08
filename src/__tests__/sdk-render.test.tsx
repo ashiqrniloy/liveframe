@@ -1,6 +1,16 @@
 /** @jsxImportSource @arnilo/liveframe/sdk */
 import { describe, expect, test } from "bun:test";
-import { action, type Element, Fragment, jsx, primitive, render, state, type WidgetProps } from "@arnilo/liveframe/sdk";
+import {
+  action,
+  type Element,
+  Fragment,
+  jsx,
+  primitive,
+  render,
+  state,
+  type WidgetInputs,
+  type WidgetProps,
+} from "@arnilo/liveframe/sdk";
 import { compileValidator, type LiveframeError, type UiNode } from "../index.ts";
 import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
@@ -19,7 +29,7 @@ const Button = primitive<{
 const Nope = primitive("nope");
 const KeyedText = ({ nodeKey }: { readonly nodeKey: string }) => jsx(Text, { text: "child" }, nodeKey);
 
-const inputs: WidgetProps = {
+const inputs: WidgetInputs = {
   params: { canAct: true, canEscalate: false, canViewAlerts: true },
   state: {
     filter: "all",

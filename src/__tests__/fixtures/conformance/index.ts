@@ -1,16 +1,16 @@
 import {
   compileValidator,
   obj,
-  validateCatalog,
-  validateCapabilities,
-  validateManifest,
   type Result,
+  validateCapabilities,
+  validateCatalog,
+  validateManifest,
 } from "@arnilo/liveframe";
 import { render } from "@arnilo/liveframe/sdk";
 import catalogDoc from "../proof/catalog.json" with { type: "json" };
 import capabilitiesDoc from "../widgets/capabilities.json" with { type: "json" };
-import { supplementalExample } from "./supplemental.ts";
 import { proofWidgets } from "../widgets/index.ts";
+import { supplementalExample } from "./supplemental.ts";
 
 function value<T>(result: Result<T>): T {
   if (!result.ok) throw new Error(JSON.stringify(result.errors));

@@ -5,6 +5,7 @@ import { validateJson } from "../formats/json.ts";
 import { treeSchema, type UiTree } from "../formats/tree.ts";
 import { realmError } from "../internal.ts";
 import { str } from "../schema.ts";
+import { isGated } from "./bindings.ts";
 import { CONTAINER_BYTES, memberBytes, SEPARATOR_BYTES } from "./bytes.ts";
 import { closed, field } from "./checks.ts";
 import { compileSchema, type SchemaCheck, type SchemaSink } from "./schema.ts";
@@ -13,7 +14,9 @@ import {
   compileStructure,
   type JsonWalk,
   keyPath,
+  newTally,
   type StructureSink,
+  tallyKind,
   walkJson,
 } from "./structure.ts";
 
@@ -40,6 +43,8 @@ type TreeContext = {
   readonly path: (string | number)[];
   readonly sink: SchemaSink;
   readonly ids: Set<string>;
+  /** Ids of nodes carrying a `when`; a node is gated when it or an ancestor is in here (plan 029 B5.6). */
+  readonly gated: Set<string>;
   readonly refProps: ReadonlyMap<string, readonly string[]>;
   readonly references: { target: string; nodeId: string; path: readonly (string | number)[]; name: string }[];
   readonly ancestors: Set<object>;
@@ -116,17 +121,20 @@ function collectReferences(ctx: TreeContext, props: unknown, names: readonly str
 function checkReferences(ctx: TreeContext): void {
   for (const reference of ctx.references) {
     if (ctx.stopped) break;
-    if (!ctx.ids.has(reference.target)) {
-      let prefix = "";
-      for (const key of reference.path) prefix = at(prefix, key);
-      fail(
-        ctx,
-        `a node in this tree for reference ${reference.target}`,
-        reference.nodeId,
-        "not-found",
-        at(`${prefix}/props`, reference.name),
-      );
-    }
+    const found = ctx.ids.has(reference.target);
+    // A hidden node has no DOM id for `aria-labelledby` to resolve (plan 029 B5.6).
+    if (found && !isGated(ctx.gated, reference.target)) continue;
+    let prefix = "";
+    for (const key of reference.path) prefix = at(prefix, key);
+    fail(
+      ctx,
+      found
+        ? `a node that is always rendered, without a when on it or an ancestor: ${reference.target}`
+        : `a node in this tree for reference ${reference.target}`,
+      reference.nodeId,
+      found ? "invalid-prop" : "not-found",
+      at(`${prefix}/props`, reference.name),
+    );
   }
 }
 
@@ -150,8 +158,9 @@ function createContext(
     maxErrors,
     errors,
     path,
-    sink: { errors, maxErrors },
+    sink: { errors, maxErrors, expressions: { nodes: 0 } },
     ids: new Set<string>(),
+    gated: new Set<string>(),
     refProps,
     references: [],
     ancestors,
@@ -316,6 +325,7 @@ function enterNode(
   const names = ctx.refProps.get(value.kind as string);
   if (names) collectReferences(ctx, value.props, names, nodeId);
   if (typeof value.id === "string") checkId(ctx, value.id, depth, parentId, nodeId);
+  if (Object.hasOwn(value, "when")) ctx.gated.add(nodeId);
   ctx.structureSink.nodeId = nodeId;
   ctx.jsonSink.nodeId = nodeId;
   ctx.structure.node(
@@ -371,8 +381,7 @@ function walkItems(
   nodeId: string,
 ): void {
   const { path, structure, structureSink } = ctx;
-  const counts =
-    mode === "children" && structure.children.get(parentKind) instanceof Map ? new Map<string, number>() : undefined;
+  const counts = mode === "children" && structure.children.get(parentKind) instanceof Map ? newTally() : undefined;
   if (mode === "children" && structure.forbidsChildren(parentKind) && value.length)
     fail(ctx, "no children for this kind", nodeId, "invalid-children");
   for (let i = 0; i < value.length && !ctx.stopped; i++) {
@@ -384,7 +393,7 @@ function walkItems(
     }
     const child: unknown = value[i];
     if (counts && isRecord(child) && typeof child.kind === "string")
-      counts.set(child.kind, (counts.get(child.kind) ?? 0) + 1);
+      tallyKind(counts, child.kind, Object.hasOwn(child, "when"));
     walk(
       ctx,
       child,
@@ -397,7 +406,7 @@ function walkItems(
   }
   if (mode === "children" && counts) {
     structureSink.nodeId = nodeId;
-    structure.counts(parentKind, counts, structureSink);
+    structure.counts(parentKind, counts.all, structureSink, counts.gated);
   }
 }
 

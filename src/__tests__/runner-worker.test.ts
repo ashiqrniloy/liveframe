@@ -4,8 +4,8 @@ import { compileValidator, type Result, validateCapabilities, validateCatalog } 
 import { packageHash } from "../pack/hash.ts";
 import { pack, type WidgetPackage } from "../pack/index.ts";
 import { workerRunner } from "../preview/worker/index.ts";
-import { cachedValidatorCount } from "../runner-kit/cache.ts";
 import type { WorkerMessage } from "../preview/worker/protocol.ts";
+import { cachedValidatorCount } from "../runner-kit/cache.ts";
 import catalogDoc from "./fixtures/proof/catalog.json" with { type: "json" };
 import capabilitiesDoc from "./fixtures/widgets/capabilities.json" with { type: "json" };
 import { drafts } from "./fixtures/widgets/drafts.ts";

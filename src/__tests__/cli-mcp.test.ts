@@ -291,7 +291,7 @@ test("tools_list_advertises_outcomes", async () => {
   const tools = await withClient(async (client) => (await client.listTools()).tools);
   const render = tools.find((tool) => tool.name === "render_scenarios");
   const properties = render?.inputSchema.properties;
-  expect(Object.keys(properties ?? {}).sort()).toEqual(["context", "outcomes", "scenario", "state"]);
+  expect(Object.keys(properties ?? {}).sort()).toEqual(["actions", "context", "outcomes", "scenario", "state"]);
   const outcomes = properties?.outcomes as { description: string };
   for (const status of ["ok", "unauthorized", "unavailable", "stale", "failed"])
     expect(outcomes.description).toContain(status);

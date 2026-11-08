@@ -2,7 +2,7 @@ import type { Result } from "../errors.ts";
 import type { WidgetPackage } from "../formats/package.ts";
 import type { UiTree } from "../formats/tree.ts";
 import { renderTemplateWidget } from "../runner-kit/render.ts";
-import type { WidgetProps } from "../sdk/types.ts";
+import type { WidgetInputs } from "../sdk/types.ts";
 import { verifyPackageHash } from "./cache.ts";
 import type { Runner, RunnerOptions } from "./runner.ts";
 
@@ -14,7 +14,7 @@ import type { Runner, RunnerOptions } from "./runner.ts";
 export function renderTemplateRun(
   template: NonNullable<WidgetPackage["template"]>,
   pkg: WidgetPackage,
-  inputs: WidgetProps,
+  inputs: WidgetInputs,
   options: RunnerOptions,
 ): Result<UiTree> {
   const timeoutMs = options.timeoutMs ?? 100;

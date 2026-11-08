@@ -24,7 +24,12 @@
       "description": "Synthetic proof queue.checked.",
       "params": {
         "type": "object",
-        "properties": {},
+        "properties": {
+          "locale": {
+            "type": "string",
+            "maxLength": 35
+          }
+        },
         "required": [],
         "additionalProperties": false
       },

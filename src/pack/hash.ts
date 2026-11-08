@@ -229,6 +229,7 @@ export function renderKey({
   state,
   data,
   context,
+  actions = {},
 }: {
   readonly hash: string;
   readonly catalogId: string;
@@ -236,8 +237,10 @@ export function renderKey({
   readonly state: unknown;
   readonly data: unknown;
   readonly context: unknown;
+  /** The host's action statuses; absent hashes as `{}`, so a host that reports none still gets one key per input set. */
+  readonly actions?: unknown;
 }): string {
-  return sha256(utf8(canonicalJson({ hash, catalogId, params, state, data, context })));
+  return sha256(utf8(canonicalJson({ hash, catalogId, params, state, data, context, actions })));
 }
 
 /** The hash covers whichever of `code` and `template` the package holds, so a code package's hash is unchanged. */

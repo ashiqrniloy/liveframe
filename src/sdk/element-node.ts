@@ -52,7 +52,7 @@ export function rejectUnknownFields(
 
 /** A fragment adds no node, so it carries only a key and children. */
 export function rejectFragmentFields(value: Record<string, unknown>, pointer: string, reject: ElementReject): void {
-  for (const name of ["$anchor", "variant", "props", "style", "events"] as const)
+  for (const name of ["$anchor", "variant", "props", "style", "events", "when", "bind"] as const)
     if (Object.hasOwn(value, name)) reject.at(at(pointer, name), `no ${name} on a fragment`);
 }
 

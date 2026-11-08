@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { Dialog, Modal, ModalOverlay } from "react-aria-components";
 import { type Definition, type Result, type UiTree, validateDesignSystem, validateTheme } from "../../index.ts";
 import { implement } from "../../react/index.ts";
-import { catalog, capabilities, manifest, formTree } from "./object-events.ts";
+import { capabilities, catalog, formTree, manifest } from "./object-events.ts";
 import { ObjectForm } from "./object-form.tsx";
 import certifiedSystem from "./proof/certified.design-system.json" with { type: "json" };
 import certifiedTheme from "./proof/certified.theme.json" with { type: "json" };

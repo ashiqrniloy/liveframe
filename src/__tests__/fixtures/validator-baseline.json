@@ -578,6 +578,18 @@
     ]
   },
   {
+    "name": "when reads a root the tree does not offer",
+    "errors": [
+      {
+        "kind": "unknown-name",
+        "pointer": "/root/when/$path",
+        "message": "Unknown name \"data\"",
+        "expected": "one of: local, self",
+        "nodeId": "root"
+      }
+    ]
+  },
+  {
     "name": "node count",
     "errors": [
       {

@@ -1,0 +1,176 @@
+[
+  {
+    "name": "when and bind are added by a set",
+    "prev": {
+      "format": "liveframe/1",
+      "catalogId": "test@1",
+      "surfaceId": "vectors",
+      "revision": 1,
+      "root": {
+        "id": "root",
+        "kind": "stack",
+        "props": {},
+        "children": [
+          {
+            "id": "root/a",
+            "kind": "text",
+            "props": {
+              "text": "Row"
+            }
+          }
+        ]
+      }
+    },
+    "next": {
+      "format": "liveframe/1",
+      "catalogId": "test@1",
+      "surfaceId": "vectors",
+      "revision": 2,
+      "root": {
+        "id": "root",
+        "kind": "stack",
+        "props": {},
+        "children": [
+          {
+            "id": "root/a",
+            "kind": "text",
+            "props": {
+              "text": "Row"
+            },
+            "when": {
+              "$contains": [
+                "Row",
+                {
+                  "$path": "local.q"
+                }
+              ]
+            },
+            "bind": {
+              "text": {
+                "$concat": [
+                  {
+                    "$path": "self.text"
+                  },
+                  "!"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    "patch": {
+      "format": "liveframe/tree-patch/1",
+      "catalogId": "test@1",
+      "surfaceId": "vectors",
+      "base": 1,
+      "revision": 2,
+      "ops": [
+        {
+          "op": "set",
+          "id": "root/a",
+          "kind": "text",
+          "props": {
+            "text": "Row"
+          },
+          "when": {
+            "$contains": [
+              "Row",
+              {
+                "$path": "local.q"
+              }
+            ]
+          },
+          "bind": {
+            "text": {
+              "$concat": [
+                {
+                  "$path": "self.text"
+                },
+                "!"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "when and bind are removed by a set",
+    "prev": {
+      "format": "liveframe/1",
+      "catalogId": "test@1",
+      "surfaceId": "vectors",
+      "revision": 2,
+      "root": {
+        "id": "root",
+        "kind": "stack",
+        "props": {},
+        "children": [
+          {
+            "id": "root/a",
+            "kind": "text",
+            "props": {
+              "text": "Row"
+            },
+            "when": {
+              "$contains": [
+                "Row",
+                {
+                  "$path": "local.q"
+                }
+              ]
+            },
+            "bind": {
+              "text": {
+                "$concat": [
+                  {
+                    "$path": "self.text"
+                  },
+                  "!"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    "next": {
+      "format": "liveframe/1",
+      "catalogId": "test@1",
+      "surfaceId": "vectors",
+      "revision": 3,
+      "root": {
+        "id": "root",
+        "kind": "stack",
+        "props": {},
+        "children": [
+          {
+            "id": "root/a",
+            "kind": "text",
+            "props": {
+              "text": "Row"
+            }
+          }
+        ]
+      }
+    },
+    "patch": {
+      "format": "liveframe/tree-patch/1",
+      "catalogId": "test@1",
+      "surfaceId": "vectors",
+      "base": 2,
+      "revision": 3,
+      "ops": [
+        {
+          "op": "set",
+          "id": "root/a",
+          "kind": "text",
+          "props": {
+            "text": "Row"
+          }
+        }
+      ]
+    }
+  }
+]

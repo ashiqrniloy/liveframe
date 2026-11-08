@@ -1,8 +1,8 @@
 import { strict as assert } from "node:assert";
 import { compileValidator, obj, str, type UiNode, type UiTree, validateCatalog } from "../../index.ts";
-import catalogDocument from "./proof/catalog.json" with { type: "json" };
-import capabilities from "./proof/capabilities.json" with { type: "json" };
 import manifest from "./proof/agent-home.manifest.json" with { type: "json" };
+import capabilities from "./proof/capabilities.json" with { type: "json" };
+import catalogDocument from "./proof/catalog.json" with { type: "json" };
 
 const installed = validateCatalog(catalogDocument);
 assert(installed.ok, "Invalid benchmark catalog");

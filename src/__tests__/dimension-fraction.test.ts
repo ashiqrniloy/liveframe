@@ -1,12 +1,12 @@
 import { expect, test } from "bun:test";
+import { jsx, primitive, render, renderElements } from "@arnilo/liveframe/sdk";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import treeSchema from "../../schemas/ui-tree.json" with { type: "json" };
-import { compileValidator, type Catalog, type Result, type UiTree } from "../index.ts";
-import { jsx, primitive, render, renderElements } from "@arnilo/liveframe/sdk";
 import { styleDeclarations } from "../css/index.ts";
-import catalogDocument from "./fixtures/proof/catalog.json" with { type: "json" };
-import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
+import { type Catalog, compileValidator, type Result, type UiTree } from "../index.ts";
 import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
+import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
+import catalogDocument from "./fixtures/proof/catalog.json" with { type: "json" };
 
 const catalog = catalogDocument as Catalog;
 const dimensions = ["width", "height", "minWidth", "maxWidth", "minHeight", "maxHeight"] as const;

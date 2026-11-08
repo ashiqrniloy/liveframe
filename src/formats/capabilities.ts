@@ -20,7 +20,10 @@ import type { Json } from "./tree.ts";
 export type ObjectSchema = Extract<LanguageSchema, { readonly type: "object" }>;
 export const capabilityName = str({ maxLength: 128, pattern: "^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)*$" });
 const description = str({ maxLength: 500 });
-const actionFields = obj({ description, args: bool() }, { confirm: bool(), irreversible: bool(), meta: bool() });
+const actionFields = obj(
+  { description, args: bool() },
+  { confirm: bool(), irreversible: bool(), result: bool(), meta: bool() },
+);
 const sourceFields = obj({ description, params: bool(), result: bool() }, { meta: bool() });
 const json = { $ref: "#/$defs/json" };
 const fields = obj({
@@ -33,7 +36,12 @@ export type Capabilities = {
   readonly actions: Readonly<
     Record<
       string,
-      Omit<Infer<typeof actionFields>, "args" | "meta"> & { readonly args: ObjectSchema; readonly meta?: Json }
+      Omit<Infer<typeof actionFields>, "args" | "result" | "meta"> & {
+        readonly args: ObjectSchema;
+        /** The shape of an `ok` action result's `value` (plan 029 design A3). */
+        readonly result?: LanguageSchema;
+        readonly meta?: Json;
+      }
     >
   >;
   readonly sources: Readonly<
@@ -56,7 +64,12 @@ export const capabilitiesSchema = {
     ...fields.properties,
     actions: namedMap({
       ...actionFields,
-      properties: { ...actionFields.properties, args: { $ref: "#/$defs/objectSchema" }, meta: json },
+      properties: {
+        ...actionFields.properties,
+        args: { $ref: "#/$defs/objectSchema" },
+        result: { $ref: "#/$defs/schema" },
+        meta: json,
+      },
     }),
     sources: namedMap({
       ...sourceFields,
@@ -150,6 +163,17 @@ export function checkMeta(meta: unknown, pointer: string, c: ReturnType<typeof d
   walk(meta, pointer, 1);
 }
 export { at };
+
+/** The language schemas of one action or source entry: arguments or parameters, and the result when there is one. */
+function entrySchemas(
+  c: ReturnType<typeof documentChecks>,
+  pointer: string,
+  entry: Capabilities["actions"][string] | Capabilities["sources"][string],
+): void {
+  const parameters = "args" in entry ? entry.args : entry.params;
+  c.schemaRelationships(parameters, `${pointer}/${"args" in entry ? "args" : "params"}`);
+  if (entry.result !== undefined) c.schemaRelationships(entry.result, `${pointer}/result`);
+}
 /** Describes available operations; the host still authorises every request. */
 export function validateCapabilities(doc: unknown): Result<Capabilities> {
   const json = validateJson(doc, true);
@@ -166,14 +190,7 @@ export function validateCapabilities(doc: unknown): Result<Capabilities> {
   if (c.errors.length) return { ok: false, errors: c.errors };
   const value = doc as Capabilities;
   for (const [key, entries] of Object.entries({ actions: value.actions, sources: value.sources }))
-    for (const [name, entry] of Object.entries(entries)) {
-      const pointer = at(`/${key}`, name);
-      if ("args" in entry) c.schemaRelationships(entry.args, `${pointer}/args`);
-      else {
-        c.schemaRelationships(entry.params, `${pointer}/params`);
-        c.schemaRelationships(entry.result, `${pointer}/result`);
-      }
-    }
+    for (const [name, entry] of Object.entries(entries)) entrySchemas(c, at(`/${key}`, name), entry);
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: doc as Capabilities };
 }
 

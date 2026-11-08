@@ -8,9 +8,9 @@ import {
 } from "@arnilo/liveframe/conformance/react";
 import { memoryStore } from "@arnilo/liveframe/store";
 import type { Page } from "playwright";
+import { launchBrowser } from "./fixtures/browser.ts";
 import { capabilities, catalog, examples, manifest } from "./fixtures/conformance/index.ts";
 import { fixtures, examples as hydrationExamples, pageOptions } from "./fixtures/conformance-browser.tsx";
-import { launchBrowser } from "./fixtures/browser.ts";
 import { browserHost } from "./fixtures/conformance-browser-host.ts";
 
 const styles = { ...pageOptions, sheets: ["button { display: inline-flex }"] };

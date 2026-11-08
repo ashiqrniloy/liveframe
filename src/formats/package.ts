@@ -7,17 +7,19 @@ import { documentChecks, isRecord } from "./capabilities.ts";
 import { checkFormat } from "./check.ts";
 import { validateJson } from "./json.ts";
 import { type Manifest, manifestSchema, validateManifestShape } from "./manifest.ts";
-import { type Json, treeSchema } from "./tree.ts";
+import { type ActionStatus, type Json, treeSchema } from "./tree.ts";
 
 const scenarioFields = obj(
   { name: str({ maxLength: 128, pattern: "^.+$" }), params: bool(), context: bool(), data: bool() },
-  { state: bool() },
+  { state: bool(), actions: bool() },
 );
-export type Scenario = Omit<Infer<typeof scenarioFields>, "params" | "context" | "state" | "data"> & {
+export type Scenario = Omit<Infer<typeof scenarioFields>, "params" | "context" | "state" | "data" | "actions"> & {
   readonly params: Json;
   readonly context: Json;
   readonly state?: Json;
   readonly data: Readonly<Record<string, Json>>;
+  /** Action statuses to render with (plan 029); checked against the manifest by `pack()`. */
+  readonly actions?: Readonly<Record<string, ActionStatus>>;
 };
 const fields = obj(
   {
@@ -49,6 +51,7 @@ const scenarioSchema = {
     context: json,
     state: json,
     data: { type: "object", additionalProperties: json },
+    actions: { type: "object", additionalProperties: json },
   },
 } as const;
 export const widgetPackageSchema = {

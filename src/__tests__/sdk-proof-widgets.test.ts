@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { render } from "@arnilo/liveframe/sdk";
 import {
+  bindSources,
   capabilitiesFor,
   compileValidator,
   type UiNode,
@@ -94,7 +95,19 @@ test("proof_scenario_inventory", () => {
   expect(
     Object.fromEntries(proofWidgets.map((fixture) => [fixture.name, fixture.scenarios.map((s) => s.name)])),
   ).toEqual({
-    "agent-home": ["ready", "host-ready", "loading", "empty", "failed", "read-only", "no-alerts", "no-escalate"],
+    "agent-home": [
+      "ready",
+      "host-ready",
+      "loading",
+      "empty",
+      "failed",
+      "read-only",
+      "no-alerts",
+      "no-escalate",
+      "claim-pending",
+      "claim-failed",
+      "localised",
+    ],
     "core-queue": ["small", "medium", "large", "full", "host-small", "host-medium", "host-large", "host-full"],
     "git-status": ["ready", "empty", "benchmark"],
     "rack-module": ["ready", "benchmark"],
@@ -130,4 +143,22 @@ test("small_queue_counts_pages_through_cursor", () => {
     if (!result.ok) throw new Error(JSON.stringify(result.errors));
     expect(nodes(result.value.root).find((node) => node.kind === "heading")?.props.text).toBe(count);
   }
+});
+
+test("localised_scenario_renders", () => {
+  const fixture = proofWidgets.find((entry) => entry.name === "agent-home");
+  const scenario = fixture?.scenarios.find((entry) => entry.name === "localised");
+  if (!fixture || !scenario) throw new Error("Missing localised scenario");
+  // The locale reaches the host only through `context`, and a source binding carries it to the data source.
+  const bound = bindSources(fixture.manifest, capabilities, { context: scenario.context });
+  if (!bound.ok) throw new Error(JSON.stringify(bound.errors));
+  expect(bound.value.checked?.params).toEqual({ locale: "de-DE" });
+  const unbound = bindSources(fixture.manifest, capabilities, { context: { size: "full" } });
+  if (!unbound.ok) throw new Error(JSON.stringify(unbound.errors));
+  expect(unbound.value.checked?.params).toEqual({});
+  // The host formats the data; the widget only draws it, so the tree is the same on every runtime.
+  const validator = compileValidator({ catalog, capabilities, manifest: fixture.manifest });
+  const result = render(fixture.widget, scenario, { validator, surfaceId: "proof", revision: 0 });
+  if (!result.ok) throw new Error(JSON.stringify(result.errors));
+  expect(nodes(result.value.root).some((node) => node.props.text === "Checked 28.09.2026 14:02 UTC")).toBe(true);
 });

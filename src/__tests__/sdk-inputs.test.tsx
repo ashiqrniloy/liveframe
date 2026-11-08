@@ -1,6 +1,6 @@
 /** @jsxImportSource @arnilo/liveframe/sdk */
 import { describe, expect, test } from "bun:test";
-import { action, primitive, render, type WidgetProps } from "@arnilo/liveframe/sdk";
+import { action, primitive, render, type WidgetInputs, type WidgetProps } from "@arnilo/liveframe/sdk";
 import { compileValidator, type LiveframeError } from "../index.ts";
 import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
@@ -30,7 +30,7 @@ const Stack = primitive<{ readonly children?: unknown; readonly gap?: string }>(
 const Text = primitive<{ readonly text: string }>("text");
 const Button = primitive<{ readonly label: string; readonly onPress?: unknown }>("button");
 
-const inputs: WidgetProps = {
+const inputs: WidgetInputs = {
   params: { canAct: true, canEscalate: false, canViewAlerts: true },
   state: {
     filter: "all",

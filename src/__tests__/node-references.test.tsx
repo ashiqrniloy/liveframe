@@ -1,7 +1,7 @@
 /** @jsxImportSource @arnilo/liveframe/sdk */
 import { expect, test } from "bun:test";
-import { pack, verifyPackage } from "../pack/index.ts";
 import { Ajv2020 } from "ajv/dist/2020.js";
+import referenceCatalog from "../../conformance/corpus/common/reference-catalog.json" with { type: "json" };
 import {
   classifyCatalogChange,
   compileValidator,
@@ -10,13 +10,13 @@ import {
   validateCapabilities,
   validateCatalog,
 } from "../index.ts";
-import { jsx, primitive, ref, render, renderElements } from "../sdk/index.ts";
-import { Text as GeneratedText } from "./fixtures/widgets/references.gen.ts";
-import referenceCatalog from "../../conformance/corpus/common/reference-catalog.json" with { type: "json" };
+import { pack, verifyPackage } from "../pack/index.ts";
+import { type Elements, ephemeralManifest } from "../sdk/elements.ts";
 import { generate, generateElementsSchema } from "../sdk/gen.ts";
-import catalogDocument from "./fixtures/proof/catalog.json" with { type: "json" };
+import { jsx, primitive, ref, render, renderElements } from "../sdk/index.ts";
 import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
-import { ephemeralManifest, type Elements } from "../sdk/elements.ts";
+import catalogDocument from "./fixtures/proof/catalog.json" with { type: "json" };
+import { Text as GeneratedText } from "./fixtures/widgets/references.gen.ts";
 
 const referenceSource = await Bun.file(new URL("./fixtures/widgets/references.gen.ts", import.meta.url)).text();
 

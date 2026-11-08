@@ -1,4 +1,4 @@
-import type { WidgetProps } from "@arnilo/liveframe/sdk";
+import type { WidgetInputs, WidgetProps } from "@arnilo/liveframe/sdk";
 import agentManifest from "../proof/agent-home.manifest.json" with { type: "json" };
 import coreManifest from "../proof/core-queue.manifest.json" with { type: "json" };
 import gitManifest from "../proof/git-status.manifest.json" with { type: "json" };
@@ -22,7 +22,7 @@ type Fixture = {
   readonly name: string;
   readonly manifest: unknown;
   readonly widget: (inputs: WidgetProps) => unknown;
-  readonly scenarios: readonly (WidgetProps & { readonly name: string })[];
+  readonly scenarios: readonly (WidgetInputs & { readonly name: string })[];
   readonly exports: Readonly<Record<string, string>>;
 };
 
@@ -33,13 +33,13 @@ export const proofWidgets: readonly Fixture[] = [
       ...agentManifest,
       sources: {
         status: { source: "queue.status", params: {} },
-        checked: { source: "queue.checked", params: {} },
+        checked: { source: "queue.checked", params: { locale: { from: "context", path: "locale" } } },
         stale: { source: "queue.stale", params: {} },
         groups: { source: "queue.groups", params: {} },
       },
     },
     widget: (inputs) => AgentHomeQueue(inputs as QueueProps),
-    scenarios: agentScenarios,
+    scenarios: agentScenarios as Fixture["scenarios"],
     exports: { ready: "agent-home" },
   },
   {

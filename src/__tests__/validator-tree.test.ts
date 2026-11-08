@@ -1,11 +1,11 @@
 import { describe, expect, mock, spyOn, test } from "bun:test";
 import { compileValidator, type LiveframeError, obj, str, type UiNode, type UiTree } from "../index.ts";
-import { compileTree } from "../validate/tree.ts";
 import { stringBytes } from "../validate/bytes.ts";
-import catalog from "./fixtures/proof/catalog.json" with { type: "json" };
-import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
+import { compileTree } from "../validate/tree.ts";
 import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 import proof from "./fixtures/proof/agent-home.tree.json" with { type: "json" };
+import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
+import catalog from "./fixtures/proof/catalog.json" with { type: "json" };
 
 const definition = catalog.definitions.find((d) => d.kind === "stack");
 if (!definition) throw new Error("Missing stack fixture");

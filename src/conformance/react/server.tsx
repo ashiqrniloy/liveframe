@@ -3,16 +3,16 @@ import { renderToString } from "react-dom/server";
 import { slotClass, styleDeclarations, surfaceAttributes } from "../../css/index.ts";
 import { nodeAxisValues } from "../../formats/axes.ts";
 import {
-  compileValidator,
-  type CompileValidatorOptions,
   type Catalog,
+  type CompileValidatorOptions,
+  compileValidator,
   type Result,
   type UiTree,
   validateCatalog,
 } from "../../index.ts";
 import { binding } from "../../react/implement.ts";
-import { createRenderer, implement, type Implementation } from "../../react/index.ts";
-import { check, type ConformanceCase, ConformanceFailure } from "../case.ts";
+import { createRenderer, type Implementation, implement } from "../../react/index.ts";
+import { type ConformanceCase, ConformanceFailure, check } from "../case.ts";
 
 /** The root slot class of a node: its variant (or the default) and, for a kind with axes, its axis values. */
 function rootClass(definition: Catalog["definitions"][number] | undefined, node: UiTree["root"]): string {

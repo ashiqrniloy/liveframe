@@ -1,10 +1,10 @@
 import { expect, test } from "bun:test";
 import { renderToString } from "react-dom/server";
-import { slotClass, styleDeclarations, surfaceAttributes } from "../css/index.ts";
-import type { ImplementationProps, Item } from "../react/index.ts";
-import { shareNodes } from "../react/share.ts";
 import validTree from "../../conformance/corpus/ui-tree/docs/valid.json" with { type: "json" };
+import { slotClass, styleDeclarations, surfaceAttributes } from "../css/index.ts";
 import type { UiNode, UiTree } from "../index.ts";
+import type { ImplementationProps, Item } from "../react/index.ts";
+import { shareNodes } from "../surface/share.ts";
 import { catalog, identity, renderer, surfaceProps, tree, withRoot } from "./fixtures/react-surface.tsx";
 
 test("reused_tree_deep_equals_the_arrival", () => {

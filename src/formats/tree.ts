@@ -7,9 +7,10 @@ export type Json = null | boolean | number | string | readonly Json[] | { readon
 const name = str({ maxLength: 128, pattern: "^.+$" });
 const token = str({ maxLength: 64, pattern: "^[a-z][A-Za-z0-9-]*$" });
 const stateFields = obj({ type: str({ maxLength: 8, enum: ["setState"] }), key: name }, { value: bool() });
+const localFields = obj({ type: str({ maxLength: 8, enum: ["setLocal"] }), key: name }, { value: bool() });
 const actionFields = obj(
   { type: str({ maxLength: 6, enum: ["action"] }), name: capabilityName, args: bool() },
-  { bind: name, bindAll: bool() },
+  { bind: name, bindAll: bool(), resultKey: name },
 );
 export type Intent =
   | (Omit<Infer<typeof stateFields>, "value"> & { readonly value?: Json })
@@ -17,6 +18,27 @@ export type Intent =
       readonly args: Readonly<Record<string, Json>>;
       readonly bindAll?: true;
     });
+
+/**
+ * A renderer-applied write to the surface's local state (plan 029 L2). It never reaches `onIntent`, so it is
+ * not an `Intent`: `Intent` is exactly what a host can dispatch, and `checkOffered` rejects this one.
+ */
+export type LocalIntent = Omit<Infer<typeof localFields>, "value"> & { readonly value?: Json };
+/** What an event in the tree may carry: a host intent, or a local write the renderer applies itself. */
+export type TreeIntent = Intent | LocalIntent;
+
+/**
+ * What the host last reported about an action (spec §8, tier 3). `value` accompanies `ok` and fits the
+ * action's capability `result` schema; `action` names the manifest action when the result key is a
+ * row key such as `"claim:42"`.
+ */
+export type ActionStatus<V = Json> = {
+  readonly status: "pending" | "ok" | "failed" | "refused";
+  readonly action?: string;
+  readonly reason?: string;
+  readonly value?: V;
+  readonly at?: string;
+};
 
 /** The accepted surface and exact event that produced an intent. */
 export type IntentOrigin = {
@@ -28,12 +50,16 @@ export type IntentOrigin = {
 
 const nodeFields = obj(
   { id: name, kind: token, props: bool() },
-  { variant: token, style: bool(), events: bool(), children: bool() },
+  { variant: token, style: bool(), events: bool(), when: bool(), bind: bool(), children: bool() },
 );
-export type UiNode = Omit<Infer<typeof nodeFields>, "props" | "style" | "events" | "children"> & {
+export type UiNode = Omit<Infer<typeof nodeFields>, "props" | "style" | "events" | "when" | "bind" | "children"> & {
   readonly props: Readonly<Record<string, Json>>;
   readonly style?: Readonly<Record<string, Json>>;
-  readonly events?: Readonly<Record<string, Intent>>;
+  readonly events?: Readonly<Record<string, TreeIntent>>;
+  /** A browser-evaluated condition (plan 029 B6): the node renders only when it is true. Data, not code. */
+  readonly when?: Json;
+  /** Browser-evaluated prop overrides (plan 029 B7), by prop name; `props` remains the static fallback. */
+  readonly bind?: Readonly<Record<string, Json>>;
   readonly children?: readonly UiNode[];
 };
 const treeFields = obj({
@@ -84,6 +110,7 @@ export const treeSchema = {
           properties: { ...actionFields.properties, args: jsonMap, bindAll: { const: true } },
           not: { properties: { bind: {}, bindAll: {} }, required: ["bind", "bindAll"] },
         },
+        { ...localFields, properties: { ...localFields.properties, value: json } },
       ],
     },
     node: {
@@ -95,6 +122,8 @@ export const treeSchema = {
         props: jsonMap,
         style,
         events: { type: "object", additionalProperties: { $ref: "#/$defs/intent" } },
+        when: json,
+        bind: jsonMap,
         children: { type: "array", items: node },
       },
     },

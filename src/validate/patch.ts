@@ -202,7 +202,9 @@ export function diffTrees(prev: UiTree, next: UiTree): Result<TreePatch> {
       before.variant !== after.variant ||
       difference(before.props, after.props) !== undefined ||
       difference(before.style, after.style) !== undefined ||
-      difference(before.events, after.events) !== undefined
+      difference(before.events, after.events) !== undefined ||
+      difference(before.when, after.when) !== undefined ||
+      difference(before.bind, after.bind) !== undefined
     ) {
       const { children: _children, ...own } = after;
       ops.push({ op: "set", ...own });

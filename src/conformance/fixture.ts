@@ -1,4 +1,4 @@
-import { int, LiveframeFailure, obj, validateCatalog, validateCapabilities, type Result } from "../index.ts";
+import { int, LiveframeFailure, obj, type Result, validateCapabilities, validateCatalog } from "../index.ts";
 import { pack } from "../pack/index.ts";
 
 export function value<T>(result: Result<T>): T {

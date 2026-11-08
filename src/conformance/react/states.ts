@@ -7,7 +7,7 @@ import type { Catalog } from "../../formats/catalog.ts";
 import type { DesignSystem } from "../../formats/design-system.ts";
 import { type UiTree, validateCatalog } from "../../index.ts";
 import { resolveRecipes } from "../../resolve.ts";
-import { check, ConformanceFailure } from "../case.ts";
+import { ConformanceFailure, check } from "../case.ts";
 import type { PageOptions } from "./page.tsx";
 
 export type StateFixtures = Readonly<

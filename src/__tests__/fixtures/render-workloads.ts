@@ -1,4 +1,4 @@
-import { action, render, state, type WidgetProps } from "@arnilo/liveframe/sdk";
+import { action, render, state, type WidgetInputs, type WidgetProps } from "@arnilo/liveframe/sdk";
 import { jsx, jsxs } from "@arnilo/liveframe/sdk/jsx-runtime";
 import { compileValidator, obj, str, type UiNode } from "../../index.ts";
 import { freezeCopy } from "../../internal.ts";
@@ -80,7 +80,7 @@ export function renderWorkloads() {
         period: rack ? 3 : queue ? 50 : 1,
         validator,
         run(i: number) {
-          let inputs: WidgetProps = scenario;
+          let inputs: WidgetInputs = scenario;
           if (queue)
             inputs = {
               params: scenario.params,

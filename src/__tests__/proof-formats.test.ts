@@ -1,23 +1,23 @@
 // Fixtures regenerate with: timeout 30s bun proof/scripts/export-formats.ts --out src/__tests__/fixtures/proof
 import { expect, test } from "bun:test";
 import { Ajv2020 } from "ajv/dist/2020.js";
+import { schemaDocument } from "../formats/registry.ts";
 import {
-  type Catalog,
   type Capabilities,
+  type Catalog,
+  compileValidator,
   type DesignSystem,
   type LiveframeError,
+  resolveRecipes,
   type Theme,
   type UiNode,
-  compileValidator,
-  resolveRecipes,
-  validateCatalog,
-  validateVocabulary,
   validateCapabilities,
+  validateCatalog,
+  validateDesignSystem,
   validateManifest,
   validateTheme,
-  validateDesignSystem,
+  validateVocabulary,
 } from "../index.ts";
-import { schemaDocument } from "../formats/registry.ts";
 
 const read = (name: string) => Bun.file(new URL(`./fixtures/proof/${name}.json`, import.meta.url)).json();
 const catalog: Catalog = await read("catalog");

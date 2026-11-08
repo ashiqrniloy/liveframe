@@ -2,18 +2,18 @@ import { afterEach, expect, test } from "bun:test";
 import { cp, mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { pack } from "@arnilo/liveframe/pack";
-import { loadPlacement } from "@arnilo/liveframe/store";
-import { sha256 } from "../pack/hash.ts";
-import { fileStore } from "../store/fs/index.ts";
-import { obj, validateCatalog, validateCapabilities } from "../index.ts";
-import catalogDoc from "./fixtures/proof/catalog.json" with { type: "json" };
-import capabilitiesDoc from "./fixtures/proof/capabilities.json" with { type: "json" };
 import { storeSuite } from "@arnilo/liveframe/conformance";
 import type { WidgetPackage } from "@arnilo/liveframe/pack";
+import { pack } from "@arnilo/liveframe/pack";
 import type { Store } from "@arnilo/liveframe/store";
+import { loadPlacement } from "@arnilo/liveframe/store";
 import { storeFixture } from "../conformance/fixture.ts";
+import { obj, validateCapabilities, validateCatalog } from "../index.ts";
+import { sha256 } from "../pack/hash.ts";
+import { fileStore } from "../store/fs/index.ts";
 import manifestDoc from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
+import capabilitiesDoc from "./fixtures/proof/capabilities.json" with { type: "json" };
+import catalogDoc from "./fixtures/proof/catalog.json" with { type: "json" };
 
 const manifest = manifestDoc as WidgetPackage["manifest"];
 

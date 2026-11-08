@@ -38,7 +38,11 @@ test("events_type_keyed_by_definition", () => {
   expect(
     implement(field, ({ events }) => {
       const event:
-        | { readonly type: "action" | "setState"; readonly confirm: boolean; readonly irreversible: boolean }
+        | {
+            readonly type: "action" | "setLocal" | "setState";
+            readonly confirm: boolean;
+            readonly irreversible: boolean;
+          }
         | undefined = events.onPress;
       // @ts-expect-error undeclared event
       events.onMissing;

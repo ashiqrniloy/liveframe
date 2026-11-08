@@ -22,12 +22,20 @@ export const newBudget = (): Budget => ({ nodes: 0, slots: 0, refs: [] });
 
 export type Binding = { readonly slot: number; readonly type: ExprType };
 
+/** A narrower language for expressions the browser evaluates (plan 029 B3–B4): which operators, and how big. */
+export type Restriction = {
+  readonly operators: ReadonlySet<string>;
+  readonly depth: number;
+  readonly nodes: number;
+};
+
 /** Names visible to an expression. Immutable: binding a name returns a new scope. */
 export type Scope = {
   readonly names: ReadonlyMap<string, Binding>;
   /** Paths known to be present here, from `$has` guards. */
   readonly present: ReadonlySet<string>;
   readonly budget: Budget;
+  readonly restrict?: Restriction;
 };
 
 export const DYNAMIC: ExprType = { schema: "dynamic", optional: false };
@@ -42,7 +50,12 @@ function withBindings(scope: Scope, entries: readonly (readonly [string, ExprTyp
   const names = new Map(scope.names);
   for (const [name, type] of entries) names.set(name, { slot: names.size, type });
   scope.budget.slots = Math.max(scope.budget.slots, names.size);
-  return { names, present: scope.present, budget: scope.budget };
+  return {
+    names,
+    present: scope.present,
+    budget: scope.budget,
+    ...(scope.restrict ? { restrict: scope.restrict } : {}),
+  };
 }
 
 /** The widget body's scope: each root (`params`, `state`, `data`, `context`, `actions`) is a present value of its schema. */

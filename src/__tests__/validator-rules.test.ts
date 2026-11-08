@@ -48,6 +48,8 @@ const rules = {
   structure:
     "children match the definition, and style props are declared and in range; a dimension that names a design value (`space.*`, `radius.*`, `size.*`, a breakpoint) fails when the app did not declare that name",
   variant: "variants exist",
+  expressions:
+    "`when` and `bind` expressions and `setLocal` intents are well formed, bounded and fit the manifest's `local` schema and the kind's props (§8)",
   intent:
     "event names are declared, `setState` keys exist in the state schema and their values match it, action names are in the manifest, action args match the action's schema in the app's capabilities, a scalar `bind` names a compatible argument, and object `bindAll` and implicit object `setState` satisfy the structural fit rule (§8)",
   id: "ids are unique and key-derived",
@@ -566,6 +568,16 @@ const rows: readonly Row[] = [
     nodeId: "root//child",
     pointer: "/root/children/0/id",
     expected: ["encoded key path under root"],
+  },
+  {
+    rule: "expressions",
+    name: "when reads a root the tree does not offer",
+    source: "docs/spec.md:1300",
+    input: tree(node("text", { text: "Row" }, { when: { $path: "data.rows" } })),
+    kind: "unknown-name",
+    nodeId: "root",
+    pointer: "/root/when/$path",
+    expected: ["one of:", "local", "self"],
   },
   {
     rule: "limits",

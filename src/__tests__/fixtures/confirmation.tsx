@@ -2,9 +2,9 @@ import { StrictMode } from "react";
 import { flushSync } from "react-dom";
 import type { Root } from "react-dom/client";
 import { compileValidator, type Intent, type IntentOrigin } from "../../index.ts";
-import { renderer, catalog, surfaceProps, withRoot } from "./react-surface.tsx";
-import capabilities from "./proof/capabilities.json" with { type: "json" };
 import manifest from "./proof/agent-home.manifest.json" with { type: "json" };
+import capabilities from "./proof/capabilities.json" with { type: "json" };
+import { catalog, renderer, surfaceProps, withRoot } from "./react-surface.tsx";
 
 export const confirmationValidator = compileValidator({
   catalog,

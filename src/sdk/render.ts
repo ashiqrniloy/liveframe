@@ -2,7 +2,9 @@ import { addBoundMarker, DEFAULT_MAX_ERRORS, type LiveframeError, type Result } 
 import { at, isRecord } from "../formats/capabilities.ts";
 import type { UiNode, UiTree } from "../formats/tree.ts";
 import { isThenable } from "../internal.ts";
+import { isGated } from "../validate/bindings.ts";
 import {
+  BIND_MEMBER_BYTES,
   BRACKET_BYTES,
   childrenFramingBytes,
   EVENTS_MEMBER_BYTES,
@@ -12,6 +14,7 @@ import {
   stringBytes,
   treeFieldBytes,
   VARIANT_MEMBER_BYTES,
+  WHEN_MEMBER_BYTES,
 } from "../validate/bytes.ts";
 import {
   buildFacts,
@@ -21,11 +24,11 @@ import {
   propTarget,
 } from "../validate/compile.ts";
 import type { SchemaCheck, SchemaSink } from "../validate/schema.ts";
-import { encodeSegment, type JsonWalk, walkJson } from "../validate/structure.ts";
+import { encodeSegment, type JsonWalk, newTally, tallyKind, walkJson } from "../validate/structure.ts";
 import { DEFAULT_LIMITS } from "../validate/tree.ts";
 import { type Element, isElement } from "./element.ts";
 import { Fragment } from "./jsx-runtime.ts";
-import type { WidgetProps } from "./types.ts";
+import type { ActionStatuses, WidgetInputs, WidgetProps } from "./types.ts";
 
 const FORMAT = "liveframe/1" as const;
 /** Matches the tree walker: JSON never nests deeper than this (spec §10). */
@@ -58,12 +61,12 @@ function thrownMessage(thrown: unknown): string {
  * Runs the widget once and builds its tree, checking every node as it is emitted (spec §7.2,
  * §10): ids, props, intents, child rules, and the node, depth and byte budgets.
  */
-export function render<P, S, D, C>(
-  widget: (props: WidgetProps<P, S, D, C>) => unknown,
-  inputs: WidgetProps<P, S, D, C>,
+export function render<P, S, D, C, A = ActionStatuses>(
+  widget: (props: WidgetProps<P, S, D, C, A>) => unknown,
+  inputs: WidgetInputs<P, S, D, C, A>,
   options: RenderOptions,
 ): Result<UiTree> {
-  return renderValue((owned) => widget(owned as WidgetProps<P, S, D, C>), inputs, options, true);
+  return renderValue((owned) => widget(owned as WidgetProps<P, S, D, C, A>), inputs, options, true);
 }
 
 /** Internal: builds a tree from an already-built root element, for element JSON (spec §7.2). */
@@ -261,6 +264,8 @@ type RenderContext = {
   readonly maxErrors: number;
   readonly errors: LiveframeError[];
   readonly ids: Set<string>;
+  /** Ids of nodes carrying a `when`; a node is gated when it or an ancestor is in here (plan 029 B5.6). */
+  readonly gated: Set<string>;
   readonly anchors: Map<string, string>;
   readonly references: { props: Record<string, unknown>; name: string; anchor?: string; id: string; pointer: string }[];
   readonly deferred: { node: UiNode; id: string; pointer: string }[];
@@ -295,13 +300,14 @@ function createContext(options: RenderOptions, sourcePointers: WeakMap<Element, 
     maxErrors,
     errors,
     ids: new Set<string>(),
+    gated: new Set<string>(),
     anchors: new Map(),
     references: [],
     deferred: [],
     idPointers: new Map<string, string>(),
     path,
     ancestors,
-    sink: { errors, maxErrors },
+    sink: { errors, maxErrors, expressions: { nodes: 0 } },
     jsonSink: {
       nodeId: "root",
       ancestors,
@@ -428,6 +434,14 @@ function resolveReferences(ctx: RenderContext): void {
     const target = anchor === undefined ? (props[name] as string) : ctx.anchors.get(anchor);
     if (target === undefined || !ctx.ids.has(target))
       fail(ctx, "not-found", pointer, `a node in this tree for reference ${anchor ?? target}`, id);
+    else if (isGated(ctx.gated, target))
+      fail(
+        ctx,
+        "invalid-prop",
+        pointer,
+        `a node that is always rendered, without a when on it or an ancestor: ${target}`,
+        id,
+      );
     else if (anchor !== undefined) {
       props[name] = target;
       addBytes(ctx, stringBytes(target) - 2, pointer, id);
@@ -581,11 +595,17 @@ function shapeOf(value: unknown): "json" | "container" | "function" | "promise" 
   return Array.isArray(value) || isRecord(value) ? "container" : "other";
 }
 
+const NO_ACTIONS = Object.freeze({});
+
 function checkInputs(ctx: RenderContext, inputs: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
   const checks = buildFacts(ctx.validator).inputs;
   const owned: Record<string, unknown> = {};
-  for (const name of ["params", "state", "context", "data"] as const) {
+  for (const name of ["params", "state", "context", "data", "actions"] as const) {
     const value = inputs[name];
+    if (name === "actions" && value === undefined) {
+      owned.actions = NO_ACTIONS; // Absent means no action has reported yet, so existing hosts keep working.
+      continue;
+    }
     const cached = value !== null && typeof value === "object" ? inputCopies.get(value) : undefined;
     if (cached?.check === checks[name]) {
       owned[name] = cached.copy;
@@ -707,6 +727,8 @@ function copyNode(record: Readonly<Record<string, unknown>>, children: readonly 
   copy.props = record.props;
   if (record.style !== undefined) copy.style = record.style;
   if (record.events !== undefined) copy.events = record.events;
+  if (record.when !== undefined) copy.when = record.when;
+  if (record.bind !== undefined) copy.bind = record.bind;
   if (children) copy.children = children;
   return copy as unknown as UiNode;
 }
@@ -1015,6 +1037,32 @@ function authorReference(
   return true;
 }
 
+/** Adds a node's `when` and `bind`, which must be JSON data like any prop; undefined after reporting why not. */
+function attachExpressions(
+  ctx: RenderContext,
+  record: Record<string, unknown>,
+  props: Readonly<Record<string, unknown>>,
+  id: string,
+  pointer: string,
+): Record<string, unknown> | undefined {
+  for (const name of ["when", "bind"] as const) {
+    const entry = Object.hasOwn(props, name) ? props[name] : undefined;
+    if (entry === undefined) continue;
+    const rejected = dataKind(entry);
+    if (rejected) {
+      fail(ctx, rejected, `${pointer}/${name}`, "JSON data, not a function or a promise", id);
+      if (ctx.stopped) return;
+      continue;
+    }
+    record[name] = entry;
+    if (name === "when") ctx.gated.add(id);
+  }
+  return record;
+}
+
+/** Element attributes that are never props: children, and the node's browser-evaluated expressions (plan 029 B1). */
+const NOT_PROPS: ReadonlySet<string> = new Set(["children", "when", "bind"]);
+
 /** Sorts props into wire sections, rejecting function and promise values. */
 function classifyProps(
   ctx: RenderContext,
@@ -1032,7 +1080,7 @@ function classifyProps(
   let hasStyle = false;
   let hasEvents = false;
   for (const name in element.props) {
-    if (name === "children" || !Object.hasOwn(element.props, name)) continue;
+    if (NOT_PROPS.has(name) || !Object.hasOwn(element.props, name)) continue;
     const entry = element.props[name];
     if (authorReference(ctx, props, definition, name, entry, id, pointer)) continue;
     const target = propTarget(definition, name);
@@ -1059,7 +1107,7 @@ function classifyProps(
   record.props = props;
   if (hasStyle) record.style = style;
   if (hasEvents) record.events = events;
-  return record;
+  return attachExpressions(ctx, record, element.props, id, pointer);
 }
 
 /** The node's place under its parent, and its children's counts (spec §5). */
@@ -1075,9 +1123,9 @@ function checkStructure(
   structureSink.nodeId = id;
   structure.node(parentKind, kind, depth, childrenOut.length > 0, structureSink);
   if (childrenOut.length) {
-    const counts = new Map<string, number>();
-    for (const child of childrenOut) counts.set(child.kind, (counts.get(child.kind) ?? 0) + 1);
-    structure.counts(kind, counts, structureSink);
+    const tally = newTally();
+    for (const child of childrenOut) tallyKind(tally, child.kind, child.when !== undefined);
+    structure.counts(kind, tally.all, structureSink, tally.gated);
   }
 }
 
@@ -1123,6 +1171,14 @@ function countNode(
   if (Object.hasOwn(record, "events")) {
     addBytes(ctx, EVENTS_MEMBER_BYTES, `${pointer}/events`, id);
     count(ctx, record.events, `${pointer}/events`, id);
+  }
+  if (Object.hasOwn(record, "when")) {
+    addBytes(ctx, WHEN_MEMBER_BYTES, `${pointer}/when`, id);
+    count(ctx, record.when, `${pointer}/when`, id);
+  }
+  if (Object.hasOwn(record, "bind")) {
+    addBytes(ctx, BIND_MEMBER_BYTES, `${pointer}/bind`, id);
+    count(ctx, record.bind, `${pointer}/bind`, id);
   }
   addBytes(ctx, BRACKET_BYTES, pointer, id);
   if (childCount) addBytes(ctx, childrenFramingBytes(childCount), `${pointer}/children`, id);

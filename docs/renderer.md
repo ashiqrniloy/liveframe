@@ -413,6 +413,61 @@ and returns a validated tree with a newer revision. Pass that new object to
 handler; refresh data and return a new tree only if needed. Never execute widget
 code or privileged operations in the renderer.
 
+## Report action results
+
+The renderer draws what the widget returns; it cannot know that an action is
+running or failed. The host tells the widget, as the `actions` input, and
+re-renders each time the status changes:
+
+```ts
+// onIntent handler on the backend, after checkOffered passed:
+const key = intent.type === "action" ? (intent.resultKey ?? intent.name) : "";
+const set = (status: ActionStatus) => rerender({ ...inputs, actions: { ...inputs.actions, [key]: status } });
+
+set({ status: "pending", action: intent.name });          // 1. widget draws "Claiming…"
+const outcome = await dispatch(intent, viewer);           // 2. authorised as the viewer
+set(outcome.ok                                            // 3. ok / failed / refused
+  ? { status: "ok", action: intent.name, value: outcome.value }
+  : { status: "failed", action: intent.name, reason: outcome.message });
+```
+
+Send the new tree like any re-run. `refused` is for an intent that
+`checkOffered` or your authorisation rejected; `failed` is for an operation that
+ran and failed. Omit an entry from a later render to expire it: the library
+keeps no timers or history. `actions` is validated before the widget runs, so a
+`value` must match the action's capability `result` schema, and `renderKey`
+includes it. The status is data the widget reads and nothing else: it grants no
+authority.
+
+## Watch what the surface rejects
+
+A surface drops bad input silently: an invalid tree draws the fallback, a stale revision is ignored, a failing
+node draws the node fallback. `onEvent` tells the host when that happens, so it can log or count it:
+
+```tsx
+<Surface {...surfaceProps} tree={tree} onEvent={(event) => logger.warn("liveframe", event)} />
+```
+
+Each event is frozen and has a `type`:
+
+| `type` | When | Fields besides `type` |
+| --- | --- | --- |
+| `arrival-rejected` | A tree failed validation | `surfaceId?` (the surface on screen, if any), `errors` |
+| `stale-revision` | A lower revision of the same surface arrived and was ignored | `surfaceId`, `revision`, `current` |
+| `emit-rejected` | An implementation called `emit` with a value its event does not carry, or a `setLocal` value outside the local schema | `nodeId`, `event`, `reason` (`invalid-value` or `invalid-local`) |
+| `implementation-failed` | An implementation threw | `nodeId`, `kind` |
+| `binding-failed` | A `when` or `bind` failed to evaluate, or a bound value failed its prop schema | `nodeId`, `prop?`, `errors` |
+| `confirm-dropped` | A confirmation-requiring emit was dropped (another is pending, or approval came after unmount) | `nodeId` |
+
+Events carry ids, kinds, event names, revisions and `LiveframeError`s, never prop, state or local values, which
+may be user data. A `LiveframeError` holds a JSON Pointer and the expected shape, not the offending value.
+Handle the types you know and ignore the rest: later releases may add more. A handler that throws, or returns a
+rejected promise, is contained and never breaks rendering. With no `onEvent` the surface builds no event at all.
+
+`onEvent` is read when it is used, so an inline arrow needs no memoising. The core reports an arrival while the
+framework may be rendering (`accept` is idempotent, so one input reports once); keep the handler free of state
+updates, and queue them if you need one.
+
 ## Switch themes and design systems
 
 Preload and cache the next theme and design-system sheets using
@@ -536,3 +591,53 @@ The executable example is [renderer-guide.tsx](https://github.com/ashiqrniloy/li
 its test checks that this page includes it verbatim, validates its tree and checks
 server markup and invalid-tree fallback. Existing renderer browser tests exercise
 hydration, state retention, overlays and switching.
+
+## Writing another renderer
+
+`@arnilo/liveframe/react` is a thin adapter over `@arnilo/liveframe/surface`, the framework-independent core.
+The core validates arrivals, applies the revision rules, builds a context for each node, completes and gates
+intents, and keeps the surface's local state. It imports no framework and touches no DOM, so a renderer for
+Web Components, Solid or plain DOM is written on it. The library ships none besides React's.
+
+```ts
+import { createSurfaceCore, type NodeContext } from "@arnilo/liveframe/surface";
+
+const core = createSurfaceCore({
+  catalog, // the validated catalog the validator was compiled with
+  validator,
+  onIntent, // read when it is used, so a host may pass accessors
+  confirm,
+  domIdPrefix: "surface-1", // unique per surface on the page
+  onEvent: (event) => logger.warn("liveframe", event), // optional; see "Watch what the surface rejects"
+});
+const detach = core.attach(); // mounted: a confirmed intent may still dispatch
+
+function draw() {
+  const { valid, root } = core.snapshot();
+  if (!valid) return show(fallback); // an invalid arrival: the whole surface
+  show(root ? element(root) : nothing);
+}
+core.subscribe(draw); // local-state changes: a new snapshot, with unchanged contexts kept
+core.accept(tree);
+draw();
+```
+
+Rules for the adapter:
+
+- Draw `NodeContext`s, never the raw tree. A context holds the effective `props` (with `bind` applied and
+  re-validated), the recipe classes from `slot(name)`, the root's `style`, `events`, `emit(event, value?)` and
+  the `items` that render (a node whose `when` is false is not among them).
+- Reuse an element while its context is the same object. The core keeps a context's identity until the node or a
+  local value it reads changes, so identity is the cheapest "has this changed" test.
+- Draw the node fallback when `context.fault` is set, and call `core.fail(context.node)` when your own
+  implementation of a node throws, so the next arrival retries it instead of reusing it. `fail` is also what
+  raises the `implementation-failed` event.
+- Call `core.accept(tree)` for every arrival; it is cheap for an input it already holds and never notifies
+  subscribers, so it is safe while your framework renders. Draw from `core.snapshot()`.
+- Put each context's `domId` on the element you render, so `refProps` references resolve.
+- Focus continuity, overlays, scope attributes and theme switching (§6.4) stay yours: the core knows nothing
+  about the page.
+
+The repository's test-only DOM renderer (`src/__tests__/fixtures/dom-renderer.ts`) is about 80 lines on this
+API, and a browser test compares its `data-lf-node` structure, slot classes and bound props with `/react`'s
+for every proof scenario.

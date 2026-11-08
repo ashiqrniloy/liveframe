@@ -62,6 +62,20 @@ Before, `width`, `height`, `minWidth`, `maxWidth`, `minHeight` and `maxHeight` a
 
 Adopter checklist: replace dimension fractions in widgets, stored trees and responsive maps with `grow` / `basis` for flex layout, or move fractions to the parent's grid `columns` / `rows`. Use declared `space.*` / `size.*`, `fill`, `fit`, or bounded `ch` / `%` when a dimension is needed. Regenerate catalog SDK types with `liveframe gen`.
 
+### Render keys and widget props include actions
+
+Before, `WidgetProps` had four members and `renderKey` hashed `{ hash, catalogId, params, state, data, context }`. After, `WidgetProps` has a fifth, `actions` (the host's report on each action), and `renderKey` hashes it too, an absent `actions` as `{}`, so every key differs from 0.2. `render()`, `renderModule()` and the runners take the new `WidgetInputs`, which is `WidgetProps` with `actions` optional, so a host that reports nothing still renders.
+
+```ts
+// Before
+const inputs: WidgetProps = { params, state, data, context };
+// After: build render inputs as WidgetInputs, or add actions.
+const inputs: WidgetInputs = { params, state, data, context };
+const key = renderKey({ hash, catalogId, params, state, data, context, actions });
+```
+
+Adopter checklist: Type host-built render inputs as `WidgetInputs`, or add `actions: {}`. Recompute cached keys; they are not comparable with 0.2 keys. A widget that reads `actions` receives `{}` when the host supplies none.
+
 ### Surfaces keep focus by default
 
 Before, `<Surface>` left focus recovery off unless `focusContinuity` was supplied.
@@ -276,6 +290,62 @@ liveframe gen catalog.json --template-schema --capabilities capabilities.json --
 3. The schema guides generation; `validateTemplate` stays the authority.
 
 See [template widgets](templates.md) and [the agent guide](mcp.md).
+
+### Action results
+
+The host reports each action's status to the widget as an optional `actions` input, so a widget can draw "Saving…" or "Failed: name taken" without the host improvising.
+Optional: pass `actions` when a widget should draw pending, failed or refused actions; omitting it is `{}`.
+Optional: pass `{ resultKey }` to `action()` when one action runs for many rows.
+Optional: declare `result` on an action to type its ok value.
+Optional: type render inputs as `WidgetInputs`; type a widget's `actions` with `WidgetProps`'s fifth parameter.
+Update patch consumers that reject unknown intent fields before sending resultKey.
+Port `renderKey` to hash `actions` (absent as `{}`) before sending or accepting actions; `conformance/hash/render-keys.json` pins vectors.
+
+```ts
+// The host: pending, dispatch, then the outcome, re-rendering each time.
+actions = { ...actions, "tasks.claim": { status: "pending" } };
+actions = { ...actions, "tasks.claim": { status: "failed", reason: "Already claimed" } };
+// The widget: draw it.
+<Button label={actions["tasks.claim"]?.status === "pending" ? "Claiming…" : "Claim"} onPress={action("tasks.claim", { id })} />
+```
+
+1. `actions` is keyed by the action name, or by an intent's `resultKey` (a row id, say). A row-keyed entry names its action with `action`, which types its `value`.
+2. `value` appears only with `ok` and must match the action's capability `result`. Entries are bounded (64 entries, a 128-character key, a 500-character `reason`) and invalid input is `invalid-prop` at `/actions/<key>`.
+3. Scenarios, preview, `render_scenarios` and template widgets (root `actions`) carry it. A result grants nothing: it only changes what the widget draws.
+
+See [the renderer guide](renderer.md#report-action-results) and [spec §8](spec.md#8-interaction-synaptas-three-tiers).
+
+### Local state and bindings
+
+A manifest may declare `local` state, and a tree may carry `when` and `bind` expressions and `setLocal` events, so interactions that need no data (a live filter, a disclosure) cost no round trip and no widget code runs in the browser.
+Optional: declare `local` and `initialLocal` in a manifest, and use `local.set`, `local`, `ex`, `when` and `bind` from `/sdk`; existing widgets are unchanged.
+Update tree consumers that reject unknown node or intent fields before a widget sends `when`, `bind` or `setLocal`; a renderer from 0.2.x fails closed on them.
+`Intent` stays `setState | action` (what `onIntent` receives); a node's `events` may now hold the new `LocalIntent`. Narrow with `TreeIntent` when reading a tree's events.
+A host's `checkOffered` rejects `setLocal` with `invalid-prop` at `/type`; no host dispatches it.
+Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.
+
+```tsx
+<TextField label="Filter" onChange={local.set("q")} />
+<Row when={ex.contains(r.title, local("q"))} />
+```
+
+See [the SDK guide](sdk.md#intents-and-author-constraints), [formats](formats.md) and [spec §8](spec.md#8-interaction-synaptas-three-tiers).
+
+### The surface core
+
+`@arnilo/liveframe/surface` exports `createSurfaceCore`, the framework-independent half of the renderer: arrival validation, revision rules, node contexts, intent completion, confirmation, local state and bindings. `/react` is rebuilt on it and its public API is unchanged: `createRenderer`, `<Surface>`, `implement` and `ImplementationProps` keep their declarations, their behaviour for a tree without `when`, `bind` or `setLocal`, and their cost.
+Optional: write a renderer for another framework on the core, or keep using `/react`. A `<Surface>` now applies `setLocal` events itself, never calls `onIntent` for them, hides nodes whose `when` is false and draws the node fallback for a binding that failed.
+Hosts need no change. An implementation's `events[...].type` may now read `"setLocal"`.
+
+See [writing another renderer](renderer.md#writing-another-renderer) and [spec §11](spec.md#11-renderer).
+
+### Observability events
+
+`<Surface>` gains an optional `onEvent(event)` prop and `createSurfaceCore` an `onEvent` option. It receives frozen events for rejected arrivals, ignored stale revisions, rejected emits, failed implementations, failed bindings and dropped confirmations; the events hold no prop values.
+Optional: pass `onEvent` to log or count what the surface drops silently.
+Existing code is unchanged.
+
+See [watch what the surface rejects](renderer.md#watch-what-the-surface-rejects) and [spec §11](spec.md#11-renderer).
 
 ### Streamed element JSON
 

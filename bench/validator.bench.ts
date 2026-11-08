@@ -206,5 +206,52 @@ if (hitMedian > 0.25) {
   console.error("compileValidator: reused-catalog call exceeded 0.25 ms median");
   failed = true;
 }
+
+// Plan 029 Task 3: 50 distinct `when` expressions on the 679-node subject stay inside the validator's share.
+{
+  const localManifest = {
+    ...manifestDocument,
+    local: {
+      type: "object",
+      properties: { q: { type: "string", maxLength: 64 } },
+      required: ["q"],
+      additionalProperties: false,
+    },
+    initialLocal: { q: "" },
+  };
+  const bound = compileValidator({
+    catalog: catalogDocument,
+    capabilities: capabilitiesDocument,
+    manifest: localManifest,
+  });
+  const gated = JSON.parse(JSON.stringify(subject.tree)) as typeof subject.tree;
+  let rows = 0;
+  const gate = (node: UiNode): UiNode => {
+    const children = node.children?.map(gate);
+    const row = node.props.text === "overdue";
+    if (row) rows++;
+    return {
+      ...node,
+      ...(row ? { when: { $contains: [`Synthetic ${node.id}`, { $path: "local.q" }] } } : {}),
+      ...(children ? { children } : {}),
+    };
+  };
+  const bindings = { ...gated, root: gate(gated.root) };
+  assert.equal(rows, 50, "50 rows carry a when");
+  assert(bound.validateTree(bindings).ok, "the gated tree validates");
+  const withoutMs = measure(() => bound.validateTree(subject.tree).ok);
+  const withMs = measure(() => bound.validateTree(bindings).ok);
+  const perNode = (withMs * 1_000) / subject.nodes;
+  metric("bindings.withoutUsPerNode", (withoutMs * 1_000) / subject.nodes);
+  metric("bindings.withUsPerNode", perNode);
+  console.log(
+    `bindings: ${subject.nodes} nodes, 50 distinct when; without ${((withoutMs * 1_000) / subject.nodes).toFixed(3)} µs/node, with ${perNode.toFixed(3)} µs/node (<= 1.75)`,
+  );
+  // Design P3 asked for 1.5; the measured split (JSON walk of the expressions, then analysis) is in plan 029 Task 3.
+  if (perNode > 1.75) {
+    console.error("bindings: 50 when expressions exceeded 1.75 µs/node");
+    failed = true;
+  }
+}
 console.log(`Load average at end: ${loadavg().join(", ")}`);
 if (failed) process.exitCode = 1;

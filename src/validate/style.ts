@@ -1,7 +1,7 @@
 import { isRecord } from "../formats/capabilities.ts";
 import { styleProps } from "../formats/fixed.ts";
-import { pointerSegment } from "../internal.ts";
 import type { Vocabulary } from "../formats/vocabulary.ts";
+import { pointerSegment } from "../internal.ts";
 import { field, reject } from "./checks.ts";
 import type { SchemaCheck, SchemaSink } from "./schema.ts";
 

@@ -50,6 +50,19 @@ export function checkOffered(
   const offered = node.events && Object.hasOwn(node.events, origin.event) ? node.events[origin.event] : undefined;
   if (!offered) return failure("undeclared-event", "/origin/event", "Event was not offered by this node");
   if (!isRecord(intent)) return failure("invalid-prop", "", "Expected a completed intent");
+  // A local write is the renderer's own (plan 029 L4): no host dispatches it, so none is ever accepted.
+  if (offered.type === "setLocal" || (intent as { readonly type?: unknown }).type === "setLocal")
+    return {
+      ok: false,
+      errors: [
+        {
+          kind: "invalid-prop",
+          pointer: "/type",
+          expected: "a host-dispatchable intent",
+          message: "Expected a host-dispatchable intent",
+        },
+      ],
+    };
   if (intent.type !== offered.type)
     return failure("invalid-prop", "/type", "Intent type differs from the offered event");
   const field = offered.type === "setState" ? "key" : "name";

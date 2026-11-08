@@ -3,7 +3,7 @@ import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { renderer, surfaceProps, validator } from "../src/__tests__/fixtures/react-surface.tsx";
 import { applyPatch, type UiTree } from "../src/index.ts";
-import { shareNodes } from "../src/react/share.ts";
+import { shareNodes } from "../src/surface/share.ts";
 
 type Sample = {
   readonly parseMs: number;

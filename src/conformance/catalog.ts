@@ -1,15 +1,15 @@
+import { nodeAxisValues } from "../formats/axes.ts";
 import {
+  type CompileValidatorOptions,
   classifyCatalogChange,
   compileValidator,
-  validateCatalog,
-  validateCapabilities,
-  validateManifest,
-  type CompileValidatorOptions,
   type LanguageSchema,
   type Result,
+  validateCapabilities,
+  validateCatalog,
+  validateManifest,
 } from "../index.ts";
-import { nodeAxisValues } from "../formats/axes.ts";
-import { check, type ConformanceCase } from "./case.ts";
+import { type ConformanceCase, check } from "./case.ts";
 
 function value<T>(result: Result<T>, rule: string, spec: string): T {
   check(result.ok, rule, spec, result.ok ? [] : result.errors);

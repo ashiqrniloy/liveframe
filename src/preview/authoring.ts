@@ -1,17 +1,23 @@
-import type { CaptureBackend } from "./capture/index.ts";
 import type { Result } from "../errors.ts";
 import type { WidgetPackage } from "../formats/package.ts";
-import type { Intent, IntentOrigin, Json, UiTree } from "../formats/tree.ts";
+import type { ActionStatus, Intent, IntentOrigin, Json, UiTree } from "../formats/tree.ts";
 import type { pack } from "../pack/pack.ts";
-import type { Runner } from "./runner.ts";
 import type { RenderLimits } from "../sdk/render.ts";
+import type { CaptureBackend } from "./capture/index.ts";
+import type { Runner } from "./runner.ts";
 
 /** One backend draft session (spec §7.5). */
 export type PreviewSession = {
   /** Pack a draft; on success it becomes the session's current package. */
   update(draft: Parameters<typeof pack>[0]): Result<WidgetPackage>;
-  /** Render one scenario. Opt in to retain same-scenario state/context unless overridden. */
-  render(options: { scenario: string; state?: Json; context?: Json; preserveState?: boolean }): Promise<Result<UiTree>>;
+  /** Render one scenario. Opt in to retain same-scenario state/context/actions unless overridden. */
+  render(options: {
+    scenario: string;
+    state?: Json;
+    context?: Json;
+    actions?: Readonly<Record<string, ActionStatus>>;
+    preserveState?: boolean;
+  }): Promise<Result<UiTree>>;
   /** Apply `setState` or a declared action to the current render. */
   intent(intent: Intent, origin?: IntentOrigin): Promise<Result<UiTree>>;
   /** Every intent applied since the current package was packed. */

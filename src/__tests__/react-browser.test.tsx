@@ -285,6 +285,34 @@ test("throwing_implementation_falls_back_at_that_node", async () => {
   }
 });
 
+test("implementation_failed_event_names_node", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    await page.evaluate(() => {
+      const next = window.surfaceTest.tree(4);
+      window.surfaceTest.update({
+        ...next,
+        root: {
+          ...next.root,
+          children: [
+            { id: "root/first", kind: "text", props: { text: "throw" } },
+            ...(next.root.children?.slice(1) ?? []),
+          ],
+        },
+      });
+      window.surfaceTest.update({ nope: true });
+    });
+    const events = await page.evaluate(() => window.surfaceTest.events());
+    expect(events.map((event) => event.type)).toEqual(["implementation-failed", "arrival-rejected"]);
+    expect(events[0]).toEqual({ type: "implementation-failed", nodeId: "root/first", kind: "text" });
+    expect(events[1]).toMatchObject({ surfaceId: "test" });
+  } finally {
+    await page.close();
+  }
+});
+
 test("browser_shows_fallbacks_for_invalid_tree_and_throwing_node_under_both_systems", async () => {
   for (const system of ["certified", "rack"]) {
     const page = await browser.newPage();

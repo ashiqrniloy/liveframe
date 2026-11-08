@@ -16,6 +16,7 @@ const subpaths = [
   },
   { path: "runner-kit", dependencies: false, loader: false, host: "none", globals: [] },
   { path: "template", dependencies: false, loader: false, host: "none", globals: [] },
+  { path: "surface", dependencies: false, loader: false, host: "none", globals: [] },
   {
     path: "preview/capture",
     dependencies: false,

@@ -76,6 +76,12 @@
         "state": {
           "$ref": "#/$defs/json"
         },
+        "actions": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/json"
+          }
+        },
         "name": {
           "maxLength": 128,
           "pattern": "^.+$",

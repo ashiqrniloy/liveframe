@@ -1,11 +1,13 @@
 import { LiveframeFailure } from "../errors.ts";
 import { at, type Capabilities, isRecord, type ObjectSchema, validateCapabilities } from "../formats/capabilities.ts";
 import { type Catalog, type Definition, validateCatalog } from "../formats/catalog.ts";
-import { sameJson } from "../formats/json.ts";
-import { type Manifest, validateManifest } from "../formats/manifest.ts";
-import { treeSchema } from "../formats/tree.ts";
+import { frozenJsonCopy, sameJson } from "../formats/json.ts";
+import { type Manifest, NO_LOCAL, validateManifest } from "../formats/manifest.ts";
+import { type Json, treeSchema } from "../formats/tree.ts";
 import { realmError } from "../internal.ts";
 import type { LanguageSchema } from "../schema.ts";
+import { actionsSchema, compileActions } from "./actions.ts";
+import { type BindingCheck, compileBindings } from "./bindings.ts";
 import { closed, field, reject } from "./checks.ts";
 import { compileIntents } from "./intent.ts";
 import { type OfferedEvent, offeredChecks } from "./offered.ts";
@@ -73,6 +75,8 @@ export type InputSchemas = {
   readonly state: ObjectSchema;
   readonly context: ObjectSchema;
   readonly data: ObjectSchema;
+  /** One optional status per manifest action; templates type `actions` paths against it. */
+  readonly actions: ObjectSchema;
 };
 /** @internal `render()` checks the four inputs against these before it runs the widget. */
 export type CompiledInputs = {
@@ -80,6 +84,8 @@ export type CompiledInputs = {
   readonly state: SchemaCheck;
   readonly context: SchemaCheck;
   readonly data: SchemaCheck;
+  /** The host's action statuses, keyed by result key (plan 029 design A2–A4). */
+  readonly actions: SchemaCheck;
 };
 export type CompiledValidator = {
   readonly checkNode: SchemaCheck;
@@ -95,6 +101,23 @@ const actions = new WeakMap<
 /** @internal Renderer metadata from the capabilities this validator was compiled with. */
 export function actionFacts(validator: CompiledValidator) {
   const facts = actions.get(validator);
+  if (!facts) throw new LiveframeFailure([{ kind: "invalid-document", pointer: "", message: "Unknown validator" }]);
+  return facts;
+}
+
+/** @internal What a surface core needs to hold local state (plan 029 L1–L5). */
+export type LocalFacts = {
+  readonly schema: ObjectSchema;
+  /** The manifest's `initialLocal`, frozen; `{}` when it declares none. */
+  readonly initial: Readonly<Record<string, Json>>;
+  /** One check per declared local key, for the value a `setLocal` writes. */
+  readonly checks: ReadonlyMap<string, SchemaCheck>;
+};
+const locals = new WeakMap<CompiledValidator, LocalFacts>();
+
+/** @internal The manifest's local state, from the manifest this validator was compiled with. */
+export function localFacts(validator: CompiledValidator): LocalFacts {
+  const facts = locals.get(validator);
   if (!facts) throw new LiveframeFailure([{ kind: "invalid-document", pointer: "", message: "Unknown validator" }]);
   return facts;
 }
@@ -116,6 +139,8 @@ type NodeCheckSpec = {
   readonly events: SchemaCheck;
   readonly variants: ReadonlySet<string>;
   readonly variantExpected: string;
+  /** Checks a node's `when` and `bind` against this manifest's local state and the kind's props. */
+  readonly bindings: BindingCheck;
 };
 
 /** The event-to-intent check for one kind; `events` is already bound to this call's manifest. */
@@ -146,6 +171,7 @@ function nodeCheck(spec: NodeCheckSpec): SchemaCheck {
     if (!field(spec.props, Object.hasOwn(node, "props") ? node.props : undefined, sink, "props")) valid = false;
     if (Object.hasOwn(node, "style") && !field(spec.style, node.style, sink, "style")) valid = false;
     if (Object.hasOwn(node, "events") && !field(spec.events, node.events, sink, "events")) valid = false;
+    if ((Object.hasOwn(node, "when") || Object.hasOwn(node, "bind")) && !spec.bindings(node, sink)) valid = false;
     if (Object.hasOwn(node, "children") && !Array.isArray(node.children))
       valid = reject(sink, "/children", "an array of child nodes", "invalid-children");
     return valid;
@@ -180,6 +206,7 @@ const fields = new Set(
 /** Catalog-level work: everything a validator needs that depends only on the catalog and capabilities. */
 type CatalogKind = {
   readonly props: SchemaCheck;
+  readonly propsSchema: ObjectSchema;
   readonly style: SchemaCheck;
   readonly variants: ReadonlySet<string>;
   readonly variantExpected: string;
@@ -301,6 +328,7 @@ function compileCatalog(catalogDoc: unknown, capabilitiesDoc: unknown): CatalogW
     };
     kinds.set(definition.kind, {
       props: compileSchema(definition.props),
+      propsSchema: definition.props,
       style,
       variants: facts.variants,
       variantExpected: `one of: ${definition.variants.join(", ")}`,
@@ -340,6 +368,11 @@ function compile(work: CatalogWork, manifest: Manifest): CompiledValidator {
         events: eventMapCheck(events, spec.eventExpected),
         variants: spec.variants,
         variantExpected: spec.variantExpected,
+        bindings: compileBindings({
+          local: manifest.local ?? NO_LOCAL,
+          props: spec.propsSchema,
+          refProps: spec.facts.refProps,
+        }),
       }),
     );
     facts.set(kind, spec.facts);
@@ -372,6 +405,12 @@ function compile(work: CatalogWork, manifest: Manifest): CompiledValidator {
       }),
     ),
   );
+  const local = manifest.local ?? NO_LOCAL;
+  locals.set(validator, {
+    schema: local,
+    initial: frozenJsonCopy((manifest.initialLocal ?? {}) as Json) as Readonly<Record<string, Json>>,
+    checks: new Map(Object.entries(local.properties).map(([key, schema]) => [key, compileSchema(schema)])),
+  });
   offeredChecks.set(validator, { intent: intent("none"), events: work.offered });
   const data = dataSchema(manifest, work.capabilities);
   builds.set(validator, {
@@ -383,8 +422,15 @@ function compile(work: CatalogWork, manifest: Manifest): CompiledValidator {
       state: compileSchema(manifest.state),
       context: compileSchema(manifest.context),
       data: compileSchema(data),
+      actions: compileActions(manifest, work.capabilities),
     },
-    schemas: { params: manifest.params, state: manifest.state, context: manifest.context, data },
+    schemas: {
+      params: manifest.params,
+      state: manifest.state,
+      context: manifest.context,
+      data,
+      actions: actionsSchema(manifest, work.capabilities),
+    },
   });
   return validator;
 }

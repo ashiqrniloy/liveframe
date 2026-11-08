@@ -4,7 +4,7 @@ import type { Catalog, Definition } from "../formats/catalog.ts";
 import { validateJson } from "../formats/json.ts";
 import { validateManifest, validateManifestShape } from "../formats/manifest.ts";
 import { type Scenario, validateScenario, type WidgetPackage } from "../formats/package.ts";
-import type { Json, UiTree } from "../formats/tree.ts";
+import type { ActionStatus, Json, UiTree } from "../formats/tree.ts";
 import { errorMessage, pointerSegment, queue, utf8Length } from "../internal.ts";
 import { canonicalJson } from "../pack/hash.ts";
 import { outcomeScenarios } from "../pack/outcome.ts";
@@ -96,7 +96,13 @@ const rooted = (base: string, errors: readonly LiveframeError[]): LiveframeError
   errors.map((error) => ({ ...error, pointer: `${base}${error.pointer}` }));
 
 export type PackInput = Parameters<PreviewSession["update"]>[0];
-export type RenderInput = { scenario?: string; state?: Json; context?: Json; outcomes?: boolean };
+export type RenderInput = {
+  scenario?: string;
+  state?: Json;
+  context?: Json;
+  actions?: Readonly<Record<string, ActionStatus>>;
+  outcomes?: boolean;
+};
 export type SetStateInput = { origin: { nodeId: string; event: string }; value?: Json };
 
 function setStateArguments(input: unknown): Result<SetStateInput> {
@@ -161,15 +167,16 @@ function packArguments(input: unknown): Result<PackInput> {
   return errors.length > 0 ? { ok: false, errors } : { ok: true, value: input as PackInput };
 }
 
-/** `render_scenarios`' arguments: a scenario name and two JSON overrides. */
+/** `render_scenarios`' arguments: a scenario name and three JSON overrides. */
 function renderArguments(input: unknown): Result<RenderInput> {
-  if (!isRecord(input)) return { ok: false, errors: [at("", "Expected an object with scenario, state and context")] };
+  if (!isRecord(input))
+    return { ok: false, errors: [at("", "Expected an object with scenario, state, context and actions")] };
   const errors: LiveframeError[] = [];
   if (input.scenario !== undefined && (typeof input.scenario !== "string" || input.scenario.length === 0))
     errors.push(at("/scenario", "Expected a scenario name"));
   if (input.outcomes !== undefined && typeof input.outcomes !== "boolean")
     errors.push(at("/outcomes", "Expected a boolean"));
-  for (const name of ["state", "context"] as const) {
+  for (const name of ["state", "context", "actions"] as const) {
     const value = input[name];
     if (value === undefined) continue;
     const checked = validateJson(value);
@@ -280,6 +287,17 @@ function bindSession(state: AuthoringState): PreviewSession {
   };
 }
 
+/** One scenario's render inputs, each overridable by the call's `state`, `context` and `actions`. */
+function scenarioInputs(scenario: Scenario, input: RenderInput, initialState: Json) {
+  return {
+    params: scenario.params,
+    state: input.state === undefined ? (scenario.state ?? initialState) : input.state,
+    context: input.context === undefined ? scenario.context : input.context,
+    data: scenario.data,
+    actions: input.actions === undefined ? (scenario.actions ?? {}) : input.actions,
+  };
+}
+
 async function renderOutcomes(
   state: AuthoringState,
   input: RenderInput,
@@ -319,22 +337,13 @@ async function renderOutcomes(
   const validator = compiledValidator({ catalog, capabilities, manifest: pkg.manifest }, pkg.hash);
   const results = [];
   for (const scenario of expanded) {
-    const rendered = await runner.render(
-      pkg,
-      {
-        params: scenario.params,
-        state: input.state === undefined ? (scenario.state ?? pkg.manifest.initialState) : input.state,
-        context: input.context === undefined ? scenario.context : input.context,
-        data: scenario.data,
-      },
-      {
-        catalog,
-        capabilities,
-        surfaceId,
-        revision: ++state.revision,
-        ...(state.options.limits ? { limits: state.options.limits } : {}),
-      },
-    );
+    const rendered = await runner.render(pkg, scenarioInputs(scenario, input, pkg.manifest.initialState), {
+      catalog,
+      capabilities,
+      surfaceId,
+      revision: ++state.revision,
+      ...(state.options.limits ? { limits: state.options.limits } : {}),
+    });
     // A custom runner is host code: validate its tree so `checkAll` only sees bounded, acyclic data.
     const result = rendered.ok
       ? validator.validateTree(rendered.value, state.options.limits ? { limits: state.options.limits } : undefined)

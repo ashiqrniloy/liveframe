@@ -1,8 +1,8 @@
 import { at, type Capabilities, isRecord } from "../formats/capabilities.ts";
 import type { Definition } from "../formats/catalog.ts";
-import type { Manifest } from "../formats/manifest.ts";
+import { type Manifest, NO_LOCAL } from "../formats/manifest.ts";
 import { treeSchema } from "../formats/tree.ts";
-import type { LanguageSchema } from "../schema.ts";
+import { codePointsWithin, type LanguageSchema } from "../schema.ts";
 import { closed, field, reject } from "./checks.ts";
 import { compileSchema, type SchemaCheck, type SchemaSink } from "./schema.ts";
 
@@ -13,6 +13,10 @@ const stateFields = new Set([
 const actionFields = new Set([
   ...treeSchema.$defs.intent.oneOf[1].required,
   ...Object.keys(treeSchema.$defs.intent.oneOf[1].properties),
+]);
+const localFields = new Set([
+  ...treeSchema.$defs.intent.oneOf[2].required,
+  ...Object.keys(treeSchema.$defs.intent.oneOf[2].properties),
 ]);
 export type Carries = Definition["events"][string]["carries"];
 
@@ -67,6 +71,16 @@ function checkBindAll(
   return field(check, args, sink, "args") && valid;
 }
 
+/** An action intent's optional `resultKey` is a label of 1–128 characters (plan 029 A5). */
+function checkResultKey(value: Record<string, unknown>, sink: SchemaSink): boolean {
+  if (!Object.hasOwn(value, "resultKey")) return true;
+  const key = value.resultKey;
+  return (
+    (typeof key === "string" && codePointsWithin(key, 128, 1)) ||
+    reject(sink, "/resultKey", "a result key of 1–128 characters")
+  );
+}
+
 export function compileIntents(capabilities: Capabilities, manifest: Manifest): (carries: Carries) => SchemaCheck {
   const states = new Map(
     Object.entries(manifest.state.properties).map(([name, schema]) => [
@@ -91,6 +105,16 @@ export function compileIntents(capabilities: Capabilities, manifest: Manifest): 
       return [name, { schema, check: compileSchema(schema), bindings }];
     }),
   );
+  // `local` is scalar-only (plan 029 L1), so each property's `type` is the scalar the event must carry.
+  const locals = new Map(
+    Object.entries((manifest.local ?? NO_LOCAL).properties).map(([name, schema]) => [
+      name,
+      { type: schema.type ?? "object", check: compileSchema(schema) },
+    ]),
+  );
+  // `setLocal` is offered to authors only when the manifest declares local state to write.
+  const intentNames = locals.size ? "setState, setLocal or action" : "setState or action";
+  const localExpected = `a declared local key: ${[...locals.keys()].join(", ") || "none"}`;
   const stateExpected = `a declared state key: ${[...states.keys()].join(", ") || "none"}`;
   const actionExpected = `an action in the manifest: ${[...actions.keys()].join(", ") || "none"}`;
 
@@ -104,6 +128,17 @@ export function compileIntents(capabilities: Capabilities, manifest: Manifest): 
       !(typeof carries === "object" ? objectFits(carries.object, state.schema) : carriesFits(carries, state.type))
     )
       valid = reject(sink, "/value", `an explicit ${state.type} value, or an event carrying ${state.type}`);
+    return valid;
+  }
+
+  function checkSetLocal(value: Record<string, unknown>, carries: Carries, sink: SchemaSink): boolean {
+    let valid = closed(value, localFields, sink);
+    const local = typeof value.key === "string" && Object.hasOwn(value, "key") ? locals.get(value.key) : undefined;
+    if (!local) return reject(sink, "/key", localExpected, "unknown-name");
+    if (Object.hasOwn(value, "value")) {
+      if (!field(local.check, value.value, sink, "value")) valid = false;
+    } else if (!carriesFits(carries, local.type))
+      valid = reject(sink, "/value", `an explicit ${local.type} value, or an event carrying ${local.type}`);
     return valid;
   }
 
@@ -137,10 +172,14 @@ export function compileIntents(capabilities: Capabilities, manifest: Manifest): 
   }
 
   return (carries) => (value, path, sink) => {
-    if (!isRecord(value)) return reject(sink, path, "one setState or action intent");
-    if (!Object.hasOwn(value, "type")) return reject(sink, "/type", "intent type setState or action");
+    if (!isRecord(value)) return reject(sink, path, `one ${intentNames} intent`);
+    if (!Object.hasOwn(value, "type")) return reject(sink, "/type", `intent type ${intentNames}`);
     if (value.type === "setState") return checkSetState(value, carries, sink);
-    if (value.type === "action") return checkAction(value, carries, sink);
-    return reject(sink, "/type", "intent type setState or action");
+    if (value.type === "setLocal") return checkSetLocal(value, carries, sink);
+    if (value.type === "action") {
+      const keyed = checkResultKey(value, sink);
+      return checkAction(value, carries, sink) && keyed;
+    }
+    return reject(sink, "/type", `intent type ${intentNames}`);
   };
 }

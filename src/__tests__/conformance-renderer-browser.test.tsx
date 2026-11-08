@@ -5,8 +5,8 @@ import { ConformanceFailure } from "../conformance/index.ts";
 import { type BrowserFixtures, rendererBrowserSuite } from "../conformance/react/index.ts";
 import { compileValidator } from "../index.ts";
 import { createRenderer } from "../react/index.ts";
-import { examples, fixtures, overlayFixtures, pageOptions, textFixtures } from "./fixtures/conformance-browser.tsx";
 import { launchBrowser } from "./fixtures/browser.ts";
+import { examples, fixtures, overlayFixtures, pageOptions, textFixtures } from "./fixtures/conformance-browser.tsx";
 import { browserHost } from "./fixtures/conformance-browser-host.ts";
 
 let server: Awaited<ReturnType<typeof browserHost>>;

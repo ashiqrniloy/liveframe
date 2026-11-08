@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { expect, test } from "bun:test";
-import type { UiNode } from "@arnilo/liveframe";
+import type { Intent, UiNode } from "@arnilo/liveframe";
 import { definitions } from "../catalog/definitions.ts";
 import { styleProps } from "../css/project.ts";
 import { gitFixture, rackFixture } from "../host/fixtures/clay.ts";
@@ -106,7 +106,7 @@ test("agent_info_tabs_and_close_map_to_declared_intents", async () => {
     ["Send", "agent.send", { sessionId: rackFixture.sessionId, message: "New message" }],
     ["Close container", "container.close", { containerId: rackFixture.containerId }],
   ] as const) {
-    const intent = all().find((n) => n.props.label === label)?.events?.onPress;
+    const intent = all().find((n) => n.props.label === label)?.events?.onPress as Intent | undefined;
     expect(intent).toEqual({ type: "action", name, args });
     expect((await dispatch(intent)).actions.at(-1)).toEqual(intent);
   }

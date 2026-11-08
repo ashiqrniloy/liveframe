@@ -1,8 +1,8 @@
 import type { Result } from "../errors.ts";
 import { arr, bool, type Infer, int, type LanguageSchema, literal, obj, record, str } from "../schema.ts";
 import type { UrlRule } from "../url.ts";
-import { at, documentChecks, isRecord } from "./capabilities.ts";
 import { maxAxisValues, maxCatalogCombinations, maxCombinations } from "./axes.ts";
+import { at, documentChecks, isRecord } from "./capabilities.ts";
 import { checkFormat } from "./check.ts";
 import { semantics, styleProps } from "./fixed.ts";
 import { validateJson } from "./json.ts";

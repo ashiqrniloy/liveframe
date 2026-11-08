@@ -46,4 +46,4 @@ export const initialQueueState: QueueState = {
   escalating: "",
   reason: "",
 };
-export type QueueProps = WidgetProps<typeof queueParams, QueueState, QueueData, { size: string }>;
+export type QueueProps = WidgetProps<typeof queueParams, QueueState, QueueData, { size: string; locale?: string }>;

@@ -4,7 +4,6 @@ import { validateManifestShape } from "../formats/manifest.ts";
 import { validateWidgetPackageShape } from "../formats/package.ts";
 import { validatePlacement, validateStyleRecord } from "../formats/records.ts";
 import { formats } from "../formats/registry.ts";
-import { validateTemplateShape } from "../template/document.ts";
 import {
   compileValidator,
   isLanguageSchema,
@@ -16,6 +15,7 @@ import {
   validateTreePatch,
   validateVocabulary,
 } from "../index.ts";
+import { validateTemplateShape } from "../template/document.ts";
 import { compileFormatSchema, type FormatSchema } from "../validate/format-schema.ts";
 import * as numeric from "./fixtures/numeric-events.ts";
 import * as form from "./fixtures/object-events.ts";

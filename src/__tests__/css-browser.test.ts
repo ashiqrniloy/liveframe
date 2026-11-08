@@ -8,8 +8,8 @@ import {
   type Recipe,
   type RecipeKey,
   type Result,
-  type Theme,
   resolveRecipes,
+  type Theme,
 } from "../index.ts";
 import { browserName, launchBrowser } from "./fixtures/browser.ts";
 

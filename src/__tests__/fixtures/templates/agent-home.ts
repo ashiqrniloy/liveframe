@@ -2,9 +2,13 @@
 // `fixtures/widgets/agent-home/queue.tsx`, written as element JSON with expressions. Task 3 validates
 // it and times the install check; Task 4 renders it and proves it equal to the TSX widget.
 import { arr, bool, type LanguageSchema, num, obj, str } from "../../../schema.ts";
-import type { Template, TemplateNode } from "../../../template/index.ts";
+import type { Expr, Template, TemplateNode } from "../../../template/index.ts";
 import { heading, p, rowSchema, text } from "./common.ts";
 
+/** One field of the `tasks.claim` status, or "" when the host reported none (action names hold dots, so `$get`). */
+const claimField = (field: "status" | "reason"): Expr => ({
+  $coalesce: [{ $get: [{ $get: [p("actions"), "tasks.claim"] }, field] }, ""],
+});
 const category = str({ maxLength: 9, enum: ["decisions", "tasks", "alerts"] });
 
 const queueRow: TemplateNode = {
@@ -208,6 +212,8 @@ const ready: TemplateNode = {
                 canEscalate: p("params.canEscalate"),
                 escalating: p("state.escalating"),
                 reason: p("state.reason"),
+                claimStatus: claimField("status"),
+                claimReason: claimField("reason"),
               },
             },
             {
@@ -532,7 +538,7 @@ function plate(
 
 const button = (
   key: string | undefined,
-  label: string,
+  label: string | Expr,
   intent: TemplateNode["events"],
   variant?: string,
 ): TemplateNode => ({
@@ -684,6 +690,8 @@ export const agentHomeComponents: NonNullable<Template["components"]> = {
       canEscalate: bool(),
       escalating: str({ maxLength: 128 }),
       reason: str({ maxLength: 500 }),
+      claimStatus: str({ maxLength: 16 }),
+      claimReason: str({ maxLength: 500 }),
     }),
     root: plate(
       "task",
@@ -695,12 +703,25 @@ export const agentHomeComponents: NonNullable<Template["components"]> = {
           key: "acts",
           style: { gap: "space.2", wrap: "wrap", shrink: 0 },
           children: [
-            button("claim", "Claim", { onPress: act("tasks.claim", { id: p("task.id") }) }, "primary"),
+            button(
+              "claim",
+              { $cond: [{ $eq: [p("claimStatus"), "pending"] }, "Claiming…", "Claim"] } as never,
+              { onPress: act("tasks.claim", { id: p("task.id") }) },
+              "primary",
+            ),
             {
               $if: p("canEscalate"),
               ...button("escalate", "Escalate…", {
                 onPress: { type: "setState", key: "escalating", value: p("task.id") },
               }),
+            },
+            {
+              $if: { $eq: [p("claimStatus"), "failed"] },
+              ...text(
+                { $concat: ["Could not claim: ", { $coalesce: [p("claimReason"), "unknown reason"] }] },
+                { textStyle: "meta", tone: "danger" },
+                "claim-failed",
+              ),
             },
           ],
         },

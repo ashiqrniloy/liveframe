@@ -18,6 +18,8 @@ function shareNode(previous: UiNode | undefined, next: UiNode, failed: FailedNod
     sameJson(previous.props, next.props) &&
     sameJson(previous.style, next.style) &&
     sameJson(previous.events, next.events) &&
+    sameJson(previous.when, next.when) &&
+    sameJson(previous.bind, next.bind) &&
     (previous.children?.length ?? 0) === (next.children?.length ?? 0);
   let blocked = previous !== undefined && failed.has(previous);
   let changed = false;
