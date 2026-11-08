@@ -38,7 +38,8 @@ export const archiveRules: Record<string, ArchiveRules> = {
   // The runner spawns its compiled child entry; the wasm comes from its pinned dependency, which the install
   // smoke proves resolves outside the checkout (decision 2026-11-08-2310).
   "@arnilo/liveframe-runner-quickjs": { forbid: [], require: [/^dist\/child\.js$/] },
-  "@arnilo/liveframe-starter": { forbid: [noWasm], require: [] },
+  // The catalog document is the starter's source of truth and what `liveframe gen` and the MCP config read.
+  "@arnilo/liveframe-starter": { forbid: [noWasm], require: [/^dist\/index\.js$/, /^dist\/catalog\.json$/] },
 };
 
 /** Problems with an archive's file list: forbidden files present, required files missing. */

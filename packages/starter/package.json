@@ -17,7 +17,13 @@
   "bugs": {
     "url": "https://github.com/ashiqrniloy/liveframe/issues"
   },
-  "keywords": ["liveframe", "catalog", "react", "design-system", "bun"],
+  "keywords": [
+    "liveframe",
+    "catalog",
+    "react",
+    "design-system",
+    "bun"
+  ],
   "publishConfig": {
     "access": "public",
     "tag": "next"
@@ -28,15 +34,30 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./ui": {
+      "liveframe:source": "./src/ui.gen.ts",
+      "types": "./dist/ui.gen.d.ts",
+      "default": "./dist/ui.gen.js"
+    },
+    "./definitions": {
+      "liveframe:source": "./src/ui.definitions.gen.ts",
+      "types": "./dist/ui.definitions.gen.d.ts",
+      "default": "./dist/ui.definitions.gen.js"
+    },
+    "./catalog.json": "./dist/catalog.json",
     "./package.json": "./package.json"
   },
   "files": [
     "dist"
   ],
   "peerDependencies": {
-    "@arnilo/liveframe": "~0.3.0"
+    "@arnilo/liveframe": "~0.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-aria-components": "^1.22.0"
   },
   "devDependencies": {
     "@arnilo/liveframe": "workspace:*"
-  }
+  },
+  "sideEffects": false
 }
