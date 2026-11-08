@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Write a CycloneDX 1.6 JSON SBOM of what ships: the runtime dependency closure (`dependencies` in package.json,
+ * Write a CycloneDX 1.6 JSON SBOM of what one package ships (`--dir`, default the root): the runtime dependency closure (`dependencies` in package.json,
  * resolved through bun.lock) plus the packages bundled into `dist/` at build time, read from
  * `dist/pack/THIRD-PARTY-LICENSES`. Run it after `bun run build`. Dev and peer dependencies are not shipped.
  *
@@ -165,12 +165,18 @@ export function buildSbom(
 if (import.meta.main) {
   const root = new URL("../../", import.meta.url).pathname;
   const argv = process.argv.slice(2);
-  const out = argv[0] === "--out" ? argv[1] : undefined;
-  if (!out || argv.length !== 2) {
-    console.error("Usage: bun scripts/release/sbom.ts --out <file>");
+  let out: string | undefined;
+  let dir = ".";
+  for (let i = 0; i < argv.length; i += 2) {
+    if (argv[i] === "--out") out = argv[i + 1];
+    else if (argv[i] === "--dir") dir = argv[i + 1] ?? "";
+    else out = undefined;
+  }
+  if (!out || !dir) {
+    console.error("Usage: bun scripts/release/sbom.ts --out <file> [--dir <package-directory>]");
     process.exit(2);
   }
-  const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as PackageJson;
+  const pkg = JSON.parse(readFileSync(join(root, dir, "package.json"), "utf8")) as PackageJson;
   const lock = Bun.JSONC.parse(readFileSync(join(root, "bun.lock"), "utf8")) as Lock;
   const licenseOf = (key: string): string | undefined => {
     const file = join(root, "node_modules", segments(key).join("/node_modules/"), "package.json");
@@ -178,5 +184,7 @@ if (import.meta.main) {
     const license = (JSON.parse(readFileSync(file, "utf8")) as PackageJson).license;
     return typeof license === "string" ? license : undefined;
   };
-  await Bun.write(out, `${JSON.stringify(buildSbom(pkg, lock, licenseOf, readBundled(root)), null, 2)}\n`);
+  // Only the root bundles third-party code into its `dist/`.
+  const bundled = dir === "." ? readBundled(root) : [];
+  await Bun.write(out, `${JSON.stringify(buildSbom(pkg, lock, licenseOf, bundled), null, 2)}\n`);
 }

@@ -1,0 +1,42 @@
+{
+  "name": "@arnilo/liveframe-starter",
+  "version": "0.2.3",
+  "description": "A starting point for a Liveframe host: a reference catalog, React implementations, themes and a design system that pass every conformance suite. Copy it or extend it.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.4.2"
+  },
+  "author": "Niloy Rahman",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ashiqrniloy/liveframe.git",
+    "directory": "packages/starter"
+  },
+  "homepage": "https://github.com/ashiqrniloy/liveframe#readme",
+  "bugs": {
+    "url": "https://github.com/ashiqrniloy/liveframe/issues"
+  },
+  "keywords": ["liveframe", "catalog", "react", "design-system", "bun"],
+  "publishConfig": {
+    "access": "public",
+    "tag": "next"
+  },
+  "exports": {
+    ".": {
+      "liveframe:source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "peerDependencies": {
+    "@arnilo/liveframe": "~0.3.0"
+  },
+  "devDependencies": {
+    "@arnilo/liveframe": "workspace:*"
+  }
+}

@@ -35,8 +35,34 @@
         "react-dom",
       ],
     },
+    "packages/runner-quickjs": {
+      "name": "@arnilo/liveframe-runner-quickjs",
+      "version": "0.2.3",
+      "devDependencies": {
+        "@arnilo/liveframe": "workspace:*",
+      },
+      "peerDependencies": {
+        "@arnilo/liveframe": "~0.3.0",
+      },
+    },
+    "packages/starter": {
+      "name": "@arnilo/liveframe-starter",
+      "version": "0.2.3",
+      "devDependencies": {
+        "@arnilo/liveframe": "workspace:*",
+      },
+      "peerDependencies": {
+        "@arnilo/liveframe": "~0.3.0",
+      },
+    },
   },
   "packages": {
+    "@arnilo/liveframe": ["@arnilo/liveframe@root:", {}],
+
+    "@arnilo/liveframe-runner-quickjs": ["@arnilo/liveframe-runner-quickjs@workspace:packages/runner-quickjs"],
+
+    "@arnilo/liveframe-starter": ["@arnilo/liveframe-starter@workspace:packages/starter"],
+
     "@biomejs/biome": ["@biomejs/biome@2.6.2", "", { "optionalDependencies": { "@biomejs/cli-android-arm64": "2.6.2", "@biomejs/cli-android-x64": "2.6.2", "@biomejs/cli-darwin-arm64": "2.6.2", "@biomejs/cli-darwin-x64": "2.6.2", "@biomejs/cli-linux-arm64": "2.6.2", "@biomejs/cli-linux-arm64-musl": "2.6.2", "@biomejs/cli-linux-x64": "2.6.2", "@biomejs/cli-linux-x64-musl": "2.6.2", "@biomejs/cli-win32-arm64": "2.6.2", "@biomejs/cli-win32-x64": "2.6.2" }, "bin": { "biome": "bin/biome" } }, "sha512-JLTFAFF9vfJcWwLhwuL4ZHflLg+XfTEC4IUnAlJRX1cMRt57++Xd1Ysb9Fdmlh9YUrvyCXfPEHjjEIqKJGdPKw=="],
 
     "@biomejs/cli-android-arm64": ["@biomejs/cli-android-arm64@2.6.2", "", { "os": "android", "cpu": "arm64" }, "sha512-dMpdpH7zFEL5FxuIA9LJW+RoNyC3oeDB7PJyjqVVwtMNoKB5uo8OZYmrVSBikn71txzYwy/3xga7UME6bJQZ6A=="],

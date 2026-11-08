@@ -28,9 +28,10 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.4.2
-      - name: Tag matches package.json
-        if: github.ref_type == 'tag'
-        run: test "${GITHUB_REF_NAME#v}" = "$(bun -p 'require("./package.json").version')"
+      # All three packages release together: one version, and the tag names it.
+      - name: Packages are at one version, tag matches
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then bun scripts/release/versions.ts --tag "$GITHUB_REF_NAME"; else bun scripts/release/versions.ts; fi
       - run: bun install --frozen-lockfile
       - name: Audit runtime dependencies (fails on high or critical)
         run: bun audit --prod --audit-level=high
@@ -38,19 +39,29 @@ jobs:
       - run: bun run check
       - name: Audit bundled code (fails on high or critical)
         run: bun scripts/release/audit-bundled.ts
-      - name: SBOM (CycloneDX)
-        run: bun scripts/release/sbom.ts --out "$RUNNER_TEMP/sbom.cdx.json"
+      - name: SBOM (CycloneDX), one per package
+        run: |
+          mkdir "$RUNNER_TEMP/sbom"
+          for dir in . packages/*; do
+            bun scripts/release/sbom.ts --dir "$dir" --out "$RUNNER_TEMP/sbom/$(basename "$(realpath "$dir")").cdx.json"
+          done
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sbom
-          path: ${{ runner.temp }}/sbom.cdx.json
-      - run: bun scripts/release/archive-gate.ts
+          path: ${{ runner.temp }}/sbom
+      - name: Archive gate (every package)
+        run: bun run release:gate
       - name: Browsers for the playwright floor
         run: bunx playwright@1.49.0 install --with-deps chromium chromium-headless-shell
       - run: bun scripts/release/peer-floors.ts
       - run: bun run demo:test
       - run: bun run build
-      - run: bun run release:stage "$RUNNER_TEMP/liveframe-publish"
+      - name: Stage every package
+        run: |
+          for dir in . packages/*; do
+            name=$(bun -p "require('./$dir/package.json').name")
+            bun run release:stage "$RUNNER_TEMP/liveframe-publish/${name#@arnilo/}" "$dir"
+          done
       # npm runs only here, for trusted publishing and provenance.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -62,9 +73,16 @@ jobs:
           version=$(bun -p 'require("./package.json").version')
           case "$version" in *-*) tag=next ;; *) tag=latest ;; esac
           dry=; if [ "${{ inputs.dry_run }}" = true ]; then dry=--dry-run; fi
-          npm publish "$RUNNER_TEMP/liveframe-publish" --access public --tag "$tag" $dry
+          # The core first: the other two peer on it. Each publish carries its own provenance.
+          for dir in . packages/*; do
+            name=$(bun -p "require('./$dir/package.json').name")
+            npm publish "$RUNNER_TEMP/liveframe-publish/${name#@arnilo/}" --access public --tag "$tag" $dry
+          done
           # A release moves `next` too, so `@next` never installs an older build than `latest`.
           # npm's trusted publisher must allow dist-tags, and only npm >= 11.21.0 (>= 12.2.0 on 12.x) does it.
           if [ -z "$dry" ] && [ "$tag" = latest ]; then
-            npx --yes npm@12.2.1 dist-tag add "@arnilo/liveframe@$version" next
+            for dir in . packages/*; do
+              name=$(bun -p "require('./$dir/package.json').name")
+              npx --yes npm@12.2.1 dist-tag add "$name@$version" next
+            done
           fi

@@ -22,6 +22,8 @@ jobs:
           node-version: 26
           package-manager-cache: false
       - run: bun install --frozen-lockfile
+      - name: Packages are at one version
+        run: bun run release:versions
       - name: Audit runtime dependencies (fails on high or critical)
         run: bun audit --prod --audit-level=high
       - name: Audit all dependencies (informational)
@@ -31,17 +33,22 @@ jobs:
       - run: bun run check
       - name: Audit bundled code (fails on high or critical)
         run: bun scripts/release/audit-bundled.ts
-      - name: SBOM (CycloneDX)
-        run: bun scripts/release/sbom.ts --out "$RUNNER_TEMP/sbom.cdx.json"
+      - name: SBOM (CycloneDX), one per package
+        run: |
+          mkdir "$RUNNER_TEMP/sbom"
+          for dir in . packages/*; do
+            bun scripts/release/sbom.ts --dir "$dir" --out "$RUNNER_TEMP/sbom/$(basename "$(realpath "$dir")").cdx.json"
+          done
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sbom
-          path: ${{ runner.temp }}/sbom.cdx.json
+          path: ${{ runner.temp }}/sbom
       - name: Browser suites (WebKit)
         run: LIVEFRAME_BROWSER=webkit bun run test
       - name: Browser suites (Firefox)
         run: LIVEFRAME_BROWSER=firefox bun run test
-      - run: bun scripts/release/archive-gate.ts
+      - name: Archive gate (every package)
+        run: bun run release:gate
       - name: Browsers for the playwright floor
         run: bunx playwright@1.49.0 install --with-deps chromium chromium-headless-shell
       - run: bun scripts/release/peer-floors.ts

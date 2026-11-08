@@ -8,6 +8,9 @@
   "engines": {
     "bun": ">=1.4.2"
   },
+  "workspaces": [
+    "packages/*"
+  ],
   "author": "Niloy Rahman",
   "repository": {
     "type": "git",
@@ -164,15 +167,16 @@
     "build": "bun scripts/build.ts",
     "bench": "bun --conditions liveframe:source bench/validator.bench.ts && bun --conditions liveframe:source bench/render.bench.ts && bun --conditions liveframe:source bench/css.bench.ts && bun --conditions liveframe:source bench/streaming.bench.ts && bun --conditions liveframe:source bench/template.bench.ts && bun --conditions liveframe:source bench/stream-elements.bench.ts && bun --conditions liveframe:source bench/host.bench.ts && bun --conditions liveframe:source bench/pack-libraries.bench.ts",
     "proof": "bun proof/host/server.ts",
-    "test": "bun test --conditions liveframe:source src proof",
+    "test": "bun test --conditions liveframe:source src proof packages",
     "typecheck": "tsc --noEmit && tsc --noEmit -p proof",
     "lint": "biome lint --error-on-warnings .",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "gen:check": "bun src/cli/liveframe.ts gen src/__tests__/fixtures/proof/catalog.json --out src/__tests__/fixtures/widgets/ui.gen.ts --check && bun src/cli/liveframe.ts gen src/__tests__/fixtures/proof/catalog.json --out src/__tests__/fixtures/widgets/ui.definitions.gen.ts --implementations --check && bun src/cli/liveframe.ts gen src/__tests__/fixtures/widgets/carries.json --out src/__tests__/fixtures/widgets/carries.definitions.gen.ts --implementations --check && bun src/cli/liveframe.ts gen src/__tests__/fixtures/proof/catalog.json --elements-schema --out src/__tests__/fixtures/widgets/elements.schema.json --check && bun src/cli/liveframe.ts gen src/__tests__/fixtures/proof/catalog.json --template-schema --capabilities src/__tests__/fixtures/widgets/capabilities.json --out src/__tests__/fixtures/widgets/template.schema.json --check",
     "check": "bun run build && bun run gen:check && bun run typecheck && bun run lint && bun run format:check && bun run test",
-    "release:gate": "bun scripts/release/archive-gate.ts",
+    "release:gate": "bun scripts/release/archive-gate.ts --all",
     "release:stage": "bun scripts/release/publish-manifest.ts",
+    "release:versions": "bun scripts/release/versions.ts",
     "demo:test": "bun scripts/demo-test.ts"
   },
   "devDependencies": {

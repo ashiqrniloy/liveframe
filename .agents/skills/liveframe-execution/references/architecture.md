@@ -35,6 +35,8 @@ One npm package with subpath exports:
 | `/conformance` | `catalogSuite()`, `designSystemSuite()`, `storeSuite()`, `ConformanceCase`, `ConformanceFailure` | No |
 | `/conformance/react` | `rendererSuite()`, `rendererBrowserSuite()`, `conformancePage()` | Yes (React, DOM) |
 
+Since 0.3.0 the repository is a Bun workspace: `packages/runner-quickjs` (`@arnilo/liveframe-runner-quickjs`) and `packages/starter` (`@arnilo/liveframe-starter`) release in lockstep with the core and peer on it. The core stays host-API-free and WebAssembly-free; the archive gate enforces it (`scripts/release/packages.ts`).
+
 Placement rules:
 - The library never ships a primitive implementation, a design system or a product component. Those live in apps, a demo host, or `proof/`.
 - `src/` never imports `proof/`.

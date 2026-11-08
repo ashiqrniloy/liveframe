@@ -5,18 +5,21 @@ import { readFile, rm } from "node:fs/promises";
 const root = new URL("../", import.meta.url).pathname;
 await rm(`${root}dist`, { recursive: true, force: true });
 
-const build = Bun.spawnSync(["bunx", "tsc", "-p", "tsconfig.build.json"], {
-  cwd: root,
-  stdio: ["ignore", "inherit", "inherit"],
-});
-if (build.exitCode !== 0) process.exit(build.exitCode ?? 1);
+async function compile(dir: string): Promise<void> {
+  const build = Bun.spawnSync(["bunx", "tsc", "-p", "tsconfig.build.json"], {
+    cwd: dir,
+    stdio: ["ignore", "inherit", "inherit"],
+  });
+  if (build.exitCode !== 0) process.exit(build.exitCode ?? 1);
 
-for await (const path of new Bun.Glob("dist/**/*.d.ts").scan(root)) {
-  const url = new URL(path, `file://${root}`);
-  const source = await Bun.file(url).text();
-  const rewritten = source.replace(/(["'])(\.{1,2}\/[^"'\n]*?)\.(?:ts|tsx)\1/g, "$1$2.js$1");
-  if (rewritten !== source) await Bun.write(url, rewritten);
+  for await (const path of new Bun.Glob("dist/**/*.d.ts").scan(dir)) {
+    const url = new URL(path, `file://${dir}`);
+    const source = await Bun.file(url).text();
+    const rewritten = source.replace(/(["'])(\.{1,2}\/[^"'\n]*?)\.(?:ts|tsx)\1/g, "$1$2.js$1");
+    if (rewritten !== source) await Bun.write(url, rewritten);
+  }
 }
+await compile(root);
 
 // `/pack` transpiles with sucrase's `transform`. Bundling it keeps sucrase's CLI-only dependencies
 // (commander, mz, pirates, tinyglobby, …) out of every consumer's install, and pins what runs to the lockfile.
@@ -84,3 +87,16 @@ async function buildBundle(name: string): Promise<void> {
 }
 await buildBundle("runner-kit");
 await buildBundle("validator");
+
+// The workspace packages build after the root: their declarations resolve `@arnilo/liveframe` through its `dist/`.
+// A package that needs more than tsc (a wasm copy, a bundled child entry) adds a `build.ts` that runs after it.
+for await (const path of new Bun.Glob("packages/*/package.json").scan(root)) {
+  const dir = `${root}${path.slice(0, -"package.json".length)}`;
+  await rm(`${dir}dist`, { recursive: true, force: true });
+  await compile(dir);
+  const extra = `${dir}build.ts`;
+  if (await Bun.file(extra).exists()) {
+    const run = Bun.spawnSync(["bun", extra], { cwd: dir, stdio: ["ignore", "inherit", "inherit"] });
+    if (run.exitCode !== 0) process.exit(run.exitCode ?? 1);
+  }
+}

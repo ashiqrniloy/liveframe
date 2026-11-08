@@ -12,22 +12,22 @@ import { cp, mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { assertSelfContained } from "./bundle-check.ts";
+import { archiveProblems, archiveRules, packageDirs, readManifest, root } from "./packages.ts";
 import { assertExportsPacked, stagePackage } from "./publish-manifest.ts";
 
-const root = new URL("../../", import.meta.url).pathname;
-const pkg = (await Bun.file(join(root, "package.json")).json()) as {
-  peerDependencies: Record<string, string>;
-  devDependencies: Record<string, string>;
-};
-
-const usage = "Usage: bun scripts/release/archive-gate.ts [--tarball <path> | --package <spec>] [--keep]";
+const usage =
+  "Usage: bun scripts/release/archive-gate.ts [--all | --dir <package-directory>] [--tarball <path> | --package <spec>] [--keep]";
 const argv = process.argv.slice(2);
 let tarball = "";
 let spec = "";
 let keep = false;
+let all = false;
+let packageDir = ".";
 for (let i = 0; i < argv.length; i++) {
   const flag = argv[i];
   if (flag === "--keep") keep = true;
+  else if (flag === "--all") all = true;
+  else if (flag === "--dir" && argv[i + 1]) packageDir = argv[++i] as string;
   else if (flag === "--tarball" && argv[i + 1]) tarball = argv[++i] as string;
   else if (flag === "--package" && argv[i + 1]) spec = argv[++i] as string;
   else if (flag === "--help" || flag === "-h") {
@@ -38,10 +38,29 @@ for (let i = 0; i < argv.length; i++) {
     process.exit(2);
   }
 }
-if (tarball && spec) {
-  console.error(`${usage}\nPass --tarball or --package, not both`);
+if ((tarball && spec) || (all && (tarball || spec || packageDir !== "."))) {
+  console.error(`${usage}\nPass --tarball or --package, not both; --all takes no other selector`);
   process.exit(2);
 }
+
+// `--all` gates each package in its own process, in the order of `packageDirs()` (the core first).
+if (all) {
+  let failed = false;
+  for (const dir of await packageDirs()) {
+    console.log(`\n== archive gate: ${dir} ==`);
+    const proc = Bun.spawnSync(["bun", import.meta.path, "--dir", dir, ...(keep ? ["--keep"] : [])], {
+      stdio: ["ignore", "inherit", "inherit"],
+    });
+    if (proc.exitCode !== 0) failed = true;
+  }
+  process.exit(failed ? 1 : 0);
+}
+
+const pkg = await readManifest(packageDir);
+const isRoot = packageDir === ".";
+const rules = archiveRules[pkg.name];
+if (!rules) throw new Error(`scripts/release/packages.ts has no archive rules for ${pkg.name}`);
+const rootPkg = isRoot ? pkg : await readManifest(".");
 
 function run(args: string[], cwd: string): string {
   const proc = Bun.spawnSync(args, {
@@ -65,17 +84,21 @@ try {
     join(dir, "package.json"),
     `${JSON.stringify({ name: "liveframe-archive-gate", private: true, type: "module" }, null, 2)}\n`,
   );
-  let target = tarball;
-  if (!target && !spec) {
-    run(["bun", "run", "build"], root);
-    const destination = join(dir, "pack");
+  // Pack with `bun pm pack` from a staged copy (the same files `release:stage` publishes).
+  const pack = async (what: string): Promise<string> => {
+    const destination = join(dir, `pack-${what}`);
     await mkdir(destination);
-    const staging = join(dir, "staging");
-    await stagePackage(staging);
+    const staging = join(dir, `staging-${what}`);
+    await stagePackage(staging, what === "core" ? "." : packageDir);
     run(["bun", "pm", "pack", "--destination", destination], staging);
     const [packed] = (await readdir(destination)).filter((file) => file.endsWith(".tgz"));
     if (!packed) throw new Error("bun pm pack produced no tarball");
-    target = join(destination, packed);
+    return join(destination, packed);
+  };
+  let target = tarball;
+  if (!target && !spec) {
+    run(["bun", "run", "build"], root);
+    target = await pack(isRoot ? "core" : "package");
   }
   if (target) {
     const at = performance.now();
@@ -87,14 +110,25 @@ try {
         .map((file) => file.replace(/^package\//, "")),
     );
     assertExportsPacked(manifest.exports, files);
-    console.log(`ok every exports target is packed (${time(at)})`);
+    const problems = archiveProblems(rules, files);
+    if (problems.length > 0) throw new Error(problems.join("\n"));
+    console.log(`ok every exports target is packed, archive rules hold (${time(at)})`);
   }
-  const peers = Object.keys(pkg.peerDependencies).map((name) => `${name}@${pkg.peerDependencies[name]}`);
-  const types = ["@types/react", "@types/react-dom", "@types/node"].map((name) =>
-    pkg.devDependencies[name] ? `${name}@${pkg.devDependencies[name]}` : name,
-  );
-  const client = `@modelcontextprotocol/client@${pkg.devDependencies["@modelcontextprotocol/client"]}`;
-  run(["bun", "add", spec || target, ...peers, ...types, client], dir);
+  const peerSpec = (name: string) => `${name}@${rootPkg.devDependencies?.[name] ?? pkg.peerDependencies?.[name]}`;
+  const peers = Object.keys(pkg.peerDependencies ?? {})
+    .filter((name) => isRoot || name !== "@arnilo/liveframe")
+    .map(peerSpec);
+  if (isRoot) {
+    const types = ["@types/react", "@types/react-dom", "@types/node"].map((name) =>
+      pkg.devDependencies?.[name] ? `${name}@${pkg.devDependencies[name]}` : name,
+    );
+    const client = `@modelcontextprotocol/client@${pkg.devDependencies?.["@modelcontextprotocol/client"]}`;
+    run(["bun", "add", spec || target, ...peers, ...types, client], dir);
+  } else {
+    // A package peers on the core, which is not published at this version yet unless `--package` names a release.
+    const core = spec ? `@arnilo/liveframe@${pkg.peerDependencies?.["@arnilo/liveframe"]}` : await pack("core");
+    run(["bun", "add", core, spec || target, ...peers], dir);
+  }
 
   const fixtures = join(dir, "fixtures");
   await cp(join(root, "scripts/release/fixtures"), fixtures, { recursive: true });
@@ -104,11 +138,12 @@ try {
     join(dir, "liveframe.config.ts"),
     `import catalog from "./fixtures/catalog.json" with { type: "json" };\nimport capabilities from "./fixtures/capabilities.json" with { type: "json" };\n\nexport default { catalog, capabilities };\n`,
   );
-  const installed = (await Bun.file(join(dir, "node_modules/@arnilo/liveframe/package.json")).json()) as {
+  const installedDir = join(dir, "node_modules", pkg.name);
+  const installed = (await Bun.file(join(installedDir, "package.json")).json()) as {
     version: string;
     exports: unknown;
   };
-  console.log(`installed @arnilo/liveframe@${installed.version} in ${dir} (${time(started)})`);
+  console.log(`installed ${pkg.name}@${installed.version} in ${dir} (${time(started)})`);
 
   const bin = join(dir, "node_modules/.bin/liveframe");
   const step = (name: string, body: () => void) => {
@@ -140,17 +175,26 @@ try {
       throw new Error(`packed ${name} has ${packed.size} JSON files, expected ${source.size}`);
   };
 
-  const steps: Array<[string, () => void]> = [
-    [
-      "every installed exports target exists",
-      () => {
-        const directory = join(dir, "node_modules/@arnilo/liveframe");
-        assertExportsPacked(
-          installed.exports,
-          new Set(new Bun.Glob("**/*").scanSync({ cwd: directory, onlyFiles: true })),
-        );
-      },
-    ],
+  const installedFiles = () => new Set(new Bun.Glob("**/*").scanSync({ cwd: installedDir, onlyFiles: true }));
+  const installedTargets: [string, () => void] = [
+    "every installed exports target exists, installed archive rules hold",
+    () => {
+      assertExportsPacked(installed.exports, installedFiles());
+      const problems = archiveProblems(rules, installedFiles());
+      if (problems.length > 0) throw new Error(problems.join("\n"));
+    },
+  ];
+  // A package may ship `archive-smoke.ts`: it runs in the install directory and imports the package by name,
+  // so it proves the package's own files (a wasm, a child entry) resolve outside the checkout.
+  const smoke = join(root, packageDir, "archive-smoke.ts");
+  const packageSteps: Array<[string, () => void]> = [installedTargets];
+  if (existsSync(smoke)) {
+    await cp(smoke, join(dir, "archive-smoke.ts"));
+    packageSteps.push(["installed package smoke", () => run(["bun", join(dir, "archive-smoke.ts")], dir)]);
+  }
+
+  const rootSteps: Array<[string, () => void]> = [
+    installedTargets,
     [
       "sucrase is bundled: no CLI-only dependencies installed, licences packed",
       () => {
@@ -204,6 +248,7 @@ try {
     ],
   ];
 
+  const steps = isRoot ? rootSteps : packageSteps;
   for (const [name, body] of steps) if (!step(name, body)) break;
   if (process.exitCode === 1) console.error(`archive gate failed after ${time(started)}`);
   else console.log(`archive gate passed all ${steps.length} steps in ${time(started)}`);

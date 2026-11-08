@@ -112,7 +112,7 @@ This plan implements the release step of roadmap Phase 7's 0.3.0. It changes no 
 - [ ] Task 5: Publish `0.3.0-rc.1` of all three packages under `next` and verify from the registry (carries plan 025 Task 10)
   - Acceptance Criteria:
     - Functional:
-      - Bump all three packages to `0.3.0-rc.1` in one commit; tag `v0.3.0-rc.1`; the protected publish workflow publishes all three under `next` with provenance.
+      - Bump all three packages to `0.3.0-rc.1` in one commit, widening the two packages' peer range on `@arnilo/liveframe` from `~0.3.0` to `~0.3.0-0` first (`~0.3.0` does not match a prerelease, so npm would refuse to install the rc packages together; plan 031 Task 2 finding); tag `v0.3.0-rc.1`; the protected publish workflow publishes all three under `next` with provenance.
       - From a fresh directory: install each package from the registry, run the archive checks (exports, no sources/tests/proof, no WebAssembly in the root package), the API surface comparison against the checkout, `getting-started-test.ts` against the registry archives, and `demo:test` against them.
       - `npm view` shows `next` = `0.3.0-rc.1` for all three; if dist-tag automation fails (the 0.2.3 failure), the owner repairs it on npmjs.com and the repair is recorded; plan 025 Task 10 closes.
       - `plans/evidence/032-release-candidate.md` records commands and outputs.

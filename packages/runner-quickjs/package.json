@@ -1,0 +1,42 @@
+{
+  "name": "@arnilo/liveframe-runner-quickjs",
+  "version": "0.2.3",
+  "description": "An isolated Liveframe runner: widget code runs in QuickJS inside a child process the runner can kill, so a host gets a real isolation boundary without building a sandbox.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.4.2"
+  },
+  "author": "Niloy Rahman",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ashiqrniloy/liveframe.git",
+    "directory": "packages/runner-quickjs"
+  },
+  "homepage": "https://github.com/ashiqrniloy/liveframe#readme",
+  "bugs": {
+    "url": "https://github.com/ashiqrniloy/liveframe/issues"
+  },
+  "keywords": ["liveframe", "runner", "sandbox", "quickjs", "bun"],
+  "publishConfig": {
+    "access": "public",
+    "tag": "next"
+  },
+  "exports": {
+    ".": {
+      "liveframe:source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "peerDependencies": {
+    "@arnilo/liveframe": "~0.3.0"
+  },
+  "devDependencies": {
+    "@arnilo/liveframe": "workspace:*"
+  }
+}

@@ -1,8 +1,6 @@
 import { cp, mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import pkg from "../../package.json" with { type: "json" };
-
-const root = new URL("../../", import.meta.url).pathname;
+import { readManifest, root } from "./packages.ts";
 
 function withoutSourceCondition(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(withoutSourceCondition);
@@ -16,16 +14,28 @@ function withoutSourceCondition(value: unknown): unknown {
   return value;
 }
 
-export function publishManifest<T extends { exports: unknown }>(manifest: T) {
-  return { ...manifest, exports: withoutSourceCondition(manifest.exports) };
+/** A `workspace:` specifier means nothing outside the checkout, and only dev dependencies use one. */
+function withoutWorkspaceLinks(dependencies: unknown): unknown {
+  if (!dependencies || typeof dependencies !== "object") return dependencies;
+  const kept = Object.entries(dependencies).filter(([, spec]) => !String(spec).startsWith("workspace:"));
+  return kept.length > 0 ? Object.fromEntries(kept) : undefined;
 }
 
-/** Copy only release inputs; the checkout's manifest is never rewritten. */
-export async function stagePackage(destination: string): Promise<void> {
-  await mkdir(destination);
-  for (const file of [...pkg.files, "README.md", "LICENSE"]) {
-    await cp(join(root, file), join(destination, file), { recursive: true });
+export function publishManifest<T extends { exports: unknown; devDependencies?: unknown }>(manifest: T) {
+  const published = { ...manifest, exports: withoutSourceCondition(manifest.exports) };
+  if (manifest.devDependencies) published.devDependencies = withoutWorkspaceLinks(manifest.devDependencies) as never;
+  if (published.devDependencies === undefined) delete published.devDependencies;
+  return published;
+}
+
+/** Copy only release inputs of the package in `dir` (default: the root); the checkout's manifest is never rewritten. */
+export async function stagePackage(destination: string, dir = "."): Promise<void> {
+  const pkg = await readManifest(dir);
+  await mkdir(destination, { recursive: true });
+  for (const file of [...pkg.files, "README.md"]) {
+    await cp(join(root, dir, file), join(destination, file), { recursive: true });
   }
+  await cp(join(root, "LICENSE"), join(destination, "LICENSE"));
   await Bun.write(join(destination, "package.json"), `${JSON.stringify(publishManifest(pkg), null, 2)}\n`);
 }
 
@@ -62,7 +72,8 @@ export function assertExportsPacked(exports: unknown, files: Set<string>, entry 
 }
 
 if (import.meta.main) {
-  const destination = process.argv[2];
-  if (!destination) throw new Error("Usage: bun scripts/release/publish-manifest.ts <new-staging-directory>");
-  await stagePackage(destination);
+  const [destination, dir = "."] = process.argv.slice(2);
+  if (!destination)
+    throw new Error("Usage: bun scripts/release/publish-manifest.ts <staging-directory> [package-directory]");
+  await stagePackage(destination, dir);
 }
