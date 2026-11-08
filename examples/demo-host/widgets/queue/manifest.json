@@ -1,0 +1,78 @@
+{
+  "format": "liveframe-manifest/1",
+  "id": "queue",
+  "version": "1.0.0",
+  "catalogId": "demo.ui@1",
+  "params": {
+    "type": "object",
+    "properties": {
+      "pageSize": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10
+      }
+    },
+    "required": [
+      "pageSize"
+    ],
+    "additionalProperties": false
+  },
+  "state": {
+    "type": "object",
+    "properties": {
+      "cursor": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 1000
+      }
+    },
+    "required": [
+      "cursor"
+    ],
+    "additionalProperties": false
+  },
+  "local": {
+    "type": "object",
+    "properties": {
+      "q": {
+        "type": "string",
+        "maxLength": 80
+      }
+    },
+    "required": [
+      "q"
+    ],
+    "additionalProperties": false
+  },
+  "context": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+  },
+  "initialState": {
+    "cursor": 0
+  },
+  "initialLocal": {
+    "q": ""
+  },
+  "sources": {
+    "tasks": {
+      "source": "tasks.page",
+      "params": {
+        "cursor": {
+          "from": "state",
+          "path": "cursor"
+        },
+        "limit": {
+          "from": "params",
+          "path": "pageSize"
+        }
+      }
+    }
+  },
+  "actions": [
+    "tasks.claim",
+    "selection.select"
+  ]
+}

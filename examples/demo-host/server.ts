@@ -1,19 +1,26 @@
 import {
-  type CompiledValidator,
-  checkOffered,
   checkValue,
-  compileValidator,
   type Intent,
   type IntentOrigin,
   type Json,
   LiveframeFailure,
   type Manifest,
-  type UiTree,
 } from "@arnilo/liveframe";
-import { pack, verifyPackage, type WidgetPackage } from "@arnilo/liveframe/pack";
+import {
+  type Actions,
+  type DispatchResult,
+  dependents,
+  type HostEvent,
+  handleIntent,
+  renderPlacement,
+  type Served,
+  type SourceCall,
+  type SourceResult,
+} from "@arnilo/liveframe/host";
+import { pack, verifyPackage } from "@arnilo/liveframe/pack";
 import { createPreview } from "@arnilo/liveframe/preview";
 import { workerRunner } from "@arnilo/liveframe/preview/worker";
-import { loadPlacement, validatePlacement } from "@arnilo/liveframe/store";
+import { validatePlacement, verifiedPackages } from "@arnilo/liveframe/store";
 import { fileStore } from "@arnilo/liveframe/store/fs";
 import { capabilities, catalog } from "./app.ts";
 import { previewRoutes } from "./preview.ts";
@@ -32,27 +39,26 @@ const clientBundle = Bun.build({
 // The first render also starts the worker, so the demo allows more than the 100 ms default.
 const timeoutMs = 5000;
 const documents = { catalog, capabilities };
-/** One validator per installed package: a re-render reuses its compiled catalog, not a fresh compile. */
-const validators = new Map<string, CompiledValidator>();
-function validatorFor(pkg: WidgetPackage): CompiledValidator {
-  const cached = validators.get(pkg.hash);
-  if (cached) return cached;
-  const validator = compileValidator({ ...documents, manifest: pkg.manifest });
-  validators.set(pkg.hash, validator);
-  return validator;
-}
 const dataDirectory = new URL("./.data/", import.meta.url).pathname;
 
 type Request<P extends string> = Bun.BunRequest<P>;
 type ActionRecord = { readonly placement: string; readonly name: string; readonly args: Json };
+/** Whoever the request is for. The library never looks inside: it hands it to `resolve`, `authorize` and `dispatch`. */
+type Viewer = { readonly name: string; readonly may: ReadonlySet<string> };
 
-/** The operations this host offers behind `capabilities.json`. A widget only asks for them by name. */
-const operations: Record<string, (args: Record<string, Json>) => void> = {
-  "demo.notify": ({ message }) => console.log(`demo.notify: ${String(message)}`),
-};
+/** The state scope. One viewer, so one scope; a multi-user host would use the user id. */
+const scope = "";
+/** The demo has one signed-in viewer. A real host takes this from its session. */
+const viewer: Viewer = { name: "ada", may: new Set(["demo.notify", "tasks.claim", "selection.select"]) };
 
-/** The data this host offers behind `capabilities.json`. A widget only asks for it by name; the host resolves it. */
-const tasks: Json = [
+/**
+ * Law 4: the host decides. This is a placeholder for the app's policy: it allows an action only when the viewer
+ * may use it. `handleIntent` has already checked the tree offered the intent, and it treats anything but `true`
+ * (including a throw) as a refusal.
+ */
+const authorize = (intent: Intent, who: Viewer) => intent.type !== "action" || who.may.has(intent.name);
+
+const tasks: readonly { id: string; title: string }[] = [
   { id: "t1", title: "Review the release notes" },
   { id: "t2", title: "Reply to the design thread" },
   { id: "t3", title: "Triage new issues" },
@@ -66,20 +72,45 @@ const tasks: Json = [
   { id: "t11", title: "Tidy the backlog" },
   { id: "t12", title: "Sync with support" },
 ];
-const sources: Record<string, () => Json> = { "demo.tasks": () => tasks };
 
-/** The `data` input of a widget: each source its manifest declares, resolved by the host. */
-function resolveData(manifest: Manifest): Record<string, Json> {
-  return Object.fromEntries(
-    Object.entries(manifest.sources).map(([alias, { source }]) => [alias, (sources[source] ?? (() => null))()]),
-  );
-}
+/**
+ * What an action changes, by source name. After it settles the host asks `dependents` which placements read those
+ * sources and re-renders them: widgets coordinate through capabilities, never through each other.
+ */
+const affects: Record<string, readonly string[]> = {
+  "tasks.claim": ["tasks.page", "selection.current"],
+  "selection.select": ["selection.current"],
+};
 
 const error = (message: string, status: number) => Response.json({ error: message }, { status });
 const isRecord = (value: unknown): value is Record<string, Json> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+const integer = (value: Json | undefined, fallback: number) => (typeof value === "number" ? value : fallback);
 
-export async function startHost({ dataDir = dataDirectory, port = 3300 }: { dataDir?: string; port?: number } = {}) {
+/** The HTTP status for a failed intent: what the sender got wrong is 4xx, what the host could not do is 500. */
+function failure(errors: readonly { kind: string; pointer: string }[]): number {
+  const kinds = new Set(errors.map((entry) => entry.kind));
+  if (kinds.has("version-conflict")) return 409;
+  if (kinds.has("limit-exceeded")) return 429;
+  const hostFault = errors.some(
+    (entry) =>
+      entry.kind === "render-failed" ||
+      entry.kind === "hash-mismatch" ||
+      (entry.kind === "not-found" && !entry.pointer.startsWith("/origin")),
+  );
+  return hostFault ? 500 : 400;
+}
+
+export async function startHost({
+  dataDir = dataDirectory,
+  port = 3300,
+  latencyMs = 0,
+}: {
+  dataDir?: string;
+  port?: number;
+  /** Delay `tasks.claim`, so a browser can show the pending state. */
+  latencyMs?: number;
+} = {}) {
   const bundle = await clientBundle;
   const store = fileStore(dataDir);
   const runner = workerRunner();
@@ -88,9 +119,124 @@ export async function startHost({ dataDir = dataDirectory, port = 3300 }: { data
   const drafted = session.update(await readDraft(new URL("./widgets/hello/", import.meta.url).pathname));
   if (!drafted.ok) throw new AggregateError(drafted.errors, "The preview draft does not pack");
   const draftPackage = drafted.value;
+
+  // The host's own state. The library keeps none: it gets the last accepted frame and the action statuses back
+  // on every call, and hands the next ones out.
   const actions: ActionRecord[] = [];
-  const revisions = new Map<string, number>();
-  const served = new Map<string, { tree: UiTree; manifest: Manifest; state: Json; validator: CompiledValidator }>();
+  const events: HostEvent[] = [];
+  const served = new Map<string, Served>();
+  const results = new Map<string, Actions>();
+  /** The last revision of a placement that was replaced, so its next tree is not mistaken for a stale one. */
+  const floors = new Map<string, number>();
+  const manifests = new Map<string, Manifest>();
+  // The host's data. A widget only asks for it by name; `resolve` reads it as the viewer.
+  const owners = new Map<string, string>();
+  const selected = new Map<string, string>();
+
+  const withOwner = (task: { id: string; title: string }) => ({ ...task, owner: owners.get(task.id) ?? "" });
+  const reads: Record<string, (params: Record<string, Json>, who: Viewer) => Json> = {
+    "demo.tasks": () => [...tasks],
+    "tasks.page": ({ cursor, limit }) => {
+      const start = integer(cursor, 0);
+      const end = start + integer(limit, 5);
+      return { items: tasks.slice(start, end).map(withOwner), more: end < tasks.length };
+    },
+    "selection.current": (_params, who) => {
+      const task = tasks.find((entry) => entry.id === selected.get(who.name));
+      return task ? withOwner(task) : { id: "", title: "Nothing selected", owner: "" };
+    },
+  };
+  /** Read every source of one render as the viewer. A source this host does not offer is `unavailable`. */
+  const resolve = async (calls: readonly SourceCall[], who: Viewer): Promise<Record<string, SourceResult>> =>
+    Object.fromEntries(
+      calls.map(({ alias, source, params }) => {
+        const read = reads[source];
+        const answer: SourceResult = read
+          ? { ok: true, value: read(isRecord(params) ? params : {}, who) }
+          : { ok: false, reason: "unavailable" };
+        return [alias, answer];
+      }),
+    );
+
+  /** The host's operations, run as the viewer after `checkOffered` and `authorize`. Add a timeout to real ones. */
+  const dispatcher =
+    (placement: string) =>
+    async (intent: Intent, who: Viewer): Promise<DispatchResult> => {
+      if (intent.type !== "action" || !isRecord(intent.args)) return { ok: false };
+      const { id, message } = intent.args;
+      if (intent.name === "demo.notify") console.log(`demo.notify: ${String(message)}`);
+      else if (intent.name === "selection.select") selected.set(who.name, String(id));
+      else if (intent.name === "tasks.claim") {
+        if (latencyMs) await Bun.sleep(latencyMs);
+        if (owners.has(String(id))) return { ok: false, reason: "Already claimed" };
+        owners.set(String(id), who.name);
+      } else return { ok: false };
+      actions.push({ placement, name: intent.name, args: intent.args });
+      return intent.name === "tasks.claim" ? { ok: true, value: { owner: who.name } } : { ok: true };
+    };
+
+  // Injected once, spread into every call (spec §7.7).
+  const wiring = {
+    store,
+    runner,
+    installs: { [catalog.catalogId]: documents },
+    resolve,
+    verified: verifiedPackages(),
+    runOptions: { timeoutMs },
+    onEvent: (event: HostEvent) => {
+      events.push(event);
+      if (events.length > 200) events.shift();
+    },
+  };
+
+  /** Render a placement as the viewer would see it now. An unchanged render comes back as `previous`. */
+  async function surface(id: string) {
+    const previous = served.get(id);
+    const rendered = await renderPlacement({
+      ...wiring,
+      placementId: id,
+      catalogId: catalog.catalogId,
+      scope,
+      viewer,
+      context: {},
+      actions: results.get(id) ?? {},
+      ...(previous ? { previous } : { revision: (floors.get(id) ?? 0) + 1 }),
+    });
+    if (rendered.ok) served.set(id, rendered.value);
+    return rendered;
+  }
+
+  async function manifestOf(frame: Served): Promise<Manifest> {
+    const cached = manifests.get(frame.package.hash);
+    if (cached) return cached;
+    const pkg = await store.getPackage(frame.package.id, frame.package.version);
+    if (!pkg) throw new Error("The served package is not installed");
+    manifests.set(pkg.hash, pkg.manifest);
+    return pkg.manifest;
+  }
+
+  /**
+   * What goes to the client. It gets the patch only when it holds the patch's base; anyone else gets the whole tree
+   * (spec §7.7). `accepted` maps a placement to the revision the client last accepted, and is updated as frames go.
+   */
+  async function frame(next: Served, accepted: Map<string, number>) {
+    const patch = next.patch && accepted.get(next.placementId) === next.patch.base ? next.patch : undefined;
+    accepted.set(next.placementId, next.revision);
+    return {
+      placement: next.placementId,
+      revision: next.revision,
+      manifest: await manifestOf(next),
+      ...(patch ? { patch } : { tree: next.tree }),
+      actions: actions.filter((entry) => entry.placement === next.placementId),
+    };
+  }
+  const revisionsFrom = (value: unknown): Map<string, number> =>
+    new Map(
+      isRecord(value)
+        ? Object.entries(value).filter((entry): entry is [string, number] => typeof entry[1] === "number")
+        : [],
+    );
+
   // Records live in one directory with one writing process, so mutations run one at a time.
   let queue: Promise<unknown> = Promise.resolve();
   const serialized = <T>(work: () => Promise<T>): Promise<T> => {
@@ -104,33 +250,85 @@ export async function startHost({ dataDir = dataDirectory, port = 3300 }: { data
     (request: Request<P>) =>
       serialized(() => work(request));
 
-  /** Load a placement as the viewer would see it and render its current tree. */
-  async function surface(id: string) {
-    const loaded = await loadPlacement(store, id, documents);
-    if (!loaded.ok) return { ok: false as const, errors: loaded.errors };
-    const { package: pkg, params, state } = loaded.value;
-    const revision = (revisions.get(id) ?? 0) + 1;
-    revisions.set(id, revision);
-    const tree = await runner.render(
-      pkg,
-      { params, state, context: {}, data: resolveData(pkg.manifest) },
-      { ...documents, surfaceId: id, revision, timeoutMs },
-    );
-    if (!tree.ok) return { ok: false as const, errors: tree.errors };
-    const current = {
-      tree: tree.value,
-      manifest: pkg.manifest,
-      state,
-      validator: validatorFor(pkg),
-    };
-    served.set(id, current);
-    return { ok: true as const, ...current };
+  /**
+   * Run `work` in turn and send each frame it emits as a line of JSON, as it happens: a claim's `pending` frame
+   * reaches the client before the operation finishes. Until the first frame, `work` can still answer with a plain
+   * response, which is how a refused intent gets its status code.
+   */
+  function streamed(work: (emit: (line: unknown) => void) => Promise<Response | undefined>): Promise<Response> {
+    return new Promise((resolve) => {
+      const encoder = new TextEncoder();
+      let controller: ReadableStreamDefaultController<Uint8Array> | undefined;
+      const emit = (line: unknown) => {
+        const bytes = encoder.encode(`${JSON.stringify(line)}\n`);
+        if (controller) return controller.enqueue(bytes);
+        resolve(
+          new Response(
+            new ReadableStream<Uint8Array>({
+              start(opened) {
+                controller = opened;
+                opened.enqueue(bytes);
+              },
+            }),
+            { headers: { "Content-Type": "application/x-ndjson", "Cache-Control": "no-store" } },
+          ),
+        );
+      };
+      serialized(() => work(emit)).then(
+        (answer) => (controller ? controller.close() : resolve(answer ?? new Response(null, { status: 204 }))),
+        (cause) => {
+          console.error(cause);
+          if (controller) controller.error(cause);
+          else resolve(error("Host failed to process the request", 500));
+        },
+      );
+    });
   }
-  const snapshot = (id: string, tree: UiTree, manifest: Manifest) => ({
-    tree,
-    manifest,
-    actions: actions.filter((entry) => entry.placement === id),
-  });
+
+  /** One intent from the client. Its answer is a stream of frames (see `streamed`). */
+  async function sendIntent(request: Request<"/placements/:id/intents">) {
+    const id = request.params.id;
+    const body: unknown = await request.json().catch(() => undefined);
+    if (!isRecord(body) || !isRecord(body.intent) || !isRecord(body.origin))
+      return error("Expected { intent, origin }", 400);
+    const { intent, origin } = body as { intent: Intent; origin: IntentOrigin };
+    const accepted = revisionsFrom(body.accepted);
+    return streamed(async (emit) => {
+      const current = served.get(id);
+      if (!current) return error("Load the surface before sending an intent", 404);
+      // Check, then authorise, then act: the library fixes that order (law 4). Every frame it renders is
+      // pushed as it is made, so `pending` is seen before the operation finishes.
+      const handled = await handleIntent({
+        ...wiring,
+        served: current,
+        origin,
+        intent,
+        viewer,
+        context: {},
+        actions: results.get(id) ?? {},
+        authorize,
+        dispatch: dispatcher(id),
+        publish: async (next) => {
+          served.set(id, next);
+          emit(await frame(next, accepted));
+        },
+      });
+      if (!handled.ok) return Response.json({ errors: handled.errors }, { status: failure(handled.errors) });
+      served.set(id, handled.value.served);
+      results.set(id, handled.value.actions);
+      // The action may have changed what other placements read: re-render exactly those.
+      if (intent.type === "action") {
+        const readers = [...served.values()];
+        const stale = new Set((affects[intent.name] ?? []).flatMap((source) => dependents(readers, { source })));
+        stale.delete(id);
+        for (const other of stale) {
+          const next = await surface(other);
+          emit(next.ok ? await frame(next.value, accepted) : { placement: other, error: "Surface unavailable" });
+        }
+      }
+      return undefined;
+    });
+  }
 
   const server = Bun.serve({
     hostname: "127.0.0.1",
@@ -172,64 +370,28 @@ export async function startHost({ dataDir = dataDirectory, port = 3300 }: { data
           const checked = checkValue(pkg.manifest.params, params);
           if (!checked.ok) return Response.json({ errors: checked.errors }, { status: 422 });
           await store.putPlacement(placement.value);
-          served.delete(placement.value.id);
+          // The next tree is a different widget's: forget the old frame, but keep counting revisions from it.
+          const { id } = placement.value;
+          floors.set(id, served.get(id)?.revision ?? floors.get(id) ?? 0);
+          served.delete(id);
+          results.delete(id);
           // A new placement starts from the widget's initial state; an existing one keeps its state.
-          if ((await store.getState(placement.value.id, "")) === undefined)
-            await store.putState(placement.value.id, "", pkg.manifest.initialState);
-          return Response.json({ id: placement.value.id });
+          if ((await store.getState(id, scope)) === undefined)
+            await store.putState(id, scope, pkg.manifest.initialState);
+          return Response.json({ id });
         }),
       },
       "/placements/:id/intents": {
-        POST: mutation(async (request: Request<"/placements/:id/intents">) => {
-          const id = request.params.id;
-          const body: unknown = await request.json().catch(() => undefined);
-          if (!isRecord(body) || !isRecord(body.intent)) return error("Expected { intent }", 400);
-          const intent = body.intent;
-          const current = served.get(id);
-          if (!current) return error("Load the surface before sending an intent", 404);
-          const { manifest, state } = current;
-          // Law 4: the host decides. The tree must offer the intent, then the manifest and capabilities must allow it.
-          const offered = checkOffered(
-            current.tree,
-            body.origin as unknown as IntentOrigin,
-            intent as unknown as Intent,
-            current.validator,
-          );
-          if (!offered.ok)
-            return Response.json(
-              { errors: offered.errors },
-              { status: offered.errors[0]?.kind === "version-conflict" ? 409 : 400 },
-            );
-          if (intent.type === "setState") {
-            if (typeof intent.key !== "string" || !Object.hasOwn(manifest.state.properties, intent.key))
-              return error("Unknown state key", 400);
-            const next = { ...(state as Record<string, Json>), [intent.key]: intent.value as Json };
-            if (!checkValue(manifest.state, next).ok) return error("State value does not fit the schema", 400);
-            await store.putState(id, "", next);
-          } else if (intent.type === "action") {
-            const name = intent.name;
-            const operation = typeof name === "string" ? operations[name] : undefined;
-            const capability = typeof name === "string" ? capabilities.actions[name] : undefined;
-            if (!operation || !capability || !manifest.actions.includes(name as string))
-              return error("Action not allowed", 400);
-            if (!isRecord(intent.args) || !checkValue(capability.args, intent.args).ok)
-              return error("Action arguments do not fit the schema", 400);
-            operation(intent.args);
-            actions.push({ placement: id, name: name as string, args: intent.args });
-          } else return error("Unknown intent", 400);
-          const next = await surface(id);
-          if (!next.ok) return Response.json({ errors: next.errors }, { status: 500 });
-          return Response.json(snapshot(id, next.tree, next.manifest));
-        }),
+        POST: sendIntent,
       },
       "/surfaces/:id": async (request: Request<"/surfaces/:id">) => {
         const id = request.params.id;
-        const current = await serialized(() => surface(id));
-        if (!current.ok)
-          return Response.json({ errors: current.errors, error: "Surface unavailable" }, { status: 404 });
-        return Response.json(snapshot(id, current.tree, current.manifest), {
-          headers: { "Cache-Control": "no-store" },
-        });
+        const base = Number(new URL(request.url).searchParams.get("base"));
+        const rendered = await serialized(() => surface(id));
+        if (!rendered.ok)
+          return Response.json({ errors: rendered.errors, error: "Surface unavailable" }, { status: 404 });
+        const accepted = new Map(Number.isInteger(base) && base > 0 ? [[id, base] as const] : []);
+        return Response.json(await frame(rendered.value, accepted), { headers: { "Cache-Control": "no-store" } });
       },
     },
     error(cause) {
@@ -240,6 +402,7 @@ export async function startHost({ dataDir = dataDirectory, port = 3300 }: { data
   return {
     url: server.url,
     actions,
+    events,
     async stop() {
       await server.stop(true);
       runner.close();
@@ -248,6 +411,6 @@ export async function startHost({ dataDir = dataDirectory, port = 3300 }: { data
 }
 
 if (import.meta.main) {
-  const host = await startHost();
+  const host = await startHost({ latencyMs: 600 });
   console.log(`Liveframe demo host: ${host.url}`);
 }

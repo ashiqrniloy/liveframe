@@ -1,0 +1,92 @@
+[
+  {
+    "name": "first-page",
+    "params": {
+      "pageSize": 3
+    },
+    "context": {},
+    "data": {
+      "tasks": {
+        "items": [
+          {
+            "id": "t1",
+            "title": "Review the release notes",
+            "owner": ""
+          },
+          {
+            "id": "t2",
+            "title": "Reply to the design thread",
+            "owner": ""
+          },
+          {
+            "id": "t3",
+            "title": "Triage new issues",
+            "owner": ""
+          }
+        ],
+        "more": true
+      }
+    }
+  },
+  {
+    "name": "claimed",
+    "params": {
+      "pageSize": 3
+    },
+    "context": {},
+    "data": {
+      "tasks": {
+        "items": [
+          {
+            "id": "t1",
+            "title": "Review the release notes",
+            "owner": "ada"
+          },
+          {
+            "id": "t2",
+            "title": "Reply to the design thread",
+            "owner": ""
+          },
+          {
+            "id": "t3",
+            "title": "Triage new issues",
+            "owner": ""
+          }
+        ],
+        "more": true
+      }
+    }
+  },
+  {
+    "name": "last-page",
+    "params": {
+      "pageSize": 3
+    },
+    "state": {
+      "cursor": 9
+    },
+    "context": {},
+    "data": {
+      "tasks": {
+        "items": [
+          {
+            "id": "t10",
+            "title": "Archive old placements",
+            "owner": ""
+          },
+          {
+            "id": "t11",
+            "title": "Tidy the backlog",
+            "owner": ""
+          },
+          {
+            "id": "t12",
+            "title": "Sync with support",
+            "owner": ""
+          }
+        ],
+        "more": false
+      }
+    }
+  }
+]

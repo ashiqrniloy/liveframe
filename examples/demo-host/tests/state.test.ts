@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { startHost } from "../server.ts";
-import { cleanup, client, find, hello, offeredIntent, tempDir } from "./host.ts";
+import { cleanup, client, find, hello, last, offeredIntent, tempDir } from "./host.ts";
 
 let dir: string;
 beforeAll(async () => {
@@ -24,7 +24,7 @@ test("state_survives_restart", async () => {
     event: "onPress",
   });
   expect(pressed.status).toBe(200);
-  const before = (await pressed.json()) as Awaited<ReturnType<typeof api.surface>>;
+  const before = await last(pressed);
   expect(find(before.tree.root, "root/text")?.props).toMatchObject({ text: "Pressed 1 times" });
   await first.stop();
 

@@ -1,0 +1,38 @@
+[
+  {
+    "name": "nothing-selected",
+    "params": {},
+    "context": {},
+    "data": {
+      "selection": {
+        "id": "",
+        "title": "Nothing selected",
+        "owner": ""
+      }
+    }
+  },
+  {
+    "name": "unclaimed",
+    "params": {},
+    "context": {},
+    "data": {
+      "selection": {
+        "id": "t2",
+        "title": "Reply to the design thread",
+        "owner": ""
+      }
+    }
+  },
+  {
+    "name": "claimed",
+    "params": {},
+    "context": {},
+    "data": {
+      "selection": {
+        "id": "t1",
+        "title": "Review the release notes",
+        "owner": "ada"
+      }
+    }
+  }
+]

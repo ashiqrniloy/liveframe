@@ -2,7 +2,7 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import type { UiNode } from "@arnilo/liveframe";
 import { startHost } from "../server.ts";
 import { readTemplateDraft } from "../widgets/draft.ts";
-import { cleanup, client, find, offeredIntent, tempDir } from "./host.ts";
+import { cleanup, client, find, last, offeredIntent, tempDir } from "./host.ts";
 
 let dir: string;
 beforeAll(async () => {
@@ -44,7 +44,7 @@ test("demo_installs_template_widget", async () => {
         event: "onPress",
       });
       expect(response.status).toBe(200);
-      return (await response.json()) as typeof first;
+      return last(response);
     };
     const second = await press(first, "root/next");
     expect(titles(second.tree.root)[0]).toBe("Write the migration guide");

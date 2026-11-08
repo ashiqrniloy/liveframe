@@ -1,0 +1,68 @@
+{
+  "format": "liveframe-template/1",
+  "root": {
+    "kind": "stack",
+    "props": {
+      "label": "Detail"
+    },
+    "style": {
+      "gap": "space.2",
+      "padding": "space.4"
+    },
+    "children": [
+      {
+        "kind": "heading",
+        "props": {
+          "text": "Selected task",
+          "level": 2
+        }
+      },
+      {
+        "kind": "text",
+        "key": "title",
+        "props": {
+          "text": {
+            "$path": "data.selection.title"
+          }
+        }
+      },
+      {
+        "kind": "hint",
+        "key": "unclaimed",
+        "$if": {
+          "$eq": [
+            {
+              "$path": "data.selection.owner"
+            },
+            ""
+          ]
+        },
+        "props": {
+          "text": "Not claimed yet"
+        }
+      },
+      {
+        "kind": "hint",
+        "key": "claimed",
+        "$if": {
+          "$ne": [
+            {
+              "$path": "data.selection.owner"
+            },
+            ""
+          ]
+        },
+        "props": {
+          "text": {
+            "$concat": [
+              "Claimed by ",
+              {
+                "$path": "data.selection.owner"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

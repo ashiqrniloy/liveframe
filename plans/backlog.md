@@ -255,6 +255,7 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Status: owner-approved backlog 2026-10-25; required in plan 013 Task 5 before release. The demo host must fix it; the proof primitives may.
 - What: first add the initially-open regression, then ensure the dialog mounts in its scoped portal, has no inert ancestor, keeps the background inert and emits its close intent on Escape. Preserve SSR/hydration and the closed-then-open lifecycle checks. Diagnose the initial portal relocation before choosing the fix.
 - Why: the read-only impact probe reproduces an inert dialog after first-arrival `open: true`; passing the existing lifecycle suite does not cover this path.
+- Note (2026-11-08, plan 030 Task 5): did not block the orchestration flows; `initially_open_dialog_is_dismissable` still passes in `demo:test`, so this entry is unchanged by that task.
 
 ## Verify conformance registrations in other runners and browsers
 
@@ -537,6 +538,7 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Source: plans/liveframe-evaluation.md ("Host Integration Chasm"), decision-logs/2026-11-01-1747-release-0-2-2-scope-and-api-stability.md (a stateful `/host` controller rejected), plans/022-Phase-7-Part-I-Release-0-2-2-Performance-And-Accessibility.md Task 18 (F6)
 - What: `examples/demo-host/server.ts` renders with `data: {}`, its capabilities and widgets declare no `sources`, and it calls neither `bindSources` nor `renderKey` nor `diffTrees`. It does keep a served-tree map for `checkOffered` and one compiled validator per package hash. Add one source-reading widget so the demo shows: `bindSources`, the host's own resolver running as the viewer, `renderKey` skipping an unchanged re-run, and `diffTrees` with a whole-tree fallback on `stale-patch`, with `demo:test` covering each. Leave concurrent-read de-duplication and true isolation as documented host responsibilities (a library controller was rejected).
 - Why: hosts copy the demo, and 0.2.2 added the helpers that remove the hand-rolled parts, so the demo is where an outsider sees them used together. Docs already show each helper alone (`docs/packages.md`).
+- Done (2026-11-08, plan 030 Task 5): `examples/demo-host/server.ts` now uses `renderPlacement`, `handleIntent` and `dependents` from `/host` and keeps only its transport, resolver, dispatcher and authoriser. `tests/orchestration.test.ts` covers skipped re-runs (`render-skipped`), patches with the whole-tree fallback for a stale base, a claim's pending and result frames, coordinated placements and the local filter. Concurrent-read de-duplication and isolation stay documented host responsibilities.
 
 ## Read draft directories through an open handle
 

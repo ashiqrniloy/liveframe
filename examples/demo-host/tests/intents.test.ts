@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { startHost } from "../server.ts";
-import { cleanup, client, find, type Host, hello, offeredIntent, tempDir } from "./host.ts";
+import { cleanup, client, find, type Host, hello, last, offeredIntent, tempDir } from "./host.ts";
 
 let dir: string;
 let host: Host;
@@ -51,7 +51,7 @@ test("intents_are_rechecked_before_dispatch", async () => {
   });
   expect(allowed.status).toBe(200);
   expect(host.actions).toEqual([{ placement: "home", name: "demo.notify", args: { message: "Hello from Ada" } }]);
-  const body = (await allowed.json()) as Awaited<ReturnType<typeof api.surface>>;
+  const body = await last(allowed);
   expect(body.actions).toHaveLength(1);
 });
 

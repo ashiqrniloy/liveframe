@@ -31,6 +31,101 @@
         },
         "maxItems": 50
       }
+    },
+    "tasks.page": {
+      "description": "One page of the host's tasks, with the owner of each claimed task (empty when unclaimed).",
+      "params": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          }
+        },
+        "required": [
+          "cursor",
+          "limit"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                "title": {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                "owner": {
+                  "type": "string",
+                  "maxLength": 40
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "owner"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 10
+          },
+          "more": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "more"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "selection.current": {
+      "description": "The task the viewer selected, or an empty selection.",
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "owner": {
+            "type": "string",
+            "maxLength": 40
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "owner"
+        ],
+        "additionalProperties": false
+      }
     }
   },
   "actions": {
@@ -47,6 +142,53 @@
         },
         "required": [
           "message"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "tasks.claim": {
+      "description": "Claim a task for the viewer. The result says who owns it.",
+      "args": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^.+$",
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "owner": {
+            "type": "string",
+            "maxLength": 40
+          }
+        },
+        "required": [
+          "owner"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "selection.select": {
+      "description": "Select a task so other widgets can show it.",
+      "args": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^.+$",
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "id"
         ],
         "additionalProperties": false
       }

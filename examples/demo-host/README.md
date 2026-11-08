@@ -39,19 +39,45 @@ curl -X PUT http://127.0.0.1:3300/placements/tasks -H 'content-type: application
 
 Open <http://127.0.0.1:3300/?placement=tasks>. See [template widgets](../../docs/templates.md).
 
+**Two placements that coordinate.** `widgets/queue/` is a code widget: a paged task list read from the host's
+`tasks.page` source, a local filter, a `Claim` action and a `Select` action. `widgets/detail/` is a template widget that
+shows the task `selection.current` names. Place both and open them on one page:
+
+```sh
+bun install-widget.ts widgets/queue && bun install-widget.ts widgets/detail
+curl -X PUT http://127.0.0.1:3300/placements/list -H 'content-type: application/json' \
+  -d '{"slot":"home.main","widget":{"id":"queue","version":"1.0.0"},"params":{"pageSize":5}}'
+curl -X PUT http://127.0.0.1:3300/placements/panel -H 'content-type: application/json' \
+  -d '{"slot":"home.side","widget":{"id":"detail","version":"1.0.0"},"params":{}}'
+```
+
+Open <http://127.0.0.1:3300/?placement=list&placement=panel>. `Select` changes the panel; `Claim` shows
+`Claiming…` and then `Claimed by ada`; typing in the filter and pressing Enter hides rows without a request.
+
 ## What it does
+
+`server.ts` keeps only transport and what is the app's: the viewer, the data behind each source (`reads`), the
+operations behind each action (`dispatcher`), the policy (`authorize`) and where it stores each placement's last
+frame. Everything between is `@arnilo/liveframe/host`, which fixes the order of the steps that must not be swapped
+([the host pipeline](../../docs/host.md)).
 
 | Route | Does |
 | --- | --- |
 | `POST /widgets` | `pack()`, `verifyPackage()`, then `putPackage()`. A second hash under an installed `(id, version)` is `409`. |
 | `PUT /placements/:id` | Checks the widget is installed and the params fit its manifest, then stores the placement and its initial state. |
-| `GET /surfaces/:id` | `loadPlacement()`, then renders with `workerRunner()` and returns the tree and manifest. |
-| `POST /placements/:id/intents` | Accepts `{ intent, origin }` and checks the last served tree with `checkOffered(tree, origin, intent, validator)`. Stale origins return 409; wrong nodes/events and forged intents are rejected. `setState` must fit the manifest's state schema. `action` must be declared by the manifest, allowed by `capabilities.json` and have valid arguments. Then it dispatches in-process and logs it. |
+| `GET /surfaces/:id` | `renderPlacement()`: load the placement, bind its sources, resolve them as the viewer, skip the run when nothing changed (`renderKey`), run the widget with `workerRunner()`, validate the tree on the host and diff it against the last frame. With `?base=<revision>` a client that holds that revision gets the patch instead of the whole tree. |
+| `POST /placements/:id/intents` | `handleIntent()` with `{ intent, origin }`: `checkOffered`, then `authorize`, then persist the state or dispatch the action and record its result. The answer is a stream of JSON lines, one frame each: a claim sends `pending` before the operation finishes and the result after. Then `dependents()` finds the other placements that read a source the action changed, and their fresh frames follow. A stale origin is `409`; a forged or unoffered intent is `400`. |
 
-The page (`client.tsx`) draws the tree with `<Surface>`, which validates every arrival, and sends the
-user's intents back. It never runs widget code, and the server never trusts a revision or a tree from
-the page (laws 1, 2 and 4). The reference runners are not sandboxes: see the
+A frame is `{ placement, revision, manifest, tree | patch, actions }`. The page (`client.tsx`) applies a patch only to
+the tree it was made from and fetches the whole tree otherwise, draws every tree with `<Surface>`, which validates each
+arrival, and sends the user's intents back with the revisions it holds. It never runs widget code, and the server never
+trusts a revision or a tree from the page (laws 1, 2 and 4). The reference runners are not sandboxes: see the
 [security model](../../docs/security.md).
+
+What the demo leaves to a real host, as [the host guide](../../docs/host.md) lists: one viewer and one state scope, so
+no sessions, tenancy or approval; `authorize` is a placeholder for the app's policy; the claims and the selection live
+in memory; mutations run one at a time (the library cannot tell two callers holding the same stale frame apart); and
+`dispatch` has no timeout of its own.
 
 ## Preview and the agent
 
@@ -78,13 +104,17 @@ Chromium.
   portal before it mounts, so a dialog that arrives already open is modal and dismissable.
 - `widgets/hello/`: a widget with a composed `ui.gen.ts` (made by `liveframe gen`), a manifest and two
   scenarios, one with its dialog open.
-- `widgets/tasks/`: a template widget (`template.json`, a manifest and three scenarios). The host resolves its
-  `demo.tasks` source in `server.ts` (`resolveData`), as it would any data a widget asks for by name.
+- `widgets/tasks/`: a template widget (`template.json`, a manifest and three scenarios) that pages through the
+  `demo.tasks` source with its own state.
+- `widgets/queue/`: a code widget with a paged source bound from `state.cursor`, a `tasks.claim` action with a
+  `result` schema (read back from `actions`), a `selection.select` action and a local filter (`local`, `when`).
+- `widgets/detail/`: a template widget that reads the `selection.current` source, so it follows the list.
 - `preview.ts`, `preview.html`, `preview-client.tsx`: the preview routes (shared with `mcp.config.ts`) and page.
 - `conformance-host.ts`, `conformance-client.tsx`: the page options and the page entry that calls
   `conformancePage`. Browser fixtures live in `tests/conformance-fixtures.ts`.
-- `tests/`: restart persistence, intent re-checks, the initially-open dialog in Chromium, a scan for
-  non-public imports, preview capture and the MCP tools, and the conformance kit (`storeSuite` over
+- `tests/`: restart persistence, intent re-checks, the orchestration (`orchestration.test.ts`: skipped re-runs,
+  patches and the whole-tree fallback, a claim's pending and result frames, coordinated placements, and the local
+  filter and selection in Chromium), the initially-open dialog in Chromium, a scan for non-public imports, preview capture and the MCP tools, and the conformance kit (`storeSuite` over
   `fileStore`, `catalogSuite`, `designSystemSuite`, `rendererSuite` and `rendererBrowserSuite`). Passing the
   kit does not prove isolation or authorisation.
 
