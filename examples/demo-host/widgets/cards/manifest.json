@@ -1,0 +1,13 @@
+{
+  "format": "liveframe-manifest/1",
+  "id": "acme.cards",
+  "version": "1.0.0",
+  "catalogId": "demo.ui@1",
+  "exports": ["TaskCard"],
+  "params": { "type": "object", "properties": {}, "required": [], "additionalProperties": false },
+  "state": { "type": "object", "properties": {}, "required": [], "additionalProperties": false },
+  "context": { "type": "object", "properties": {}, "required": [], "additionalProperties": false },
+  "initialState": {},
+  "sources": {},
+  "actions": []
+}

@@ -403,6 +403,11 @@ Existing code is unchanged: a package without `exports` or `dependencies` packs,
 Run the `library-fields-valid`, `dependencies-unsorted`, `library-valid` and `template-with-dependencies` corpus cases and the library vectors in `conformance/hash/library-packages.json` before accepting `exports` or `dependencies`.
 Port the package hash over `manifest.dependencies` and check the library vectors before accepting `exports` or `dependencies`.
 
+Runners and stores load them: `Runner.render` takes `options.libraries`, which `loadPlacement` returns as `libraries` (each pin read by `(id, version)`, verified and required to have the pinned hash) and `renderPlacement` passes on. `inProcessRunner` and `workerRunner` load each library once by hash before the widget; a missing library is `not-found` and a hash that differs is `hash-mismatch`. `linkPackage` also rewrites the `__lf_lib<N>` lines, calling `resolve` with the library specifier.
+A runner that supplies its own `resolve` should return the module its sandbox loaded for a `liveframe:lib/…` specifier; a callback typed for `SdkSpecifier` only must accept `LibrarySpecifier` too, and code with no library lines links as before
+Optional: use `LibrarySpecifier` to type a `resolve` callback that maps library specifiers to modules
+Optional: pass `libraries` from `loadPlacement` to `Runner.render` when a package has dependencies; a package without them is unchanged and the result has no `libraries` field.
+
 See [sharing components](packages.md#share-components-between-widgets) and [spec §7.3](spec.md#73-packages).
 
 ### Streamed element JSON

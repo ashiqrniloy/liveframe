@@ -5,6 +5,7 @@ import { errorMessage, queue } from "../../internal.ts";
 import { compiledValidator } from "../../runner-kit/cache.ts";
 import { isRecord } from "../../schema.ts";
 import { verifyPackageHash } from "../cache.ts";
+import { collectLibraries } from "../dependencies.ts";
 import type { Runner, RunnerOptions } from "../runner.ts";
 import type { WorkerMessage } from "./protocol.ts";
 
@@ -86,13 +87,14 @@ export function workerRunner(defaults: { timeoutMs?: number; maxPackages?: numbe
   }
 
   /** Why this render cannot start, if it cannot. */
-  function refusal(pkg: WidgetPackage): Result<never> | undefined {
+  function refusal(pkg: WidgetPackage, libraries: Result<readonly WidgetPackage[]>): Result<never> | undefined {
     if (closed) return { ok: false, errors: [{ kind: "render-failed", pointer: "", message: "Runner closed" }] };
-    if (verifyPackageHash(pkg)) return undefined;
-    return {
-      ok: false,
-      errors: [{ kind: "hash-mismatch", pointer: "/hash", message: "Package content does not match its hash" }],
-    };
+    if (!verifyPackageHash(pkg))
+      return {
+        ok: false,
+        errors: [{ kind: "hash-mismatch", pointer: "/hash", message: "Package content does not match its hash" }],
+      };
+    return libraries.ok ? undefined : libraries;
   }
 
   /** A worker result is only accepted after the host re-validates its tree or shape-checks its errors. */
@@ -140,18 +142,30 @@ export function workerRunner(defaults: { timeoutMs?: number; maxPackages?: numbe
   }
 
   /** Starts or reuses the worker, sends it the configuration it lacks, then the render. */
-  function send(pkg: WidgetPackage, inputs: Parameters<Runner["render"]>[1], options: RunnerOptions, id: number): void {
+  function send(
+    pkg: WidgetPackage,
+    libraries: readonly WidgetPackage[],
+    inputs: Parameters<Runner["render"]>[1],
+    options: RunnerOptions,
+    id: number,
+  ): void {
     // Only code is loaded into the worker, and modules cannot be unloaded; a template is data.
+    // A library is a module like any other, so it counts toward the bound.
     if (pkg.template === undefined) {
-      if (!loaded.has(pkg.hash) && loaded.size >= maxPackages) recycle();
-      loaded.add(pkg.hash);
+      const hashes = [pkg, ...libraries].map((item) => item.hash);
+      if (
+        hashes.some((hash) => !loaded.has(hash)) &&
+        loaded.size + hashes.filter((hash) => !loaded.has(hash)).length > maxPackages
+      )
+        recycle();
+      for (const hash of hashes) loaded.add(hash);
     }
     if (!worker) {
       const current = new Worker(entry);
       worker = current;
       attach(current);
     }
-    const { catalog, capabilities, ...renderOptions } = options;
+    const { catalog, capabilities, ...renderOptions } = { ...options, libraries };
     if (configuration?.catalog !== catalog || configuration?.capabilities !== capabilities) {
       worker.postMessage({ type: "configure", catalog, capabilities } satisfies WorkerMessage);
       configuration = { catalog, capabilities };
@@ -164,7 +178,9 @@ export function workerRunner(defaults: { timeoutMs?: number; maxPackages?: numbe
       const result = serial(
         () =>
           new Promise<Result<UiTree>>((resolve) => {
-            const refused = refusal(pkg);
+            // Libraries are matched to the pins and re-hashed on this side; the worker only renders.
+            const libraries = collectLibraries(pkg, options.libraries);
+            const refused = refusal(pkg, libraries);
             if (refused) {
               resolve(refused);
               return;
@@ -181,7 +197,7 @@ export function workerRunner(defaults: { timeoutMs?: number; maxPackages?: numbe
               validate: (result) => validateResult(result, pkg, options),
             };
             try {
-              send(pkg, inputs, { ...options, timeoutMs }, id);
+              send(pkg, libraries.ok ? libraries.value : [], inputs, { ...options, timeoutMs }, id);
             } catch (error) {
               stop("render-failed", errorMessage(error));
             }

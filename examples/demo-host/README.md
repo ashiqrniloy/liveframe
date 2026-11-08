@@ -79,6 +79,16 @@ upgrades the `tasks` template to `1.1.0`, which renames `page` to `pageIndex` an
 `migrateState: { pageIndex: { $path: "previous.page" } }`: the list stays on its page, `renderPlacement` raises
 `state-migrated`, and `surface()` in `server.ts` persists the migrated state (the library never writes it back).
 
+**A shared component library.** `widgets/cards/` is a library package (`exports: ["TaskCard"]`); `widgets/welcome/` and
+`widgets/summary/` import it as `liveframe:lib/acme.cards@1.0.0`. `POST /widgets` finds the library imports in a draft,
+reads those packages from the store and passes them to `pack()` as `libraries`, so each widget pins the library by hash and
+carries none of its code (a widget whose library is not installed is `422`, `not-found`). `GET /surfaces/:id` needs
+nothing extra: `renderPlacement` gets the libraries from `loadPlacement` and the runner loads each once. To move both
+widgets to `acme.cards@1.1.0` without their source, `POST /widgets/:id/:version/rebind` takes
+`{ version, libraries: [{ id, version }] }`, runs `rebindDependencies` and `verifyPackage`, and stores the new version;
+place it like any upgrade. `tests/libraries.test.ts` walks through it. `widgets/libraries.d.ts` only tells the type
+checker what the import exports.
+
 What the demo leaves to a real host, as [the host guide](../../docs/host.md) lists: one viewer and one state scope, so
 no sessions, tenancy or approval; `authorize` is a placeholder for the app's policy; the claims and the selection live
 in memory; mutations run one at a time (the library cannot tell two callers holding the same stale frame apart); and
@@ -107,6 +117,7 @@ Chromium.
   adapted from the proof (eight primitives). `app.ts` validates them once.
 - `primitives/`: React implementations and their structural CSS. The dialog waits for the scoped
   portal before it mounts, so a dialog that arrives already open is modal and dismissable.
+- `widgets/cards/`, `widgets/welcome/`, `widgets/summary/`: a library and two widgets that import it (see above).
 - `widgets/hello/`: a widget with a composed `ui.gen.ts` (made by `liveframe gen`), a manifest and two
   scenarios, one with its dialog open.
 - `widgets/tasks/`: a template widget (`template.json`, a manifest and three scenarios) that pages through the

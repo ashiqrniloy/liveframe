@@ -1,7 +1,7 @@
 import { LiveframeFailure } from "../errors.ts";
 import { loadPlacement, type Store } from "../store/index.ts";
 import { type ConformanceCase, ConformanceFailure, check } from "./case.ts";
-import { storeFixture } from "./fixture.ts";
+import { libraryFixture, storeFixture } from "./fixture.ts";
 
 // Compare JSON records independent of the backend's object-key order.
 function json(value: unknown): string | undefined {
@@ -140,6 +140,25 @@ export function storeSuite({
     check(failure.errors[0]?.kind === "version-conflict", name, "§7.4", [
       `Expected version-conflict, received ${failure.errors[0]?.kind ?? "no error"}`,
     ]);
+  });
+  add("loads_the_libraries_a_package_pins", async (store, equal) => {
+    const { options, library, dependent, placement } = libraryFixture();
+    await store.putPackage(library);
+    await store.putPackage(dependent);
+    await store.putPlacement(placement);
+    const loaded = await loadPlacement(store, placement.id, options);
+    check(loaded.ok, "store_loads_the_libraries_a_package_pins", "§7.4", [
+      `Expected the placement to load, received ${loaded.ok ? "" : loaded.errors[0]?.kind}`,
+    ]);
+    equal(loaded.value.libraries, [library], "loadPlacement must return the pinned library packages");
+    equal(loaded.value.package.hash, dependent.hash, "loadPlacement must return the dependent package");
+  });
+  add("reports_a_missing_library_as_not_found", async (store, equal) => {
+    const { options, dependent, placement } = libraryFixture();
+    await store.putPackage(dependent);
+    await store.putPlacement(placement);
+    const loaded = await loadPlacement(store, placement.id, options);
+    equal(loaded.ok ? undefined : loaded.errors[0]?.kind, "not-found", "A pinned library the store lacks is not-found");
   });
   add("keeps_every_valid_id", async (store, equal) => {
     const { placement } = storeFixture();

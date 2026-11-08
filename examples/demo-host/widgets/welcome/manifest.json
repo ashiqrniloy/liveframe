@@ -1,0 +1,12 @@
+{
+  "format": "liveframe-manifest/1",
+  "id": "welcome",
+  "version": "1.0.0",
+  "catalogId": "demo.ui@1",
+  "params": { "type": "object", "properties": { "name": { "type": "string", "maxLength": 40 } }, "required": ["name"], "additionalProperties": false },
+  "state": { "type": "object", "properties": {}, "required": [], "additionalProperties": false },
+  "context": { "type": "object", "properties": {}, "required": [], "additionalProperties": false },
+  "initialState": {},
+  "sources": {},
+  "actions": []
+}

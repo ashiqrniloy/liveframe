@@ -61,3 +61,45 @@ export function storeFixture() {
   const style = { kind: "theme" as const, id: "conformance", version: "1", body: { nested: [1] } };
   return { options, pkg, placement, style };
 }
+
+/**
+ * A library package and a widget that pins it (plan 030 Task 10). Like the other fixtures their code is
+ * never executed; `loadPlacement` only verifies the pins.
+ */
+export function libraryFixture() {
+  const { options, pkg: base, placement } = storeFixture();
+  const manifest = { ...base.manifest, id: "conformance.lib", version: "1", exports: ["answer"] };
+  const library = value(
+    pack(
+      {
+        files: {
+          "entry.ts":
+            'throw new Error("Store fixtures must never execute"); export const answer = 42; export default () => null;',
+        },
+        entry: "entry.ts",
+        manifest,
+        scenarios: [{ name: "default", params: {}, context: {}, data: {} }],
+      },
+      options,
+    ),
+  );
+  const dependent = value(
+    pack(
+      {
+        files: {
+          "entry.ts": 'import { answer } from "liveframe:lib/conformance.lib@1"; export default () => answer;',
+        },
+        entry: "entry.ts",
+        manifest: { ...base.manifest, id: "conformance.dependent" },
+        scenarios: [{ name: "default", params: {}, context: {}, data: {} }],
+      },
+      { ...options, libraries: [library] },
+    ),
+  );
+  return {
+    options,
+    library,
+    dependent,
+    placement: { ...placement, widget: { id: dependent.manifest.id, version: dependent.manifest.version } },
+  };
+}

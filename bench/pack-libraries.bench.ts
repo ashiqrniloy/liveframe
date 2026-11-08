@@ -1,11 +1,13 @@
 // Plan 030 T9: packing a widget against two library packages must not cost more than packing the same
 // widget with the same components bundled in (the libraries are packed once, ahead of the widget).
+// Plan 030 T10: rendering that widget with warm libraries stays within 5% of the bundled equivalent.
 
 import { strict as assert } from "node:assert";
 import catalogDoc from "../src/__tests__/fixtures/proof/catalog.json" with { type: "json" };
 import capabilitiesDoc from "../src/__tests__/fixtures/widgets/capabilities.json" with { type: "json" };
 import { type Result, validateCapabilities, validateCatalog } from "../src/index.ts";
 import { pack, type WidgetPackage } from "../src/pack/index.ts";
+import { inProcessRunner } from "../src/preview/index.ts";
 import { budget, metric } from "./metrics.ts";
 
 function value<T>(result: Result<T>): T {
@@ -55,7 +57,7 @@ const libs: WidgetPackage[] = ["Alpha", "Beta"].map((name) =>
     ),
   ),
 );
-const body = `export default function Home() { return <Stack><Alpha title="a" /><Beta title="b" /></Stack>; }\n`;
+const body = `export default function Home() { return <Stack><Alpha key="a" title="a" /><Beta key="b" title="b" /></Stack>; }\n`;
 const withLibraries = {
   files: {
     "ui.gen.ts": ui,
@@ -101,4 +103,39 @@ metric("pack_with_libraries_ms", librariesMs);
 budget(
   librariesMs <= bundledMs,
   `packing with libraries (${librariesMs.toFixed(2)} ms) costs more than bundling (${bundledMs.toFixed(2)} ms)`,
+);
+
+// Render: both packages are loaded and warm; the library one also resolves two library modules.
+const runner = inProcessRunner();
+const renderOptions = { ...install, surfaceId: "bench", revision: 1 };
+const props = { params: {}, state: {}, context: {}, data: {}, actions: {} };
+const bundledPackage = value(pack(bundled, install));
+const renderWith = (pkg: WidgetPackage, libraries?: readonly WidgetPackage[]) =>
+  runner.render(pkg, props, { ...renderOptions, ...(libraries ? { libraries } : {}) });
+async function batch(pkg: WidgetPackage, libraries?: readonly WidgetPackage[], runs = 200): Promise<number> {
+  const start = process.cpuUsage();
+  for (let i = 0; i < runs; i++) {
+    const rendered = await renderWith(pkg, libraries);
+    assert(rendered.ok, JSON.stringify(rendered));
+  }
+  const used = process.cpuUsage(start);
+  return (used.user + used.system) / 1000 / runs;
+}
+await batch(bundledPackage, undefined, 20);
+await batch(linked, libs, 20);
+const bundledRender: number[] = [];
+const linkedRender: number[] = [];
+for (let i = 0; i < 11; i++) {
+  bundledRender.push(await batch(bundledPackage));
+  linkedRender.push(await batch(linked, libs));
+}
+// The fastest batch is the figure least disturbed by a busy machine; both sides get the same treatment.
+const bundledRenderMs = Math.min(...bundledRender);
+const linkedRenderMs = Math.min(...linkedRender);
+console.log(JSON.stringify({ renderBundledMs: bundledRenderMs, renderWithLibrariesMs: linkedRenderMs }));
+metric("render_bundled_ms", bundledRenderMs);
+metric("render_with_libraries_ms", linkedRenderMs);
+budget(
+  linkedRenderMs <= bundledRenderMs * 1.05,
+  `rendering with libraries (${linkedRenderMs.toFixed(3)} ms) is over 5% above bundled (${bundledRenderMs.toFixed(3)} ms)`,
 );

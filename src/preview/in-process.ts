@@ -5,6 +5,7 @@ import { errorMessage } from "../internal.ts";
 import { renderWidget } from "../runner-kit/render.ts";
 import type { WidgetInputs } from "../sdk/types.ts";
 import { verifyPackageHash } from "./cache.ts";
+import { collectLibraries } from "./dependencies.ts";
 import { isModuleLoaded, type LoadedModule, loadedModuleCount, loadModule } from "./load.ts";
 import type { Runner, RunnerOptions } from "./runner.ts";
 import { renderTemplateRun } from "./template.ts";
@@ -12,13 +13,19 @@ import { renderTemplateRun } from "./template.ts";
 const expired = Symbol("expired");
 
 /** Module evaluation may never settle: a hand-built package can carry a pending top-level await. */
-async function loadWithin(code: string, hash: string, timeoutMs: number): Promise<LoadedModule | typeof expired> {
+async function loadWithin(
+  code: string,
+  hash: string,
+  timeoutMs: number,
+  libraries: readonly WidgetPackage[],
+  pins: WidgetPackage["manifest"]["dependencies"],
+): Promise<LoadedModule | typeof expired> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const deadline = new Promise<typeof expired>((resolve) => {
     timer = setTimeout(() => resolve(expired), timeoutMs);
   });
   try {
-    return await Promise.race([loadModule(code, hash), deadline]);
+    return await Promise.race([loadModule(code, hash, libraries, pins), deadline]);
   } finally {
     clearTimeout(timer);
   }
@@ -52,7 +59,10 @@ export function inProcessRunner(options: { readonly maxModules?: number } = {}):
           ok: false,
           errors: [{ kind: "hash-mismatch", pointer: "/hash", message: "Package content does not match its hash" }],
         };
-      if (pkg.template === undefined && !isModuleLoaded(pkg.hash) && loadedModuleCount() >= maxModules)
+      const libraries = collectLibraries(pkg, runnerOptions.libraries);
+      if (!libraries.ok) return libraries;
+      const unloaded = [pkg, ...libraries.value].filter((item) => !isModuleLoaded(item.hash)).length;
+      if (pkg.template === undefined && unloaded > 0 && loadedModuleCount() + unloaded > maxModules)
         return {
           ok: false,
           errors: [
@@ -63,7 +73,7 @@ export function inProcessRunner(options: { readonly maxModules?: number } = {}):
             },
           ],
         };
-      return renderPackage(pkg, inputs, runnerOptions);
+      return renderPackage(pkg, inputs, { ...runnerOptions, libraries: libraries.value });
     },
   };
 }
@@ -83,7 +93,16 @@ export async function renderPackage(
   const start = Date.now();
   let result: Result<UiTree>;
   try {
-    const module = await loadWithin(pkg.code as string, pkg.hash, timeoutMs);
+    // The host verified every library's hash and pin before this call (`inProcessRunner`, `workerRunner`).
+    const libraries = collectLibraries(pkg, options.libraries, { trusted: true });
+    if (!libraries.ok) return libraries;
+    const module = await loadWithin(
+      pkg.code as string,
+      pkg.hash,
+      timeoutMs,
+      libraries.value,
+      pkg.manifest.dependencies,
+    );
     if (module === expired)
       return {
         ok: false,

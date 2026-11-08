@@ -414,7 +414,7 @@ home.manifest.dependencies; // [{ id: "acme.cards", version: "3.1.0", hash: card
 - The library's code is not copied into the widget. The widget's code gets one line per library after the SDK lines, and `pack()` records `manifest.dependencies` itself: exact `{ id, version, hash }` pins, never ranges, so a widget's tree is a function of its hash and the hash covers the pins. If you write `dependencies` in the draft, it must equal what the code imports.
 - A library may import other libraries. The graph under a package holds at most 32 libraries, is at most 4 deep and has no cycle, and a package has at most 16 direct dependencies and one version of each library id.
 - `verifyPackage(pkg, { …install, libraries })` also checks each pin against the supplied library (`not-found`, `hash-mismatch`), that the names the code reads are exported, and that every library in the graph verifies. Without `libraries` it checks that the code's library lines are exactly the manifest's pins. Template packages cannot declare `exports` or `dependencies`.
-- A library is data until a runner links it; running a widget that has dependencies is the runner's and the loader's job.
+- A library is data until a runner links it. `loadPlacement` reads the pinned libraries from the store and returns them as `libraries`; the reference runners load each by its hash, once, before the widget (see below).
 
 **Move a widget to a new library version** without its source:
 
@@ -424,6 +424,15 @@ const home2 = value(rebindDependencies(home, { libraries: [next], version: "1.0.
 ```
 
 `rebindDependencies` returns a new frozen package with its own version and hash. The code is the same bytes apart from the version in each library line, so nothing is transpiled again. It needs one supplied package for each dependency id, and refuses with `unknown-name` when a name the code reads is no longer exported. Run `verifyPackage` with the libraries to check the result against your install, then place it like any new version.
+
+**Run a widget that has dependencies.** `loadPlacement` returns `libraries` next to `package` (each pin read by `(id, version)`, verified, and required to have the pinned hash), and `renderPlacement` passes them on. With the runner directly:
+
+```ts
+const loaded = value(await loadPlacement(store, id, install, { verified }));
+await runner.render(loaded.package, inputs, { ...options, libraries: loaded.libraries });
+```
+
+`inProcessRunner` and `workerRunner` match every pin to a supplied library (`not-found` when one is missing, `hash-mismatch` when the hash differs or a library's content no longer matches its own hash), load each library once by hash, dependencies first, and link the widget's `liveframe:lib/…` lines to those modules. Libraries count toward `maxModules` and `maxPackages`. With warm modules a widget that imports its components renders within 5% of the same widget with them bundled in. A runner you write links the lines itself: `linkPackage(code, resolve)` calls `resolve("liveframe:lib/<id>@<version>")` for each, and you return the module your sandbox loaded for that library (see [Build a runner with the kit](#build-a-runner-with-the-kit)).
 
 ## Runner limits and ownership
 
@@ -506,7 +515,12 @@ import * as __lf_sdk2 from "@arnilo/liveframe/sdk/jsx-dev-runtime";
 The numbers count from 0 in order, the specifiers are those three, and each appears
 at most once. `linkPackage` replaces each specifier with `resolve(specifier)` (a URL
 or whatever specifier your isolate imports) and returns every other byte unchanged.
-Code without such lines is returned as it is. A line that starts
+Code without such lines is returned as it is. A package that imports libraries
+(see [Share components between widgets](#share-components-between-widgets)) has one more
+line per library after the SDK lines, exactly
+`import * as __lf_lib0 from "liveframe:lib/acme.cards@3.1.0";`, numbered from 0, each
+library once; `resolve` receives that `liveframe:lib/<id>@<version>` specifier and returns
+the module your sandbox loaded for the library, which you load before the widget. A line that starts
 `import * as __lf_sdk` but differs from the form above, skips a number or repeats a
 specifier is an `invalid-document` error at `/code`. Only the header is examined, so
 a hand-written import of the SDK further down is left bare for your loader to

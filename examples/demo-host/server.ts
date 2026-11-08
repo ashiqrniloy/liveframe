@@ -17,7 +17,7 @@ import {
   type SourceCall,
   type SourceResult,
 } from "@arnilo/liveframe/host";
-import { pack, verifyPackage } from "@arnilo/liveframe/pack";
+import { pack, rebindDependencies, verifyPackage, type WidgetPackage } from "@arnilo/liveframe/pack";
 import { createPreview } from "@arnilo/liveframe/preview";
 import { workerRunner } from "@arnilo/liveframe/preview/worker";
 import { validatePlacement, verifiedPackages } from "@arnilo/liveframe/store";
@@ -241,6 +241,25 @@ export async function startHost({
         : [],
     );
 
+  /**
+   * The installed library packages a draft imports (`liveframe:lib/<id>@<version>`), with theirs in turn, so
+   * `pack` can pin them by hash. A library that is not installed is simply not supplied, and `pack` says so.
+   */
+  async function librariesFor(sources: Iterable<string>): Promise<WidgetPackage[]> {
+    const found = new Map<string, WidgetPackage>();
+    const pending = [...sources].flatMap((text) => [...text.matchAll(/liveframe:lib\/([^@"'\s]+)@([^"'\s]+)/g)]);
+    const wanted = pending.map((match) => [match[1] as string, match[2] as string] as const);
+    for (let next = wanted.shift(); next; next = wanted.shift()) {
+      const [id, version] = next;
+      if (found.has(`${id}@${version}`)) continue;
+      const library = await store.getPackage(id, version);
+      if (!library) continue;
+      found.set(`${id}@${version}`, library);
+      for (const pin of library.manifest.dependencies ?? []) wanted.push([pin.id, pin.version]);
+    }
+    return [...found.values()];
+  }
+
   // Records live in one directory with one writing process, so mutations run one at a time.
   let queue: Promise<unknown> = Promise.resolve();
   const serialized = <T>(work: () => Promise<T>): Promise<T> => {
@@ -347,9 +366,43 @@ export async function startHost({
         POST: mutation(async (request: Request<"/widgets">) => {
           const draft: unknown = await request.json().catch(() => undefined);
           if (!isRecord(draft)) return error("Expected a JSON draft", 400);
-          const packed = pack(draft as Parameters<typeof pack>[0], documents);
+          const files = isRecord(draft.files) ? Object.values(draft.files).map(String) : [];
+          const libraries = await librariesFor(files);
+          const packed = pack(draft as Parameters<typeof pack>[0], { ...documents, libraries });
           if (!packed.ok) return Response.json({ errors: packed.errors }, { status: 422 });
           const verified = verifyPackage(packed.value, documents);
+          if (!verified.ok) return Response.json({ errors: verified.errors }, { status: 422 });
+          try {
+            await store.putPackage(verified.value);
+          } catch (cause) {
+            if (cause instanceof LiveframeFailure && cause.errors.some((entry) => entry.kind === "version-conflict"))
+              return error("That widget version exists with different content", 409);
+            throw cause;
+          }
+          const { id, version } = verified.value.manifest;
+          return Response.json({ id, version, hash: verified.value.hash }, { status: 201 });
+        }),
+      },
+      // A new version of a widget on new versions of the libraries it pins, without its source: the code is the
+      // same bytes except the version in each library's header line (spec §7.3).
+      "/widgets/:id/:version/rebind": {
+        POST: mutation(async (request: Request<"/widgets/:id/:version/rebind">) => {
+          const body: unknown = await request.json().catch(() => undefined);
+          if (!isRecord(body) || typeof body.version !== "string" || !Array.isArray(body.libraries))
+            return error("Expected { version, libraries: [{ id, version }] }", 400);
+          const pkg = await store.getPackage(request.params.id, request.params.version);
+          if (!pkg) return error("That widget version is not installed", 404);
+          const libraries: WidgetPackage[] = [];
+          for (const wanted of body.libraries) {
+            const library = isRecord(wanted)
+              ? await store.getPackage(String(wanted.id), String(wanted.version))
+              : undefined;
+            if (!library) return error("Install that library version first", 404);
+            libraries.push(library);
+          }
+          const rebound = rebindDependencies(pkg, { libraries, version: body.version });
+          if (!rebound.ok) return Response.json({ errors: rebound.errors }, { status: 422 });
+          const verified = verifyPackage(rebound.value, { ...documents, libraries });
           if (!verified.ok) return Response.json({ errors: verified.errors }, { status: 422 });
           try {
             await store.putPackage(verified.value);

@@ -335,9 +335,9 @@
     "subpath": "./store",
     "name": "loadPlacement",
     "change": "widened",
-    "reason": "Optional verified cache keyed by fresh package content hash and canonical installation documents; the result gains `migrated`, set when the manifest's `migrateState` replaced a stored state that failed its schema (plan 030 T8)",
+    "reason": "Optional verified cache keyed by fresh package content hash and canonical installation documents; the result gains `migrated`, set when the manifest's `migrateState` replaced a stored state that failed its schema (plan 030 T8); the result gains `libraries`, the packages named by `manifest.dependencies`, read by (id, version), verified like any package and required to have the pinned hash (plan 030 T10)",
     "hostAction": "Optionally pass a host-owned verifiedPackages cache; existing calls remain supported",
-    "task": "026 T7"
+    "task": "026 T7, 030 T10"
   },
   {
     "subpath": "./react",
@@ -1601,9 +1601,9 @@
     "subpath": "./preview",
     "name": "RunnerOptions",
     "change": "widened",
-    "reason": "`limits` also accepts `steps`, the evaluation fuel of a template widget",
+    "reason": "`limits` also accepts `steps`, the evaluation fuel of a template widget; gains `libraries`, the library packages a code package's `manifest.dependencies` pin (plan 030 T10)",
     "hostAction": "Optional: pass `limits.steps` to bound a template widget's evaluation; existing calls are unchanged",
-    "task": "028 T5"
+    "task": "028 T5, 030 T10"
   },
   {
     "subpath": "./runner-kit",
@@ -2446,5 +2446,25 @@
     "reason": "A library package and a dependent package hash vector, the dependent's manifest carrying the library's pin (plan 030 T9)",
     "hostAction": "Port the package hash over `manifest.dependencies` and check the library vectors before accepting `exports` or `dependencies`.",
     "task": "030 T9"
+  },
+  {
+    "subpath": "./runner-kit",
+    "name": "linkPackage",
+    "change": "widened",
+    "reason": "The header also carries `import * as __lf_lib<N> from \"liveframe:lib/<id>@<version>\";` lines after the SDK lines, and `resolve` receives the library specifier for them (plan 030 T10)",
+    "hostAction": "A runner that supplies its own `resolve` should return the module its sandbox loaded for a `liveframe:lib/…` specifier; a callback typed for `SdkSpecifier` only must accept `LibrarySpecifier` too, and code with no library lines links as before",
+    "task": "030 T10",
+    "behavior": {
+      "file": "src/__tests__/runner-dependencies.test.ts",
+      "test": "link_rewrites_library_header_lines"
+    }
+  },
+  {
+    "subpath": "./runner-kit",
+    "name": "LibrarySpecifier",
+    "change": "added",
+    "reason": "The type of a library import's specifier, `liveframe:lib/<id>@<version>`, which `linkPackage` passes to `resolve` (plan 030 T10)",
+    "hostAction": "Optional: use `LibrarySpecifier` to type a `resolve` callback that maps library specifiers to modules",
+    "task": "030 T10"
   }
 ]

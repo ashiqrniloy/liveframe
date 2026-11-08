@@ -72,6 +72,9 @@ export function client(host: Host) {
     install: (draft: unknown) => send("/widgets", "POST", draft),
     place: (id: string, params: unknown, widget = { id: "hello", version: "1.0.0" }) =>
       send(`/placements/${id}`, "PUT", { slot: "home.main", widget, params }),
+    /** A new version of an installed widget on new versions of the libraries it pins; no source is sent. */
+    rebind: (id: string, version: string, body: { version: string; libraries: { id: string; version: string }[] }) =>
+      send(`/widgets/${id}/${version}/rebind`, "POST", body),
     surface: async (id: string) => (await send(`/surfaces/${id}`, "GET")).json() as Promise<Snapshot>,
     /** A client that holds `base` may get a patch instead of the whole tree. */
     refetch: async (id: string, base: number) =>

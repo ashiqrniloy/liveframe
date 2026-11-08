@@ -211,7 +211,7 @@ export async function renderLoaded<V>(
     notify?.({ type, placementId, errors });
     return { ok: false, errors } as const;
   };
-  const { package: pkg, params, state, reset, migrated } = loaded;
+  const { package: pkg, params, state, reset, migrated, libraries } = loaded;
   if (reset) notify?.({ type: "state-reset", placementId, errors: reset });
   if (migrated) notify?.({ type: "state-migrated", placementId, errors: migrated });
 
@@ -245,7 +245,13 @@ export async function renderLoaded<V>(
       args,
       pkg,
       { params, state, context, data, actions },
-      { catalog: install.catalog, capabilities: install.capabilities, surfaceId, revision },
+      {
+        catalog: install.catalog,
+        capabilities: install.capabilities,
+        surfaceId,
+        revision,
+        ...(libraries ? { libraries } : {}),
+      },
     );
     if (!rendered.ok) return failed("render-failed", rendered.errors);
 

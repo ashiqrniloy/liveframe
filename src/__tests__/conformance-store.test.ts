@@ -64,11 +64,11 @@ test("store_suite_catches_broken_stores", async () => {
 
 test("store_suite_cases_are_independent_and_runner_agnostic", async () => {
   const cases: ConformanceCase[] = storeSuite({ create: async () => memoryStore() });
-  expect(cases).toHaveLength(17);
-  expect(new Set(cases.map((c) => c.name)).size).toBe(17);
+  expect(cases).toHaveLength(19);
+  expect(new Set(cases.map((c) => c.name)).size).toBe(19);
   await Promise.all(cases.map((c) => c.run()));
   const reopened = storeSuite({ create: memoryStore, reopen: async (store) => store });
-  expect(reopened).toHaveLength(18);
+  expect(reopened).toHaveLength(20);
   await Promise.all(reopened.map((c) => c.run()));
 });
 
