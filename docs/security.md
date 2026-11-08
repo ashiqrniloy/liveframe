@@ -21,6 +21,29 @@ So `templateRunner()` executes no author code and is the recommended production 
 
 `limits.steps` (default 1,000,000) is the only bound on a template's running time; `templateRunner()` has no wall-clock timeout. On the reference machine a hostile template that nests two `$map`s over 1,000-item arrays spends the whole default budget and stops with `limit-exceeded` after about 25 ms, and a string-doubling `$let` chain stops at the string cap in about 2 ms. A real widget needs about 10⁴ steps, so a host that accepts templates from untrusted authors can pass a much lower `limits.steps` (100,000 is ten times the proof widgets' need) to cap the cost of one render at about 2.5 ms. Run a template in `workerRunner()` when the host also wants a wall-clock timeout.
 
+## What the QuickJS runner isolates
+
+`quickjsRunner()` from `@arnilo/liveframe-runner-quickjs` is the isolated runner ([choosing a runner](packages.md#choosing-a-runner)). Widget code runs in QuickJS (WebAssembly) in a Bun child process that the runner owns.
+
+**It isolates**
+
+- Host capabilities: the realm holds only ECMAScript built-ins. `fetch`, `process`, `Bun`, `Deno`, `require`, `WebAssembly`, timers and `console` are `undefined`; `eval`, `new Function` and `globalThis.constructor.constructor("return this")()` reach only the sandbox; `import()` of anything but the linked package and `liveframe:kit` is refused.
+- Time: a soft interrupt at `timeoutMs`, and a `SIGKILL` of the child 100 ms later for code stuck in one native call that QuickJS cannot interrupt. Both are `limit-exceeded`, and the next render starts a new child.
+- Memory and stack: a heap limit (`memoryBytes`, default 32 MiB) and a stack limit (`stackBytes`, default 256 KiB), each `limit-exceeded`.
+- State: a fresh runtime per render by default, so module state does not leak between renders or packages.
+- The answer channel: the parent–child channel is not reachable from the realm, so widget code cannot forge a result or answer another render. The host still re-validates every tree (law 2).
+
+**It does not protect against**
+
+- A defect in QuickJS or in the WebAssembly runtime. The child runs with the host's privileges (an empty environment, ignored stdio), so only QuickJS stands between widget code and the file system and network. Run the child inside an OS sandbox (bubblewrap, a container, a restricted user) for defence in depth.
+- CPU side channels, and CPU contention: a render uses up to `timeoutMs` plus 100 ms of one core.
+- Host memory pressure up to `memoryBytes` per render (the wasm heap plus the child's own).
+- `reuse: "package"`: module state survives between renders of one package. Use it only for code you trust to behave.
+- A child orphaned by a host that is killed while the child is in a native call; it spins until killed by hand.
+- Platforms it was not run on: only Linux has been measured.
+
+`templateRunner()` executes no author code at all, so it has nothing to isolate; the template's step limit bounds it ([above](#template-packages-need-no-isolation-runner)).
+
 ## Local bindings run in the browser
 
 A node's `when` and `bind` are expressions evaluated by the renderer ([spec §8](spec.md#8-interaction-synaptas-three-tiers)), so this is the one place the browser computes anything from tree data. They are data, not code: the evaluator is the template language's fixed table of library closures cut down to an operator list with no iteration, binding or collection builders. Their only inputs are `local` (the surface's own local state) and `self` (the node's own props), so an expression cannot reach data the widget did not put in the tree. Each is limited to 16 levels, 64 expression nodes and 256 evaluation steps, a node to 16 `bind` entries and a tree to 10,000 expression nodes. The validator checks every expression against the manifest's `local` schema and the kind's prop schema before the tree arrives, and the renderer checks each bound value again before an implementation reads it; a failure draws the node fallback and reports `binding-failed`.
@@ -35,7 +58,7 @@ At the largest tree the validator accepts (about 1,200 rows each with a `when` a
 
 ## What is not protected
 
-- **The reference runners are not sandboxes.** `inProcessRunner()` shares the host's realm, so widget code can reach anything the process can, and a synchronous loop cannot be interrupted (its timeout covers the return, not the loop). `workerRunner()` bounds time and crashes, but it does not restrict what code can access, and one worker serves every package: a draft that keeps running can answer a later render of a package it did not author. The host re-validates that tree against the later widget's manifest, and a worker that answers out of turn is terminated — but the answer still came from code you did not run. Verify packages, run only code you trust, and plug your own isolated runner into both preview and production for anything hostile. The preview, package and MCP guides repeat this where it applies.
+- **The reference runners are not sandboxes.** `inProcessRunner()` shares the host's realm, so widget code can reach anything the process can, and a synchronous loop cannot be interrupted (its timeout covers the return, not the loop). `workerRunner()` bounds time and crashes, but it does not restrict what code can access, and one worker serves every package: a draft that keeps running can answer a later render of a package it did not author. The host re-validates that tree against the later widget's manifest, and a worker that answers out of turn is terminated — but the answer still came from code you did not run. Verify packages, run only code you trust, and plug an isolated runner ([`quickjsRunner()`](#what-the-quickjs-runner-isolates) or your own) into both preview and production for anything hostile. The preview, package and MCP guides repeat this where it applies.
 - **The runner kit is not an isolation boundary.** `renderModule()`, `linkPackage()` and the single-file `runner-kit.bundle.js` that contains them run in whatever realm calls them and never bound time or reach. Use them inside a sandbox you trust, validate every tree the sandbox returns on the host, and keep them out of the browser. See the [package guide](packages.md#build-a-runner-with-the-kit).
 - **`liveframe mcp` runs agent drafts with the process's permissions** unless the config names a runner. The module import ban is syntactic: a draft can still reach the file system, the network and `Bun.spawn` through what it is allowed to import. The server says so on stderr once at startup; give an untrusted agent an isolated `config.runner`. See the [agent guide](mcp.md).
 - **Stores are untrusted input.** The `Store` interface and `fileStore(dir)` keep records for you; they do not encrypt them, enforce tenancy, take transactions or guarantee durability under crashes. Validate what you read, as `loadPlacement()` does. See the [package guide](packages.md).

@@ -110,13 +110,35 @@ export default config;
 
 **Neither reference runner is a sandbox** ([security model](security.md)). `inProcessRunner()` and
 `workerRunner()` run trusted code on your backend. For untrusted drafts, pass
-your own isolated runner as `config.runner` — and use the same one in production.
+an isolated runner as `config.runner` — and use the same one in production.
+`@arnilo/liveframe-runner-quickjs` is one (Bun only; see [choosing a runner](packages.md#choosing-a-runner)):
+
+```ts
+import type { AuthoringConfig } from "@arnilo/liveframe/preview";
+import { quickjsRunner } from "@arnilo/liveframe-runner-quickjs";
+import { capabilities, catalog } from "./host.ts";
+
+export default { catalog, capabilities, runner: await quickjsRunner() } satisfies AuthoringConfig;
+```
+
+The server never picks it for you: changing the execution engine is your config, not a side
+effect of what is installed. When the package is installed beside the config, the stderr line
+below gains a second sentence naming this exact line. A runner you pass is yours to close;
+the server closes only the default one.
+
 The import ban is syntactic: a draft can still reach the file system, the network
 and `Bun.spawn` through what it is allowed to import. When you omit `runner`, the
 server says so on stderr once at startup:
 
 ```
 liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).
+```
+
+With `@arnilo/liveframe-runner-quickjs` resolvable from the config module, the line ends with
+this second sentence (the first is unchanged):
+
+```
+@arnilo/liveframe-runner-quickjs is installed: set `runner: await quickjsRunner()` in the config (import { quickjsRunner } from "@arnilo/liveframe-runner-quickjs").
 ```
 
 `pack_draft`, `render_scenarios` and `capture_preview` run one at a time, in the

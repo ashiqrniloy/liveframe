@@ -7,8 +7,8 @@ never runs in the browser (law 1): send only the validated UI tree to the page.*
 
 **Neither reference runner is a sandbox** ([security model](security.md)). In-process code can reach its host;
 a worker bounds time and crashes without restricting what code can access. Run
-only trusted code with these runners. For hostile code, the app supplies an
-isolated `Runner` and uses it for both preview and production.
+only trusted code with these runners. For hostile code, use an isolated `Runner`
+([`quickjsRunner()`](#choosing-a-runner) or your own) for both preview and production.
 
 The package is pre-1.0. To preview drafts before publishing, see the
 [preview guide](preview.md). Start with the
@@ -433,6 +433,27 @@ await runner.render(loaded.package, inputs, { ...options, libraries: loaded.libr
 ```
 
 `inProcessRunner` and `workerRunner` match every pin to a supplied library (`not-found` when one is missing, `hash-mismatch` when the hash differs or a library's content no longer matches its own hash), load each library once by hash, dependencies first, and link the widget's `liveframe:lib/…` lines to those modules. Libraries count toward `maxModules` and `maxPackages`. With warm modules a widget that imports its components renders within 5% of the same widget with them bundled in. A runner you write links the lines itself: `linkPackage(code, resolve)` calls `resolve("liveframe:lib/<id>@<version>")` for each, and you return the module your sandbox loaded for that library (see [Build a runner with the kit](#build-a-runner-with-the-kit)).
+
+## Choosing a runner
+
+| Runner | Runs author code | Isolation | Limits | Cost per render (agent-home, 679 nodes) | Use it for |
+|---|---|---|---|---|---|
+| `templateRunner()` (`/preview`) | No | None needed: a template is data | `limits.steps`; a late return is `limit-exceeded` | 1.5 ms | Template widgets, including from authors you do not trust |
+| `inProcessRunner()` (`/preview`) | Yes, in your realm | None | A late return is `limit-exceeded`; cannot stop a loop | 1.7 ms | Tests and code you wrote |
+| `workerRunner()` (`/preview/worker`) | Yes, in a worker | None: the worker reaches what the process reaches | Terminates on timeout or crash | 6 ms | Trusted code that may misbehave |
+| `quickjsRunner()` (`@arnilo/liveframe-runner-quickjs`, Bun only) | Yes, in QuickJS | No host API in the realm; the host validates the tree | Heap, stack, soft deadline, then a hard kill of the child process | 80 ms (`reuse: "none"`); 47 ms (`reuse: "package"`); 4 ms for a one-node widget with `reuse: "package"` | TSX from authors or agents you do not trust |
+
+Route by package kind: templates to `templateRunner()`, hostile TSX to `quickjsRunner()`, code you trust to the worker or in-process runner. Figures are medians on one Linux machine under light load (`bench/runner.bench.ts`); a fresh `quickjsRunner()` also spends about 16 ms starting its child process, and the first render in a new child costs 100 ms or more more (engine warm-up). The default `timeoutMs` is 250 ms for that reason: a render that must succeed on a cold child should not be given less.
+
+```ts
+import { quickjsRunner } from "@arnilo/liveframe-runner-quickjs";
+
+const runner = await quickjsRunner({ memoryBytes: 32 << 20, stackBytes: 256 << 10, timeoutMs: 250 });
+const result = await runner.render(pkg, inputs, { catalog, capabilities, surfaceId: "home", revision: 1 });
+runner.close(); // kills the child process
+```
+
+`quickjsRunner()` verifies the hash and library pins on the host before anything reaches the child, validates every tree the child returns, and recovers after a kill: the next render starts a new child. Prove any runner you write with `runnerSuite()` ([conformance guide](conformance.md)); `quickjsRunner()` passes it with `isolation: true`. What it does and does not protect is in the [security model](security.md#what-the-quickjs-runner-isolates).
 
 ## Runner limits and ownership
 

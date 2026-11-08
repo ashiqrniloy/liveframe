@@ -1,5 +1,5 @@
 import { lstat, realpath } from "node:fs/promises";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import pkg from "../../package.json" with { type: "json" };
 import capabilitiesDoc from "../../schemas/capabilities.json" with { type: "json" };
@@ -483,6 +483,18 @@ function lazyCaptureBackend(): CaptureBackend {
   };
 }
 
+const QUICKJS_PACKAGE = "@arnilo/liveframe-runner-quickjs";
+
+/** The notice's second sentence when the isolated runner package resolves from the config module; nothing changes but the text. */
+function quickjsAdvice(configPath: string): string {
+  try {
+    Bun.resolveSync(QUICKJS_PACKAGE, dirname(resolve(configPath)));
+  } catch {
+    return "";
+  }
+  return ` ${QUICKJS_PACKAGE} is installed: set \`runner: await quickjsRunner()\` in the config (import { quickjsRunner } from "${QUICKJS_PACKAGE}").`;
+}
+
 /** Runs the authoring MCP server until stdin ends or a signal arrives. Returns the exit code. */
 export async function mcp(path: string, load: () => Promise<Sdk> = loadSdk): Promise<number> {
   const sdk = await load().catch(() => {
@@ -514,7 +526,7 @@ export async function mcp(path: string, load: () => Promise<Sdk> = loadSdk): Pro
   // Say plainly what the default runner means: agent-written code runs with this process's permissions.
   if (owned)
     console.error(
-      "liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).",
+      `liveframe mcp: no runner configured, so drafts run in workerRunner() with this process's permissions. Give an untrusted agent an isolated runner (config.runner).${quickjsAdvice(path)}`,
     );
   const server = new sdk.McpServer({ name: "liveframe", version: pkg.version });
   // Include disk reads in arrival order, before the host-free authoring queue.

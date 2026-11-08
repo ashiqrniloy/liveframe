@@ -19,7 +19,7 @@ Runner defaults and rules (measured, `plans/evidence/031-runner-options.md`):
 - Any host-side throw from QuickJS, including from `dispose()`, marks the wasm instance tainted: it is dropped, never reused.
 - Template packages render on the host through the existing template path: no author code runs, so nothing needs isolating, and the tree is the same function's output.
 - `reuse: "none"` (default) gives every render a new runtime; `reuse: "package"` keeps a bounded number of runtimes per package hash for trusted-but-untested code.
-- Performance budgets (re-baselined on a quiet host by Task 5 before they gate): `reuse: "none"` agent-home ≤ 110 ms and smallest proof surface ≤ 60 ms; `reuse: "package"` agent-home ≤ 60 ms and smallest ≤ 8 ms; child cold start ≤ 60 ms; hold, kill, recover and next render ≤ 300 ms.
+- Performance budgets, gated by `bench/runner.bench.ts` since plan 031 Task 5: `reuse: "none"` agent-home ≤ 110 ms and smallest surface (one text node) ≤ 60 ms; `reuse: "package"` agent-home ≤ 60 ms and smallest ≤ 8 ms; child cold start ≤ 60 ms; hold, kill, recover and next render ≤ 300 ms (measured with `timeoutMs` 50). Measured 2026-11-09 through the child (Bun 1.4.4, Ryzen 9 PRO 7940HS, load average about 4 on 16 CPUs, so not a quiet host): 81.5 / 34.6 / 47.2 / 4.2 / 16.1 / 237 ms. The budgets are unchanged by the measurement; the figures not measured in Task 1 (`reuse: "package"` and the smallest surface through the child) are inside them. Warming the child before `ready` was considered and not adopted: recovery is inside budget without it.
 
 ## Context
 

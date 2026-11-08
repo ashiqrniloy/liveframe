@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { chmod, mkdir, realpath, rm, symlink } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, realpath, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { Client } from "@modelcontextprotocol/client";
@@ -769,6 +769,35 @@ test("default_runner_warns_on_stderr", async () => {
   // A configured runner needs no warning: the app already chose the isolation it wants.
   const configured = cli([config]);
   expect(configured.stderr.toString()).not.toContain("workerRunner()");
+});
+
+test("mcp_notice_recommends_installed_quickjs_runner", async () => {
+  // The workspace links the package into node_modules, so it resolves from the fixture config.
+  const installed = cli([`${fixtures}/mcp-worker.config.ts`]).stderr.toString();
+  expect(installed).toContain("workerRunner()");
+  expect(installed).toContain("runner: await quickjsRunner()");
+  expect(installed).toContain('from "@arnilo/liveframe-runner-quickjs"');
+  // A config outside any node_modules tree does not see the package, so the notice is the plain one.
+  const directory = await mkdtemp(join(tmpdir(), "lf-quickjs-notice-"));
+  try {
+    const lonely = join(directory, "config.ts");
+    await Bun.write(
+      lonely,
+      `export { default } from ${JSON.stringify(join(process.cwd(), fixtures, "mcp-worker.config.ts"))};\n`,
+    );
+    const plain = cli([lonely]).stderr.toString();
+    expect(plain).toContain("workerRunner()");
+    expect(plain).not.toContain("quickjsRunner");
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("mcp_default_runner_unchanged", async () => {
+  // Installing the package only changes the text: the server still runs, and a configured runner stays silent.
+  const defaulted = cli([`${fixtures}/mcp-worker.config.ts`]);
+  expect(defaulted.exitCode).toBe(0);
+  expect(cli([config]).stderr.toString()).not.toContain("quickjsRunner");
 });
 
 test("mcp_server_initializes_over_stdio", async () => {
