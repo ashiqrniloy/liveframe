@@ -33,10 +33,17 @@
   "files": [
     "dist"
   ],
+  "sideEffects": [
+    "./dist/child.js"
+  ],
   "peerDependencies": {
     "@arnilo/liveframe": "~0.3.0"
   },
   "devDependencies": {
     "@arnilo/liveframe": "workspace:*"
+  },
+  "dependencies": {
+    "@jitl/quickjs-wasmfile-release-sync": "0.32.0",
+    "quickjs-emscripten-core": "0.32.0"
   }
 }

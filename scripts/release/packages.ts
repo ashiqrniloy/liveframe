@@ -35,8 +35,9 @@ export const archiveRules: Record<string, ArchiveRules> = {
   // Spec §13 rule 3 (scoped by decision 2026-11-08-2310): the core ships no WebAssembly, no isolation
   // engine and no starter components. Those are the two other packages.
   "@arnilo/liveframe": { forbid: [noWasm, /quickjs|starter/i], require: [] },
-  // The runner's required files (its wasm and compiled child entry) are added with the files in plan 031 Task 4.
-  "@arnilo/liveframe-runner-quickjs": { forbid: [], require: [] },
+  // The runner spawns its compiled child entry; the wasm comes from its pinned dependency, which the install
+  // smoke proves resolves outside the checkout (decision 2026-11-08-2310).
+  "@arnilo/liveframe-runner-quickjs": { forbid: [], require: [/^dist\/child\.js$/] },
   "@arnilo/liveframe-starter": { forbid: [noWasm], require: [] },
 };
 
