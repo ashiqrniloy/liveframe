@@ -2466,5 +2466,29 @@
     "reason": "The type of a library import's specifier, `liveframe:lib/<id>@<version>`, which `linkPackage` passes to `resolve` (plan 030 T10)",
     "hostAction": "Optional: use `LibrarySpecifier` to type a `resolve` callback that maps library specifiers to modules",
     "task": "030 T10"
+  },
+  {
+    "subpath": "./conformance",
+    "name": "runnerSuite",
+    "change": "added",
+    "reason": "Conformance cases for any Runner, with isolation cases a runner opts into",
+    "hostAction": "Optional: register runnerSuite for the runner you ship or supply",
+    "task": "031 T3"
+  },
+  {
+    "subpath": "./conformance",
+    "name": "RunnerSuiteOptions",
+    "change": "added",
+    "reason": "The options runnerSuite takes",
+    "hostAction": "None",
+    "task": "031 T3"
+  },
+  {
+    "subpath": "./conformance/runner/*",
+    "name": "conformance/runner/fixtures.json",
+    "change": "added",
+    "reason": "The runner conformance fixtures as a language-neutral document",
+    "hostAction": "Optional: port the runner contract and isolation cases to a runner in another language",
+    "task": "031 T3"
   }
 ]

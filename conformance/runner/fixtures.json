@@ -1,0 +1,1044 @@
+{
+  "format": "liveframe-runner-conformance/1",
+  "timeoutMs": 100,
+  "slackMs": 1000,
+  "okTimeoutMs": 5000,
+  "catalog": {
+    "format": "liveframe-catalog/1",
+    "catalogId": "conformance.runner@1",
+    "description": "Runner conformance fixture",
+    "vocabulary": {
+      "colourRoles": [],
+      "surfaceRoles": [],
+      "fillableRoles": [],
+      "typographyRoles": [
+        "body"
+      ],
+      "surfaceTypography": "body",
+      "space": [],
+      "radius": [],
+      "size": [],
+      "breakpoints": [],
+      "tones": {}
+    },
+    "definitions": [
+      {
+        "kind": "text",
+        "props": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "maxLength": 10000
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "additionalProperties": false
+        },
+        "children": "none",
+        "events": {},
+        "variants": [
+          "default"
+        ],
+        "slots": [
+          "root"
+        ],
+        "styleProps": [],
+        "a11y": {
+          "role": "generic"
+        },
+        "description": "The text primitive.",
+        "defaultVariant": "default"
+      }
+    ]
+  },
+  "capabilities": {
+    "format": "liveframe-capabilities/1",
+    "actions": {},
+    "sources": {}
+  },
+  "inputs": {
+    "params": {},
+    "state": {},
+    "context": {},
+    "data": {},
+    "actions": {}
+  },
+  "packages": {
+    "ok": {
+      "format": "liveframe-package/1",
+      "manifest": {
+        "format": "liveframe-manifest/1",
+        "id": "probe.ok",
+        "version": "1",
+        "catalogId": "conformance.runner@1",
+        "params": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "state": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "initialState": {},
+        "sources": {},
+        "actions": []
+      },
+      "scenarios": [
+        {
+          "name": "default",
+          "params": {},
+          "context": {},
+          "data": {}
+        }
+      ],
+      "code": "import * as __lf_sdk0 from \"@arnilo/liveframe/sdk\";\nconst __lf_m0 = (() => {\nconst jsx = __lf_sdk0[\"jsx\"];\nconst primitive = __lf_sdk0[\"primitive\"];\n\nconst show = (text) => jsx(primitive(\"text\"), { text: String(text) });\nconst __lf_default = () => show(\"ok\");\nconst __lf_exports = { __proto__: null };\n__lf_exports[\"default\"] = __lf_default;\nreturn __lf_exports;\n})();\nexport default __lf_m0[\"default\"];",
+      "hash": "sha256-22a8174612ab74c4f876266bb7d19b5c0ae9219422bfb63bef46de4551adb7f1"
+    },
+    "throws": {
+      "format": "liveframe-package/1",
+      "manifest": {
+        "format": "liveframe-manifest/1",
+        "id": "probe.throws",
+        "version": "1",
+        "catalogId": "conformance.runner@1",
+        "params": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "state": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "initialState": {},
+        "sources": {},
+        "actions": []
+      },
+      "scenarios": [
+        {
+          "name": "default",
+          "params": {},
+          "context": {},
+          "data": {}
+        }
+      ],
+      "code": "import * as __lf_sdk0 from \"@arnilo/liveframe/sdk\";\nconst __lf_m0 = (() => {\nconst jsx = __lf_sdk0[\"jsx\"];\nconst primitive = __lf_sdk0[\"primitive\"];\n\nconst show = (text) => jsx(primitive(\"text\"), { text: String(text) });\nconst __lf_default = () => { throw new Error(\"boom\"); };\nconst __lf_exports = { __proto__: null };\n__lf_exports[\"default\"] = __lf_default;\nreturn __lf_exports;\n})();\nexport default __lf_m0[\"default\"];",
+      "hash": "sha256-1325196c779b466845b4d7abac8070b8fb6c1b39b6f1e0226bdb91f1bc1545c3"
+    },
+    "nonFunction": {
+      "format": "liveframe-package/1",
+      "manifest": {
+        "format": "liveframe-manifest/1",
+        "id": "probe.nonFunction",
+        "version": "1",
+        "catalogId": "conformance.runner@1",
+        "params": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "state": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "initialState": {},
+        "sources": {},
+        "actions": []
+      },
+      "scenarios": [
+        {
+          "name": "default",
+          "params": {},
+          "context": {},
+          "data": {}
+        }
+      ],
+      "code": "import * as __lf_sdk0 from \"@arnilo/liveframe/sdk\";\nconst __lf_m0 = (() => {\nconst jsx = __lf_sdk0[\"jsx\"];\nconst primitive = __lf_sdk0[\"primitive\"];\n\nconst show = (text) => jsx(primitive(\"text\"), { text: String(text) });\nconst __lf_default = 42;\nconst __lf_exports = { __proto__: null };\n__lf_exports[\"default\"] = __lf_default;\nreturn __lf_exports;\n})();\nexport default __lf_m0[\"default\"];",
+      "hash": "sha256-e7350d885c71f3dbab013308a8a2f311418a908906b843d3e16f9fa1972c3307"
+    },
+    "invalidTree": {
+      "format": "liveframe-package/1",
+      "manifest": {
+        "format": "liveframe-manifest/1",
+        "id": "probe.invalidTree",
+        "version": "1",
+        "catalogId": "conformance.runner@1",
+        "params": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "state": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "initialState": {},
+        "sources": {},
+        "actions": []
+      },
+      "scenarios": [
+        {
+          "name": "default",
+          "params": {},
+          "context": {},
+          "data": {}
+        }
+      ],
+      "code": "import * as __lf_sdk0 from \"@arnilo/liveframe/sdk\";\nconst __lf_m0 = (() => {\nconst jsx = __lf_sdk0[\"jsx\"];\nconst primitive = __lf_sdk0[\"primitive\"];\n\nconst show = (text) => jsx(primitive(\"text\"), { text: String(text) });\nconst __lf_default = () => jsx(primitive(\"text\"), { text: 7 });\nconst __lf_exports = { __proto__: null };\n__lf_exports[\"default\"] = __lf_default;\nreturn __lf_exports;\n})();\nexport default __lf_m0[\"default\"];",
+      "hash": "sha256-77f9174dfc3304bbd2f43164b845c828d0735c7a86ff6e6708b2441ea041dfb4"
+    },
+    "spin": {
+      "format": "liveframe-package/1",
+      "manifest": {
+        "format": "liveframe-manifest/1",
+        "id": "probe.spin",
+        "version": "1",
+        "catalogId": "conformance.runner@1",
+        "params": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "state": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "initialState": {},
+        "sources": {},
+        "actions": []
+      },
+      "scenarios": [
+        {
+          "name": "default",
+          "params": {},
+          "context": {},
+          "data": {}
+        }
+      ],
+      "code": "import * as __lf_sdk0 from \"@arnilo/liveframe/sdk\";\nconst __lf_m0 = (() => {\nconst jsx = __lf_sdk0[\"jsx\"];\nconst primitive = __lf_sdk0[\"primitive\"];\n\nconst show = (text) => jsx(primitive(\"text\"), { text: String(text) });\nconst __lf_default = () => { const end = Date.now() + 400; while (Date.now() < end) {} return show(\"late\"); };\nconst __lf_exports = { __proto__: null };\n__lf_exports[\"default\"] = __lf_default;\nreturn __lf_exports;\n})();\nexport default __lf_m0[\"default\"];",
+      "hash": "sha256-4dcc9a9c163feca48c1e5a3bfb7617d3d8a138293aa6a9ae7769d521ddd20abb"
+    },
+    "infinite": {
+      "format": "liveframe-package/1",
+      "manifest": {
+        "format": "liveframe-manifest/1",
+        "id": "probe.infinite",
+        "version": "1",
+        "catalogId": "conformance.runner@1",
+        "params": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "state": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "initialState": {},
+        "sources": {},
+        "actions": []
+      },
+      "scenarios": [
+        {
+          "name": "default",
+          "params": {},
+          "context": {},
+          "data": {}
+        }
+      ],
+      "code": "import * as __lf_sdk0 from \"@arnilo/liveframe/sdk\";\nconst __lf_m0 = (() => {\nconst jsx = __lf_sdk0[\"jsx\"];\nconst primitive = __lf_sdk0[\"primitive\"];\n\nconst show = (text) => jsx(primitive(\"text\"), { text: String(text) });\nconst __lf_default = () => { for (;;) {} };\nconst __lf_exports = { __proto__: null };\n__lf_exports[\"default\"] = __lf_default;\nreturn __lf_exports;\n})();\nexport default __lf_m0[\"default\"];",
+      "hash": "sha256-e44af83e8e9722ba36daf8eefb78b6ea41f0f77fc49df11d3f0b24273857efed"
+    },
+    "memoryBomb": {
+      "format": "liveframe-package/1",
+      "manifest": {
+        "format": "liveframe-manifest/1",
+        "id": "probe.memoryBomb",
+        "version": "1",
+        "catalogId": "conformance.runner@1",
+        "params": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "state": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "initialState": {},
+        "sources": {},
+        "actions": []
+      },
+      "scenarios": [
+        {
+          "name": "default",
+          "params": {},
+          "context": {},
+          "data": {}
+        }
+      ],
+      "code": "import * as __lf_sdk0 from \"@arnilo/liveframe/sdk\";\nconst __lf_m0 = (() => {\nconst jsx = __lf_sdk0[\"jsx\"];\nconst primitive = __lf_sdk0[\"primitive\"];\n\nconst show = (text) => jsx(primitive(\"text\"), { text: String(text) });\nconst __lf_default = () => { const held = []; for (;;) held.push(new Array(1 << 20).fill(1)); };\nconst __lf_exports = { __proto__: null };\n__lf_exports[\"default\"] = __lf_default;\nreturn __lf_exports;\n})();\nexport default __lf_m0[\"default\"];",
+      "hash": "sha256-0315136afe3ec4cc1a260147f7812846bfd6d10a88a8f7a455e7e4d1aa9dd1d4"
+    },
+    "deepRecursion": {
+      "format": "liveframe-package/1",
+      "manifest": {
+        "format": "liveframe-manifest/1",
+        "id": "probe.deepRecursion",
+        "version": "1",
+        "catalogId": "conformance.runner@1",
+        "params": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "state": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "initialState": {},
+        "sources": {},
+        "actions": []
+      },
+      "scenarios": [
+        {
+          "name": "default",
+          "params": {},
+          "context": {},
+          "data": {}
+        }
+      ],
+      "code": "import * as __lf_sdk0 from \"@arnilo/liveframe/sdk\";\nconst __lf_m0 = (() => {\nconst jsx = __lf_sdk0[\"jsx\"];\nconst primitive = __lf_sdk0[\"primitive\"];\n\nconst show = (text) => jsx(primitive(\"text\"), { text: String(text) });\nconst f = (n) => f(n + 1) + 1;\nconst __lf_default = () => show(f(0));\nconst __lf_exports = { __proto__: null };\n__lf_exports[\"default\"] = __lf_default;\nreturn __lf_exports;\n})();\nexport default __lf_m0[\"default\"];",
+      "hash": "sha256-8466a4568e5e38721e7749d48ca882667106827ce45897967f94dc7fef1d6ec0"
+    },
+    "nativeHold": {
+      "format": "liveframe-package/1",
+      "manifest": {
+        "format": "liveframe-manifest/1",
+        "id": "probe.nativeHold",
+        "version": "1",
+        "catalogId": "conformance.runner@1",
+        "params": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "state": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "initialState": {},
+        "sources": {},
+        "actions": []
+      },
+      "scenarios": [
+        {
+          "name": "default",
+          "params": {},
+          "context": {},
+          "data": {}
+        }
+      ],
+      "code": "import * as __lf_sdk0 from \"@arnilo/liveframe/sdk\";\nconst __lf_m0 = (() => {\nconst jsx = __lf_sdk0[\"jsx\"];\nconst primitive = __lf_sdk0[\"primitive\"];\n\nconst show = (text) => jsx(primitive(\"text\"), { text: String(text) });\nconst __lf_default = () => show(\"a\".repeat(1e7).indexOf(\"a\".repeat(5e6) + \"b\"));\nconst __lf_exports = { __proto__: null };\n__lf_exports[\"default\"] = __lf_default;\nreturn __lf_exports;\n})();\nexport default __lf_m0[\"default\"];",
+      "hash": "sha256-decf3fc563550ec5f98ef6a53eb3dd68395accfc35ec95294502db8569f652eb"
+    },
+    "globals": {
+      "format": "liveframe-package/1",
+      "manifest": {
+        "format": "liveframe-manifest/1",
+        "id": "probe.globals",
+        "version": "1",
+        "catalogId": "conformance.runner@1",
+        "params": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "state": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "initialState": {},
+        "sources": {},
+        "actions": []
+      },
+      "scenarios": [
+        {
+          "name": "default",
+          "params": {},
+          "context": {},
+          "data": {}
+        }
+      ],
+      "code": "import * as __lf_sdk0 from \"@arnilo/liveframe/sdk\";\nconst __lf_m0 = (() => {\nconst jsx = __lf_sdk0[\"jsx\"];\nconst primitive = __lf_sdk0[\"primitive\"];\n\nconst show = (text) => jsx(primitive(\"text\"), { text: String(text) });\nconst found = [];\nconst scan = (label, scope, names) => {\n  for (const name of names) {\n    try { if (typeof scope[name] !== \"undefined\") found.push(label + name); } catch {}\n  }\n};\nscan(\"\", globalThis, [\"fetch\", \"process\", \"Bun\", \"Deno\", \"require\", \"self\", \"postMessage\", \"importScripts\"]);\ntry { scan(\"ctor:\", (function () {}).constructor(\"return this\")(), [\"fetch\", \"process\", \"Bun\", \"Deno\", \"require\"]); } catch {}\nconst __lf_default = () => show(found.length ? found.join(\",\") : \"clean\");\nconst __lf_exports = { __proto__: null };\n__lf_exports[\"default\"] = __lf_default;\nreturn __lf_exports;\n})();\nexport default __lf_m0[\"default\"];",
+      "hash": "sha256-cbca1d05ee711979451dc946fdf92fb05737c3b7ad3d62522ed23b3ba17df928"
+    },
+    "forge": {
+      "format": "liveframe-package/1",
+      "manifest": {
+        "format": "liveframe-manifest/1",
+        "id": "probe.forge",
+        "version": "1",
+        "catalogId": "conformance.runner@1",
+        "params": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "state": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "initialState": {},
+        "sources": {},
+        "actions": []
+      },
+      "scenarios": [
+        {
+          "name": "default",
+          "params": {},
+          "context": {},
+          "data": {}
+        }
+      ],
+      "code": "import * as __lf_sdk0 from \"@arnilo/liveframe/sdk\";\nconst __lf_m0 = (() => {\nconst jsx = __lf_sdk0[\"jsx\"];\nconst primitive = __lf_sdk0[\"primitive\"];\n\nconst show = (text) => jsx(primitive(\"text\"), { text: String(text) });\nconst tree = { forged: \"FORGED\" };\nconst send = (post) => {\n  if (typeof post !== \"function\") return;\n  for (let id = 0; id < 16; id++) {\n    try { post({ type: \"result\", id, result: { ok: true, value: tree } }); } catch {}\n    try { post({ id, ok: true, value: tree }); } catch {}\n  }\n};\nconst g = globalThis ;\ntry { send(g.postMessage); } catch {}\ntry { send(g.self?.postMessage); } catch {}\ntry { send(g.process?.send?.bind(g.process)); } catch {}\nconst __lf_default = () => show(\"forging done\");\nconst __lf_exports = { __proto__: null };\n__lf_exports[\"default\"] = __lf_default;\nreturn __lf_exports;\n})();\nexport default __lf_m0[\"default\"];",
+      "hash": "sha256-458480acc3d47a3e855cbaefd92dc3ce344cfabb4072d4669d0ad7609906e8cf"
+    },
+    "importMeta": {
+      "format": "liveframe-package/1",
+      "manifest": {
+        "format": "liveframe-manifest/1",
+        "id": "probe.import-meta",
+        "version": "1",
+        "catalogId": "conformance.runner@1",
+        "params": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "state": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "initialState": {},
+        "sources": {},
+        "actions": []
+      },
+      "scenarios": [
+        {
+          "name": "default",
+          "params": {},
+          "context": {},
+          "data": {}
+        }
+      ],
+      "code": "import * as __lf_sdk0 from \"@arnilo/liveframe/sdk\";\nconst found = [];\nfor (const name of [\"require\", \"dir\", \"dirname\", \"path\"]) {\n  try { if (typeof import.meta[name] !== \"undefined\") found.push(\"meta:\" + name); } catch {}\n}\nexport default () => __lf_sdk0.jsx(__lf_sdk0.primitive(\"text\"), { text: found.length ? found.join(\",\") : \"clean\" });",
+      "hash": "sha256-6c6579356123f8212c0d1c7e9dd2e0bab8f2d52b34cf323aa0d175fa48b73b79"
+    },
+    "stateA": {
+      "format": "liveframe-package/1",
+      "manifest": {
+        "format": "liveframe-manifest/1",
+        "id": "probe.state-a",
+        "version": "1",
+        "catalogId": "conformance.runner@1",
+        "params": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "state": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "initialState": {},
+        "sources": {},
+        "actions": []
+      },
+      "scenarios": [
+        {
+          "name": "default",
+          "params": {},
+          "context": {},
+          "data": {}
+        }
+      ],
+      "code": "import * as __lf_sdk0 from \"@arnilo/liveframe/sdk\";\nconst __lf_m0 = (() => {\nconst jsx = __lf_sdk0[\"jsx\"];\nconst primitive = __lf_sdk0[\"primitive\"];\n\nconst show = (text) => jsx(primitive(\"text\"), { text: String(text) });\nlet calls = 0;\nconst __lf_default = () => { const g = globalThis ; g.__probe_calls = (g.__probe_calls ?? 0) + 1; return show(\"A:\" + ++calls + \"/\" + g.__probe_calls); };\nconst __lf_exports = { __proto__: null };\n__lf_exports[\"default\"] = __lf_default;\nreturn __lf_exports;\n})();\nexport default __lf_m0[\"default\"];",
+      "hash": "sha256-4d6efd9ed4d09abac98015e55a4014795f59731549171992b673a1a41eb3357e"
+    },
+    "stateB": {
+      "format": "liveframe-package/1",
+      "manifest": {
+        "format": "liveframe-manifest/1",
+        "id": "probe.state-b",
+        "version": "1",
+        "catalogId": "conformance.runner@1",
+        "params": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "state": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "initialState": {},
+        "sources": {},
+        "actions": []
+      },
+      "scenarios": [
+        {
+          "name": "default",
+          "params": {},
+          "context": {},
+          "data": {}
+        }
+      ],
+      "code": "import * as __lf_sdk0 from \"@arnilo/liveframe/sdk\";\nconst __lf_m0 = (() => {\nconst jsx = __lf_sdk0[\"jsx\"];\nconst primitive = __lf_sdk0[\"primitive\"];\n\nconst show = (text) => jsx(primitive(\"text\"), { text: String(text) });\nlet calls = 0;\nconst __lf_default = () => { const g = globalThis ; g.__probe_calls = (g.__probe_calls ?? 0) + 1; return show(\"B:\" + ++calls + \"/\" + g.__probe_calls); };\nconst __lf_exports = { __proto__: null };\n__lf_exports[\"default\"] = __lf_default;\nreturn __lf_exports;\n})();\nexport default __lf_m0[\"default\"];",
+      "hash": "sha256-fa91cd715e03a9166f95252943e6fd8cba451b7d8e869bc9422c16840ea33b42"
+    },
+    "templateOk": {
+      "format": "liveframe-package/1",
+      "manifest": {
+        "format": "liveframe-manifest/1",
+        "id": "probe.template",
+        "version": "1",
+        "catalogId": "conformance.runner@1",
+        "params": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "state": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "initialState": {},
+        "sources": {},
+        "actions": []
+      },
+      "scenarios": [
+        {
+          "name": "default",
+          "params": {},
+          "context": {},
+          "data": {}
+        }
+      ],
+      "template": {
+        "format": "liveframe-template/1",
+        "root": {
+          "kind": "text",
+          "props": {
+            "text": "ok"
+          }
+        }
+      },
+      "hash": "sha256-b8fc011b18ef51357324defa532b9231eccf4b7a6dce4849c871b524c263a962"
+    },
+    "dependent": {
+      "format": "liveframe-package/1",
+      "manifest": {
+        "format": "liveframe-manifest/1",
+        "id": "probe.dependent",
+        "version": "1",
+        "catalogId": "conformance.runner@1",
+        "params": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "state": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "initialState": {},
+        "sources": {},
+        "actions": [],
+        "dependencies": [
+          {
+            "id": "probe.lib",
+            "version": "1",
+            "hash": "sha256-36cd0a5bb11dcfbe9eba6ea4254ef0575fb20be83701c50f270ae2cc97903258"
+          }
+        ]
+      },
+      "scenarios": [
+        {
+          "name": "default",
+          "params": {},
+          "context": {},
+          "data": {}
+        }
+      ],
+      "code": "import * as __lf_sdk0 from \"@arnilo/liveframe/sdk\";\nimport * as __lf_lib0 from \"liveframe:lib/probe.lib@1\";\nconst __lf_m0 = (() => {\nconst jsx = __lf_sdk0[\"jsx\"];\nconst primitive = __lf_sdk0[\"primitive\"];\nconst answer = __lf_lib0[\"answer\"];\n\n\nconst __lf_default = () => jsx(primitive(\"text\"), { text: answer });\nconst __lf_exports = { __proto__: null };\n__lf_exports[\"default\"] = __lf_default;\nreturn __lf_exports;\n})();\nexport default __lf_m0[\"default\"];",
+      "hash": "sha256-22c6f6a40aa6f2a7ca528f11a15aa65e10bf1fe0756e1cdef97455f14acbb13e"
+    },
+    "tamperedCode": {
+      "format": "liveframe-package/1",
+      "manifest": {
+        "format": "liveframe-manifest/1",
+        "id": "probe.ok",
+        "version": "1",
+        "catalogId": "conformance.runner@1",
+        "params": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "state": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "initialState": {},
+        "sources": {},
+        "actions": []
+      },
+      "scenarios": [
+        {
+          "name": "default",
+          "params": {},
+          "context": {},
+          "data": {}
+        }
+      ],
+      "code": "for (;;) {}\nimport * as __lf_sdk0 from \"@arnilo/liveframe/sdk\";\nconst __lf_m0 = (() => {\nconst jsx = __lf_sdk0[\"jsx\"];\nconst primitive = __lf_sdk0[\"primitive\"];\n\nconst show = (text) => jsx(primitive(\"text\"), { text: String(text) });\nconst __lf_default = () => show(\"ok\");\nconst __lf_exports = { __proto__: null };\n__lf_exports[\"default\"] = __lf_default;\nreturn __lf_exports;\n})();\nexport default __lf_m0[\"default\"];",
+      "hash": "sha256-22a8174612ab74c4f876266bb7d19b5c0ae9219422bfb63bef46de4551adb7f1"
+    },
+    "tamperedTemplate": {
+      "format": "liveframe-package/1",
+      "manifest": {
+        "format": "liveframe-manifest/1",
+        "id": "probe.template",
+        "version": "1",
+        "catalogId": "conformance.runner@1",
+        "params": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "state": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "initialState": {},
+        "sources": {},
+        "actions": []
+      },
+      "scenarios": [
+        {
+          "name": "default",
+          "params": {},
+          "context": {},
+          "data": {}
+        }
+      ],
+      "template": {
+        "format": "liveframe-template/1",
+        "root": {
+          "kind": "text",
+          "props": {
+            "text": "tampered"
+          }
+        }
+      },
+      "hash": "sha256-b8fc011b18ef51357324defa532b9231eccf4b7a6dce4849c871b524c263a962"
+    }
+  },
+  "libraries": {
+    "probe.lib": {
+      "format": "liveframe-package/1",
+      "manifest": {
+        "format": "liveframe-manifest/1",
+        "id": "probe.lib",
+        "version": "1",
+        "catalogId": "conformance.runner@1",
+        "params": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "state": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "initialState": {},
+        "sources": {},
+        "actions": [],
+        "exports": [
+          "answer"
+        ]
+      },
+      "scenarios": [
+        {
+          "name": "default",
+          "params": {},
+          "context": {},
+          "data": {}
+        }
+      ],
+      "code": "const __lf_m0 = (() => {\n\nconst answer = \"42\"; const __lf_default = () => null;\nconst __lf_exports = { __proto__: null };\n__lf_exports[\"answer\"] = answer;\n__lf_exports[\"default\"] = __lf_default;\nreturn __lf_exports;\n})();\nexport default __lf_m0[\"default\"];\nconst __lf_x0 = __lf_m0[\"answer\"];\nexport { __lf_x0 as answer };",
+      "hash": "sha256-36cd0a5bb11dcfbe9eba6ea4254ef0575fb20be83701c50f270ae2cc97903258"
+    }
+  },
+  "probes": [
+    {
+      "rule": "runner_returns_render_tree",
+      "tier": "contract",
+      "kind": "code",
+      "package": "ok",
+      "expect": {
+        "ok": true,
+        "text": "ok"
+      },
+      "note": "A code widget renders its tree"
+    },
+    {
+      "rule": "runner_returns_render_tree",
+      "tier": "contract",
+      "kind": "template",
+      "package": "templateOk",
+      "expect": {
+        "ok": true,
+        "text": "ok"
+      },
+      "note": "A template renders its tree"
+    },
+    {
+      "rule": "runner_refuses_hash_mismatch",
+      "tier": "contract",
+      "kind": "code",
+      "package": "tamperedCode",
+      "expect": {
+        "ok": false,
+        "kind": "hash-mismatch"
+      },
+      "note": "Refused before loading: the tampered code never runs"
+    },
+    {
+      "rule": "runner_refuses_hash_mismatch",
+      "tier": "contract",
+      "kind": "template",
+      "package": "tamperedTemplate",
+      "expect": {
+        "ok": false,
+        "kind": "hash-mismatch"
+      },
+      "note": "Refused before rendering"
+    },
+    {
+      "rule": "runner_reports_thrown_widget",
+      "tier": "contract",
+      "kind": "code",
+      "package": "throws",
+      "expect": {
+        "ok": false,
+        "kind": "render-failed"
+      },
+      "note": "A widget that throws"
+    },
+    {
+      "rule": "runner_rejects_non_function_default",
+      "tier": "contract",
+      "kind": "code",
+      "package": "nonFunction",
+      "expect": {
+        "ok": false,
+        "kind": "render-failed"
+      },
+      "note": "A default export that is not a function"
+    },
+    {
+      "rule": "runner_never_accepts_invalid_tree",
+      "tier": "contract",
+      "kind": "code",
+      "package": "invalidTree",
+      "expect": {
+        "ok": false
+      },
+      "note": "A tree the validator rejects is never ok"
+    },
+    {
+      "rule": "runner_bounds_time",
+      "tier": "contract",
+      "kind": "code",
+      "package": "spin",
+      "expect": {
+        "ok": false,
+        "kind": "limit-exceeded"
+      },
+      "note": "A widget that outlives timeoutMs",
+      "timed": true
+    },
+    {
+      "rule": "runner_loads_libraries",
+      "tier": "contract",
+      "kind": "code",
+      "package": "dependent",
+      "expect": {
+        "ok": true,
+        "text": "42"
+      },
+      "note": "A pinned library loads before its dependent",
+      "libraries": [
+        "probe.lib"
+      ]
+    },
+    {
+      "rule": "runner_loads_libraries",
+      "tier": "contract",
+      "kind": "code",
+      "package": "dependent",
+      "expect": {
+        "ok": false,
+        "kind": "not-found"
+      },
+      "note": "A pinned library that was not supplied is not found"
+    },
+    {
+      "rule": "runner_isolation_no_host_globals",
+      "tier": "isolation",
+      "kind": "code",
+      "package": "globals",
+      "expect": {
+        "ok": true,
+        "text": "clean"
+      },
+      "note": "No host global is reachable"
+    },
+    {
+      "rule": "runner_isolation_no_host_globals",
+      "tier": "isolation",
+      "kind": "code",
+      "package": "importMeta",
+      "expect": {
+        "ok": true,
+        "text": "clean"
+      },
+      "note": "import.meta carries no host member"
+    },
+    {
+      "rule": "runner_isolation_infinite_loop",
+      "tier": "isolation",
+      "kind": "code",
+      "package": "infinite",
+      "expect": {
+        "ok": false,
+        "kind": "limit-exceeded"
+      },
+      "note": "A loop that never ends",
+      "timed": true
+    },
+    {
+      "rule": "runner_isolation_memory_bomb",
+      "tier": "isolation",
+      "kind": "code",
+      "package": "memoryBomb",
+      "expect": {
+        "ok": false,
+        "kind": "limit-exceeded"
+      },
+      "note": "Memory grows without bound",
+      "timed": true
+    },
+    {
+      "rule": "runner_isolation_deep_recursion",
+      "tier": "isolation",
+      "kind": "code",
+      "package": "deepRecursion",
+      "expect": {
+        "ok": false,
+        "kind": "limit-exceeded"
+      },
+      "note": "Recursion without a base case",
+      "timed": true
+    },
+    {
+      "rule": "runner_isolation_native_hold",
+      "tier": "isolation",
+      "kind": "code",
+      "package": "nativeHold",
+      "expect": {
+        "ok": false,
+        "kind": "limit-exceeded"
+      },
+      "note": "One native call that cannot be interrupted",
+      "timed": true
+    }
+  ]
+}

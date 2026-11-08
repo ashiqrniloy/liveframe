@@ -13,7 +13,7 @@
  * - Whitespace runs in every printed declaration collapse to a single ASCII space and
  *   leading/trailing whitespace is trimmed.
  * - Subpath names, exported symbol names, helper declaration names and file paths under
- *   `schemas/`, `conformance/corpus/`, `conformance/hash/` and `conformance/patch/` are
+ *   `schemas/`, `conformance/corpus/`, `conformance/hash/`, `conformance/patch/` and `conformance/runner/` are
  *   sorted in UTF-16 code-unit order.
  */
 import { createHash } from "node:crypto";
@@ -29,6 +29,8 @@ export type ApiSurface = {
   readonly corpus: Readonly<Record<string, string>>;
   readonly hash: Readonly<Record<string, string>>;
   readonly patch: Readonly<Record<string, string>>;
+  /** Added in 0.3.0; a baseline taken before it has none. */
+  readonly runner?: Readonly<Record<string, string>>;
 };
 
 export type RegisterEntry = {
@@ -177,6 +179,7 @@ export async function readApiSurface(packageRoot: string, generatedFrom?: string
       corpus: hashDirectory(root, "conformance/corpus"),
       hash: hashDirectory(root, "conformance/hash"),
       patch: hashDirectory(root, "conformance/patch"),
+      runner: hashDirectory(root, "conformance/runner"),
     };
   } finally {
     await api.close();
@@ -200,10 +203,12 @@ export function compareApiSurface(
     }
   }
 
-  // 1. Existing corpus, hash and patch files need a documented break to change.
-  for (const group of ["corpus", "hash", "patch"] as const) {
-    for (const [file, expectedHash] of Object.entries(baseline[group])) {
-      const actualHash = current[group][file];
+  // 1. Existing corpus, hash, patch and runner files need a documented break to change.
+  for (const group of ["corpus", "hash", "patch", "runner"] as const) {
+    const before = baseline[group] ?? {};
+    const now = current[group] ?? {};
+    for (const [file, expectedHash] of Object.entries(before)) {
+      const actualHash = now[file];
       const entryIndex = register.findIndex((e) => e.subpath === `./conformance/${group}/*` && e.name === file);
       const entry = register[entryIndex];
       if (entryIndex >= 0) usedEntries.add(entryIndex);
@@ -215,8 +220,8 @@ export function compareApiSurface(
         failures.push(`Stale register entry (${group} file did not change): ${file}`);
       }
     }
-    for (const file of Object.keys(current[group])) {
-      if (Object.hasOwn(baseline[group], file)) continue;
+    for (const file of Object.keys(now)) {
+      if (Object.hasOwn(before, file)) continue;
       const index = register.findIndex((e) => e.subpath === `./conformance/${group}/*` && e.name === file);
       if (index < 0) continue;
       usedEntries.add(index);

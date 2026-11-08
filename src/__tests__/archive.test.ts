@@ -107,7 +107,7 @@ const allowed = [
   /^dist\/(?:[^/]+\/)*[^/]+\.(?:js|d\.ts)$/,
   /^dist\/pack\/THIRD-PARTY-LICENSES$/,
   /^schemas\/[^/]+\.json$/,
-  /^conformance\/(?:corpus|hash|patch)\/(?:[^/]+\/)*[^/]+\.json$/,
+  /^conformance\/(?:corpus|hash|patch|runner)\/(?:[^/]+\/)*[^/]+\.json$/,
   /^docs\/[^/]+\.md$/,
 ];
 
@@ -136,7 +136,7 @@ test("every_export_has_types_and_default", () => {
         continue;
       }
       expect(subpath, "only data and schema files may map bare files").toMatch(
-        /^\.\/(?:package\.json|schemas\/\*|conformance\/(?:corpus|hash|patch)\/\*)$/,
+        /^\.\/(?:package\.json|schemas\/\*|conformance\/(?:corpus|hash|patch|runner)\/\*)$/,
       );
       expect(entry).toBe(subpath);
       expect(() => assertExportsPacked({ [subpath]: entry }, new Set(files))).not.toThrow();

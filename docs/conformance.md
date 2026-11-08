@@ -12,6 +12,7 @@ The package is pre-1.0; install it and use the subpaths it exports.
 | `designSystemSuite` | Themes/design systems install, inheritance and recipe completeness, CSS projection (including that every extension a design system sets reaches the sheet as `--lf-p-<name>` and every axis combination gets its slot classes), no literal colour in supplied app sheets, and (opt-in) recipe-derived contrast pairs | External imported sheets, pixel parity, native platform/assistive-technology audits and the library's CSS selector/preference algorithms |
 | `rendererSuite` | Complete implementation registry, successful server rendering for each example × theme × design system, root slot/style output, fallback-only invalid arrivals with no implementation calls, and every `refProps` value naming an element (`domId` rendered as an `id`) | Content deferred until client mount, browser interactions and the renderer's internal caching/error-boundary machinery |
 | `rendererBrowserSuite` | Hydration, arrival rejection/recovery, expected complete intents, focus/scroll/draft survival, switching without renders, styled-state reachability, declared overlay lifecycle and text bounds | Undeclared overlay/input roles, unprovided interaction scenarios, timing budgets, production authorization and unsupported nested surfaces |
+| `runnerSuite` | A runner's contract: every scenario of the packages you supply renders the tree the reference renderer produces, a hash mismatch is refused before loading, a thrown widget, a non-function default and an invalid tree are never `ok`, a widget that outlives `timeoutMs` is `limit-exceeded` and the next render succeeds, pinned libraries load, and the other package kind is refused with `invalid-document`; with `isolation: true`, no host global is reachable, no state survives a render, and infinite loops, memory bombs, deep recursion, one uninterruptible native call and forged results are contained | Your sandbox's configuration, the host operating system, side channels and anything the fixtures do not try |
 
 ## Language-neutral corpus
 
@@ -305,6 +306,47 @@ requires content to stay mounted through exit and disappear afterward; reduced
 motion must start no exit animation. A known proof implementation issue with
 initially-open dialogs remains tracked in plan 010 Task 10; closed-then-open
 fixtures do not establish that separate first-arrival behavior.
+
+## Prove a runner
+
+A runner is the app's sandbox plugged in as `Runner` (spec §7.5). `runnerSuite` proves
+what it claims, with the same cases for the reference runners and for yours.
+
+```ts
+import { test } from "bun:test";
+import { runnerSuite } from "@arnilo/liveframe/conformance";
+import { catalog, capabilities, packages } from "./host.ts";
+import { myRunner } from "./runner.ts";
+
+for (const c of runnerSuite({ runner: () => myRunner(), catalog, capabilities, packages, isolation: true }))
+  test(c.name, c.run, c.timeout);
+```
+
+- `packages` are verified packages packed against `catalog` and `capabilities`; each scenario is
+  rendered through your runner and through the reference renderer (`inProcessRunner` for code,
+  `templateRunner` for templates), and the two trees must be equal.
+- `runner` is called once per case, so a case that kills a runner leaves the next one a fresh
+  runner; it is closed afterwards when it has `close()`.
+- `accepts: "template"` (or `"code"`) says which package kind the runner renders; the other kind
+  must be refused with `invalid-document`. `templateRunner` is `"template"`.
+- `timeoutMs` (default 100, at most 200) is the limit handed to the probes that must be stopped,
+  and `slackMs` (default 1000) how much longer a stopped probe may take to report. Renders that
+  must succeed get 5 s, which covers a worker's or child process's start.
+- The contract cases are named `runner_returns_render_tree`, `runner_refuses_hash_mismatch`,
+  `runner_reports_thrown_widget`, `runner_rejects_non_function_default`,
+  `runner_never_accepts_invalid_tree`, `runner_bounds_time`, `runner_loads_libraries` and
+  `runner_returns_render_tree_for_supplied_packages`.
+- `isolation: true` adds `runner_isolation_no_host_globals`, `…_no_state_between_renders`,
+  `…_infinite_loop`, `…_memory_bomb`, `…_deep_recursion`, `…_native_hold`,
+  `…_channel_is_not_writable` and `…_render_cannot_answer_another`. Claim it only for a runner
+  that contains hostile code: `inProcessRunner`, `workerRunner` and `templateRunner` do not (the
+  first two fail these cases by design; `templateRunner` runs no author code, so there is nothing
+  to contain). A same-thread runner hangs on the loop cases.
+- `conformance/runner/fixtures.json` (`@arnilo/liveframe/conformance/runner/fixtures.json`) is the
+  same catalog, capabilities, packages and probe table as one document, so a runner written in
+  another language can run the cases itself. Each probe names the package, the libraries it needs,
+  and what must come back: a tree containing a text, or a failure of a given kind. A probe marked
+  `timed` must end within `timeoutMs` + `slackMs`, and the next render must succeed.
 
 ## Read failures and reproduce the examples
 

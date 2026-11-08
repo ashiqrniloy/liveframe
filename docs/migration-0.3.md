@@ -416,3 +416,13 @@ See [sharing components](packages.md#share-components-between-widgets) and [spec
 Optional: stream an agent's element JSON through streamElements and send diffTrees patches; existing calls are unchanged.
 
 See [the SDK guide](sdk.md#draw-agent-json-while-it-streams) and [spec §7.2](spec.md#72-the-sdk).
+
+### Runner conformance
+
+`runnerSuite({ runner, catalog, capabilities, packages, isolation?, accepts?, timeoutMs?, slackMs? })` from `@arnilo/liveframe/conformance` returns cases that prove a `Runner` against spec §7.5: it renders every scenario of the packages you supply to the tree the reference renderer produces, refuses a package whose hash does not match before loading it, reports a thrown widget, a non-function default and an invalid tree, stops a widget that outlives `timeoutMs` and then renders again, and loads pinned libraries. With `isolation: true` it adds the cases for a runner that claims to contain hostile widget code (host globals, state between renders, infinite loops, memory, recursion, a hold in one native call, forged results). `conformance/runner/fixtures.json` holds the suite's catalog, capabilities, packages and probe table as one document.
+Optional: register runnerSuite for the runner you ship or supply
+Optional: port the runner contract and isolation cases to a runner in another language
+Existing code is unchanged. The reference runners are not isolation boundaries: do not pass `isolation: true` for them. `RunnerSuiteOptions` is the options type.
+None
+
+See [conformance](conformance.md#prove-a-runner) and [spec §7.5](spec.md#75-runners-and-preview).

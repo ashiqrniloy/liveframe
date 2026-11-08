@@ -359,6 +359,7 @@ test("subpath_export_surfaces", () => {
     "ConformanceFailure",
     "catalogSuite",
     "designSystemSuite",
+    "runnerSuite",
     "storeSuite",
   ]);
   const cases: ConformanceCase[] = conformance.storeSuite({ create: store.memoryStore });

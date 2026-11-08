@@ -42,12 +42,12 @@ The backend subpaths (`/store/fs`, `/preview/worker`, the in-process package loa
 | `surface` | none |
 | `host` | `console` |
 | `preview/capture` | `TextEncoder`, `TextDecoder`, `URL` |
-| `conformance` | `TextDecoder`, `console` |
+| `conformance` | `setTimeout`, `clearTimeout`, `TextDecoder`, `console` |
 | `pack` | `TextDecoder`, `console` |
 | `store` | `console` |
 | `preview` | `setTimeout`, `clearTimeout`, `TextDecoder`, `console` |
 
-Paths are relative to `@arnilo/liveframe`; `.` is the root export. The `sdk` row includes `/sdk/gen` and both JSX runtimes; `/runner-kit.bundle.js` and `/validator.bundle.js` also need no non-ECMAScript globals. Entries include bundled dependencies: Acorn guards its unused `console` warning, and the packer's source-map codec optionally uses `TextDecoder` with a pure JavaScript fallback. Preview timers bound module loading; capture needs the Encoding and URL APIs. Authoring reaches capture. Source, compiled output and browser bundles are checked against this table in CI.
+Paths are relative to `@arnilo/liveframe`; `.` is the root export. The `sdk` row includes `/sdk/gen` and both JSX runtimes; `/runner-kit.bundle.js` and `/validator.bundle.js` also need no non-ECMAScript globals. Entries include bundled dependencies: Acorn guards its unused `console` warning, and the packer's source-map codec optionally uses `TextDecoder` with a pure JavaScript fallback. Preview timers bound module loading, and the runner conformance cases reach them through the reference renderers; capture needs the Encoding and URL APIs. Authoring reaches capture. Source, compiled output and browser bundles are checked against this table in CI.
 
 ## Quickstart
 

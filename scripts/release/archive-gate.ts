@@ -160,7 +160,7 @@ try {
     return true;
   };
 
-  const assertConformance = (name: "corpus" | "hash" | "patch") => {
+  const assertConformance = (name: "corpus" | "hash" | "patch" | "runner") => {
     const installed = join(dir, "node_modules/@arnilo/liveframe/conformance", name);
     const source = new Set(
       new Bun.Glob("**/*.json").scanSync({ cwd: join(root, "conformance", name), onlyFiles: true }),
@@ -210,6 +210,7 @@ try {
     ["corpus packed", () => assertConformance("corpus")],
     ["hash vectors packed", () => assertConformance("hash")],
     ["patch vectors packed", () => assertConformance("patch")],
+    ["runner fixtures packed", () => assertConformance("runner")],
     [
       "validator bundle packed and self-contained",
       () =>
