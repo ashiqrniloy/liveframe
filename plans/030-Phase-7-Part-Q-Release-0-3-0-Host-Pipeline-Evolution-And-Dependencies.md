@@ -22,7 +22,7 @@ This plan implements roadmap Phase 7's 0.3.0 host-lifecycle work: new spec §7.7
 
 ## Tasks
 
-- [ ] Task 1: Design the stateless host pipeline and record the decision
+- [x] Task 1: Design the stateless host pipeline and record the decision
   - Acceptance Criteria:
     - Functional:
       - `plans/evidence/030-host-pipeline-design.md` specifies `renderPlacement`, `handleIntent` and `dependents` as numbered steps, each naming the existing public helper it calls (`loadPlacement`, `bindSources`, `renderKey`, `Runner.render`, `compileValidator`/`validateTree`, `diffTrees`, `checkOffered`, `verifyPlacementInputs`), the injected host functions (`resolve`, `authorize`, `dispatch`, `publish?`), the inputs the host must pass back (`served`: the last accepted tree, its key, revision and validator identity), and every failure's typed error and event.
@@ -40,20 +40,30 @@ This plan implements roadmap Phase 7's 0.3.0 host-lifecycle work: new spec §7.7
     - Chosen Approach: stateless functions with injected effects.
     - API Notes and Examples:
       ```ts
-      const out = await renderPlacement({ store, runner, installs, placementId, scope, context, actions, resolve, previous: served });
-      const next = await handleIntent({ served, origin, intent, store, runner, installs, resolve, authorize, dispatch, publish });
+      const host = { store, runner, installs, resolve, authorize, dispatch, verified, onEvent }; // built once, spread per call
+      const out = await renderPlacement({ ...host, placementId, catalogId, scope, viewer, context, actions, previous: served });
+      const next = await handleIntent({ ...host, served, origin, intent, viewer, context, actions, publish });
       ```
     - Files to Create/Edit: `plans/evidence/030-host-pipeline-design.md`; `decision-logs/<date>-stateless-host-pipeline.md`
   - Test Cases to Write: n/a — design.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-08): Design in `plans/evidence/030-host-pipeline-design.md` (rules R1–R11 `renderPlacement`, H1–H9 `handleIntent`, D1–D3 `dependents`, an event table, the host's responsibilities, the comparison with the rejected controller, a law-by-law enforcement table, the budget, modules and ten amendments); owner approved it as written; decision log `decision-logs/2026-11-08-1115-stateless-host-pipeline.md`. No third-party library is involved, so no docs lookup was needed. Findings that change later tasks (Tasks 2–4 are amended accordingly):
+    - `renderPlacement` takes `catalogId` and `viewer`; `resolve(calls, viewer)` gets `SourceCall[]` and returns a record of `SourceResult` (`{ ok: true, value } | { ok: false, reason, message? }`). The manifest's `catalogId` is checked by `loadPlacement`, never used to pick the install.
+    - `Served` also holds `placementId`, `scope` and `bound` (the `bindSources` value, which `dependents` reads).
+    - The 0.2 ms budget includes `renderKey` and excludes `validateTree`/`diffTrees`, which are reported beside it.
+    - `setLocal` at the host is `invalid-prop` at `/type` (what `checkOffered` returns), not `invalid-document`.
+    - `handleIntent` writes a `refused` status under the offered tree's key (never the posted intent's) for an offered but invalid action, evicts the oldest settled entries past 64, and drops `value` for an action with no `result` schema.
+    - A skip needs the same `surfaceId`, `placementId` and `scope` as well as the same `renderKey`. A host that can lose `previous` passes a `revision` floor.
+    - The event set grows to ten names (see the event table). Hosts must serialise calls per placement and scope: a stateless function cannot detect two callers sharing a stale `served`.
+    - The demo's `server.ts` lines cited in the design (`:93` served map, `:108` surface, `:183-223` intents) are the code Task 5 deletes.
+    - Gate: this task changes only docs. `bun run check` ran three times with a load average near 12 (a `rustc` build and two `qemu` processes on the machine): 1582, 1581 and a third run each passed all but one or two wall-clock overhead tests, a different one each time (`in_process_warm_overhead_under_point_one_ms`, `worker_warm_overhead_report`). Both pass alone (0.03/0.08/-0.07 ms in-process; worker 4.0 ms/render), and lint, format and typecheck are clean. Not a regression; the plan's final `bun run check` should run on a quiet machine.
 
 - [ ] Task 2: `renderPlacement`
   - Acceptance Criteria:
     - Functional:
-      - `renderPlacement(args): Promise<Result<Served>>` where `Served = { tree, key, revision, validator, patch?, package: { id, version, hash }, state, reset?, migrated? }`. Steps: `loadPlacement` (with `verified` cache when given) → `bindSources` → `resolve(calls, viewerContext)` → each result validated against its source's `result` schema (a failing or throwing resolver yields a `sourceOutcome` failure envelope when the source declares one, else `render-failed` at `/data/<key>`) → `renderKey`; equal to `previous.key` returns `previous` unchanged with a `render-skipped` event → `runner.render` → host `validateTree` → `diffTrees(previous.tree, tree)` when `previous` matches surface and catalog; `invalid-document` from diffing yields a whole tree only.
-      - `installs` maps `catalogId` → `{ catalog, capabilities }` (supports Task 7); an unknown `catalogId` is `catalog-mismatch`.
-      - `onEvent` reports `render-skipped`, `state-reset`, `state-migrated`, `source-failed`, `tree-rejected`.
-    - Performance: the Task 1 overhead budget, measured in `bench/host.bench.ts` with an in-memory store and a stub runner.
+      - `renderPlacement(args): Promise<Result<Served>>` with the contract, steps R1–R11 and `Served` of `plans/evidence/030-host-pipeline-design.md` (`Served` = `{ placementId, scope, tree, key, revision, validator, package: { id, version, hash }, state, bound, patch?, reset?, migrated? }`). In order: `installs[catalogId]` → `loadPlacement` (with `verified` when given) → `bindSources` → one `resolve(calls, viewer)` → each result fitted to its source's `result` schema (a reported or thrown failure yields a `sourceOutcome` envelope when the source declares one, else `render-failed` at `/data/<alias>`; a value that misses the schema is always `render-failed`) → `renderKey`; equal to `previous.key` with the same surface, placement and scope returns `previous` unchanged with `render-skipped` → `runner.render` → host `validateTree` plus a surface and revision check (`tree-rejected`) → `diffTrees(previous.tree, tree)` when `previous` matches surface and catalog; an `invalid-document` from diffing yields a whole tree only.
+      - `installs` maps `catalogId` → `{ catalog, capabilities }` (supports Task 7); the caller names `catalogId`, and an unknown one is `catalog-mismatch` at `/catalogId`.
+      - `onEvent` receives the frozen `HostEvent`s of the design's table (ids, kinds, reasons and errors, never values): `render-skipped`, `state-reset`, `state-migrated`, `source-failed`, `tree-rejected`, `load-failed`, `render-failed`, and, from `handleIntent`, `intent-refused`, `action-failed`, `publish-failed`. A throwing handler is contained; with none, nothing is allocated.
+    - Performance: ≤ 0.2 ms beyond the runner and the resolver, including `renderKey` and excluding `validateTree`/`diffTrees` (reported beside it), measured in `bench/host.bench.ts` with an in-memory store, a stub runner and a stub resolver on the demo's inputs (about 4 KB); a skipped render is measured separately. A miss records the split instead of relaxing the figure.
     - Code Quality: composes public helpers only; no copies of their logic.
     - Security: law 2 — runner output is validated on the host before it can become `served`; sources are resolved only through the injected `resolve`.
     - Compatibility: `added` for `/host` and its exports.
@@ -64,17 +74,17 @@ This plan implements roadmap Phase 7's 0.3.0 host-lifecycle work: new spec §7.7
     - Options Considered: resolve sources inside the runner. Rejected: data is resolved by the app as the viewer (law 4), outside widget code.
     - Chosen Approach: the designed sequence.
     - API Notes and Examples: see Task 1.
-    - Files to Create/Edit: `src/host/render.ts`; `src/host/index.ts`; `package.json` (`./host`); `scripts/build.ts`; `bench/host.bench.ts`; `src/__tests__/host-render.test.ts`; `src/__tests__/portability.test.ts`; `docs/spec.md` §7.7, §13; `docs/host.md`; `register-0.3.0.json`
+    - Files to Create/Edit: `src/host/render.ts`; `src/host/types.ts`; `src/host/index.ts`; `package.json` (`./host`); `scripts/build.ts`; `bench/host.bench.ts`; `src/__tests__/host-render.test.ts`; `src/__tests__/portability.test.ts`; `docs/spec.md` §7.7, §13; `docs/host.md`; `register-0.3.0.json`
   - Test Cases to Write:
-    - `skips_render_when_key_unchanged`; `patch_when_previous_matches_whole_tree_otherwise`; `resolver_failure_becomes_outcome_envelope`; `resolver_result_failing_schema_rejected`; `runner_tree_validated_on_host`; `unknown_catalog_id_catalog_mismatch`.
+    - `skips_render_when_key_unchanged`; `no_skip_for_other_surface_or_scope`; `patch_when_previous_matches_whole_tree_otherwise`; `resolver_failure_becomes_outcome_envelope`; `resolver_throw_without_envelope_render_failed_no_leak`; `resolver_result_failing_schema_rejected`; `runner_tree_validated_on_host`; `runner_tree_wrong_revision_rejected`; `unknown_catalog_id_catalog_mismatch`; `revision_floor_used_without_previous`; `events_carry_no_values`; `throwing_on_event_contained`.
   - Notes (executed <date>):
 
 - [ ] Task 3: `handleIntent`
   - Acceptance Criteria:
     - Functional:
-      - `handleIntent(args): Promise<Result<{ served: Served; actions: Record<string, ActionStatus> }>>`. Steps: `checkOffered(served.tree, origin, intent, served.validator)` (failure → `refused` result for actions, typed error for `setState`; `intent-refused` event) → for `setState`: check value against the manifest state schema, `store.putState`, `renderPlacement` → for actions: `authorize(intent, viewer)` (false → `refused`), else set `pending`, call `publish` with a re-render if provided, `await dispatch(intent)` returning `{ ok: true, value? } | { ok: false, reason }`, validate `value` against the action's `result` schema, set `ok`/`failed`, re-render with updated `actions` and `publish`.
-      - Concurrency rule from spec §11 holds: an intent from a superseded revision is refused, never rewritten to the latest revision.
-      - `setLocal` intents reaching the host are `invalid-document` (they belong to the renderer).
+      - `handleIntent(args): Promise<Result<{ served: Served; actions: Record<string, ActionStatus> }>>` with steps H1–H9 of the design. `checkOffered(served.tree, origin, intent, served.validator)` first; a stale revision is a typed `version-conflict` error; an offered action that fails the check is recorded `refused` under the offered tree's key (never the posted intent's) and re-rendered; anything not offered is a typed error; each raises `intent-refused`. Then `setState`: load, check `{ ...storedState, [key]: value }` against the manifest state schema (`invalid-prop` at `/value`), `store.putState`, render with that state. Or an action: `authorize(intent, viewer)` (false, throw or rejection → `refused` with the fixed reason `"Not allowed"`), then `pending` (rendered and published only when `publish` is supplied), `await dispatch(intent, viewer)` returning `{ ok: true, value? } | { ok: false, reason? }`, `value` checked against the action's `result` schema (dropped when there is none), `ok`/`failed` recorded, re-render with the updated `actions`, published when `publish` is supplied and returned. The `actions` map keeps at most 64 entries by evicting the oldest settled ones; if all are `pending`, `limit-exceeded` before authorise or dispatch.
+      - Concurrency rule from spec §11 holds: an intent from a superseded revision is refused, never rewritten to the latest revision. Hosts serialise calls per placement and scope (`docs/host.md`).
+      - `setLocal` intents reaching the host are rejected by `checkOffered` as `invalid-prop` at `/type` (plan 029 L4: they belong to the renderer); `handleIntent` returns that error unchanged.
     - Performance: overhead ≤ 0.2 ms beyond the injected calls.
     - Code Quality: one function; effects only through injected callbacks.
     - Security: law 4 — nothing runs before `checkOffered` and `authorize`; a `dispatch` throw becomes `failed` with a generic reason, never the host's stack.
@@ -88,13 +98,13 @@ This plan implements roadmap Phase 7's 0.3.0 host-lifecycle work: new spec §7.7
     - API Notes and Examples: see Task 1.
     - Files to Create/Edit: `src/host/intent.ts`; `src/host/index.ts`; `src/__tests__/host-intent.test.ts`; `docs/host.md`; `docs/spec.md` §7.7, §8; `register-0.3.0.json`
   - Test Cases to Write:
-    - `unoffered_intent_refused_no_effect`; `stale_revision_refused`; `authorize_false_refused`; `pending_then_ok_published_in_order`; `dispatch_throw_becomes_failed_without_leak`; `result_value_failing_schema_becomes_failed`; `set_state_persists_then_rerenders`; `set_local_at_host_rejected`.
+    - `unoffered_intent_refused_no_effect`; `stale_revision_refused`; `authorize_false_refused`; `authorize_throw_fails_closed`; `invalid_offered_action_recorded_refused_under_offered_key`; `pending_then_ok_published_in_order`; `dispatch_throw_becomes_failed_without_leak`; `result_value_failing_schema_becomes_failed`; `value_dropped_without_result_schema`; `actions_over_64_evict_oldest_settled`; `set_state_persists_then_rerenders`; `set_state_invalid_value_no_write`; `set_local_at_host_rejected` (`invalid-prop` at `/type`); `no_effect_before_check_offered_and_authorize` (call-order spy).
   - Notes (executed <date>):
 
 - [ ] Task 4: Cross-placement coordination through source dependents (W6b)
   - Acceptance Criteria:
     - Functional:
-      - `dependents(placements, change)` where `placements` are `{ placementId, bound: ReturnType<typeof bindSources> }` and `change` is `{ source, params? }`; returns the placement ids whose bound calls name the source and, when `params` is given, equal params by canonical JSON. Linear in total bound calls.
+      - `dependents(placements, change)` where `placements` are `{ placementId, bound }` (`bound` is the unwrapped `bindSources` value, which `Served.bound` carries) and `change` is `{ source, params? }`; returns the placement ids whose bound calls name the source and, when `params` is given, equal params by canonical JSON. Linear in total bound calls.
       - `docs/host.md` shows the coordination pattern: a "selection" capability (a source plus an action), two placements, `handleIntent` on one, `dependents` to re-render the other.
     - Performance: linear; benchmarked with 1,000 placements.
     - Code Quality: a pure function; no subscription registry.
