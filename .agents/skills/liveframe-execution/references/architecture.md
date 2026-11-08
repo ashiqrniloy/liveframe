@@ -20,6 +20,7 @@ One npm package with subpath exports:
 | `/sdk/gen` | `generate()`, `generateDefinitions()` (the `liveframe gen` emitters) | No |
 | `/pack` | `pack()`, `verifyPackage()` | No |
 | `/store` | Record formats, `Store` interface, `memoryStore()`, `loadPlacement()` | No |
+| `/host` | `renderPlacement()` (and, as plan 030 lands, `handleIntent()`, `dependents()`): the ordered, stateless request-time pipeline over injected effects (spec §7.7) | No |
 | `/store/fs` | `fileStore(dir)` | File system |
 | `/preview` | `Runner` interface, `inProcessRunner()`, `createPreview()` | No |
 | `/runner-kit` | `renderModule()`, `linkPackage()` (the in-sandbox half of a runner) | No |

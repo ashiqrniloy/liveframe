@@ -36,6 +36,7 @@ import type { JSX as DevJSX } from "@arnilo/liveframe/sdk/jsx-dev-runtime";
 import * as devRuntime from "@arnilo/liveframe/sdk/jsx-dev-runtime";
 import type { JSX } from "@arnilo/liveframe/sdk/jsx-runtime";
 import * as runtime from "@arnilo/liveframe/sdk/jsx-runtime";
+import * as host from "@arnilo/liveframe/host";
 import * as store from "@arnilo/liveframe/store";
 import * as fileStore from "@arnilo/liveframe/store/fs";
 import * as surface from "@arnilo/liveframe/surface";
@@ -78,6 +79,10 @@ test("css_exports_are_pinned", () => {
     "themeCss",
     "valueVar",
   ]);
+});
+
+test("host_export_surface", () => {
+  expect(Object.keys(host).sort()).toEqual(["renderPlacement"]);
 });
 
 test("surface_export_surface", () => {

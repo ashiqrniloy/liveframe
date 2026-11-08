@@ -2166,5 +2166,77 @@
     "reason": "Observability events from the surface core and `<Surface onEvent>`: rejected arrivals, stale revisions, rejected emits, failed implementations and bindings, dropped confirmations (plan 029 T5)",
     "hostAction": "Optional: pass `onEvent` to log or count what the surface drops silently.",
     "task": "029 T5"
+  },
+  {
+    "subpath": "./host",
+    "name": "renderPlacement",
+    "change": "added",
+    "reason": "The stateless host pipeline: `renderPlacement` orders load, bind, resolve-as-the-viewer, render, host validation and diff, and returns a `Served` the host stores (plan 030 T2)",
+    "hostAction": "Optional: replace hand-rolled request-time orchestration with `renderPlacement`; every composed helper stays public.",
+    "task": "030 T2"
+  },
+  {
+    "subpath": "./host",
+    "name": "RenderArgs",
+    "change": "added",
+    "reason": "The stateless host pipeline: `renderPlacement` orders load, bind, resolve-as-the-viewer, render, host validation and diff, and returns a `Served` the host stores (plan 030 T2)",
+    "hostAction": "Optional: replace hand-rolled request-time orchestration with `renderPlacement`; every composed helper stays public.",
+    "task": "030 T2"
+  },
+  {
+    "subpath": "./host",
+    "name": "Served",
+    "change": "added",
+    "reason": "The stateless host pipeline: `renderPlacement` orders load, bind, resolve-as-the-viewer, render, host validation and diff, and returns a `Served` the host stores (plan 030 T2)",
+    "hostAction": "Optional: replace hand-rolled request-time orchestration with `renderPlacement`; every composed helper stays public.",
+    "task": "030 T2"
+  },
+  {
+    "subpath": "./host",
+    "name": "HostWiring",
+    "change": "added",
+    "reason": "The stateless host pipeline: `renderPlacement` orders load, bind, resolve-as-the-viewer, render, host validation and diff, and returns a `Served` the host stores (plan 030 T2)",
+    "hostAction": "Optional: replace hand-rolled request-time orchestration with `renderPlacement`; every composed helper stays public.",
+    "task": "030 T2"
+  },
+  {
+    "subpath": "./host",
+    "name": "HostEvent",
+    "change": "added",
+    "reason": "The stateless host pipeline: `renderPlacement` orders load, bind, resolve-as-the-viewer, render, host validation and diff, and returns a `Served` the host stores (plan 030 T2)",
+    "hostAction": "Optional: replace hand-rolled request-time orchestration with `renderPlacement`; every composed helper stays public.",
+    "task": "030 T2"
+  },
+  {
+    "subpath": "./host",
+    "name": "Installs",
+    "change": "added",
+    "reason": "The stateless host pipeline: `renderPlacement` orders load, bind, resolve-as-the-viewer, render, host validation and diff, and returns a `Served` the host stores (plan 030 T2)",
+    "hostAction": "Optional: replace hand-rolled request-time orchestration with `renderPlacement`; every composed helper stays public.",
+    "task": "030 T2"
+  },
+  {
+    "subpath": "./host",
+    "name": "SourceCall",
+    "change": "added",
+    "reason": "The stateless host pipeline: `renderPlacement` orders load, bind, resolve-as-the-viewer, render, host validation and diff, and returns a `Served` the host stores (plan 030 T2)",
+    "hostAction": "Optional: replace hand-rolled request-time orchestration with `renderPlacement`; every composed helper stays public.",
+    "task": "030 T2"
+  },
+  {
+    "subpath": "./host",
+    "name": "SourceResult",
+    "change": "added",
+    "reason": "The stateless host pipeline: `renderPlacement` orders load, bind, resolve-as-the-viewer, render, host validation and diff, and returns a `Served` the host stores (plan 030 T2)",
+    "hostAction": "Optional: replace hand-rolled request-time orchestration with `renderPlacement`; every composed helper stays public.",
+    "task": "030 T2"
+  },
+  {
+    "subpath": "./host",
+    "name": "Actions",
+    "change": "added",
+    "reason": "The stateless host pipeline: `renderPlacement` orders load, bind, resolve-as-the-viewer, render, host validation and diff, and returns a `Served` the host stores (plan 030 T2)",
+    "hostAction": "Optional: replace hand-rolled request-time orchestration with `renderPlacement`; every composed helper stays public.",
+    "task": "030 T2"
   }
 ]

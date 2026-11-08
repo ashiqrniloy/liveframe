@@ -709,3 +709,11 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Source: plans/029-Phase-7-Part-P-Release-0-3-0-Interaction-Outcomes-Local-Bindings-And-Surface-Core.md Task 7, plans/evidence/029-impact-analysis.md F7
 - What: an expression reads only `local` (scalars) and the node's own props, so a "No matches" row cannot learn that every filtered row is hidden. Choose between a bounded derived value over a node's `when`-visible siblings, an aggregate `local` key written by the core, or documenting the `setState` workaround. Local state stays scalars only unless the decision says otherwise.
 - Why: the first thing an adopter builds with a live filter is its empty state, and today it needs a round trip.
+
+## Make a verified-package cache hit cheap
+
+- Section: Storage (spec §7.4)
+- Priority: P3
+- Source: plans/030-Phase-7-Part-Q-Release-0-3-0-Host-Pipeline-Evolution-And-Dependencies.md Task 2, `bench/host.bench.ts`
+- What: `loadPlacement` with a `verifiedPackages` hit still costs about 0.5 ms for a 8 KB template package against the 9 KB demo catalog: `verifyStoredPackage` re-canonicalises the catalog (about 0.21 ms) and the capabilities, and re-hashes the package (about 0.15 ms), on every call. The stored record is untrusted, so the package hash must be rechecked, but the install documents are the host's own and could be keyed once (by identity, if they are frozen).
+- Why: it is 75% of a skipped `renderPlacement` and the reason the pipeline budget of 0.2 ms excludes `loadPlacement`. A host rendering many placements per request pays it for each.

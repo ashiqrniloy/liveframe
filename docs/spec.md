@@ -1093,6 +1093,34 @@ renderTemplate(template, { params, state, data, context }, { validator, surfaceI
 
 TSX widgets are a full language and need a sandbox. Element JSON needs none but is static, unbound and ephemeral. A template fills the gap: data-bound, installable and type-checked, but only data, so an app can install what an agent or a user writes without an isolation runner.
 
+### 7.7 The host pipeline
+
+**Rules**
+
+1. The library fixes the **order** of the security-critical steps of a request-time render and holds no authority and no state: `renderPlacement` is a function of its arguments plus the effects the host injects (`store`, `runner`, `resolve`), and keeps no object, map, cache or timer between calls. State (the last accepted tree, its revision, the validator) is a value the host stores and hands back (`Served`).
+2. Sources are read only through the injected `resolve`, once per render, as the viewer. The library hands `viewer` to the host's callbacks without reading it.
+3. A runner's tree is untrusted. It becomes `Served` only after the host's own `validateTree`, and only if its `surfaceId` and `revision` are the ones the host asked for (law 2).
+4. A reported or thrown source failure never reaches a widget as the host's text. A source that declares the `sourceOutcome` envelope shows its widget `{ status, reason? }`; any other source makes the render fail at `/data/<alias>`. A value that misses the source's `result` schema always fails the render.
+5. The pipeline is optional. Every helper it composes (`loadPlacement`, `bindSources`, `renderKey`, `diffTrees`, `checkOffered`) stays public.
+
+**Contract and examples**
+
+```ts
+import { renderPlacement } from "@arnilo/liveframe/host";
+const host = { store, runner, installs, resolve, verified, onEvent }; // built once by the host
+const served = await renderPlacement({ ...host, placementId, catalogId, scope, viewer, context, actions, previous });
+// served.value.tree for a new client; served.value.patch (base = previous.revision) for one that holds `previous`
+```
+
+- **Steps (`renderPlacement`).** R1 pick `installs[catalogId]` (`catalog-mismatch` at `/catalogId`); R2 `loadPlacement` (the manifest's own `catalogId` is checked against the caller's, never used to select it); R3 `bindSources`; R4 one `resolve(calls, viewer)`, a rejection counting as `failed` for every call with a fixed message; R5 fit each result to its source's `result` schema; R6 compute `renderKey`, and when `previous` has the same key, surface, placement and scope return `previous` unchanged; R7 the revision is `revision ?? previous.revision + 1 ?? 1` (a host that can lose `previous` while a client stays connected passes a monotonic floor); R8 `runner.render`; R9 host `validateTree`, then the surface and revision check; R10 `diffTrees(previous.tree, tree)` when `previous` is comparable, a failure meaning "send the whole tree"; R11 return `Served`.
+- **`Served`.** `{ placementId, scope, tree, key, revision, validator, package, state, bound, patch?, reset? }`. `validator` is process-local and compiled for exactly the package and install it was built from, so a `Served` is rebuilt, not persisted, across a restart. The validator is reused from `previous` only when the same install object and package hash are in play.
+- **Events.** `onEvent` receives frozen `HostEvent`s: `render-skipped`, `state-reset`, `source-failed`, `tree-rejected`, `load-failed` and `render-failed`, carrying ids, kinds, reasons and `LiveframeError`s, never state, params, source data or viewer. A handler's throw or rejection is contained, and nothing is built without one. The set may grow in a minor release.
+- **What stays the host's.** Transport, sessions and viewer identity; serialising calls per placement and scope, because a stateless function cannot tell two callers holding the same stale `Served` apart; de-duplicating reads across placements; caching beyond `renderKey`; approval and tenancy.
+
+**Rationale**
+
+Every adopter of the old helpers re-implemented the same sequence, and swapping two of its steps breaks a law without failing a test. Fixing the order in one function removes that, while keeping the state with the host is what keeps the library free of lifetimes, eviction and memory growth.
+
 ## 8. Interaction (Synapta's three tiers)
 
 **Rules**
@@ -1534,6 +1562,7 @@ Before building the library, prove the model's central claim: **that a small pri
   | `@arnilo/liveframe/css` | Pure, host-API-free projection into three scoped sheets, plus class, style, scope and variable helpers (§6.4); the host inserts sheets |
   | `@arnilo/liveframe/pack` | Package and scenario formats, structural validators, `pack()`, `verifyPackage()` and `renderKey()` (§7.3, §8) |
   | `@arnilo/liveframe/store` | Record formats, the `Store` interface, `memoryStore()` and `loadPlacement()` (§7.4) |
+  | `@arnilo/liveframe/host` | Host-API-free `renderPlacement()`: the ordered, stateless render pipeline (§7.7), with its `Served`, `HostWiring` and `HostEvent` types |
   | `@arnilo/liveframe/store/fs` | `fileStore(dir)`, which reads and writes the file system |
   | `@arnilo/liveframe/preview` | The `Runner` interface, `inProcessRunner()`, `templateRunner()` and `createPreview()` (§7.5), plus the type-only `PreviewSession`, `PreviewBinding` and `AuthoringConfig` |
   | `@arnilo/liveframe/authoring` | Host-API-free `createAuthoring()` with eight typed authoring operations; requires the host's runner |
@@ -1562,6 +1591,7 @@ Before building the library, prove the model's central claim: **that a small pri
 | `runner-kit` | none |
 | `template` | none |
 | `surface` | none |
+| `host` | `console` |
 | `preview/capture` | `TextEncoder`, `TextDecoder`, `URL` |
 | `conformance` | `TextDecoder`, `console` |
 | `pack` | `TextDecoder`, `console` |

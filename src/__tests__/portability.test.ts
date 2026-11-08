@@ -17,6 +17,7 @@ const subpaths = [
   { path: "runner-kit", dependencies: false, loader: false, host: "none", globals: [] },
   { path: "template", dependencies: false, loader: false, host: "none", globals: [] },
   { path: "surface", dependencies: false, loader: false, host: "none", globals: [] },
+  { path: "host", dependencies: true, loader: false, host: "none", globals: ["console"] },
   {
     path: "preview/capture",
     dependencies: false,
@@ -248,7 +249,7 @@ test.each(subpaths.filter(({ host }) => host === "none"))(
     const knownSnippets = pinnedSnippets;
     for (const snippet of dependencies ? knownSnippets : []) {
       // Verification tree-shakes the source-map codec used only during packing.
-      if (path === "store" && ![knownSnippets[0], knownSnippets[3]].includes(snippet)) continue;
+      if ((path === "store" || path === "host") && ![knownSnippets[0], knownSnippets[3]].includes(snippet)) continue;
       expect(source.includes(snippet), snippet).toBe(true);
       source = source.replace(snippet, "");
     }

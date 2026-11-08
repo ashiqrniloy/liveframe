@@ -347,6 +347,14 @@ Existing code is unchanged.
 
 See [watch what the surface rejects](renderer.md#watch-what-the-surface-rejects) and [spec §11](spec.md#11-renderer).
 
+### The host pipeline
+
+`@arnilo/liveframe/host` exports `renderPlacement`, the ordered, stateless request-time render: load the placement, bind and resolve its sources as the viewer, skip an unchanged render, run the widget, validate the runner's tree on the host and diff it against the last accepted tree. You inject `store`, `runner` and `resolve`; the library keeps nothing between calls.
+Optional: replace hand-rolled request-time orchestration with `renderPlacement`; every composed helper stays public.
+Existing code is unchanged. Serialise calls per placement and scope, and keep the returned `Served` per placement to pass back as `previous`.
+
+See [the host guide](host.md) and [spec §7.7](spec.md#77-the-host-pipeline).
+
 ### Streamed element JSON
 
 `streamElements({ validator, surfaceId, revision?, limits?, maxErrors? })` from `/sdk` draws an agent's element JSON while it is still arriving: `push(chunk)` returns a new valid tree when the nodes completed so far changed, and `end()` returns what `renderElements` returns for the whole text. Trees are numbered `revision + 1`, `revision + 2`, … so a host can send `diffTrees` patches.
