@@ -1,0 +1,2 @@
+kit+package module load/eval (in a runtime): 34.1 ms
+in-sandbox ms per step (avg of 20 ): {"parseRequest":0.9,"parseCatalog":0.25,"renderFreshObjects":38.85,"renderSameObjects":32.3,"stringifyResult":2.3,"resultBytes":119838}

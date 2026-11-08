@@ -1,0 +1,11 @@
+{
+  "name": "liveframe-031-spike",
+  "private": true,
+  "type": "module",
+  "description": "Plan 031 Task 1 spike. Not shipped; not part of any workspace.",
+  "dependencies": {
+    "@jitl/quickjs-ng-wasmfile-release-sync": "^0.32.0",
+    "deno": "^2.9.6",
+    "quickjs-emscripten": "0.32.0"
+  }
+}

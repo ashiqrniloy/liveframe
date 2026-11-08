@@ -1,0 +1,5 @@
+abort: RuntimeError: Aborted(Assertion failed: list_empty(&rt->gc_obj_list), 
+same module after abort, 1+1 -> 2
+WebAssembly.compile 503 KiB: 1.6 ms
+newQuickJSWASMModule(RELEASE_SYNC) repeated: 2.6 2.7 5.5 2.1 3.4 2.3 2.5 3.7 2.2 2.1 4.5 2.3 3.6 2.0 5.8
+with shared compiled WebAssembly.Module: 1.2 0.4 1.6 0.4 1.1 0.3 1.3 0.3 1.2 0.3 1.1 0.2 1.0 0.2 0.9

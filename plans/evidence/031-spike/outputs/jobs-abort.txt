@@ -1,0 +1,4 @@
+bellard  dispose-after-error    jobs ran 92141 | HOST THROW RuntimeError: Aborted(Assertion failed: list_empty(&rt->gc_obj_list), at: ../../vendor/qui
+bellard  no-pending-jobs-call    | dispose ok
+ng       dispose-after-error    jobs error {"name":"InternalError","message":"interrupted","stack":""} | HOST THROW RuntimeError: Aborted(Assertion failed: list_empty(&rt->gc_obj_list), at: ../../vendor/qui
+ng       no-pending-jobs-call    | dispose ok

@@ -1,0 +1,15 @@
+deno child cold start (spawn + kit import): 134.4 ms
+first render: 80.0 ms ok
+deno warm round trip agent-home (new package module each time, kit cached): median 63.28 ms, p95 72.49 ms
+deno probe read file         37 ms  {"ok":false,"errors":[{"kind":"render-failed","pointer":"","nodeId":"root","expected":"the widget to run without throwing","message":"read: NotCapable Requires read access to \"/etc/hostname\", run again with the "}]}
+deno probe fetch             32 ms  {"ok":false,"errors":[{"kind":"render-failed","pointer":"","nodeId":"root","expected":"the widget to run without throwing","message":"typeof fetch=function typeof Deno=object keys=115"}]}
+deno probe Deno.exit       1502 ms  {"error":"NO ANSWER in 1.5 s (would be killed)"}
+deno probe env               44 ms  {"ok":false,"errors":[{"kind":"render-failed","pointer":"","nodeId":"root","expected":"the widget to run without throwing","message":"env: NotCapable"}]}
+deno probe run               46 ms  {"ok":false,"errors":[{"kind":"render-failed","pointer":"","nodeId":"root","expected":"the widget to run without throwing","message":"run: NotCapable"}]}
+deno probe infinite loop   1502 ms  {"error":"NO ANSWER in 1.5 s (would be killed)"}
+<--- Last few GCs --->
+==== C stack trace ===============================
+deno probe memory bomb     1503 ms  {"error":"NO ANSWER in 1.5 s (would be killed)"}
+deno probe indexOf hold      90 ms  {"ok":true,"value":{"format":"liveframe/1","catalogId":"proof.ui@1","surfaceId":"s","revision":1,"root":{"id":"root","kind":"text","props":{"text":"ok"}}}}
+deno probe stdin write       47 ms  host could not parse the reply: FORGED
+exit=0

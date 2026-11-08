@@ -1,0 +1,6 @@
+1MiB-class overflow -> host threw: RangeError: Maximum call stack size exceeded.
+same module after host throw, new runtime 1+1 -> 2
+host depth 0, 256K -> stack overflow
+host depth 1000, 256K -> stack overflow
+host depth 3000, 256K -> stack overflow
+host depth 6000, 256K -> stack overflow

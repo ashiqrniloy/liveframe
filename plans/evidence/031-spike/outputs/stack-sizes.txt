@@ -1,0 +1,42 @@
+   64K plain           depth=370 msg=stack overflow | dispose ok
+   64K args+locals     depth=290 msg=stack overflow | dispose ok
+   64K map-recursion   depth=102 msg=stack overflow | dispose ok
+   64K json-tojson     depth=112 msg=stack overflow | dispose ok
+   64K getter          depth=312 msg=stack overflow | dispose ok
+   64K proxy           depth=213 msg=stack overflow | dispose ok
+   64K sort-cmp        depth=51 msg=stack overflow | dispose ok
+  128K plain           depth=742 msg=stack overflow | dispose ok
+  128K args+locals     depth=583 msg=stack overflow | dispose ok
+  128K map-recursion   depth=204 msg=stack overflow | dispose ok
+  128K json-tojson     depth=226 msg=stack overflow | dispose ok
+  128K getter          depth=627 msg=stack overflow | dispose ok
+  128K proxy           depth=429 msg=stack overflow | dispose ok
+  128K sort-cmp        depth=102 msg=stack overflow | dispose ok
+  256K plain           depth=1487 msg=stack overflow | dispose ok
+  256K args+locals     depth=1168 msg=stack overflow | dispose ok
+  256K map-recursion   depth=409 msg=stack overflow | dispose ok
+  256K json-tojson     depth=454 msg=stack overflow | dispose ok
+  256K getter          depth=1257 msg=stack overflow | dispose ok
+  256K proxy           depth=860 msg=stack overflow | dispose ok
+  256K sort-cmp        depth=205 msg=stack overflow | dispose ok
+  512K plain           depth=2976 msg=stack overflow | dispose ok
+  512K args+locals     depth=2338 msg=stack overflow | dispose ok
+  512K map-recursion   | HOST THROW RangeError: Maximum call stack size exceeded.
+  512K json-tojson     | HOST THROW RangeError: Maximum call stack size exceeded.
+  512K getter          | HOST THROW RangeError: Maximum call stack size exceeded.
+  512K proxy           | HOST THROW RangeError: Maximum call stack size exceeded.
+  512K sort-cmp        depth=410 msg=stack overflow | dispose ok
+ 1024K plain           | HOST THROW RangeError: Maximum call stack size exceeded.
+ 1024K args+locals     | HOST THROW RangeError: Maximum call stack size exceeded.
+ 1024K map-recursion   | HOST THROW RangeError: Maximum call stack size exceeded.
+ 1024K json-tojson     | HOST THROW RangeError: Maximum call stack size exceeded.
+ 1024K getter          | HOST THROW RangeError: Maximum call stack size exceeded.
+ 1024K proxy           | HOST THROW RangeError: Maximum call stack size exceeded.
+ 1024K sort-cmp        | HOST THROW RangeError: Maximum call stack size exceeded.
+ 2048K plain           | HOST THROW RangeError: Maximum call stack size exceeded.
+ 2048K args+locals     | HOST THROW RangeError: Maximum call stack size exceeded.
+ 2048K map-recursion   | HOST THROW RangeError: Maximum call stack size exceeded.
+ 2048K json-tojson     | HOST THROW RangeError: Maximum call stack size exceeded.
+ 2048K getter          | HOST THROW RangeError: Maximum call stack size exceeded.
+ 2048K proxy           | HOST THROW RangeError: Maximum call stack size exceeded.
+ 2048K sort-cmp        | HOST THROW RangeError: Maximum call stack size exceeded.

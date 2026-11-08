@@ -1,0 +1,12 @@
+bellard  caught stack overflow       17 ms  disposed cleanlyHOST THROW RangeError: Maximum call stack size exceeded.
+bellard  uncaught stack overflow      8 ms  disposed cleanlyHOST THROW RangeError: Maximum call stack size exceeded.
+bellard  caught OOM                2113 ms  disposed cleanlydisposed cleanly
+bellard  interrupt                  422 ms  eval error InternalError: interrupted; disposed cleanly
+bellard  string bomb                  6 ms  disposed cleanlydisposed cleanly
+bellard  plain                        5 ms  disposed cleanlydisposed cleanly
+ng       caught stack overflow       20 ms  disposed cleanlyHOST THROW RangeError: Maximum call stack size exceeded.
+ng       uncaught stack overflow      8 ms  disposed cleanlyHOST THROW RangeError: Maximum call stack size exceeded.
+ng       caught OOM                2637 ms  disposed cleanlydisposed cleanly
+ng       interrupt                  413 ms  eval error InternalError: interrupted; disposed cleanly
+ng       string bomb                  8 ms  disposed cleanlydisposed cleanly
+ng       plain                        8 ms  disposed cleanlydisposed cleanly

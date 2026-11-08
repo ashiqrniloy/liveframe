@@ -1,0 +1,3 @@
+git-status/empty: fresh 29.9 ms | reuse, request re-parsed 3.9 ms | reuse, catalog objects kept 0.3 ms
+agent-home/ready: fresh 69.0 ms | reuse, request re-parsed 39.1 ms | reuse, catalog objects kept 34.1 ms
+core-queue/medium: fresh 55.3 ms | reuse, request re-parsed 26.4 ms | reuse, catalog objects kept 21.9 ms

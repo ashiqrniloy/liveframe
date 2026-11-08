@@ -1,0 +1,1 @@
+uninterruptible2 (single String.prototype.indexOf, 10 MB x 5 MB, 64 MiB limit, 100 ms interrupt deadline): exit 124 after the 20 s wall limit (124 = the call never returned; earlier run: still running at 60 s)

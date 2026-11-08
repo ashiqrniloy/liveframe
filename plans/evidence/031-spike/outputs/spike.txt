@@ -1,0 +1,59 @@
+request 62.6 KiB; kit bundle 136.0 KiB
+cold: wasm module 10.962 ms; first render (fresh runtime, kit load) 114.644 ms
+agent-home/ready                679 nodes  quickjs(fresh)    67.9 ms  render()   3.01 ms  result  117 KiB
+agent-home/host-ready           123 nodes  quickjs(fresh)    41.0 ms  render()   0.47 ms  result   21 KiB
+agent-home/loading               13 nodes  quickjs(fresh)    34.5 ms  render()   0.15 ms  result    2 KiB
+agent-home/empty                 10 nodes  quickjs(fresh)    33.4 ms  render()   0.11 ms  result    1 KiB
+agent-home/failed                12 nodes  quickjs(fresh)    33.8 ms  render()   0.11 ms  result    2 KiB
+agent-home/read-only            122 nodes  quickjs(fresh)    38.6 ms  render()   0.53 ms  result   20 KiB
+agent-home/no-alerts            102 nodes  quickjs(fresh)    38.7 ms  render()   0.39 ms  result   17 KiB
+agent-home/no-escalate          123 nodes  quickjs(fresh)    41.0 ms  render()   0.47 ms  result   21 KiB
+agent-home/claim-pending        679 nodes  quickjs(fresh)    67.3 ms  render()   2.15 ms  result  117 KiB
+agent-home/claim-failed         680 nodes  quickjs(fresh)    70.2 ms  render()   1.68 ms  result  117 KiB
+agent-home/localised            679 nodes  quickjs(fresh)    68.2 ms  render()   1.72 ms  result  117 KiB
+core-queue/small                  5 nodes  quickjs(fresh)    35.9 ms  render()   0.19 ms  result    1 KiB
+core-queue/medium               414 nodes  quickjs(fresh)    54.5 ms  render()   1.16 ms  result   71 KiB
+core-queue/large                446 nodes  quickjs(fresh)    57.3 ms  render()   1.29 ms  result   76 KiB
+core-queue/full                 473 nodes  quickjs(fresh)    59.6 ms  render()   1.29 ms  result   86 KiB
+core-queue/host-small             5 nodes  quickjs(fresh)    33.8 ms  render()   0.06 ms  result    1 KiB
+core-queue/host-medium           39 nodes  quickjs(fresh)    35.3 ms  render()   0.16 ms  result    6 KiB
+core-queue/host-large            71 nodes  quickjs(fresh)    38.4 ms  render()   0.25 ms  result   11 KiB
+core-queue/host-full            123 nodes  quickjs(fresh)    39.3 ms  render()   0.46 ms  result   21 KiB
+git-status/ready                 62 nodes  quickjs(fresh)    35.2 ms  render()   0.20 ms  result    6 KiB
+git-status/empty                  3 nodes  quickjs(fresh)    30.1 ms  render()   0.01 ms  result    0 KiB
+git-status/benchmark            145 nodes  quickjs(fresh)    36.2 ms  render()   0.41 ms  result   13 KiB
+rack-module/ready                44 nodes  quickjs(fresh)    32.0 ms  render()   0.11 ms  result    5 KiB
+rack-module/benchmark           236 nodes  quickjs(fresh)    38.5 ms  render()   0.46 ms  result   28 KiB
+harness/ready                   216 nodes  quickjs(fresh)    40.3 ms  render()   0.53 ms  result   27 KiB
+deep-equal to render(): 25 proof scenarios; key order differs in 0
+quickjs reuse:none  (fresh runtime + kit load + render, dispose): median 67.928 ms
+quickjs reuse:package (warm runtime, entry re-run only): median 40.078 ms
+result JSON 117.0 KiB
+runtime + kit load only: median 16.669 ms
+runtime + context create/dispose only: median 0.104 ms
+inProcessRunner warm: median 2.068 ms
+workerRunner cold (first render, worker start): 62.417 ms
+workerRunner warm: median 6.858 ms
+templateRunner warm (template port): median 1.879 ms
+probe stack-overflow-1MiB (39.573 ms): ok {"ok":false,"errors":[{"kind":"render-failed","pointer":"","nodeId":"root","expected":"the widget to run without throwing","message":"stack overflow"}]}
+probe deep-recursion-256KiB (37.927 ms): ok {"ok":false,"errors":[{"kind":"render-failed","pointer":"","nodeId":"root","expected":"the widget to run without throwing","message":"stack overflow"}]}
+probe deep-json-256KiB (869.114 ms): ok {"ok":false,"errors":[{"kind":"render-failed","pointer":"","nodeId":"root","expected":"the widget to run without throwing","message":"stack overflow"}]}
+probe memory-bomb-250ms (2384.669 ms): ok {"ok":false,"errors":[{"kind":"render-failed","pointer":"","nodeId":"root","expected":"the widget to run without throwing","message":"out of memory"}]}
+probe memory-bomb-objects-250ms (328.568 ms): error InternalError: interrupted
+probe memory-bomb-single (64.781 ms): ok {"ok":false,"errors":[{"kind":"render-failed","pointer":"","nodeId":"root","expected":"the widget to run without throwing","message":"out of memory"}]}
+probe arraybuffer-bomb (34.154 ms): ok {"ok":false,"errors":[{"kind":"render-failed","pointer":"","nodeId":"root","expected":"the widget to run without throwing","message":"out of memory"}]}
+probe repeat-bomb (34.559 ms): ok {"ok":false,"errors":[{"kind":"render-failed","pointer":"","nodeId":"root","expected":"the widget to run without throwing","message":"out of memory"}]}
+probe tla-never-settles (21.258 ms): error : no result: module evaluation did not settle
+probe microtask-loop-in-tla (282.594 ms): error : no result: module evaluation did not settle
+probe raw-dynamic-import (35.214 ms): ok {"ok":false,"errors":[{"kind":"render-failed","pointer":"","nodeId":"root","expected":"the widget to run without throwing","message":"dyn=refused: module not found ; meta=|{} ; eval=undefinedundefinedundefined ; Function=undefinedundefinedundefined"}]}
+probe raw-microtask-loop-pending-jobs (277.132 ms): error InternalError: interrupted
+probe infinite-loop timeout=100ms (103.635 ms): error InternalError: interrupted
+probe memory-bomb 32MiB (1840.068 ms): ok {"ok":false,"errors":[{"kind":"render-failed","pointer":"","nodeId":"root","expected":"the widget to run without throwing","message":"out of memory"}]}
+probe string-bomb 32MiB (33.804 ms): ok {"ok":false,"errors":[{"kind":"render-failed","pointer":"","nodeId":"root","expected":"the widget to run without throwing","message":"string too long"}]}
+probe stack-overflow 1MiB (37.652 ms): ok {"ok":false,"errors":[{"kind":"render-failed","pointer":"","nodeId":"root","expected":"the widget to run without throwing","message":"stack overflow"}]}
+probe deep-json (807.334 ms): ok {"ok":false,"errors":[{"kind":"render-failed","pointer":"","nodeId":"root","expected":"the widget to run without throwing","message":"stack overflow"}]}
+probe promise-bomb (microtask loop) (237.810 ms): ok {"ok":true,"value":{"format":"liveframe/1","catalogId":"proof.ui@1","surfaceId":"spike","revision":1,"root":{"id":"root","kind":"text","props":{"text":"ok"}}}}
+probe host globals (37.485 ms): ok {"ok":false,"errors":[{"kind":"render-failed","pointer":"","nodeId":"root","expected":"the widget to run without throwing","message":"SEEN=[\"SharedArrayBuffer\"] OWN=[\"InternalError\",\"__req\"]"}]}
+probe constructor escape (35.115 ms): ok {"ok":false,"errors":[{"kind":"render-failed","pointer":"","nodeId":"root","expected":"the widget to run without throwing","message":"ESC=undefinedundefinedundefinedtrue"}]}
+probe import.meta / dynamic import (35.265 ms): ok {"ok":false,"errors":[{"kind":"render-failed","pointer":"","nodeId":"root","expected":"the widget to run without throwing","message":"DYN=object"}]}
+probe host function reachable (34.270 ms): ok {"ok":false,"errors":[{"kind":"render-failed","pointer":"","nodeId":"root","expected":"the widget to run without throwing","message":"HOST="}]}

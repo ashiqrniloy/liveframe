@@ -1,0 +1,19 @@
+  8 MiB array-of-arrays    1867 ms  out of memory
+  8 MiB array-of-objects    121 ms  out of memory
+  8 MiB string-concat        87 ms  out of memory
+ 16 MiB array-of-arrays    1420 ms  out of memory
+ 16 MiB array-of-objects    175 ms  out of memory
+ 16 MiB string-concat       207 ms  {"name":"TypeError","message":"cannot read property 'message
+ 32 MiB array-of-arrays    1304 ms  out of memory
+ 32 MiB array-of-objects    387 ms  out of memory
+ 32 MiB string-concat       368 ms  {"name":"TypeError","message":"cannot read property 'message
+ 64 MiB array-of-arrays    1398 ms  out of memory
+ 64 MiB array-of-objects    876 ms  out of memory
+ 64 MiB string-concat       729 ms  {"name":"TypeError","message":"cannot read property 'message
+agent-home at  4 MiB: ok
+agent-home at  6 MiB: ok
+agent-home at  8 MiB: ok
+agent-home at 12 MiB: ok
+agent-home at 16 MiB: ok
+agent-home at 24 MiB: ok
+agent-home at 32 MiB: ok

@@ -11,17 +11,17 @@ Depends on: plans [026](026-Phase-7-Part-M-Release-0-3-0-Scope-Spec-And-Breaking
 
 ## Expected Outcome
 
-- `decision-logs/<date>-isolated-runner-starter-and-workspace.md` is approved: package names, QuickJS (`quickjs-emscripten`) as the isolation engine, the spec §13 "No WebAssembly" rule scoped to the core package, the Bun-only runtime, and lockstep versions.
+- `decision-logs/2026-11-08-2310-isolated-runner-starter-and-workspace.md` is approved: package names, QuickJS (`quickjs-emscripten-core` + the release-sync wasm variant, pinned 0.32.0) hosted in a killable Bun child process as the isolation engine, the spec §13 "No WebAssembly" rule scoped to the core package, the Bun-only runtime, and lockstep versions.
 - `packages/runner-quickjs/` and `packages/starter/` build, pass `bun run check` and their own archive gates; the root package stays `@arnilo/liveframe` with no new runtime dependency.
 - `/conformance` exports `runnerSuite()`; `inProcessRunner`, `workerRunner` and `templateRunner` pass its contract cases; `quickjsRunner` passes contract **and** isolation cases.
-- `quickjsRunner({ memoryBytes, stackBytes, timeoutMs, reuse })` renders every proof scenario byte-identically to `render()`, terminates infinite loops and memory bombs with `limit-exceeded`, and reaches no host global.
+- `quickjsRunner({ memoryBytes, stackBytes, timeoutMs, reuse })` renders every proof scenario byte-identically to `render()`, terminates infinite loops, memory bombs and uninterruptible native calls (by killing its child process) with `limit-exceeded`, recovers for the next render, and reaches no host global.
 - `docs/getting-started.md` takes an outsider from `bun add` to a runtime-installed widget drawn in a browser; `scripts/getting-started-test.ts` runs its code blocks in a fresh directory in CI.
 
 This plan implements roadmap Phase 7's 0.3.0 runner and adoption work: spec §3 (what the library ships), §7.5 (runners), §13 (packages, runtime matrix) and §14 (non-goals: "an isolation sandbox" is no longer a non-goal of the project, only of the core package). Laws: law 1 is unchanged (runners run on the backend); law 2 is strengthened (the runner's output is still re-validated on the host). The starter is not part of the core package, so the core still ships no components (§3). Nothing is published here; plan 032 publishes all three packages.
 
 ## Tasks
 
-- [ ] Task 1: Decide the isolated runner, the starter and the workspace layout
+- [x] Task 1: Decide the isolated runner, the starter and the workspace layout
   - Acceptance Criteria:
     - Functional:
       - `plans/evidence/031-runner-options.md` compares, on Bun ≥ 1.4.2 with no Node runtime: `quickjs-emscripten` (WebAssembly interpreter, memory/stack limits, interrupt handler, module loader); a Deno subprocess with `--deny-*` permissions (needs Deno installed); `isolated-vm` (Node-only native addon, ruled out by the Bun-only decision); a Bun subprocess (no permission model); bubblewrap/seccomp (Linux-only). Criteria: isolation strength, limits, portability across Linux/macOS/Windows, cold-start and per-render cost (measured on a spike rendering the agent-home package), dependency weight and licence.
@@ -39,11 +39,16 @@ This plan implements roadmap Phase 7's 0.3.0 runner and adoption work: spec §3 
     - API Notes and Examples:
       ```ts
       import { quickjsRunner } from "@arnilo/liveframe-runner-quickjs";
-      const runner = await quickjsRunner({ memoryBytes: 32 << 20, stackBytes: 1 << 20, timeoutMs: 100 });
+      const runner = await quickjsRunner({ memoryBytes: 32 << 20, stackBytes: 256 << 10, timeoutMs: 250 });
       ```
-    - Files to Create/Edit: `plans/evidence/031-runner-options.md`; `plans/evidence/031-spike/*`; `decision-logs/<date>-isolated-runner-starter-and-workspace.md`
+    - Files to Create/Edit: `plans/evidence/031-runner-options.md`; `plans/evidence/031-spike/*`; `decision-logs/2026-11-08-2310-isolated-runner-starter-and-workspace.md`
   - Test Cases to Write: n/a — decision; the spike's measurements are recorded.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-08):
+    - Evidence: `plans/evidence/031-runner-options.md` (findings F1–F9, comparison, budget) and the spike in `plans/evidence/031-spike/` (`bash plans/evidence/031-spike/run-all.sh` regenerates `outputs/`). Decision log `2026-11-08-2310-isolated-runner-starter-and-workspace.md`, approved by the owner ("Approve and log (Recommended)"). Machine: Linux 7.3, Bun 1.4.4, quickjs-emscripten 0.32.0 (QuickJS 2025-09-13), Deno 2.9.6, bubblewrap 0.13.1.
+    - QuickJS is confirmed as the engine, but **the plan's in-process design was wrong**: native builtins ignore the interrupt handler (one `String.prototype.indexOf` ran >60 s past a 100 ms deadline and a 64 MiB limit), and Bun 1.4.4's `Worker.terminate()` cannot stop a worker in such a call, while `SIGKILL` of a child process takes 5–10 ms. The decision therefore hosts QuickJS in a Bun child process the runner owns and kills. Cost: child cold start 21 ms, agent-home 69–71 ms per fresh render (30 ms of it fixed), 0.3–4 ms for the smallest surface with a kept runtime.
+    - The default `stackBytes` of 1 MiB is unsafe on Bun (the host stack overflows inside wasm and `dispose()` then aborts); 256 KiB is safe. A `dispose()` abort also follows an interrupted `executePendingJobs()`; the runner never calls it and drops any wasm instance whose `dispose()` throws.
+    - Amended below because of these findings: Objectives (expected outcome), Task 2 (archive gate), Task 3 (isolation cases), Task 4 (architecture, defaults, files, dependencies) and Task 5 (budget table). Not measured, so not claimed: macOS and Windows, `reuse: "package"` through the child, resident memory growth of a long-lived child, `isolated-vm`.
+    - Spec changes are owed by later tasks (§13 rule 3 and packages table, §14, §7.5); none made here. The spike's `node_modules/` is gitignored; `bun.lock` is kept so the versions are reproducible.
 
 - [ ] Task 2: A Bun workspace that builds, gates and publishes three packages
   - Acceptance Criteria:
@@ -52,7 +57,7 @@ This plan implements roadmap Phase 7's 0.3.0 runner and adoption work: spec §3 
       - `bun run check` runs build, gen check, typecheck, lint, format and tests across the workspace. `release:gate` (archive gate), the API surface baseline (a `0.3.0` baseline per package created at release), the bundled-dependency audit and the SBOM run per package.
       - `.github/workflows/ci.yml` and `publish.yml` build and publish all three from one tag with provenance, the same version, `next` for release candidates and `latest` plus `next` for finals; a version mismatch fails the job. The publish job keeps npm only in the publish step (AGENTS.md exception).
       - The owner configures npm trusted publishing for the two new package names (recorded as an owner action in the task notes; the workflow fails closed without it).
-      - Archive gates prove the root package contains no WebAssembly and no starter components.
+      - Archive gates prove the root package contains no WebAssembly and no starter components. The runner package's gate proves its archive contains the `.wasm` file and the compiled child entry `.js` (like the worker entry, a `sideEffects` file) and that both resolve when installed outside the checkout, as the root gate does for the worker (decision log 2026-11-08-2310).
     - Performance: `bun run check` wall time recorded before and after.
     - Code Quality: one release script parameterised by package directory; no copies.
     - Security: supply chain — every package gets the audit and SBOM steps; tag-only, protected-environment publishing for all three.
@@ -77,7 +82,7 @@ This plan implements roadmap Phase 7's 0.3.0 runner and adoption work: spec §3 
     - Functional:
       - `/conformance` exports `runnerSuite({ runner: () => Runner | Promise<Runner>, catalog, capabilities, packages, isolation?: boolean }): ConformanceCase[]`.
       - Contract cases (every runner): each scenario of each supplied package renders a tree deep-equal to `render()`/`renderTemplate()`; a package whose hash does not match is refused with `hash-mismatch` before loading; a widget that loops is `limit-exceeded` within `timeoutMs` + a declared slack and the next render succeeds; a thrown widget is `render-failed`; a non-function default is `render-failed`; libraries (plan 030) load; template packages render or are refused with `invalid-document` as the runner declares; the runner never returns `ok: true` for a tree its validator rejects.
-      - Isolation cases (when `isolation: true`): widget code cannot read `fetch`, `process`, `Bun`, `Deno`, `require`, `import.meta`, `globalThis.constructor.constructor("return this")()` host globals; module state set by one render is not visible to a render of another package, nor (with `reuse: "none"`) to the next render of the same package; a memory bomb is `limit-exceeded`; a deep recursion is `limit-exceeded`; a render cannot answer another render.
+      - Isolation cases (when `isolation: true`): widget code cannot read `fetch`, `process`, `Bun`, `Deno`, `require`, `import.meta`, `globalThis.constructor.constructor("return this")()` host globals; module state set by one render is not visible to a render of another package, nor (with `reuse: "none"`) to the next render of the same package; a memory bomb is `limit-exceeded`; a deep recursion is `limit-exceeded`; a render cannot answer another render; widget code cannot write to the runner's channel (a forged result is ignored or refused); a render held in one uninterruptible native call (for example `'a'.repeat(1e7).indexOf('a'.repeat(5e6) + 'b')`) is `limit-exceeded` within `timeoutMs` plus the declared slack and the next render succeeds (the spike showed a same-thread engine cannot pass this, `plans/evidence/031-runner-options.md` F5–F6).
       - Fixtures ship as language-neutral package documents under `conformance/runner/` (exports pattern added), built from proof widgets and hostile probes.
       - `inProcessRunner`, `workerRunner` and `templateRunner` pass the contract cases in the library's own tests; `docs/conformance.md` gains the runner section.
     - Performance: suite runtime recorded; cases carry timeouts.
@@ -102,36 +107,36 @@ This plan implements roadmap Phase 7's 0.3.0 runner and adoption work: spec §3 
 - [ ] Task 4: `quickjsRunner()` in `@arnilo/liveframe-runner-quickjs`
   - Acceptance Criteria:
     - Functional:
-      - `quickjsRunner(options?)` returns `Promise<Runner & { close(): void }>`. Per render: a QuickJS runtime with `setMemoryLimit(memoryBytes)` (default 32 MiB), `setMaxStackSize(stackBytes)` (default 1 MiB) and `setInterruptHandler(shouldInterruptAfterDeadline(Date.now() + timeoutMs))`; a module loader that serves only `liveframe:kit` (the `runner-kit.bundle.js` text from `@arnilo/liveframe`), the linked package module and its linked libraries; no host function is exposed to the context.
+      - `quickjsRunner(options?)` returns `Promise<Runner & { close(): void }>`. The runner owns a Bun child process (`Bun.spawn`, JSON IPC) that holds the QuickJS wasm module; the parent verifies, validates and keeps the deadline, and `SIGKILL`s the child when the hard deadline (`timeoutMs` + 100 ms) passes, then starts a new one for the next render. Per render, inside the child: a QuickJS runtime with `setMemoryLimit(memoryBytes)` (default 32 MiB), `setMaxStackSize(stackBytes)` (default **256 KiB**; 1 MiB overflows the host stack, decision log) and `setInterruptHandler(shouldInterruptAfterDeadline(Date.now() + timeoutMs))` (default `timeoutMs` **250**; a per-render `options.timeoutMs` overrides it); a module loader that serves only `liveframe:kit` (the `runner-kit.bundle.js` text from `@arnilo/liveframe`), the linked package module and its linked libraries; no host function is exposed to the context. `executePendingJobs()` is never called; a wasm instance whose `dispose()` throws is dropped, never reused.
       - The host verifies the package hash (and library pins) before loading, links SDK and library specifiers with `linkPackage` to `liveframe:kit`/`liveframe:lib/…`, passes inputs and render options to the sandbox as one JSON string, receives the result as one JSON string, `JSON.parse`s it on the host and validates the tree with the host's compiled validator (law 2). A malformed result is `render-failed`.
-      - `reuse: "none"` (default) disposes the runtime after every render; `reuse: "package"` keeps one runtime per package hash (bounded LRU, `maxRuntimes` default 16) for trusted-but-untested code. Template packages render through `renderTemplatePackage` in the sandbox or are delegated to the host's template path — whichever the decision log fixed — with identical trees.
-      - Errors: interrupt → `limit-exceeded` ("timeout"), out-of-memory → `limit-exceeded` ("memory"), stack overflow → `limit-exceeded` ("stack"), other exceptions → `render-failed` with a bounded message and no host paths.
+      - `reuse: "none"` (default) gives every render a new runtime (and a new wasm instance, from a shared compiled `WebAssembly.Module`); `reuse: "package"` keeps one runtime per package hash in the child (bounded LRU, `maxRuntimes` default 16) for trusted-but-untested code. Template packages render on the host through `renderTemplateRun` (no author code, no IPC, identical trees); the decision log fixed this.
+      - Errors: interrupt or the hard kill → `limit-exceeded` ("timeout"), out-of-memory → `limit-exceeded` ("memory"), stack overflow → `limit-exceeded` ("stack"), classified from QuickJS's `interrupted`, `out of memory` and `stack overflow` messages; a child that exits or aborts → `render-failed`; other exceptions → `render-failed` with a bounded message and no host paths.
       - Passes `runnerSuite` with `isolation: true` in the package's tests.
     - Performance: Task 5 sets and checks the budget.
-    - Code Quality: one file per concern (`runtime.ts`, `load.ts`, `index.ts`); handles always disposed (`using`/`try…finally`), checked by a leak test.
-    - Security: no host global or function is reachable from widget code; the trust anchor stays on the host; the package README states what QuickJS does not protect against (CPU side channels, host-process memory pressure up to `memoryBytes` per render).
+    - Code Quality: one file per concern (`index.ts` host side, `child.ts` the child entry, `runtime.ts`, `load.ts`); handles always disposed (`using`/`try…finally`), checked by a leak test.
+    - Security: no host global or function is reachable from widget code; the trust anchor stays on the host; the package README states what QuickJS does not protect against (CPU side channels, host-process memory pressure up to `memoryBytes` per render, a defect in QuickJS or the wasm runtime) and that the child runs with the host's privileges, so an OS sandbox around it (bubblewrap, a container) is the recommended defence in depth.
     - Compatibility: new package; no root API change.
   - Approach:
     - Skills to Use: `liveframe-execution` (preview reference); `find-docs` (quickjs-emscripten APIs listed in Task 1).
-    - Library Documentation to Check Before Implementation: quickjs-emscripten (version pinned exactly in `packages/runner-quickjs/package.json`; release variant chosen in the decision log).
+    - Library Documentation to Check Before Implementation: quickjs-emscripten (`quickjs-emscripten-core` and `@jitl/quickjs-wasmfile-release-sync`, each pinned exactly to 0.32.0 in `packages/runner-quickjs/package.json`; not the umbrella package); Bun `spawn` with `ipc` and `serialization: "json"`.
     - Documentation Reviewed: spec §7.5 (runner contract, linker contract); `src/runner-kit/render.ts:71`; `src/runner-kit/link.ts:27`; `src/preview/worker/index.ts:59` (host re-validation pattern).
-    - Options Considered: one long-lived runtime for all packages. Rejected: the cross-package answer problem the worker runner has (spec §7.5).
-    - Chosen Approach: fresh runtime per render by default.
+    - Options Considered: one long-lived runtime for all packages. Rejected: the cross-package answer problem the worker runner has (spec §7.5). Same-thread QuickJS and QuickJS in a `Worker`. Rejected: neither can stop a native call (Task 1 evidence).
+    - Chosen Approach: QuickJS in a killable child process; fresh runtime per render by default.
     - API Notes and Examples:
       ```ts
       const runner = await quickjsRunner({ timeoutMs: 100 });
       const tree = await runner.render(pkg, inputs, { catalog, capabilities, surfaceId: "home", revision: 1 });
       runner.close();
       ```
-    - Files to Create/Edit: `packages/runner-quickjs/src/{index.ts,runtime.ts,load.ts}`; `packages/runner-quickjs/src/__tests__/*`; `packages/runner-quickjs/README.md`; `packages/runner-quickjs/package.json` (dependency `quickjs-emscripten` pinned, justified here)
+    - Files to Create/Edit: `packages/runner-quickjs/src/{index.ts,child.ts,runtime.ts,load.ts}`; `packages/runner-quickjs/src/__tests__/*`; `packages/runner-quickjs/README.md`; `packages/runner-quickjs/package.json` (dependencies `quickjs-emscripten-core` and `@jitl/quickjs-wasmfile-release-sync` pinned to 0.32.0, justified by the decision log: 1.6 MB, MIT)
   - Test Cases to Write:
-    - `quickjs_matches_render_for_every_proof_scenario`; `quickjs_infinite_loop_limit_exceeded`; `quickjs_memory_bomb_limit_exceeded`; `quickjs_stack_overflow_limit_exceeded`; `quickjs_no_host_globals`; `quickjs_no_state_between_renders`; `quickjs_disposes_every_handle`; `quickjs_runner_suite_with_isolation`.
+    - `quickjs_matches_render_for_every_proof_scenario`; `quickjs_infinite_loop_limit_exceeded`; `quickjs_memory_bomb_limit_exceeded`; `quickjs_stack_overflow_limit_exceeded`; `quickjs_native_hold_is_killed_and_recovers`; `quickjs_dispose_abort_drops_the_wasm_instance`; `quickjs_never_runs_pending_jobs`; `quickjs_no_host_globals`; `quickjs_no_state_between_renders`; `quickjs_disposes_every_handle`; `quickjs_runner_suite_with_isolation`.
   - Notes (executed <date>):
 
 - [ ] Task 5: QuickJS budget, authoring integration and the runner guide
   - Acceptance Criteria:
     - Functional:
-      - `bench/runner.bench.ts` measures cold and warm render cost for the agent-home package across `inProcessRunner`, `workerRunner`, `templateRunner` (its template port) and `quickjsRunner` (`reuse: "none"` and `"package"`). The budget recorded in the decision log (from the Task 1 spike) is gated in the package's bench.
+      - `bench/runner.bench.ts` measures cold and warm render cost for the agent-home package across `inProcessRunner`, `workerRunner`, `templateRunner` (its template port) and `quickjsRunner` (`reuse: "none"` and `"package"`). The budget recorded in the decision log (from the Task 1 spike: `reuse: "none"` agent-home ≤ 110 ms and smallest surface ≤ 60 ms; `reuse: "package"` agent-home ≤ 60 ms and smallest ≤ 8 ms; child cold start ≤ 60 ms; hold, kill, recover and next render ≤ 300 ms) is re-baselined on a quiet host and then gated in the package's bench. The `reuse: "package"` and smallest-surface figures were derived, not measured through the child, so the bench measures them first.
       - `liveframe mcp`: when the config names no runner and `@arnilo/liveframe-runner-quickjs` is installed, the stderr notice recommends it with the exact config line; behaviour is otherwise unchanged (`workerRunner()` default). `docs/mcp.md` shows `runner: await quickjsRunner()`.
       - `docs/packages.md` § "Choosing a runner": a table of the four runners with isolation, limits, cost and when to use each (templates → `templateRunner`; hostile TSX → `quickjsRunner`; trusted code → worker/in-process).
       - `docs/security.md` updated: "The reference runners are not sandboxes" stays; a new section states what `quickjsRunner` isolates and what it does not, and that `templateRunner` executes no author code.

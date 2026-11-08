@@ -1,0 +1,24 @@
+bellard  js loop                       103 ms  ERR {"name":"InternalError","message":"interrupted","s
+bellard  regex catastrophic            101 ms  ERR {"name":"InternalError","message":"interrupted","s
+bellard  regex catastrophic (alt)      101 ms  ERR {"name":"InternalError","message":"interrupted","s
+bellard  array fill 1e5 x n           2079 ms  out of memory
+bellard  sort 2e6 default              102 ms  ERR {"name":"InternalError","message":"interrupted","s
+bellard  bigint pow                    116 ms  BigInt is too large to allocate
+bellard  bigint to string             1141 ms  completed
+bellard  string repeat+replace         126 ms  ERR {"name":"InternalError","message":"interrupted","s
+bellard  json parse big                258 ms  out of memory
+bellard  array join                    474 ms  out of memory
+bellard  localeCompare sort            110 ms  ERR {"name":"InternalError","message":"interrupted","s
+bellard  Intl-free toString radix      376 ms  completed
+ng       js loop                       102 ms  ERR {"name":"InternalError","message":"interrupted","s
+ng       regex catastrophic            101 ms  ERR {"name":"InternalError","message":"interrupted","s
+ng       regex catastrophic (alt)      101 ms  ERR {"name":"InternalError","message":"interrupted","s
+ng       array fill 1e5 x n           2653 ms  out of memory
+ng       sort 2e6 default              105 ms  ERR {"name":"InternalError","message":"interrupted","s
+ng       bigint pow                    134 ms  BigInt is too large to allocate
+ng       bigint to string             1159 ms  completed
+ng       string repeat+replace         110 ms  ERR {"name":"InternalError","message":"interrupted","s
+ng       json parse big                319 ms  out of memory
+ng       array join                    532 ms  out of memory
+ng       localeCompare sort            112 ms  ERR {"name":"InternalError","message":"interrupted","s
+ng       Intl-free toString radix      374 ms  completed

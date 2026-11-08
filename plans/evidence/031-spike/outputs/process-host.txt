@@ -1,0 +1,7 @@
+child cold start (spawn bun + wasm compile + kit received): 21.7 ms
+first render in child: 119.1 ms ok
+round trip agent-home (fresh runtime): median 69.4 ms, p95 75.8 ms, result 117 KiB
+round trip agent-home (fresh runtime + fresh wasm instance): median 75.5 ms, p95 108.2 ms, result 117 KiB
+deadline (300 ms): killing child
+SIGKILL -> exited in 9.7 ms
+recovery: new child ready + next render ok=true: 193.9 ms
