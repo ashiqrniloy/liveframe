@@ -8,7 +8,8 @@ fixes the order and leaves everything else to you.
 
 It is a function, not a framework. `renderPlacement` keeps no object, map, cache
 or timer between calls; it is a function of its arguments and the effects you pass
-in. The normative rules are [spec §7.7](spec.md#77-the-host-pipeline).
+in. The normative rules are [spec §7.7](spec.md#77-the-host-pipeline). `handleIntent`, below, is the
+other half.
 
 ## Wire it once
 
@@ -81,6 +82,55 @@ hand it back as `previous`.
 - **`validator` is process-local.** It is compiled for the package and install it
   was built from. Rebuild `Served` after a restart instead of persisting it.
 
+## Handle an intent
+
+`handleIntent` takes the `served` frame the intent came from and does, in this order:
+`checkOffered`, then `authorize`, then the effect. Nothing else can reach your store or your
+operations.
+
+```ts
+const handled = await handleIntent({
+  ...host,
+  served,                     // exactly what you sent the client, at its revision
+  origin, intent,             // what the client posted
+  viewer: session.user,
+  context: { locale: "en" },
+  actions: actionsByPlacement.get("tasks"), // the statuses you stored last time
+  authorize: (intent, viewer) => policy.allows(viewer, intent.name), // only `true` passes
+  dispatch: async (intent, viewer) => {
+    const task = await claim(intent.args.id, viewer);
+    return { ok: true, value: { owner: task.owner } }; // or { ok: false, reason: "Taken" }
+  },
+  publish: (frame) => send(client, frame.patch ?? frame.tree), // optional: push hosts only
+});
+if (handled.ok) {
+  servedByPlacement.set("tasks", handled.value.served);
+  actionsByPlacement.set("tasks", handled.value.actions);
+}
+```
+
+- **A stale intent is refused, never rewritten.** An origin from another revision is a
+  `version-conflict`; refetch the surface. Nothing was written.
+- **`setState`** re-checks `{ ...storedState, [key]: value }` against the manifest (`invalid-prop` at
+  `/value`), writes it with `store.putState`, and renders it. `setLocal` never reaches the host.
+- **`authorize` fails closed.** `false`, a throw or a rejection records `refused` (`"Not allowed"`) and
+  runs nothing. Your policy's error text is never copied.
+- **`dispatch`** runs as the viewer. A throw becomes `failed` with the fixed reason
+  `"The action failed"`. A `value` reaches the widget only when the action's capability declares a `result`
+  schema and the value fits it; otherwise it is dropped (or, when it does not fit, the action is `failed`).
+  Add your own timeout around `dispatch`.
+- **Pending needs a `publish`.** With `publish`, the widget first gets a `pending` frame; without it nobody
+  could see one, so none is rendered. A request/response host uses the returned `served`; a push host uses
+  `publish`. Use one or the other to avoid sending a frame twice.
+- **An offered action that fails the check** (changed arguments, a forged `resultKey`) is recorded
+  `refused` under the key *your tree* offered, and the surface re-renders. Repeating it changes nothing, so the
+  render is skipped.
+- **At most 64 results.** The oldest settled ones make room; if all 64 are `pending`, the call fails with
+  `limit-exceeded` at `/actions` before `authorize` or `dispatch`. You decide when an entry expires by leaving
+  it out of the next `actions`.
+- **If the re-render fails** the call returns its errors, but the action has already happened. Record the
+  outcome in your own `dispatch` if you need it regardless.
+
 ## What stays yours
 
 The library never holds these, on purpose:
@@ -97,7 +147,9 @@ The library never holds these, on purpose:
 
 `onEvent` receives frozen objects: `render-skipped`, `state-reset`, `source-failed`
 (with `reason` `unauthorized`, `unavailable`, `stale`, `failed` or `invalid-result`),
-`tree-rejected`, `load-failed` and `render-failed`. They carry ids, kinds, reasons
+`tree-rejected`, `load-failed` and `render-failed`, and from `handleIntent` `intent-refused`
+(with `reason` `stale`, `not-offered`, `unauthorized`, `invalid-state` or `limit`),
+`action-failed` and `publish-failed`. They carry ids, kinds, reasons
 and `LiveframeError`s, never state, params, source data or the viewer. A handler
 that throws or rejects is contained, and nothing is built when you pass none.
 Ignore a `type` you do not know: the set may grow in a minor release.

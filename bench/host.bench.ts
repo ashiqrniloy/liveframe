@@ -1,8 +1,9 @@
-// Plan 030 T2: pipeline overhead of renderPlacement beyond the runner and the resolver (budget 0.2 ms).
-import { bindSources, diffTrees, obj, type Result, str, validateCapabilities, validateCatalog } from "../src/index.ts";
+// Plan 030 T2/T3: pipeline overhead of renderPlacement and handleIntent beyond the injected calls (budget 0.2 ms).
+
 import capabilitiesDoc from "../examples/demo-host/capabilities.json" with { type: "json" };
 import catalogDoc from "../examples/demo-host/catalog.json" with { type: "json" };
-import { type Served, renderPlacement } from "../src/host/index.ts";
+import { handleIntent, renderPlacement, type Served } from "../src/host/index.ts";
+import { bindSources, diffTrees, obj, type Result, str, validateCapabilities, validateCatalog } from "../src/index.ts";
 import { renderKey } from "../src/pack/hash.ts";
 import { pack } from "../src/pack/index.ts";
 import { templateRunner } from "../src/preview/index.ts";
@@ -118,8 +119,49 @@ const key = await time(() =>
     actions: {},
   }),
 );
+// handleIntent: an action through checkOffered, authorize, dispatch, record and the final render. The baseline is a
+// renderPlacement with the same inputs, so the runner, `loadPlacement` and the resolver cancel out.
+const press = {
+  key: "go",
+  kind: "button",
+  props: { label: "Go" },
+  events: { onPress: { type: "action", name: "demo.notify", args: { message: "hi" } } },
+};
+const actionPkg = value(
+  pack(
+    {
+      template: { format: "liveframe-template/1", root: { kind: "stack", children: [press] } },
+      manifest: { ...manifest, id: "act", sources: {}, actions: ["demo.notify"] },
+      scenarios: [{ name: "default", params: {}, state: { label }, context: {}, data: {} }],
+    } as never,
+    install,
+  ),
+);
+await store.putPackage(actionPkg);
+await store.putPlacement({ id: "q", slot: "main", widget: { id: "act", version: "1" }, params: {} });
+const acting = { ...wiring, runner: templateRunner(), placementId: "q" };
+const shown = value(await renderPlacement(acting));
+const button = shown.tree.root.children?.[0];
+if (!button?.id) throw new Error("The bench tree has no button");
+const settled = { "demo.notify": { status: "ok" as const, action: "demo.notify" } };
+const handled = await time(() =>
+  handleIntent({
+    ...acting,
+    served: shown,
+    origin: { surfaceId: "q", revision: shown.revision, nodeId: button.id as string, event: "onPress" },
+    intent: button.events?.onPress as never,
+    authorize: () => true,
+    dispatch: async () => ({ ok: true }),
+  }),
+);
+const baseline = await time(() => renderPlacement({ ...acting, previous: shown, actions: settled }));
+const intentOverhead = handled - baseline;
+
 console.log(
   JSON.stringify({
+    intentMs: handled,
+    intentBaselineMs: baseline,
+    intentPipelineMs: intentOverhead,
     inputBytes: JSON.stringify({ label }).length,
     renderMs: full,
     skippedMs: skipped,
@@ -134,4 +176,10 @@ metric("host_render_ms", full);
 metric("host_skipped_ms", skipped);
 metric("host_pipeline_ms", overhead);
 metric("host_load_ms", load);
+metric("host_intent_ms", handled);
+metric("host_intent_pipeline_ms", intentOverhead);
 budget(overhead <= 0.2, `renderPlacement pipeline overhead ${overhead.toFixed(3)} ms exceeds the 0.2 ms budget`);
+budget(
+  intentOverhead <= 0.2,
+  `handleIntent pipeline overhead ${intentOverhead.toFixed(3)} ms exceeds the 0.2 ms budget`,
+);

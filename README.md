@@ -172,7 +172,7 @@ if (patch.ok) {
 | `@arnilo/liveframe/css` | The scoped CSS projection and the class, style, scope and variable helpers; the host inserts sheets |
 | `@arnilo/liveframe/pack` | Package and scenario formats, structural validators, `pack()`, `verifyPackage()`, `canonicalJson()` and `packageHash()` |
 | `@arnilo/liveframe/store` | Record formats, the `Store` interface, `memoryStore()` and `loadPlacement()` |
-| `@arnilo/liveframe/host` | `renderPlacement()`: the ordered, stateless request-time render pipeline |
+| `@arnilo/liveframe/host` | `renderPlacement()` and `handleIntent()`: the ordered, stateless request-time render and intent pipeline |
 | `@arnilo/liveframe/store/fs` | `fileStore(dir)`, which reads and writes the file system |
 | `@arnilo/liveframe/preview` | The `Runner` interface, `inProcessRunner()`, `templateRunner()` and `createPreview()` |
 | `@arnilo/liveframe/authoring` | Eight typed authoring operations without MCP; the host supplies its runner |
@@ -212,7 +212,7 @@ The client starts the server itself. The [MCP guide](docs/mcp.md) covers the eig
 - [Styling](docs/styling.md) — recipes, the three sheets and scoped CSS
 - [Localisation](docs/localisation.md) — locale through `context`, host-formatted text and what stays deterministic
 - [Template widgets](docs/templates.md) — data-bound widgets as JSON, installable without a sandbox
-- [The host pipeline](docs/host.md) — one ordered, stateless render step: load, resolve as the viewer, render, validate, diff
+- [The host pipeline](docs/host.md) — one ordered, stateless pipeline: load, resolve as the viewer, render, validate, diff; then check the intent, authorise, dispatch, record, re-render
 - [Packages, stores and runners](docs/packages.md) — `pack()`, `fileStore`, `inProcessRunner`, `workerRunner`
 - [Preview and capture](docs/preview.md) — preview sessions, `<Preview>` and `liveframe preview capture`
 - [Conformance](docs/conformance.md) — the test kit for an app's catalog, styling, renderer and store

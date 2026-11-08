@@ -2238,5 +2238,37 @@
     "reason": "The stateless host pipeline: `renderPlacement` orders load, bind, resolve-as-the-viewer, render, host validation and diff, and returns a `Served` the host stores (plan 030 T2)",
     "hostAction": "Optional: replace hand-rolled request-time orchestration with `renderPlacement`; every composed helper stays public.",
     "task": "030 T2"
+  },
+  {
+    "subpath": "./host",
+    "name": "handleIntent",
+    "change": "added",
+    "reason": "Stateless host pipeline, intents: `handleIntent` checks the offered intent, then persists state or authorises and dispatches an action as the viewer, records the result and re-renders (plan 030 T3)",
+    "hostAction": "Optional: replace hand-rolled intent handling with `handleIntent`; supply `authorize` and `dispatch` and keep the returned `served` and `actions`.",
+    "task": "030 T3"
+  },
+  {
+    "subpath": "./host",
+    "name": "IntentArgs",
+    "change": "added",
+    "reason": "Stateless host pipeline, intents: `handleIntent` checks the offered intent, then persists state or authorises and dispatches an action as the viewer, records the result and re-renders (plan 030 T3)",
+    "hostAction": "Optional: replace hand-rolled intent handling with `handleIntent`; supply `authorize` and `dispatch` and keep the returned `served` and `actions`.",
+    "task": "030 T3"
+  },
+  {
+    "subpath": "./host",
+    "name": "DispatchResult",
+    "change": "added",
+    "reason": "Stateless host pipeline, intents: `handleIntent` checks the offered intent, then persists state or authorises and dispatches an action as the viewer, records the result and re-renders (plan 030 T3)",
+    "hostAction": "Optional: replace hand-rolled intent handling with `handleIntent`; supply `authorize` and `dispatch` and keep the returned `served` and `actions`.",
+    "task": "030 T3"
+  },
+  {
+    "subpath": "./host",
+    "name": "Handled",
+    "change": "added",
+    "reason": "Stateless host pipeline, intents: `handleIntent` checks the offered intent, then persists state or authorises and dispatches an action as the viewer, records the result and re-renders (plan 030 T3)",
+    "hostAction": "Optional: replace hand-rolled intent handling with `handleIntent`; supply `authorize` and `dispatch` and keep the returned `served` and `actions`.",
+    "task": "030 T3"
   }
 ]

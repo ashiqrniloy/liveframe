@@ -1101,20 +1101,26 @@ TSX widgets are a full language and need a sandbox. Element JSON needs none but 
 2. Sources are read only through the injected `resolve`, once per render, as the viewer. The library hands `viewer` to the host's callbacks without reading it.
 3. A runner's tree is untrusted. It becomes `Served` only after the host's own `validateTree`, and only if its `surfaceId` and `revision` are the ones the host asked for (law 2).
 4. A reported or thrown source failure never reaches a widget as the host's text. A source that declares the `sourceOutcome` envelope shows its widget `{ status, reason? }`; any other source makes the render fail at `/data/<alias>`. A value that misses the source's `result` schema always fails the render.
-5. The pipeline is optional. Every helper it composes (`loadPlacement`, `bindSources`, `renderKey`, `diffTrees`, `checkOffered`) stays public.
+5. `handleIntent` runs `checkOffered` first and `authorize` second; only then does it write state or `dispatch`. The library fixes this order and holds no authority: `authorize` and `dispatch` are the host's (law 4).
+6. The pipeline is optional. Every helper it composes (`loadPlacement`, `bindSources`, `renderKey`, `diffTrees`, `checkOffered`) stays public.
 
 **Contract and examples**
 
 ```ts
-import { renderPlacement } from "@arnilo/liveframe/host";
+import { handleIntent, renderPlacement } from "@arnilo/liveframe/host";
 const host = { store, runner, installs, resolve, verified, onEvent }; // built once by the host
 const served = await renderPlacement({ ...host, placementId, catalogId, scope, viewer, context, actions, previous });
 // served.value.tree for a new client; served.value.patch (base = previous.revision) for one that holds `previous`
+const next = await handleIntent({ ...host, served: served.value, origin, intent, viewer, context, actions, authorize, dispatch, publish });
+// next.value = { served, actions }: store both, send `served`
 ```
 
 - **Steps (`renderPlacement`).** R1 pick `installs[catalogId]` (`catalog-mismatch` at `/catalogId`); R2 `loadPlacement` (the manifest's own `catalogId` is checked against the caller's, never used to select it); R3 `bindSources`; R4 one `resolve(calls, viewer)`, a rejection counting as `failed` for every call with a fixed message; R5 fit each result to its source's `result` schema; R6 compute `renderKey`, and when `previous` has the same key, surface, placement and scope return `previous` unchanged; R7 the revision is `revision ?? previous.revision + 1 ?? 1` (a host that can lose `previous` while a client stays connected passes a monotonic floor); R8 `runner.render`; R9 host `validateTree`, then the surface and revision check; R10 `diffTrees(previous.tree, tree)` when `previous` is comparable, a failure meaning "send the whole tree"; R11 return `Served`.
 - **`Served`.** `{ placementId, scope, tree, key, revision, validator, package, state, bound, patch?, reset? }`. `validator` is process-local and compiled for exactly the package and install it was built from, so a `Served` is rebuilt, not persisted, across a restart. The validator is reused from `previous` only when the same install object and package hash are in play.
-- **Events.** `onEvent` receives frozen `HostEvent`s: `render-skipped`, `state-reset`, `source-failed`, `tree-rejected`, `load-failed` and `render-failed`, carrying ids, kinds, reasons and `LiveframeError`s, never state, params, source data or viewer. A handler's throw or rejection is contained, and nothing is built without one. The set may grow in a minor release.
+- **Steps (`handleIntent`), the offered check.** H1 `installs[served.tree.catalogId]`; H2 `checkOffered(served.tree, origin, intent, served.validator)`. A stale or future revision is `version-conflict`, refused and never rewritten to the latest. An offered *action* that fails the check is recorded `refused` (reason `"Not accepted"`) under the key the **tree** offered, never the posted intent's, and re-rendered. Anything else not offered returns the errors. `setLocal` never reaches the host: `checkOffered` rejects it (`invalid-prop` at `/type`).
+- **Steps (`handleIntent`), `setState`.** H3 load the stored state, check `{ ...stored, [key]: value }` against the manifest's state schema (`invalid-prop` at `/value`), `putState`, then render that state.
+- **Steps (`handleIntent`), `action`.** H4 `authorize(intent, viewer)`: only `true` passes, and a throw or rejection is `refused` (reason `"Not allowed"`). H5 `pending`, rendered and published only when `publish` is supplied. H6 `await dispatch(intent, viewer)` returning `{ ok: true, value? } | { ok: false, reason? }`: a throw becomes `failed` with the fixed reason `"The action failed"`, and `value` is kept only when the action declares a `result` schema it fits (else `failed`, `"Invalid result"`). H7 record under `resultKey ?? name`, keeping at most 64 entries by evicting the oldest settled ones; with all 64 pending the call is `limit-exceeded` at `/actions` before `authorize`. H8 re-render against the latest frame. H9 return `{ served, actions }`. A failed re-render returns its errors, though the effect has happened.
+- **Events.** `onEvent` receives frozen `HostEvent`s: `render-skipped`, `state-reset`, `source-failed`, `tree-rejected`, `load-failed` and `render-failed`, and from `handleIntent` `intent-refused` (reason `stale`, `not-offered`, `unauthorized`, `invalid-state` or `limit`), `action-failed` and `publish-failed`, carrying ids, kinds, reasons and `LiveframeError`s, never state, params, source data or viewer. A handler's throw or rejection is contained, and nothing is built without one. The set may grow in a minor release.
 - **What stays the host's.** Transport, sessions and viewer identity; serialising calls per placement and scope, because a stateless function cannot tell two callers holding the same stale `Served` apart; de-duplicating reads across placements; caching beyond `renderKey`; approval and tenancy.
 
 **Rationale**
@@ -1149,7 +1155,7 @@ type ActionStatus = {
 };
 ```
 
-The key is the action name, or the `resultKey` an intent carries (`action("tasks.claim", { id }, { resultKey: "claim:" + id })`, a literal in the tree) when one action runs for many rows. At most 64 entries, keys of at most 128 characters. The host writes `pending`, dispatches as the viewer, writes the outcome, and re-renders each time; it decides when an entry expires by omitting it. The library has no timers or history. `actions` is validated before the widget runs (`invalid-prop` at `/actions/<key>`), so a host bug cannot hand widget code an arbitrary shape. A result grants nothing and is not an intent: it only changes what the widget draws.
+`handleIntent` (§7.7) writes these entries in the order below. The key is the action name, or the `resultKey` an intent carries (`action("tasks.claim", { id }, { resultKey: "claim:" + id })`, a literal in the tree) when one action runs for many rows. At most 64 entries, keys of at most 128 characters. The host writes `pending`, dispatches as the viewer, writes the outcome, and re-renders each time; it decides when an entry expires by omitting it. The library has no timers or history. `actions` is validated before the widget runs (`invalid-prop` at `/actions/<key>`), so a host bug cannot hand widget code an arbitrary shape. A result grants nothing and is not an intent: it only changes what the widget draws.
 
 **Local state and bindings (between tiers 1 and 2).** Interactions that span nodes but need no data (a live filter over rows already in the tree, a disclosure that opens a sibling) cost no round trip, and no widget code runs in the browser. The manifest declares `local` and `initialLocal` (§7.1); the tree carries data the renderer evaluates:
 
@@ -1562,7 +1568,7 @@ Before building the library, prove the model's central claim: **that a small pri
   | `@arnilo/liveframe/css` | Pure, host-API-free projection into three scoped sheets, plus class, style, scope and variable helpers (§6.4); the host inserts sheets |
   | `@arnilo/liveframe/pack` | Package and scenario formats, structural validators, `pack()`, `verifyPackage()` and `renderKey()` (§7.3, §8) |
   | `@arnilo/liveframe/store` | Record formats, the `Store` interface, `memoryStore()` and `loadPlacement()` (§7.4) |
-  | `@arnilo/liveframe/host` | Host-API-free `renderPlacement()`: the ordered, stateless render pipeline (§7.7), with its `Served`, `HostWiring` and `HostEvent` types |
+  | `@arnilo/liveframe/host` | Host-API-free `renderPlacement()` and `handleIntent()`: the ordered, stateless render and intent pipeline (§7.7), with its `Served`, `HostWiring` and `HostEvent` types |
   | `@arnilo/liveframe/store/fs` | `fileStore(dir)`, which reads and writes the file system |
   | `@arnilo/liveframe/preview` | The `Runner` interface, `inProcessRunner()`, `templateRunner()` and `createPreview()` (§7.5), plus the type-only `PreviewSession`, `PreviewBinding` and `AuthoringConfig` |
   | `@arnilo/liveframe/authoring` | Host-API-free `createAuthoring()` with eight typed authoring operations; requires the host's runner |

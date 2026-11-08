@@ -17,6 +17,8 @@ import type { Actions, HostWiring, Installs, Served, SourceCall, SourceResult } 
 const compiledFor = new WeakMap<CompiledValidator, Installs[string]>();
 
 const MAX_MESSAGE = 500;
+/** A host's free text, cut to what a widget may be shown. */
+export const cut = (text: string): string => [...text].slice(0, MAX_MESSAGE).join("");
 const FAILURES = ["unauthorized", "unavailable", "stale", "failed"] as const;
 
 const refuse = (kind: LiveframeError["kind"], pointer: string, message: string): LiveframeError[] => [
@@ -36,7 +38,7 @@ function sourceResult(results: unknown, alias: string): SourceResult {
       return {
         ok: false,
         reason: reason as (typeof FAILURES)[number],
-        ...(typeof message === "string" ? { message: [...message].slice(0, MAX_MESSAGE).join("") } : {}),
+        ...(typeof message === "string" ? { message: cut(message) } : {}),
       };
   }
   return { ok: false, reason: "failed" };
@@ -164,33 +166,52 @@ function unchanged(
   );
 }
 
+type Loaded = Extract<Awaited<ReturnType<typeof loadPlacement>>, { ok: true }>["value"];
+
 /**
  * Load a placement, resolve its sources as the viewer, render, validate the tree on the host and diff it
  * against `previous` (spec §7.7, steps R1–R11). Stateless: every call is a function of its arguments and
  * the injected effects.
  */
 export async function renderPlacement<V>(args: RenderArgs<V>): Promise<Result<Served>> {
-  const { placementId, catalogId, context, previous, installs } = args;
+  const { placementId, catalogId, installs } = args;
   const notify = notifier(args.onEvent);
-  const scope = args.scope ?? "";
-  const failed = (type: "load-failed" | "render-failed" | "tree-rejected", errors: readonly LiveframeError[]) => {
-    notify?.({ type, placementId, errors });
-    return { ok: false, errors } as const;
-  };
 
   // R1. The install.
-  if (!Object.hasOwn(installs, catalogId))
-    return failed("load-failed", refuse("catalog-mismatch", "/catalogId", "Unknown catalog"));
+  if (!Object.hasOwn(installs, catalogId)) {
+    const errors = refuse("catalog-mismatch", "/catalogId", "Unknown catalog");
+    notify?.({ type: "load-failed", placementId, errors });
+    return { ok: false, errors };
+  }
   const install = installs[catalogId] as Installs[string];
 
   // R2. Load and verify the stored records.
   const loaded = await loadPlacement(args.store, placementId, install, {
-    scope,
+    scope: args.scope ?? "",
     ...(args.verified ? { verified: args.verified } : {}),
     ...(args.state === undefined ? {} : { state: args.state }),
   });
-  if (!loaded.ok) return failed("load-failed", loaded.errors);
-  const { package: pkg, params, state, reset } = loaded.value;
+  if (!loaded.ok) {
+    notify?.({ type: "load-failed", placementId, errors: loaded.errors });
+    return loaded;
+  }
+  return renderLoaded(args, install, loaded.value);
+}
+
+/** R2 (reports) to R11 for a placement the caller has already loaded; `handleIntent` shares it after a state write. */
+export async function renderLoaded<V>(
+  args: RenderArgs<V>,
+  install: Installs[string],
+  loaded: Loaded,
+): Promise<Result<Served>> {
+  const { placementId, catalogId, context, previous } = args;
+  const notify = notifier(args.onEvent);
+  const scope = args.scope ?? "";
+  const failed = (type: "render-failed" | "tree-rejected", errors: readonly LiveframeError[]) => {
+    notify?.({ type, placementId, errors });
+    return { ok: false, errors } as const;
+  };
+  const { package: pkg, params, state, reset } = loaded;
   if (reset) notify?.({ type: "state-reset", placementId, errors: reset });
 
   try {

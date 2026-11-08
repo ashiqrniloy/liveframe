@@ -13,6 +13,7 @@ import type { ConformanceCase } from "@arnilo/liveframe/conformance";
 import * as conformance from "@arnilo/liveframe/conformance";
 import * as conformanceReact from "@arnilo/liveframe/conformance/react";
 import * as css from "@arnilo/liveframe/css";
+import * as host from "@arnilo/liveframe/host";
 import * as pack from "@arnilo/liveframe/pack";
 import * as preview from "@arnilo/liveframe/preview";
 import * as capture from "@arnilo/liveframe/preview/capture";
@@ -36,7 +37,6 @@ import type { JSX as DevJSX } from "@arnilo/liveframe/sdk/jsx-dev-runtime";
 import * as devRuntime from "@arnilo/liveframe/sdk/jsx-dev-runtime";
 import type { JSX } from "@arnilo/liveframe/sdk/jsx-runtime";
 import * as runtime from "@arnilo/liveframe/sdk/jsx-runtime";
-import * as host from "@arnilo/liveframe/host";
 import * as store from "@arnilo/liveframe/store";
 import * as fileStore from "@arnilo/liveframe/store/fs";
 import * as surface from "@arnilo/liveframe/surface";
@@ -82,7 +82,7 @@ test("css_exports_are_pinned", () => {
 });
 
 test("host_export_surface", () => {
-  expect(Object.keys(host).sort()).toEqual(["renderPlacement"]);
+  expect(Object.keys(host).sort()).toEqual(["handleIntent", "renderPlacement"]);
 });
 
 test("surface_export_surface", () => {
