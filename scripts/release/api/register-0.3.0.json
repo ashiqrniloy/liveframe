@@ -2270,5 +2270,21 @@
     "reason": "Stateless host pipeline, intents: `handleIntent` checks the offered intent, then persists state or authorises and dispatches an action as the viewer, records the result and re-renders (plan 030 T3)",
     "hostAction": "Optional: replace hand-rolled intent handling with `handleIntent`; supply `authorize` and `dispatch` and keep the returned `served` and `actions`.",
     "task": "030 T3"
+  },
+  {
+    "subpath": "./host",
+    "name": "dependents",
+    "change": "added",
+    "reason": "Stateless host pipeline, coordination: `dependents` names the placements whose bound sources a change touches, so one widget's action can refresh another's view through a shared capability (plan 030 T4)",
+    "hostAction": "Optional: after an action changes a shared source, re-render the placements `dependents` returns.",
+    "task": "030 T4"
+  },
+  {
+    "subpath": "./host",
+    "name": "Dependent",
+    "change": "added",
+    "reason": "Stateless host pipeline, coordination: `dependents` names the placements whose bound sources a change touches, so one widget's action can refresh another's view through a shared capability (plan 030 T4)",
+    "hostAction": "Optional: after an action changes a shared source, re-render the placements `dependents` returns.",
+    "task": "030 T4"
   }
 ]

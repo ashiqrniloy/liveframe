@@ -1107,7 +1107,7 @@ TSX widgets are a full language and need a sandbox. Element JSON needs none but 
 **Contract and examples**
 
 ```ts
-import { handleIntent, renderPlacement } from "@arnilo/liveframe/host";
+import { dependents, handleIntent, renderPlacement } from "@arnilo/liveframe/host";
 const host = { store, runner, installs, resolve, verified, onEvent }; // built once by the host
 const served = await renderPlacement({ ...host, placementId, catalogId, scope, viewer, context, actions, previous });
 // served.value.tree for a new client; served.value.patch (base = previous.revision) for one that holds `previous`
@@ -1121,6 +1121,7 @@ const next = await handleIntent({ ...host, served: served.value, origin, intent,
 - **Steps (`handleIntent`), `setState`.** H3 load the stored state, check `{ ...stored, [key]: value }` against the manifest's state schema (`invalid-prop` at `/value`), `putState`, then render that state.
 - **Steps (`handleIntent`), `action`.** H4 `authorize(intent, viewer)`: only `true` passes, and a throw or rejection is `refused` (reason `"Not allowed"`). H5 `pending`, rendered and published only when `publish` is supplied. H6 `await dispatch(intent, viewer)` returning `{ ok: true, value? } | { ok: false, reason? }`: a throw becomes `failed` with the fixed reason `"The action failed"`, and `value` is kept only when the action declares a `result` schema it fits (else `failed`, `"Invalid result"`). H7 record under `resultKey ?? name`, keeping at most 64 entries by evicting the oldest settled ones; with all 64 pending the call is `limit-exceeded` at `/actions` before `authorize`. H8 re-render against the latest frame. H9 return `{ served, actions }`. A failed re-render returns its errors, though the effect has happened.
 - **Events.** `onEvent` receives frozen `HostEvent`s: `render-skipped`, `state-reset`, `source-failed`, `tree-rejected`, `load-failed` and `render-failed`, and from `handleIntent` `intent-refused` (reason `stale`, `not-offered`, `unauthorized`, `invalid-state` or `limit`), `action-failed` and `publish-failed`, carrying ids, kinds, reasons and `LiveframeError`s, never state, params, source data or viewer. A handler's throw or rejection is contained, and nothing is built without one. The set may grow in a minor release.
+- **`dependents`.** `dependents(placements, { source, params? })` takes `{ placementId, bound }` entries (`Served.bound`) and returns the ids, in input order and once each, of the placements with a bound call to `source` (and, when `params` is given, with params equal by canonical JSON). It is a pure, linear scan: the host calls it when a source changes (after an action settles, on its own bus) and re-renders the ids it returns. Widgets coordinate only through capabilities the host resolves and dispatches; there is no widget-to-widget channel and no subscription registry.
 - **What stays the host's.** Transport, sessions and viewer identity; serialising calls per placement and scope, because a stateless function cannot tell two callers holding the same stale `Served` apart; de-duplicating reads across placements; caching beyond `renderKey`; approval and tenancy.
 
 **Rationale**
@@ -1568,7 +1569,7 @@ Before building the library, prove the model's central claim: **that a small pri
   | `@arnilo/liveframe/css` | Pure, host-API-free projection into three scoped sheets, plus class, style, scope and variable helpers (§6.4); the host inserts sheets |
   | `@arnilo/liveframe/pack` | Package and scenario formats, structural validators, `pack()`, `verifyPackage()` and `renderKey()` (§7.3, §8) |
   | `@arnilo/liveframe/store` | Record formats, the `Store` interface, `memoryStore()` and `loadPlacement()` (§7.4) |
-  | `@arnilo/liveframe/host` | Host-API-free `renderPlacement()` and `handleIntent()`: the ordered, stateless render and intent pipeline (§7.7), with its `Served`, `HostWiring` and `HostEvent` types |
+  | `@arnilo/liveframe/host` | Host-API-free `renderPlacement()`, `handleIntent()` and `dependents()`: the ordered, stateless render and intent pipeline (§7.7), with its `Served`, `HostWiring` and `HostEvent` types |
   | `@arnilo/liveframe/store/fs` | `fileStore(dir)`, which reads and writes the file system |
   | `@arnilo/liveframe/preview` | The `Runner` interface, `inProcessRunner()`, `templateRunner()` and `createPreview()` (§7.5), plus the type-only `PreviewSession`, `PreviewBinding` and `AuthoringConfig` |
   | `@arnilo/liveframe/authoring` | Host-API-free `createAuthoring()` with eight typed authoring operations; requires the host's runner |

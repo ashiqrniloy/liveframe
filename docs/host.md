@@ -9,7 +9,7 @@ fixes the order and leaves everything else to you.
 It is a function, not a framework. `renderPlacement` keeps no object, map, cache
 or timer between calls; it is a function of its arguments and the effects you pass
 in. The normative rules are [spec §7.7](spec.md#77-the-host-pipeline). `handleIntent`, below, is the
-other half.
+intent half, and `dependents` tells you which other placements an action affects.
 
 ## Wire it once
 
@@ -130,6 +130,42 @@ if (handled.ok) {
   it out of the next `actions`.
 - **If the re-render fails** the call returns its errors, but the action has already happened. Record the
   outcome in your own `dispatch` if you need it regardless.
+
+## Coordinate placements
+
+One widget's action can change what another widget shows (select a task in a list, and the detail
+panel follows), with no widget-to-widget channel. Declare the shared data as a capability: a
+`selection.current` **source** and a `selection.select` **action**. Both placements bind the source in their
+manifests; the list offers the action. Your `dispatch` stores the selection; the detail widget reads it
+through `resolve`, as the viewer, like any other source.
+
+`dependents` answers the one question the library can: which placements read this source?
+
+```ts
+import { dependents, handleIntent, renderPlacement } from "@arnilo/liveframe/host";
+
+const handled = await handleIntent({ ...host, served: servedByPlacement.get("list"), /* … */ });
+if (handled.ok) {
+  servedByPlacement.set("list", handled.value.served);
+  // The action changed `selection.current`: re-render whoever reads it.
+  const readers = [...servedByPlacement.values()]; // each Served carries `placementId` and `bound`
+  for (const id of dependents(readers, { source: "selection.current" })) {
+    const next = await renderPlacement({ ...host, placementId: id, catalogId, viewer, context, previous: servedByPlacement.get(id) });
+    if (next.ok) { servedByPlacement.set(id, next.value); send(id, next.value.patch ?? next.value.tree); }
+  }
+}
+```
+
+- **`change.params` narrows the match.** `{ source: "task.read", params: { id: "7" } }` matches only
+  placements whose bound call has equal params (canonical JSON: key order does not matter). Leave
+  `params` out to match every use of the source.
+- **It is a pure scan.** One pass over the `bound` entries each `Served` already holds (`Served.bound`), in
+  input order, each id once: about 0.06 ms for 1,000 placements. There is no registry or subscription;
+  you decide when to call it (after an action settles, on a message from your own bus) and what to do with
+  the ids. Serialise the re-renders per placement like any other call.
+- **Authority does not move.** The widgets still only read and offer what their manifests declare, and
+  `resolve`, `authorize` and `dispatch` are yours. A skipped render (unchanged `renderKey`) makes
+  re-rendering a placement that did not really change cheap.
 
 ## What stays yours
 

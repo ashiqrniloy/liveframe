@@ -82,7 +82,7 @@ test("css_exports_are_pinned", () => {
 });
 
 test("host_export_surface", () => {
-  expect(Object.keys(host).sort()).toEqual(["handleIntent", "renderPlacement"]);
+  expect(Object.keys(host).sort()).toEqual(["dependents", "handleIntent", "renderPlacement"]);
 });
 
 test("surface_export_surface", () => {

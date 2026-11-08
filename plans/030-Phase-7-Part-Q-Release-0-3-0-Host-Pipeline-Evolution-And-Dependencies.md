@@ -113,7 +113,7 @@ This plan implements roadmap Phase 7's 0.3.0 host-lifecycle work: new spec §7.7
     - **Bench (`bench/host.bench.ts`, load average 22–31).** `handleIntent` minus an equivalent `renderPlacement` (same runner, `loadPlacement`, resolver and actions): −0.13 to +0.09 ms over eight runs, inside the 0.2 ms budget; `checkOffered` caches per tree and validator, so it costs almost nothing after the first call. The existing `renderPlacement` gate (`skipped − load`, two separately timed segments) failed once at 0.575 ms in four runs at this load and passed the others: it is noise-bound on a busy machine, as Task 2 recorded. A quiet-machine run belongs to the plan's final verification.
     - `bunx biome check --write` on `src docs bench scripts` also reformatted seven unrelated generated and fixture files; they were reverted, not committed.
 
-- [ ] Task 4: Cross-placement coordination through source dependents (W6b)
+- [x] Task 4: Cross-placement coordination through source dependents (W6b)
   - Acceptance Criteria:
     - Functional:
       - `dependents(placements, change)` where `placements` are `{ placementId, bound }` (`bound` is the unwrapped `bindSources` value, which `Served.bound` carries) and `change` is `{ source, params? }`; returns the placement ids whose bound calls name the source and, when `params` is given, equal params by canonical JSON. Linear in total bound calls.
@@ -135,7 +135,11 @@ This plan implements roadmap Phase 7's 0.3.0 host-lifecycle work: new spec §7.7
     - Files to Create/Edit: `src/host/dependents.ts`; `src/host/index.ts`; `src/__tests__/host-dependents.test.ts`; `docs/host.md`; `register-0.3.0.json`
   - Test Cases to Write:
     - `dependents_match_source_name`; `dependents_match_params_canonically`; `dependents_linear_scale`.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-08): `src/host/dependents.ts` holds `dependents(placements, { source, params? })` (D1–D3: one pass over each placement's `bound`, canonical JSON of `change.params` computed once and compared only for entries whose source matches, ids in input order and once each) and the `Dependent` type (`{ placementId, bound }`, which a `Served` satisfies as it is). `/host` now exports `dependents` and `Dependent`; `exports.test.ts` pins it. 3 tests in `host-dependents.test.ts`. `bench/host.bench.ts` adds 1,000 placements with two bound calls each: **0.057 ms per scan** (`host_dependents_1000_ms`; linear by construction, the test only guards a coarse 20 ms ceiling). Docs: `docs/host.md` § "Coordinate placements" (the selection capability, two placements, `handleIntent` on one and `dependents` for the other), spec §7.7 (a `dependents` bullet; the §13 table row), the changelog, `docs/migration-0.3.md` (the `hostAction` text must appear verbatim there: `api-stability.test.ts` enforces it), README, the architecture reference, two register entries (`added`). Findings:
+    - **`param` matching is exact.** `change.params` must equal a bound call's params in full (canonical JSON); there is no subset match. A source whose params vary per placement (a page cursor) is matched by name alone, leaving `params` out.
+    - **`dependents` is not told about `actions`.** A change in `actions` (a result a widget reads) is not a source, so it never appears here; `handleIntent` already re-renders the acting placement with its updated `actions`.
+    - The Task 5 demo will carry the working selection example; `docs/host.md` shows the pattern without a runnable test of its own.
+    - Gate: `bun run check` passed (1618 tests) with the load average near 5.
 
 - [ ] Task 5: The demo host shows the full orchestration
   - Acceptance Criteria:

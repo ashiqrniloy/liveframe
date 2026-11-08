@@ -357,6 +357,9 @@ Existing code is unchanged. Serialise calls per placement and scope, and keep th
 Optional: replace hand-rolled intent handling with `handleIntent`; supply `authorize` and `dispatch` and keep the returned `served` and `actions`.
 Existing code is unchanged.
 
+`dependents(placements, change)` names the placements that read a changed source, so you can re-render them after an action.
+Optional: after an action changes a shared source, re-render the placements `dependents` returns. Keep the `Served` you already store.
+
 See [the host guide](host.md) and [spec §7.7](spec.md#77-the-host-pipeline).
 
 ### Streamed element JSON

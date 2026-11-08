@@ -1,8 +1,8 @@
-// Plan 030 T2/T3: pipeline overhead of renderPlacement and handleIntent beyond the injected calls (budget 0.2 ms).
+// Plan 030 T2-T4: pipeline overhead of renderPlacement and handleIntent beyond the injected calls (budget 0.2 ms), and dependents over 1,000 placements.
 
 import capabilitiesDoc from "../examples/demo-host/capabilities.json" with { type: "json" };
 import catalogDoc from "../examples/demo-host/catalog.json" with { type: "json" };
-import { handleIntent, renderPlacement, type Served } from "../src/host/index.ts";
+import { dependents, handleIntent, renderPlacement, type Served } from "../src/host/index.ts";
 import { bindSources, diffTrees, obj, type Result, str, validateCapabilities, validateCatalog } from "../src/index.ts";
 import { renderKey } from "../src/pack/hash.ts";
 import { pack } from "../src/pack/index.ts";
@@ -157,8 +157,18 @@ const handled = await time(() =>
 const baseline = await time(() => renderPlacement({ ...acting, previous: shown, actions: settled }));
 const intentOverhead = handled - baseline;
 
+// dependents: one scan over 1,000 placements with two bound calls each; every tenth depends on the change.
+const bound = (i: number) =>
+  ({
+    rows: { source: "tasks.read", params: { page: i } },
+    sel: { source: i % 10 === 0 ? "selection.current" : "selection.other", params: { id: "1" } },
+  }) as Served["bound"];
+const placements = Array.from({ length: 1000 }, (_, i) => ({ placementId: `p${i}`, bound: bound(i) }));
+const scanned = await time(() => dependents(placements, { source: "selection.current", params: { id: "1" } }));
+
 console.log(
   JSON.stringify({
+    dependentsMs: scanned,
     intentMs: handled,
     intentBaselineMs: baseline,
     intentPipelineMs: intentOverhead,
@@ -177,6 +187,7 @@ metric("host_skipped_ms", skipped);
 metric("host_pipeline_ms", overhead);
 metric("host_load_ms", load);
 metric("host_intent_ms", handled);
+metric("host_dependents_1000_ms", scanned);
 metric("host_intent_pipeline_ms", intentOverhead);
 budget(overhead <= 0.2, `renderPlacement pipeline overhead ${overhead.toFixed(3)} ms exceeds the 0.2 ms budget`);
 budget(

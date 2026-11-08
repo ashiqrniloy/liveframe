@@ -172,7 +172,7 @@ if (patch.ok) {
 | `@arnilo/liveframe/css` | The scoped CSS projection and the class, style, scope and variable helpers; the host inserts sheets |
 | `@arnilo/liveframe/pack` | Package and scenario formats, structural validators, `pack()`, `verifyPackage()`, `canonicalJson()` and `packageHash()` |
 | `@arnilo/liveframe/store` | Record formats, the `Store` interface, `memoryStore()` and `loadPlacement()` |
-| `@arnilo/liveframe/host` | `renderPlacement()` and `handleIntent()`: the ordered, stateless request-time render and intent pipeline |
+| `@arnilo/liveframe/host` | `renderPlacement()`, `handleIntent()` and `dependents()`: the ordered, stateless request-time render and intent pipeline, and which placements a change touches |
 | `@arnilo/liveframe/store/fs` | `fileStore(dir)`, which reads and writes the file system |
 | `@arnilo/liveframe/preview` | The `Runner` interface, `inProcessRunner()`, `templateRunner()` and `createPreview()` |
 | `@arnilo/liveframe/authoring` | Eight typed authoring operations without MCP; the host supplies its runner |
