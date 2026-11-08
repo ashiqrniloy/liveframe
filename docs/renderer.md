@@ -201,6 +201,34 @@ library classes; inline styles apply to that container. Other fields are ignored
 so scope attributes and `data-lf-portal` remain the library's. These are trusted
 host props; widget trees cannot supply them.
 
+## Draw two catalog majors on one page
+
+A host that serves widgets packed against `acme.ui@1` and `acme.ui@2` passes both
+catalogs to one renderer:
+
+```tsx
+const { Surface } = createRenderer({
+  catalogs: [
+    { catalog: v1, implementations: implementationsV1 },
+    { catalog: v2, implementations: implementationsV2 },
+  ],
+});
+
+<Surface {...props} validator={validatorV1} tree={treeV1} />
+<Surface {...props} validator={validatorV2} tree={treeV2} />
+```
+
+The registry check runs for each catalog (error pointers start `/catalogs/<n>`),
+and `createRenderer({ catalog, implementations })` keeps working. One
+implementation may appear under several catalogs when its definition equals each
+catalog's definition of that kind; a kind whose definition changed between majors
+needs one implementation per major. A `<Surface>` draws with the catalog its
+`validator` was compiled with. A tree that names another catalog draws the
+fallback and raises `arrival-rejected` with a `catalog-mismatch` error at
+`/catalogId`; a validator compiled for no registered catalog does the same at
+`/validator`. Give surfaces of different majors different design-system identities
+([styling](styling.md#two-catalog-majors-on-one-page)).
+
 ## Keep focus in the surface when a row disappears
 
 An update can remove the element the user is on. `<Surface>` keeps keyboard focus
@@ -452,7 +480,7 @@ Each event is frozen and has a `type`:
 
 | `type` | When | Fields besides `type` |
 | --- | --- | --- |
-| `arrival-rejected` | A tree failed validation | `surfaceId?` (the surface on screen, if any), `errors` |
+| `arrival-rejected` | A tree failed validation (a tree for another catalog is `catalog-mismatch` at `/catalogId`) | `surfaceId?` (the surface on screen, if any), `errors` |
 | `stale-revision` | A lower revision of the same surface arrived and was ignored | `surfaceId`, `revision`, `current` |
 | `emit-rejected` | An implementation called `emit` with a value its event does not carry, or a `setLocal` value outside the local schema | `nodeId`, `event`, `reason` (`invalid-value` or `invalid-local`) |
 | `implementation-failed` | An implementation threw | `nodeId`, `kind` |

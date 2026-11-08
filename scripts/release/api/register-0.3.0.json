@@ -343,7 +343,7 @@
     "subpath": "./react",
     "name": "createRenderer",
     "change": "changed",
-    "reason": "Focus continuity defaults to true without changing the declaration",
+    "reason": "Focus continuity defaults to true without changing the declaration; plan 030 T7 widens it with `catalogs` (several catalog majors in one renderer) and a `<Surface>` now refuses a tree for another catalog as `catalog-mismatch` at `/catalogId` (it was `invalid-prop`)",
     "hostAction": "If the host owns recovery, pass `focusContinuity={false}`",
     "task": "026 T8",
     "migration": "Surfaces keep focus by default",

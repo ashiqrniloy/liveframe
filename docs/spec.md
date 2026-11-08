@@ -457,6 +457,7 @@ The SDK types enforce these values, so `gap="space.3"` compiles and `gap="13px"`
 1. Inputs are validated before output; invalid input produces typed errors and no partial sheet.
 2. The same input, independent of object key order, produces identical bytes.
 3. **Surfaces do not nest**, including surfaces composed by the host.
+4. **A design system is compiled for one catalog** (`designSystemCss` takes it). Surfaces of two catalog majors on one page use distinct design-system identities (`id@version`), each with its own sheet, so a recipe for one major's `button` never styles the other's.
 
 **Contract and examples**
 
@@ -1453,6 +1454,7 @@ const validator = compileValidator({ catalog, capabilities, manifest });
 ```
 
 - **`createRenderer({ catalog, implementations })`** runs the registry check once, at startup: it fails if a catalog kind has no implementation, two implementations bind one kind, or an implementation's definition differs from the catalog's. It returns `{ Surface }`; a failed check throws `RendererError`, a `LiveframeFailure` whose `errors` name each discrepancy (`catalog-mismatch`), so a host catches it with the same handler as every other install failure.
+- **Several catalog majors.** To draw surfaces of several catalog majors on one page, pass `createRenderer({ catalogs: [{ catalog, implementations }, …] })`: the registry check runs per catalog (pointers prefixed `/catalogs/<n>`), an implementation may be listed under several catalogs only if its definition equals each catalog's, and two entries with one `catalogId` are `catalog-mismatch`. With several catalogs a `<Surface>` uses the catalog its `validator` was compiled with; a validator compiled for none of them draws the fallback and reports `arrival-rejected` with `catalog-mismatch` at `/validator`. With one catalog it serves every validator, as before. In every case a tree whose `catalogId` differs from the surface's catalog is refused with `catalog-mismatch` at `/catalogId` (and an `arrival-rejected` event).
 - **`<Surface>`** draws one surface. `theme` and `designSystem` are `{ id, version }` identities for §6.4's scope attributes. `transparency` is `"auto"` (default) or `"reduced"`: it adds §6.4's `data-lf-transparency` attribute to the wrapper and portal container together and, when it changes, runs the same switching sequence as a theme change.
 - **`implement(definition, Component)`** binds a primitive's React implementation. The implementation receives:
   - `props`: validated values

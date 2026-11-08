@@ -4,7 +4,7 @@
 
 Spec §11 (renderer), §8 (interaction tiers). Roadmap Phase 4 (renderer) and Phase 5 (conformance).
 
-- `createRenderer({ catalog, implementations })` runs the startup registry check (missing, duplicate or mismatched kind) and returns `{ Surface }`.
+- `createRenderer({ catalog, implementations })` runs the startup registry check (missing, duplicate or mismatched kind) and returns `{ Surface }`. `createRenderer({ catalogs: [{ catalog, implementations }, …] })` checks each catalog; a `Surface` uses the catalog its `validator` was compiled with, and a tree naming another catalog is `catalog-mismatch` at `/catalogId`.
 - `<Surface tree validator theme designSystem onIntent fallback />` draws one surface. `validator` is the app's `CompiledValidator`; every arriving tree is re-checked with it.
 - `implement(definition, Component)` binds a primitive. The component receives:
   - `props`, validated

@@ -111,6 +111,13 @@ Before, a definition's `semantics` enum could hold any values, and a recipe key 
 
 Adopter checklist: list the values in each `semantics` enum and declare every non-library one in `vocabulary.semantics` with an `ariaRoles` role (a minor catalog change). Update design-system ports that rely on the schema alone to reject an unknown state: install now does. Catalogs that use only library values need no change.
 
+### A tree for another catalog is refused as catalog-mismatch
+
+Before, a tree whose `catalogId` differed from the surface's catalog was rejected by the validator as `invalid-prop` at `/catalogId`.
+After, `createSurfaceCore` (and so `<Surface>`) refuses it with `catalog-mismatch` at `/catalogId`, in the returned errors and the `arrival-rejected` event. The surface still draws the fallback.
+
+Adopter checklist: if you branch on the error kind of a rejected arrival, treat `catalog-mismatch` at `/catalogId` as a tree for the wrong catalog.
+
 ## Compatible additions
 
 ### Preview and authoring validation limits
@@ -369,6 +376,14 @@ Optional: before shipping a new catalog, run `checkPackages` (or `liveframe chec
 Existing code is unchanged.
 
 See [upgrading the catalog](packages.md#upgrading-the-catalog).
+
+### Several catalog majors in one renderer
+
+`createRenderer({ catalogs: [{ catalog, implementations }, …] })` runs the registry check per catalog, and each `<Surface>` draws with the catalog its `validator` was compiled for, so surfaces of `acme.ui@1` and `acme.ui@2` share a page and a registry.
+Optional: pass `catalogs` instead of routing surfaces to one renderer per catalog yourself.
+Existing code is unchanged: `createRenderer({ catalog, implementations })` works as before.
+
+See [two catalog majors on one page](renderer.md#draw-two-catalog-majors-on-one-page) and [spec §11](spec.md#11-renderer).
 
 ### Streamed element JSON
 

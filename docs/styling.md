@@ -99,6 +99,21 @@ use the appropriate nonce for a `<style>` element. Rendered layout uses inline
 style attributes, which require `style-src-attr 'unsafe-inline'`. A sheet nonce
 does not authorize those attributes; an atomic-class alternative is not provided.
 
+## Two catalog majors on one page
+
+A design system is compiled for one catalog, so generate each major's sheets from
+its own catalog and give the two design systems different `id@version` identities:
+
+```ts
+const v1Sheet = value(designSystemCss(acmeV1, { catalog: catalogV1, registry }));
+const v2Sheet = value(designSystemCss(acmeV2, { catalog: catalogV2, registry })); // id "acme-ds-v2"
+```
+
+Each sheet is scoped under `:where([data-lf-ds="<id>@<version>"])`, so the two never
+meet on a page. Draw both with one renderer from `createRenderer({ catalogs })`
+([renderer](renderer.md#draw-two-catalog-majors-on-one-page)). The base and theme
+sheets may come from either catalog when both majors share the vocabulary.
+
 ## Scope a surface and project a node
 
 ```ts

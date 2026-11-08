@@ -384,6 +384,35 @@ export function createSurfaceCore(options: SurfaceCoreOptions): SurfaceCore {
     return same ? prior : context(node, bound ?? node.props, items);
   }
 
+  /**
+   * The validator decides first (spec §11: validate before reading any tree field). Only a tree it rejected at
+   * `/catalogId`, or accepted although it names another catalog, is then reported by name as `catalog-mismatch`.
+   */
+  function named(input: unknown, arrival: Result<UiTree>): Result<UiTree> {
+    let other = false;
+    if (arrival.ok) other = arrival.value.catalogId !== catalog.catalogId;
+    else if (arrival.errors.some((error) => error.pointer === "/catalogId")) {
+      try {
+        const claimed = (input as { catalogId?: unknown }).catalogId;
+        other = typeof claimed === "string" && claimed !== catalog.catalogId;
+      } catch {
+        // A hostile getter is just an invalid tree.
+      }
+    }
+    return other
+      ? {
+          ok: false,
+          errors: [
+            {
+              kind: "catalog-mismatch",
+              pointer: "/catalogId",
+              message: "Tree names another catalog than this surface renders",
+            },
+          ],
+        }
+      : arrival;
+  }
+
   function reportRejected(rejection: readonly LiveframeError[]): void {
     if (options.onEvent)
       notify({
@@ -457,7 +486,7 @@ export function createSurfaceCore(options: SurfaceCoreOptions): SurfaceCore {
     accept(input) {
       if (last && last.input === input) return valid ? { ok: true, value: snap } : { ok: false, errors };
       last = { input };
-      const arrival = validator.validateTree(input);
+      const arrival = named(input, validator.validateTree(input));
       if (!arrival.ok) {
         valid = false;
         errors = arrival.errors;

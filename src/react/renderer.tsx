@@ -14,9 +14,18 @@ import {
 } from "react";
 import { surfaceAttributes } from "../css/index.ts";
 import { type LiveframeError, LiveframeFailure } from "../errors.ts";
+import type { Catalog } from "../formats/catalog.ts";
 import { sameJson } from "../formats/json.ts";
 import { type CompiledValidator, type Intent, type IntentOrigin, type UiTree, validateCatalog } from "../index.ts";
-import { createSurfaceCore, type NodeContext, type SurfaceCore, type SurfaceEvent } from "../surface/index.ts";
+import { isThenable } from "../internal.ts";
+import {
+  createSurfaceCore,
+  type NodeContext,
+  type SurfaceCore,
+  type SurfaceEvent,
+  type SurfaceSnapshot,
+} from "../surface/index.ts";
+import { buildFacts } from "../validate/compile.ts";
 import { binding, type Implementation, type Item } from "./implement.ts";
 
 /** The registry check's failures, with the diagnostics the other install-time APIs throw. */
@@ -233,22 +242,26 @@ function item(state: Elements, context: NodeContext): Item {
   return result;
 }
 
-export function createRenderer({
-  catalog,
-  implementations,
-}: {
-  catalog: unknown;
-  implementations: readonly Implementation[];
-}) {
+const NO_REGISTRY: ReadonlyMap<string, Implementation> = new Map();
+type CatalogBinding = { readonly catalog: unknown; readonly implementations: readonly Implementation[] };
+type Registered = { readonly catalog: Catalog; readonly registry: ReadonlyMap<string, Implementation> };
+
+/** One catalog's registry check: its failures go to `errors` under `prefix`; the registry is returned when valid. */
+function register(
+  { catalog, implementations }: CatalogBinding,
+  prefix: string,
+  errors: LiveframeError[],
+): Registered | undefined {
   const checked = validateCatalog(catalog);
-  if (!checked.ok) throw new RendererError([...checked.errors]);
-  const validatedCatalog = checked.value;
-  const definitions = validatedCatalog.definitions;
-  const registry = new Map<string, Implementation>();
-  const errors: LiveframeError[] = [];
-  function reject(pointer: string, message: string) {
-    errors.push({ kind: "catalog-mismatch", pointer, message });
+  if (!checked.ok) {
+    errors.push(...checked.errors.map((error) => ({ ...error, pointer: prefix + error.pointer })));
+    return undefined;
   }
+  const definitions = checked.value.definitions;
+  const registry = new Map<string, Implementation>();
+  const before = errors.length;
+  const reject = (pointer: string, message: string) =>
+    errors.push({ kind: "catalog-mismatch", pointer: prefix + pointer, message });
   for (const [i, implementation] of implementations.entries()) {
     const { definition } = implementation[binding];
     const pointer = `/implementations/${i}`;
@@ -262,12 +275,89 @@ export function createRenderer({
     if (!registry.has(definition.kind))
       reject(`/catalog/definitions/${i}/kind`, `Missing implementation: ${definition.kind}`);
   }
+  return errors.length === before ? { catalog: checked.value, registry } : undefined;
+}
+
+/** What a surface over a validator of no registered catalog holds: it draws the fallback and reports why. */
+function refusedCore(onEvent: () => ((event: SurfaceEvent) => unknown) | undefined): SurfaceCore {
+  const errors: readonly LiveframeError[] = Object.freeze([
+    {
+      kind: "catalog-mismatch",
+      pointer: "/validator",
+      message: "The validator's catalog is not registered with this renderer",
+    },
+  ]);
+  const snapshot: SurfaceSnapshot = Object.freeze({
+    valid: false,
+    errors,
+    tree: undefined,
+    root: undefined,
+    local: Object.freeze({}),
+  });
+  let last: { readonly input: unknown } | undefined;
+  return {
+    accept(input) {
+      if (!last || last.input !== input) {
+        last = { input };
+        try {
+          const settled = onEvent()?.(Object.freeze({ type: "arrival-rejected", errors }));
+          if (isThenable(settled)) settled.then(undefined, () => {});
+        } catch {
+          // A host's logger must never break rendering.
+        }
+      }
+      return { ok: false, errors };
+    },
+    snapshot: () => snapshot,
+    subscribe: () => () => {},
+    attach: () => () => {},
+    fail() {},
+  };
+}
+
+/**
+ * Binds implementations to one catalog (`{ catalog, implementations }`) or to several (`{ catalogs }`), each
+ * checked on its own. A `Surface` uses the catalog its `validator` was compiled with; a tree that names another
+ * catalog is refused with `catalog-mismatch` (spec §11).
+ */
+export function createRenderer(options: CatalogBinding | { readonly catalogs: readonly CatalogBinding[] }) {
+  const errors: LiveframeError[] = [];
+  const registered = new Map<string, Registered>();
+  if ("catalogs" in options) {
+    if (!Array.isArray(options.catalogs) || options.catalogs.length === 0)
+      errors.push({ kind: "invalid-document", pointer: "/catalogs", message: "Expected at least one catalog" });
+    else
+      for (const [i, entry] of options.catalogs.entries()) {
+        const found = register(entry, `/catalogs/${i}`, errors);
+        if (!found) continue;
+        if (registered.has(found.catalog.catalogId))
+          errors.push({
+            kind: "catalog-mismatch",
+            pointer: `/catalogs/${i}/catalog/catalogId`,
+            message: `Duplicate catalog: ${found.catalog.catalogId}`,
+          });
+        else registered.set(found.catalog.catalogId, found);
+      }
+  } else {
+    const found = register(options, "", errors);
+    if (found) registered.set(found.catalog.catalogId, found);
+  }
   if (errors.length) throw new RendererError(errors);
+  const only = registered.size === 1 ? [...registered.values()][0] : undefined;
+  /** A lone catalog serves every validator, as before; with several, the validator's own catalog picks. */
+  function registeredFor(validator: CompiledValidator): Registered | undefined {
+    if (only) return only;
+    try {
+      return registered.get(buildFacts(validator).catalogId);
+    } catch {
+      return undefined; // A wrapper that was not compiled by `compileValidator`.
+    }
+  }
 
   // Used only to scope the fallback before any tree has been accepted.
   const emptyTree: UiTree = {
     format: "liveframe/1",
-    catalogId: validatedCatalog.catalogId,
+    catalogId: [...registered.keys()][0] as string,
     surfaceId: "fallback",
     revision: 0,
     root: { id: "root", kind: "fallback", props: {} },
@@ -295,28 +385,35 @@ export function createRenderer({
     useLayoutEffect(() => {
       host.current = { onIntent, confirm, onEvent };
     }, [onIntent, confirm, onEvent]);
-    const make = (compiled: CompiledValidator) =>
-      createSurfaceCore({
-        catalog: validatedCatalog,
-        validator: compiled,
-        domIdPrefix,
-        get onIntent() {
-          return host.current.onIntent;
-        },
-        get confirm() {
-          return host.current.confirm;
-        },
-        get onEvent() {
-          return host.current.onEvent;
-        },
-      });
+    const make = (compiled: CompiledValidator) => {
+      const found = registeredFor(compiled);
+      const current = () => host.current.onEvent;
+      const core = found
+        ? createSurfaceCore({
+            catalog: found.catalog,
+            validator: compiled,
+            domIdPrefix,
+            get onIntent() {
+              return host.current.onIntent;
+            },
+            get confirm() {
+              return host.current.confirm;
+            },
+            get onEvent() {
+              return host.current.onEvent;
+            },
+          })
+        : refusedCore(current);
+      return { validator: compiled, core, registry: found?.registry ?? NO_REGISTRY };
+    };
     // A new validator starts a new core: node reuse and local state never cross validators.
-    const [held, setHeld] = useState(() => ({ validator, core: make(validator) }));
-    let core = held.core;
+    const [held, setHeld] = useState(() => make(validator));
+    let current = held;
     if (held.validator !== validator) {
-      core = make(validator);
-      setHeld({ validator, core });
+      current = make(validator);
+      setHeld(current);
     }
+    const { core, registry } = current;
     useLayoutEffect(() => core.attach(), [core]);
     core.accept(tree);
     const snapshot = useSyncExternalStore(core.subscribe, core.snapshot, core.snapshot);
@@ -362,7 +459,7 @@ export function createRenderer({
     const items = useMemo(() => new WeakMap<NodeContext, Item>(), [core, portal, diagnosed]);
     const root = useMemo(
       () => (snapshot.root ? item({ core, registry, items, portal, diagnosed }, snapshot.root).render() : null),
-      [snapshot.root, core, items, portal, diagnosed],
+      [snapshot.root, core, registry, items, portal, diagnosed],
     );
     const scope = surfaceAttributes({ ...appliedScope, tree: snapshot.tree ?? emptyTree });
     return (
