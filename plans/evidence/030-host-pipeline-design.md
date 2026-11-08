@@ -215,3 +215,10 @@ Later tasks plug in without a design change: Task 7 widens `installs` use in `<S
 8. **`handleIntent`'s refusal rules** (H2), the **64-entry eviction** (H7) and the **drop of `value` for an action without `result`** (H6) are not in the plan; each exists so one bad intent or one long session cannot break every later render.
 9. **The event set is larger** than the plan's five names: `load-failed`, `render-failed`, `intent-refused`, `action-failed`, `publish-failed` join `render-skipped`, `state-reset`, `state-migrated`, `source-failed`, `tree-rejected`. The plan asks for "every failure's typed error and event".
 10. **A skip needs the same surface.** R6 compares `surfaceId` and `placementId`/`scope` as well as `key`, because `renderKey` does not cover them.
+
+## Amendment (Task 11, 2026-11-08)
+
+The impact analysis (`plans/evidence/030-impact-analysis.md` F1, F2) changed two rules after approval, with the owner's agreement:
+
+- **H3 gains an authorise step.** `setState` calls `authorize(intent, viewer)` before H3a, with the H4 rule (only `true` passes; a throw or rejection refuses). A refusal loads, writes and renders nothing, raises `intent-refused` (`unauthorized`) and returns `{ served, actions }` as given. The law table's claim that H4 precedes every effect, `putState` included, is now true.
+- **A repeated refusal is free.** When a refusal (an offered action that fails the check, or `authorize` returning false) leaves the recorded statuses as they were, H8 returns `served` without a store read, source read or render. The earlier claim that a crafted-intent flood "costs one render" held for the widget run only: R4–R5 ran before the skip.

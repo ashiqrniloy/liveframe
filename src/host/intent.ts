@@ -1,5 +1,6 @@
 import type { LiveframeError, Result } from "../errors.ts";
 import type { ActionStatus, Intent, IntentOrigin, Json, UiTree } from "../formats/tree.ts";
+import { canonicalJson } from "../pack/hash.ts";
 import { checkValue } from "../schema.ts";
 import { loadPlacement } from "../store/load.ts";
 import { checkOffered } from "../validate/offered.ts";
@@ -26,7 +27,7 @@ export type IntentArgs<V> = HostWiring<V> & {
   readonly context: Json;
   /** The host's stored statuses; the call returns the next map. */
   readonly actions?: Actions;
-  /** The host's policy: anything but `true` (including a throw) refuses the action. */
+  /** The host's policy for an action or a `setState` write: anything but `true` (including a throw) refuses it. */
   readonly authorize: (intent: Intent, viewer: V) => boolean | Promise<boolean>;
   /** The host's operation, run as the viewer after `checkOffered` and `authorize`. Wrap it with your own timeout. */
   readonly dispatch: (intent: Intent, viewer: V) => Promise<DispatchResult>;
@@ -82,6 +83,15 @@ function outcome(answer: unknown, name: string, install: Installs[string]): { st
 type Reason = "stale" | "not-offered" | "unauthorized" | "invalid-state" | "limit";
 type Notify = ReturnType<typeof notifier>;
 
+/** Whether two status maps say the same thing; the order of their entries does not matter. */
+function sameActions(a: Actions, b: Actions): boolean {
+  try {
+    return canonicalJson(a) === canonicalJson(b);
+  } catch {
+    return false;
+  }
+}
+
 /** What the steps of one call share; built per call, never kept. */
 type Run<V> = {
   readonly args: IntentArgs<V>;
@@ -94,6 +104,8 @@ type Run<V> = {
   readonly send: (frame: Served) => Promise<void>;
   /** H8–H9. Render the next map, deliver it and answer. */
   readonly finish: (actions: Actions, previous?: Served) => Promise<Result<Handled>>;
+  /** H8–H9 for a refusal: no effect ran, so a map that says what it said before has nothing new to show. */
+  readonly finishRefusal: (actions: Actions) => Promise<Result<Handled>>;
 };
 
 function begin<V>(args: IntentArgs<V>, install: Installs[string], notify: Notify): Run<V> {
@@ -117,6 +129,12 @@ function begin<V>(args: IntentArgs<V>, install: Installs[string], notify: Notify
       notify?.({ type: "publish-failed", placementId, ...(error instanceof Error ? { error: error.name } : {}) });
     }
   };
+  const finish = async (actions: Actions, previous?: Served): Promise<Result<Handled>> => {
+    const next = await render(actions, previous);
+    if (!next.ok) return next;
+    await send(next.value);
+    return { ok: true, value: { served: next.value, actions } };
+  };
   return {
     args,
     install,
@@ -125,12 +143,12 @@ function begin<V>(args: IntentArgs<V>, install: Installs[string], notify: Notify
       notify?.({ type: "intent-refused", placementId, reason, ...(errors ? { errors } : {}) }),
     render,
     send,
-    finish: async (actions, previous) => {
-      const next = await render(actions, previous);
-      if (!next.ok) return next;
-      await send(next.value);
-      return { ok: true, value: { served: next.value, actions } };
-    },
+    finish,
+    // A repeated refusal (a crafted or forbidden intent sent again) costs no store read, source read or render.
+    finishRefusal: (actions) =>
+      sameActions(args.actions ?? {}, actions)
+        ? Promise.resolve({ ok: true, value: { served, actions } })
+        : finish(actions),
   };
 }
 
@@ -148,13 +166,18 @@ function refuseOffered<V>(run: Run<V>, errors: readonly LiveframeError[]): Promi
   const recorded = action && admit(run.args.actions ?? {}, action.key, refusal(action.name, "Not accepted"));
   run.refused(action && !recorded ? "limit" : "not-offered", errors);
   if (!action) return { ok: false, errors };
-  return recorded ? run.finish(recorded) : { ok: false, errors: tooManyPending() };
+  return recorded ? run.finishRefusal(recorded) : { ok: false, errors: tooManyPending() };
 }
 
-/** H3. Write the next state, then render it. */
+/** H3. Authorise, write the next state, then render it. */
 async function applyState<V>(run: Run<V>, intent: Extract<Intent, { type: "setState" }>): Promise<Result<Handled>> {
   const { args, install } = run;
   const { placementId, scope } = args.served;
+  // H3, first (law 4): a state write is an effect like any other. A refusal leaves everything as the host stored it.
+  if (!(await authorized(args, intent))) {
+    run.refused("unauthorized");
+    return { ok: true, value: { served: args.served, actions: args.actions ?? {} } };
+  }
   // H3a. The stored state, not the served one, is the base: another tab's committed write is kept.
   const loaded = await loadPlacement(args.store, placementId, install, {
     scope,
@@ -236,7 +259,7 @@ async function runAction<V>(run: Run<V>, intent: Extract<Intent, { type: "action
   }
   if (!(await authorized(run.args, intent))) {
     run.refused("unauthorized");
-    return run.finish(put(pending, key, refusal(intent.name, "Not allowed")));
+    return run.finishRefusal(put(pending, key, refusal(intent.name, "Not allowed")));
   }
   // H5. Pending, shown only to a host that can push it. A failed pending render is reported by the render itself.
   let latest = run.args.served;

@@ -2243,7 +2243,7 @@
     "subpath": "./host",
     "name": "handleIntent",
     "change": "added",
-    "reason": "Stateless host pipeline, intents: `handleIntent` checks the offered intent, then persists state or authorises and dispatches an action as the viewer, records the result and re-renders (plan 030 T3)",
+    "reason": "Stateless host pipeline, intents: `handleIntent` checks the offered intent, then authorises (a state write as an action), then persists the state or dispatches the action as the viewer, records the result and re-renders (plan 030 T3)",
     "hostAction": "Optional: replace hand-rolled intent handling with `handleIntent`; supply `authorize` and `dispatch` and keep the returned `served` and `actions`.",
     "task": "030 T3"
   },
@@ -2251,7 +2251,7 @@
     "subpath": "./host",
     "name": "IntentArgs",
     "change": "added",
-    "reason": "Stateless host pipeline, intents: `handleIntent` checks the offered intent, then persists state or authorises and dispatches an action as the viewer, records the result and re-renders (plan 030 T3)",
+    "reason": "Stateless host pipeline, intents: `handleIntent` checks the offered intent, then authorises (a state write as an action), then persists the state or dispatches the action as the viewer, records the result and re-renders (plan 030 T3)",
     "hostAction": "Optional: replace hand-rolled intent handling with `handleIntent`; supply `authorize` and `dispatch` and keep the returned `served` and `actions`.",
     "task": "030 T3"
   },
@@ -2259,7 +2259,7 @@
     "subpath": "./host",
     "name": "DispatchResult",
     "change": "added",
-    "reason": "Stateless host pipeline, intents: `handleIntent` checks the offered intent, then persists state or authorises and dispatches an action as the viewer, records the result and re-renders (plan 030 T3)",
+    "reason": "Stateless host pipeline, intents: `handleIntent` checks the offered intent, then authorises (a state write as an action), then persists the state or dispatches the action as the viewer, records the result and re-renders (plan 030 T3)",
     "hostAction": "Optional: replace hand-rolled intent handling with `handleIntent`; supply `authorize` and `dispatch` and keep the returned `served` and `actions`.",
     "task": "030 T3"
   },
@@ -2267,7 +2267,7 @@
     "subpath": "./host",
     "name": "Handled",
     "change": "added",
-    "reason": "Stateless host pipeline, intents: `handleIntent` checks the offered intent, then persists state or authorises and dispatches an action as the viewer, records the result and re-renders (plan 030 T3)",
+    "reason": "Stateless host pipeline, intents: `handleIntent` checks the offered intent, then authorises (a state write as an action), then persists the state or dispatches the action as the viewer, records the result and re-renders (plan 030 T3)",
     "hostAction": "Optional: replace hand-rolled intent handling with `handleIntent`; supply `authorize` and `dispatch` and keep the returned `served` and `actions`.",
     "task": "030 T3"
   },

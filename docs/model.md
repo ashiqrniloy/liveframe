@@ -106,7 +106,7 @@ A widget can also declare **local state** in its manifest (`local`, `initialLoca
 
 **Tier 2, `setState`.** The user clicks the "Mine" tab.
 1. **LF:** the renderer sees the event's intent `{ type: "setState", key: "filter", value: "mine" }` and calls `onIntent`.
-2. **Host:** checks the key against the state schema, saves the new state to the store (`putState`), and repeats C2–C4.
+2. **Host:** checks the intent was offered, authorises the write **as the viewer**, checks the key against the state schema, saves the new state to the store (`putState`), and repeats C2–C4.
 3. **LF:** the new tree has `revision + 1`. The renderer reconciles it by `id`, so unchanged nodes keep their DOM, and ignores any older revision.
 
 **Tier 3, action.** The user clicks "Claim".

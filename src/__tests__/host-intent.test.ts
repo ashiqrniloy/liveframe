@@ -119,8 +119,13 @@ async function fixture() {
   await store.putPlacement({ id: "p1", slot: "main", widget: { id: "tasks", version: "1.0.0" }, params: {} });
   const log: string[] = [];
   const written: unknown[] = [];
+  const reads: string[] = [];
   const guarded = {
     ...store,
+    getPlacement: async (...args: Parameters<typeof store.getPlacement>) => {
+      reads.push(args[0]);
+      return store.getPlacement(...args);
+    },
     putState: async (...args: Parameters<typeof store.putState>) => {
       log.push("putState");
       written.push(args[2]);
@@ -147,7 +152,8 @@ async function fixture() {
     await renderPlacement({ ...host, placementId: "p1", catalogId: "proof.ui@1", viewer: "alice", context: {} }),
   );
   rendered.length = 0;
-  return { host, first, log, written, rendered, events, store };
+  reads.length = 0;
+  return { host, first, log, written, reads, rendered, events, store };
 }
 
 const handle = (
@@ -263,6 +269,36 @@ test("invalid_offered_action_recorded_refused_under_offered_key", async () => {
     }),
   );
   expect(again.served).toBe(result.served);
+  // And it costs no store read, source read or widget run: the recorded statuses did not change.
+  expect(f.reads).toEqual(["p1"]);
+});
+
+test("repeated_refusals_cost_no_render", async () => {
+  const f = await fixture();
+  const claim = nodeOf(f.first.tree, "button", "tasks.claim");
+  const deny = async () => {
+    f.log.push("authorize");
+    return false;
+  };
+  const once = value(await handle(f, claim, "onPress", { authorize: deny }));
+  expect(f.reads).toEqual(["p1"]);
+  const reads = f.reads.length;
+  const renders = f.rendered.length;
+  // The same refusal again, from the state the host stored: nothing is loaded, read or rendered.
+  const again = value(
+    await handle(f, claim, "onPress", {
+      authorize: deny,
+      served: once.served,
+      actions: once.actions,
+      origin: originOf(once.served, claim, "onPress"),
+    }),
+  );
+  expect(again.served).toBe(once.served);
+  expect(again.actions).toEqual(once.actions);
+  expect(f.reads.length).toBe(reads);
+  expect(f.rendered.length).toBe(renders);
+  expect(f.log).toEqual(["authorize", "authorize"]);
+  expect(f.events.map((event) => event.type)).toEqual(["intent-refused", "intent-refused"]);
 });
 
 test("pending_then_ok_published_in_order", async () => {
@@ -382,7 +418,38 @@ test("set_state_persists_then_rerenders", async () => {
   expect(result.served.revision).toBe(2);
   expect(result.served.patch?.base).toBe(1);
   expect(published).toEqual([result.served]);
-  expect(f.log).toEqual(["putState"]);
+  expect(f.log).toEqual(["authorize", "putState"]);
+});
+
+test("set_state_unauthorized_writes_nothing", async () => {
+  const f = await fixture();
+  const field = nodeOf(f.first.tree, "textField");
+  const intent: Intent = { type: "setState", key: "label", value: "secret-2nd" };
+  const seen: unknown[] = [];
+  for (const authorize of [
+    async (i: Intent, viewer: string) => {
+      seen.push([i, viewer]);
+      return false;
+    },
+    async () => {
+      throw new Error("password=hunter2 at policy.internal");
+    },
+    async () => "yes" as never,
+  ]) {
+    const result = value(await handle(f, field, "onChange", { intent, authorize }));
+    // The served frame comes back as it was: nothing was loaded, written or rendered.
+    expect(result.served).toBe(f.first);
+    expect(result.actions).toEqual({});
+  }
+  expect(seen).toEqual([[intent, "alice"]]);
+  expect(f.written).toEqual([]);
+  expect(await f.store.getState("p1", "")).toBeUndefined();
+  expect(f.reads).toEqual([]);
+  expect(f.rendered).toEqual([]);
+  expect(f.events.map((event) => event.type)).toEqual(["intent-refused", "intent-refused", "intent-refused"]);
+  expect(f.events.every((event) => event.type === "intent-refused" && event.reason === "unauthorized")).toBe(true);
+  expect(JSON.stringify(f.events)).not.toContain("hunter2");
+  expect(JSON.stringify(f.events)).not.toContain("secret-2nd");
 });
 
 test("set_state_invalid_value_no_write", async () => {
@@ -436,11 +503,11 @@ test("no_effect_before_check_offered_and_authorize", async () => {
   await handle(f, field, "onChange", { intent: { type: "action", name: "tasks.claim", args: { id: "t1" } } });
   await handle(f, claim, "onPress", { origin: { ...originOf(f.first, claim, "onPress"), revision: 99 } });
   expect(f.log).toEqual([]);
-  // A good one runs in exactly this order.
+  // A good one runs in exactly this order, for an action and for a state write alike.
   await handle(f, claim, "onPress");
   expect(f.log).toEqual(["authorize", "dispatch"]);
   await handle(f, field, "onChange", { intent: { type: "setState", key: "label", value: "ok" } });
-  expect(f.log).toEqual(["authorize", "dispatch", "putState"]);
+  expect(f.log).toEqual(["authorize", "dispatch", "authorize", "putState"]);
 });
 
 test("served_catalog_without_install_is_load_failed", async () => {

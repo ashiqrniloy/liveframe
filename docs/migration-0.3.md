@@ -360,7 +360,7 @@ See [watch what the surface rejects](renderer.md#watch-what-the-surface-rejects)
 Optional: replace hand-rolled request-time orchestration with `renderPlacement`; every composed helper stays public.
 Existing code is unchanged. Serialise calls per placement and scope, and keep the returned `Served` per placement to pass back as `previous`.
 
-`handleIntent` is the intent half: `checkOffered`, then your `authorize`, then a `setState` write or your `dispatch`, the recorded `actions` map and the re-render. You inject `authorize`, `dispatch` and, for push hosts, `publish`.
+`handleIntent` is the intent half: `checkOffered`, then your `authorize` (for a `setState` write as for an action), then the write or your `dispatch`, the recorded `actions` map and the re-render. You inject `authorize`, `dispatch` and, for push hosts, `publish`.
 Optional: replace hand-rolled intent handling with `handleIntent`; supply `authorize` and `dispatch` and keep the returned `served` and `actions`.
 Existing code is unchanged.
 

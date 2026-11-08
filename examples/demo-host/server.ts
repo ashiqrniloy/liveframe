@@ -53,8 +53,8 @@ const viewer: Viewer = { name: "ada", may: new Set(["demo.notify", "tasks.claim"
 
 /**
  * Law 4: the host decides. This is a placeholder for the app's policy: it allows an action only when the viewer
- * may use it. `handleIntent` has already checked the tree offered the intent, and it treats anything but `true`
- * (including a throw) as a refusal.
+ * may use it, and lets a viewer write their own state. `handleIntent` has already checked the tree offered the
+ * intent, asks this for an action and a `setState` alike, and treats anything but `true` (including a throw) as a refusal.
  */
 const authorize = (intent: Intent, who: Viewer) => intent.type !== "action" || who.may.has(intent.name);
 

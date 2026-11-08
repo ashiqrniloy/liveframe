@@ -85,8 +85,8 @@ hand it back as `previous`.
 ## Handle an intent
 
 `handleIntent` takes the `served` frame the intent came from and does, in this order:
-`checkOffered`, then `authorize`, then the effect. Nothing else can reach your store or your
-operations.
+`checkOffered`, then `authorize`, then the effect, for a state write as for an action. Nothing else can
+reach your store or your operations.
 
 ```ts
 const handled = await handleIntent({
@@ -111,10 +111,13 @@ if (handled.ok) {
 
 - **A stale intent is refused, never rewritten.** An origin from another revision is a
   `version-conflict`; refetch the surface. Nothing was written.
-- **`setState`** re-checks `{ ...storedState, [key]: value }` against the manifest (`invalid-prop` at
-  `/value`), writes it with `store.putState`, and renders it. `setLocal` never reaches the host.
-- **`authorize` fails closed.** `false`, a throw or a rejection records `refused` (`"Not allowed"`) and
-  runs nothing. Your policy's error text is never copied.
+- **`setState`** asks `authorize` first (a viewer who may not write gets the `served` frame back, nothing
+  loaded or written, and an `intent-refused` event), then re-checks `{ ...storedState, [key]: value }` against
+  the manifest (`invalid-prop` at `/value`), writes it with `store.putState`, and renders it. `setLocal`
+  never reaches the host. Your `authorize` therefore sees both `action` and `setState` intents.
+- **`authorize` fails closed.** `false`, a throw or a rejection records `refused` (`"Not allowed"`) for an
+  action and runs nothing. Your policy's error text is never copied. The same refusal sent again, with the
+  `actions` you stored, costs no store read, source read or render.
 - **`dispatch`** runs as the viewer. A throw becomes `failed` with the fixed reason
   `"The action failed"`. A `value` reaches the widget only when the action's capability declares a `result`
   schema and the value fits it; otherwise it is dropped (or, when it does not fit, the action is `failed`).
@@ -173,6 +176,12 @@ The library never holds these, on purpose:
 
 - **Concurrency.** Serialise calls per placement and scope. A stateless function
   cannot tell two callers holding the same stale `previous` apart.
+- **Double submits.** Nothing stops the same action arriving twice, and `pending` is visible only to a push
+  host. Make `dispatch` idempotent or de-duplicate on your side (a claim that is already taken answers
+  `{ ok: false, reason: "Taken" }`).
+- **`served` is trusted.** `handleIntent` checks an intent against the frame you hand back and, for an
+  action, reads no store before `authorize`. When you replace, delete or disable a placement, drop its
+  `served` (and revoke what it offered) so a stale tab cannot act on the old tree.
 - **Read de-duplication.** Wrap `resolve` with a per-request memo if several
   placements read the same source.
 - **Transport, sessions, identity, tenancy, approval.**

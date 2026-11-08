@@ -342,7 +342,7 @@ This plan implements roadmap Phase 7's 0.3.0 host-lifecycle work: new spec §7.7
     - The bench widget needed keys on its two sibling components (`<Alpha key="a" />`): without them the tree is invalid (`missing-key`), which the render bench exposed.
     - Gate: the first `bun run check` ran at a load average of 60–120 (a `qemu` pair and a `clay` test server on the machine). Wall-clock tests failed in different places each run (CLI capture, worker overhead, 100 ms render limits, browser budgets) and pass alone; the non-timing failures it found were fixed (loader identity, portability scan, spec paragraph length, register entries, case counts). The rerun passed: `bun run check` 1676 pass, 4 skip, 0 fail. `bun run demo:test` passes (67 tests).
 
-- [ ] Task 11: Analyze architectural impact and dispose of every finding
+- [x] Task 11: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional: the twelve impact areas swept in `plans/evidence/030-impact-analysis.md`, with law 4 reviewed step by step through `handleIntent` and integrity reviewed for dependencies; findings presented, dispositions recorded and executed or backlogged.
     - Performance: `bun run bench` including `host.bench.ts`.
@@ -357,7 +357,11 @@ This plan implements roadmap Phase 7's 0.3.0 host-lifecycle work: new spec §7.7
     - API Notes and Examples: n/a.
     - Files to Create/Edit: `plans/evidence/030-impact-analysis.md`; `plans/backlog.md`.
   - Test Cases to Write: n/a.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-08): `plans/evidence/030-impact-analysis.md` sweeps the twelve areas, walks `handleIntent` step by step for law 4, reviews dependency integrity and records twelve findings; the owner chose "Authorize setState too" for F1 and accepted every recommended disposition. **Executed:** F1 (law 4: `setState` wrote state through `store.putState` without calling `authorize`, against spec §7.7 rule 5, `docs/host.md` and the design's law table; `handleIntent` now authorises first, and a refusal loads, writes and renders nothing, raises `intent-refused` `unauthorized` and returns `served` and `actions` as given), F2 (a repeated crafted or forbidden action cost a `loadPlacement` and a `resolve` per request; `finishRefusal` now returns `served` when the recorded statuses do not change), F3 and F4 (docs: `served` is trusted, so drop it when a placement is replaced, deleted or disabled; the same action can arrive twice, so `dispatch` must tolerate it), F12 (roadmap row). Spec §7.7 (rule 5, H3, H9), `docs/host.md`, `docs/model.md` tier 2, `docs/migration-0.3.md`, the changelog, the register reason for the four `handleIntent` entries and the design (an amendment section) follow the code. Tests: `set_state_unauthorized_writes_nothing` and `repeated_refusals_cost_no_render` are new; `set_state_persists_then_rerenders`, `no_effect_before_check_offered_and_authorize` and `invalid_offered_action_recorded_refused_under_offered_key` changed to expect `authorize` before `putState` and no store read on a repeat. **Backlogged:** F5 (authoring, MCP, preview and `gen` cannot use libraries, P3), F6 (names a dependent reads are not re-checked at load, P4), F7 (`migrateState` not type-checked at install, P4), F8 (library version charset, P4), F9 (`Served` has no manifest; `not-found` pointer rule, P3, two entries), F10 and F11 (extend the intermittent-failure, quiet-host and cache-hit entries). Findings:
+    - **The design's law table was wrong, and nothing caught it.** Task 1's table said H4 precedes every effect "`putState` at H3c" while its own order line listed `setState: schema check → putState`; Task 3's criterion ("nothing runs before `checkOffered` and `authorize`") was met only for actions, and `no_effect_before_check_offered_and_authorize` asserted `["authorize", "dispatch", "putState"]`, which encoded the gap. A review that reads the sequence against the claim finds it; a test that records the order does not, unless someone reads the expected list.
+    - **`verify_agent_home_under_20_ms` is a load artefact, not a regression from Task 9.** Fourteen paired samples against `37affb0`: medians 15.5 ms base and 15.0 ms head.
+    - **`bun run bench` never reaches this plan's benches.** The stages are chained with `&&` and the first one fails on a known gate; `host.bench.ts` and `pack-libraries.bench.ts` were run directly. Plan 032 Task 3 inherits that.
+    - Gate: `bun run check` before the changes (load 5–18): 1675 pass, 1 fail (`verify_agent_home_under_20_ms`, a load artefact). After the changes: the first run failed `spec_paragraphs_stay_short` (an H9 bullet over 160 words; split, fixed); the next run, with the load average rising from 9 to 90 from other users' work, passed 1677 and failed only `validator_smoke_under_5us_per_node` (15 s), which passes alone three times out of three at load 60–80. `bun run demo:test` 67 pass. No run of the whole suite was both green and on a quiet machine; plan 032 Task 3 owns that.
 
 ## Verification (whole plan)
 
@@ -368,8 +372,25 @@ This plan implements roadmap Phase 7's 0.3.0 host-lifecycle work: new spec §7.7
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- **Timing gates were not proved on a quiet host.** The load average was 4–37 throughout, so the `host.bench.ts` pipeline gates (0.2 ms beyond `loadPlacement`) and the `check` timing tests passed or failed with the load. Quiet-machine figures from Tasks 2–3 stand; the quiet-host proof is plan 032 Task 3 (backlog: "Re-run the full benchmark suite on a quiet host").
+- **`bun run bench` stops at the validator stage**, so this plan's two benches run directly, not under the command the Verification section names.
+- **The pipeline budget excludes `loadPlacement`** (0.5 ms on a verified-cache hit against a 0.2 ms pipeline figure); making a hit cheap is in the backlog.
+- **`Served` is process-local** (it holds a compiled validator) and carries no manifest; hosts rebuild it after a restart and keep their own `hash → manifest` map for clients.
+- **`demo-host/server.ts` grew** (253 → 416 lines) against the criterion "the demo server shrinks"; the orchestration it replaced is gone, the rest is capabilities the demo did not have.
+- **A refused `setState` is silent to the widget**: there is no `actions` entry for it, so the frame comes back unchanged and the host sees `intent-refused`.
+- **Declarative state migration** resets quietly when a `previous.*` path is absent and is not type-checked at install (F7).
+- **Dependency names are checked at pack and link time, not at load** (F6); a library version outside `[A-Za-z0-9._+-]` cannot be imported (F8).
 
 ## Further Actions
 
-- To be filled after task completion with improvements, rationale, and priority.
+All are in `plans/backlog.md` with this plan as their source.
+
+- **P3 — Let authoring, preview and codegen use package libraries.** An agent cannot pack or preview a widget that imports a library, and nothing generates its types.
+- **P3 — Carry the manifest on `Served` or document the lookup.** Every host with a client validator rewrites the same map.
+- **P3 — Give a missing origin node its own error pointer rule.** A wrong HTTP status turns a stale tab into a server error.
+- **P3 — Re-run the full benchmark suite on a quiet host (extended).** Run every bench stage independently and include this plan's figures; plan 032 Task 3.
+- **P3 — Make a verified-package cache hit cheap (extended).** Add parallel pin reads in `loadLibraries` and the cost of the pending frame.
+- **P4 — Re-check a dependent's library names at load.** An earlier, typed error; not an escalation.
+- **P4 — Check a `migrateState` mapping against the state schema at install.**
+- **P4 — Allow any library version in an import.** Wait for an adopter to hit it.
+- **P4 — Identify the intermittent full-check failure (extended).** Median-of-N for single-sample timing tests such as `verify_agent_home_under_20_ms`, and one fastest-of-N figure for the host bench gates.

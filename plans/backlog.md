@@ -456,6 +456,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Why: an uncaptured intermittent failure is cheap to diagnose the first time it is logged and expensive after it has become routine to re-run.
 - Update (2026-11-08, plan 029 Task 8): at load 17–27 two full `bun run check` runs failed 4 and 8 tests, all gated on absolute milliseconds or a 5 s test timeout (`all_proof_scenarios_render_with_both_scoped_design_systems` 100 ms cap, the CSS-switch frame budgets, `in_process_warm_overhead_under_point_one_ms`, `validator_smoke_under_5us_per_node`, five `cli-mcp` timeouts, `install_validation_of_agent_home_within_budget` in plan 029 Task 6). Six of the eight passed when re-run alone. Decide whether timing gates read `os.loadavg()` and skip above a threshold, or move to the bench stage; the test names and load are now captured.
 
+- Update (2026-11-08, plan 030 Task 11): one whole-plan `bun run check` (load 5 rising to 18) failed `verify_agent_home_under_20_ms` (208 ms); alone it passed twice and failed once (163 ms). Fourteen paired samples against the commit before the dependency work give medians 15.5 ms (base) and 15.0 ms (head), so it is load, not code. The test takes **one** sample against a 20 ms gate (`src/__tests__/pack.test.ts:264`); take the median of several, or the fastest of N, as `bench/pack-libraries.bench.ts` does. `bench/host.bench.ts`' pipeline gates (`skipped − load`, two separately timed segments) failed 3 of 5 runs at load 16–37 (0.34–0.39 ms against 0.2) and passed at -0.10 and 0.04 ms; time the pipeline as one fastest-of-N figure instead. See [impact review](evidence/030-impact-analysis.md) F10.
+
 ## Test the capture snapshot format across the Playwright peer range
 
 - Disposition: added 2026-10-29 with the owner's approval after plan 018 Task 8 (`plans/evidence/018-impact-analysis.md` F7).
@@ -520,6 +522,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Update (2026-11-07, plan 027 Task 8): [impact review](evidence/027-impact-analysis.md). One `bun run bench` at load 3.2 failed `core-queue.full` at 1.508 µs/node and stopped before the other stages. Six alternating runs against the plan 026 end commit fail the same gate at both (baseline best 1.523, HEAD best 1.510), so plan 027 adds no measurable cost. Render, CSS and streaming pass when run alone; extension projection time passes its +20% gate (15.3–20.1%). The host load never went below 2.5 (unrelated VMs), so the quiet-host requirement stays open. The validator bench now reports a median of five batches (measurement only; no limit changed). Retained into plan 032 Task 3.
 
 - Update (2026-11-08, plan 029 Task 8): [impact review](evidence/029-impact-analysis.md) F3. Stage-by-stage `bun run bench` and a 9-run paired render A/B against `6041e0b` ran at load 14–19 and then 40–70 from unrelated work; absolute gates read 1.6–2× for unchanged code and paired ratios scattered 0.89–1.20, so nothing was proved. Plan 032 Task 3 should also settle, paired against `v0.2.3` and `6041e0b`: the validator with 50 distinct `when` (gate 1.75 µs/node, measured 1.47–1.57 in Task 3), the live-filter keystroke (4 ms budget, 1.6 ms measured), the `actions` input check on the agent-home render (1% budget, never stated), and the production selection bench's 4–8% against 0.2.3 with focus continuity off on both sides.
+
+- Update (2026-11-08, plan 030 Task 11): `bun run bench` at load 12 stops at the validator stage (`core-queue.*` at 1.6–2.4 µs/node, `bindings: 50 when` 2.07 against 1.75), and because the stages are chained with `&&`, `host.bench.ts` and `pack-libraries.bench.ts` never run under it. Run them directly for now; plan 032 Task 3 should run every stage independently (a `bun run bench --all` or `;` chaining that reports each exit code) on the quiet host, and add this plan's figures: pipeline overhead (budget 0.2 ms beyond `loadPlacement`), `handleIntent` against an equal `renderPlacement`, `dependents` over 1,000 placements, `checkPackages` per package, and a dependent with warm libraries against the bundled equivalent. Direct runs on a busy host: pack with libraries 22 ms against 50 ms bundled, render 0.336 ms against 0.371 ms. [Impact review](evidence/030-impact-analysis.md) F10.
 
 ## Name the realm mismatch in a compiled validator's `validateTree`
 
@@ -719,3 +723,53 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Source: plans/030-Phase-7-Part-Q-Release-0-3-0-Host-Pipeline-Evolution-And-Dependencies.md Task 2, `bench/host.bench.ts`
 - What: `loadPlacement` with a `verifiedPackages` hit still costs about 0.5 ms for a 8 KB template package against the 9 KB demo catalog: `verifyStoredPackage` re-canonicalises the catalog (about 0.21 ms) and the capabilities, and re-hashes the package (about 0.15 ms), on every call. The stored record is untrusted, so the package hash must be rechecked, but the install documents are the host's own and could be keyed once (by identity, if they are frozen).
 - Why: it is 75% of a skipped `renderPlacement` and the reason the pipeline budget of 0.2 ms excludes `loadPlacement`. A host rendering many placements per request pays it for each.
+
+- Update (2026-11-08, plan 030 Task 11): `loadLibraries` (`src/store/load.ts`) reads a package's pins one at a time, so a cold load of a dependent with the 32-library maximum is 32 sequential store reads; read each level's pins in parallel (keeping dependencies-first order). And with `publish`, `handleIntent`'s pending frame goes through `renderPlacement`, so it resolves sources and runs the widget once more per action; a host that only wants the status change could ask for a render that reuses the data of the served frame. [Impact review](evidence/030-impact-analysis.md) F11.
+
+## Let authoring, preview and codegen use package libraries
+
+- Section: Agent authoring (spec §7.3)
+- Priority: P3
+- Source: plans/030-Phase-7-Part-Q-Release-0-3-0-Host-Pipeline-Evolution-And-Dependencies.md Task 11, plans/evidence/030-impact-analysis.md F5
+- What: `pack()` and `verifyPackage()` take `libraries`, but the authoring session, the MCP tools (`pack_draft`, `render_scenarios`, `capture_preview`), `<Preview>` and `liveframe gen` do not. An agent cannot pack or preview a widget that imports `liveframe:lib/<id>@<version>`, and there are no generated types for the import (the demo hand-writes `examples/demo-host/widgets/libraries.d.ts`). Accept the installed libraries in the session config, pass them to `pack()` and the runner, and have `liveframe gen` emit a module declaration for each library's `exports` from its component types.
+- Why: libraries are how widgets share components; without this only a human with the SDK can use them.
+
+## Re-check a dependent's library names at load
+
+- Section: Storage (spec §7.4)
+- Priority: P4
+- Source: plans/030-Phase-7-Part-Q-Release-0-3-0-Host-Pipeline-Evolution-And-Dependencies.md Task 10 notes, plans/evidence/030-impact-analysis.md F6
+- What: `loadPlacement` verifies a dependent without its libraries (pins and header lines) and each library alone, so the names the dependent reads from a pinned library are checked at `pack()`/`verifyPackage(…, { libraries })` and at link time, not at load. A doctored dependent with a recomputed hash that reads a name its library does not export fails as `render-failed` at link time instead of as `unknown-name` at load. Re-running `verifyPackage` with the libraries would give up the verified cache for dependents; a cheaper check would record the used names in the manifest.
+- Why: an earlier, typed error; not an escalation, since anyone who can write the store can already store arbitrary code.
+
+## Check a `migrateState` mapping against the state schema at install
+
+- Section: Formats (spec §7.1)
+- Priority: P4
+- Source: plans/030-Phase-7-Part-Q-Release-0-3-0-Host-Pipeline-Evolution-And-Dependencies.md Task 8 notes, plans/evidence/030-impact-analysis.md F7
+- What: `previous` is `dynamic`, so an expression's inferred type is never compared with its state property. A wrong mapping installs and shows as a reset at run time. Infer each expression and check the type against the property's schema where it is not `dynamic`, and report `invalid-prop` at `/migrateState/<key>`.
+- Why: a mapping that can never produce a valid value should fail the install, not every user's first load after an upgrade.
+
+## Allow any library version in an import
+
+- Section: Formats (spec §7.3)
+- Priority: P4
+- Source: plans/030-Phase-7-Part-Q-Release-0-3-0-Host-Pipeline-Evolution-And-Dependencies.md Task 9 notes, plans/evidence/030-impact-analysis.md F8
+- What: the manifest allows any non-empty `version`, but a library import's specifier and header line must stay canonical, so a library version outside `[A-Za-z0-9._+-]` cannot be imported (`forbidden-import`). Either restrict `version` for packages that declare `exports`, or percent-encode the version in the specifier.
+- Why: a library that packs but can never be imported is a trap; wait for an adopter to hit it before choosing.
+
+## Carry the manifest on `Served` or document the lookup
+
+- Section: Host pipeline (spec §7.7)
+- Priority: P3
+- Source: plans/030-Phase-7-Part-Q-Release-0-3-0-Host-Pipeline-Evolution-And-Dependencies.md Task 5 notes, plans/evidence/030-impact-analysis.md F9
+- What: a browser that compiles its own validator needs the manifest, which `Served` does not carry (only `package: { id, version, hash }`). The demo keeps a `hash → manifest` map filled from `store.getPackage`. Either add an optional `manifest` to `Served` (frozen, shared with the verified package) or document the lookup and the caching rule in `docs/host.md`.
+- Why: every host that ships a client validator rewrites the same map.
+
+## Give a missing origin node its own error pointer rule
+
+- Section: Host pipeline (spec §7.7)
+- Priority: P3
+- Source: plans/030-Phase-7-Part-Q-Release-0-3-0-Host-Pipeline-Evolution-And-Dependencies.md Task 5 notes, plans/evidence/030-impact-analysis.md F9
+- What: `checkOffered` reports an unknown origin node as `not-found` at `/origin/nodeId`, the same kind a missing placement or package uses, so a host that maps error kinds to HTTP statuses must also look at the pointer (the demo's `failure()` does: `not-found` outside `/origin` is its own 500). Document the pointer rule in `docs/host.md`, or give the client-fault case its own kind (a breaking change to `ErrorKind`, so decide before the 0.3.0 release or leave it for 0.4).
+- Why: a wrong status code turns a stale tab into a server error alert.
