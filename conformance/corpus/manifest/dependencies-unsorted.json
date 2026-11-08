@@ -1,0 +1,17 @@
+{
+  "inputs": {
+    "doc": "docs/dependencies-unsorted.json",
+    "catalog": "../common/proof-catalog.json",
+    "capabilities": "../common/capabilities.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "invalid-document",
+        "pointer": "/dependencies/1/id"
+      }
+    ]
+  }
+}

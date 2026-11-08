@@ -90,6 +90,8 @@ code units including non-BMP keys, escapes, non-BMP strings and rejected inputs.
 `src/__tests__/hash-vectors.test.ts` runs every vector through
 `canonicalJson` and the hash.
 
+`library-packages.json` holds the same kind of vector for a library package (its manifest declares `exports`) and a package that depends on it: the dependent's manifest carries the library's `(id, version, hash)` pin, so the hash covers it, and its code holds the `__lf_lib0` header line.
+
 `render-keys.json` holds render-key vectors: `value` is the key's input
 (`hash`, `catalogId`, `params`, `state`, `data`, `context` and `actions`), and
 `sha256` is the key `renderKey` returns. A host that omits `actions` hashes it

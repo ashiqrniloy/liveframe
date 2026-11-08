@@ -3,9 +3,9 @@
     "subpath": "./pack",
     "name": "pack",
     "change": "changed",
-    "reason": "Ownership contract changes without declaration changes",
+    "reason": "Ownership contract changes without declaration changes ; a code draft may import library packages (`libraries`) as `liveframe:lib/<id>@<version>` and `pack()` records `manifest.dependencies` (plan 030 T9)",
     "hostAction": "Follow the migration checklist",
-    "task": "026 T3",
+    "task": "026 T3, 030 T9",
     "migration": "Packages are deeply frozen",
     "behavior": {
       "file": "src/__tests__/pack.test.ts",
@@ -16,9 +16,9 @@
     "subpath": "./pack",
     "name": "verifyPackage",
     "change": "changed",
-    "reason": "Ownership contract changes without declaration changes; foreign-realm documents rejected consistently (026 T5, Foreign-realm documents are rejected everywhere)",
+    "reason": "Ownership contract changes without declaration changes; foreign-realm documents rejected consistently (026 T5, Foreign-realm documents are rejected everywhere); `libraries` checks the dependency pins, names and graph, and the code's library lines must match the manifest's pins (plan 030 T9)",
     "hostAction": "Follow the migration checklist",
-    "task": "026 T3, 026 T5",
+    "task": "026 T3, 026 T5, 030 T9",
     "migration": "Packages are deeply frozen",
     "behavior": {
       "file": "src/__tests__/pack.test.ts",
@@ -993,7 +993,7 @@
     "subpath": "./schemas/*",
     "name": "manifest.json",
     "change": "widened",
-    "reason": "The string schema form accepts a `url` rule (a scheme allowlist, optionally relative references) in catalogs, capabilities and widget schemas; a manifest may declare `migrateState`, an object of at most 64 entries mapping a state key to an expression (plan 030 T8)",
+    "reason": "The string schema form accepts a `url` rule (a scheme allowlist, optionally relative references) in catalogs, capabilities and widget schemas; a manifest may declare `migrateState`, an object of at most 64 entries mapping a state key to an expression (plan 030 T8); `exports` and `dependencies` (plan 030 T9)",
     "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
     "task": "027 T7"
   },
@@ -1787,7 +1787,7 @@
     "subpath": ".",
     "name": "Manifest",
     "change": "widened",
-    "reason": "Local state and bindings: a manifest may declare `local` state, a node may carry `when` and `bind`, and an event may carry `setLocal` (plan 029 T3); a manifest may also declare `migrateState`, a per-key expression over `previous` that maps a stored state that no longer fits (plan 030 T8)",
+    "reason": "Local state and bindings: a manifest may declare `local` state, a node may carry `when` and `bind`, and an event may carry `setLocal` (plan 029 T3); a manifest may also declare `migrateState`, a per-key expression over `previous` that maps a stored state that no longer fits (plan 030 T8); a manifest may also declare library fields: `exports` and `dependencies` (plan 030 T9)",
     "hostAction": "Optional: declare `local` and `initialLocal` in a manifest, and use `local.set`, `local`, `ex`, `when` and `bind` from `/sdk`; existing widgets are unchanged.",
     "task": "029 T3"
   },
@@ -2358,5 +2358,93 @@
     "reason": "Conformance case for declarative state migration (plan 030 T8)",
     "hostAction": "Run the `migrate-state-*` manifest corpus cases through your manifest validator before accepting `migrateState`.",
     "task": "030 T8"
+  },
+  {
+    "subpath": "./pack",
+    "name": "rebindDependencies",
+    "change": "added",
+    "reason": "Package dependencies: `rebindDependencies` moves a package's library pins to new library versions without transpiling again (plan 030 T9)",
+    "hostAction": "Optional: when a library ships a new version, rebind the widgets that use it with `rebindDependencies` and `verifyPackage` instead of repacking from source.",
+    "task": "030 T9"
+  },
+  {
+    "subpath": "./pack",
+    "name": "VerifyOptions",
+    "change": "added",
+    "reason": "Package dependencies: the options `verifyPackage` takes, with optional `libraries` (plan 030 T9)",
+    "hostAction": "Optional: pack shared components as a library (`exports`) and pass `libraries` to `pack()` and `verifyPackage()`; packages without library fields are unchanged.",
+    "task": "030 T9"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/manifest/library-fields-valid.json",
+    "change": "added",
+    "reason": "Conformance case for package dependencies and library fields (plan 030 T9)",
+    "hostAction": "Run the `library-fields-valid`, `dependencies-unsorted`, `library-valid` and `template-with-dependencies` corpus cases and the library vectors in `conformance/hash/library-packages.json` before accepting `exports` or `dependencies`.",
+    "task": "030 T9"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/manifest/docs/library-fields-valid.json",
+    "change": "added",
+    "reason": "Conformance case for package dependencies and library fields (plan 030 T9)",
+    "hostAction": "Run the `library-fields-valid`, `dependencies-unsorted`, `library-valid` and `template-with-dependencies` corpus cases and the library vectors in `conformance/hash/library-packages.json` before accepting `exports` or `dependencies`.",
+    "task": "030 T9"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/manifest/dependencies-unsorted.json",
+    "change": "added",
+    "reason": "Conformance case for package dependencies and library fields (plan 030 T9)",
+    "hostAction": "Run the `library-fields-valid`, `dependencies-unsorted`, `library-valid` and `template-with-dependencies` corpus cases and the library vectors in `conformance/hash/library-packages.json` before accepting `exports` or `dependencies`.",
+    "task": "030 T9"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/manifest/docs/dependencies-unsorted.json",
+    "change": "added",
+    "reason": "Conformance case for package dependencies and library fields (plan 030 T9)",
+    "hostAction": "Run the `library-fields-valid`, `dependencies-unsorted`, `library-valid` and `template-with-dependencies` corpus cases and the library vectors in `conformance/hash/library-packages.json` before accepting `exports` or `dependencies`.",
+    "task": "030 T9"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/package/library-valid.json",
+    "change": "added",
+    "reason": "Conformance case for package dependencies and library fields (plan 030 T9)",
+    "hostAction": "Run the `library-fields-valid`, `dependencies-unsorted`, `library-valid` and `template-with-dependencies` corpus cases and the library vectors in `conformance/hash/library-packages.json` before accepting `exports` or `dependencies`.",
+    "task": "030 T9"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/package/docs/library-valid.json",
+    "change": "added",
+    "reason": "Conformance case for package dependencies and library fields (plan 030 T9)",
+    "hostAction": "Run the `library-fields-valid`, `dependencies-unsorted`, `library-valid` and `template-with-dependencies` corpus cases and the library vectors in `conformance/hash/library-packages.json` before accepting `exports` or `dependencies`.",
+    "task": "030 T9"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/package/template-with-dependencies.json",
+    "change": "added",
+    "reason": "Conformance case for package dependencies and library fields (plan 030 T9)",
+    "hostAction": "Run the `library-fields-valid`, `dependencies-unsorted`, `library-valid` and `template-with-dependencies` corpus cases and the library vectors in `conformance/hash/library-packages.json` before accepting `exports` or `dependencies`.",
+    "task": "030 T9"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/package/docs/template-with-dependencies.json",
+    "change": "added",
+    "reason": "Conformance case for package dependencies and library fields (plan 030 T9)",
+    "hostAction": "Run the `library-fields-valid`, `dependencies-unsorted`, `library-valid` and `template-with-dependencies` corpus cases and the library vectors in `conformance/hash/library-packages.json` before accepting `exports` or `dependencies`.",
+    "task": "030 T9"
+  },
+  {
+    "subpath": "./conformance/hash/*",
+    "name": "conformance/hash/library-packages.json",
+    "change": "added",
+    "reason": "A library package and a dependent package hash vector, the dependent's manifest carrying the library's pin (plan 030 T9)",
+    "hostAction": "Port the package hash over `manifest.dependencies` and check the library vectors before accepting `exports` or `dependencies`.",
+    "task": "030 T9"
   }
 ]

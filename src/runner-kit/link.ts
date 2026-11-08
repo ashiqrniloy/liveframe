@@ -8,6 +8,21 @@ export const sdkSpecifiers = [
 ] as const;
 export type SdkSpecifier = (typeof sdkSpecifiers)[number];
 
+const libraryPattern = /^liveframe:lib\/([a-z][a-zA-Z0-9.-]*)@([A-Za-z0-9._+-]+)$/;
+
+/** `liveframe:lib/<id>@<version>`: how a package names a library it imports (plan 030 Task 9). */
+export function librarySpecifier(id: string, version: string): string {
+  return `liveframe:lib/${id}@${version}`;
+}
+
+/** The `(id, version)` of a library specifier, or undefined when the text is not one. */
+export function parseLibrarySpecifier(
+  specifier: string,
+): { readonly id: string; readonly version: string } | undefined {
+  const match = libraryPattern.exec(specifier);
+  return match ? { id: match[1] as string, version: match[2] as string } : undefined;
+}
+
 const headerStart = "import * as __lf_sdk";
 const headerLine = /^import \* as __lf_sdk(\d+) from "([^"\n]*)";$/;
 

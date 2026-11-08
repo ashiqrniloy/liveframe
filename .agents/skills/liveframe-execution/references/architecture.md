@@ -18,7 +18,7 @@ One npm package with subpath exports:
 | `@arnilo/liveframe` | Formats, types, JSON Schemas, validator, recipe resolver | No |
 | `/sdk` | JSX runtime, intents, `render()`, `liveframe gen` | No (the CLI entry may read files) |
 | `/sdk/gen` | `generate()`, `generateDefinitions()` (the `liveframe gen` emitters) | No |
-| `/pack` | `pack()`, `verifyPackage()`, `checkPackages()` | No |
+| `/pack` | `pack()`, `verifyPackage()`, `checkPackages()`, `rebindDependencies()` | No |
 | `/store` | Record formats, `Store` interface, `memoryStore()`, `loadPlacement()` | No |
 | `/host` | `renderPlacement()`, `handleIntent()`, `dependents()`: the ordered, stateless request-time pipeline over injected effects (spec §7.7) | No |
 | `/store/fs` | `fileStore(dir)` | File system |

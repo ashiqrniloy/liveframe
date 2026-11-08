@@ -383,6 +383,48 @@ state may no longer fit the new `state` schema. Without help it is reset to
   manifest, so it is part of the package hash, and loading never writes the
   migrated state back: persist `state` with `putState` if you want to.
 
+## Share components between widgets
+
+A component several widgets use can travel with each package (bundle the file into every draft) or be packed once as a **library** that the widgets import. The second keeps an updated component from meaning a repack of every widget from source you may no longer keep.
+
+A library is an ordinary code package. Its manifest lists `exports`, the names it offers; its default export is still a widget, which renders its scenarios as a gallery to review:
+
+```tsx
+// cards/entry.tsx
+export { TaskCard } from "./task-card.tsx";
+export { default } from "./gallery.tsx";
+```
+
+```ts
+const cards = value(pack({ files, entry: "entry.tsx", manifest: { …, id: "acme.cards", version: "3.1.0", exports: ["TaskCard"] }, scenarios }, install));
+```
+
+A widget imports the names with an exact `(id, version)` and passes the library package to `pack()`:
+
+```tsx
+import { TaskCard } from "liveframe:lib/acme.cards@3.1.0";
+```
+
+```ts
+const home = value(pack({ files, entry: "home.tsx", manifest, scenarios }, { ...install, libraries: [cards] }));
+home.manifest.dependencies; // [{ id: "acme.cards", version: "3.1.0", hash: cards.hash }]
+```
+
+- Imports are named only. A default or namespace import, a re-export, a name the library does not export (`unknown-name`) and a library you did not supply (`not-found`) are rejected, with the file and line.
+- The library's code is not copied into the widget. The widget's code gets one line per library after the SDK lines, and `pack()` records `manifest.dependencies` itself: exact `{ id, version, hash }` pins, never ranges, so a widget's tree is a function of its hash and the hash covers the pins. If you write `dependencies` in the draft, it must equal what the code imports.
+- A library may import other libraries. The graph under a package holds at most 32 libraries, is at most 4 deep and has no cycle, and a package has at most 16 direct dependencies and one version of each library id.
+- `verifyPackage(pkg, { …install, libraries })` also checks each pin against the supplied library (`not-found`, `hash-mismatch`), that the names the code reads are exported, and that every library in the graph verifies. Without `libraries` it checks that the code's library lines are exactly the manifest's pins. Template packages cannot declare `exports` or `dependencies`.
+- A library is data until a runner links it; running a widget that has dependencies is the runner's and the loader's job.
+
+**Move a widget to a new library version** without its source:
+
+```ts
+const next = value(pack(newCardsDraft, install)); // acme.cards@3.2.0
+const home2 = value(rebindDependencies(home, { libraries: [next], version: "1.0.1" }));
+```
+
+`rebindDependencies` returns a new frozen package with its own version and hash. The code is the same bytes apart from the version in each library line, so nothing is transpiled again. It needs one supplied package for each dependency id, and refuses with `unknown-name` when a name the code reads is no longer exported. Run `verifyPackage` with the libraries to check the result against your install, then place it like any new version.
+
 ## Runner limits and ownership
 
 `Runner` and `RunnerOptions` are types from `/preview`. A custom runner implements

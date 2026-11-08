@@ -24,6 +24,13 @@ const binding = obj({
   from: str({ maxLength: 7, enum: ["params", "state", "context"] }),
   path: str({ maxLength: 512, pattern: "^[a-zA-Z_$][a-zA-Z0-9_$]*(\\.[a-zA-Z_$][a-zA-Z0-9_$]*){0,7}$" }),
 });
+/** A pinned library package (plan 030 Task 9): the exact `(id, version)` and the hash `pack()` recorded. */
+const dependency = obj({
+  id: str({ maxLength: 128, pattern: "^[a-z][a-zA-Z0-9.-]*$" }),
+  version: str({ maxLength: 128, pattern: "^[A-Za-z0-9._+-]+$" }),
+  hash: str({ maxLength: 71, pattern: "^sha256-[0-9a-f]{64}$" }),
+});
+export const MAX_DIRECT_DEPENDENCIES = 16;
 const fields = obj(
   {
     format: str({ maxLength: 32, enum: ["liveframe-manifest/1"] }),
@@ -37,7 +44,15 @@ const fields = obj(
     sources: bool(),
     actions: arr(capabilityName, { maxItems: 512 }),
   },
-  { description: str({ maxLength: 500 }), meta: bool(), local: bool(), initialLocal: bool(), migrateState: bool() },
+  {
+    description: str({ maxLength: 500 }),
+    meta: bool(),
+    local: bool(),
+    initialLocal: bool(),
+    migrateState: bool(),
+    exports: arr(str({ maxLength: 64, pattern: "^[A-Za-z_$][A-Za-z0-9_$]*$" }), { maxItems: 64 }),
+    dependencies: arr(dependency, { maxItems: MAX_DIRECT_DEPENDENCIES }),
+  },
 );
 const sourceFields = obj({ source: capabilityName, params: bool() });
 export type Manifest = Omit<
@@ -76,6 +91,7 @@ export const manifestSchema = {
     initialLocal: json,
     meta: json,
     actions: { ...fields.properties.actions, uniqueItems: true },
+    exports: { ...fields.properties.exports, uniqueItems: true },
     sources: namedMap({
       ...sourceFields,
       properties: {
@@ -172,6 +188,23 @@ function checkMigrateState(manifest: Manifest, c: Checks): void {
     }
     c.collect(checkExpression(expr, rootScope({ previous: "dynamic" })), pointer);
   }
+}
+
+/**
+ * Library fields (plan 030 Task 9). An export name may not be `default` (the gallery) or start with the
+ * linker's `__lf_` prefix; dependencies are strictly ascending by id, which is also unique by id and
+ * the order of the linker header lines, so one set of pins has one canonical manifest.
+ */
+function checkLibraryFields(manifest: Manifest, c: Checks): void {
+  for (const [i, name] of (manifest.exports ?? []).entries()) {
+    if (c.errors.length >= 20) break;
+    if (name === "default" || name.startsWith("__lf_"))
+      c.reject(`/exports/${i}`, "Expected an export name other than default and __lf_*", "invalid-document");
+  }
+  const dependencies = manifest.dependencies ?? [];
+  for (let i = 1; i < dependencies.length && c.errors.length < 20; i++)
+    if ((dependencies[i - 1] as { id: string }).id >= (dependencies[i] as { id: string }).id)
+      c.reject(`/dependencies/${i}/id`, "Expected dependencies in ascending id order, one per id", "invalid-document");
 }
 
 function checkActionList(actions: readonly string[], capabilities: Capabilities, c: Checks): void {
@@ -285,6 +318,7 @@ export function validateManifest(
     for (const error of stateErrors) c.reject(error.pointer, error.message, "invalid-document", error.expected);
     checkInitialLocal(value, c);
     checkMigrateState(value, c);
+    checkLibraryFields(value, c);
     checkActionList(value.actions, capabilities, c);
     for (const [name, entry] of Object.entries(value.sources)) {
       if (c.errors.length >= 20) break;
@@ -308,6 +342,7 @@ export function validateManifestShape(doc: unknown): Result<Manifest> {
     c.schemaRelationships(value[key], `/${key}`);
   }
   checkLocalSchema(value, c);
+  checkLibraryFields(value, c);
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value };
 }
 

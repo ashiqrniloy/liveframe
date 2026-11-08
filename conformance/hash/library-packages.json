@@ -1,0 +1,98 @@
+[
+  {
+    "package": {
+      "format": "liveframe-package/1",
+      "manifest": {
+        "format": "liveframe-manifest/1",
+        "id": "acme.badges",
+        "version": "1.0.0",
+        "catalogId": "proof.ui@1",
+        "params": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "state": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "initialState": {},
+        "sources": {},
+        "actions": [],
+        "exports": [
+          "Badge"
+        ]
+      },
+      "scenarios": [
+        {
+          "name": "ready",
+          "params": {},
+          "context": {},
+          "data": {}
+        }
+      ],
+      "code": "import * as __lf_sdk0 from \"@arnilo/liveframe/sdk/jsx-runtime\";\nimport * as __lf_sdk1 from \"@arnilo/liveframe/sdk\";\nconst __lf_m1 = (() => {\nconst primitive = __lf_sdk1[\"primitive\"];\n\nconst Text = primitive(\"Text\");\n\nconst __lf_exports = { __proto__: null };\n__lf_exports[\"Text\"] = Text;\nreturn __lf_exports;\n})();\nconst __lf_m0 = (() => {\nconst _jsx = __lf_sdk0[\"jsx\"];\nconst Text = __lf_m1[\"Text\"];\n/** @jsxImportSource @arnilo/liveframe/sdk */\n\nfunction Badge({ label }) { return _jsx(Text, { text: label,} ); }\nfunction Gallery() { return _jsx(Badge, { label: \"Badge\",} ); }\n\nconst __lf_exports = { __proto__: null };\n__lf_exports[\"Badge\"] = Badge;\n__lf_exports[\"default\"] = Gallery;\nreturn __lf_exports;\n})();\nexport default __lf_m0[\"default\"];\nconst __lf_x0 = __lf_m0[\"Badge\"];\nexport { __lf_x0 as Badge };",
+      "hash": "sha256-18d11be43041fc68656c7ee1785ca00ca8b24a4a9fe5d05d57ebd2f3c2ff8e7b"
+    },
+    "hash": "sha256-18d11be43041fc68656c7ee1785ca00ca8b24a4a9fe5d05d57ebd2f3c2ff8e7b"
+  },
+  {
+    "package": {
+      "format": "liveframe-package/1",
+      "manifest": {
+        "format": "liveframe-manifest/1",
+        "id": "acme.home",
+        "version": "1.0.0",
+        "catalogId": "proof.ui@1",
+        "params": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "state": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "context": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        },
+        "initialState": {},
+        "sources": {},
+        "actions": [],
+        "dependencies": [
+          {
+            "id": "acme.badges",
+            "version": "1.0.0",
+            "hash": "sha256-18d11be43041fc68656c7ee1785ca00ca8b24a4a9fe5d05d57ebd2f3c2ff8e7b"
+          }
+        ]
+      },
+      "scenarios": [
+        {
+          "name": "ready",
+          "params": {},
+          "context": {},
+          "data": {}
+        }
+      ],
+      "code": "import * as __lf_sdk0 from \"@arnilo/liveframe/sdk/jsx-runtime\";\nimport * as __lf_lib0 from \"liveframe:lib/acme.badges@1.0.0\";\nconst __lf_m0 = (() => {\nconst _jsx = __lf_sdk0[\"jsx\"];\nconst Badge = __lf_lib0[\"Badge\"];\n/** @jsxImportSource @arnilo/liveframe/sdk */\n\nfunction Home() { return _jsx(Badge, { label: \"Home\",} ); }\n\nconst __lf_exports = { __proto__: null };\n__lf_exports[\"default\"] = Home;\nreturn __lf_exports;\n})();\nexport default __lf_m0[\"default\"];",
+      "hash": "sha256-ef659b0ff8c2313136e3fa624dba8f3aed85b99a206e1b25d3b52b1139b2d4fd"
+    },
+    "hash": "sha256-ef659b0ff8c2313136e3fa624dba8f3aed85b99a206e1b25d3b52b1139b2d4fd"
+  }
+]

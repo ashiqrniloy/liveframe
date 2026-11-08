@@ -1,0 +1,17 @@
+{
+  "inputs": {
+    "doc": "docs/template-with-dependencies.json",
+    "catalog": "../common/proof-catalog.json",
+    "capabilities": "../common/template-capabilities.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "invalid-document",
+        "pointer": "/manifest/dependencies"
+      }
+    ]
+  }
+}

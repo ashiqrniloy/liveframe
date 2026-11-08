@@ -373,6 +373,7 @@ test("subpath_export_surfaces", () => {
     "outcomeScenarios",
     "pack",
     "packageHash",
+    "rebindDependencies",
     "renderKey",
     "validateScenario",
     "validateWidgetPackageShape",

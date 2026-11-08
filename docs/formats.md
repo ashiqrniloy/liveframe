@@ -711,6 +711,13 @@ widget version change. An unknown key is `unknown-name` at `/migrateState/<key>`
 an expression that reads any other name or is malformed is rejected at its pointer
 under `/migrateState/<key>`. See [migrating state](packages.md#migrating-state-across-versions).
 
+A manifest may also declare library fields. `exports` (at most 64 unique names, each
+a plain identifier other than `default` and not starting `__lf_`) makes the package a
+library other packages import by name; `dependencies` (at most 16, strictly ascending by
+`id`) pins the libraries a package imports as `{ id, version, hash }`. `pack()` writes
+`dependencies` from the code, and a template package declares neither. See
+[sharing components](packages.md#share-components-between-widgets).
+
 `params`, `state` and `context` are closed language object schemas without
 `pattern`. Those three are matched against values the app does not author (typed
 input, intent payloads, stored state) both on the host and in the browser, so a

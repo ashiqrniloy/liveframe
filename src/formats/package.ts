@@ -99,7 +99,11 @@ function checkBody(doc: Record<string, unknown>, c: Checks): void {
   const hasTemplate = Object.hasOwn(doc, "template");
   if (hasCode === hasTemplate) c.reject("/code", "Expected exactly one of code and template", "invalid-document");
   else if (hasCode) checkCodeSize(doc.code, c);
-  else if (utf8Length(JSON.stringify(doc.template), TEMPLATE_BYTES) > TEMPLATE_BYTES)
+  else if (isRecord(doc.manifest) && (doc.manifest.exports !== undefined || doc.manifest.dependencies !== undefined)) {
+    // Libraries link code to code (plan 030 Task 9); a template package has neither side of that.
+    const field = doc.manifest.dependencies !== undefined ? "dependencies" : "exports";
+    c.reject(`/manifest/${field}`, "Expected no exports or dependencies in a template package", "invalid-document");
+  } else if (utf8Length(JSON.stringify(doc.template), TEMPLATE_BYTES) > TEMPLATE_BYTES)
     c.reject("/template", "Expected at most 1 MiB of UTF-8 JSON", "limit-exceeded");
 }
 

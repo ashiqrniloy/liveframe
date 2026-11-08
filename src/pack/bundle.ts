@@ -1,6 +1,7 @@
 import {
   type AnyNode,
   type Identifier,
+  type ImportDeclaration,
   type Literal,
   type ModuleDeclaration,
   type Pattern,
@@ -11,7 +12,7 @@ import { transform } from "sucrase";
 import type { LiveframeError, Result } from "../errors.ts";
 import { documentChecks } from "../formats/capabilities.ts";
 import { at } from "../internal.ts";
-import { sdkSpecifiers } from "../runner-kit/link.ts";
+import { parseLibrarySpecifier, sdkSpecifiers } from "../runner-kit/link.ts";
 
 const sdkSpecifierSet: ReadonlySet<string> = new Set(sdkSpecifiers);
 
@@ -91,7 +92,10 @@ export function checkModule(
         node.source
       ) {
         const specifier = String(node.source.value);
-        if (!sdkSpecifierSet.has(specifier) && !(allowRelative && /^\.\.?\//.test(specifier)))
+        // A library import is an import declaration of `liveframe:lib/<id>@<version>` (plan 030 Task 9); the
+        // bundler and the verifier then check its names and pin, so a re-export of one stays forbidden.
+        const library = node.type === "ImportDeclaration" && parseLibrarySpecifier(specifier);
+        if (!sdkSpecifierSet.has(specifier) && !library && !(allowRelative && /^\.\.?\//.test(specifier)))
           c.reject(location, `Import ${specifier} is not allowed`, "forbidden-import");
       }
     });
@@ -150,9 +154,15 @@ type Link = {
   readonly edits: Edit[];
 };
 
-function linkImport(node: ModuleDeclaration | Statement, link: Link, dependency: (specifier: string) => string): void {
+function linkImport(
+  node: ModuleDeclaration | Statement,
+  link: Link,
+  dependency: (specifier: string) => string,
+  library: (node: ImportDeclaration) => string,
+): void {
   if (node.type !== "ImportDeclaration") return;
-  const id = dependency(String(node.source.value));
+  const specifier = String(node.source.value);
+  const id = parseLibrarySpecifier(specifier) ? library(node) : dependency(specifier);
   for (const item of node.specifiers) {
     const value =
       item.type === "ImportNamespaceSpecifier"
@@ -215,18 +225,42 @@ function linkExportAll(
   link.edits.push({ start: node.start, end: node.end, text: "" });
 }
 
+/** The exported names of each supplied library, by `liveframe:lib/<id>@<version>` specifier. */
+export type LibraryExports = ReadonlyMap<string, ReadonlySet<string>>;
+/** The names a bundle reads from each library it imports, in header order (first use). */
+export type LibraryUses = ReadonlyMap<string, ReadonlySet<string>>;
+
 /** Transpile and link without evaluating code. Imports and exports are snapshots, not live bindings. */
-export function bundle({
-  files,
-  entry,
-}: {
+export function bundle(draft: {
   readonly files: Readonly<Record<string, string>>;
   readonly entry: string;
 }): Result<string> {
+  const linked = bundleLinked(draft);
+  return linked.ok ? { ok: true, value: linked.value.code } : linked;
+}
+
+/**
+ * `bundle` for a package that may import libraries (plan 030 Task 9): `libraries` says what each
+ * supplied library exports, `exports` names what this entry exports besides its default (a library
+ * package's `manifest.exports`). Library code is never copied: each library becomes one header
+ * line after the SDK lines and each imported name a read of that binding.
+ */
+export function bundleLinked({
+  files,
+  entry,
+  exports = [],
+  libraries = new Map(),
+}: {
+  readonly files: Readonly<Record<string, string>>;
+  readonly entry: string;
+  readonly exports?: readonly string[];
+  readonly libraries?: LibraryExports;
+}): Result<{ readonly code: string; readonly uses: LibraryUses }> {
   const modules = new Map<string, { id: string; exports: Set<string> }>();
   const active: string[] = [];
   const output: string[] = [];
   const sdk = new Map<string, string>();
+  const uses = new Map<string, { binding: string; names: Set<string> }>();
 
   function transpile(input: string, file: string): string {
     try {
@@ -286,8 +320,27 @@ export function bundle({
       }
       return id;
     };
+    const library = (node: ImportDeclaration): string => {
+      const specifier = String(node.source.value);
+      const where = pointer(file, node.loc?.start.line ?? 1);
+      const available = libraries.get(specifier);
+      if (!available) fail("not-found", where, `No library package was supplied for ${specifier}`);
+      let use = uses.get(specifier);
+      if (!use) {
+        use = { binding: `__lf_lib${uses.size}`, names: new Set() };
+        uses.set(specifier, use);
+      }
+      for (const item of node.specifiers) {
+        if (item.type !== "ImportSpecifier")
+          fail("invalid-document", where, `Import named exports from ${specifier}, not its default or a namespace`);
+        const imported = name(item.imported);
+        if (!available.has(imported)) fail("unknown-name", where, `${specifier} does not export ${imported}`);
+        use.names.add(imported);
+      }
+      return use.binding;
+    };
     for (const node of checked.value.body) {
-      linkImport(node, link, dependency);
+      linkImport(node, link, dependency, library);
       linkExportDefault(node, link);
       linkExportNamed(node, link, dependency);
       linkExportAll(node, link, dependency);
@@ -312,13 +365,23 @@ export function bundle({
   try {
     const main = visit(entry);
     if (!main.exports.has("default")) fail("invalid-document", pointer(entry), "The entry must have a default export");
+    // `export { x as Name }` accepts any name, reserved words included, which `export const Name` would not.
+    const named = exports.map((exported, i) => {
+      if (!main.exports.has(exported)) fail("invalid-document", pointer(entry), `The entry must export ${exported}`);
+      return `const __lf_x${i} = ${main.id}[${JSON.stringify(exported)}];\nexport { __lf_x${i} as ${exported} };`;
+    });
     return {
       ok: true,
-      value: [
-        ...[...sdk].map(([specifier, id]) => `import * as ${id} from ${JSON.stringify(specifier)};`),
-        ...output,
-        `export default ${main.id}["default"];`,
-      ].join("\n"),
+      value: {
+        code: [
+          ...[...sdk].map(([specifier, id]) => `import * as ${id} from ${JSON.stringify(specifier)};`),
+          ...[...uses].map(([specifier, { binding }]) => `import * as ${binding} from ${JSON.stringify(specifier)};`),
+          ...output,
+          `export default ${main.id}["default"];`,
+          ...named,
+        ].join("\n"),
+        uses: new Map([...uses].map(([specifier, { names }]) => [specifier, names])),
+      },
     };
   } catch (error) {
     if (error instanceof BundleFailure) return { ok: false, errors: error.errors };

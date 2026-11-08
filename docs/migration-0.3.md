@@ -394,6 +394,17 @@ Run the `migrate-state-*` manifest corpus cases through your manifest validator 
 
 See [migrating state](packages.md#migrating-state-across-versions) and [spec §7.4](spec.md#74-storage).
 
+### Package dependencies
+
+A code package whose manifest declares `exports` is a library; a widget imports its names as `import { TaskCard } from "liveframe:lib/<id>@<version>"`. `pack()` takes `libraries`, does not copy their code, emits one `__lf_lib<N>` header line per library after the SDK lines and records `manifest.dependencies` as exact `{ id, version, hash }` pins that the package hash covers. `verifyPackage` accepts `libraries` and checks pins, names and graph bounds; `rebindDependencies` moves the pins to new library versions without transpiling again.
+Optional: pack shared components as a library (`exports`) and pass `libraries` to `pack()` and `verifyPackage()`; packages without library fields are unchanged.
+Optional: when a library ships a new version, rebind the widgets that use it with `rebindDependencies` and `verifyPackage` instead of repacking from source.
+Existing code is unchanged: a package without `exports` or `dependencies` packs, hashes and verifies exactly as before, and `libraries` is optional. A verifier older than this release rejects a manifest with these fields (an unknown field), so it fails closed.
+Run the `library-fields-valid`, `dependencies-unsorted`, `library-valid` and `template-with-dependencies` corpus cases and the library vectors in `conformance/hash/library-packages.json` before accepting `exports` or `dependencies`.
+Port the package hash over `manifest.dependencies` and check the library vectors before accepting `exports` or `dependencies`.
+
+See [sharing components](packages.md#share-components-between-widgets) and [spec §7.3](spec.md#73-packages).
+
 ### Streamed element JSON
 
 `streamElements({ validator, surfaceId, revision?, limits?, maxErrors? })` from `/sdk` draws an agent's element JSON while it is still arriving: `push(chunk)` returns a new valid tree when the nodes completed so far changed, and `end()` returns what `renderElements` returns for the whole text. Trees are numbered `revision + 1`, `revision + 2`, … so a host can send `diffTrees` patches.

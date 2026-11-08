@@ -23,6 +23,46 @@
       },
       "maxProperties": 64
     },
+    "exports": {
+      "maxItems": 64,
+      "type": "array",
+      "items": {
+        "maxLength": 64,
+        "pattern": "^[A-Za-z_$][A-Za-z0-9_$]*$",
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "dependencies": {
+      "maxItems": 16,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "maxLength": 128,
+            "pattern": "^[a-z][a-zA-Z0-9.-]*$",
+            "type": "string"
+          },
+          "version": {
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._+-]+$",
+            "type": "string"
+          },
+          "hash": {
+            "maxLength": 71,
+            "pattern": "^sha256-[0-9a-f]{64}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "hash"
+        ],
+        "additionalProperties": false
+      }
+    },
     "format": {
       "maxLength": 32,
       "enum": [

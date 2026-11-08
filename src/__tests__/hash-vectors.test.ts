@@ -131,9 +131,14 @@ test("rejected_inputs_rejected", async () => {
 });
 
 test("package_hash_vectors_through_public_exports", async () => {
-  const vectors = [...(await read("packages.json")), ...(await read("template-packages.json"))];
+  const vectors = [
+    ...(await read("packages.json")),
+    ...(await read("template-packages.json")),
+    ...(await read("library-packages.json")),
+  ];
   expect(vectors.length).toBeGreaterThanOrEqual(3);
   expect(vectors.some((vector) => (vector as PackageVector).package.template !== undefined)).toBe(true);
+  expect(vectors.some((vector) => (vector as PackageVector).package.manifest.dependencies !== undefined)).toBe(true);
   for (const [index, vector] of vectors.entries()) {
     const where = `package vector ${index}`;
     expect(isPackageVector(vector, where), where).toBe(true);
