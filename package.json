@@ -178,7 +178,8 @@
     "release:gate": "bun scripts/release/archive-gate.ts --all",
     "release:stage": "bun scripts/release/publish-manifest.ts",
     "release:versions": "bun scripts/release/versions.ts",
-    "demo:test": "bun scripts/demo-test.ts"
+    "demo:test": "bun scripts/demo-test.ts",
+    "guide:test": "bun scripts/getting-started-test.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.2",

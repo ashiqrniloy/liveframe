@@ -13,7 +13,7 @@ Four rules, none of them optional:
 3. Widget code never sets colours or raw CSS. Look comes from the design system; layout comes from token-constrained style props.
 4. A widget never holds authority. Data is resolved and actions are run by the app, as the viewer.
 
-[Specification](docs/spec.md) · [How a surface is built](docs/model.md) · [Security model](docs/security.md) · [Compatibility](docs/compatibility.md) · [Changelog](CHANGELOG.md)
+[Getting started](docs/getting-started.md) · [Specification](docs/spec.md) · [How a surface is built](docs/model.md) · [Security model](docs/security.md) · [Compatibility](docs/compatibility.md) · [Changelog](CHANGELOG.md)
 
 ## Install
 

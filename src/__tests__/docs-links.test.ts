@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { readdir } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
+import { blocks } from "../../scripts/getting-started-test.ts";
 
 const root = new URL("../../", import.meta.url).pathname;
 
@@ -37,4 +38,25 @@ test("docs_links_resolve", async () => {
     }
   }
   expect(broken).toEqual([]);
+});
+
+test("getting_started_guide_is_linked_first_and_extractable", async () => {
+  const readme = await Bun.file(join(root, "README.md")).text();
+  const links = [...readme.matchAll(/\]\((docs\/[^)\s#]+)/g)].map((match) => match[1]);
+  expect(links[0]).toBe("docs/getting-started.md");
+
+  // The CI script runs exactly what it extracts, so the guide must still name the files and steps it relies on.
+  const found = blocks(await Bun.file(join(root, "docs/getting-started.md")).text());
+  const files = found.flatMap((block) => (block.file ? [block.file] : []));
+  for (const file of [
+    "app.ts",
+    "widget/template.json",
+    "widget/manifest.json",
+    "server.ts",
+    "client.tsx",
+    "install.ts",
+  ])
+    expect(files).toContain(file);
+  expect(found.filter((block) => block.server)).toHaveLength(1);
+  expect(found.some((block) => block.lang === "sh" && block.expect !== undefined)).toBe(true);
 });

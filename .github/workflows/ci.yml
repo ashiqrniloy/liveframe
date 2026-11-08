@@ -53,6 +53,8 @@ jobs:
         run: bunx playwright@1.49.0 install --with-deps chromium chromium-headless-shell
       - run: bun scripts/release/peer-floors.ts
       - run: bun run demo:test
+      - name: Getting-started guide (executed from docs/getting-started.md)
+        run: bun run guide:test
       - name: Bench (informational)
         run: bun run bench
         continue-on-error: true
