@@ -174,7 +174,7 @@ This plan implements roadmap Phase 7's 0.3.0 host-lifecycle work: new spec §7.7
     - **`demo:test`** (build, pack, install, typecheck, 63 tests across nine files including the two Chromium flows): about 35 s wall time on a machine at load 5. The dialog backlog entry ("Fix initially-open dialogs in the demo host") did not block any flow and `initially_open_dialog_is_dismissable` passes, so it is left with a note.
     - Gate: `bun run check` passed (1618 tests, load average 5–8, 7 min 42 s); `bun run demo:test` passed (63 tests). Tasks 8–10 add the migrated upgrade and the shared library to this demo.
 
-- [ ] Task 6: Report which installed packages break against a new catalog (W5a)
+- [x] Task 6: Report which installed packages break against a new catalog (W5a)
   - Acceptance Criteria:
     - Functional:
       - `/pack` exports `checkPackages(packages, { catalog, capabilities }): readonly PackageCheck[]` with `{ id, version, hash, ok, errors }` per package, running `verifyPackage` plus a render of every scenario through an optional `runner` argument (`templateRunner` needs no sandbox; code packages need the host's runner). It never mutates or stores.
@@ -199,7 +199,13 @@ This plan implements roadmap Phase 7's 0.3.0 host-lifecycle work: new spec §7.7
     - Files to Create/Edit: `src/pack/check.ts`; `src/pack/index.ts`; `src/cli/liveframe.ts`; `src/__tests__/pack-check.test.ts`; `docs/packages.md`; `docs/spec.md` §7.3, §13; `register-0.3.0.json`
   - Test Cases to Write:
     - `removed_kind_breaks_dependent_package`; `minor_catalog_change_keeps_packages_ok`; `scenario_render_failure_reported`; `cli_prints_report`.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-08): `src/pack/check.ts` holds `checkPackages(packages, { catalog, capabilities, runner? })` and `PackageCheck`, split into a `renderScenarios` helper because Biome caps cognitive complexity at 25 (the single function scored 35). `/pack` exports both. `liveframe check-packages <store-dir> --catalog <file> --capabilities <file>` is in `src/cli/liveframe.ts`: it scans `packages/*/*.json` (the documented `fileStore` layout), renders template packages with `templateRunner`, only verifies code packages, prints the JSON report and exits 0 (all ok), 1 (any failed) or 2 (invalid catalog or capabilities). 5 tests in `pack-check.test.ts` (the 4 planned plus `untrusted_documents_are_reported_not_thrown`). Docs: `docs/packages.md` § "Upgrading the catalog", spec §7.3 and the §13 table, the changelog, `docs/migration-0.3.md`, README, the skill references and two register entries (`added`: `checkPackages`, `PackageCheck`). Findings:
+    - **The function is async.** The plan's signature returned `readonly PackageCheck[]`; rendering through a `Runner` is async, so it returns `Promise<readonly PackageCheck[]>`.
+    - **`packages` is `readonly unknown[]`**, because documents read from a store are untrusted. A non-record or malformed document yields an entry with blank `id`/`version`/`hash` and `ok: false`, never a throw; a throwing runner is `render-failed` at `/scenarios/<n>`.
+    - **A runner is paired per package by the caller.** `templateRunner` refuses a code package (`invalid-document` at `/code`), which would read as a break, so `checkPackages` does not guess: without a `runner` packages are verified only. A removed kind that only a code package's code uses is therefore invisible until the host passes its own runner. The CLI cannot do that (law 1), so its code-package entries mean "verifies", not "renders"; `docs/packages.md` says so.
+    - **A catalog major always breaks every manifest** that names the old `catalogId` (`catalog-mismatch`); the report shows it, and the doc points that case at repacking. Tests use a same-id catalog with a kind removed, which is what a mislabelled release would ship.
+    - **Bench (`bench/host.bench.ts`, load average ~32).** 1,000 distinct template packages (3.6 KB of state each) verify and render in about **0.66 ms per package** (CPU time), dominated by the re-hash that `verifyPackage` does; recorded as `check_packages_ms_per_package`, not gated. Plan 028's note about warming template compilation needs nothing extra: `templateRunner` already caches the compiled template under the package hash.
+    - Gate: `bun run check` passed (1623 pass, 4 skip, 0 fail). Tests must import `/pack` from `../pack/index.ts`: `@arnilo/liveframe/pack` resolves to `dist` unless run with `--conditions liveframe:source` (which `bun run test` does).
 
 - [ ] Task 7: Several catalog majors in one renderer (W5b)
   - Acceptance Criteria:

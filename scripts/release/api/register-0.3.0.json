@@ -2286,5 +2286,21 @@
     "reason": "Stateless host pipeline, coordination: `dependents` names the placements whose bound sources a change touches, so one widget's action can refresh another's view through a shared capability (plan 030 T4)",
     "hostAction": "Optional: after an action changes a shared source, re-render the placements `dependents` returns.",
     "task": "030 T4"
+  },
+  {
+    "subpath": "./pack",
+    "name": "checkPackages",
+    "change": "added",
+    "reason": "Catalog upgrades, report: `checkPackages` verifies stored packages against a new catalog and, given a runner, renders every scenario, so a host learns which installed widgets break before it ships the catalog (plan 030 T6)",
+    "hostAction": "Optional: before shipping a new catalog, run `checkPackages` (or `liveframe check-packages`) over the packages you keep and decide per package.",
+    "task": "030 T6"
+  },
+  {
+    "subpath": "./pack",
+    "name": "PackageCheck",
+    "change": "added",
+    "reason": "Catalog upgrades, report: `checkPackages` verifies stored packages against a new catalog and, given a runner, renders every scenario, so a host learns which installed widgets break before it ships the catalog (plan 030 T6)",
+    "hostAction": "Optional: before shipping a new catalog, run `checkPackages` (or `liveframe check-packages`) over the packages you keep and decide per package.",
+    "task": "030 T6"
   }
 ]

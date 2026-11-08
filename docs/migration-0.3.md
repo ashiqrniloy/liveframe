@@ -362,6 +362,14 @@ Optional: after an action changes a shared source, re-render the placements `dep
 
 See [the host guide](host.md) and [spec §7.7](spec.md#77-the-host-pipeline).
 
+### Checking packages against a new catalog
+
+`checkPackages(packages, { catalog, capabilities, runner? })` from `/pack` reports, per stored package, whether it still verifies and (with a `runner`) renders every scenario to a valid tree under a new catalog. `liveframe check-packages` does the same for a `fileStore` directory.
+Optional: before shipping a new catalog, run `checkPackages` (or `liveframe check-packages`) over the packages you keep and decide per package.
+Existing code is unchanged.
+
+See [upgrading the catalog](packages.md#upgrading-the-catalog).
+
 ### Streamed element JSON
 
 `streamElements({ validator, surfaceId, revision?, limits?, maxErrors? })` from `/sdk` draws an agent's element JSON while it is still arriving: `push(chunk)` returns a new valid tree when the nodes completed so far changed, and `end()` returns what `renderElements` returns for the whole text. Trees are numbered `revision + 1`, `revision + 2`, … so a host can send `diffTrees` patches.

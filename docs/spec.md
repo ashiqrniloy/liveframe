@@ -841,6 +841,7 @@ Optionally, the root `sourceOutcome(result)` helper declares the generic `ok` (r
 - Rendering a draft is the preview's job (§7.5), through the app's runner and under the app's policy.
 - A change is a new version, and rolling back means placing an older one.
 - **`verifyPackage(pkg, { catalog, capabilities })`** re-checks the format, the manifest, the scenarios and the hash without executing anything. For a code package it re-parses the code and re-applies the module rules: only SDK imports may remain in a linked package, and no top-level `await` may remain in it. For a template package it re-validates the template against the install documents and the manifest (§7.6). The app runs it on every package it loads.
+- **`checkPackages(packages, { catalog, capabilities, runner? })`** reports, for each stored package document, `{ id, version, hash, ok, errors }`: the package goes through `verifyPackage`, and with a `runner` every scenario is then rendered and its tree validated on the host, with errors pointed at `/scenarios/<n>…` (a thrown runner is `render-failed`). It is how an app learns which installed packages break against a new catalog version before shipping it (`classifyCatalogChange` says what changed; this says what that breaks). It mutates and stores nothing and never defaults a runner: without one, packages are verified but not rendered, and a code package runs only in the runner the caller supplies (law 1). `liveframe check-packages <store-dir> --catalog <file> --capabilities <file>` prints the report for a `fileStore` as JSON and exits 1 when any package fails; it renders template packages with `templateRunner` and only verifies code packages.
 - The package hash is the widget part of the re-run cache key (§8).
 - `/pack` is host-API-free, so the app can pack wherever it installs widgets.
 
@@ -1567,7 +1568,7 @@ Before building the library, prove the model's central claim: **that a small pri
   | `@arnilo/liveframe/surface` | Host-API-free `createSurfaceCore()` and its `NodeContext` and `SurfaceSnapshot` types: the framework-independent half of a renderer (§11) |
   | `@arnilo/liveframe/react` | The renderer: `createRenderer()`, `<Surface>` and `implement()` (§11). `react` and `react-dom` are optional peer dependencies used by the React subpaths |
   | `@arnilo/liveframe/css` | Pure, host-API-free projection into three scoped sheets, plus class, style, scope and variable helpers (§6.4); the host inserts sheets |
-  | `@arnilo/liveframe/pack` | Package and scenario formats, structural validators, `pack()`, `verifyPackage()` and `renderKey()` (§7.3, §8) |
+  | `@arnilo/liveframe/pack` | Package and scenario formats, structural validators, `pack()`, `verifyPackage()`, `checkPackages()` and `renderKey()` (§7.3, §8) |
   | `@arnilo/liveframe/store` | Record formats, the `Store` interface, `memoryStore()` and `loadPlacement()` (§7.4) |
   | `@arnilo/liveframe/host` | Host-API-free `renderPlacement()`, `handleIntent()` and `dependents()`: the ordered, stateless render and intent pipeline (§7.7), with its `Served`, `HostWiring` and `HostEvent` types |
   | `@arnilo/liveframe/store/fs` | `fileStore(dir)`, which reads and writes the file system |

@@ -183,6 +183,33 @@ reference to a stored older version. Loading checks that the returned package
 identity matches that reference. A rollback may reset incompatible state just
 as an upgrade can.
 
+## Upgrading the catalog
+
+A new catalog version can break packages you already stored: a removed kind, a prop that became required, a narrowed schema. Find out before you ship it:
+
+1. `classifyCatalogChange(prev, next)` (see [formats](formats.md)) says what changed and at what level. A `major` result needs a new `catalogId`, and every manifest that names the old id then fails `verifyPackage` with `catalog-mismatch`: those packages need repacking.
+2. `checkPackages` says what it breaks. It takes the package documents you keep (the `Store` interface has no listing, so you pass them) and returns one `{ id, version, hash, ok, errors }` per package:
+
+```ts
+import { checkPackages } from "@arnilo/liveframe/pack";
+import { templateRunner } from "@arnilo/liveframe/preview";
+
+const report = await checkPackages(installedPackages, { catalog: next, capabilities, runner: templateRunner() });
+for (const entry of report.filter((entry) => !entry.ok)) console.log(entry.id, entry.version, entry.errors);
+```
+
+Every package is verified. With a `runner`, every scenario is also rendered and its tree validated on the host, and errors point at `/scenarios/<n>…`. Nothing is stored or changed, and no runner is defaulted: `templateRunner` needs no sandbox, but a code package renders only through the runner you trust to run it, and without a `runner` code packages are verified only, so a removed kind that only their code uses stays invisible. Pair the runner with the package, as the CLI does: `checkPackages(templates, { …, runner: templateRunner() })` and `checkPackages(code, { …, runner: yourRunner })`.
+
+3. Decide per package: repack it against the new catalog under a new version, place an older version on the old catalog, or retire it. Changing code is an author's act; the report feeds that work.
+
+For a `fileStore` directory, the CLI wraps the same report (Bun):
+
+```sh
+liveframe check-packages <store-dir> --catalog next-catalog.json --capabilities capabilities.json
+```
+
+It prints the JSON report, exits 1 when any package fails and 2 when the catalog or capabilities are invalid. It renders template packages with `templateRunner` and only verifies code packages, because the CLI never runs widget code.
+
 ## Stores and custom implementations
 
 Import `Store`, `Placement` and `StyleRecord` as types from

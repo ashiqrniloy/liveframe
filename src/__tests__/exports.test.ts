@@ -369,6 +369,7 @@ test("subpath_export_surfaces", () => {
   expect(Object.keys(worker).sort()).toEqual(["workerRunner"]);
   expect(Object.keys(pack).sort()).toEqual([
     "canonicalJson",
+    "checkPackages",
     "outcomeScenarios",
     "pack",
     "packageHash",

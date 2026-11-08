@@ -170,7 +170,7 @@ if (patch.ok) {
 | `@arnilo/liveframe/react` | The renderer: `createRenderer()`, `<Surface>` and `implement()` |
 | `@arnilo/liveframe/surface` | The framework-independent surface core under `/react`: `createSurfaceCore()`, node contexts and local state |
 | `@arnilo/liveframe/css` | The scoped CSS projection and the class, style, scope and variable helpers; the host inserts sheets |
-| `@arnilo/liveframe/pack` | Package and scenario formats, structural validators, `pack()`, `verifyPackage()`, `canonicalJson()` and `packageHash()` |
+| `@arnilo/liveframe/pack` | Package and scenario formats, structural validators, `pack()`, `verifyPackage()`, `checkPackages()`, `canonicalJson()` and `packageHash()` |
 | `@arnilo/liveframe/store` | Record formats, the `Store` interface, `memoryStore()` and `loadPlacement()` |
 | `@arnilo/liveframe/host` | `renderPlacement()`, `handleIntent()` and `dependents()`: the ordered, stateless request-time render and intent pipeline, and which placements a change touches |
 | `@arnilo/liveframe/store/fs` | `fileStore(dir)`, which reads and writes the file system |

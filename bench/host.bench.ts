@@ -1,11 +1,12 @@
 // Plan 030 T2-T4: pipeline overhead of renderPlacement and handleIntent beyond the injected calls (budget 0.2 ms), and dependents over 1,000 placements.
 
+import { strict as assert } from "node:assert";
 import capabilitiesDoc from "../examples/demo-host/capabilities.json" with { type: "json" };
 import catalogDoc from "../examples/demo-host/catalog.json" with { type: "json" };
 import { dependents, handleIntent, renderPlacement, type Served } from "../src/host/index.ts";
 import { bindSources, diffTrees, obj, type Result, str, validateCapabilities, validateCatalog } from "../src/index.ts";
 import { renderKey } from "../src/pack/hash.ts";
-import { pack } from "../src/pack/index.ts";
+import { checkPackages, pack } from "../src/pack/index.ts";
 import { templateRunner } from "../src/preview/index.ts";
 import type { Runner } from "../src/preview/runner.ts";
 import { loadPlacement, memoryStore, verifiedPackages } from "../src/store/index.ts";
@@ -194,3 +195,27 @@ budget(
   intentOverhead <= 0.2,
   `handleIntent pipeline overhead ${intentOverhead.toFixed(3)} ms exceeds the 0.2 ms budget`,
 );
+
+// Plan 030 T6: `checkPackages` over 1,000 distinct template packages (verify + render every scenario), CPU time per package.
+const stored = Array.from({ length: 1000 }, (_, i) =>
+  value(
+    pack(
+      {
+        template,
+        manifest: { ...manifest, version: String(i) },
+        scenarios: [{ name: "default", params: {}, state: { label }, context: {}, data: { note: "n" } }],
+      } as never,
+      install,
+    ),
+  ),
+);
+const checkStart = process.cpuUsage();
+const checked = await checkPackages(stored, { ...install, runner: templateRunner() });
+const checkUsed = process.cpuUsage(checkStart);
+const checkMs = (checkUsed.user + checkUsed.system) / 1000 / stored.length;
+assert(
+  checked.every((entry) => entry.ok),
+  "every bench package should check ok",
+);
+console.log(JSON.stringify({ checkPackagesMsPerPackage: checkMs, packages: stored.length }));
+metric("check_packages_ms_per_package", checkMs);

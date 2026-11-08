@@ -3,6 +3,8 @@ import { validateCapabilities } from "../formats/capabilities.ts";
 import { type Catalog, validateCatalog } from "../formats/catalog.ts";
 import { validateManifest } from "../formats/manifest.ts";
 import { errorMessage } from "../internal.ts";
+import { checkPackages, type PackageCheck } from "../pack/check.ts";
+import { templateRunner } from "../preview/template.ts";
 import { generate, generateDefinitions, generateElementsSchema, generateTemplateSchema } from "../sdk/gen.ts";
 import { CaptureError } from "./capture.ts";
 
@@ -106,6 +108,57 @@ async function mcpCommand(args: string[]): Promise<number> {
   }
 }
 
+const checkUsage = "Usage: liveframe check-packages <store-dir> --catalog <file> --capabilities <file>";
+
+/**
+ * Reports every package a `fileStore` holds against a catalog and capabilities. Template packages
+ * are verified and rendered (`templateRunner` runs no author code); code packages are only
+ * verified, because the CLI never runs widget code (law 1). Exit 0 when all are ok, 1 when any
+ * is not, 2 when the catalog or capabilities are invalid.
+ */
+async function checkPackagesCommand(args: string[]): Promise<number> {
+  const [dir, ...flags] = args;
+  const files = new Map<string, string>();
+  for (let i = 0; i < flags.length; i += 2) {
+    const name = flags[i];
+    const file = flags[i + 1];
+    if ((name !== "--catalog" && name !== "--capabilities") || files.has(name) || !file || file.startsWith("--"))
+      throw new Error(checkUsage);
+    files.set(name, file);
+  }
+  const catalogFile = files.get("--catalog");
+  const capabilitiesFile = files.get("--capabilities");
+  if (!dir || dir.startsWith("--") || !catalogFile || !capabilitiesFile) throw new Error(checkUsage);
+  const catalog = validateCatalog(await Bun.file(catalogFile).json());
+  const capabilities = validateCapabilities(await Bun.file(capabilitiesFile).json());
+  if (!catalog.ok || !capabilities.ok) {
+    console.error(JSON.stringify(!catalog.ok ? catalog.errors : capabilities.ok ? [] : capabilities.errors, null, 2));
+    return 2;
+  }
+  const install = { catalog: catalog.value, capabilities: capabilities.value };
+  const runner = templateRunner();
+  const report: PackageCheck[] = [];
+  for (const file of (await Array.fromAsync(new Bun.Glob("packages/*/*.json").scan({ cwd: dir }))).sort()) {
+    let doc: unknown;
+    try {
+      doc = await Bun.file(`${dir}/${file}`).json();
+    } catch {
+      report.push({
+        id: file,
+        version: "",
+        hash: "",
+        ok: false,
+        errors: [{ kind: "invalid-document", pointer: "", message: "Invalid JSON record" }],
+      });
+      continue;
+    }
+    const isTemplate = typeof doc === "object" && doc !== null && "template" in doc;
+    report.push(...(await checkPackages([doc], { ...install, ...(isTemplate ? { runner } : {}) })));
+  }
+  console.log(JSON.stringify(report, null, 2));
+  return report.every((entry) => entry.ok) ? 0 : 1;
+}
+
 const genUsage =
   "Usage: liveframe gen <catalog.json> --out <file> [--check] [--implementations | --elements-schema | --template-schema [--manifest <file>] [--capabilities <file>] [--structured-subset]]";
 
@@ -175,6 +228,7 @@ async function templateSchema(
 
 async function main(args: string[]): Promise<number> {
   if (args[0] === "mcp") return mcpCommand(args.slice(1));
+  if (args[0] === "check-packages") return checkPackagesCommand(args.slice(1));
   if (args[0] === "preview" && args[1] === "capture") return previewCapture(args.slice(2));
   const [command, catalogPath, ...flags] = args;
   const gen = genFlags(flags);
