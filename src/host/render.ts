@@ -211,8 +211,9 @@ export async function renderLoaded<V>(
     notify?.({ type, placementId, errors });
     return { ok: false, errors } as const;
   };
-  const { package: pkg, params, state, reset } = loaded;
+  const { package: pkg, params, state, reset, migrated } = loaded;
   if (reset) notify?.({ type: "state-reset", placementId, errors: reset });
+  if (migrated) notify?.({ type: "state-migrated", placementId, errors: migrated });
 
   try {
     // R3. Bind the manifest's sources to this render's inputs.
@@ -272,6 +273,7 @@ export async function renderLoaded<V>(
         bound: bound.value,
         ...(patch?.ok ? { patch: patch.value } : {}),
         ...(reset ? { reset } : {}),
+        ...(migrated ? { migrated } : {}),
       },
     };
   } catch (error) {

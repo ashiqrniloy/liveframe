@@ -62,6 +62,8 @@ export type Served = {
   readonly patch?: TreePatch;
   /** The stored state failed its schema and the initial state was used. */
   readonly reset?: readonly LiveframeError[];
+  /** The stored state failed its schema and the manifest's `migrateState` produced the state used; these are the original failures. The host persists the migrated state if it wants. */
+  readonly migrated?: readonly LiveframeError[];
 };
 
 /** Statuses of the host's actions by result key (spec §8). */
@@ -75,6 +77,7 @@ export type Actions = Readonly<Record<string, ActionStatus>>;
 export type HostEvent = Readonly<
   | { type: "render-skipped"; placementId: string; revision: number }
   | { type: "state-reset"; placementId: string; errors: readonly LiveframeError[] }
+  | { type: "state-migrated"; placementId: string; errors: readonly LiveframeError[] }
   | {
       type: "source-failed";
       placementId: string;

@@ -74,6 +74,11 @@ arrival, and sends the user's intents back with the revisions it holds. It never
 trusts a revision or a tree from the page (laws 1, 2 and 4). The reference runners are not sandboxes: see the
 [security model](../../docs/security.md).
 
+A placement moved to a newer widget version keeps its stored state, which may no longer fit. `tests/migration.test.ts`
+upgrades the `tasks` template to `1.1.0`, which renames `page` to `pageIndex` and declares
+`migrateState: { pageIndex: { $path: "previous.page" } }`: the list stays on its page, `renderPlacement` raises
+`state-migrated`, and `surface()` in `server.ts` persists the migrated state (the library never writes it back).
+
 What the demo leaves to a real host, as [the host guide](../../docs/host.md) lists: one viewer and one state scope, so
 no sessions, tenancy or approval; `authorize` is a placeholder for the app's policy; the claims and the selection live
 in memory; mutations run one at a time (the library cannot tell two callers holding the same stale frame apart); and
@@ -114,7 +119,7 @@ Chromium.
   `conformancePage`. Browser fixtures live in `tests/conformance-fixtures.ts`.
 - `tests/`: restart persistence, intent re-checks, the orchestration (`orchestration.test.ts`: skipped re-runs,
   patches and the whole-tree fallback, a claim's pending and result frames, coordinated placements, and the local
-  filter and selection in Chromium), the initially-open dialog in Chromium, a scan for non-public imports, preview capture and the MCP tools, and the conformance kit (`storeSuite` over
+  filter and selection in Chromium), a widget upgrade that migrates its state (`migration.test.ts`), the initially-open dialog in Chromium, a scan for non-public imports, preview capture and the MCP tools, and the conformance kit (`storeSuite` over
   `fileStore`, `catalogSuite`, `designSystemSuite`, `rendererSuite` and `rendererBrowserSuite`). Passing the
   kit does not prove isolation or authorisation.
 

@@ -181,7 +181,7 @@ The library never holds these, on purpose:
 
 ## Events
 
-`onEvent` receives frozen objects: `render-skipped`, `state-reset`, `source-failed`
+`onEvent` receives frozen objects: `render-skipped`, `state-reset`, `state-migrated`, `source-failed`
 (with `reason` `unauthorized`, `unavailable`, `stale`, `failed` or `invalid-result`),
 `tree-rejected`, `load-failed` and `render-failed`, and from `handleIntent` `intent-refused`
 (with `reason` `stale`, `not-offered`, `unauthorized`, `invalid-state` or `limit`),

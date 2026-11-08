@@ -335,7 +335,7 @@
     "subpath": "./store",
     "name": "loadPlacement",
     "change": "widened",
-    "reason": "Optional verified cache keyed by fresh package content hash and canonical installation documents",
+    "reason": "Optional verified cache keyed by fresh package content hash and canonical installation documents; the result gains `migrated`, set when the manifest's `migrateState` replaced a stored state that failed its schema (plan 030 T8)",
     "hostAction": "Optionally pass a host-owned verifiedPackages cache; existing calls remain supported",
     "task": "026 T7"
   },
@@ -993,7 +993,7 @@
     "subpath": "./schemas/*",
     "name": "manifest.json",
     "change": "widened",
-    "reason": "The string schema form accepts a `url` rule (a scheme allowlist, optionally relative references) in catalogs, capabilities and widget schemas",
+    "reason": "The string schema form accepts a `url` rule (a scheme allowlist, optionally relative references) in catalogs, capabilities and widget schemas; a manifest may declare `migrateState`, an object of at most 64 entries mapping a state key to an expression (plan 030 T8)",
     "hostAction": "Update catalog and design-system validators and ports before installing documents that use them",
     "task": "027 T7"
   },
@@ -1787,7 +1787,7 @@
     "subpath": ".",
     "name": "Manifest",
     "change": "widened",
-    "reason": "Local state and bindings: a manifest may declare `local` state, a node may carry `when` and `bind`, and an event may carry `setLocal` (plan 029 T3)",
+    "reason": "Local state and bindings: a manifest may declare `local` state, a node may carry `when` and `bind`, and an event may carry `setLocal` (plan 029 T3); a manifest may also declare `migrateState`, a per-key expression over `previous` that maps a stored state that no longer fits (plan 030 T8)",
     "hostAction": "Optional: declare `local` and `initialLocal` in a manifest, and use `local.set`, `local`, `ex`, `when` and `bind` from `/sdk`; existing widgets are unchanged.",
     "task": "029 T3"
   },
@@ -2302,5 +2302,61 @@
     "reason": "Catalog upgrades, report: `checkPackages` verifies stored packages against a new catalog and, given a runner, renders every scenario, so a host learns which installed widgets break before it ships the catalog (plan 030 T6)",
     "hostAction": "Optional: before shipping a new catalog, run `checkPackages` (or `liveframe check-packages`) over the packages you keep and decide per package.",
     "task": "030 T6"
+  },
+  {
+    "subpath": "./store",
+    "name": "verifyPlacementInputs",
+    "change": "widened",
+    "reason": "Declarative state migration: the result gains `migrated`, set when the manifest's `migrateState` replaced a stored state that failed its schema, instead of `reset` (plan 030 T8)",
+    "hostAction": "Optional: declare `migrateState` in a manifest to carry state across a version change; read `migrated` to persist the migrated state.",
+    "task": "030 T8"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/manifest/migrate-state-valid.json",
+    "change": "added",
+    "reason": "Conformance case for declarative state migration (plan 030 T8)",
+    "hostAction": "Run the `migrate-state-*` manifest corpus cases through your manifest validator before accepting `migrateState`.",
+    "task": "030 T8"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/manifest/docs/migrate-state-valid.json",
+    "change": "added",
+    "reason": "Conformance case for declarative state migration (plan 030 T8)",
+    "hostAction": "Run the `migrate-state-*` manifest corpus cases through your manifest validator before accepting `migrateState`.",
+    "task": "030 T8"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/manifest/migrate-state-unknown-key.json",
+    "change": "added",
+    "reason": "Conformance case for declarative state migration (plan 030 T8)",
+    "hostAction": "Run the `migrate-state-*` manifest corpus cases through your manifest validator before accepting `migrateState`.",
+    "task": "030 T8"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/manifest/docs/migrate-state-unknown-key.json",
+    "change": "added",
+    "reason": "Conformance case for declarative state migration (plan 030 T8)",
+    "hostAction": "Run the `migrate-state-*` manifest corpus cases through your manifest validator before accepting `migrateState`.",
+    "task": "030 T8"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/manifest/migrate-state-other-root.json",
+    "change": "added",
+    "reason": "Conformance case for declarative state migration (plan 030 T8)",
+    "hostAction": "Run the `migrate-state-*` manifest corpus cases through your manifest validator before accepting `migrateState`.",
+    "task": "030 T8"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/manifest/docs/migrate-state-other-root.json",
+    "change": "added",
+    "reason": "Conformance case for declarative state migration (plan 030 T8)",
+    "hostAction": "Run the `migrate-state-*` manifest corpus cases through your manifest validator before accepting `migrateState`.",
+    "task": "030 T8"
   }
 ]

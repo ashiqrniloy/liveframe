@@ -385,6 +385,15 @@ Existing code is unchanged: `createRenderer({ catalog, implementations })` works
 
 See [two catalog majors on one page](renderer.md#draw-two-catalog-majors-on-one-page) and [spec §11](spec.md#11-renderer).
 
+### Declarative state migration
+
+A manifest may declare `migrateState`: per state key, a template expression over one root, `previous` (the stored state). When a stored state no longer fits the new version's `state` schema, `loadPlacement`, `verifyPlacementInputs` and `renderPlacement` start from `initialState`, overlay each evaluated key and, if the result fits, return it as `state` with the original failures in `migrated` (and `renderPlacement` raises `state-migrated`) instead of resetting. A failed or non-fitting migration still resets.
+Optional: declare `migrateState` in a manifest to carry state across a version change; read `migrated` to persist the migrated state.
+Existing code is unchanged: a manifest without `migrateState` resets as before, and results gain an optional field.
+Run the `migrate-state-*` manifest corpus cases through your manifest validator before accepting `migrateState`.
+
+See [migrating state](packages.md#migrating-state-across-versions) and [spec §7.4](spec.md#74-storage).
+
 ### Streamed element JSON
 
 `streamElements({ validator, surfaceId, revision?, limits?, maxErrors? })` from `/sdk` draws an agent's element JSON while it is still arriving: `push(chunk)` returns a new valid tree when the nodes completed so far changed, and `end()` returns what `renderElements` returns for the whole text. Trees are numbered `revision + 1`, `revision + 2`, … so a host can send `diffTrees` patches.

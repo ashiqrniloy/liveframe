@@ -202,7 +202,11 @@ export async function startHost({
       actions: results.get(id) ?? {},
       ...(previous ? { previous } : { revision: (floors.get(id) ?? 0) + 1 }),
     });
-    if (rendered.ok) served.set(id, rendered.value);
+    if (rendered.ok) {
+      served.set(id, rendered.value);
+      // A placement moved to a new widget version: the library mapped its old state (`migrateState`); keeping it is ours.
+      if (rendered.value.migrated) await store.putState(id, scope, rendered.value.state);
+    }
     return rendered;
   }
 

@@ -704,6 +704,13 @@ object, and every property required. `initialLocal` must satisfy it (`/initialLo
 otherwise). Both are absent in a manifest without local state, and a manifest
 that declares `local` without `initialLocal` fails unless `local` has no properties.
 
+A manifest may also declare `migrateState`, at most 64 entries mapping a key of its
+`state` schema to a [template expression](templates.md) whose only name is `previous`,
+the stored state. It runs when a stored state no longer fits the schema, after a
+widget version change. An unknown key is `unknown-name` at `/migrateState/<key>`, and
+an expression that reads any other name or is malformed is rejected at its pointer
+under `/migrateState/<key>`. See [migrating state](packages.md#migrating-state-across-versions).
+
 `params`, `state` and `context` are closed language object schemas without
 `pattern`. Those three are matched against values the app does not author (typed
 input, intent payloads, stored state) both on the host and in the browser, so a

@@ -1,5 +1,7 @@
 import { type LiveframeError, LiveframeFailure, type Result } from "../errors.ts";
 import { arr, bool, checkValue, type Infer, type LanguageSchema, obj, str } from "../schema.ts";
+import { checkExpression } from "../template/expr.ts";
+import { rootScope } from "../template/scope.ts";
 import { compileSchema } from "../validate/schema.ts";
 import {
   at,
@@ -35,17 +37,22 @@ const fields = obj(
     sources: bool(),
     actions: arr(capabilityName, { maxItems: 512 }),
   },
-  { description: str({ maxLength: 500 }), meta: bool(), local: bool(), initialLocal: bool() },
+  { description: str({ maxLength: 500 }), meta: bool(), local: bool(), initialLocal: bool(), migrateState: bool() },
 );
 const sourceFields = obj({ source: capabilityName, params: bool() });
 export type Manifest = Omit<
   Infer<typeof fields>,
-  "params" | "state" | "context" | "initialState" | "sources" | "meta" | "local" | "initialLocal"
+  "params" | "state" | "context" | "initialState" | "sources" | "meta" | "local" | "initialLocal" | "migrateState"
 > & {
   readonly meta?: Json;
   /** Scalar state the renderer keeps per mounted surface and `setLocal` writes (plan 029 L1); absent means none. */
   readonly local?: ObjectSchema;
   readonly initialLocal?: Json;
+  /**
+   * Declarative state migration (plan 030 Task 8): per state key, a template expression over one root,
+   * `previous` (the stored state). Run only when the stored state no longer fits `state`.
+   */
+  readonly migrateState?: Readonly<Record<string, Json>>;
   readonly params: ObjectSchema;
   readonly state: ObjectSchema;
   readonly context: ObjectSchema;
@@ -55,6 +62,7 @@ export type Manifest = Omit<
   >;
 };
 const json = { $ref: "#/$defs/json" };
+const MAX_MIGRATED_KEYS = 64;
 export const manifestSchema = {
   ...fields,
   properties: {
@@ -63,6 +71,7 @@ export const manifestSchema = {
     state: { $ref: "#/$defs/objectSchema" },
     context: { $ref: "#/$defs/objectSchema" },
     local: { $ref: "#/$defs/objectSchema" },
+    migrateState: { type: "object", additionalProperties: json, maxProperties: MAX_MIGRATED_KEYS },
     initialState: json,
     initialLocal: json,
     meta: json,
@@ -149,6 +158,20 @@ function checkInitialLocal(manifest: Manifest, c: Checks): void {
   const errors: LiveframeError[] = [];
   compileSchema(manifest.local ?? NO_LOCAL)(manifest.initialLocal ?? {}, "/initialLocal", { errors, maxErrors: 20 });
   for (const error of errors) c.reject(error.pointer, error.message, "invalid-document", error.expected);
+}
+
+/** Each migrated key names a state property; each expression sees `previous` only, so it cannot reach data or the host. */
+function checkMigrateState(manifest: Manifest, c: Checks): void {
+  if (!manifest.migrateState) return;
+  for (const [key, expr] of Object.entries(manifest.migrateState)) {
+    if (c.errors.length >= 20) break;
+    const pointer = at("/migrateState", key);
+    if (!Object.hasOwn(manifest.state.properties, key)) {
+      c.reject(pointer, "Expected a key of the state schema", "unknown-name");
+      continue;
+    }
+    c.collect(checkExpression(expr, rootScope({ previous: "dynamic" })), pointer);
+  }
 }
 
 function checkActionList(actions: readonly string[], capabilities: Capabilities, c: Checks): void {
@@ -261,6 +284,7 @@ export function validateManifest(
     compileSchema(value.state)(value.initialState, "/initialState", { errors: stateErrors, maxErrors: 20 });
     for (const error of stateErrors) c.reject(error.pointer, error.message, "invalid-document", error.expected);
     checkInitialLocal(value, c);
+    checkMigrateState(value, c);
     checkActionList(value.actions, capabilities, c);
     for (const [name, entry] of Object.entries(value.sources)) {
       if (c.errors.length >= 20) break;

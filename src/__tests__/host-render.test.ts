@@ -280,3 +280,23 @@ test("validator_reused_only_for_the_same_install", async () => {
   const fresh = served(await renderPlacement({ ...args, installs: other, state: { label: "c" }, previous: same }));
   expect(fresh.validator).not.toBe(first.validator);
 });
+
+test("migrated_state_is_served_and_reported_without_values", async () => {
+  const upgraded = { ...manifest({}), migrateState: { label: { $path: "previous.title" } } };
+  const scenario: Scenario = { name: "default", params: {}, state: { label: "first" }, context: {}, data: {} };
+  const pkg = value(pack({ template, manifest: upgraded, scenarios: [scenario] } as never, install));
+  const store = memoryStore();
+  await store.putPackage(pkg);
+  await store.putPlacement({ id: "p1", slot: "main", widget: { id: "notes", version: "1.0.0" }, params: {} });
+  const events: HostEvent[] = [];
+  const out = served(
+    await renderPlacement(
+      base(store, spyRunner(), { state: { title: "secret" }, onEvent: (e: HostEvent) => events.push(e) }),
+    ),
+  );
+  expect(out.state).toEqual({ label: "secret" });
+  expect(out.migrated?.length).toBeGreaterThan(0);
+  expect(out.reset).toBeUndefined();
+  expect(events.map((e) => e.type)).toEqual(["state-migrated"]);
+  expect(JSON.stringify(events)).not.toContain("secret");
+});

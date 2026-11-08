@@ -314,16 +314,20 @@ An own `state` property bypasses `getState` and uses the same validation and res
 rules. `{ state: undefined }` explicitly selects initial state without reading
 stored state. For hosts that do not store state, import `verifyPlacementInputs`
 from `/store` and call `verifyPlacementInputs(verifiedPackage, { params, state })`.
-It returns `Result<{ params, state, reset? }>`; first verify the package with
-`verifyPackage`. Invalid params reject; neither helper writes a reset back.
+It returns `Result<{ params, state, reset?, migrated? }>`; first verify the package with
+`verifyPackage`. Invalid params reject; neither helper writes a reset or a migrated state back.
 
-It returns `{ package, params, state, reset? }` inside a successful result:
+It returns `{ package, params, state, reset?, migrated? }` inside a successful result:
 
 - Missing state uses `manifest.initialState`, without `reset`.
 - Invalid or incompatible state uses initial state and includes the bounded
   validation errors in `reset`. Inspect and report that field to the user.
-- The loader never writes the reset back. The app decides whether to persist
-  the returned state with `putState`.
+- When the manifest declares `migrateState` (see below), incompatible state is
+  migrated first: `state` is the migrated state and `migrated` holds the
+  validation errors of the stored state it replaced, with no `reset`. A
+  migration that fails or does not fit the schema falls back to the reset.
+- The loader never writes the reset or the migrated state back. The app decides
+  whether to persist the returned state with `putState`.
 - A missing placement/package is `not-found`; invalid params are `invalid-prop`;
   malformed records are `invalid-document`; changed hashed content is
   `hash-mismatch`. Other verification failures pass through without fallback.
@@ -345,6 +349,39 @@ const bound = value(bindSources(pkg.manifest, capabilities, { params, state, con
 const data = await resolveAll(bound, viewer); // the host's own resolver
 const key = renderKey({ hash: pkg.hash, catalogId: catalog.catalogId, params, state, data, context, actions });
 ```
+
+## Migrating state across versions
+
+A placement that moves to a new widget version keeps its stored state, and that
+state may no longer fit the new `state` schema. Without help it is reset to
+`initialState`. A manifest can instead say how to carry the old state forward:
+
+```jsonc
+// version 2 replaced `filter: "mine" | "all"` with `scope: { owner: string | null }`
+"migrateState": {
+  "scope": { "$cond": [
+    { "$eq": [{ "$path": "previous.filter" }, { "$lit": "mine" }] },
+    { "$lit": { "owner": "me" } },
+    { "$lit": { "owner": null } }
+  ] }
+}
+```
+
+- `migrateState` maps a key of the `state` schema to a [template expression](templates.md).
+  The only name it can read is `previous`, the stored state, so it cannot see
+  data, params, context or the host. Install rejects an unknown key (`unknown-name`),
+  a bad expression or an expression that reads any other name.
+- It runs only when a stored state fails the schema. The loader starts from
+  `initialState`, overlays each evaluated key, and accepts the result only if it
+  fits the schema. Keys you do not list take their initial value; nothing is copied
+  implicitly, so list every key whose old value should survive.
+- A success returns the migrated `state` and `migrated` (the stored state's
+  validation errors), with no `reset`. A stored value that is not JSON, an
+  expression that fails and a result that does not fit all fall back to the
+  reset, so migration never makes a load fail.
+- Template and TSX widgets use it alike; it needs no runner. It is part of the
+  manifest, so it is part of the package hash, and loading never writes the
+  migrated state back: persist `state` with `putState` if you want to.
 
 ## Runner limits and ownership
 

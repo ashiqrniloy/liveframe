@@ -16,6 +16,13 @@
     "initialLocal": {
       "$ref": "#/$defs/json"
     },
+    "migrateState": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/json"
+      },
+      "maxProperties": 64
+    },
     "format": {
       "maxLength": 32,
       "enum": [

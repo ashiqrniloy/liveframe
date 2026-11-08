@@ -3,16 +3,38 @@ import type { WidgetPackage } from "../formats/package.ts";
 import { validatePlacement, validateState } from "../formats/records.ts";
 import type { Json } from "../formats/tree.ts";
 import type { verifyPackage } from "../pack/verify.ts";
+import { absent, evaluate } from "../template/expr.ts";
 import { compileSchema } from "../validate/schema.ts";
 import type { Store } from "./index.ts";
 import { assertScope } from "./scope.ts";
 import { type verifiedPackages, verifyStoredPackage } from "./verified.ts";
 
+type Inputs = { params: Json; state: Json; reset?: readonly LiveframeError[]; migrated?: readonly LiveframeError[] };
+
+/**
+ * The manifest's `migrateState` applied to a stored state that no longer fits (spec §7.4): the initial state
+ * overlaid with each evaluated key. Reads only `previous`; undefined when any expression fails or the
+ * result still does not fit the schema, so the caller resets instead.
+ */
+function migrate(pkg: WidgetPackage, previous: Json): Json | undefined {
+  const { migrateState, state, initialState } = pkg.manifest;
+  if (!migrateState) return undefined;
+  const next: Record<string, Json> = { ...(initialState as Record<string, Json>) };
+  for (const [key, expr] of Object.entries(migrateState)) {
+    const result = evaluate(expr, { previous });
+    if (!result.ok) return undefined;
+    if (result.value !== absent) next[key] = result.value;
+  }
+  const errors: LiveframeError[] = [];
+  compileSchema(state)(next, "/state", { errors, maxErrors: 1 });
+  return errors.length ? undefined : next;
+}
+
 /** Check host inputs against a verified package without reading or writing a store. */
 export function verifyPlacementInputs(
   pkg: WidgetPackage,
   { params, state }: { params: unknown; state?: unknown },
-): Result<{ params: Json; state: Json; reset?: readonly LiveframeError[] }> {
+): Result<Inputs> {
   const jsonParams = validateState(params);
   if (!jsonParams.ok)
     return { ok: false, errors: jsonParams.errors.map((error) => ({ ...error, pointer: `/params${error.pointer}` })) };
@@ -28,7 +50,12 @@ export function verifyPlacementInputs(
       value: { ...loaded, reset: json.errors.map((error) => ({ ...error, pointer: `/state${error.pointer}` })) },
     };
   compileSchema(pkg.manifest.state)(state, "/state", { errors, maxErrors: DEFAULT_MAX_ERRORS });
-  return { ok: true, value: errors.length ? { ...loaded, reset: errors } : { ...loaded, state: json.value } };
+  if (!errors.length) return { ok: true, value: { ...loaded, state: json.value } };
+  const migrated = migrate(pkg, json.value);
+  return {
+    ok: true,
+    value: migrated === undefined ? { ...loaded, reset: errors } : { ...loaded, state: migrated, migrated: errors },
+  };
 }
 
 /** Verify stored data without executing code or writing a reset back to the host's store. */
@@ -37,7 +64,7 @@ export async function loadPlacement(
   id: string,
   options: Parameters<typeof verifyPackage>[1],
   inputs: { scope?: string; state?: unknown; verified?: ReturnType<typeof verifiedPackages> } = {},
-): Promise<Result<{ package: WidgetPackage; params: Json; state: Json; reset?: readonly LiveframeError[] }>> {
+): Promise<Result<Inputs & { package: WidgetPackage }>> {
   try {
     const scope = inputs.scope === undefined ? "" : inputs.scope;
     assertScope(scope);
