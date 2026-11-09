@@ -388,9 +388,10 @@ because the prop's schema rejects the value first.
 ## Public exports and executable examples
 
 `@arnilo/liveframe/sdk` exports `jsx`, `jsxs`, `Fragment`, `primitive`, `state`,
-`action`, `ref`, `render`, `renderElements`, `streamElements` and `ephemeralManifest`. Its type exports are
-`Component`, `Element`, `Elements`, `DeepReadonly`, `ElementStream`, `Intent`, `Json`,
-`StreamElementsOptions`, `WidgetProps`, `RenderLimits` and `RenderOptions`. `/sdk/gen` exports `generate`,
+`action`, `ex`, `local`, `self`, `ref`, `render`, `renderElements`, `streamElements` and `ephemeralManifest`. Its type exports are
+`ActionStatus`, `ActionStatuses`, `Component`, `DeepReadonly`, `Element`, `ElementStream`, `Elements`, `Expr`,
+`Intent`, `Json`, `LocalIntent`, `RenderLimits`, `RenderOptions`, `StreamElementsOptions`, `TreeIntent`,
+`WidgetInputs` and `WidgetProps`. `/sdk/gen` exports `generate`,
 `generateDefinitions`, `generateElementsSchema` and `generateTemplateSchema`. `/sdk/jsx-runtime` exports
 `jsx`, `jsxs`, `Fragment` and the `JSX` type namespace; `/sdk/jsx-dev-runtime`
 exports `jsxDEV`, `Fragment` and that namespace. Element branding helpers are

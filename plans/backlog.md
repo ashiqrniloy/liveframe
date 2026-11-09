@@ -528,6 +528,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 
 - Update (2026-11-09, plan 031 Task 8): `bun run bench` again stopped at its first stage (validator `core-queue.*` and `compileValidator` reuse gates, load 12) and never reached the host, pack-libraries or runner stages. `bench/runner.bench.ts` run directly at load 14 passed every budget (median ms: `none` agent-home 85.9 of 110 and smallest 39.6 of 60; `package` 57.2 of 60 and 5.3 of 8; child cold start 19.0 of 60; hold, kill, recover and next render 246 of 300). The budgets pass with little margin under load, so they are not called quiet-host figures.
 
+- Update (2026-11-09, plan 032 Task 3): closed on partial proof by [owner decision](../decision-logs/2026-11-09-2106-close-plan-032-task-3-on-partial-quiet-host-proof.md); **this entry stays open**. `scripts/bench-quiet.ts` now runs every stage independently and records whole-host CPU (quiet = below 10%, benchmark included). No run was clean; the best attempt ([record](evidence/032-bench-attempt-best.md)) had `validator` and `streaming` quiet and passing and the other seven stages not quiet. The plan 030 `pack-libraries` 5% gate failed on a quiet host, was reworked (seven processes, A-B-B-A blocks, median ratio) and the cause fixed in `src/preview/in-process.ts` (`collectLibraries` ran twice per render): 30 of 30 runs pass, ratio 0.994–1.048. Still unconfirmed on a quiet host: `templateRunner` within 5% of `renderTemplate` (5.44% once at 14% host CPU) and every stage other than validator and streaming. The streaming bench also rewrites `plans/evidence/019-streaming-bench.md` on every run; restore it after a bench.
+
 
 ## Name the realm mismatch in a compiled validator's `validateTree`
 
@@ -833,3 +835,18 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Source: plans/031-Phase-7-Part-R-Release-0-3-0-Isolated-Runner-Conformance-And-Starter.md Task 6 and Task 8, plans/evidence/031-impact-analysis.md F11
 - What: `switching_keeps_nodes_and_focus_and_rerenders_nothing` needs two design-system identities, and the starter ships one, so its tests derive `starter-round` from it (`packages/starter/src/__tests__/host.ts`). Decide whether `rendererBrowserSuite` should derive the second identity itself (a spec-level change to the suite's inputs) or the starter should ship two.
 - Why: the derived copy proves the mechanism but not that a second, hand-written system also switches cleanly.
+
+## Small findings from the 0.3.0 agent acceptance run
+
+- Disposition: backlogged by the operator on 2026-11-09 (plan 032 Task 4); the owner approves or rejects each in plan 032 Task 6's readiness review.
+- Section: Phase 7 (0.3.x)
+- Priority: P2
+- Source: plans/032-Phase-7-Part-S-Release-0-3-0.md Task 4; plans/evidence/032-agent-acceptance.md (F3, F4, F7, F9, F10)
+- What:
+  - `missing-key` is reported at the parent node and says "Expected siblings with distinct keys" without naming the children or the fix; point at the first unkeyed sibling and say "add a `key`" (F7).
+  - The `generated_types` note says to import from `"./ui.gen"` while the docs use `"./ui.gen.ts"` (F9).
+  - `docs/demo-agent.md` says to send no intents and never names the demo host's intent route; say that it is `POST /placements/:id/intents` with `{ intent, origin }` (F3).
+  - `actions` means the offered actions in a frame and the action statuses in `WidgetProps`; name them apart in the docs (F4).
+  - An empty pager `inline` (height 0) adds a stack gap that `layout: true` does not flag (F10).
+- Why: a fresh agent met each of these while using only the published docs and tools; none blocked it.
+
