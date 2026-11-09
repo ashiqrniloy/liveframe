@@ -88,3 +88,33 @@ Compromises: the agent was a subagent of this session, not an independent person
 author of the docs. The operator hosts the three archives as `file:` dependencies at the checkout version; the registry
 run is Task 5. The agent's report was relayed as text (its own Write to `report.md` was refused); the operator checked it
 against `transcript.jsonl`, the host's state and its saved outputs, and states only what those support.
+
+## Task 4a re-run: step 3 with the library supplied by the operator's config (2026-11-09)
+
+`scripts/agent-acceptance/prepare.ts` now builds the host with a shared library the **operator** supplies: its
+`mcp.config.ts` packs `libraries/rows` (`acme.rows@1.0.0`, one export `TaskRow`, from
+`scripts/agent-acceptance/library/rows/`) and passes it as `libraries: [rows.value]`; the operator also installs the same
+library on the running host (`bun install-widget.ts libraries/rows`, HTTP 201, the hash equals the one `list_libraries`
+shows). A fresh general-purpose subagent got the same "published docs only" brief as before and the task: a TSX widget
+that imports a shared library found through the tools, filters locally, has two scenarios, runs on `quickjsRunner`, then
+is installed and placed through the host.
+
+| Check | Outcome | Proof |
+| --- | --- | --- |
+| The agent finds the library without guessing | pass | First call `list_libraries` returned `acme.rows@1.0.0`, `exports: ["TaskRow"]`, `specifier`, hash `sha256-d82baf42…d865`; the agent imported `liveframe:lib/acme.rows@1.0.0`. |
+| Pack, render, capture on `quickjsRunner` | pass | Final `pack_draft` hash `sha256-efae3cb3…f443`; both scenarios `ok`; 6 captured cells (2 scenarios × 3 themes at 360) with `errors: []`. No `not-found` or `hash-mismatch` appeared at any point. |
+| Local filter | pass (tree shape) | A `textField` with `onChange: setLocal q` and `bind.value = local.q`; every row a `box` with `when: $contains(title, local.q)`. Typing in a browser is not exercised here (as in F10). |
+| Install and place through `/host` | pass | `POST /widgets` 201 with the same hash as `pack_draft`; `PUT /placements/task-queue-main` 200; `GET /surfaces/task-queue-main` 200. |
+| Law 4 | pass | The transcript holds 17 calls: `list_libraries`, `list_vocabulary`, `list_capabilities`, `list_primitives`, `generated_types` once each, `pack_draft` 5, `render_scenarios` 5, `capture_preview` 2. No tool errors; no tool installs, places or dispatches; no intent was sent. |
+
+Findings (the agent's, checked against its transcript and files):
+
+| ID | Finding | Disposition |
+| --- | --- | --- |
+| G1 | `list_libraries` names a library's exports but not their props, so the agent probed about 25 prop names to learn that `TaskRow` takes `status`. A wrong or missing prop is not rejected; `undefined` is drawn as text. | Backlog: a library's prop contract (types or a gallery) is a design question for 0.3.1, not a 4a change; a library's own gallery scenarios are the review today. |
+| G2 | `when` and `bind` on a library or composed component are dropped (node fields belong to primitives); the agent wrapped each row in a `box`. | Backlog (docs: say it in `sdk.md`, and consider a diagnostic). |
+| G3 | The `docs/demo-agent.md` text names `acme.cards`/`TaskCard`, this operator host has `acme.rows`. | No action: the page describes the stock demo host. |
+| G4 | No JSON manifest example with `local`/`initialLocal`; `ex.contains` case sensitivity is not stated. | Backlog (docs). |
+
+Reproduce: the three commands above, with `bun install-widget.ts libraries/rows` after the host starts.
+Compromises as above: a subagent of this session, one model family, `file:` archives at the checkout version.

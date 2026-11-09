@@ -429,6 +429,14 @@ Optional: pass `libraries` from `loadPlacement` to `Runner.render` when a packag
 
 See [sharing components](packages.md#share-components-between-widgets) and [spec §7.3](spec.md#73-packages).
 
+### Libraries in preview sessions and `liveframe mcp`
+
+`createPreview()`, `createAuthoring()` and the `liveframe mcp` config take `libraries: readonly WidgetPackage[]`: the shared library packages a draft may import as `liveframe:lib/<id>@<version>`. Only the host supplies them; no tool installs, uploads or names a library, and a `libraries` argument to `pack_draft` is refused at `/libraries`. A draft packs, renders, checks and captures with them through the same loader the host pipeline uses, on `inProcessRunner`, `workerRunner` and `quickjsRunner`. A library the host did not supply is `not-found` ("the host did not supply this library to this session") and one whose content differs from its hash is `hash-mismatch`. `createAuthoring().listLibraries()` and the read-only `list_libraries` MCP tool show an agent each library's id, version, hash, exports and import specifier (`LibrarySummary`), so `tools/list` now holds nine tools.
+Optional: supply `libraries` to `createPreview()`, `createAuthoring()` or the MCP config when agents write widgets that import shared libraries; a session without `libraries` is unchanged, and the new `list_libraries` tool returns an empty list.
+Optional: supply `libraries` to `createPreview()`, `createAuthoring()` or the MCP config, then read `LibrarySummary` from `listLibraries()`
+
+See [the MCP guide](mcp.md#libraries), [preview](preview.md) and [spec §13](spec.md#13-the-public-surface).
+
 ### Streamed element JSON
 
 `streamElements({ validator, surfaceId, revision?, limits?, maxErrors? })` from `/sdk` draws an agent's element JSON while it is still arriving: `push(chunk)` returns a new valid tree when the nodes completed so far changed, and `end()` returns what `renderElements` returns for the whole text. Trees are numbered `revision + 1`, `revision + 2`, … so a host can send `diffTrees` patches.

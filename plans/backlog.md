@@ -850,3 +850,15 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
   - An empty pager `inline` (height 0) adds a stack gap that `layout: true` does not flag (F10).
 - Why: a fresh agent met each of these while using only the published docs and tools; none blocked it.
 
+
+## Library component contracts and node fields on composed components
+
+- Disposition: backlogged by the operator on 2026-11-09 (plan 032 Task 4a); the owner approves or rejects each in plan 032 Task 6's readiness review.
+- Section: Phase 7 (0.3.x)
+- Priority: P2
+- Source: plans/032-Phase-7-Part-S-Release-0-3-0.md Task 4a; plans/evidence/032-agent-acceptance.md (G1, G2, G4)
+- What:
+  - `list_libraries` shows a library's exports but not the props of each; an agent probed about 25 names to find that `TaskRow` takes `status`, and a missing prop is drawn as "undefined". Decide how a library publishes its component contract (types, a gallery, or prop schemas in the manifest) (G1).
+  - `when` and `bind` on a library or composed component are silently dropped; say so in `docs/sdk.md` and consider a diagnostic (G2).
+  - A JSON manifest example with `local` and `initialLocal`, and whether `ex.contains` is case sensitive, are not in the docs (G4).
+- Why: a fresh agent hit each of these while using only the published docs and the new `list_libraries` tool; none blocked it.

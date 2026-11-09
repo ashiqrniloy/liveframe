@@ -27,6 +27,7 @@ test("mcp_guide_config_starts_and_lists_the_tools", async () => {
       "capture_preview",
       "generated_types",
       "list_capabilities",
+      "list_libraries",
       "list_primitives",
       "list_vocabulary",
       "pack_draft",

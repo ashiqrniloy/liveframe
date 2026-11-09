@@ -182,7 +182,7 @@ if (patch.ok) {
 | `@arnilo/liveframe/host` | `renderPlacement()`, `handleIntent()` and `dependents()`: the ordered, stateless request-time render and intent pipeline, and which placements a change touches |
 | `@arnilo/liveframe/store/fs` | `fileStore(dir)`, which reads and writes the file system |
 | `@arnilo/liveframe/preview` | The `Runner` interface, `inProcessRunner()`, `templateRunner()` and `createPreview()` |
-| `@arnilo/liveframe/authoring` | Eight typed authoring operations without MCP; the host supplies its runner |
+| `@arnilo/liveframe/authoring` | Nine typed authoring operations without MCP; the host supplies its runner |
 | `@arnilo/liveframe/runner-kit` | `renderModule()` and `linkPackage()`, the in-sandbox half of a runner |
 | `@arnilo/liveframe/template` | `validateTemplate()`, `renderTemplate()` and the expression language of template widgets |
 | `@arnilo/liveframe/runner-kit.bundle.js` | The kit, SDK and validator as one import-free ES module for isolates |
@@ -208,7 +208,7 @@ The [spec](docs/spec.md#13-tech-stack-and-packages) defines each subpath's contr
 { "mcpServers": { "liveframe": { "command": "bunx", "args": ["liveframe", "mcp", "./mcp.config.ts"] } } }
 ```
 
-The client starts the server itself. The [MCP guide](docs/mcp.md) covers the eight tools, captures and errors.
+The client starts the server itself. The [MCP guide](docs/mcp.md) covers the nine tools, captures and errors.
 
 ## Guides
 
@@ -223,7 +223,7 @@ The client starts the server itself. The [MCP guide](docs/mcp.md) covers the eig
 - [Packages, stores and runners](docs/packages.md) — `pack()`, `fileStore`, choosing among `inProcessRunner`, `workerRunner`, `templateRunner` and `quickjsRunner`
 - [Preview and capture](docs/preview.md) — preview sessions, `<Preview>` and `liveframe preview capture`
 - [Conformance](docs/conformance.md) — the test kit for an app's catalog, styling, renderer and store
-- [Agent authoring over MCP](docs/mcp.md) — `liveframe mcp` and its eight tools
+- [Agent authoring over MCP](docs/mcp.md) — `liveframe mcp` and its nine tools
 - [Agent walkthrough for the demo](docs/demo-agent.md) — author, capture, install and place a draft
 - [Security model](docs/security.md) — what is validated where, and what is not a sandbox
 - [Compatibility](docs/compatibility.md) — what a version bump may change

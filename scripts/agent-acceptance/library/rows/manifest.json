@@ -1,0 +1,14 @@
+{
+  "format": "liveframe-manifest/1",
+  "id": "acme.rows",
+  "version": "1.0.0",
+  "catalogId": "starter.ui@1",
+  "description": "TaskRow: one task as a line of text, for task lists.",
+  "exports": ["TaskRow"],
+  "params": { "type": "object", "properties": {}, "required": [], "additionalProperties": false },
+  "state": { "type": "object", "properties": {}, "required": [], "additionalProperties": false },
+  "context": { "type": "object", "properties": {}, "required": [], "additionalProperties": false },
+  "initialState": {},
+  "sources": {},
+  "actions": []
+}

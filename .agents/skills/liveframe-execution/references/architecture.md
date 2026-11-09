@@ -26,7 +26,7 @@ One npm package with subpath exports:
 | `/runner-kit` | `renderModule()`, `linkPackage()` (the in-sandbox half of a runner) | No |
 | `/runner-kit.bundle.js` | The kit plus SDK and validator as one self-contained ES module | No |
 | `/preview/capture` | `capture()`, `CaptureBackend`, `playwrightBackend(playwright)` | No |
-| `/authoring` | `createAuthoring()`: the seven authoring operations (runner required) | No |
+| `/authoring` | `createAuthoring()`: the nine authoring operations (runner required) | No |
 | `/preview/worker` | `workerRunner()` | `Worker` global |
 | `/preview/react` | `<Preview>` | Yes (React, DOM) |
 | `/css` | Theme and design system → CSS custom properties and classes | No |

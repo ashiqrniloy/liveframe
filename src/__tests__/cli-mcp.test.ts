@@ -21,6 +21,7 @@ import mcpTexts from "./fixtures/mcp-texts.json" with { type: "json" };
 import catalog from "./fixtures/proof/catalog.json" with { type: "json" };
 import { agentHomeTemplate } from "./fixtures/templates/agent-home.ts";
 import capabilities from "./fixtures/widgets/capabilities.json" with { type: "json" };
+import { libraryDraft, sharedLibrary } from "./fixtures/libraries.ts";
 import { drafts } from "./fixtures/widgets/drafts.ts";
 
 const fixtures = "src/__tests__/fixtures";
@@ -172,7 +173,7 @@ test("structured_content_matches_text_2025_11_25_and_output_schemas_resolve", as
     async (client) => {
       expect(client.getNegotiatedProtocolVersion()).toBe(protocolVersion);
       const tools = (await client.listTools()).tools;
-      expect(tools).toHaveLength(8);
+      expect(tools).toHaveLength(9);
       for (const tool of tools) {
         expect(tool.outputSchema).toBeDefined();
         const refs = JSON.stringify(tool.outputSchema).matchAll(/"\$ref":"([^"]+)"/g);
@@ -217,18 +218,67 @@ test("tools_list_descriptions_and_kinds", async () => {
   expect(JSON.stringify(tools.find((tool) => tool.name === "list_primitives")?.inputSchema)).toContain('"kinds"');
 }, 30000);
 
-test("tools_list_has_the_eight_tools", async () => {
+test("tools_list_has_the_nine_tools", async () => {
   const tools = await withClient(async (client) => (await client.listTools()).tools);
   expect(tools.map((tool) => tool.name).sort()).toEqual([
     "capture_preview",
     "generated_types",
     "list_capabilities",
+    "list_libraries",
     "list_primitives",
     "list_vocabulary",
     "pack_draft",
     "render_scenarios",
     "set_state",
   ]);
+}, 30000);
+
+const libraryConfig = `${fixtures}/mcp-libraries.config.ts`;
+
+test("mcp_lists_the_libraries_the_host_supplied", async () => {
+  const library = sharedLibrary();
+  await withClient(
+    async (client) => {
+      const listed = await call(client, "list_libraries");
+      expect(listed.isError).toBe(false);
+      expect(listed.json()).toEqual([
+        {
+          id: "acme.cards",
+          version: "1.0.0",
+          hash: library.hash,
+          exports: ["Badge"],
+          specifier: "liveframe:lib/acme.cards@1.0.0",
+        },
+      ]);
+    },
+    { config: libraryConfig },
+  );
+  // A host that supplies none gets an empty list, not an error.
+  expect(await withClient(async (client) => (await call(client, "list_libraries")).json())).toEqual([]);
+}, 30000);
+
+test("mcp_tools_pack_and_render_a_supplied_library", async () => {
+  await withClient(
+    async (client) => {
+      const draft = libraryDraft();
+      const packed = await call(client, "pack_draft", draft);
+      expect(packed.isError).toBe(false);
+      const rendered = await call(client, "render_scenarios", { scenario: "default" });
+      expect(rendered.isError).toBe(false);
+      expect(JSON.stringify(rendered.json())).toContain("card:new");
+      // The agent cannot add a library of its own: the argument is refused by name.
+      const forged = await call(client, "pack_draft", { ...draft, libraries: [sharedLibrary("forged")] });
+      expect(forged.isError).toBe(true);
+      expect(forged.json()).toEqual([expect.objectContaining({ kind: "invalid-document", pointer: "/libraries" })]);
+    },
+    { config: libraryConfig },
+  );
+  // Without the host's library the same draft says whose side to fix.
+  await withClient(async (client) => {
+    const result = await call(client, "pack_draft", libraryDraft());
+    expect(result.isError).toBe(true);
+    expect(JSON.stringify(result.json())).toContain("the host did not supply this library");
+  });
 }, 30000);
 
 test("tools_carry_approved_annotations", async () => {
@@ -248,6 +298,7 @@ test("tools_carry_approved_annotations", async () => {
     ["capture_preview", "Capture preview", true, false, true, false],
     ["generated_types", "Generate catalog module", true, false, true, false],
     ["list_capabilities", "List capabilities", true, false, true, false],
+    ["list_libraries", "List libraries", true, false, true, false],
     ["list_primitives", "List primitives", true, false, true, false],
     ["list_vocabulary", "List vocabulary", true, false, true, false],
     ["pack_draft", "Pack draft", false, false, true, false],

@@ -36,9 +36,11 @@ try {
 }
 ```
 
-All eight methods return `Promise<Result<T>>`, with the same errors and bounds as the tools below. Their names are `listPrimitives`, `listVocabulary`, `listCapabilities`, `generatedTypes`, `packDraft`, `renderScenarios`, `setState` and `capturePreview`. A single-scenario render returns a tree of at most 256 KiB; an all-scenario render returns statuses with shared errors deduplicated. Capture returns at most `maxCaptureCells` cells (default 12, maximum 48), each with `scenario`, `width`, `theme`, `designSystem`, `errors`, `aria: string | null` and `png: Uint8Array`, with `layout: true` its `layout`, and with `media` its media point. `media` takes `{ textScale?: number[], forcedColors?: ("none"|"active")[], reducedMotion?: ("no-preference"|"reduce")[] }`: every requested value multiplies the cells, so the bound applies to the product. There are no output files or base64 conversions.
+All nine methods return `Promise<Result<T>>`, with the same errors and bounds as the tools below. Their names are `listPrimitives`, `listVocabulary`, `listCapabilities`, `listLibraries`, `generatedTypes`, `packDraft`, `renderScenarios`, `setState` and `capturePreview`. A single-scenario render returns a tree of at most 256 KiB; an all-scenario render returns statuses with shared errors deduplicated. Capture returns at most `maxCaptureCells` cells (default 12, maximum 48), each with `scenario`, `width`, `theme`, `designSystem`, `errors`, `aria: string | null` and `png: Uint8Array`, with `layout: true` its `layout`, and with `media` its media point. `media` takes `{ textScale?: number[], forcedColors?: ("none"|"active")[], reducedMotion?: ("no-preference"|"reduce")[] }`: every requested value multiplies the cells, so the bound applies to the product. There are no output files or base64 conversions.
 
 Both `createAuthoring()` and `AuthoringConfig` accept `limits?: RenderLimits`, for example `limits: { nodes: 20_000 }`. Optional `nodes`, `depth` and `bytes` fields must be positive safe integers; omitted fields default to 5,000 nodes, depth 64 and 1 MiB. Limits apply to the runner and host validation, including outcome scenarios and the bound preview session. Invalid limits throw `LiveframeFailure` with `invalid-document` at `/limits`; the CLI prints that error and exits 2. Raising tree limits does not raise the single-scenario tool's 256 KiB response bound or capture bounds.
+
+Both also accept `libraries: readonly WidgetPackage[]`, the shared library packages the host supplies to drafts that import `liveframe:lib/<id>@<version>` ([Libraries](#libraries)); `listLibraries()` returns what was supplied, and `packDraft` refuses a `libraries` field.
 
 The runner is required and remains owned by your host. This subpath loads neither the MCP SDK nor Playwright. Capture needs both your `preview(binding)` factory and an injected `CaptureBackend`; missing configuration returns `not-found`. The factory starts lazily on the first capture, is reused after success and retried after failure. `close()` waits for queued draft operations and closes the bound page. The four draft methods share one queue; catalog reads stay concurrent. `exposeMeta` defaults to `false`, as in the CLI config.
 
@@ -96,6 +98,8 @@ export default config;
   if invalid. The tool description advertises the configured bound.
   This bounds cell count, not response bytes: tall or dense pages can exceed a
   client's transport limit, so narrow axes or configure a lower bound as needed.
+- `libraries` is the list of shared library packages the host supplies to drafts
+  (see [Libraries](#libraries)). Omit it when no widget shares code.
 - `exposeMeta` (default `false`) shows host `meta` to the agent: capability `meta`
   in `list_capabilities` and the manifest's `meta` in the `pack_draft` result.
   `meta` is the host's annotation, so an agent sees it only when you opt in; the
@@ -149,17 +153,53 @@ queued behind. The catalog reads stay concurrent.
 The config module runs as host code, in the server's process, before any tool is
 registered. Log to stderr only: stdout carries the protocol.
 
+## Libraries
+
+A widget may import shared components from a library package as
+`import { TaskCard } from "liveframe:lib/<id>@<version>"` ([sharing
+components](packages.md#share-components-between-widgets)). In an authoring session the
+host decides which libraries exist: put the packages in the config.
+
+```ts
+import type { AuthoringConfig } from "@arnilo/liveframe/preview";
+import { quickjsRunner } from "@arnilo/liveframe-runner-quickjs";
+import { capabilities, catalog, loadLibraries } from "./host.ts";
+
+export default {
+  catalog,
+  capabilities,
+  runner: await quickjsRunner(),
+  // Packages your host already stores and verifies, for example every library its widgets pin.
+  libraries: await loadLibraries(),
+} satisfies AuthoringConfig;
+```
+
+- The agent cannot add, change or remove a library. No tool installs, uploads or names
+  one, and `pack_draft` refuses a `libraries` argument (`invalid-document` at `/libraries`).
+- `list_libraries` shows the agent each library's `id`, `version`, `hash`, `exports` and
+  import `specifier`, so it does not guess. It returns an empty list when the host supplied none.
+- `pack_draft`, `render_scenarios` and `capture_preview` resolve a draft's imports from this
+  list through the same loader the host uses, on `inProcessRunner`, `workerRunner` and
+  `quickjsRunner`. A package that is not in the list fails `pack_draft` with `not-found` and
+  the message "the host did not supply this library to this session"; the fix is the config,
+  not a tool argument. A library whose content no longer matches its hash is `hash-mismatch`.
+- Startup checks that every entry is a library-shaped package and that two entries do not
+  share one `id@version`; an invalid list prints the `LiveframeError`s and exits 2.
+- A draft that packed against these libraries pins their hashes. To publish it, the host
+  installs the same libraries before the widget; the demo host does it with `POST /widgets`
+  ([the demo agent](demo-agent.md)).
+
 ## The tools
 
-`tools/list` holds exactly eight tools. Each returns JSON in one text block
+`tools/list` holds exactly nine tools. Each returns JSON in one text block
 (images excepted), and `isError: true` for a rejected call.
 
 Every tool advertises a self-contained `outputSchema`. Successful results add
 `structuredContent` equal to the JSON value in the first text block; all existing
 text blocks remain byte-identical. On protocol `2025-11-25`, the SDK wraps
 non-object-root schemas and structured values as `{ result: value }`:
-`list_primitives`, `render_scenarios` (including its single-tree branch) and
-`capture_preview`. Object-root results stay unwrapped. The `2026-07-28` codec
+`list_primitives`, `list_libraries`, `render_scenarios` (including its single-tree
+branch) and `capture_preview`. Object-root results stay unwrapped. The `2026-07-28` codec
 returns values directly. Rejected calls keep their error text and `isError: true`
 and omit `structuredContent`.
 
@@ -168,6 +208,7 @@ and omit `structuredContent`.
 | `list_primitives` | `{ kinds? }` | Every definition in full, or the named kinds |
 | `list_vocabulary` | — | `{ catalogId, vocabulary }`: the id a manifest must name, then colours, surfaces, typography, tones and the `space`/`radius`/`size`/`bp` names |
 | `list_capabilities` | — | Each source's params and result schema and each action's args schema (capability `meta` only with `exposeMeta`) |
+| `list_libraries` | — | Each library the host supplied: `{ id, version, hash, exports, specifier, description? }`; empty when the host supplied none |
 | `generated_types` | `{ module?, manifest? }` | `{ note, types }`: byte-identical `liveframe gen` output for `"types"` (default), `"implementations"` (`--implementations`), `"elementsSchema"` (`--elements-schema`) or `"templateSchema"` (`--template-schema`; `manifest` adds the draft's own paths, state keys and actions) |
 | `pack_draft` | `{ files, entry, manifest, scenarios }`, `{ template, manifest, scenarios }` or `{ dir, entry? }` | `{ hash, id, version, description?, scenarios }` (plus `meta` with `exposeMeta`) |
 | `render_scenarios` | `{ scenario?, state?, context?, outcomes? }` | One scenario's tree (at most 256 KiB), or scenario statuses and each distinct error once; `outcomes: true` expands source outcomes and always returns statuses |
@@ -175,7 +216,7 @@ and omit `structuredContent`.
 | `capture_preview` | `{ scenarios?, widths?, themes?, designSystems?, layout?, media? }` | Each cell's coordinates, errors, accessibility snapshot and PNG, plus its box layout with `layout: true` and its media point with `media`; default 12 cells, configurable up to 48 |
 
 The structured values follow the Result column: `list_primitives` is a definition
-array, `list_vocabulary` is `{ catalogId, vocabulary }`, `list_capabilities` is the
+array, `list_libraries` is an array of library summaries, `list_vocabulary` is `{ catalogId, vocabulary }`, `list_capabilities` is the
 capabilities document, `generated_types` is `{ note, types }`, and `pack_draft`
 is the draft summary. `render_scenarios` is a UI tree or a scenario-status array;
 `set_state` is a UI tree. Capture's structured value is only the cell-metadata
@@ -190,6 +231,7 @@ Each tool advertises a display title and four behavior hints:
 | `list_primitives` | List primitives | true | false | true | false |
 | `list_vocabulary` | List vocabulary | true | false | true | false |
 | `list_capabilities` | List capabilities | true | false | true | false |
+| `list_libraries` | List libraries | true | false | true | false |
 | `generated_types` | Generate catalog module | true | false | true | false |
 | `pack_draft` | Pack draft | false | false | true | false |
 | `render_scenarios` | Render scenarios | false | false | true | false |

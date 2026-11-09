@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { startHost } from "../server.ts";
+import { readDraft } from "../widgets/draft.ts";
 import { cleanup, type Host, hello, tempDir } from "./host.ts";
 
 const root = new URL("../", import.meta.url).pathname;
@@ -49,7 +50,7 @@ test("demo_preview_captures_every_cell", async () => {
   );
 }, 120000);
 
-test("demo_mcp_lists_eight_tools_and_captures", async () => {
+test("demo_mcp_lists_nine_tools_and_captures", async () => {
   const client = new Client({ name: "demo", version: "0" });
   await client.connect(
     new StdioClientTransport({ command: "bun", args: [liveframe, "mcp", "mcp.config.ts"], cwd: root }),
@@ -60,6 +61,7 @@ test("demo_mcp_lists_eight_tools_and_captures", async () => {
       "capture_preview",
       "generated_types",
       "list_capabilities",
+      "list_libraries",
       "list_primitives",
       "list_vocabulary",
       "pack_draft",
@@ -68,6 +70,19 @@ test("demo_mcp_lists_eight_tools_and_captures", async () => {
     ]);
     const packed = await client.callTool({ name: "pack_draft", arguments: await hello() });
     expect(packed.isError).toBeFalsy();
+    // The config supplies the host's shared library: the agent lists it and a draft that imports it packs and renders.
+    const listed = await client.callTool({ name: "list_libraries", arguments: {} });
+    expect(JSON.parse((listed.content as { text: string }[])[0]?.text ?? "[]")).toEqual([
+      expect.objectContaining({ id: "acme.cards", version: "1.0.0", exports: ["TaskCard"] }),
+    ]);
+    const welcome = await client.callTool({
+      name: "pack_draft",
+      arguments: await readDraft(join(root, "widgets/welcome")),
+    });
+    expect(welcome.isError).toBeFalsy();
+    const rendered = await client.callTool({ name: "render_scenarios", arguments: {} });
+    expect(rendered.isError).toBeFalsy();
+    expect((await client.callTool({ name: "pack_draft", arguments: await hello() })).isError).toBeFalsy();
     const start = performance.now();
     const captured = await client.callTool({
       name: "capture_preview",

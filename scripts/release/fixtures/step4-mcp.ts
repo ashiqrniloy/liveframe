@@ -7,6 +7,7 @@ const expected = [
   "capture_preview",
   "generated_types",
   "list_capabilities",
+  "list_libraries",
   "list_primitives",
   "list_vocabulary",
   "pack_draft",
@@ -37,4 +38,4 @@ try {
 } finally {
   await client.close();
 }
-console.log("MCP server listed eight tools, packed and rendered a draft");
+console.log("MCP server listed nine tools, packed and rendered a draft");

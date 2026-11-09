@@ -61,6 +61,7 @@ for (const name of [
   await cp(join(demo, name), join(host, name));
 }
 await cp(new URL("./mcp-session.ts", import.meta.url).pathname, join(host, "mcp-session.ts"));
+await cp(join(demo, "install-widget.ts"), join(host, "install-widget.ts"));
 await cp(join(demo, "widgets/draft.ts"), join(host, "widgets/draft.ts"));
 await cp(join(demo, "widgets/libraries.d.ts"), join(host, "widgets/libraries.d.ts"));
 
@@ -123,18 +124,29 @@ for (const name of ["manifest", "template", "scenarios"]) {
   await Bun.write(join(host, "widgets/hello", `${name}.json`), block[1] ?? "");
 }
 
-// 5. The MCP config the agent registers: the host's catalog and capabilities, the isolated runner, its own preview.
+// 5. The MCP config the agent registers: the host's catalog and capabilities, the isolated runner, its own preview,
+// and the shared library the operator supplies (`libraries/rows`, also installed on the running host: see the brief).
+await cp(new URL("./library/rows", import.meta.url).pathname, join(host, "libraries/rows"), { recursive: true });
 await Bun.write(
   join(host, "mcp.config.ts"),
-  `import type { AuthoringConfig } from "@arnilo/liveframe/preview";
+  `import { pack } from "@arnilo/liveframe/pack";
+import type { AuthoringConfig } from "@arnilo/liveframe/preview";
 import { quickjsRunner } from "@arnilo/liveframe-runner-quickjs";
 import { capabilities, catalog } from "./app.ts";
 import { previewRoutes } from "./preview.ts";
+import { readDraft } from "./widgets/draft.ts";
+
+const rows = pack(await readDraft(new URL("./libraries/rows/", import.meta.url).pathname), {
+  catalog,
+  capabilities,
+});
+if (!rows.ok) throw new Error(JSON.stringify(rows.errors));
 
 const config: AuthoringConfig = {
   catalog,
   capabilities,
   runner: await quickjsRunner(),
+  libraries: [rows.value],
   async preview(binding) {
     const server = Bun.serve({ hostname: "127.0.0.1", port: 0, routes: await previewRoutes(binding) });
     return { url: new URL("/preview", server.url).href, close: () => server.stop(true) };
@@ -178,4 +190,6 @@ await Bun.write(
 run(["bun", "install"], host);
 run(["bun", "run", "typecheck"], host);
 
-console.log(`Host ready: ${host}\nStart it: cd ${host} && bun server.ts   (http://127.0.0.1:3300)`);
+console.log(
+  `Host ready: ${host}\nStart it: cd ${host} && bun server.ts   (http://127.0.0.1:3300)\nThen install the library: bun install-widget.ts libraries/rows`,
+);

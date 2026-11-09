@@ -52,5 +52,10 @@ export type AuthoringConfig = {
   /** Show host `meta` (capability and manifest) to the agent. Default false: `meta` is the host's, not the agent's. */
   readonly exposeMeta?: boolean;
   /** Binds the app's preview page to the server's session; called once, after the first successful pack. */
+  /**
+   * Library packages the operator supplies to drafts importing `liveframe:lib/<id>@<version>`. Never the agent's:
+   * no tool adds one. Each is validated on start and hash-checked when a draft packs or renders.
+   */
+  readonly libraries?: readonly WidgetPackage[];
   readonly preview?: (binding: PreviewBinding) => Promise<{ readonly url: string; close(): Promise<void> }>;
 };

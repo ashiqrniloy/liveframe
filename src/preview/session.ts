@@ -2,6 +2,7 @@ import { type LiveframeError, LiveframeFailure, type Result } from "../errors.ts
 import { isRecord } from "../formats/capabilities.ts";
 import type { Scenario, WidgetPackage } from "../formats/package.ts";
 import type { ActionStatus, Intent, IntentOrigin, Json, UiTree } from "../formats/tree.ts";
+import { indexLibraries } from "../pack/libraries.ts";
 import { pack } from "../pack/pack.ts";
 import { checkValue } from "../schema.ts";
 import { type CompiledValidator, compileValidator } from "../validate/compile.ts";
@@ -11,13 +12,26 @@ import type { Runner, RunnerOptions } from "./runner.ts";
 
 let nextSession = 0;
 
-/** Backend-only draft iteration through the same packer and runner as production. */
+/**
+ * Backend-only draft iteration through the same packer and runner as production. `libraries` are the
+ * packages the host supplies to drafts that import `liveframe:lib/<id>@<version>`: the host chooses
+ * them, the draft only names them, exactly as `renderPlacement` resolves a placement's pins.
+ */
 export function createPreview({
   catalog,
   capabilities,
   runner,
   limits,
-}: Pick<RunnerOptions, "catalog" | "capabilities" | "limits"> & { runner: Runner }): PreviewSession {
+  libraries,
+}: Pick<RunnerOptions, "catalog" | "capabilities" | "limits"> & {
+  runner: Runner;
+  readonly libraries?: readonly WidgetPackage[];
+}): PreviewSession {
+  if (libraries !== undefined) {
+    const indexed = indexLibraries(libraries);
+    if (!indexed.ok) throw new LiveframeFailure(indexed.errors);
+    libraries = Object.freeze([...libraries]);
+  }
   if (limits !== undefined) {
     if (
       !isRecord(limits) ||
@@ -87,6 +101,7 @@ export function createPreview({
       surfaceId,
       revision: ++revision,
       ...(limits ? { limits } : {}),
+      ...(libraries ? { libraries } : {}),
     });
     const result = rendered.ok ? checker.validateTree(rendered.value, limits ? { limits } : undefined) : rendered;
     if (pkg === active && current === selected) selected.result = result;
@@ -140,7 +155,18 @@ export function createPreview({
 
   return {
     update(draft: Parameters<typeof pack>[0]): Result<WidgetPackage> {
-      const result = pack(draft, { catalog, capabilities });
+      const packed = pack(draft, { catalog, capabilities, ...(libraries ? { libraries } : {}) });
+      // `pack()` reports a missing library as not supplied; in a session the host is the supplier, not the agent.
+      const result: Result<WidgetPackage> = packed.ok
+        ? packed
+        : {
+            ok: false,
+            errors: packed.errors.map((error) =>
+              error.kind === "not-found"
+                ? { ...error, message: `${error.message}: the host did not supply this library to this session` }
+                : error,
+            ),
+          };
       if (result.ok) {
         pkg = result.value;
         validator = compileValidator({ catalog, capabilities, manifest: pkg.manifest });

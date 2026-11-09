@@ -20,7 +20,7 @@ Rules:
 - No isolation sandbox in the library. Never describe a reference runner as a security boundary.
 - Preview and production use the same runner. A published package's hash equals the last previewed draft's.
 - Draft code never reaches the browser (law 1). Test it with a bundle scan.
-- `liveframe mcp <config-module>` (roadmap Phase 8, ships in 0.1.0) wraps one session and capture as seven authoring MCP tools over stdio. It never installs, places, approves, resolves data or dispatches.
+- `liveframe mcp <config-module>` (roadmap Phase 8, ships in 0.1.0) wraps one session and capture as nine authoring MCP tools over stdio. It never installs, places, approves, resolves data or dispatches.
 - Spec §13 limits dynamic import to the package loader across library subpaths; the CLI may lazily load command-specific optional peers so `liveframe gen` works without Playwright or the MCP SDK.
 - Prior art: `proof/host/` (scenarios, sizes, design-system switch, logged actions) and `proof/scripts/parity.ts` (Playwright capture).
 

@@ -20,6 +20,7 @@ import {
 } from "../preview/capture/index.ts";
 import type { Runner } from "../preview/runner.ts";
 import { createPreview } from "../preview/session.ts";
+import { librarySpecifier } from "../runner-kit/link.ts";
 import { compiledValidator } from "../runner-kit/cache.ts";
 import { isLanguageSchema, sourceOutcome } from "../schema.ts";
 import { generate, generateDefinitions, generateElementsSchema, generateTemplateSchema } from "../sdk/gen.ts";
@@ -38,6 +39,22 @@ export type AuthoringOptions = {
   /** Per-call capture cell bound: integer 1–48, default 12. Invalid values throw LiveframeFailure. */
   readonly maxCaptureCells?: number;
   readonly exposeMeta?: boolean;
+  /**
+   * Library packages the host supplies to drafts that import `liveframe:lib/<id>@<version>`. Only the host sets
+   * this: no tool adds, changes or removes one, and `list_libraries` shows the agent what is here.
+   */
+  readonly libraries?: readonly WidgetPackage[];
+};
+
+/** One host-supplied library as the agent sees it: what to import and which names it may read. */
+export type LibrarySummary = {
+  id: string;
+  version: string;
+  hash: string;
+  exports: readonly string[];
+  /** The import specifier a draft uses. */
+  specifier: string;
+  description?: string;
 };
 
 /** Summary of the draft last packed successfully. */
@@ -155,6 +172,8 @@ function packArguments(input: unknown): Result<PackInput> {
     };
   const { manifest, scenarios } = input;
   const errors = draftBodyErrors(input);
+  if (Object.hasOwn(input, "libraries"))
+    errors.push(at("/libraries", "A draft cannot supply libraries: the host supplies them (see list_libraries)"));
   const shaped = validateManifestShape(manifest);
   if (!shaped.ok) errors.push(...rooted("/manifest", shaped.errors));
   if (!Array.isArray(scenarios) || scenarios.length === 0 || scenarios.length > 64)
@@ -343,6 +362,7 @@ async function renderOutcomes(
       surfaceId,
       revision: ++state.revision,
       ...(state.options.limits ? { limits: state.options.limits } : {}),
+      ...(state.options.libraries ? { libraries: state.options.libraries } : {}),
     });
     // A custom runner is host code: validate its tree so `checkAll` only sees bounded, acyclic data.
     const result = rendered.ok
@@ -422,7 +442,11 @@ export function createAuthoring(options: AuthoringOptions) {
   const { catalog, capabilities, runner } = options;
   const exposeMeta = options.exposeMeta === true;
   const session = createPreview(options);
-  options = { ...options, ...(options.limits ? { limits: Object.freeze({ ...options.limits }) } : {}) };
+  options = {
+    ...options,
+    ...(options.limits ? { limits: Object.freeze({ ...options.limits }) } : {}),
+    ...(options.libraries ? { libraries: Object.freeze([...options.libraries]) } : {}),
+  };
   const exclusive = queue();
   const state: AuthoringState = {
     options,
@@ -462,6 +486,18 @@ export function createAuthoring(options: AuthoringOptions) {
     },
     async listCapabilities() {
       return success(exposeMeta ? capabilities : withoutMeta(capabilities));
+    },
+    async listLibraries(): Promise<Result<readonly LibrarySummary[]>> {
+      return success(
+        (options.libraries ?? []).map(({ manifest, hash }) => ({
+          id: manifest.id,
+          version: manifest.version,
+          hash,
+          exports: manifest.exports ?? [],
+          specifier: librarySpecifier(manifest.id, manifest.version),
+          ...(manifest.description === undefined ? {} : { description: manifest.description }),
+        })),
+      );
     },
     async generatedTypes({
       module = "types",

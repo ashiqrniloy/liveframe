@@ -142,6 +142,17 @@ function registerCatalogTools(sdk: Sdk, server: Server, authoring: Authoring): v
     async () => mapped(await authoring.listCapabilities()),
   );
   server.registerTool(
+    "list_libraries",
+    {
+      title: "List libraries",
+      outputSchema: sdk.fromJsonSchema(outputSchemas.list_libraries),
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      description:
+        "The shared library packages the host supplies to drafts: each one's id, version, hash, the names it exports and the specifier to import it from (`liveframe:lib/<id>@<version>`). A draft imports only these, and only the exported names. The list is the host's: no tool adds, changes or removes a library, and an empty list means the host supplied none.",
+    },
+    async () => mapped(await authoring.listLibraries()),
+  );
+  server.registerTool(
     "generated_types",
     {
       title: "Generate catalog module",
@@ -217,6 +228,22 @@ const outputSchemas = {
     $defs: catalogDoc.$defs,
   },
   list_capabilities: strip(capabilitiesDoc, ["$id", "$schema"]),
+  list_libraries: {
+    type: "array",
+    items: {
+      type: "object",
+      properties: {
+        id: manifestDoc.properties.id,
+        version: manifestDoc.properties.version,
+        hash: packageDoc.properties.hash,
+        exports: { type: "array", items: stringSchema },
+        specifier: stringSchema,
+        description: stringSchema,
+      },
+      required: ["id", "version", "hash", "exports", "specifier"],
+      additionalProperties: false,
+    },
+  },
   generated_types: {
     type: "object",
     properties: { note: stringSchema, types: stringSchema },
@@ -535,7 +562,8 @@ export async function mcp(path: string, load: () => Promise<Sdk> = loadSdk): Pro
     ...authoring,
     packDraft: (input) =>
       queued(async () => {
-        if (!Object.hasOwn(input, "dir")) return authoring.packDraft(input);
+        // A `libraries` argument goes straight to the authoring layer, which refuses it by name.
+        if (!Object.hasOwn(input, "dir") || Object.hasOwn(input, "libraries")) return authoring.packDraft(input);
         const read = await readDraftDirectory(config.draftRoot, input);
         return read.ok ? authoring.packDraft(read.value) : read;
       }),

@@ -20,6 +20,12 @@ Register `liveframe mcp` with your coding agent as described in the
 ./node_modules/.bin/liveframe mcp ./mcp.config.ts
 ```
 
+The config supplies the host's shared library (`widgets/cards`, `acme.cards@1.0.0`) to every
+draft. Call `list_libraries` to see its id, version, exports and import specifier; a draft imports
+it as `import { TaskCard } from "liveframe:lib/acme.cards@1.0.0"` and the agent cannot add another
+library (see [the MCP guide](mcp.md#libraries)). A draft that imports a library the host did not
+supply fails `pack_draft` with `not-found`.
+
 Use `list_vocabulary` for the manifest's catalog id and allowed style names,
 `list_primitives` for props and `generated_types` for `ui.gen.ts`. Write a
 widget with a default export and at least two scenarios. The
@@ -111,5 +117,18 @@ timeout 10s curl --fail-with-body -sS http://127.0.0.1:3300/surfaces/my-placemen
 Both return HTTP 200. Placement initializes state from the manifest; the surface
 response contains `tree`, `manifest` and `actions`. Open
 `http://127.0.0.1:3300/?placement=my-placement` to inspect the rendered surface.
-Do not send intents during this exercise. The demo stores the package,
+A widget that imports a library needs that library installed first: post the library's
+draft the same way (`bun install-widget.ts widgets/cards` posts the demo's own), then the
+widgets that import it. `POST /widgets` reads the installed library packages it finds in the
+draft's `liveframe:lib/…` imports and pins them by hash; a library that is not installed is
+HTTP 422 with `not-found`. The library's own surface is its gallery scenarios, so place it only
+if you want to see them.
+
+Do not send intents during this exercise unless the operator asks you to; they dispatch actions.
+`POST /placements/<id>/intents` takes `{ "intent": …, "origin": { surfaceId, revision, nodeId, event } }`
+copied from the tree you just read and answers with a stream of JSON lines (`application/x-ndjson`),
+one frame per line: an action first answers with a frame whose `actions` entry for it is `pending`,
+then, when the operation finishes, a frame with `ok` (or the failure status), then a frame for each
+other placement that reads a source the action changed. A stale origin is HTTP 409; a forged or
+unoffered intent is 400. The demo stores the package,
 placement and state in its local `fileStore`; restarting the host preserves them.

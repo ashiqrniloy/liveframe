@@ -303,25 +303,25 @@
     "subpath": "./preview",
     "name": "createPreview",
     "change": "widened",
-    "reason": "Optional RenderLimits forwarded to runner and host tree validation",
+    "reason": "Optional RenderLimits forwarded to runner and host tree validation; optional `libraries` the host supplies to drafts that import `liveframe:lib/<id>@<version>` (plan 032 T4a)",
     "hostAction": "Optionally set limits; defaults remain unchanged",
-    "task": "026 T6"
+    "task": "026 T6, 032 T4a"
   },
   {
     "subpath": "./preview",
     "name": "AuthoringConfig",
     "change": "widened",
-    "reason": "Optional RenderLimits forwarded to runner and host tree validation",
+    "reason": "Optional RenderLimits forwarded to runner and host tree validation; optional `libraries` the host supplies to drafts that import `liveframe:lib/<id>@<version>` (plan 032 T4a)",
     "hostAction": "Optionally set limits; defaults remain unchanged",
-    "task": "026 T6"
+    "task": "026 T6, 032 T4a"
   },
   {
     "subpath": "./authoring",
     "name": "AuthoringOptions",
     "change": "widened",
-    "reason": "Optional RenderLimits forwarded to runner and host tree validation",
+    "reason": "Optional RenderLimits forwarded to runner and host tree validation; optional `libraries` the host supplies to drafts that import `liveframe:lib/<id>@<version>` (plan 032 T4a)",
     "hostAction": "Optionally set limits; defaults remain unchanged",
-    "task": "026 T6"
+    "task": "026 T6, 032 T4a"
   },
   {
     "subpath": "./store",
@@ -1617,9 +1617,9 @@
     "subpath": "./authoring",
     "name": "createAuthoring",
     "change": "widened",
-    "reason": "Template widgets in preview and authoring: a draft may be `{ template, manifest, scenarios }`, `pack_draft({ dir })` reads `template.json`, and `generatedTypes` accepts `module: \"templateSchema\"` with an optional draft `manifest`",
+    "reason": "Template widgets in preview and authoring: a draft may be `{ template, manifest, scenarios }`, `pack_draft({ dir })` reads `template.json`, and `generatedTypes` accepts `module: \"templateSchema\"` with an optional draft `manifest`; `listLibraries()` and `libraries` for host-supplied library packages (plan 032 T4a)",
     "hostAction": "Optional: send template drafts to createAuthoring().packDraft and the MCP pack_draft; existing calls are unchanged",
-    "task": "028 T6"
+    "task": "028 T6, 032 T4a"
   },
   {
     "subpath": "./sdk/gen",
@@ -2490,5 +2490,13 @@
     "reason": "The runner conformance fixtures as a language-neutral document",
     "hostAction": "Optional: port the runner contract and isolation cases to a runner in another language",
     "task": "031 T3"
+  },
+  {
+    "subpath": "./authoring",
+    "name": "LibrarySummary",
+    "change": "added",
+    "reason": "A host-supplied library as the agent sees it (id, version, hash, exports, import specifier): the result of `listLibraries()` and the `list_libraries` MCP tool",
+    "hostAction": "Optional: supply `libraries` to `createPreview()`, `createAuthoring()` or the MCP config, then read `LibrarySummary` from `listLibraries()`",
+    "task": "032 T4a"
   }
 ]
