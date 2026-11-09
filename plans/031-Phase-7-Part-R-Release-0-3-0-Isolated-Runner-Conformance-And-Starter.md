@@ -242,7 +242,7 @@ This plan implements roadmap Phase 7's 0.3.0 runner and adoption work: spec §3 
     - Findings: (1) `bun init -y` and `bun add` need the registry (types and the QuickJS runner's two dependencies), so the script needs network, as the archive gate does. (2) The server builds its two browser bundles on first request, not at start, so a reader who has not written `preview-client.tsx` yet can still start the server; building at start failed the first run with `ModuleNotFound`. (3) The code in the guide type-checks under `bun init`'s tsconfig with `"DOM"` added to `lib` (the guide says so) and `@types/react`, `@types/react-dom` installed. (4) The starter's peer `~0.3.0` does not match the current 0.2.3 core; Bun only warns, as in the archive gate. (5) A `server` flag matched `file=server.ts` at first (`\bserver\b`); the extractor now takes it only as a separate word, and a test pins one server block.
     - Not done: macOS and Windows; Firefox and WebKit (the guide check is Chromium only, like the other end-to-end scripts); the guide is not type-checked in CI (it is run, which catches the failures a reader would hit first).
 
-- [ ] Task 8: Analyze architectural impact and dispose of every finding
+- [x] Task 8: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional: the twelve impact areas swept in `plans/evidence/031-impact-analysis.md`, with portability reviewed for the workspace and the Bun-only decision, and security reviewed for the QuickJS boundary; findings presented, dispositions recorded and executed or backlogged.
     - Performance: `bun run bench` including the runner bench.
@@ -257,7 +257,11 @@ This plan implements roadmap Phase 7's 0.3.0 runner and adoption work: spec §3 
     - API Notes and Examples: n/a.
     - Files to Create/Edit: `plans/evidence/031-impact-analysis.md`; `plans/backlog.md`.
   - Test Cases to Write: n/a.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-09):
+    - Evidence: `plans/evidence/031-impact-analysis.md` (twelve areas, whole-plan verification, findings F1–F12) and `plans/evidence/031-soak.ts`. The owner accepted every recommended disposition ("Accept all (Recommended)").
+    - Verification: `bun run check` build, gen, typecheck, lint and format pass; tests 1745 pass, 11 fail, all wall-clock gates, while other users' processes held the load average at 12–51 (766 s against 400 s). The eight affected files pass when re-run alone at load 11 (three runs in a row) and the other four pass at once, as plans 030 and 031 Task 6 found. `bun run bench` stops at its first stage (known); `bench/runner.bench.ts` run directly passes every budget at load 14. `release:gate` passes for all three packages, the guide test passes (5.2 s), `demo:test` 67 pass.
+    - New measurements: the child holds 52 MiB at start, 74 MiB steady and about 90 MiB with `reuse: "package"`, without growth over 500 and 1000 renders; 15 kills leave no process; a host killed with `SIGKILL` during a native hold orphans a child at about 102% CPU (an idle child exits); a 14 MiB answer is refused by the validator in under 350 ms.
+    - Executed: F2 (docs), F3, F4, F8, F9. Docs changed: runner README, `docs/security.md`, `docs/getting-started.md` § 6. Backlog: closed "Evaluate a conformance suite for runners", extended "Re-run the full benchmark suite on a quiet host", added seven entries (F1, F2 pool, F5, F6, F7, F10, F11).
 
 ## Verification (whole plan)
 
@@ -269,8 +273,24 @@ This plan implements roadmap Phase 7's 0.3.0 runner and adoption work: spec §3 
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- **QuickJS runs in a child process, not in the process (Task 1).** The plan's same-thread design could not stop a native call, so each render pays IPC and a process (agent-home about 70–86 ms fresh against 1.7 ms in process). The decision log records the measurement and the budget.
+- **One child, renders in sequence (Task 4).** A held render delays the queue; documented, pool in the backlog.
+- **The wasm comes from the pinned `@jitl/quickjs-wasmfile-release-sync` dependency, not a copy in the archive (Task 4).** The installed smoke proves it resolves.
+- **`react-aria-components` is a required peer of the starter, not optional (Task 6).** `implementations` is a root export; a host that wants no React Aria copies the catalog, themes and design system.
+- **The runner keeps its own copy of the library-graph walk (Task 4).** The core does not export it; backlog P4.
+- **Linux only, loaded host.** Nothing ran on macOS or Windows, and no figure is a quiet-host figure (the machine's load average was 8–51 throughout). Budgets passed at load 14 with little margin.
+- **Wall-clock gates fail under load.** 11 tests failed in the full check at load up to 51 and pass alone at low load; the existing quiet-host and intermittent-failure backlog entries cover them.
 
 ## Further Actions
 
-- To be filled after task completion with improvements, rationale, and priority.
+Handed off to `plans/backlog.md` on 2026-11-09:
+
+- P3 Stop a child the host orphaned while it was in a native call (measured at about 102% CPU).
+- P3 Render concurrently in the QuickJS runner (a pool; head-of-line blocking is documented).
+- P3 Test the starter's peer floors.
+- P3 Run the new packages on macOS and Windows.
+- P4 Share the library-graph walk between the core and the QuickJS runner.
+- P4 Type-check the getting-started guide and run it in more engines.
+- P4 Let the starter's switching case take a second design system without a derived copy.
+
+For plan 032: widen both peer ranges to `~0.3.0-0` before the rc, owner configures npm trusted publishing for the two new package names, create the `0.3.0` API baseline per package, and run the quiet-host proof if the owner wants the figures called quiet.

@@ -37,7 +37,8 @@ It is a `Runner` (spec §7.5): use it wherever the app passes one, for example `
 
 - **The child runs with the host's privileges** (with an empty environment). Only QuickJS stands between widget code and the file system and network. A defect in QuickJS or in the wasm runtime is not covered. Run the child inside an OS sandbox (bubblewrap, a container) for defence in depth.
 - **CPU side channels and timing.**
-- **Memory pressure** on the host up to `memoryBytes` per runtime, plus the wasm instance and the child's baseline. With `reuse: "package"`, up to `maxRuntimes` runtimes at once.
+- **Memory pressure** on the host up to `memoryBytes` per runtime, plus the wasm instance and the child's baseline. With `reuse: "package"`, up to `maxRuntimes` runtimes at once. Measured (Linux, plan 031 Task 8): the child holds about 52 MiB resident at start, 74 MiB steady with `reuse: "none"` and about 90 MiB with `reuse: "package"` over five packages, with no growth across 500 and 1000 renders. The host parses at most what the heap allows, and a tree beyond the validator's limits is `invalid-prop` (a 14 MiB text node was).
+- **Renders run one at a time.** The runner owns one child, so a render waits for the one before it. A hostile widget that holds its render costs every render queued behind it up to `timeoutMs` + 100 ms plus about 250 ms to replace the child (measured: hold, kill, recover and next render 246 ms). Give untrusted authors their own runner, or keep their `timeoutMs` low.
 - **Only Linux has been measured.** macOS and Windows are expected to work (WebAssembly and `Bun.spawn`) and are not claimed.
 
 ## Cost

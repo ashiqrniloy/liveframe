@@ -37,7 +37,8 @@ So `templateRunner()` executes no author code and is the recommended production 
 
 - A defect in QuickJS or in the WebAssembly runtime. The child runs with the host's privileges (an empty environment, ignored stdio), so only QuickJS stands between widget code and the file system and network. Run the child inside an OS sandbox (bubblewrap, a container, a restricted user) for defence in depth.
 - CPU side channels, and CPU contention: a render uses up to `timeoutMs` plus 100 ms of one core.
-- Host memory pressure up to `memoryBytes` per render (the wasm heap plus the child's own).
+- Head-of-line blocking: one child renders one widget at a time, so a widget that holds its render delays every render queued behind it by up to `timeoutMs` + 100 ms plus about 250 ms to start the replacement child. Use a separate runner for authors you do not trust.
+- Host memory pressure up to `memoryBytes` per render (the wasm heap plus the child's own). Measured on Linux: 52 MiB resident at start, 74 MiB steady, about 90 MiB with `reuse: "package"`, no growth over 500 and 1000 renders, and 15 kills left no process behind.
 - `reuse: "package"`: module state survives between renders of one package. Use it only for code you trust to behave.
 - A child orphaned by a host that is killed while the child is in a native call; it spins until killed by hand.
 - Platforms it was not run on: only Linux has been measured.

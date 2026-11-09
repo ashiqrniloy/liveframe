@@ -280,6 +280,7 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 ## Evaluate a conformance suite for runners
 
 - Disposition: retained as backlog P4 by the owner on 2026-10-25 (plan 010 Task 10 F4; plans/evidence/010-impact-analysis.md); evaluate only when an adopter supplies a runner.
+- Status: closed 2026-11-09 in plan 031 Task 3 (impact finding F8, `plans/evidence/031-impact-analysis.md`): `runnerSuite()` in `/conformance` proves the contract for any runner (hash verification, time limit, result validation, `limit-exceeded`, libraries) and, on request, isolation. The reference runners and `quickjsRunner()` pass it. The `CaptureBackend` suite question below stays conditional on an adopter.
 
 - Section: Conditional conformance work (spec §7.4, §7.5)
 - Priority: P4
@@ -524,6 +525,9 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Update (2026-11-08, plan 029 Task 8): [impact review](evidence/029-impact-analysis.md) F3. Stage-by-stage `bun run bench` and a 9-run paired render A/B against `6041e0b` ran at load 14–19 and then 40–70 from unrelated work; absolute gates read 1.6–2× for unchanged code and paired ratios scattered 0.89–1.20, so nothing was proved. Plan 032 Task 3 should also settle, paired against `v0.2.3` and `6041e0b`: the validator with 50 distinct `when` (gate 1.75 µs/node, measured 1.47–1.57 in Task 3), the live-filter keystroke (4 ms budget, 1.6 ms measured), the `actions` input check on the agent-home render (1% budget, never stated), and the production selection bench's 4–8% against 0.2.3 with focus continuity off on both sides.
 
 - Update (2026-11-08, plan 030 Task 11): `bun run bench` at load 12 stops at the validator stage (`core-queue.*` at 1.6–2.4 µs/node, `bindings: 50 when` 2.07 against 1.75), and because the stages are chained with `&&`, `host.bench.ts` and `pack-libraries.bench.ts` never run under it. Run them directly for now; plan 032 Task 3 should run every stage independently (a `bun run bench --all` or `;` chaining that reports each exit code) on the quiet host, and add this plan's figures: pipeline overhead (budget 0.2 ms beyond `loadPlacement`), `handleIntent` against an equal `renderPlacement`, `dependents` over 1,000 placements, `checkPackages` per package, and a dependent with warm libraries against the bundled equivalent. Direct runs on a busy host: pack with libraries 22 ms against 50 ms bundled, render 0.336 ms against 0.371 ms. [Impact review](evidence/030-impact-analysis.md) F10.
+
+- Update (2026-11-09, plan 031 Task 8): `bun run bench` again stopped at its first stage (validator `core-queue.*` and `compileValidator` reuse gates, load 12) and never reached the host, pack-libraries or runner stages. `bench/runner.bench.ts` run directly at load 14 passed every budget (median ms: `none` agent-home 85.9 of 110 and smallest 39.6 of 60; `package` 57.2 of 60 and 5.3 of 8; child cold start 19.0 of 60; hold, kill, recover and next render 246 of 300). The budgets pass with little margin under load, so they are not called quiet-host figures.
+
 
 ## Name the realm mismatch in a compiled validator's `validateTree`
 
@@ -773,3 +777,59 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Source: plans/030-Phase-7-Part-Q-Release-0-3-0-Host-Pipeline-Evolution-And-Dependencies.md Task 5 notes, plans/evidence/030-impact-analysis.md F9
 - What: `checkOffered` reports an unknown origin node as `not-found` at `/origin/nodeId`, the same kind a missing placement or package uses, so a host that maps error kinds to HTTP statuses must also look at the pointer (the demo's `failure()` does: `not-found` outside `/origin` is its own 500). Document the pointer rule in `docs/host.md`, or give the client-fault case its own kind (a breaking change to `ErrorKind`, so decide before the 0.3.0 release or leave it for 0.4).
 - Why: a wrong status code turns a stale tab into a server error alert.
+
+## Stop a child the host orphaned while it was in a native call
+
+- Section: Isolated runner (spec §7.5)
+- Priority: P3
+- Source: plans/031-Phase-7-Part-R-Release-0-3-0-Isolated-Runner-Conformance-And-Starter.md Task 4 and Task 8, plans/evidence/031-impact-analysis.md F1
+- What: a child exits when its host disconnects, but a child stuck in one native call cannot run its `disconnect` handler. Measured 2026-11-09: a host killed with `SIGKILL` during such a hold leaves the child at about 102% CPU until it is killed by hand; an idle child exits at once. `docs/security.md` and the README say so. Options: spawn the child under a CPU-time limit where the platform has one (`prlimit`, `ulimit -t`), or a tiny watchdog process that kills the child when the host's pipe closes.
+- Why: a crashed host should not leave a core spinning. Neither option is portable, so it needs an owner decision on which platforms to cover.
+
+## Render concurrently in the QuickJS runner
+
+- Section: Isolated runner (spec §7.5)
+- Priority: P3
+- Source: plans/031-Phase-7-Part-R-Release-0-3-0-Isolated-Runner-Conformance-And-Starter.md Task 8, plans/evidence/031-impact-analysis.md F2
+- What: `quickjsRunner()` owns one child and renders one widget at a time, so a hold stalls every render queued behind it by up to `timeoutMs` + 100 ms plus about 250 ms for the replacement child. Add a `concurrency` option (a small pool of children, each killed and replaced on its own) and have `runnerSuite` hold a render while another is asked for.
+- Why: one hostile or slow widget should not delay the rest of a multi-user host. The docs now say to give untrusted authors their own runner.
+
+## Test the starter's peer floors
+
+- Section: Release automation (spec §13)
+- Priority: P3
+- Source: plans/031-Phase-7-Part-R-Release-0-3-0-Isolated-Runner-Conformance-And-Starter.md Task 8, plans/evidence/031-impact-analysis.md F5
+- What: `@arnilo/liveframe-starter` declares peers `react` and `react-dom` `^19.0.0` and `react-aria-components` `^1.22.0`, but `scripts/release/peer-floors.ts` installs floors only for the core's peers and runs the core's suites. Add a floor entry that installs React 19.0.0 and React Aria Components 1.22.0 and runs `packages/starter/src/__tests__/suites.test.ts` and the browser suite (about 100 s per engine).
+- Why: a peer range is a claim; the floor run is what makes it one. Raise the starter's floor to what passes if the run fails.
+
+## Run the new packages on macOS and Windows
+
+- Section: Release automation (spec §13)
+- Priority: P3
+- Source: plans/031-Phase-7-Part-R-Release-0-3-0-Isolated-Runner-Conformance-And-Starter.md Tasks 1, 4, 6 and 8, plans/evidence/031-impact-analysis.md F6
+- What: the runner (`Bun.spawn` with `process.execPath`, IPC, `SIGKILL`, the wasm path through `import.meta.resolve`) and the starter were run on Linux only, and CI is Linux. Add a macOS and a Windows job that run the two packages' tests and archive gates, then either claim the platforms in the docs or document what fails.
+- Why: the READMEs say only Linux has been measured; an adopter on another OS finds out by installing.
+
+## Share the library-graph walk between the core and the QuickJS runner
+
+- Section: Isolated runner (spec §7.3, §7.5)
+- Priority: P4
+- Source: plans/031-Phase-7-Part-R-Release-0-3-0-Isolated-Runner-Conformance-And-Starter.md Task 4 (deviation 3) and Task 8, plans/evidence/031-impact-analysis.md F7
+- What: `packages/runner-quickjs/src/load.ts` repeats the core's `collectLibraries` walk and its bounds (depth 4, 32 packages, 16 direct) because they are not exported, and no test fails if the core's bounds change. Export the walk from `/runner-kit` (an added API) or add a `runnerSuite` case that builds a graph one past each bound and expects `limit-exceeded` from every runner.
+- Why: two copies of a security bound drift. The bounds are fixed by the spec, so the risk is low until they change.
+
+## Type-check the getting-started guide and run it in more engines
+
+- Section: Docs (adoption)
+- Priority: P4
+- Source: plans/031-Phase-7-Part-R-Release-0-3-0-Isolated-Runner-Conformance-And-Starter.md Task 7 and Task 8, plans/evidence/031-impact-analysis.md F10
+- What: `scripts/getting-started-test.ts` runs the guide's code and asserts the page in Chromium, but never runs `tsc` on the extracted files (the guide says they type-check with `DOM` in `lib`) and does not use Firefox or WebKit.
+- Why: a type error in the guide is the first thing a TypeScript reader hits; running it catches runtime failures only.
+
+## Let the starter's switching case take a second design system without a derived copy
+
+- Section: Conformance (spec §6.5, §13)
+- Priority: P4
+- Source: plans/031-Phase-7-Part-R-Release-0-3-0-Isolated-Runner-Conformance-And-Starter.md Task 6 and Task 8, plans/evidence/031-impact-analysis.md F11
+- What: `switching_keeps_nodes_and_focus_and_rerenders_nothing` needs two design-system identities, and the starter ships one, so its tests derive `starter-round` from it (`packages/starter/src/__tests__/host.ts`). Decide whether `rendererBrowserSuite` should derive the second identity itself (a spec-level change to the suite's inputs) or the starter should ship two.
+- Why: the derived copy proves the mechanism but not that a second, hand-written system also switches cleanly.

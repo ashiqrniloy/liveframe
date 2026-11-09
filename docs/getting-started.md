@@ -469,7 +469,11 @@ Start the server. In its own terminal:
 bun server.ts
 ```
 
-Open <http://127.0.0.1:3410>. The page says "Surface unavailable": nothing is installed yet. Now install the
+Open <http://127.0.0.1:3410>. The page says "Surface unavailable": nothing is installed yet. Installing a
+widget and placing it are the most privileged things this server does, and it protects them only by listening
+on the loopback address and refusing cross-site browser requests. **Who may install or place a widget is your
+app's policy**: a real app authenticates the caller and checks that they may, before `POST /widgets` or
+`PUT /placements/:id` does anything. Now install the
 widget **into the running server** and place it. This script is all an app's admin screen, or an agent's tool,
 has to do:
 
