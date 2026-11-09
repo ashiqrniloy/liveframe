@@ -2,7 +2,9 @@
 
 0.3.0 is a minor release under the [compatibility policy](compatibility.md). It may break contracts from 0.2.3. Each implemented break is registered against the 0.2.3 API baseline and documented here with before and after behaviour, a code sample and an adopter checklist.
 
-This guide grows as the 0.3.0 tasks land. An empty section below means no breaking changes have landed yet; planned changes are listed in [compatibility](compatibility.md#deferred-to-030). The [spec](spec.md) defines the current contracts and the [changelog](../CHANGELOG.md) records shipped changes.
+Upgrade in this order: update the three packages together, read [Breaking changes](#breaking-changes) and apply each entry's checklist, then adopt the [compatible additions](#compatible-additions) you want. Every breaking entry is registered against the 0.2.3 API baseline, has a before and after, a code sample that CI parses and resolves against the checkout, and an adopter checklist. The [spec](spec.md) defines the current contracts, the [changelog](../CHANGELOG.md) records what shipped, and the [adopter notes](adopters-0.3.md) map each adopter request to the API that closes it.
+
+Runtime: 0.3.0 supports Bun only (`engines.bun >= 1.4.2`). The pure subpaths (validators, SDK build, template evaluation, `/surface`) keep running in any ES2022 isolate, as before; no Node runtime is supported.
 
 ## Breaking changes
 
@@ -11,6 +13,7 @@ This guide grows as the 0.3.0 tasks land. An empty section below means no breaki
 Before, install validators could accept objects constructed outside their JavaScript realm, while tree validation reported a generic `invalid-prop` error. After, document validators consistently reject foreign plain objects with `invalid-document`, the offending pointer and the instruction to parse inside the sandbox. `compileValidator` throws `LiveframeFailure`; `renderModule` returns its document errors. Patch bases and diff inputs still require previously validated, immutable trees.
 
 ```ts
+import { validateCatalog } from "@arnilo/liveframe";
 // Before: pass a host object directly to the sandbox's validator.
 sandbox.validateCatalog(hostCatalog);
 // After: transport text and parse it inside the sandbox.
@@ -39,6 +42,7 @@ Adopter checklist: Follow the migration checklist. move package metadata before 
 Before, rendering froze caller objects in place and cached checked data by identity. After, each render checks mutable inputs and gives the widget a deeply frozen structural copy, including the input envelope. Caller objects remain writable. Element rendering has no widget inputs; module rendering uses the same SDK path.
 
 ```ts
+import { render } from "@arnilo/liveframe/sdk";
 // Before: clone inputs to preserve writable host state.
 render(Widget, JSON.parse(JSON.stringify(inputs)), options);
 // After
@@ -53,11 +57,11 @@ Before, `width`, `height`, `minWidth`, `maxWidth`, `minHeight` and `maxHeight` a
 
 ```tsx
 // Before
-<Box width="2fr" />
+<Box width="2fr" />;
 // After: distribute available space in a flex parent.
-<Box grow={2} basis={0} />
+<Box grow={2} basis={0} />;
 // Or express the tracks on a grid parent.
-<Grid columns={["2fr", "1fr"]} />
+<Grid columns={["2fr", "1fr"]} />;
 ```
 
 Adopter checklist: replace dimension fractions in widgets, stored trees and responsive maps with `grow` / `basis` for flex layout, or move fractions to the parent's grid `columns` / `rows`. Use declared `space.*` / `size.*`, `fill`, `fit`, or bounded `ch` / `%` when a dimension is needed. Regenerate catalog SDK types with `liveframe gen`.
@@ -67,8 +71,10 @@ Adopter checklist: replace dimension fractions in widgets, stored trees and resp
 Before, `WidgetProps` had four members and `renderKey` hashed `{ hash, catalogId, params, state, data, context }`. After, `WidgetProps` has a fifth, `actions` (the host's report on each action), and `renderKey` hashes it too, an absent `actions` as `{}`, so every key differs from 0.2. `render()`, `renderModule()` and the runners take the new `WidgetInputs`, which is `WidgetProps` with `actions` optional, so a host that reports nothing still renders.
 
 ```ts
+import { renderKey } from "@arnilo/liveframe/pack";
+import type { WidgetInputs, WidgetProps } from "@arnilo/liveframe/sdk";
 // Before
-const inputs: WidgetProps = { params, state, data, context };
+const before: WidgetProps = { params, state, data, context };
 // After: build render inputs as WidgetInputs, or add actions.
 const inputs: WidgetInputs = { params, state, data, context };
 const key = renderKey({ hash, catalogId, params, state, data, context, actions });
@@ -86,17 +92,31 @@ placed by the host or a primitive is respected.
 
 ```tsx
 // Before: explicitly enable focus recovery.
-<Surface {...surfaceProps} focusContinuity />
+<Surface {...surfaceProps} focusContinuity />;
 // After: enabled by default.
-<Surface {...surfaceProps} />
+<Surface {...surfaceProps} />;
 // Opt out to retain 0.2.3 behaviour.
-<Surface {...surfaceProps} focusContinuity={false} />
+<Surface {...surfaceProps} focusContinuity={false} />;
 ```
 
 Adopter checklist: Remove redundant `focusContinuity={true}` props if desired.
 If the host owns recovery, pass `focusContinuity={false}`; this takes no snapshot,
 adds no attribute or `tabIndex`, and installs no listener. Check keyboard flows
 that remove a focused row or portal control.
+
+#### A tree for another catalog is refused as catalog-mismatch
+
+Before, a tree whose `catalogId` differed from the surface's catalog was rejected by the validator as `invalid-prop` at `/catalogId`.
+After, `createSurfaceCore` (and so `<Surface>`) refuses it with `catalog-mismatch` at `/catalogId`, in the returned errors and the `arrival-rejected` event. The surface still draws the fallback.
+
+```ts
+// Before
+if (error.kind === "invalid-prop" && error.pointer === "/catalogId") routeToOtherSurface();
+// After
+if (error.kind === "catalog-mismatch" && error.pointer === "/catalogId") routeToOtherSurface();
+```
+
+Adopter checklist: if you branch on the error kind of a rejected arrival, treat `catalog-mismatch` at `/catalogId` as a tree for the wrong catalog.
 
 ### Semantics enums and recipe states follow the vocabulary
 
@@ -110,13 +130,6 @@ Before, a definition's `semantics` enum could hold any values, and a recipe key 
 ```
 
 Adopter checklist: list the values in each `semantics` enum and declare every non-library one in `vocabulary.semantics` with an `ariaRoles` role (a minor catalog change). Update design-system ports that rely on the schema alone to reject an unknown state: install now does. Catalogs that use only library values need no change.
-
-### A tree for another catalog is refused as catalog-mismatch
-
-Before, a tree whose `catalogId` differed from the surface's catalog was rejected by the validator as `invalid-prop` at `/catalogId`.
-After, `createSurfaceCore` (and so `<Surface>`) refuses it with `catalog-mismatch` at `/catalogId`, in the returned errors and the `arrival-rejected` event. The surface still draws the fallback.
-
-Adopter checklist: if you branch on the error kind of a rejected arrival, treat `catalog-mismatch` at `/catalogId` as a tree for the wrong catalog.
 
 ## Compatible additions
 
@@ -133,10 +146,11 @@ that remains the default; hosts may opt in to reuse verification for the same
 package content and canonical installation documents.
 
 ```ts
+import { loadPlacement, verifiedPackages } from "@arnilo/liveframe/store";
 // Before (still supported)
 await loadPlacement(store, id, install, { scope });
 // After: share this host-owned cache across loads.
-const verified = verifiedPackages({ max: 256 }); // import from @arnilo/liveframe/store
+const verified = verifiedPackages({ max: 256 });
 await loadPlacement(store, id, install, { scope, verified });
 ```
 
@@ -225,12 +239,17 @@ Declare a second look choice as an axis instead of enumerating product variants 
 Update catalog and design-system validators and ports before installing documents that use axes; a kind that adopts an axis changes its slot classes to `lf_<kind>_<variant>__<value>_<slot>`, so update host CSS and tests that select them.
 A 0.2.x validator rejects these documents fail-closed. Adopting is opt-in: a kind without axes keeps its classes and projects byte-identical CSS.
 
-```ts
-// Before: one axis, product variants
-variants: ["primary", "primary-critical", "ghost", "ghost-critical"]; // <Button variant="primary-critical" />
+```tsx
+// Before: one axis, product variants (definition fields)
+const before = { variants: ["primary", "primary-critical", "ghost", "ghost-critical"] };
+<Button variant="primary-critical" />;
 // After: an axis, and one alias entry per value
-props: { tone: str({ maxLength: 12, enum: ["neutral", "critical"] }) },
-variants: ["primary", "ghost"], axes: { tone: { default: "neutral" } }; // <Button variant="primary" tone="critical" />
+const after = {
+  props: { tone: str({ maxLength: 12, enum: ["neutral", "critical"] }) },
+  variants: ["primary", "ghost"],
+  axes: { tone: { default: "neutral" } },
+};
+<Button variant="primary" tone="critical" />;
 // design system: "button.tone:critical.root.rest": { "roles": { "accent": "status.critical" } }
 ```
 
@@ -308,12 +327,12 @@ Optional: type render inputs as `WidgetInputs`; type a widget's `actions` with `
 Update patch consumers that reject unknown intent fields before sending resultKey.
 Port `renderKey` to hash `actions` (absent as `{}`) before sending or accepting actions; `conformance/hash/render-keys.json` pins vectors.
 
-```ts
+```tsx
 // The host: pending, dispatch, then the outcome, re-rendering each time.
 actions = { ...actions, "tasks.claim": { status: "pending" } };
 actions = { ...actions, "tasks.claim": { status: "failed", reason: "Already claimed" } };
 // The widget: draw it.
-<Button label={actions["tasks.claim"]?.status === "pending" ? "Claiming…" : "Claim"} onPress={action("tasks.claim", { id })} />
+<Button label={actions["tasks.claim"]?.status === "pending" ? "Claiming…" : "Claim"} onPress={action("tasks.claim", { id })} />;
 ```
 
 1. `actions` is keyed by the action name, or by an intent's `resultKey` (a row id, say). A row-keyed entry names its action with `action`, which types its `value`.
@@ -332,8 +351,8 @@ A host's `checkOffered` rejects `setLocal` with `invalid-prop` at `/type`; no ho
 Run `conformance/patch/bindings.json` and the local-state corpus cases (`when-*`, `bind-*`, `set-local-*`, `reference-gated`, `local-*`) through your validators and `diffTrees`/`applyPatch` before accepting `when`, `bind` or `setLocal`.
 
 ```tsx
-<TextField label="Filter" onChange={local.set("q")} />
-<Row when={ex.contains(r.title, local("q"))} />
+<TextField label="Filter" onChange={local.set("q")} />;
+<Row when={ex.contains(r.title, local("q"))} />;
 ```
 
 See [the SDK guide](sdk.md#intents-and-author-constraints), [formats](formats.md) and [spec §8](spec.md#8-interaction-synaptas-three-tiers).

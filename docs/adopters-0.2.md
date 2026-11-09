@@ -80,7 +80,7 @@ Reference runners re-check a package hash after top-level field replacement. The
 
 `<Surface>` now keeps node reuse across inline fallback elements and replacement diagnostics arrays, and matches whole-tree children by `id` so prepending and reordering retain existing rows. Hashing, bundling, reorder diffs and repeated `themeCss` calls are faster without output changes. `sucrase` is bundled into `/pack`, leaving only `acorn` as a runtime dependency; apps importing `sucrase` must declare their own dependency.
 
-Fractions on dimension props are deprecated but still accepted. Replace `width="2fr"` with `grow={2}` and `basis={0}`, or use fractions in parent grid tracks. Package freezing, render-input ownership changes, rejection of dimension fractions and the verified-package cache option remain [0.3.0 migrations](compatibility.md#deferred-to-030). None is an option to enable in 0.2.3.
+Fractions on dimension props are deprecated but still accepted. Replace `width="2fr"` with `grow={2}` and `basis={0}`, or use fractions in parent grid tracks. Package freezing, render-input ownership changes, rejection of dimension fractions and the verified-package cache option remain [0.3.0 migrations](compatibility.md#deferred-in-023-delivered-in-030). None is an option to enable in 0.2.3.
 
 ## 0.2.2 — Performance and accessibility additions
 
@@ -230,6 +230,8 @@ const result = await capture({
 ```
 
 ### 0.2.2 API register changes and host actions
+
+This is the 0.2.2 register as it stood then. The entries marked `deferred` (`ref`, `NodeRef`, `catalog.json`'s `refProps`) shipped in 0.3.0; see [node references](migration-0.3.md#node-references).
 
 | Subpath | Name | Change | Host action | Reason |
 | --- | --- | --- | --- | --- |

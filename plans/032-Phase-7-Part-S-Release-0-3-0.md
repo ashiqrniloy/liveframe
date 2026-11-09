@@ -21,7 +21,7 @@ This plan implements the release step of roadmap Phase 7's 0.3.0. It changes no 
 
 ## Tasks
 
-- [ ] Task 1: Write the migration guide, adopter notes, changelog and compatibility notes
+- [x] Task 1: Write the migration guide, adopter notes, changelog and compatibility notes
   - Acceptance Criteria:
     - Functional:
       - `docs/migration-0.3.md`: every register entry with `change: "removed" | "changed"` has its heading, before/after, an executable sample and an adopter checklist; `migration-guide.test.ts` compiles every sample against the checkout and fails on a register entry without a heading (and vice versa).
@@ -41,7 +41,14 @@ This plan implements the release step of roadmap Phase 7's 0.3.0. It changes no 
     - Files to Create/Edit: `docs/migration-0.3.md`; `docs/adopters-0.3.md`; `CHANGELOG.md`; `docs/compatibility.md`; `README.md`; `SECURITY.md`; `docs/security.md`; `src/__tests__/migration-guide.test.ts`
   - Test Cases to Write:
     - `every_break_has_a_migration_entry`; `every_migration_sample_compiles`.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-09):
+    - `docs/migration-0.3.md` already held an entry per break, added by plans 026–031; this task completed and tested it. The two-way check found one gap: "A tree for another catalog is refused as `catalog-mismatch`" had a heading but no register entry. The register keys on `(subpath, name)`, and `createRenderer` already carries the focus entry, so a second entry is "stale". The heading is now a `####` subsection of "Surfaces keep focus by default" (the entry that already names it in its `reason`), with its own before, after and checklist. Samples that did not parse (adjacent JSX, a redeclared `const`, a code fragment, JSX in a `ts` block) were repaired, and five breaking samples gained the `@arnilo/liveframe` imports they use. The introduction no longer says the guide "grows as tasks land".
+    - `migration-guide.test.ts`: `every_break_has_a_migration_entry` (register to guide: heading, Before, After, a sample, Adopter checklist; guide to register: every heading under Breaking changes is named by a `removed`/`changed` entry) and `every_migration_sample_compiles`. The plan asked to "compile every sample against the checkout"; TypeScript 7 (the installed `typescript`) has no classic compiler API, so the test parses every `ts`/`tsx` sample with `Bun.Transpiler` and resolves every name imported from `@arnilo/liveframe[/subpath]` against `readApiSurface` of the checkout. Free names stand for the reader's variables and are not type-checked. The old `migration_0_3_guide_covers_registered_breaks` is replaced by the first test.
+    - New `docs/adopters-0.3.md`: Synapta and Clay sections (what moves for Synapta; Clay's CL-17 closed, CL-14 carried to the release), then W1–W9, Q1–Q10, L1–L2 and O1–O2 as rows with problem, shipped API, spec section and limitation, and a "Not delivered" table. Limitations come from the plan 028–031 notes, not new claims. O1 and O2 are described as release steps: this task does not claim them done.
+    - `CHANGELOG.md`: "Unreleased" became "0.3.0 — unreleased" (Task 7 dates it), with an introduction and Added / Changed / Removed / Fixed / Security. Plan 031's work (QuickJS runner, `runnerSuite`, starter, the executed guide, the workspace tooling) had no entry and now does; Bun-only, `catalog-mismatch`, `actions` in `WidgetProps`/`renderKey` and the semantics check are listed under Changed. Removed says nothing is removed from the API.
+    - `docs/compatibility.md` § 0.3.0: what breaks (eight entries), what is additive, three packages one version with the `~0.3.0` peer, the 0.3.x promise (patches compare against a baseline generated from `v0.3.0`), Bun-only, limits. "Deferred to 0.3.0" is now "Deferred in 0.2.3, delivered in 0.3.0" (two inbound anchors updated). `README.md` (status, the two companion packages, guide links, runner list), `SECURITY.md` (isolated runners, `runnerSuite`, one version for three packages) and `docs/adopters-0.2.md` (the `deferred` register rows shipped) are current. `docs/security.md` gained "The host pipeline validates on the host", "Packages are frozen and libraries are pinned" and a "0.3.0 audit" against the four laws; the template, QuickJS, local-binding and streaming sections written by plans 028–031 were reviewed and kept.
+    - Verification: `docs-links`, `docs-wording`, `docs-spec-structure`, `migration-guide` and `api-stability` pass. `timeout 900 bun run check` (build, gen, typecheck, lint, format all pass): 1745 pass, 4 skip, 11 fail, every failure a wall-clock gate (`verify_agent_home_under_20_ms`, `in_process_warm_overhead_under_point_one_ms`, `stream_trees_are_valid_and_grow`, the browser switch and attach tests, and others) while the load average was 19. Re-run at load 5, the nine files holding them pass but one (153 of 154 tests), and `in_process_warm_overhead_under_point_one_ms` passes when its file runs alone (12 of 12), the same pattern plans 030 and 031 recorded. Task 3's quiet-host run is where timing is proved.
+    - Finding for Task 5 (amended below): plan 031 left "create the 0.3.0 API baseline per package" for this plan; `api-surface.ts` takes any package root, but no task here produced the two companion baselines.
 
 - [ ] Task 2: Prove every acceptance criterion of plans 026–031 against the checkout
   - Acceptance Criteria:
@@ -116,6 +123,7 @@ This plan implements the release step of roadmap Phase 7's 0.3.0. It changes no 
       - From a fresh directory: install each package from the registry, run the archive checks (exports, no sources/tests/proof, no WebAssembly in the root package), the API surface comparison against the checkout, `getting-started-test.ts` against the registry archives, and `demo:test` against them.
       - `npm view` shows `next` = `0.3.0-rc.1` for all three; if dist-tag automation fails (the 0.2.3 failure), the owner repairs it on npmjs.com and the repair is recorded; plan 025 Task 10 closes.
       - `plans/evidence/032-release-candidate.md` records commands and outputs.
+      - Before the rc, generate a 0.3.0 API baseline for each companion package with `api-surface.ts` (plan 031 hand-off), so 0.3.x patches have a gate for all three; record the files in the same commit as the version bump.
     - Performance: n/a.
     - Code Quality: no manual publish; CI only.
     - Security: provenance verified for each package (`npm audit signatures` or the registry attestation API).

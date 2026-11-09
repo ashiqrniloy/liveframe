@@ -57,6 +57,18 @@ At the largest tree the validator accepts (about 1,200 rows each with a `when` a
 
 `streamElements()` parses text that an agent is still writing, so it treats the text as hostile. It does linear work (open containers and long strings cost the same per character as closed ones), stops at 1,024 levels of nesting (`limit-exceeded` at `/$stream/<offset>`), refuses text longer than four times `limits.bytes` characters, and draws only trees that pass the compiled validator. After a fatal failure it reads no further.
 
+## The host pipeline validates on the host
+
+`renderPlacement()` and `handleIntent()` ([spec §7.7](spec.md#77-the-host-pipeline)) put the checks above in one fixed order, so a host that uses them cannot skip one:
+
+- **Render.** The placement is loaded and re-verified (`loadPlacement`), sources are resolved as the viewer with your `resolve`, and the runner's tree is validated on the host with the widget's compiled validator before it can be served (law 2), whichever runner produced it. A failed source becomes the widget's `sourceOutcome` envelope or fails the render; the resolver's error text is never copied into the tree. A render with unchanged inputs is skipped, and a changed tree is diffed against the last accepted one.
+- **Intent.** `checkOffered` runs first, against the tree you served. Then your `authorize` runs, for a `setState` write as for an action, and only then does the library persist the write or call your `dispatch` as the viewer (law 4). A stale revision is refused, never rewritten; a throwing `authorize` refuses; a throwing `dispatch` is recorded `failed` with a fixed reason, so host error text never reaches the widget. The recorded `actions` are host facts the widget reads and grant nothing.
+- **What it does not do.** It holds no state between calls, so serialising calls per placement and scope, and storing the `Served` you pass back as `previous`, are yours. `authorize` is your policy: the library calls it but cannot decide it. `HostEvent`s carry ids, kinds and reasons, never values.
+
+## Packages are frozen and libraries are pinned
+
+`pack()` and `verifyPackage()` return deeply frozen copies, and `render()` hands the widget a frozen structural copy of its inputs while leaving yours writable, so neither side can change what the other has checked. A widget's library dependencies are exact `{ id, version, hash }` pins covered by the package hash; a runner loads each library by hash and a hash that differs is `hash-mismatch`. As with any hash, this is integrity, not authorship ([below](#what-is-not-protected)). Every public document validator rejects an object created in another realm with `invalid-document`, so a crafted cross-realm prototype cannot reach a validator through its shape: transport text and parse it inside the receiving realm.
+
 ## What is not protected
 
 - **The reference runners are not sandboxes.** `inProcessRunner()` shares the host's realm, so widget code can reach anything the process can, and a synchronous loop cannot be interrupted (its timeout covers the return, not the loop). `workerRunner()` bounds time and crashes, but it does not restrict what code can access, and one worker serves every package: a draft that keeps running can answer a later render of a package it did not author. The host re-validates that tree against the later widget's manifest, and a worker that answers out of turn is terminated — but the answer still came from code you did not run. Verify packages, run only code you trust, and plug an isolated runner ([`quickjsRunner()`](#what-the-quickjs-runner-isolates) or your own) into both preview and production for anything hostile. The preview, package and MCP guides repeat this where it applies.
@@ -78,6 +90,17 @@ The 0.2.2 performance and accessibility additions do not alter Liveframe's secur
 - Client-side validation remains strict on arrival: `<Surface>` and `<Preview>` validate every whole-tree and streamed patch arrival before rendering.
 - Reference runner boundaries are unchanged: `inProcessRunner()` and `workerRunner()` retain their documented contracts and non-isolation scope.
 - Media axes for preview capture (`textScale`, `forcedColors`, `reducedMotion`) multiply cells strictly within the existing capture cell bounds (`maxCells`, default 12, or configured `maxCaptureCells`); calls exceeding the bound fail closed.
+
+## 0.3.0 audit
+
+Each new surface was reviewed against the four laws ([spec §2](spec.md#2-the-model)); none moves a boundary:
+
+- **Law 1 (widget code never runs in the browser).** Template widgets are data evaluated on the host. The browser evaluates only `when` and `bind`, which are expressions over `local` and the node's own props with a fixed operator list and counted bounds; they are not widget code and read nothing the tree did not carry. `quickjsRunner()` runs widget code on the backend, in a child process.
+- **Law 2 (the tree is validated data).** `renderPlacement()` validates every runner tree on the host; `<Surface>` and `createSurfaceCore()` validate every arrival and re-validate every bound value; `streamElements()` draws only trees that pass the compiled validator; `validateTemplate()` and the host both check a template.
+- **Law 3 (widget code never sets colours or raw CSS).** Extension properties are set in recipes by the design system, with colours from theme roles only; a widget cannot name one. App-declared states and axes are catalog and design-system data. `url` rules constrain values, they do not add a style channel.
+- **Law 4 (a widget never holds authority).** `setLocal` is applied by the renderer and never reaches `onIntent`; `checkOffered` rejects it. `actions` results and `HostEvent`s are host facts the widget reads. `handleIntent()` calls your `authorize` before any write or dispatch. `meta`, `local` and `migrateState` expressions grant nothing.
+
+The remaining exposures are the ones named above: a hash is not authorship; the reference runners, the runner kit and `liveframe mcp`'s default runner are not isolation boundaries; the QuickJS runner has the limits listed for it; and a prop that does not declare `url` is a string you constrain yourself.
 
 ## Reporting a vulnerability
 

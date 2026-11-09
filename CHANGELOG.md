@@ -2,9 +2,17 @@
 
 All notable changes to `@arnilo/liveframe` are recorded here. The project follows the compatibility policy in [`docs/compatibility.md`](docs/compatibility.md).
 
-## Unreleased
+## 0.3.0 — unreleased
+
+0.3.0 is a minor release that may break 0.2.3 contracts, each with a migration entry: see the [migration guide](docs/migration-0.3.md) (breaks, with before, after and a checklist) and the [adopter notes](docs/adopters-0.3.md) (which request each addition closes, and its limits). It releases three packages in lockstep from one Bun workspace: `@arnilo/liveframe`, `@arnilo/liveframe-runner-quickjs` and `@arnilo/liveframe-starter`. Bun ≥ 1.4.2 is the only supported runtime for backend subpaths; no Node runtime is supported. The [compatibility notes](docs/compatibility.md#030) state the 0.3.x promise.
 
 Added:
+
+- **Isolated runner (`@arnilo/liveframe-runner-quickjs`, new package):** `quickjsRunner({ memoryBytes?, stackBytes?, timeoutMs?, reuse?, maxRuntimes? })` runs widget code in QuickJS (WebAssembly) inside a Bun child process the runner owns and kills. The realm holds only ECMAScript built-ins; time (soft interrupt, then `SIGKILL` for a native call), heap and stack are bounded and report `limit-exceeded`; the host re-validates every tree. It renders every proof scenario to the tree `inProcessRunner()` produces. Measured: agent-home 81.5 ms fresh and 47.2 ms with `reuse: "package"` against 1.7 ms in process, so choose it for authors you do not trust. `liveframe mcp` names it in its startup notice when it is installed. See [choosing a runner](docs/packages.md#choosing-a-runner) and [what the QuickJS runner isolates](docs/security.md#what-the-quickjs-runner-isolates).
+- **Runner conformance:** `runnerSuite({ runner, catalog, capabilities, packages, isolation?, accepts?, timeoutMs?, slackMs? })` from `@arnilo/liveframe/conformance` proves a `Runner` against spec §7.5: the same trees as the reference renderer, a refused hash mismatch before any load, a thrown widget, a non-function default, an invalid tree, a timeout followed by a successful render and pinned libraries. With `isolation: true` it adds the host-global, state, infinite-loop, memory, recursion, native-hold and forged-answer cases. `conformance/runner/fixtures.json` holds the suite's documents for a port in another language. The reference runners are not isolation boundaries and must not be given `isolation: true`. See [prove a runner](docs/conformance.md#prove-a-runner).
+- **Starter (`@arnilo/liveframe-starter`, new package):** a conforming reference catalog (`starter.ui@1`, 25 generic kinds), React implementations, three themes (light, dark, high contrast), a design system and the primitive CSS, passing the catalog, design-system (with contrast), server-renderer and browser suites in Chromium, Firefox and WebKit. It uses node references, a `tone` axis, an extension property and `url` rules. `react-aria-components` is a required peer.
+- **Getting-started guide that CI executes:** [docs/getting-started.md](docs/getting-started.md) goes from an empty directory to a template widget installed into a running server and drawn in a browser, with a preview, a refused forged intent and an action dispatched as the viewer. `bun run guide:test` extracts and runs the guide's blocks against the packed archives of all three packages.
+- **Workspace release tooling:** `release:versions`, `release:gate` and the SBOM and publish steps take every package; a tag that does not name every package's version fails the publish job.
 
 - Several catalog majors in one renderer: `createRenderer({ catalogs: [{ catalog, implementations }, …] })` from `@arnilo/liveframe/react` runs the registry check per catalog, and a `<Surface>` draws with the catalog its `validator` was compiled for, so surfaces of two catalog majors share a page. A tree that names another catalog is now refused with `catalog-mismatch` at `/catalogId` (it was `invalid-prop`). [Two catalog majors on one page](docs/renderer.md#draw-two-catalog-majors-on-one-page).
 
@@ -68,6 +76,26 @@ Changed:
 - Packages and outcome scenarios are deeply frozen owned copies; rendering gives widgets frozen copies while preserving caller ownership. See [migration](docs/migration-0.3.md).
 - **Specification layout:** the same numbered sections now open with rules, followed by contract details and rationale. Historical comparisons and proof results moved to `docs/compatibility.md`; the normative contracts and four laws are unchanged.
 
+- **Bun is the only supported runtime.** Backend subpaths and both new packages declare `engines.bun >= 1.4.2`; the host-API-free subpaths keep the globals listed in the README. The decision is recorded in the [scope decision](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-11-05-0238-release-0-3-0-scope.md) and [compatibility](docs/compatibility.md#release-process).
+- **`<Surface>` refuses a tree for another catalog as `catalog-mismatch`** at `/catalogId` (it was `invalid-prop`), in the returned errors and the `arrival-rejected` event. See [migration](docs/migration-0.3.md#a-tree-for-another-catalog-is-refused-as-catalog-mismatch).
+- **`WidgetProps` has a fifth member, `actions`, and `renderKey` hashes it,** so every render key differs from 0.2. Type host-built inputs as `WidgetInputs`. See [migration](docs/migration-0.3.md#render-keys-and-widget-props-include-actions).
+- **A string enum prop named `semantics` may hold only library values and declared names, and an undeclared recipe state is `unknown-name` at install.** See [migration](docs/migration-0.3.md#semantics-enums-and-recipe-states-follow-the-vocabulary).
+
+Removed:
+
+- No export, subpath or format is removed. Two inputs that 0.2.3 accepted are now rejected, and both are listed under Changed: fractions on dimension props, and plain objects from another realm.
+
+Security:
+
+- **One realm rule:** every public document validator rejects a foreign-realm plain object with `invalid-document`, so a crafted cross-realm prototype cannot reach a validator by shape (Clay's CL-17).
+- **Frozen packages and caller-owned inputs:** a verified package cannot be changed under its hash, and a widget cannot mutate host-owned inputs.
+- **Template widgets run no author code,** so `templateRunner()` is a sound production runner for untrusted authors who need only templates; work is counted against `limits.steps`.
+- **An isolated runner ships:** QuickJS with a child process the host can kill. The remaining exposure (a defect in QuickJS, CPU contention, head-of-line blocking, an orphaned child after a host `SIGKILL`) is listed in [the security model](docs/security.md#what-the-quickjs-runner-isolates).
+- **`url` rules** reject `javascript:`, `data:`, control-character and protocol-relative values on props that declare them; `catalogSuite` fails a URL-named prop that declares none.
+- **The host pipeline validates on the host:** `renderPlacement` validates every runner tree and `handleIntent` runs `checkOffered` and the host's `authorize` before any write or dispatch; events and action results carry no host error text.
+- **Browser-side expressions are data:** `when` and `bind` have two roots, a fixed operator list and counted bounds; `setLocal` carries no authority and `checkOffered` rejects it.
+- **`streamElements` treats streaming text as hostile:** linear work, a nesting cap and a length cap.
+
 Fixed:
 
 - SDK keys containing lone UTF-16 surrogates return a typed `invalid-prop` error instead of throwing `URIError` while building a primitive or fragment id. Valid surrogate pairs and key-path escaping are unchanged.
@@ -97,7 +125,7 @@ Changed:
 
 Deprecated:
 
-- **Fractions on dimension style props:** `width="2fr"` (and `height`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight`) projects to `minmax(0, 2fr)`, which browsers ignore, so it has never had an effect. It is still accepted, and validation and CSS bytes are unchanged; 0.3.0 rejects it with `invalid-prop`. Use `grow={2}` with `basis={0}`, or put the fraction in the parent's `columns`/`rows`. See [`docs/compatibility.md`](docs/compatibility.md#deferred-to-030).
+- **Fractions on dimension style props:** `width="2fr"` (and `height`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight`) projects to `minmax(0, 2fr)`, which browsers ignore, so it has never had an effect. It is still accepted, and validation and CSS bytes are unchanged; 0.3.0 rejects it with `invalid-prop`. Use `grow={2}` with `basis={0}`, or put the fraction in the parent's `columns`/`rows`. See [`docs/compatibility.md`](docs/compatibility.md#deferred-in-023-delivered-in-030).
 
 Added:
 

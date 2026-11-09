@@ -21,6 +21,13 @@ Four rules, none of them optional:
 bun add @arnilo/liveframe
 ```
 
+Two optional companion packages release in lockstep with the core, share its version and peer on `@arnilo/liveframe`:
+
+```bash
+bun add @arnilo/liveframe-runner-quickjs   # an isolated runner for widget code you do not trust
+bun add @arnilo/liveframe-starter          # a conforming catalog, primitives, themes and styles to start from
+```
+
 Each peer is optional and only the subpaths that need it use it:
 
 | Peer | Range | Needed by |
@@ -213,17 +220,19 @@ The client starts the server itself. The [MCP guide](docs/mcp.md) covers the eig
 - [Localisation](docs/localisation.md) — locale through `context`, host-formatted text and what stays deterministic
 - [Template widgets](docs/templates.md) — data-bound widgets as JSON, installable without a sandbox
 - [The host pipeline](docs/host.md) — one ordered, stateless pipeline: load, resolve as the viewer, render, validate, diff; then check the intent, authorise, dispatch, record, re-render
-- [Packages, stores and runners](docs/packages.md) — `pack()`, `fileStore`, `inProcessRunner`, `workerRunner`
+- [Packages, stores and runners](docs/packages.md) — `pack()`, `fileStore`, choosing among `inProcessRunner`, `workerRunner`, `templateRunner` and `quickjsRunner`
 - [Preview and capture](docs/preview.md) — preview sessions, `<Preview>` and `liveframe preview capture`
 - [Conformance](docs/conformance.md) — the test kit for an app's catalog, styling, renderer and store
 - [Agent authoring over MCP](docs/mcp.md) — `liveframe mcp` and its eight tools
 - [Agent walkthrough for the demo](docs/demo-agent.md) — author, capture, install and place a draft
 - [Security model](docs/security.md) — what is validated where, and what is not a sandbox
 - [Compatibility](docs/compatibility.md) — what a version bump may change
+- [Migrating to 0.3.0](docs/migration-0.3.md) — each break with before, after and a checklist
+- [What 0.3.0 gives adopters](docs/adopters-0.3.md) — each adopter request, its shipped API and its limit
 
 ## Status
 
-Pre-1.0 (`0.2.2` is the current release). The public API, the formats and the on-disk `fileStore` layout are described by the [compatibility policy](docs/compatibility.md); the [release notes](CHANGELOG.md) list the known limitations of this release.
+Pre-1.0 (`0.3.0` is the release in preparation; `0.2.3` is the latest published). 0.3.0 may break 0.2.3: start with the [migration guide](docs/migration-0.3.md) and the [adopter notes](docs/adopters-0.3.md). The public API, the formats and the on-disk `fileStore` layout are described by the [compatibility policy](docs/compatibility.md); the [release notes](CHANGELOG.md) list the known limitations of this release.
 
 ## Development
 

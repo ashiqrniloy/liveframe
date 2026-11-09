@@ -20,6 +20,22 @@ Every declaration or schema change needs an entry in `scripts/release/api/regist
 - **Minor (`0.x`)** may break the public API. Every breaking change in `0.x` comes at a minor version, with a deprecation in an earlier release where that is feasible.
 - **`1.0.0`** changes the rule above: from then on a breaking change needs a major version.
 
+## 0.3.0
+
+0.3.0 is the break window that 0.2.x deferred to, under the [approved scope](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-11-05-0238-release-0-3-0-scope.md) ("make 0.3.0 include everything that has been already planned"). Every break is registered against the 0.2.3 baseline and has a heading in the [migration guide](migration-0.3.md) with a before, an after, a sample that CI parses and resolves against the checkout, and an adopter checklist. The [adopter notes](adopters-0.3.md) map each adopter request and weakness to the API that closes it and its limit.
+
+**What breaks.** Eight entries, all listed in [Breaking changes](migration-0.3.md#breaking-changes): foreign-realm documents are rejected by every validator; packages are deeply frozen; `render()` no longer freezes caller inputs; dimension props reject `fr`; `WidgetProps` gains `actions` and `renderKey` hashes it (every key differs from 0.2); `<Surface>` keeps focus by default; `semantics` enums and recipe states follow the vocabulary; a tree for another catalog is `catalog-mismatch`. Nothing is removed from the API.
+
+**What is additive.** Optional fields under the existing `/1` format ids (a 0.2.x validator rejects them fail-closed): node references, extension properties, variant axes, app states and semantics, `url` strings, `local`, `when`, `bind`, `setLocal`, `migrateState`, `exports` and `dependencies`. One new format, `liveframe-template/1` (and `liveframe-package/1` with `template` in place of `code`). New subpaths: `/template`, `/surface`, `/host`. Hashes of existing code packages, existing corpus expectations and existing hash vectors do not change, except `renderKey`, whose vectors the register names.
+
+**Three packages, one version.** `@arnilo/liveframe`, `@arnilo/liveframe-runner-quickjs` and `@arnilo/liveframe-starter` release in lockstep and share a version number. Each new package peers on `@arnilo/liveframe` with `~0.3.0`, so a 0.3.x core satisfies any 0.3.x companion and a 0.4 core does not. A patch release bumps all three, even when only one changed. The core's public API is the subpaths in its `exports`; each companion's is its own `exports`. Each package keeps the minor-and-patch rules in [Versions](#versions); the starter's catalog, themes and design-system ids follow the catalog rules (a removed kind or changed prop type is a catalog major, `starter.ui@2`).
+
+**The 0.3.x promise.** A patch (`0.3.y`) never breaks the public API, the formats or the `fileStore` layout, and changes no existing corpus expectation, hash vector or published schema meaning. Patches compare against a baseline generated from the `v0.3.0` tag, as 0.2.x did against `v0.2.1`. The 0.3.0 gate and its register stay history.
+
+**Bun is the only supported runtime.** Backend subpaths and both companion packages declare `engines.bun >= 1.4.2`; no Node runtime is supported, and the archive gate's Node probe remains a portability probe only. The host-API-free subpaths keep the non-ECMAScript globals listed in the [README](../README.md#install), and `/validator.bundle.js` and `/runner-kit.bundle.js` need none. `quickjsRunner()` needs Bun to start its child process and has been measured on Linux only.
+
+**Behaviour limits to know.** The reference runners are still not isolation boundaries (use `quickjsRunner()` or `templateRunner()` for authors you do not trust). `renderKey` is deterministic across runtimes only for widgets that do not call `Intl` ([localisation](localisation.md)). The host pipeline is stateless: serialise calls per placement and scope.
+
 ## 0.2.3
 
 A host upgrading from 0.2.2 changes nothing: exports, declarations, format meanings, published schemas, corpus expectations, hash and patch vectors, and the on-disk store layout stay the same. The [scope decision](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-11-03-1132-release-0-2-3-scope.md) requires an empty API register. Valid trees, CSS, hashes, patches and intents retain their bytes; performance and internal organization improve.
@@ -123,9 +139,9 @@ Phase 0 is done and Phase 1 may freeze the §5–§8 formats.
 - A conformance corpus case's expected `(kind, pointer)` set changes only with a format version. Adding a case is additive; changing an existing case's expectation is a format-version change, not a patch, because ports rely on the corpus as executable data.
 - A hash vector's expected `canonical` text or `sha256` changes only with a format version. Adding a vector is additive; changing an existing one is a format-version change, not a patch, because ports rely on the vectors as executable data.
 
-## Deferred to 0.3.0
+## Deferred in 0.2.3, delivered in 0.3.0
 
-These are future contracts, not APIs available in 0.2.3. The review-fix deferrals below follow the approved 0.2.3 scope decision; implemented entries link to their final contracts.
+0.2.3 announced these contracts as future work. They are all delivered in 0.3.0; each entry links to its final contract and migration. The review-fix deferrals follow the approved 0.2.3 scope decision.
 
 - **Package and render-input immutability (R4, R5).** Implemented for 0.3.0; see [frozen packages](migration-0.3.md#packages-are-deeply-frozen) and [render input ownership](migration-0.3.md#render-inputs-keep-caller-ownership).
 - **Verified-package cache option for `loadPlacement` (R15).** Implemented for 0.3.0 as `verifiedPackages({ max? })` and `{ verified }`; see [adopter notes](migration-0.3.md#optional-verified-package-cache) and [loading](packages.md#loading-and-state-resets). Stored content is freshly hashed on every load.
