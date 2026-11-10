@@ -80,7 +80,7 @@ const bundled = {
   scenarios,
 };
 
-function median(run: () => unknown, runs = 21): number {
+function medianCpu(run: () => unknown, runs = 21): number {
   const times: number[] = [];
   for (let i = 0; i < runs; i++) {
     const start = process.cpuUsage();
@@ -91,51 +91,86 @@ function median(run: () => unknown, runs = 21): number {
   return times.sort((a, b) => a - b)[Math.floor(runs / 2)] as number;
 }
 
+// Each process settles into its own JIT state, and that state moves a 0.12 ms render by a few percent
+// either way, so no statistic inside one process can average it out. The parent times the pack comparison
+// itself and the render comparison in RENDER_PROCESSES fresh child processes (this file with
+// LF_BENCH_CHILD=1), and gates on the median of their linked/bundled ratios.
+const child = process.env.LF_BENCH_CHILD === "1";
+const RENDER_PROCESSES = 7;
+const median = (values: number[]) => [...values].sort((a, b) => a - b)[values.length >> 1] as number;
+
 const linked = value(pack(withLibraries, { ...install, libraries: libs }));
 assert(!(linked.code as string).includes("Alpha 39"), "library code must not be copied into the dependent");
-median(() => pack(bundled, install), 3);
-median(() => pack(withLibraries, { ...install, libraries: libs }), 3);
-const bundledMs = median(() => pack(bundled, install));
-const librariesMs = median(() => pack(withLibraries, { ...install, libraries: libs }));
-console.log(JSON.stringify({ packBundledMs: bundledMs, packWithLibrariesMs: librariesMs }));
-metric("pack_bundled_ms", bundledMs);
-metric("pack_with_libraries_ms", librariesMs);
-budget(
-  librariesMs <= bundledMs,
-  `packing with libraries (${librariesMs.toFixed(2)} ms) costs more than bundling (${bundledMs.toFixed(2)} ms)`,
-);
 
-// Render: both packages are loaded and warm; the library one also resolves two library modules.
-const runner = inProcessRunner();
-const renderOptions = { ...install, surfaceId: "bench", revision: 1 };
-const props = { params: {}, state: {}, context: {}, data: {}, actions: {} };
-const bundledPackage = value(pack(bundled, install));
-const renderWith = (pkg: WidgetPackage, libraries?: readonly WidgetPackage[]) =>
-  runner.render(pkg, props, { ...renderOptions, ...(libraries ? { libraries } : {}) });
-async function batch(pkg: WidgetPackage, libraries?: readonly WidgetPackage[], runs = 200): Promise<number> {
-  const start = process.cpuUsage();
-  for (let i = 0; i < runs; i++) {
-    const rendered = await renderWith(pkg, libraries);
-    assert(rendered.ok, JSON.stringify(rendered));
+if (!child) {
+  medianCpu(() => pack(bundled, install), 3);
+  medianCpu(() => pack(withLibraries, { ...install, libraries: libs }), 3);
+  const bundledMs = medianCpu(() => pack(bundled, install));
+  const librariesMs = medianCpu(() => pack(withLibraries, { ...install, libraries: libs }));
+  console.log(JSON.stringify({ packBundledMs: bundledMs, packWithLibrariesMs: librariesMs }));
+  metric("pack_bundled_ms", bundledMs);
+  metric("pack_with_libraries_ms", librariesMs);
+  budget(
+    librariesMs <= bundledMs,
+    `packing with libraries (${librariesMs.toFixed(2)} ms) costs more than bundling (${bundledMs.toFixed(2)} ms)`,
+  );
+
+  type Figures = { bundledMs: number; linkedMs: number };
+  const figures: Figures[] = [];
+  for (let i = 0; i < RENDER_PROCESSES; i++) {
+    const proc = Bun.spawnSync([process.execPath, "--conditions", "liveframe:source", import.meta.path], {
+      env: { ...process.env, LF_BENCH_CHILD: "1" },
+      stdout: "pipe",
+      stderr: "inherit",
+    });
+    assert(proc.exitCode === 0, `render child ${i} exited ${proc.exitCode}`);
+    figures.push(JSON.parse(proc.stdout.toString()) as Figures);
   }
-  const used = process.cpuUsage(start);
-  return (used.user + used.system) / 1000 / runs;
+  const ratios = figures.map((f) => f.linkedMs / f.bundledMs);
+  const ratio = median(ratios);
+  const renderBundledMs = median(figures.map((f) => f.bundledMs));
+  const renderWithLibrariesMs = median(figures.map((f) => f.linkedMs));
+  console.log(
+    JSON.stringify({
+      renderBundledMs,
+      renderWithLibrariesMs,
+      medianRatio: ratio,
+      processRatios: ratios.map((r) => Number(r.toFixed(3))),
+    }),
+  );
+  metric("render_bundled_ms", renderBundledMs);
+  metric("render_with_libraries_ms", renderWithLibrariesMs);
+  metric("render_libraries_ratio", ratio);
+  budget(
+    ratio <= 1.05,
+    `rendering with libraries is ${((ratio - 1) * 100).toFixed(1)}% above bundled (median ratio of ${RENDER_PROCESSES} processes: ${ratios.map((r) => r.toFixed(3)).join(", ")}); the limit is 5%`,
+  );
+} else {
+  // Render: both packages are loaded and warm; the library one also resolves two library modules.
+  const runner = inProcessRunner();
+  // The gate measures speed, not the 100 ms render limit: a long limit keeps a host stall from failing a batch.
+  const renderOptions = { ...install, surfaceId: "bench", revision: 1, timeoutMs: 5000 };
+  const props = { params: {}, state: {}, context: {}, data: {}, actions: {} };
+  const bundledPackage = value(pack(bundled, install));
+  const batch = async (pkg: WidgetPackage, libraries: readonly WidgetPackage[] | undefined, runs: number) => {
+    const start = process.cpuUsage();
+    for (let i = 0; i < runs; i++) {
+      const rendered = await runner.render(pkg, props, { ...renderOptions, ...(libraries ? { libraries } : {}) });
+      assert(rendered.ok, JSON.stringify(rendered));
+    }
+    const used = process.cpuUsage(start);
+    return (used.user + used.system) / 1000 / runs;
+  };
+  // Blocks in A-B-B-A order: each block times BLOCK batches of one package back to back, so a package's call
+  // sites stay monomorphic (alternating the two every batch inflates the linked side by a few percent), and the
+  // reversed second half cancels drift within the process. A side's figure is the median of its batches, which
+  // keeps the garbage-collection cost that the minimum hides.
+  const BLOCK = 20;
+  const times = { bundled: [] as number[], linked: [] as number[] };
+  for (const side of ["bundled", "linked", "linked", "bundled"] as const) {
+    const [pkg, libraries] = side === "bundled" ? [bundledPackage, undefined] : [linked, libs];
+    await batch(pkg, libraries, 20);
+    for (let i = 0; i < BLOCK; i++) times[side].push(await batch(pkg, libraries, 100));
+  }
+  console.log(JSON.stringify({ bundledMs: median(times.bundled), linkedMs: median(times.linked) }));
 }
-await batch(bundledPackage, undefined, 20);
-await batch(linked, libs, 20);
-const bundledRender: number[] = [];
-const linkedRender: number[] = [];
-for (let i = 0; i < 11; i++) {
-  bundledRender.push(await batch(bundledPackage));
-  linkedRender.push(await batch(linked, libs));
-}
-// The fastest batch is the figure least disturbed by a busy machine; both sides get the same treatment.
-const bundledRenderMs = Math.min(...bundledRender);
-const linkedRenderMs = Math.min(...linkedRender);
-console.log(JSON.stringify({ renderBundledMs: bundledRenderMs, renderWithLibrariesMs: linkedRenderMs }));
-metric("render_bundled_ms", bundledRenderMs);
-metric("render_with_libraries_ms", linkedRenderMs);
-budget(
-  linkedRenderMs <= bundledRenderMs * 1.05,
-  `rendering with libraries (${linkedRenderMs.toFixed(3)} ms) is over 5% above bundled (${bundledRenderMs.toFixed(3)} ms)`,
-);

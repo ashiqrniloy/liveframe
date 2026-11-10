@@ -73,7 +73,10 @@ export function inProcessRunner(options: { readonly maxModules?: number } = {}):
             },
           ],
         };
-      return renderPackage(pkg, inputs, { ...runnerOptions, libraries: libraries.value });
+      // The set is collected and verified above; a module render takes it as is rather than collecting again.
+      return pkg.template === undefined
+        ? renderModule(pkg, inputs, runnerOptions, libraries.value)
+        : renderPackage(pkg, inputs, { ...runnerOptions, libraries: libraries.value });
     },
   };
 }
@@ -89,20 +92,24 @@ export async function renderPackage(
   options: RunnerOptions,
 ): Promise<Result<UiTree>> {
   if (pkg.template !== undefined) return renderTemplateRun(pkg.template, pkg, inputs, options);
+  // The host verified every library's hash and pin before this call (`inProcessRunner`, `workerRunner`).
+  const libraries = collectLibraries(pkg, options.libraries, { trusted: true });
+  if (!libraries.ok) return libraries;
+  return renderModule(pkg, inputs, options, libraries.value);
+}
+
+/** A code package's render, given its already collected and verified libraries (dependencies first). */
+async function renderModule(
+  pkg: WidgetPackage,
+  inputs: WidgetInputs,
+  options: RunnerOptions,
+  libraries: readonly WidgetPackage[],
+): Promise<Result<UiTree>> {
   const timeoutMs = options.timeoutMs ?? 100;
   const start = Date.now();
   let result: Result<UiTree>;
   try {
-    // The host verified every library's hash and pin before this call (`inProcessRunner`, `workerRunner`).
-    const libraries = collectLibraries(pkg, options.libraries, { trusted: true });
-    if (!libraries.ok) return libraries;
-    const module = await loadWithin(
-      pkg.code as string,
-      pkg.hash,
-      timeoutMs,
-      libraries.value,
-      pkg.manifest.dependencies,
-    );
+    const module = await loadWithin(pkg.code as string, pkg.hash, timeoutMs, libraries, pkg.manifest.dependencies);
     if (module === expired)
       return {
         ok: false,
