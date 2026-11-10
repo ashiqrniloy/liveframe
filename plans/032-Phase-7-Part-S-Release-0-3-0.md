@@ -190,7 +190,11 @@ This plan implements the release step of roadmap Phase 7's 0.3.0. It changes no 
       ```
     - Files to Create/Edit: `package.json` (×3 versions); `plans/evidence/032-release-candidate.md`; `plans/025-…md` (Task 10 closure note)
   - Test Cases to Write: n/a — release verification.
-  - Notes (executed <date>):
+  - Notes (prepared 2026-11-10, publication pending):
+    - Preparation is complete on commit `af97604`: all three packages at `0.3.0-rc.1`, both companions peering on `~0.3.0-0` (a `~0.3.0` range does not match a prerelease), and the 0.3.0 API baseline per companion (plan 031 hand-off) with a test that fails on any later declaration change. `readApiSurface` now hashes an absent `schemas/`/`conformance/` directory as empty, so it accepts a package that ships none; the core comparison is unchanged because its baseline holds the keys. Companion READMEs and `docs/compatibility.md` say `~0.3.0-0`.
+    - Also committed before the tag: plan 032 Task 3's code was never committed (the quiet-host sampler, the process-level `pack-libraries` method and the plan 030 runtime fix it found) — `536867c`. A release tag must not go out without it.
+    - Local gates on `af97604` all pass: `bun run check` (1769 pass, 4 skip, 0 fail, 478.85 s), `release:gate` (15/2/2 steps), peer floors (React 119, Playwright 23, MCP 87), `demo:test` 67, production and bundled audits clean, `versions.ts --tag v0.3.0-rc.1`. Record: `plans/evidence/032-release-candidate.md`.
+    - **Blocker:** neither `@arnilo/liveframe-runner-quickjs` nor `@arnilo/liveframe-starter` exists on the registry (both E404), so the CI job cannot be their first publisher; each needs a trusted publisher on npmjs.com allowing `npm publish`, and the maintainer token in `~/.npmrc` is invalid (401), so a manual first publish is not possible here. The tag is not pushed until the owner confirms both. The `release` environment is verified (reviewer `ashiqrniloy`, tag policy `v*`).
 
 - [ ] Task 6: Review readiness with the owner
   - Acceptance Criteria:
