@@ -194,7 +194,7 @@ Release checklist, in order. Publishing cannot be undone, so the tag is pushed o
 
 1. `bun run check`, `bun run release:gate`, `bun scripts/release/peer-floors.ts` and `bun run demo:test` pass on the commit to tag; all three `package.json` files hold the same version and `CHANGELOG.md` dates its entry.
 2. The owner gives the go in words.
-3. Push `v<version>`. The workflow publishes a prerelease under `next` and a release under `latest`, with provenance.
+3. Push `v<version>`. The workflow publishes a prerelease under `next` and a release under `latest`, with provenance. A re-run skips a package version the registry already holds, so a release that stopped part-way (for example a package whose trusted publisher is not configured yet) is completed by re-running it: `gh run rerun <run-id>` or delete and re-push the tag.
 4. After a release, the workflow runs `npm dist-tag add @arnilo/liveframe@<version> next`. npm trusted publishing permits that command only when the trusted publisher has **Allow npm dist-tag** enabled (npmjs.com, the package's trusted publishers; a one-time owner setting, off by default) and the CLI is npm ≥ 11.21.0 (≥ 12.2.0 on 12.x), so the workflow pins npm 12.2.1 for it. If the step fails, the owner runs the same command once with npm auth.
 5. Verify from the registry: `npm view <package> version` and `npm view <package> dist-tags` for each of the three packages (`next` is the release or newer), `npm audit signatures --include-attestations`, and `bun scripts/release/archive-gate.ts --dir <package-directory> --package <package>@<version>` for each.
 

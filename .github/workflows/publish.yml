@@ -74,8 +74,14 @@ jobs:
           case "$version" in *-*) tag=next ;; *) tag=latest ;; esac
           dry=; if [ "${{ inputs.dry_run }}" = true ]; then dry=--dry-run; fi
           # The core first: the other two peer on it. Each publish carries its own provenance.
+          # A publish cannot be undone, so a re-run after a partial one (say a package whose trusted publisher
+          # is not configured yet) skips the versions the registry already holds and completes the rest.
           for dir in . packages/*; do
             name=$(bun -p "require('./$dir/package.json').name")
+            if [ -z "$dry" ] && npm view "$name@$version" version >/dev/null 2>&1; then
+              echo "already published: $name@$version"
+              continue
+            fi
             npm publish "$RUNNER_TEMP/liveframe-publish/${name#@arnilo/}" --access public --tag "$tag" $dry
           done
           # A release moves `next` too, so `@next` never installs an older build than `latest`.
