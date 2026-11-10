@@ -62,6 +62,7 @@ The publish step is now re-runnable (`.github/workflows/publish.yml`): it skips 
 | `npm view @arnilo/liveframe dist-tags` | `{ next: '0.3.0-rc.1', latest: '0.2.3' }` (the version took about six minutes to propagate) |
 | `@arnilo/liveframe-runner-quickjs`, `@arnilo/liveframe-starter` | E404, unpublished |
 | Core `bin` in the published manifest | `{"liveframe":"dist/cli/liveframe.js"}` — npm normalised the `./` prefix and printed a `pkg fix` warning; nothing was dropped |
+| Core attestations (`registry.npmjs.org/-/npm/v1/attestations/@arnilo/liveframe@0.3.0-rc.1`) | `https://github.com/npm/attestation/tree/main/specs/publish/v0.1` and `https://slsa.dev/provenance/v1`; repository `https://github.com/ashiqrniloy/liveframe`, workflow path `.github/workflows/publish.yml`, ref `refs/tags/v0.3.0-rc.1` |
 
 ### What completes the release candidate
 
