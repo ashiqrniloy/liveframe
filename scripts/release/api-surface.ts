@@ -76,6 +76,8 @@ function collectIdentifiers(node: Node, out: Node[]): void {
 
 function hashDirectory(root: string, subdir: string): Record<string, string> {
   const cwd = resolve(root, subdir);
+  // The companion packages ship no schemas or conformance vectors; an absent directory is empty, not an error.
+  if (!existsSync(cwd)) return {};
   const files = [...new Bun.Glob("**/*").scanSync({ cwd, onlyFiles: true })].sort();
   const result: Record<string, string> = {};
   for (const file of files) {

@@ -1,0 +1,15 @@
+{
+  "generatedFrom": "checkout at 536867c before the 0.3.0-rc.1 bump, after bun run build",
+  "exports": {
+    ".": {
+      "QuickJsRunner": "export type QuickJsRunner = Runner & { close(): void; };",
+      "QuickJsRunnerOptions": "export type QuickJsRunnerOptions = { readonly memoryBytes?: number; readonly stackBytes?: number; readonly timeoutMs?: number; readonly reuse?: \"none\" | \"package\"; readonly maxRuntimes?: number; };",
+      "quickjsRunner": "export declare function quickjsRunner(options?: QuickJsRunnerOptions): Promise<QuickJsRunner>;"
+    }
+  },
+  "schemas": {},
+  "corpus": {},
+  "hash": {},
+  "patch": {},
+  "runner": {}
+}

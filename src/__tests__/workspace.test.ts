@@ -46,14 +46,14 @@ test("workspace_packages_share_one_version", async () => {
   expect(versionProblems(manifests)).toEqual([]);
   expect(new Set(manifests.map((manifest) => manifest.version)).size).toBe(1);
   for (const manifest of manifests.slice(1)) {
-    expect(manifest.peerDependencies?.["@arnilo/liveframe"]).toBe("~0.3.0");
+    expect(manifest.peerDependencies?.["@arnilo/liveframe"]).toBe("~0.3.0-0");
     expect(manifest.engines).toEqual({ bun: ">=1.4.2" });
   }
 });
 
 test("publish_workflow_fails_on_version_mismatch", () => {
   const core = { name: "@arnilo/liveframe", version: "0.3.0", exports: null, files: [] };
-  const peer = { "@arnilo/liveframe": "~0.3.0" };
+  const peer = { "@arnilo/liveframe": "~0.3.0-0" };
   const runner = {
     name: "@arnilo/liveframe-runner-quickjs",
     version: "0.3.0",

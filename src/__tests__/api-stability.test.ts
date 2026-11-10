@@ -3,6 +3,8 @@
 import { expect, test } from "bun:test";
 import { resolve } from "node:path";
 import baselineJson from "../../scripts/release/api/0.2.3.json" with { type: "json" };
+import runnerBaselineJson from "../../scripts/release/api/0.3.0-runner-quickjs.json" with { type: "json" };
+import starterBaselineJson from "../../scripts/release/api/0.3.0-starter.json" with { type: "json" };
 import registerJson from "../../scripts/release/api/register-0.3.0.json" with { type: "json" };
 import {
   type ApiSurface,
@@ -44,6 +46,18 @@ test("baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register", async () 
   expect(baseline.generatedFrom).toContain("v0.2.3");
   const current = await readApiSurface(root);
   expect(compareApiSurface(baseline, current, register)).toEqual([]);
+});
+
+test("baseline_0_3_0_matches_the_companion_packages", async () => {
+  // The two companion packages release with the core, so a 0.3.x patch must not change their surface either.
+  for (const [dir, json] of [
+    ["packages/runner-quickjs", runnerBaselineJson],
+    ["packages/starter", starterBaselineJson],
+  ] as const) {
+    const baseline = json as unknown as ApiSurface;
+    expect(baseline.generatedFrom).toContain("0.3.0");
+    expect(compareApiSurface(baseline, await readApiSurface(resolve(root, dir)), [])).toEqual([]);
+  }
 });
 
 test("removed_export_fails", () => {
