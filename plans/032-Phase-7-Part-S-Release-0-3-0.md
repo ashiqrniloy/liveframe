@@ -224,7 +224,7 @@ This plan implements the release step of roadmap Phase 7's 0.3.0. It changes no 
     - Risks disclosed in the review: the rc has no provenance for the two companions (first publish by token; trusted publishers must exist before `0.3.0` publishes from CI), both companions show the rc under `latest` until then, `template` and `pack-libraries` are thin-margin ratio gates (the latter fixed in code, 30/30), and one source fix (`src/cli/mcp.ts`) landed after the rc and ships in `0.3.0` only.
     - Task 7 remains: bump all three to `0.3.0`, tag `v0.3.0`, publish from CI under `latest`, move `next`, repeat Task 5's registry verification, and record it in `plans/evidence/032-release.md`.
 
-- [ ] Task 7: Publish `0.3.0` and verify it from the registry
+- [x] Task 7: Publish `0.3.0` and verify it from the registry
   - Acceptance Criteria:
     - Functional: after the owner's go, bump all three to `0.3.0`, tag `v0.3.0`, publish from CI under `latest`, move `next` to `0.3.0`; repeat Task 5's registry verification; `plans/evidence/032-release.md` records it; `roadmap.md` §3 records Phase 7's 0.3.0 as published.
     - Performance: n/a.
@@ -239,7 +239,11 @@ This plan implements the release step of roadmap Phase 7's 0.3.0. It changes no 
     - API Notes and Examples: n/a.
     - Files to Create/Edit: `package.json` (×3); `plans/evidence/032-release.md`; `roadmap.md`; `CHANGELOG.md` (date)
   - Test Cases to Write: n/a — release verification.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-10):
+    - **Published from CI, tagged `v0.3.0` on `18f2fe1`**: workflow [run 42832386313](https://github.com/ashiqrniloy/liveframe/actions/runs/42832386313) succeeded (14:16–14:31Z) after the owner approved the `release` environment. Each package published with provenance (log indices 3787607732, 3787610874, 3787612917) and the workflow moved `next` for all three; the owner had configured the two companions' trusted publishers on npmjs.com beforehand, so no hand publish was needed.
+    - **The tagged commit** bumps all three to `0.3.0`, narrows both companions' peer range back to `~0.3.0`, dates the changelog entry, and fixes the demo gate's packed-archive install (`bun pm pack` names the tarball `<name>-<version>.tgz`; the check had pinned `arnilo-liveframe.tgz` when `--registry` was added in Task 5). Local gates on `18f2fe1`: check 1,769/4/0, release:gate 15/2/2, peer floors 119/23/87, demo 67/0, both security audits clean, `release:versions --tag v0.3.0` = 3 packages at 0.3.0.
+    - **Verified from the registry** and recorded in [`plans/evidence/032-release.md`](evidence/032-release.md): dist-tags `{ latest: 0.3.0, next: 0.3.0 }` on all three; provenance names `refs/tags/v0.3.0`; archive gates 15/2/2 steps on the published archives; installed API equal to the checkout and to every baseline; guide 3.2 s and demo 67/0 installing `0.3.0` from the registry; `npm audit signatures` verifies all three with `invalid: []` and `missing: []`. The local npm cache served a stale companion packument (`ETARGET`) until the signature check ran with an empty `--cache`.
+    - Companion `latest` left the rc behind and both packages now carry provenance. Roadmap §3 records Phase 7's 0.3.0 as published; Task 8 remains.
 
 - [ ] Task 8: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
