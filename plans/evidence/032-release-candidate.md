@@ -88,7 +88,7 @@ This departs from Task 5's "no manual publish; CI only" criterion; the deviation
 
 npm sets `latest` on a package's first publish, so both new packages show the rc under `latest` until `0.3.0` is published.
 
-The tag stays on `f7a86f6`, the commit attempt 2 published from and the ref the core's provenance names. `11ad419` (re-runnable publish step), `d06740b` (this record) and the companion publishes touch no source the packages ship.
+The tag stays on `f7a86f6`, the commit attempt 2 published from and the ref the core's provenance names. `11ad419` (re-runnable publish step), `d06740b` (this record) and the companion publishes touch no source the packages ship. Task 5's own commit `7e48ddc` does: the MCP notice fix below, which ships in `0.3.0` and not in the rc.
 
 ## Registry verification
 

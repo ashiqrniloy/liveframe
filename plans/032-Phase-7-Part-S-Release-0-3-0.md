@@ -202,7 +202,7 @@ This plan implements the release step of roadmap Phase 7's 0.3.0. It changes no 
     - **Remaining blocker, resolved by the owner:** neither companion name existed, and a package with no trusted publisher cannot be published from CI (`npm/cli#8544`). The owner published both once by hand from the same `release:stage` staging CI uses — `0.3.0-rc.1`, 15 and 20 files, matching the CI staging — after claiming each name with a `0.0.0-stage` version as the core did before 0.1.0. This departs from the "no manual publish; CI only" criterion for the rc only; a token publish cannot carry provenance, so the companions' rc has none (`…/attestations/…` returns 404 for both) and `0.3.0` restores it from CI.
     - Registry verification on the published versions, all in `plans/evidence/032-release-candidate.md`: archive gates 15 / 2 / 2 steps; installed API against the baselines (core `0.2.3` + `register-0.3.0`, companions against their `0.3.0` baselines) with no failures, and installed identical to the checkout; `getting-started-test.ts --registry` passes in 3.0 s installing all three from the registry; `demo-test.ts --registry` 67 pass; `npm audit signatures` has `invalid: []` and `missing: []` with the core's 2 attestation bundles. `next` is `0.3.0-rc.1` for all three, and `latest` is `0.3.0-rc.1` on the two new packages until 0.3.0 moves it. Plan 025 Task 10's `next` repair is closed by this.
 
-- [ ] Task 6: Review readiness with the owner
+- [x] Task 6: Review readiness with the owner
   - Acceptance Criteria:
     - Functional: `plans/evidence/032-release-readiness-review.md` lists every item (scope rows Q1–Q10, W1–W9, L1–L2, O1–O2; every open backlog P1; every impact finding of plans 026–031) as `fixed` with evidence or `deferred` with the owner's approval; the owner answers go or no-go, recorded verbatim.
     - Performance: cites Task 3.
@@ -217,7 +217,12 @@ This plan implements the release step of roadmap Phase 7's 0.3.0. It changes no 
     - API Notes and Examples: n/a.
     - Files to Create/Edit: `plans/evidence/032-release-readiness-review.md`
   - Test Cases to Write: n/a.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-10):
+    - [`plans/evidence/032-release-readiness-review.md`](evidence/032-release-readiness-review.md), prepared against `7e48ddc`, lists every item the criterion names: 31 scope rows (Q1–Q10, W1–W9, L1–L2, O1–O2) against the generated acceptance log, both open backlog P1 entries, all 48 impact findings of plans 026–031, the budget table of Task 3, the registry verification of Task 5, the peer floors, and the four laws reviewed against those rows.
+    - **Verdict: go.** The acceptance log of plans 026–031 has 378 pass, 36 pending, 12 n/a, 0 fail and 0 unmapped; all 31 scope rows are fixed except O1, whose 36 pending rows and unconfirmed `template` gate are the deferral; O2 closed with Task 5. Of the 48 findings 24 are fixed with evidence and 24 deferred behind backlog entries (031 F2 split: docs fixed, concurrency backlogged).
+    - Deferrals approved, verbatim: "We go and leave the 3 items identified as deferred" — the 24 findings, the two P1 entries and the quiet-host proof, all carried into 0.3.x. Recorded as `decision-logs/2026-11-10-1219-go-on-0-3-0-with-deferrals.md`.
+    - Risks disclosed in the review: the rc has no provenance for the two companions (first publish by token; trusted publishers must exist before `0.3.0` publishes from CI), both companions show the rc under `latest` until then, `template` and `pack-libraries` are thin-margin ratio gates (the latter fixed in code, 30/30), and one source fix (`src/cli/mcp.ts`) landed after the rc and ships in `0.3.0` only.
+    - Task 7 remains: bump all three to `0.3.0`, tag `v0.3.0`, publish from CI under `latest`, move `next`, repeat Task 5's registry verification, and record it in `plans/evidence/032-release.md`.
 
 - [ ] Task 7: Publish `0.3.0` and verify it from the registry
   - Acceptance Criteria:
