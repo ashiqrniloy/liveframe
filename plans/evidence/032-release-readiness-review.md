@@ -174,7 +174,7 @@ Two harness findings are part of the record: the 1-minute load average reads 1.0
 | Playwright floor | Playwright 1.49.0 | 23 pass, 0 fail | pass |
 | MCP server floor | `@modelcontextprotocol/sdk` 2.0.0 | 87 pass, 0 fail | pass |
 
-The two companion packages declare `@arnilo/liveframe` as `~0.3.0-0`, so the rc and the final release both satisfy their peer range.
+The two companion packages declare `@arnilo/liveframe` as `~0.3.0-0` in the rc; the final release narrows the range to `~0.3.0` before tagging, and both ranges accept `0.3.0`.
 
 ## The Four Laws
 

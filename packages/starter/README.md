@@ -2,7 +2,7 @@
 
 A starting point for a [Liveframe](https://github.com/ashiqrniloy/liveframe) host: a reference catalog, React implementations, three themes and a design system that pass every conformance suite. **Copy it or extend it; it is not part of the core contract.** The core package ships no components (spec §3) — this one is an app's worth of them, so you can see the pieces working before you write your own.
 
-Requires Bun ≥ 1.4.2, `@arnilo/liveframe` `~0.3.0-0`, React 19 and `react-aria-components`.
+Requires Bun ≥ 1.4.2, `@arnilo/liveframe` `~0.3.0`, React 19 and `react-aria-components`.
 
 ```sh
 bun add @arnilo/liveframe @arnilo/liveframe-starter react react-dom react-aria-components

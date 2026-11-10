@@ -2,7 +2,7 @@
 
 All notable changes to `@arnilo/liveframe` are recorded here. The project follows the compatibility policy in [`docs/compatibility.md`](docs/compatibility.md).
 
-## 0.3.0 — unreleased
+## 0.3.0 — 2026-11-10
 
 0.3.0 is a minor release that may break 0.2.3 contracts, each with a migration entry: see the [migration guide](docs/migration-0.3.md) (breaks, with before, after and a checklist) and the [adopter notes](docs/adopters-0.3.md) (which request each addition closes, and its limits). It releases three packages in lockstep from one Bun workspace: `@arnilo/liveframe`, `@arnilo/liveframe-runner-quickjs` and `@arnilo/liveframe-starter`. Bun ≥ 1.4.2 is the only supported runtime for backend subpaths; no Node runtime is supported. The [compatibility notes](docs/compatibility.md#030) state the 0.3.x promise.
 

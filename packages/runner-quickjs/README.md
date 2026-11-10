@@ -2,7 +2,7 @@
 
 An isolated [Liveframe](https://github.com/ashiqrniloy/liveframe) runner. Widget code runs in [QuickJS](https://bellard.org/quickjs/) (WebAssembly, via `quickjs-emscripten`) inside a Bun child process that the runner owns and can kill. A host gets a real isolation boundary for hostile widget code without building a sandbox.
 
-Requires Bun ≥ 1.4.2 and `@arnilo/liveframe` `~0.3.0-0`. No Node runtime is supported.
+Requires Bun ≥ 1.4.2 and `@arnilo/liveframe` `~0.3.0`. No Node runtime is supported.
 
 ```ts
 import { quickjsRunner } from "@arnilo/liveframe-runner-quickjs";

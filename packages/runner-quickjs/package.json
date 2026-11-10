@@ -1,6 +1,6 @@
 {
   "name": "@arnilo/liveframe-runner-quickjs",
-  "version": "0.3.0-rc.1",
+  "version": "0.3.0",
   "description": "An isolated Liveframe runner: widget code runs in QuickJS inside a child process the runner can kill, so a host gets a real isolation boundary without building a sandbox.",
   "type": "module",
   "license": "MIT",
@@ -37,7 +37,7 @@
     "./dist/child.js"
   ],
   "peerDependencies": {
-    "@arnilo/liveframe": "~0.3.0-0"
+    "@arnilo/liveframe": "~0.3.0"
   },
   "devDependencies": {
     "@arnilo/liveframe": "workspace:*"

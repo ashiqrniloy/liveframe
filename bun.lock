@@ -37,7 +37,7 @@
     },
     "packages/runner-quickjs": {
       "name": "@arnilo/liveframe-runner-quickjs",
-      "version": "0.3.0-rc.1",
+      "version": "0.3.0",
       "dependencies": {
         "@jitl/quickjs-wasmfile-release-sync": "0.32.0",
         "quickjs-emscripten-core": "0.32.0",
@@ -46,17 +46,17 @@
         "@arnilo/liveframe": "workspace:*",
       },
       "peerDependencies": {
-        "@arnilo/liveframe": "~0.3.0-0",
+        "@arnilo/liveframe": "~0.3.0",
       },
     },
     "packages/starter": {
       "name": "@arnilo/liveframe-starter",
-      "version": "0.3.0-rc.1",
+      "version": "0.3.0",
       "devDependencies": {
         "@arnilo/liveframe": "workspace:*",
       },
       "peerDependencies": {
-        "@arnilo/liveframe": "~0.3.0-0",
+        "@arnilo/liveframe": "~0.3.0",
         "react": "^19.0.0",
         "react-aria-components": "^1.22.0",
         "react-dom": "^19.0.0",

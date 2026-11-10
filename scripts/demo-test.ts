@@ -7,7 +7,7 @@
  *
  * `--registry` installs the published version instead of the checkout's archive.
  */
-import { mkdir, rm } from "node:fs/promises";
+import { mkdir, readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { stagePackage } from "./release/publish-manifest.ts";
 
@@ -30,6 +30,12 @@ if (!registry) {
   run(["bun", "pm", "pack", "--destination", pack], staging);
   await rm(staging, { recursive: true, force: true });
 }
+// `bun pm pack` names the tarball `<name>-<version>.tgz`; keep the name it produced instead of pinning one.
+async function archive() {
+  const [file] = (await readdir(pack)).filter((entry) => entry.endsWith(".tgz"));
+  if (!file) throw new Error("bun pm pack produced no tarball");
+  return join(pack, file);
+}
 // A repacked tarball keeps its path, so drop the lockfile and the installed copy to avoid a stale install.
 // The demo's dependency points at the tarball (or the publication) for the run only; `bun add --no-save` kept the
 // registry copy on Bun 1.4.2.
@@ -38,9 +44,8 @@ const manifest = await Bun.file(manifestPath).text();
 await rm(join(demo, "bun.lock"), { force: true });
 await rm(join(demo, "node_modules/@arnilo"), { recursive: true, force: true });
 const json = JSON.parse(manifest);
-json.dependencies["@arnilo/liveframe"] = registry
-  ? (JSON.parse(await Bun.file(join(root, "package.json")).text()) as { version: string }).version
-  : `file:${join(pack, "arnilo-liveframe.tgz")}`;
+const version = (JSON.parse(await Bun.file(join(root, "package.json")).text()) as { version: string }).version;
+json.dependencies["@arnilo/liveframe"] = registry ? version : `file:${await archive()}`;
 try {
   await Bun.write(manifestPath, JSON.stringify(json, null, 2));
   run(["bun", "install"], demo);
