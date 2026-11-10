@@ -3,9 +3,11 @@
  * Run the demo host against the packed archive, never the checkout:
  * build, pack into the demo's .pack/, install it as a file: dependency, type-check, test.
  *
- *   timeout 900s bun scripts/demo-test.ts
+ *   timeout 900s bun scripts/demo-test.ts [--registry]
+ *
+ * `--registry` installs the published version instead of the checkout's archive.
  */
-import { mkdir, readdir, rename, rm } from "node:fs/promises";
+import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { stagePackage } from "./release/publish-manifest.ts";
 
@@ -19,23 +21,26 @@ function run(args: string[], cwd: string) {
 }
 
 await rm(pack, { recursive: true, force: true });
-await mkdir(pack, { recursive: true });
-run(["bun", "run", "build"], root);
+const registry = process.argv.includes("--registry");
 const staging = join(pack, "staging");
-await stagePackage(staging);
-run(["bun", "pm", "pack", "--destination", pack], staging);
-await rm(staging, { recursive: true, force: true });
-const [tarball] = (await readdir(pack)).filter((file) => file.endsWith(".tgz"));
-if (!tarball) throw new Error("bun pm pack produced no tarball");
-await rename(join(pack, tarball), join(pack, "arnilo-liveframe.tgz"));
+if (!registry) {
+  await mkdir(pack, { recursive: true });
+  run(["bun", "run", "build"], root);
+  await stagePackage(staging);
+  run(["bun", "pm", "pack", "--destination", pack], staging);
+  await rm(staging, { recursive: true, force: true });
+}
 // A repacked tarball keeps its path, so drop the lockfile and the installed copy to avoid a stale install.
-// The demo's dependency points at the tarball for the run only; `bun add --no-save` kept the registry copy on Bun 1.4.2.
+// The demo's dependency points at the tarball (or the publication) for the run only; `bun add --no-save` kept the
+// registry copy on Bun 1.4.2.
 const manifestPath = join(demo, "package.json");
 const manifest = await Bun.file(manifestPath).text();
 await rm(join(demo, "bun.lock"), { force: true });
 await rm(join(demo, "node_modules/@arnilo"), { recursive: true, force: true });
 const json = JSON.parse(manifest);
-json.dependencies["@arnilo/liveframe"] = `file:${join(pack, "arnilo-liveframe.tgz")}`;
+json.dependencies["@arnilo/liveframe"] = registry
+  ? (JSON.parse(await Bun.file(join(root, "package.json")).text()) as { version: string }).version
+  : `file:${join(pack, "arnilo-liveframe.tgz")}`;
 try {
   await Bun.write(manifestPath, JSON.stringify(json, null, 2));
   run(["bun", "install"], demo);
@@ -44,4 +49,4 @@ try {
   await rm(join(demo, "bun.lock"), { force: true });
 }
 run(["bun", "run", "typecheck"], demo);
-run(["bun", "run", "test", ...process.argv.slice(2)], demo);
+run(["bun", "run", "test", ...process.argv.slice(2).filter((arg) => arg !== "--registry")], demo);

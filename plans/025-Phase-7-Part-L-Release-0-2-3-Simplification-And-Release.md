@@ -511,7 +511,7 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
     - Local and CI full checks both pass: 1,063 pass, four skip, zero fail; local and CI archive gates, all three peer floors and demo pass. CI production/bundled audits pass; downloaded and checked the CycloneDX 1.6 SBOM artifact identifying the RC, acorn and seven bundled components.
     - The protected job waited for review; the agent submitted approval through authenticated reviewer `ashiqrniloy` using the owner's publication authorization. npm accepted the publish at 15:03:32Z; initial registry requests failed during processing. After propagation, `next` is `0.2.3-rc.1`, `latest` is `0.2.2`, all 14 registry archive steps pass, the installed API comparison against 0.2.2 has zero differences with `register-0.2.3.json` still `[]`, and npm verifies signatures and SLSA provenance with no invalid or missing entries. The verified provenance matches the tag, commit and workflow run.
 
-- [ ] Task 10: Review readiness with the owner, then publish 0.2.3 and verify it
+- [x] Task 10: Review readiness with the owner, then publish 0.2.3 and verify it
   - Acceptance Criteria:
     - Functional:
       - `plans/evidence/025-release-readiness-review.md` lists every row R1–R26 as one of:
@@ -546,7 +546,7 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
 
   - Notes (execution started 2026-11-04):
     - Reviewed R1–R26 in `plans/evidence/025-release-readiness-review.md`. The owner answered “Go: release with quiet-host proof open”; `decision-logs/2026-11-04-2116-release-0-2-3-with-quiet-host-proof-open.md` records the exception. Tasks 8 and 11 stay open; the roadmap criterion is amended to avoid claiming whole-plan completion.
-    - Prepared `package.json` 0.2.3 and the dated changelog. Final-version local gates pass: full check 1,063 pass, four skip, zero fail (392.22 s); installed archive all 14 steps; peer floors React 117 / Playwright 23 / MCP 78 tests; demo 53 tests. Published from tag `v0.2.3`, commit `f9458d8`, in protected run 41858182585. CI repeats the passing checklist; registry archive, empty-register API, signatures and matching provenance pass. npm accepted the publish, then E403 rejected `next` promotion; owner repair is requested. This checkbox remains open until registry confirms `next` at or above 0.2.3. See `plans/evidence/025-release.md`.
+    - Prepared `package.json` 0.2.3 and the dated changelog. Final-version local gates pass: full check 1,063 pass, four skip, zero fail (392.22 s); installed archive all 14 steps; peer floors React 117 / Playwright 23 / MCP 78 tests; demo 53 tests. Published from tag `v0.2.3`, commit `f9458d8`, in protected run 41858182585. CI repeats the passing checklist; registry archive, empty-register API, signatures and matching provenance pass. npm accepted the publish, then E403 rejected `next` promotion; owner repair was requested and stayed pending while plan 032 ran. **Closed 2026-11-10:** the 0.3.0-rc.1 release published from CI, so `next` is `0.3.0-rc.1` at or above 0.2.3 (`npm view @arnilo/liveframe dist-tags`); registry evidence in `plans/evidence/032-release-candidate.md`. No separate `npm dist-tag add` repair was needed.
 
 - [x] Task 11a: Return typed errors for lone-surrogate SDK keys (impact F1)
   - Acceptance Criteria:
@@ -604,7 +604,7 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
 ## Further Actions
 
 - **P3, Task 8:** close "Re-run the full benchmark suite on a quiet host" only after the full check, benchmark budgets and pack comparison have the required quiet-host evidence. Preserve missed original targets and report cumulative ratios.
-- **P3, Task 10:** "Enable trusted-publisher dist-tag management on npmjs.com or update next tag"; record the owner's repair and registry confirmation that `next` is at or above 0.2.3.
+- **P3, Task 10:** closed 2026-11-10 by the 0.3.0-rc.1 publication: `next` is `0.3.0-rc.1` for the core, at or above 0.2.3 (registry evidence in `plans/evidence/032-release-candidate.md`). Enabling **Allow npm dist-tag** on each trusted publisher is still required before a final release can move `next` automatically.
 - **P3, 0.3.0:** package freezing/render-input ownership, dimension-fraction rejection, an opt-in verified-package cache and evaluation of single-source formats. Each has an existing backlog entry; API-changing work has migration notes in `docs/compatibility.md`.
 - **P4:** handle-based draft reads and configurable preview/authoring validation limits; retain the documented host restrictions until implemented.
 - **P4, profile first:** `walkJson` validity cost, further SHA gains, JSON prototype allocation, event-name regex and runner identity-cache removal. Preserve the already-present full-error-sink exit (closed, no change).

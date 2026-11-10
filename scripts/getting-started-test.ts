@@ -10,9 +10,9 @@
  *   sh server            started in the background; the test waits for the host to answer
  *   sh expect="<text>"   as `sh`, and the output must contain <text>
  * Any other block is prose and is ignored. In `sh` lines, a package name from this repository is replaced by its
- * packed archive.
+ * packed archive, or by its published version with `--registry`.
  *
- *   timeout 900s bun scripts/getting-started-test.ts [--keep]
+ *   timeout 900s bun scripts/getting-started-test.ts [--registry] [--keep]
  */
 import { mkdir, mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -70,19 +70,27 @@ async function main() {
   let serverOutput = "";
 
   try {
-    // Pack the three packages exactly as they would be published.
-    sh("bun run build", root);
+    // Pack the three packages exactly as they would be published, or verify the published ones.
+    const registry = process.argv.includes("--registry");
     const archives = new Map<string, string>();
-    for (const packageDir of await packageDirs()) {
-      const { name } = await readManifest(packageDir);
-      const staging = join(work, `staging-${archives.size}`);
-      const destination = join(work, `pack-${archives.size}`);
-      await stagePackage(staging, packageDir);
-      await mkdir(destination);
-      sh(`bun pm pack --destination ${destination}`, staging);
-      const [tarball] = (await readdir(destination)).filter((file) => file.endsWith(".tgz"));
-      if (!tarball) throw new Error(`bun pm pack produced no tarball for ${name}`);
-      archives.set(name, join(destination, tarball));
+    if (!registry) {
+      sh("bun run build", root);
+      for (const packageDir of await packageDirs()) {
+        const { name } = await readManifest(packageDir);
+        const staging = join(work, `staging-${archives.size}`);
+        const destination = join(work, `pack-${archives.size}`);
+        await stagePackage(staging, packageDir);
+        await mkdir(destination);
+        sh(`bun pm pack --destination ${destination}`, staging);
+        const [tarball] = (await readdir(destination)).filter((file) => file.endsWith(".tgz"));
+        if (!tarball) throw new Error(`bun pm pack produced no tarball for ${name}`);
+        archives.set(name, join(destination, tarball));
+      }
+    } else {
+      for (const packageDir of await packageDirs()) {
+        const { name, version } = await readManifest(packageDir);
+        archives.set(name, `${name}@${version}`);
+      }
     }
     const local = (line: string) =>
       line.replace(/(^|\s)(@arnilo\/liveframe[\w-]*)(?=\s|$)/g, (_whole, space: string, name: string) => {

@@ -1,5 +1,6 @@
+import { existsSync } from "node:fs";
 import { lstat, realpath } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import pkg from "../../package.json" with { type: "json" };
 import capabilitiesDoc from "../../schemas/capabilities.json" with { type: "json" };
@@ -512,12 +513,12 @@ function lazyCaptureBackend(): CaptureBackend {
 
 const QUICKJS_PACKAGE = "@arnilo/liveframe-runner-quickjs";
 
-/** The notice's second sentence when the isolated runner package resolves from the config module; nothing changes but the text. */
+/** The notice's second sentence when the isolated runner package sits in the config's module tree; nothing changes but the text. */
 function quickjsAdvice(configPath: string): string {
-  try {
-    Bun.resolveSync(QUICKJS_PACKAGE, dirname(resolve(configPath)));
-  } catch {
-    return "";
+  // Walk the tree by hand: `Bun.resolveSync` also answers from Bun's global install cache, which the config cannot import.
+  for (let dir = dirname(resolve(configPath)); ; dir = dirname(dir)) {
+    if (existsSync(join(dir, "node_modules", QUICKJS_PACKAGE, "package.json"))) break;
+    if (dirname(dir) === dir) return "";
   }
   return ` ${QUICKJS_PACKAGE} is installed: set \`runner: await quickjsRunner()\` in the config (import { quickjsRunner } from "${QUICKJS_PACKAGE}").`;
 }
