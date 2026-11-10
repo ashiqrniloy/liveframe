@@ -737,7 +737,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Section: Agent authoring (spec §7.3)
 - Priority: P3
 - Source: plans/030-Phase-7-Part-Q-Release-0-3-0-Host-Pipeline-Evolution-And-Dependencies.md Task 11, plans/evidence/030-impact-analysis.md F5
-- What: `pack()` and `verifyPackage()` take `libraries`, but the authoring session, the MCP tools (`pack_draft`, `render_scenarios`, `capture_preview`), `<Preview>` and `liveframe gen` do not. An agent cannot pack or preview a widget that imports `liveframe:lib/<id>@<version>`, and there are no generated types for the import (the demo hand-writes `examples/demo-host/widgets/libraries.d.ts`). Accept the installed libraries in the session config, pass them to `pack()` and the runner, and have `liveframe gen` emit a module declaration for each library's `exports` from its component types.
+- Status: the session half is delivered. Plan 032 Task 4a (2026-11-09) added the host-supplied `libraries` option to `createPreview()`, `createAuthoring()` and the `liveframe mcp` config, the read-only `list_libraries` tool, and the refusal of an agent-supplied `libraries` argument. What stays open is only `liveframe gen`: it emits no module declaration for a library's `exports`, so the demo still hand-writes `examples/demo-host/widgets/libraries.d.ts`.
+- What: `pack()` and `verifyPackage()` take `libraries`, and the authoring session, the MCP tools (`pack_draft`, `render_scenarios`, `capture_preview`) and preview now take them from the host, but `liveframe gen` emits no declaration for a library's `exports`. An agent can pack and preview a widget that imports `liveframe:lib/<id>@<version>`, but nothing types the import (the demo hand-writes `examples/demo-host/widgets/libraries.d.ts`). Have `liveframe gen` emit a module declaration for each library's `exports` from its component types.
 - Why: libraries are how widgets share components; without this only a human with the SDK can use them.
 
 ## Re-check a dependent's library names at load
@@ -862,3 +863,19 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
   - `when` and `bind` on a library or composed component are silently dropped; say so in `docs/sdk.md` and consider a diagnostic (G2).
   - A JSON manifest example with `local` and `initialLocal`, and whether `ex.contains` is case sensitive, are not in the docs (G4).
 - Why: a fresh agent hit each of these while using only the published docs and the new `list_libraries` tool; none blocked it.
+
+## Pin the demo and guide gates' dependencies
+
+- Section: Release automation (Phase 7)
+- Priority: P3
+- Source: plans/032-Phase-7-Part-S-Release-0-3-0.md Task 8, plans/evidence/032-impact-analysis.md F3
+- What: `scripts/demo-test.ts:44` deletes the demo's lockfile and `:51` runs a plain `bun install`, while `examples/demo-host/package.json` declares React, React Aria Components, the MCP packages and the type packages with `^` ranges; the getting-started guide (`docs/getting-started.md:21`) installs React and React Aria Components the same way. Only `playwright` is pinned, after a floated 1.65.0 failed publish attempt 1 (run 42776596232). Pin every dependency exactly (the smallest fix, since the demo's `@arnilo/liveframe` line is rewritten per run anyway), or commit a lockfile and install with `--frozen-lockfile`, and do the same for the guide's install line.
+- Why: a release gate that resolves new versions on every run can fail a publish for a reason unrelated to the tagged code; pinning makes the gate reproducible without changing what it tests.
+
+## Generate the core 0.3.0 API baseline before 0.3.1
+
+- Section: Release process (public API)
+- Priority: P3
+- Source: plans/032-Phase-7-Part-S-Release-0-3-0.md Task 8, plans/evidence/032-impact-analysis.md F4
+- What: `docs/compatibility.md:33` promises that 0.3.x patches compare against a baseline generated from the `v0.3.0` tag. `scripts/release/api/` has `0.2.1.json`, `0.2.2.json`, `0.2.3.json`, `register-0.3.0.json` and both companion `0.3.0` baselines, but no core `0.3.0.json`; plan 032 Task 5 created the companions only. Generate the core baseline from `v0.3.0`, switch `api-stability.test.ts` to it with an empty `register-0.3.1.json`, and keep `register-0.3.0.json` as history.
+- Why: against `0.2.3` plus the 0.3.0 register, an `added` entry only has to be absent from the baseline and present now, so a later change to a declaration that 0.3.0 added passes unreviewed; a 0.3.0 baseline pins what shipped, as `0.2.3.json` pinned 0.2.3 for this release.

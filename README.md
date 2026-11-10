@@ -232,7 +232,7 @@ The client starts the server itself. The [MCP guide](docs/mcp.md) covers the nin
 
 ## Status
 
-Pre-1.0 (`0.3.0` is the release in preparation; `0.2.3` is the latest published). 0.3.0 may break 0.2.3: start with the [migration guide](docs/migration-0.3.md) and the [adopter notes](docs/adopters-0.3.md). The public API, the formats and the on-disk `fileStore` layout are described by the [compatibility policy](docs/compatibility.md); the [release notes](CHANGELOG.md) list the known limitations of this release.
+Pre-1.0 (`0.3.0` is the latest published, released 2026-11-10). 0.3.0 breaks some 0.2.3 contracts: start with the [migration guide](docs/migration-0.3.md) and the [adopter notes](docs/adopters-0.3.md). The public API, the formats and the on-disk `fileStore` layout are described by the [compatibility policy](docs/compatibility.md); the [release notes](CHANGELOG.md) list the known limitations of this release.
 
 ## Development
 

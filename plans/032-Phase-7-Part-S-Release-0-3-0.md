@@ -245,7 +245,7 @@ This plan implements the release step of roadmap Phase 7's 0.3.0. It changes no 
     - **Verified from the registry** and recorded in [`plans/evidence/032-release.md`](evidence/032-release.md): dist-tags `{ latest: 0.3.0, next: 0.3.0 }` on all three; provenance names `refs/tags/v0.3.0`; archive gates 15/2/2 steps on the published archives; installed API equal to the checkout and to every baseline; guide 3.2 s and demo 67/0 installing `0.3.0` from the registry; `npm audit signatures` verifies all three with `invalid: []` and `missing: []`. The local npm cache served a stale companion packument (`ETARGET`) until the signature check ran with an empty `--cache`.
     - Companion `latest` left the rc behind and both packages now carry provenance. Roadmap §3 records Phase 7's 0.3.0 as published; Task 8 remains.
 
-- [ ] Task 8: Analyze architectural impact and dispose of every finding
+- [x] Task 8: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional: the twelve impact areas swept against the whole 0.3.0 release in `plans/evidence/032-impact-analysis.md`; findings presented, dispositions recorded, executed (as 0.3.1 work) or backlogged.
     - Performance: references Task 3.
@@ -258,9 +258,20 @@ This plan implements the release step of roadmap Phase 7's 0.3.0. It changes no 
     - Options Considered: n/a.
     - Chosen Approach: the standard final task.
     - API Notes and Examples: n/a.
-    - Files to Create/Edit: `plans/evidence/032-impact-analysis.md`; `plans/backlog.md`.
+    - Files to Create/Edit: `plans/evidence/032-impact-analysis.md`; `plans/backlog.md`; `README.md` and `docs/adopters-0.3.md` (the two release-status corrections); `roadmap.md` and `plans/README.md` (plan status).
   - Test Cases to Write: n/a.
-  - Notes (executed <date>):
+  - Notes (executed 2026-11-10):
+    - [`plans/evidence/032-impact-analysis.md`](evidence/032-impact-analysis.md) sweeps all twelve areas against the whole release (plans 026–032, the three published packages, the registry archives and the outsider docs), not against one batch. Method: the six earlier impact analyses and the readiness review re-read; the release records re-read; `npm view` re-read today; the three manifests checked against spec §13 and all three archives packed; Task 3's `renderModule` seam and Task 4a's host-supplied libraries walked end to end against the four laws; the outsider docs grepped for release status and performance claims; `bun run check` after the changes.
+    - Release state re-verified from the registry today: `latest` and `next` are `0.3.0` on all three packages. All three archives carry `package.json`, `README.md` and `LICENSE` (the last is added by `stagePackage`, `scripts/release/publish-manifest.ts:38`, and asserted by `each_package_archive_matches_exports`); manifests are at one version with `~0.3.0` peers and `engines.bun >= 1.4.2`. The spec's §13 package, archive and nine-tool statements match the code (`docs/spec.md:1605-1614,1657`); no spec edit was needed.
+    - Five new release-level findings; **F1, F2 and F5 executed in this task, F3 and F4 backlogged P3**.
+      - **F1** `README.md:235` still called 0.3.0 "the release in preparation" and 0.2.3 "the latest published". Corrected to the published state.
+      - **F2** `docs/adopters-0.3.md:73` (row O1) claimed the release ran a quiet-host `bun run bench` with the load recorded. No `plans/evidence/032-bench.md` exists; the owner closed Task 3 on partial proof. The row now states what shipped (`scripts/bench-quiet.ts`, whole-host CPU below 10%, validator and streaming quiet and passing) and that the full proof was deferred, with the unconfirmed `template` gate named as the limitation.
+      - **F3 (backlog P3)** the demo gate and the guide's install line resolve React, React Aria Components, the MCP packages and types from floating ranges with no lockfile (`scripts/demo-test.ts:44,51`, `examples/demo-host/package.json:13-22`, `docs/getting-started.md:21`). A floated Playwright already failed publish attempt 1; only that one dependency is pinned. Backlogged as "Pin the demo and guide gates' dependencies".
+      - **F4 (backlog P3)** the 0.3.x promise names a core API baseline generated from `v0.3.0` (`docs/compatibility.md:33`), but `scripts/release/api/` holds only the two companion `0.3.0` baselines. Against `0.2.3` plus the 0.3.0 register, an `added` entry pins only that the name is absent in 0.2.3 and present now, so a later change to a declaration 0.3.0 added would pass. Backlogged as "Generate the core 0.3.0 API baseline before 0.3.1".
+      - **F5** the backlog entry "Let authoring, preview and codegen use package libraries" (`plans/backlog.md:735`) still said the session and MCP could not take libraries, which plan 032 Task 4a shipped on 2026-11-09 — before the readiness review was written, where 030 F5 is still counted `deferred`. The entry gained a status line and keeps only the `liveframe gen` half open; the correction is recorded in the impact analysis (the readiness review and release record stay the 2026-11-10 decision record).
+    - Areas with `None` or carried items: styling, interaction tiers, validation (no unvalidated new input), four laws (no new bypass; residual exposure unchanged and documented), conformance (carried 029 F6, 031 F7/F11, 028 F6), reference hosts (adoption is adopter-side; roadmap Phase 7's Done criterion recorded as open, not claimed). Performance cites Task 3: validator 9.7% and streaming 8.1% quiet and passing, seven stages loaded, `pack-libraries` fixed in code (30/30 after), `template` 5.44% unconfirmed, 36 acceptance rows pending. Carried findings need no new disposition: 48 from plans 026–031 (030 F5 corrected), 032 Task 4's and Task 4a's backlogged P2 entries, and the quiet-host proof.
+    - Bookkeeping: the plan's own Further Actions and Compromises Made filled; `plans/README.md` and `roadmap.md` §3 record plan 032 complete, with Phase 7's Done criterion stated as adopter-side and open. The `roadmap.md` line that said 24 deferred impact findings now names 030 F5 as delivered.
+    - Verification: focused `docs-wording`, `docs-links`, `docs-spec-structure`, `migration-guide`, `workspace`, `api-stability` and `acceptance-script` tests pass (35 tests); `timeout 1500 bun run check` passes build, gen:check, typecheck, lint and format with **1,769 pass, 4 skip, 0 fail** (160 files, 471.81 s of tests; load 12.4 → 7.2). No code, budget, format, schema or release was changed by this task; the executed fixes are documentation and backlog bookkeeping.
 
 ## Verification (whole plan)
 
@@ -273,8 +284,13 @@ This plan implements the release step of roadmap Phase 7's 0.3.0. It changes no 
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- **The quiet-host proof is still open.** The owner closed Task 3 on partial proof (2026-11-09, re-approved 2026-11-10), so `plans/evidence/032-bench.md` does not exist, the 36 bench-backed acceptance rows stay `pending`, and `templateRunner`'s 5% ratio gate is unconfirmed. No budget was relaxed. Re-run `bun scripts/bench-quiet.ts --out plans/evidence/032-bench.md` on an idle host and then `bun scripts/release/acceptance.ts --plans 026-031`.
+- **Two release-level findings are backlogged, not executed.** Pinning the demo and guide gates' dependencies (F3) and generating the core 0.3.0 API baseline (F4) are 0.3.1-shaped changes that would touch the release gates and the API comparison; until they land, a floated dependency can still fail a publish, and a post-0.3.0 change to a declaration 0.3.0 added can pass the API gate unchecked.
+- **The readiness review and release record still count 24 deferred impact findings**, including 030 F5, which plan 032 Task 4a delivered before the review was written. The correction is recorded in the impact analysis and the backlog entry rather than rewriting the 2026-11-10 decision record the owner approved.
+- **No new wall-clock measurement was taken** (load 12.4 → 7.2); Task 3's record remains the performance proof, and this task adds no performance claim.
 
 ## Further Actions
 
-- To be filled after task completion with improvements, rationale, and priority.
+- [ ] **Pin the demo and guide gates' dependencies** (backlog P3): exact versions in `examples/demo-host/package.json` and the guide's `bun add` line, or a committed lockfile with `--frozen-lockfile`. Rationale: a release gate that resolves new versions on every run can fail a publish for a reason unrelated to the tagged code (it already did, Playwright 1.65.0).
+- [ ] **Generate the core 0.3.0 API baseline before 0.3.1** (backlog P3): `scripts/release/api/0.3.0.json` from the `v0.3.0` tag, `api-stability.test.ts` switched to it with an empty `register-0.3.1.json`. Rationale: the compatibility page promises that gate, and only a 0.3.0 baseline pins what 0.3.0 added.
+- [ ] **Claim the quiet-host proof** (existing backlog entry, P1): run the sampler on an idle host and regenerate the acceptance log, which turns the 36 `pending` rows `pass` and confirms or reopens the `template` ratio gate.
