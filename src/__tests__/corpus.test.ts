@@ -64,6 +64,7 @@ const FORMAT_KINDS = {
   "style-record": ["invalid-document"],
   elements: [
     "not-found",
+    "unknown-name",
     "invalid-prop",
     "invalid-children",
     "unknown-component",

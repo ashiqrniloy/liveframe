@@ -1,5 +1,5 @@
 export { type Dependent, dependents } from "./dependents.ts";
-export { type DispatchResult, type Handled, handleIntent, type IntentArgs } from "./intent.ts";
+export { type DispatchResult, type Handled, type HandleResult, handleIntent, type IntentArgs } from "./intent.ts";
 export { type RenderArgs, renderPlacement } from "./render.ts";
 export type {
   Actions,

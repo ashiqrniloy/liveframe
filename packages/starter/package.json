@@ -45,6 +45,7 @@
       "default": "./dist/ui.definitions.gen.js"
     },
     "./catalog.json": "./dist/catalog.json",
+    "./catalog.digest.md": "./dist/catalog.digest.md",
     "./package.json": "./package.json"
   },
   "files": [
@@ -52,12 +53,14 @@
   ],
   "peerDependencies": {
     "@arnilo/liveframe": "~0.3.0",
+    "@internationalized/date": "^3.12.4",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-aria-components": "^1.22.0"
+    "react-aria-components": "^1.22.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@arnilo/liveframe": "workspace:*"
+    "@arnilo/liveframe": "workspace:*",
+    "@internationalized/date": "^3.12.4"
   },
   "sideEffects": false
 }

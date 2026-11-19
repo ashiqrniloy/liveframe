@@ -150,9 +150,24 @@ Measured in the Phase 0 proof on the artifact-faithful agent home (679 nodes, 50
 The author's code is about 2% of a render. The rest is library work done twice or needlessly, so a compiled language would not help: the tree is born in JavaScript, and moving it into WebAssembly would cost about as much as serialising it. Phase 1 must reach 3 µs per node. The levers, in order of payoff:
 
 1. **One pass, compiled per catalog** (spec §10). Today the build pass checks every prop and the validator walks the whole tree again, interpreting schemas, building regexes per string and stringifying the tree to count its bytes. Generated straight-line checks, run once while the tree is built, remove most of that. Input data is checked once, when it is resolved, not on every render. This belongs in Phases 1 and 2.
-2. **Budget against realistic sizes** (spec §7.1). The bench renders 50 rows; the real page shows a few at a time. Cost grows with node count, so widgets page or window their rows.
+2. **Budget against realistic sizes** (spec §7.1). The bench renders 50 rows; the real page shows a few at a time. Cost grows with node count, so widgets page or window their rows. A list longer than the node limit draws only the rows around the visible range ([pattern](sdk.md#lists-longer-than-the-node-limit)): a 20-row range change of a 200-row window is a 41-op patch, 13% of the tree's bytes, and commits in about 4 ms (`bench/streaming.bench.ts --production`).
 3. **Skip re-renders when inputs are unchanged** (spec §8). The host caches on widget version plus a hash of the inputs.
 4. **Patches or compression only when a measurement calls for them** (spec §9). 75 KB of repetitive JSON gzips small, and the spec already defers patches until measured.
+
+Request-time host pipeline measured in Plan 034 on the 204.6 KB `agent-home` code package (171.7 KB scenarios, 679 emitted nodes, `inProcessRunner()`, `verifiedPackages()` with deeply frozen install documents; Linux, Bun 1.4.4 under concurrent host load ~13–17, `bun --conditions liveframe:source bench/host.bench.ts`, CPU time):
+
+| Step | Cost (`memoryStore` / `fileStore`) |
+|---|---|
+| `renderPlacement`, uncached | 39.6 ms / 29.6 ms |
+| `renderPlacement`, `verified` cache hit | 14.0 ms / 15.4 ms |
+| `renderPlacement`, skipped (same `renderKey`) | 4.6 ms / 3.9 ms |
+| `loadPlacement`, uncached | 16.0 ms / 18.1 ms |
+| `loadPlacement`, `verified` cache hit (`sameJson`) | 4.5 ms / 2.4 ms |
+| Split: store reads (`getPlacement`, `getPackage`, `getState`) | 1.41 ms / 0.78 ms |
+| Split: `verifyStoredPackage` + inputs (`verified` hit / `sameJson`) | 0.47 ms (`sameJson`: 0.26 ms) |
+| Split: `bindSources` + fit | 0.43 ms |
+| Split: `renderKey` (single-pass streaming SHA-256) | 0.51 ms |
+| Split: `inProcessRunner().render` + host `validateTree` + `diffTrees` | 4.45 ms + 2.64 ms + 1.32 ms |
 
 ## Who owns what
 

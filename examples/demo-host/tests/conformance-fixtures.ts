@@ -1,4 +1,4 @@
-import type { UiNode, UiTree } from "@arnilo/liveframe";
+import type { TreeIntent, UiNode, UiTree } from "@arnilo/liveframe";
 import type { BrowserFixtures } from "@arnilo/liveframe/conformance/react";
 import type { Page } from "playwright";
 import { notify, pageOptions, tree } from "../conformance-host.ts";
@@ -91,7 +91,60 @@ function stateFixtures(): NonNullable<BrowserFixtures["states"]> {
   return result;
 }
 
+const screen = (surfaceId: string, children: UiNode[]) =>
+  tree(surfaceId, { id: "root", kind: "stack", props: {}, children });
+const button = (id: string, label: string, onPress: TreeIntent): UiNode => ({
+  id,
+  kind: "button",
+  props: { label },
+  events: { onPress },
+});
+const gated: UiNode = { id: "root/shown", kind: "text", props: { text: "Shown" }, when: { $path: "local.open" } };
+const shown = (page: Page) => page.getByText("Shown", { exact: true });
+const click = (name: string) => (page: Page) => page.getByRole("button", { name, exact: true }).click();
+
 export const fixtures = {
+  local: {
+    tree: screen("local", [
+      button("root/show", "Show", { type: "setLocal", key: "open", value: true }),
+      button("root/hide", "Hide", { type: "setLocal", key: "open", value: false }),
+      gated,
+    ]),
+    show: click("Show"),
+    hide: click("Hide"),
+    gated: shown,
+  },
+  compound: {
+    tree: screen("compound", [
+      button("root/save", "Save", { ...notify("saved"), local: [{ key: "open", value: true }] }),
+      gated,
+    ]),
+    act: click("Save"),
+    intents: [notify("saved")],
+    gated: shown,
+  },
+  fromLocal: {
+    tree: screen("from-local", [
+      {
+        id: "root/title",
+        kind: "textField",
+        props: { label: "Title", value: "" },
+        events: { onChange: { type: "setLocal", key: "title" } },
+      },
+      button("root/save", "Save", { type: "action", name: "demo.notify", args: {}, fromLocal: { message: "title" } }),
+    ]),
+    async act(page: Page) {
+      // The field emits on blur, so clicking Save writes the title before the press.
+      await page.getByRole("textbox", { name: "Title" }).fill("draft");
+      await click("Save")(page);
+    },
+    intents: [notify("draft")],
+  },
+  focus: {
+    tree: interaction,
+    next: { ...interaction, revision: 2, focus: "root/draft" },
+    target: draftBox,
+  },
   interactions: [
     {
       tree: interaction,

@@ -92,7 +92,7 @@ export function checkModule(
         node.source
       ) {
         const specifier = String(node.source.value);
-        // A library import is an import declaration of `liveframe:lib/<id>@<version>` (plan 030 Task 9); the
+        // A library import is an import declaration of `liveframe:lib/<id>@<version>` (spec §7.3); the
         // bundler and the verifier then check its names and pin, so a re-export of one stays forbidden.
         const library = node.type === "ImportDeclaration" && parseLibrarySpecifier(specifier);
         if (!sdkSpecifierSet.has(specifier) && !library && !(allowRelative && /^\.\.?\//.test(specifier)))
@@ -240,7 +240,7 @@ export function bundle(draft: {
 }
 
 /**
- * `bundle` for a package that may import libraries (plan 030 Task 9): `libraries` says what each
+ * `bundle` for a package that may import libraries (spec §7.3): `libraries` says what each
  * supplied library exports, `exports` names what this entry exports besides its default (a library
  * package's `manifest.exports`). Library code is never copied: each library becomes one header
  * line after the SDK lines and each imported name a read of that binding.

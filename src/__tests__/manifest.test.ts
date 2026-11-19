@@ -277,7 +277,7 @@ test("published_capabilities_and_manifest_match_structure", () => {
     expect(oracle({ ...value, extra: true })).toBe(false);
   }
 });
-test("agent_home_manifest_validates_under_two_milliseconds", () => {
+test("agent_home_manifest_validates_linearly", () => {
   // Mirrors the proof contracts; Task 8 supplies the reproducible export fixture.
   const id = str({ maxLength: 128, pattern: "^.+$" });
   const cursor = str({ maxLength: 128 });
@@ -322,10 +322,28 @@ test("agent_home_manifest_validates_under_two_milliseconds", () => {
     },
   };
   expect(validateCapabilities(installed.capabilities).ok).toBe(true);
-  for (let i = 0; i < 20; i++) validateManifest(agentHome, installed);
-  const start = performance.now();
+  const countReads = (count: number) => {
+    let reads = 0;
+    const sourcesObj = Object.fromEntries(
+      Array.from({ length: count }, (_, i) => [
+        `q${i}`,
+        { source: "tasks.queue", params: { cursor: { from: "state", path: "cursors.tasks" }, limit: "50" } },
+      ]),
+    );
+    const sources = new Proxy(sourcesObj, {
+      get(target, prop, receiver) {
+        if (typeof prop === "string" && prop.startsWith("q")) reads++;
+        return Reflect.get(target, prop, receiver);
+      },
+    });
+    expect(validateManifest({ ...agentHome, sources }, installed).ok).toBe(true);
+    return reads;
+  };
   expect(validateManifest(agentHome, installed).ok).toBe(true);
-  expect(performance.now() - start).toBeLessThan(2);
+  const small = countReads(10);
+  const large = countReads(40);
+  expect(small).toBeGreaterThan(0);
+  expect(large).toBeLessThanOrEqual(small * 5);
 });
 
 test("source_literals_validate_nested_values_and_bindings_stay_closed", () => {
@@ -412,15 +430,36 @@ test("catalog_and_capability_patterns_still_install", () => {
   expect(validateManifest(doc, { catalog, capabilities: patterned }).ok).toBe(true);
 });
 
-test("redos_manifest_fails_fast", () => {
-  // "^(a+)+$" against 40 "a"s takes longer than any run would; rejection precedes matching.
-  const doc = { ...manifest, state: patternInput.state, initialState: { evil: `${"a".repeat(40)}!` } };
-  const start = performance.now();
-  const result = validateManifest(doc, context);
-  const elapsed = performance.now() - start;
-  expect(result.ok).toBe(false);
-  if (!result.ok) expect(result.errors.map((error) => error.pointer)).toContain("/state/properties/evil/pattern");
-  expect(elapsed).toBeLessThan(50);
+test("redos_manifest_rejects_before_matching", () => {
+  // Rejection of `pattern` in schema checks must happen before `compileSchema` matches `initialState`.
+  const countReads = (state: Manifest["state"]) => {
+    let reads = 0;
+    const initialState = new Proxy(
+      { evil: `${"a".repeat(40)}!` },
+      {
+        get(target, prop, receiver) {
+          if (prop === "evil") reads++;
+          return Reflect.get(target, prop, receiver);
+        },
+      },
+    );
+    const result = validateManifest({ ...manifest, sources: {}, actions: [], state, initialState }, context);
+    return { result, reads };
+  };
+  const rejected = countReads(patternInput.state);
+  expect(rejected.result.ok).toBe(false);
+  if (!rejected.result.ok) {
+    expect(rejected.result.errors.map((error) => error.pointer)).toContain("/state/properties/evil/pattern");
+  }
+  const matched = countReads({
+    type: "object",
+    properties: { evil: str({ maxLength: 64 }) },
+    required: ["evil"],
+    additionalProperties: false,
+  });
+  expect(matched.result.ok).toBe(true);
+  // Json check + transport shape check read `evil` twice; `compileSchema` adds a 3rd read only when state runs.
+  expect(rejected.reads).toBeLessThan(matched.reads);
 });
 
 test("published_manifest_schema_rejects_patterns", () => {

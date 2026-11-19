@@ -1,0 +1,148 @@
+{
+  "format": "liveframe-capabilities/1",
+  "actions": {},
+  "sources": {
+    "rows.read": {
+      "description": "Rows of a slow source.",
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "result": {
+        "discriminator": "status",
+        "mapping": {
+          "ok": {
+            "type": "object",
+            "properties": {
+              "checkedAt": {
+                "maxLength": 128,
+                "type": "string"
+              },
+              "value": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "maxLength": 80,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "title"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          "unauthorized": {
+            "type": "object",
+            "properties": {
+              "reason": {
+                "maxLength": 500,
+                "type": "string"
+              },
+              "value": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "maxLength": 80,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "title"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          },
+          "unavailable": {
+            "type": "object",
+            "properties": {
+              "reason": {
+                "maxLength": 500,
+                "type": "string"
+              },
+              "value": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "maxLength": 80,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "title"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          },
+          "stale": {
+            "type": "object",
+            "properties": {
+              "reason": {
+                "maxLength": 500,
+                "type": "string"
+              },
+              "value": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "maxLength": 80,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "title"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          },
+          "failed": {
+            "type": "object",
+            "properties": {
+              "reason": {
+                "maxLength": 500,
+                "type": "string"
+              },
+              "value": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "maxLength": 80,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "title"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          },
+          "pending": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  }
+}

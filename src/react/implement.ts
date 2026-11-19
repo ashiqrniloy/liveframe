@@ -1,30 +1,6 @@
 import type { ComponentType, CSSProperties, ReactNode } from "react";
-import type { Definition, Infer, Json, LanguageSchema } from "../index.ts";
-
-type Props<D extends Definition> = string extends keyof D["props"]["properties"]
-  ? Record<string, Json>
-  : Infer<D["props"]>;
-
-/**
- * Raising an event returns a promise that settles when the host's does, when `onIntent` returns one,
- * so a primitive can mark itself busy until the host finishes; otherwise it returns `undefined`, as
- * in 0.2.1. The host's value is dropped, and a rejection is contained, never thrown at the window.
- */
-type Emit<D extends Definition> = string extends keyof D["events"]
-  ? (event: string, value?: Json) => Promise<void> | undefined
-  : (
-      ...args: {
-        [E in keyof D["events"] & string]: D["events"][E]["carries"] extends "string"
-          ? [event: E, value: string]
-          : D["events"][E]["carries"] extends "boolean"
-            ? [event: E, value: boolean]
-            : D["events"][E]["carries"] extends "number" | "integer"
-              ? [event: E, value: number]
-              : D["events"][E]["carries"] extends { readonly object: infer S extends LanguageSchema }
-                ? [event: E, value: Infer<S>]
-                : [event: E];
-      }[keyof D["events"] & string]
-    ) => Promise<void> | undefined;
+import type { Definition } from "../index.ts";
+import type { Emit, Events, Props } from "../surface/implementation.ts";
 
 export type Item = ImplementationProps & {
   readonly id: string;
@@ -44,13 +20,7 @@ export type ImplementationProps<D extends Definition = Definition, P = Props<D>>
   slot(name: D["slots"][number]): string;
   readonly style: CSSProperties;
   readonly emit: Emit<D>;
-  readonly events: {
-    readonly [E in keyof D["events"]]?: Readonly<{
-      type: "action" | "setLocal" | "setState";
-      confirm: boolean;
-      irreversible: boolean;
-    }>;
-  };
+  readonly events: Events<D>;
   readonly children: ReactNode;
   readonly items: readonly Item[];
   readonly portal: HTMLElement | undefined;

@@ -10,10 +10,13 @@ import { queue } from "../../internal.ts";
 import { sha256 } from "../../pack/hash.ts";
 import { isRecord } from "../../schema.ts";
 import type { Store } from "../index.ts";
+import { sameState } from "../same.ts";
 import { assertScope } from "../scope.ts";
 
 // Serialize package checks and writes across store instances in this writing process.
 const packages = queue();
+// Serialize state compare-and-set, so a check and its write are never interleaved in this process.
+const states = queue();
 
 // A file name's encoded form, keeping "name.json" inside NAME_MAX (255 bytes).
 const ENCODED_LIMIT = 200;
@@ -70,7 +73,7 @@ async function write(file: string, source: string): Promise<void> {
   }
 }
 
-/** One JSON file per record, replaced atomically. Assumes one writing process. */
+/** One JSON file per record, replaced atomically. Assumes one writing process; `putStateIf` is atomic within it. */
 export function fileStore(dir: string): Store {
   const path = (kind: string, ...keys: string[]) => join(dir, kind, `${keys.map(fileName).join("/")}.json`);
   const statePath = (id: string, scope: string) => {
@@ -133,6 +136,15 @@ export function fileStore(dir: string): Store {
     },
     async getState(id, scope) {
       return read<Json>(statePath(id, scope));
+    },
+    putStateIf(id, scope, expected, next) {
+      const file = statePath(id, scope);
+      const source = JSON.stringify(next);
+      return states(async () => {
+        if (!sameState(await read<Json>(file), expected)) return false;
+        await write(file, source);
+        return true;
+      });
     },
     putStyle: (style) => write(path("styles", style.kind, style.id, style.version), JSON.stringify(style)),
     getStyle: (kind, id, version) => read<StyleRecord>(path("styles", kind, id, version)),

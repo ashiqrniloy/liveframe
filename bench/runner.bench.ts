@@ -1,15 +1,18 @@
 import { strict as assert } from "node:assert";
 import { cpus, loadavg, platform, release } from "node:os";
+import { compileValidator } from "@arnilo/liveframe";
 import type { WidgetPackage } from "@arnilo/liveframe/pack";
 import { inProcessRunner, type Runner, templateRunner } from "@arnilo/liveframe/preview";
 import { workerRunner } from "@arnilo/liveframe/preview/worker";
-import { quickjsRunner } from "../packages/runner-quickjs/src/index.ts";
+import { render } from "@arnilo/liveframe/sdk";
 import {
   codePackages,
   renderOptions,
   templatePackage,
   widget,
 } from "../packages/runner-quickjs/src/__tests__/fixtures.ts";
+import { quickjsRunner } from "../packages/runner-quickjs/src/index.ts";
+import { loadModule } from "../src/preview/load.ts";
 import { budget, metric } from "./metrics.ts";
 
 // Runner cost (plan 031 Task 5; budgets from decision-logs/2026-11-08-2310-isolated-runner-starter-and-workspace.md).
@@ -119,7 +122,64 @@ console.log(
   `quickjs hold, kill, recover and next render (timeoutMs 50): median ${recovery.toFixed(1)} ms (budget 300)`,
 );
 
+// Plan 033 T9: inProcessRunner warm overhead over direct `render()` in CPU time (budget <= 0.1 ms/render).
+let inProcessOverhead = 0;
+{
+  const runner = inProcessRunner();
+  const loaded = await loadModule(smallest.code as string, smallest.hash);
+  if (typeof loaded.default !== "function") throw new Error("Expected a widget");
+  const entry = loaded.default as (props: unknown) => unknown;
+  const validator = compileValidator({ ...options, manifest: smallest.manifest });
+  for (let i = 0; i < 50; i++) {
+    const d = render((props) => entry(props) as never, smallInputs, { ...options, validator });
+    assert(d.ok, "direct render failed");
+    const r = await runner.render(smallest, smallInputs as never, options);
+    assert(r.ok, "inProcessRunner render failed");
+  }
+  const diffs: number[] = [];
+  const cpuMs = async (fn: () => Promise<void> | void) => {
+    const start = process.cpuUsage();
+    await fn();
+    const used = process.cpuUsage(start);
+    return (used.user + used.system) / 1000;
+  };
+  for (let batch = 0; batch < 3; batch++) {
+    let direct = 0;
+    let throughRunner = 0;
+    for (let i = 0; i < 50; i++) {
+      const runDirect = async () => {
+        direct += await cpuMs(() => {
+          const d = render((props) => entry(props) as never, smallInputs, { ...options, validator });
+          assert(d.ok, "direct render failed");
+        });
+      };
+      const runRunner = async () => {
+        throughRunner += await cpuMs(async () => {
+          const r = await runner.render(smallest, smallInputs as never, options);
+          assert(r.ok, "inProcessRunner render failed");
+        });
+      };
+      if (i % 2 === 0) {
+        await runDirect();
+        await runRunner();
+      } else {
+        await runRunner();
+        await runDirect();
+      }
+    }
+    diffs.push((throughRunner - direct) / 50);
+  }
+  diffs.sort((a, b) => a - b);
+  inProcessOverhead = diffs[1] ?? 0;
+  metric("runner.inProcess.overheadCpuMs", inProcessOverhead);
+  console.log(`inProcess warm median CPU overhead: ${inProcessOverhead.toFixed(4)} ms/render (budget <= 0.1 ms)`);
+}
+
 const get = (key: string) => figures[key] as { median: number };
+budget(
+  inProcessOverhead <= 0.1,
+  `inProcess warm median CPU overhead ${inProcessOverhead.toFixed(4)} ms exceeds 0.1 ms`,
+);
 budget(
   get("quickjsNone.agent-home").median <= 110,
   `quickjs none agent-home ${get("quickjsNone.agent-home").median.toFixed(1)} ms exceeds 110 ms`,
@@ -129,12 +189,12 @@ budget(
   `quickjs none smallest ${get("quickjsNone.smallest").median.toFixed(1)} ms exceeds 60 ms`,
 );
 budget(
-  get("quickjsPackage.agent-home").median <= 60,
-  `quickjs package agent-home ${get("quickjsPackage.agent-home").median.toFixed(1)} ms exceeds 60 ms`,
+  get("quickjsPackage.agent-home").median <= 50,
+  `quickjs package agent-home ${get("quickjsPackage.agent-home").median.toFixed(1)} ms exceeds 50 ms`,
 );
 budget(
-  get("quickjsPackage.smallest").median <= 8,
-  `quickjs package smallest ${get("quickjsPackage.smallest").median.toFixed(1)} ms exceeds 8 ms`,
+  get("quickjsPackage.smallest").median <= 4,
+  `quickjs package smallest ${get("quickjsPackage.smallest").median.toFixed(1)} ms exceeds 4 ms`,
 );
 budget(coldStart <= 60, `quickjs child cold start ${coldStart.toFixed(1)} ms exceeds 60 ms`);
 budget(recovery <= 300, `quickjs recovery ${recovery.toFixed(1)} ms exceeds 300 ms`);

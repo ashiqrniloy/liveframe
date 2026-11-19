@@ -166,3 +166,23 @@ test("suite_with_contrast_option_fails_on_finding", async () => {
   const raised = strict.find((entry) => entry.name === "every_recipe_pair_meets_contrast");
   await expect(raised?.run()).rejects.toBeInstanceOf(ConformanceFailure);
 });
+
+test("design_system_suite_checks_motion_values", async () => {
+  const motion = (value: unknown) => ({
+    ...certified,
+    recipes: {
+      ...certified.recipes,
+      "text.default.root.rest": {
+        ...certified.recipes["text.default.root.rest"],
+        transitionDuration: "motion.fast",
+        motion: value,
+      },
+    },
+  });
+  const cases = designSystemSuite({ ...input, designSystems: [motion("fade-move"), rack] });
+  await Promise.all(cases.map((c) => c.run()));
+  const failure = await fails("every_design_system_installs", { designSystems: [motion("slide")] });
+  expect(failure.details).toContainEqual(
+    expect.objectContaining({ kind: "invalid-document", pointer: "/recipes/text.default.root.rest/motion" }),
+  );
+});

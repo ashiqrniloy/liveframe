@@ -18,6 +18,7 @@ const releaseSync = releaseSyncModule as unknown as Extract<
 export type Job = {
   readonly code: string;
   readonly libraries: Readonly<Record<string, string>>;
+  readonly config: string;
   readonly request: string;
   readonly limits: Limits;
   /** Keep the runtime under this key for the next render (`reuse: "package"`). */
@@ -28,13 +29,20 @@ export type Outcome = { readonly json: string } | { readonly error: string };
 
 /**
  * The entry module: it holds the render function in the sandbox's own global. It is the only code that
- * touches the request, as one JSON string in and one out; nothing of the host is exposed to the realm.
+ * touches the request, as JSON strings in and one out; nothing of the host is exposed to the realm.
+ * `config` (`{ catalog, capabilities }`) is parsed only when its text changes, keeping those objects'
+ * identities stable in a kept runtime so `runner-kit`'s validator cache hits.
  */
 const entry = `import { renderModule } from "liveframe:kit";
 import widget from "liveframe:pkg";
-globalThis.__render = (text) => {
+let lastConfig, parsed;
+globalThis.__render = (config, text) => {
+  if (config !== lastConfig) {
+    parsed = JSON.parse(config);
+    lastConfig = config;
+  }
   const request = JSON.parse(text);
-  return JSON.stringify(renderModule(widget, request.inputs, request.options));
+  return JSON.stringify(renderModule(widget, request.inputs, { ...parsed, ...request.options }));
 };`;
 
 /** One QuickJS runtime in its own wasm instance, with the package loaded. */
@@ -56,7 +64,7 @@ export type Engine = {
  * The QuickJS side of the runner. `wasm` is compiled once and shared; every sandbox gets its own
  * instance of it, so no heap is shared between renders. `kit` is the runner-kit bundle's text.
  *
- * Rules (decision 2026-11-08-2310): `executePendingJobs()` is never called, so a hostile microtask
+ * Rules: `executePendingJobs()` is never called, so a hostile microtask
  * loop never runs and a package whose top-level `await` does not settle is a failed render; a
  * sandbox whose engine throws to the host, `dispose()` included, is dropped and never reused.
  */
@@ -112,9 +120,11 @@ export function createEngine(wasm: WebAssembly.Module, kit: string, options: { m
     const { runtime, context } = sandbox;
     runtime.setInterruptHandler(shouldInterruptAfterDeadline(Date.now() + job.limits.timeoutMs));
     const render = context.getProp(context.global, "__render");
+    const config = context.newString(job.config);
     const text = context.newString(job.request);
-    const result = context.callFunction(render, context.undefined, text);
+    const result = context.callFunction(render, context.undefined, config, text);
     text.dispose();
+    config.dispose();
     render.dispose();
     if (result.error) return { error: describe(context, result.error) };
     const value = result.value;

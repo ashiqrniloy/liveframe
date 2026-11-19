@@ -29,6 +29,11 @@ const capabilities = value(
     sources: {
       "notes.read": { description: "A note", params: obj({}), result: str({ maxLength: 20 }) },
       "tasks.read": { description: "A task", params: obj({}), result: sourceOutcome(str({ maxLength: 20 })) },
+      "rows.read": {
+        description: "Rows",
+        params: obj({}),
+        result: sourceOutcome(str({ maxLength: 20 }), { pending: true }),
+      },
     },
   }),
 );
@@ -228,6 +233,34 @@ test("revision_floor_used_without_previous", async () => {
   expect(next.revision).toBe(42);
 });
 
+test("revision_floor_below_previous_still_advances", async () => {
+  const store = await installed({}, {});
+  const previous = served(await renderPlacement(base(store, spyRunner(), { revision: 8 })));
+  expect(previous.revision).toBe(8);
+  const next = served(
+    await renderPlacement(base(store, spyRunner(), { state: { label: "b" }, previous, revision: 5 })),
+  );
+  expect(next.revision).toBe(9);
+  expect(next.tree.revision).toBe(9);
+  expect(next.patch?.base).toBe(8);
+  const equal = served(
+    await renderPlacement(base(store, spyRunner(), { state: { label: "c" }, previous: next, revision: 9 })),
+  );
+  expect(equal.revision).toBe(10);
+  expect(equal.patch?.base).toBe(9);
+});
+
+test("revision_floor_above_previous_is_used", async () => {
+  const store = await installed({}, {});
+  const previous = served(await renderPlacement(base(store, spyRunner(), { revision: 8 })));
+  const next = served(
+    await renderPlacement(base(store, spyRunner(), { state: { label: "b" }, previous, revision: 41 })),
+  );
+  expect(next.revision).toBe(41);
+  expect(next.tree.revision).toBe(41);
+  expect(next.patch?.base).toBe(8);
+});
+
 test("events_carry_no_values", async () => {
   const events: HostEvent[] = [];
   const store = await installed(
@@ -299,4 +332,94 @@ test("migrated_state_is_served_and_reported_without_values", async () => {
   expect(out.reset).toBeUndefined();
   expect(events.map((e) => e.type)).toEqual(["state-migrated"]);
   expect(JSON.stringify(events)).not.toContain("secret");
+});
+
+test("render_placement_forwards_run_options_limits_to_host_validation", async () => {
+  const store = await installed({}, {});
+  const largeRunner = spyRunner((result) => {
+    const tree = value(result as Result<{ root: object }>);
+    const children = Array.from({ length: 5_000 }, (_, index) => ({ ...tree.root, id: `root/${index}` }));
+    return { ok: true, value: { ...tree, root: { id: "root", kind: "box", props: {}, children } } };
+  });
+  const rejected = await renderPlacement(base(store, largeRunner));
+  expect(errorsOf(rejected)[0]?.kind).toBe("limit-exceeded");
+
+  const accepted = served(
+    await renderPlacement(base(store, largeRunner, { runOptions: { limits: { nodes: 6_000 } } })),
+  );
+  expect(accepted.tree.root.children?.length).toBe(5_000);
+});
+
+test("pending_answer_becomes_the_envelope_when_declared", async () => {
+  const runner = spyRunner();
+  const events: HostEvent[] = [];
+  const store = await installed({ rows: "rows.read" }, { rows: { status: "ok", value: "x" } });
+  const resolve = ok({ rows: { ok: false, reason: "pending" } });
+  served(await renderPlacement(base(store, runner, { resolve, onEvent: (event: HostEvent) => events.push(event) })));
+  expect(runner.calls[0]?.data).toEqual({ rows: { status: "pending" } });
+  expect(events).toEqual([{ type: "source-pending", placementId: "p1", alias: "rows", source: "rows.read" }]);
+});
+
+test("pending_answer_fails_the_render_when_not_declared", async () => {
+  const events: HostEvent[] = [];
+  const runner = spyRunner();
+  for (const [alias, source] of [
+    ["task", "tasks.read"],
+    ["note", "notes.read"],
+  ] as const) {
+    events.length = 0;
+    const store = await installed(
+      { [alias]: source },
+      { [alias]: source === "notes.read" ? "x" : { status: "ok", value: "x" } },
+    );
+    const resolve = ok({ [alias]: { ok: false, reason: "pending" } });
+    const result = await renderPlacement(
+      base(store, runner, { resolve, onEvent: (event: HostEvent) => events.push(event) }),
+    );
+    expect(errorsOf(result)).toContainEqual(
+      expect.objectContaining({ kind: "render-failed", pointer: `/data/${alias}` }),
+    );
+    expect(events.map((event) => event.type)).toEqual(["source-pending", "render-failed"]);
+  }
+  expect(runner.calls).toHaveLength(0);
+});
+
+test("pending_answer_raises_source_pending_not_source_failed", async () => {
+  const events: HostEvent[] = [];
+  const store = await installed({ rows: "rows.read" }, { rows: { status: "ok", value: "x" } });
+  const resolve = ok({ rows: { ok: false, reason: "pending", message: "SECRET-QUEUE-DEPTH" } as never });
+  const runner = spyRunner();
+  served(await renderPlacement(base(store, runner, { resolve, onEvent: (event: HostEvent) => events.push(event) })));
+  expect(events.map((event) => event.type)).toEqual(["source-pending"]);
+  expect(JSON.stringify([events, runner.calls])).not.toContain("SECRET");
+});
+
+test("pending_answer_with_a_value_is_treated_as_failed", async () => {
+  const events: HostEvent[] = [];
+  const runner = spyRunner();
+  const store = await installed({ rows: "rows.read" }, { rows: { status: "ok", value: "x" } });
+  const resolve = ok({ rows: { ok: false, reason: "pending", value: "SMUGGLED" } as never });
+  served(await renderPlacement(base(store, runner, { resolve, onEvent: (event: HostEvent) => events.push(event) })));
+  expect(runner.calls[0]?.data).toEqual({ rows: { status: "failed" } });
+  expect(events).toEqual([
+    { type: "source-failed", placementId: "p1", alias: "rows", source: "rows.read", reason: "failed" },
+  ]);
+});
+
+test("pending_then_resolved_is_not_skipped", async () => {
+  const runner = spyRunner();
+  const store = await installed({ rows: "rows.read" }, { rows: { status: "ok", value: "x" } });
+  const first = served(
+    await renderPlacement(base(store, runner, { resolve: ok({ rows: { ok: false, reason: "pending" } }) })),
+  );
+  const resolved = ok({ rows: { ok: true, value: { status: "ok", value: "ready" } } });
+  const second = served(await renderPlacement(base(store, runner, { resolve: resolved, previous: first })));
+  expect(second).not.toBe(first);
+  expect(second.key).not.toBe(first.key);
+  expect(second.revision).toBe(2);
+  expect(second.patch?.base).toBe(1);
+  expect(runner.calls.map((call) => call.data)).toEqual([
+    { rows: { status: "pending" } },
+    { rows: { status: "ok", value: "ready" } },
+  ]);
 });

@@ -1,6 +1,9 @@
-import { type Implementation, implement } from "@arnilo/liveframe/react";
-import { createElement, type CSSProperties, type FormEvent, type ReactNode, useState } from "react";
+import { valueVar } from "@arnilo/liveframe/css";
+import { type Implementation, type ImplementationProps, implement } from "@arnilo/liveframe/react";
+import { type CSSProperties, createElement, type FormEvent, type ReactNode, useEffect, useRef } from "react";
 import * as Aria from "react-aria-components";
+import { content } from "./content.tsx";
+import { controls } from "./controls.tsx";
 import {
   Box,
   Button,
@@ -28,17 +31,7 @@ import {
   TextField,
   Tooltip,
 } from "./ui.definitions.gen.ts";
-
-// A host-owned value follows the incoming one when the widget sends a new one, and is local between renders.
-function useValue<T>(incoming: T) {
-  const [value, setValue] = useState(incoming);
-  const [previous, setPrevious] = useState(incoming);
-  if (previous !== incoming) {
-    setPrevious(incoming);
-    setValue(incoming);
-  }
-  return [value, setValue] as const;
-}
+import { useValue } from "./use-value.ts";
 
 const tags = {
   section: "section",
@@ -104,6 +97,86 @@ const icon = (name: string | undefined, className: string) =>
     </span>
   ) : null;
 
+/**
+ * A scrolling region. With `itemCount` and `itemSize` it windows a long collection of fixed-size rows: its children are
+ * the drawn slice starting at `itemStart`, block padding inside the viewport reserves the rows before and after it, and
+ * `onRange` reports the visible rows when they come within `step` rows of the slice's edge. Lengths come from the
+ * design value `itemSize` names, so the tree carries no pixel value (law 3).
+ */
+function ScrollView({ props, slot, style, children, items, emit, events }: ImplementationProps<typeof Scroll>) {
+  const viewport = useRef<HTMLElement>(null);
+  const size = props.itemCount === undefined ? undefined : props.itemSize;
+  const count = props.itemCount ?? 0;
+  const start = Math.min(props.itemStart ?? 0, count);
+  const slice = { start, drawn: items.length, count, step: props.step ?? 20, size, emit, bound: !!events.onRange };
+  const latest = useRef(slice);
+  latest.current = slice;
+  const windowed = size !== undefined;
+
+  useEffect(() => {
+    const element = viewport.current;
+    if (!windowed || !element) return;
+    let frame = 0;
+    let reported = "";
+    const check = () => {
+      frame = 0;
+      const { start, drawn, count, step, size, emit, bound } = latest.current;
+      // Read on every check, so a design-system switch that changes the row size takes effect at once.
+      const row = size ? Number.parseFloat(getComputedStyle(element).getPropertyValue(valueVar(size))) : 0;
+      if (!bound || !(row > 0)) return;
+      const first = Math.min(count, Math.floor(element.scrollTop / row));
+      const end = Math.min(count, Math.ceil((element.scrollTop + element.clientHeight) / row));
+      const near = (start > 0 && first < start + step) || (start + drawn < count && end > start + drawn - step);
+      const range = `${first}:${end}`;
+      if (!near || range === reported) return;
+      reported = range;
+      emit("onRange", { start: first, end });
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(check);
+    };
+    element.addEventListener("scroll", schedule, { passive: true });
+    schedule();
+    return () => {
+      element.removeEventListener("scroll", schedule);
+      cancelAnimationFrame(frame);
+    };
+  }, [windowed]);
+
+  const reserve = (rows: number) => `calc(${rows} * var(${valueVar(size ?? "")}))`;
+  return (
+    <div className={slot("root")} style={style}>
+      <section
+        ref={viewport}
+        aria-label={props.label}
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard users must be able to focus and scroll this named region.
+        tabIndex={0}
+        className={slot("viewport")}
+        style={{
+          overflowX: props.axis === "vertical" ? "hidden" : "auto",
+          overflowY: props.axis === "horizontal" ? "hidden" : "auto",
+          // The padding replaces removed rows exactly, so the engine's own scroll anchoring would correct twice.
+          ...(windowed ? { overflowAnchor: "none" } : {}),
+        }}
+      >
+        {windowed ? (
+          // An inner block holds the padding: on the viewport, `border-box` sizing would let it override the height cap.
+          <div
+            style={{
+              paddingBlockStart: reserve(start),
+              paddingBlockEnd: reserve(Math.max(0, count - start - items.length)),
+            }}
+          >
+            {children}
+          </div>
+        ) : (
+          children
+        )}
+      </section>
+    </div>
+  );
+}
+
 /** One React implementation for every primitive of the starter catalog, built on React Aria Components. */
 export const implementations: Implementation[] = [
   implement(Box, ({ props, slot, style, children }) =>
@@ -121,22 +194,7 @@ export const implementations: Implementation[] = [
   implement(Stack, ({ props, slot, style, children }) => layout(props, slot("root"), style, children)),
   implement(Inline, ({ props, slot, style, children }) => layout(props, slot("root"), style, children)),
   implement(Grid, ({ props, slot, style, children }) => layout(props, slot("root"), style, children)),
-  implement(Scroll, ({ props, slot, style, children }) => (
-    <div className={slot("root")} style={style}>
-      <section
-        aria-label={props.label}
-        // biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard users must be able to focus and scroll this named region.
-        tabIndex={0}
-        className={slot("viewport")}
-        style={{
-          overflowX: props.axis === "vertical" ? "hidden" : "auto",
-          overflowY: props.axis === "horizontal" ? "hidden" : "auto",
-        }}
-      >
-        {children}
-      </section>
-    </div>
-  )),
+  implement(Scroll, ScrollView),
   implement(Separator, ({ props, slot, style }) => (
     <Aria.Separator orientation={props.orientation ?? "horizontal"} className={slot("root")} style={style} />
   )),
@@ -460,4 +518,6 @@ export const implementations: Implementation[] = [
       {props.count === undefined ? null : <span className={slot("count")}>{props.count}</span>}
     </Aria.Tab>
   )),
+  ...controls,
+  ...content,
 ];

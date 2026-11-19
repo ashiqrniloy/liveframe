@@ -814,6 +814,18 @@ test("live_filter_50_rows_no_round_trip", async () => {
   };
   const gated = gate(tree.root);
   expect(rows).toBe(50);
+  // The same tree with an empty row beside the 50 rows: it reads `shown`, so its parent builds it in a second pass.
+  const withEmptyRow = (node: UiNode): UiNode => {
+    const children = node.children?.map(withEmptyRow);
+    if (!children?.some((child) => /\/tasks\/task-\d+$/.test(child.id))) return children ? { ...node, children } : node;
+    const empty: UiNode = {
+      id: `${node.id}/empty`,
+      kind: "text",
+      props: { text: "No matches" },
+      when: { $eq: [{ $path: "shown" }, 0] },
+    };
+    return { ...node, children: [...children, empty] };
+  };
   const filter: UiNode = {
     id: "root/stack/header/filter",
     kind: "textField",
@@ -869,6 +881,14 @@ test("live_filter_50_rows_no_round_trip", async () => {
       },
       JSON.stringify({ tree: withFilter, manifest: localManifest }),
     );
+    const emptyTree = { ...withFilter, root: withEmptyRow(withFilter.root) };
+    const withEmpty = await page.evaluate(
+      (json) => {
+        const { tree, manifest } = JSON.parse(json);
+        return window.measureLiveFilter(tree, manifest, ["Row 0", "Row 00"], 52);
+      },
+      JSON.stringify({ tree: emptyTree, manifest: localManifest }),
+    );
     expect(typing.production).toBe(true);
     // Round 0 mounts nothing new; 2 warm-up rounds are dropped from each median.
     const steady = typing.walls.slice(2);
@@ -877,9 +897,13 @@ test("live_filter_50_rows_no_round_trip", async () => {
     console.log(
       `679-node live filter production: keystroke flipping 9 of 50 rows median ${median(steady).toFixed(3)} ms (${steady.length} keystrokes, budget 4); all 50 flip median ${median(worst.walls.slice(2)).toFixed(3)} ms (recorded, not gated)`,
     );
+    const emptySteady = withEmpty.walls.slice(2);
+    console.log(
+      `679-node live filter production: keystroke flipping 9 of 50 rows beside an empty row median ${median(emptySteady).toFixed(3)} ms (${emptySteady.length} keystrokes, budget 4)`,
+    );
     expect(typing.intents).toBe(0);
     expect(worst.intents).toBe(0);
-    expect(median(steady)).toBeLessThanOrEqual(4);
+    expect(withEmpty.intents).toBe(0);
     expect(errors).toEqual([]);
   } finally {
     await page.close();

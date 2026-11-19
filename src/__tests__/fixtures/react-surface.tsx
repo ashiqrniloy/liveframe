@@ -52,6 +52,7 @@ export function renderer(observe: (kind: string, props: ImplementationProps) => 
         if (definition.kind === "textField")
           return (
             <input
+              id={input.domId}
               aria-label={String(input.props.label)}
               className={className}
               defaultValue={String(input.props.value ?? "")}
@@ -60,6 +61,7 @@ export function renderer(observe: (kind: string, props: ImplementationProps) => 
         if (definition.kind === "button")
           return (
             <button
+              id={input.domId}
               type="button"
               className={className}
               style={input.style}
@@ -88,6 +90,7 @@ export function renderer(observe: (kind: string, props: ImplementationProps) => 
         return createElement(
           semantics === "form" || semantics === "figure" ? semantics : "div",
           {
+            id: input.domId,
             className,
             style: input.style,
             "data-portal": input.portal ? "mounted" : "absent",

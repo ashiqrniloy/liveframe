@@ -1,9 +1,19 @@
 import type { Page } from "playwright";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { Dialog, Modal, ModalOverlay } from "react-aria-components";
-import { type Definition, type Result, type UiTree, validateDesignSystem, validateTheme } from "../../index.ts";
+import {
+  bool,
+  type Definition,
+  type IntentOrigin,
+  obj,
+  type Result,
+  str,
+  type UiTree,
+  validateDesignSystem,
+  validateTheme,
+} from "../../index.ts";
 import { implement } from "../../react/index.ts";
-import { capabilities, catalog, formTree, manifest } from "./object-events.ts";
+import { capabilities, catalog, formTree, manifest as formManifest } from "./object-events.ts";
 import { ObjectForm } from "./object-form.tsx";
 import certifiedSystem from "./proof/certified.design-system.json" with { type: "json" };
 import certifiedTheme from "./proof/certified.theme.json" with { type: "json" };
@@ -12,6 +22,14 @@ import rackTheme from "./proof/rack.theme.json" with { type: "json" };
 import { tree } from "./react-surface.tsx";
 
 const ThemeContext = createContext("");
+/** What the `forward-local` subject sends to the host: the `setLocal` intents its buttons raise. */
+export const forwarded: { intent: unknown; origin: IntentOrigin }[] = [];
+/** The `stale-children` subject: a stack that keeps drawing children the renderer removed. */
+function StaleChildren({ items }: { items: readonly { id: string; render(): ReactNode }[] }) {
+  const seen = useRef(new Map<string, ReactNode>());
+  for (const item of items) seen.current.set(item.id, item.render());
+  return [...seen.current].map(([id, element]) => <div key={id}>{element}</div>);
+}
 export function implementations(mode = "") {
   return catalog.definitions.map((definition) =>
     // biome-ignore lint/correctness/noComponentHookFactories: Test bindings are created once before mounting.
@@ -37,6 +55,7 @@ export function implementations(mode = "") {
       if (definition.kind === "textField")
         return (
           <input
+            id={mode === "no-dom-id" ? undefined : input.domId}
             aria-label={String(input.props.label)}
             value={draft}
             maxLength={mode === "utf16" ? Number(input.props.maxLength) : undefined}
@@ -99,6 +118,11 @@ export function implementations(mode = "") {
             data-context={context}
             data-selected={mode !== "selected" && input.props.pressed ? "" : undefined}
             onClick={() => {
+              if (mode === "forward-local" && input.events.onPress?.type === "setLocal")
+                forwarded.push({
+                  intent: { type: "setLocal", label: input.props.label },
+                  origin: { surfaceId: "local", revision: 1, nodeId: input.domId, event: "onPress" },
+                });
               input.emit(mode === "undeclared" ? "missing" : "onPress", mode === "wrong-value" ? "bad" : undefined);
             }}
           >
@@ -109,12 +133,16 @@ export function implementations(mode = "") {
       return (
         <ThemeContext value={theme}>
           <div className={input.slot("root")} style={input.style}>
-            {definition.kind === "stack" && mode === "index"
-              ? input.items.map((item, i) => (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: Deliberately broken implementation proves the survival case.
-                  <div key={i}>{item.render()}</div>
-                ))
-              : input.children}
+            {definition.kind === "stack" && mode === "stale-children" ? (
+              <StaleChildren items={input.items} />
+            ) : definition.kind === "stack" && mode === "index" ? (
+              input.items.map((item, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: Deliberately broken implementation proves the survival case.
+                <div key={i}>{item.render()}</div>
+              ))
+            ) : (
+              input.children
+            )}
             {input.props.text as string | undefined}
           </div>
         </ThemeContext>
@@ -126,6 +154,12 @@ function value<T>(result: Result<T>): T {
   if (!result.ok) throw new Error(JSON.stringify(result.errors));
   return result.value;
 }
+// Local state for the local, compound and fromLocal fixtures.
+const manifest = {
+  ...formManifest,
+  local: obj({ open: bool(), title: str({ maxLength: 80 }) }),
+  initialLocal: { open: false, title: "" },
+};
 export const pageOptions = {
   catalog,
   capabilities,
@@ -223,7 +257,103 @@ export const textFixtures = [
     maxLength: 3,
   },
 ] satisfies { kind: string; tree: UiTree; field: (p: Page) => import("playwright").Locator; maxLength: number }[];
+const gatedText = { id: "root/shown", kind: "text", props: { text: "Shown" }, when: { $path: "local.open" } };
+const gated = (p: Page) => p.getByText("Shown", { exact: true });
+const press = (name: string) => (p: Page) => p.getByRole("button", { name, exact: true }).click();
+const localTree: UiTree = {
+  ...current,
+  surfaceId: "local",
+  root: {
+    id: "root",
+    kind: "stack",
+    props: {},
+    children: [
+      {
+        id: "root/show",
+        kind: "button",
+        props: { label: "Show" },
+        events: { onPress: { type: "setLocal", key: "open", value: true } },
+      },
+      {
+        id: "root/hide",
+        kind: "button",
+        props: { label: "Hide" },
+        events: { onPress: { type: "setLocal", key: "open", value: false } },
+      },
+      gatedText,
+    ],
+  },
+};
+/** The action the compound fixture raises; the `post-local` subject posts its local writes. */
+export const compoundAction = "tasks.claim";
+const compoundTree: UiTree = {
+  ...current,
+  surfaceId: "compound",
+  root: {
+    id: "root",
+    kind: "stack",
+    props: {},
+    children: [
+      {
+        id: "root/claim",
+        kind: "button",
+        props: { label: "Claim" },
+        events: {
+          onPress: { type: "action", name: compoundAction, args: { id: "t1" }, local: [{ key: "open", value: true }] },
+        },
+      },
+      gatedText,
+    ],
+  },
+};
+/** The action the fromLocal fixture raises; the `unfilled` subject posts it without its filled argument. */
+export const fromLocalAction = "tasks.escalate";
+const fromLocalTree: UiTree = {
+  ...current,
+  surfaceId: "from-local",
+  root: {
+    id: "root",
+    kind: "stack",
+    props: {},
+    children: [
+      {
+        id: "root/title",
+        kind: "textField",
+        props: { label: "Title", value: "" },
+        events: { onChange: { type: "setLocal", key: "title" } },
+      },
+      {
+        id: "root/escalate",
+        kind: "button",
+        props: { label: "Escalate" },
+        events: {
+          onPress: { type: "action", name: fromLocalAction, args: { id: "t1" }, fromLocal: { reason: "title" } },
+        },
+      },
+    ],
+  },
+};
 export const fixtures = {
+  local: { tree: localTree, show: press("Show"), hide: press("Hide"), gated },
+  compound: {
+    tree: compoundTree,
+    act: press("Claim"),
+    intents: [{ type: "action", name: compoundAction, args: { id: "t1" } }],
+    gated,
+  },
+  fromLocal: {
+    tree: fromLocalTree,
+    async act(p: Page) {
+      await p.getByRole("textbox", { name: "Title" }).fill("Urgent");
+      await press("Escalate")(p);
+    },
+    intents: [{ type: "action", name: fromLocalAction, args: { id: "t1", reason: "Urgent" } }],
+  },
+  focus: {
+    tree: current,
+    next: { ...current, revision: 2, focus: "root/other" },
+    target: (p: Page) => p.getByRole("textbox", { name: "Other", exact: true }),
+  },
   interactions: [
     {
       tree: formTree(),

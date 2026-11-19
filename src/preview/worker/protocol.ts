@@ -6,6 +6,7 @@ import type { RunnerOptions } from "../runner.ts";
 
 /** Every render carries an id, and only that render's result is accepted. */
 export type WorkerMessage =
+  | { type: "ready" }
   | { type: "configure"; catalog: RunnerOptions["catalog"]; capabilities: RunnerOptions["capabilities"] }
   | {
       type: "render";

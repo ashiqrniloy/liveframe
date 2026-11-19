@@ -120,7 +120,7 @@ test("template_runner_refuses_a_tampered_package", async () => {
 });
 
 test("all_runners_agree_on_template_trees", async () => {
-  const worker = workerRunner();
+  const worker = workerRunner({ timeoutMs: 2000 });
   try {
     for (const scenario of scenarios) {
       const inputs = scenario as WidgetProps;
@@ -142,7 +142,7 @@ test("all_runners_agree_on_template_trees", async () => {
 }, 30000);
 
 test("worker_runs_template_packages_beyond_its_package_limit", async () => {
-  const worker = workerRunner({ maxPackages: 1 });
+  const worker = workerRunner({ maxPackages: 1, timeoutMs: 2000 });
   try {
     expect((await worker.render(codePackage, first, runnerOptions)).ok).toBe(true);
     for (let revision = 0; revision < 3; revision++)

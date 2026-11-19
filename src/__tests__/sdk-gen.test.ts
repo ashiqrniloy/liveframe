@@ -190,6 +190,17 @@ test("gen_emits_carry_literals", async () => {
   expect(output).toContain("} as const satisfies Definition;");
 });
 
+test("gen_with_manifest_types_action_and_state_local_writes", async () => {
+  const manifest = await Bun.file("conformance/corpus/common/local-manifest.json").json();
+  const output = generate(catalog.value, { manifest });
+  expect(output).toContain("export const action:");
+  expect(output).toContain("export const state:");
+  expect(output).toContain('readonly key: "q"');
+  expect(output).toContain('readonly key: "expanded"');
+  expect(output).toContain("readonly fromLocal?: keyof _Local & string");
+  expect(output).toContain("readonly fromLocal?: Readonly<Record<string, keyof _Local & string>>");
+});
+
 test("gen_implementations_literal_and_drift_checked", async () => {
   const output = generateDefinitions(catalog.value);
   expect(generateDefinitions(catalog.value)).toBe(output);

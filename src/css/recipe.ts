@@ -69,6 +69,8 @@ const properties: { [P in Property]: (value: NonNullable<ResolvedRecipe[P]>, rec
   scrollbarThumbColor: (value, recipe) =>
     `scrollbar-color:${colourValue(value)} ${colourValue(recipe.scrollbarTrackColor ?? noPaint)}`,
   scrollbarTrackColor: () => "",
+  // A marker the renderer reads (spec §6.2, §11); the enter and exit rules are projected per design system.
+  motion: (value) => (value === "none" ? "" : `--lf-m:${value}`),
 };
 
 /** A colour extension is a role or `none`; a value extension is the resolved literal. */

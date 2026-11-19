@@ -2,12 +2,11 @@ import { type LiveframeError, LiveframeFailure, type Result } from "../errors.ts
 import { type Capabilities, isRecord } from "../formats/capabilities.ts";
 import type { Catalog, Definition } from "../formats/catalog.ts";
 import { validateJson } from "../formats/json.ts";
-import { validateManifest, validateManifestShape } from "../formats/manifest.ts";
+import { validateLocal, validateManifest, validateManifestShape } from "../formats/manifest.ts";
 import { type Scenario, validateScenario, type WidgetPackage } from "../formats/package.ts";
 import type { ActionStatus, Json, UiTree } from "../formats/tree.ts";
 import { errorMessage, pointerSegment, queue, utf8Length } from "../internal.ts";
-import { canonicalJson } from "../pack/hash.ts";
-import { outcomeScenarios } from "../pack/outcome.ts";
+import { outcomeScenarios, outcomeStatuses } from "../pack/outcome.ts";
 import type { PreviewBinding, PreviewSession } from "../preview/authoring.ts";
 import {
   type CaptureBackend,
@@ -20,10 +19,15 @@ import {
 } from "../preview/capture/index.ts";
 import type { Runner } from "../preview/runner.ts";
 import { createPreview } from "../preview/session.ts";
-import { librarySpecifier } from "../runner-kit/link.ts";
 import { compiledValidator } from "../runner-kit/cache.ts";
-import { isLanguageSchema, sourceOutcome } from "../schema.ts";
-import { generate, generateDefinitions, generateElementsSchema, generateTemplateSchema } from "../sdk/gen.ts";
+import { librarySpecifier } from "../runner-kit/link.ts";
+import {
+  generate,
+  generateDefinitions,
+  generateDigest,
+  generateElementsSchema,
+  generateTemplateSchema,
+} from "../sdk/gen.ts";
 import type { RenderLimits } from "../sdk/render.ts";
 import { complete } from "../validate/complete.ts";
 import { findNode } from "../validate/patch.ts";
@@ -204,6 +208,30 @@ function renderArguments(input: unknown): Result<RenderInput> {
   return errors.length > 0 ? { ok: false, errors } : { ok: true, value: input as RenderInput };
 }
 
+/** `generated_types` `elementsSchema`: the host's `local` schema adds `when`, `bind` and the local intents (spec §7.2). */
+function elementsSchemaModule(catalog: Catalog, local: unknown): Result<{ note: string; types: string }> {
+  const checked = local === undefined ? undefined : validateLocal(local);
+  if (checked && !checked.ok) return checked;
+  return success({
+    note: "Save this as elements.schema.json to validate agent-authored elements.",
+    types: generateElementsSchema(catalog, checked ? { local: checked.value } : {}),
+  });
+}
+
+/** `generated_types` `digest`: the catalog and this server's capabilities, described for an agent (spec §7.2). */
+function digestModule(
+  catalog: Catalog,
+  capabilities: Capabilities,
+  local: unknown,
+): Result<{ note: string; types: string }> {
+  const checked = local === undefined ? undefined : validateLocal(local);
+  if (checked && !checked.ok) return checked;
+  return success({
+    note: "Save this as catalog.digest.md and give it to an agent that writes element JSON.",
+    types: generateDigest(catalog, { capabilities, ...(checked ? { local: checked.value } : {}) }),
+  });
+}
+
 function success<T>(value: T): Result<T> {
   return { ok: true, value };
 }
@@ -335,8 +363,7 @@ async function renderOutcomes(
         declaration && Object.hasOwn(capabilities.sources, declaration.source)
           ? capabilities.sources[declaration.source]?.result
           : undefined;
-      const payload = isLanguageSchema(schema) && "mapping" in schema ? schema.mapping.ok?.properties.value : undefined;
-      return payload !== undefined && canonicalJson(schema) === canonicalJson(sourceOutcome(payload));
+      return outcomeStatuses(schema) !== undefined;
     });
     const pointer = `/scenarios/${pkg.scenarios.indexOf(scenario)}`;
     if (sources.length > 1)
@@ -385,7 +412,10 @@ async function setState(state: AuthoringState, input: SetStateInput): Promise<Re
   if (!offered) return failure("undeclared-event", "/origin/event", "Event was not offered by this node");
   if (offered.type !== "setState")
     return failure("invalid-prop", "/origin/event", "Expected an offered setState event; actions are refused");
-  const result = await state.session.intent(complete(offered, input.value), {
+  // The preview holds no browser local state, so `value` stands for the local key a `fromLocal` event reads.
+  const local =
+    offered.fromLocal !== undefined && input.value !== undefined ? { [offered.fromLocal]: input.value } : undefined;
+  const result = await state.session.intent(complete(offered, input.value, local), {
     surfaceId: tree.surfaceId,
     revision: tree.revision,
     nodeId: input.origin.nodeId,
@@ -502,9 +532,11 @@ export function createAuthoring(options: AuthoringOptions) {
     async generatedTypes({
       module = "types",
       manifest,
+      local,
     }: {
-      module?: "types" | "implementations" | "elementsSchema" | "templateSchema";
+      module?: "types" | "implementations" | "elementsSchema" | "templateSchema" | "digest";
       manifest?: unknown;
+      local?: unknown;
     } = {}) {
       if (module === "templateSchema") {
         // A draft manifest narrows the schema to the widget's own paths, state keys and actions.
@@ -520,16 +552,17 @@ export function createAuthoring(options: AuthoringOptions) {
           note: 'Save this as ui.definitions.gen.ts and import from "./ui.definitions.gen".',
           types: generateDefinitions(catalog),
         });
-      if (module === "elementsSchema")
-        return success({
-          note: "Save this as elements.schema.json to validate agent-authored elements.",
-          types: generateElementsSchema(catalog),
-        });
+      if (module === "elementsSchema") return elementsSchemaModule(catalog, local);
+      if (module === "digest") return digestModule(catalog, capabilities, local);
       if (module !== "types")
         return {
           ok: false as const,
           errors: [
-            at("/module", "Unknown generated module", '"types", "implementations", "elementsSchema", "templateSchema"'),
+            at(
+              "/module",
+              "Unknown generated module",
+              '"types", "implementations", "elementsSchema", "templateSchema", "digest"',
+            ),
           ],
         };
       return success({

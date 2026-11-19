@@ -3,7 +3,7 @@ import { validateWidgetPackageShape, type WidgetPackage } from "../formats/packa
 import { librarySpecifier } from "../runner-kit/link.ts";
 import type { Links } from "./links.ts";
 
-/** The transitive graph under one package: at most 32 libraries, at most 4 deep (plan 030 Task 9). */
+/** The transitive graph under one package: at most 32 libraries, at most 4 deep (spec §7.3). */
 export const MAX_GRAPH_PACKAGES = 32;
 export const MAX_GRAPH_DEPTH = 4;
 

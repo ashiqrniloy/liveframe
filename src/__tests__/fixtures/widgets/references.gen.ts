@@ -147,6 +147,7 @@ export const Stack = primitive<{
     readonly semantics?: _Expr;
     readonly label?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("stack");
 
@@ -188,6 +189,7 @@ export const Text = primitive<{
   readonly bind?: {
     readonly text?: _Expr;
   };
+  readonly focus?: boolean;
 }>("text");
 
 /**
@@ -238,4 +240,5 @@ export const TextField = primitive<{
     readonly readOnly?: _Expr;
     readonly maxLength?: _Expr;
   };
+  readonly focus?: boolean;
 }>("textField");

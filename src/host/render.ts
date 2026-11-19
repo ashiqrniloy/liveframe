@@ -13,7 +13,11 @@ import { compileSchema } from "../validate/schema.ts";
 import { notifier } from "./events.ts";
 import type { Actions, HostWiring, Installs, Served, SourceCall, SourceResult } from "./types.ts";
 
-/** What each validator was compiled for, so a stale `previous` is never reused against a new install. */
+/**
+ * What install each validator was compiled for, so a stale `previous` is never reused against a new install.
+ * This records the host's install, not what the validator was compiled from (that is `factsOf` in
+ * `validate/compile.ts`).
+ */
 const compiledFor = new WeakMap<CompiledValidator, Installs[string]>();
 
 const MAX_MESSAGE = 500;
@@ -34,6 +38,8 @@ function sourceResult(results: unknown, alias: string): SourceResult {
   if (raw !== null && typeof raw === "object") {
     const { ok, value, reason, message } = raw as Record<string, unknown>;
     if (ok === true && value !== undefined) return { ok: true, value: value as Json };
+    // A pending answer has no value and no text: one that carries a value counts as failed (law 4).
+    if (ok === false && reason === "pending" && !Object.hasOwn(raw, "value")) return { ok: false, reason };
     if (ok === false && FAILURES.includes(reason as (typeof FAILURES)[number]))
       return {
         ok: false,
@@ -62,9 +68,9 @@ export type RenderArgs<V> = HostWiring<V> & {
   readonly state?: Json;
 };
 
-type Reason = "unauthorized" | "unavailable" | "stale" | "failed" | "invalid-result";
+type Reason = "unauthorized" | "unavailable" | "stale" | "failed" | "pending" | "invalid-result";
 
-/** What a widget sees of a reported failure, or `undefined` when its source declares no `sourceOutcome` envelope. */
+/** What a widget sees of a reported failure or pending answer, or `undefined` when its source declares no such variant. */
 function envelope(schema: LanguageSchema, failure: { reason: string; message?: string | undefined }): Json | undefined {
   if (
     !("discriminator" in schema) ||
@@ -129,8 +135,14 @@ async function runWidget<V>(
 }
 
 /** R9. Validate on the host (law 2), then check the two fields `checkOffered` will later trust. */
-function checkTree(validator: CompiledValidator, tree: unknown, surfaceId: string, revision: number): Result<UiTree> {
-  const checked = validator.validateTree(tree);
+function checkTree(
+  validator: CompiledValidator,
+  tree: unknown,
+  surfaceId: string,
+  revision: number,
+  limits?: RunnerOptions["limits"],
+): Result<UiTree> {
+  const checked = validator.validateTree(tree, limits ? { limits } : undefined);
   if (!checked.ok) return checked;
   if (checked.value.surfaceId !== surfaceId)
     return { ok: false, errors: refuse("invalid-document", "/surfaceId", "Unexpected surface") };
@@ -224,7 +236,11 @@ export async function renderLoaded<V>(
     // R4–R5. Read as the viewer, then fit.
     const calls = Object.entries(bound.value).map(([alias, { source, params }]) => ({ alias, source, params }));
     const fitted = fitData(install.capabilities, calls, await readSources(args, calls), (alias, source, reason) =>
-      notify?.({ type: "source-failed", placementId, alias, source, reason }),
+      notify?.(
+        reason === "pending"
+          ? { type: "source-pending", placementId, alias, source }
+          : { type: "source-failed", placementId, alias, source, reason },
+      ),
     );
     if (!fitted.ok) return failed("render-failed", fitted.errors);
     const data = fitted.value;
@@ -237,8 +253,8 @@ export async function renderLoaded<V>(
       return { ok: true, value: previous };
     }
 
-    // R7. The revision: the caller's floor, else one past the last accepted tree.
-    const revision = args.revision ?? (previous ? previous.revision + 1 : 1);
+    // R7. The revision: at least one past `previous`, and at least the caller's floor.
+    const revision = previous ? Math.max(args.revision ?? 0, previous.revision + 1) : (args.revision ?? 1);
 
     // R8. Run the widget.
     const rendered = await runWidget(
@@ -257,7 +273,7 @@ export async function renderLoaded<V>(
 
     // R9. Validate on the host. The validator is reused only for the same install and package.
     const validator = validatorFor(previous, pkg, install);
-    const checked = checkTree(validator, rendered.value, surfaceId, revision);
+    const checked = checkTree(validator, rendered.value, surfaceId, revision, args.runOptions?.limits);
     if (!checked.ok) return failed("tree-rejected", checked.errors);
     const tree = checked.value;
 

@@ -30,6 +30,7 @@ const values = {
   "space.7": { kind: "spacing", value: px(48) },
   "size.glyph": { kind: "size", value: px(16) },
   "size.panel": { kind: "size", value: px(360) },
+  "size.row": { kind: "size", value: px(36) },
   "bp.sm": { kind: "breakpoint", value: px(384) },
   "bp.md": { kind: "breakpoint", value: px(720) },
   "motion.fast": { kind: "motion-duration", value: { value: 120, unit: "ms" } },
@@ -126,6 +127,9 @@ set("box.plate.root", {
     borderRadius: "radius.plate",
     padding: "space.4",
     gap: "space.3",
+    // Plates in a list fade in and out and slide when their order changes (spec §6.2).
+    ...motion,
+    motion: "fade-move",
   },
 });
 set("box.rule.root", {
@@ -136,7 +140,11 @@ set("box.callout.rail", { rest: { backgroundColor: "accent.edge", borderRadius: 
 for (const kind of ["stack", "inline", "grid", "icon", "image"]) set(`${kind}.*.root`, { rest: empty });
 set("scroll.*.root", { rest: empty });
 set("scroll.*.scrollbar", { rest: empty });
-set("scroll.*.viewport", { rest: { scrollbarThumbColor: "surface.scrollbar", scrollbarTrackColor: "none" } });
+// The viewport is the region's tab stop; `onRange` makes the kind interactive, so it carries the focus overlay, inset.
+set("scroll.*.viewport", {
+  rest: { scrollbarThumbColor: "surface.scrollbar", scrollbarTrackColor: "none" },
+  focus: { ...focus, outlineOffset: px(-2) },
+});
 set("separator.*.root", { rest: { borderColor: "border.subtle", borderTopWidth: "border.hairline" } });
 set("text.*.root", { rest: { textColor: "text.primary", typography: "body" } });
 set("hint.*.root", { rest: { textColor: "text.muted", typography: "caption" } });
@@ -216,6 +224,107 @@ set("switch.*.thumb", {
   rest: { backgroundColor: "text.primary", borderRadius: "radius.pill" },
   selected: { backgroundColor: "text.on-accent" },
 });
+
+// A group's focus is its focused radio's: the root carries the ring around the whole set.
+set("radioGroup.*.root", {
+  rest: { textColor: "text.primary", typography: "label", gap: "space.2" },
+  focus: { ...focus, borderRadius: "radius.control" },
+  disabled: { textColor: "text.disabled" },
+});
+set("radioGroup.*.label", { rest: { textColor: "text.primary", typography: "label" } });
+set("radio.*.root", {
+  rest: { textColor: "text.primary", typography: "label", gap: "space.2", ...motion },
+  hover: { textColor: "accent.text" },
+  active: { translateY: px(1) },
+  focus,
+  disabled: { textColor: "text.disabled" },
+});
+set("radio.*.indicator", { rest: { ...mark, borderRadius: "radius.pill" }, selected: selectedMark });
+set("radio.*.label", { rest: empty });
+
+set("slider.*.root", {
+  rest: { textColor: "text.primary", typography: "label", gap: "space.1" },
+  disabled: { textColor: "text.disabled" },
+});
+set("slider.*.label", { rest: empty });
+set("slider.*.output", { rest: { textColor: "text.muted", typography: "mono" } });
+set("slider.*.track", {
+  rest: { backgroundColor: "surface.well", borderRadius: "radius.pill" },
+  disabled: { backgroundColor: "surface.well" },
+});
+set("slider.*.fill", {
+  rest: { backgroundColor: "accent.fill", borderRadius: "radius.pill" },
+  disabled: { backgroundColor: "border.subtle" },
+});
+set("slider.*.thumb", {
+  rest: {
+    backgroundColor: "surface.raised",
+    borderColor: "accent.edge",
+    borderWidth: "border.focus",
+    borderRadius: "radius.pill",
+    shadow: "shadow.pop",
+    ...motion,
+  },
+  hover: { borderColor: "accent.fill.hover" },
+  active: { backgroundColor: "accent.soft" },
+  focus,
+  disabled: { borderColor: "border.subtle" },
+});
+
+set("progress.*.root", { rest: { textColor: "text.primary", typography: "label", gap: "space.1" } });
+set("progress.*.label", { rest: empty });
+set("progress.*.track", { rest: { backgroundColor: "surface.well", borderRadius: "radius.pill" } });
+// Indeterminate progress has no amount to show: the fill spans the track in the soft accent.
+set("progress.*.fill", {
+  rest: { backgroundColor: "accent.fill", borderRadius: "radius.pill", ...motion },
+  mixed: { backgroundColor: "accent.soft" },
+});
+
+set("dateField.*.root", { rest: { gap: "space.1" }, disabled: { textColor: "text.disabled" } });
+set("dateField.*.label", { rest: { textColor: "text.primary", typography: "label" } });
+set("dateField.*.input", {
+  rest: field,
+  hover: { borderColor: "text.primary" },
+  focus: { ...focus, outlineOffset: px(1), borderColor: "focus.ring" },
+  readonly: { backgroundColor: "surface.well" },
+  invalid: { borderColor: "diagnostic.error" },
+  disabled: disabledField,
+});
+set("dateField.*.segment", {
+  rest: { textColor: "text.primary", borderRadius: "radius.control" },
+  focus: { backgroundColor: "accent.fill", textColor: "text.on-accent" },
+});
+
+set("richText.*.root", { rest: { textColor: "text.primary", typography: "body", gap: "space.2" } });
+set("richText.*.paragraph", { rest: { typography: "body" } });
+set("richText.*.heading", { rest: { textColor: "text.primary", typography: "heading.3" } });
+set("richText.*.list", { rest: { typography: "body", paddingX: "space.5" } });
+set("richText.*.item", { rest: { typography: "body" } });
+set("richText.*.code", {
+  rest: { backgroundColor: "surface.well", borderRadius: "radius.control", paddingX: "space.1", typography: "mono" },
+});
+set("richText.*.link", {
+  rest: { textColor: "accent.text", typography: "body" },
+  hover: { textColor: "accent.fill.hover" },
+  focus: { ...focus, borderRadius: "radius.control" },
+});
+
+// The chart's marks paint `currentColor`: each series slot's text colour is its paint, so a theme switch recolours it.
+set("chart.*.root", { rest: { textColor: "text.primary", typography: "caption", gap: "space.2" } });
+set("chart.*.plot", { rest: empty });
+set("chart.*.axis", { rest: { textColor: "text.muted", typography: "caption" } });
+// Gridlines are paint, not text, but the audit reads every text colour: the muted ink at half opacity stays quiet.
+set("chart.*.gridline", { rest: { textColor: "text.muted", opacity: "opacity.dim" } });
+set("chart.*.series1", { rest: { textColor: "accent.fill" } });
+set("chart.*.series2", { rest: { textColor: "diagnostic.info" } });
+set("chart.*.series3", { rest: { textColor: "diagnostic.success" } });
+set("chart.*.series4", { rest: { textColor: "diagnostic.warning" } });
+set("chart.*.legend", { rest: { textColor: "text.primary", typography: "caption", gap: "space.3" } });
+
+set("table.*.root", { rest: { textColor: "text.primary", typography: "body" } });
+set("table.*.caption", { rest: { textColor: "text.muted", typography: "caption", paddingY: "space.2" } });
+set("tableRow.*.root", { rest: { borderColor: "border.subtle", borderBottomWidth: "border.hairline" } });
+set("tableCell.*.root", { rest: { typography: "body", paddingX: "space.3", paddingY: "space.2" } });
 
 set("menu.*.root", { rest: empty });
 set("menu.*.trigger", {

@@ -1,0 +1,19 @@
+{
+  "kind": "stack",
+  "children": [
+    {
+      "kind": "text",
+      "props": {
+        "text": "x"
+      },
+      "when": {
+        "$eq": [
+          {
+            "$path": "local.missing"
+          },
+          ""
+        ]
+      }
+    }
+  ]
+}

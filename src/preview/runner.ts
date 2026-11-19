@@ -15,7 +15,7 @@ export type RunnerOptions = {
   readonly limits?: TemplateLimits;
   readonly timeoutMs?: number;
   /**
-   * The library packages a code package's `manifest.dependencies` pin (plan 030 Task 10), as
+   * The library packages a code package's `manifest.dependencies` pin (spec §7.5), as
    * `loadPlacement` returns them. Each is matched by `(id, version)` and must have the pinned hash
    * (`not-found`, `hash-mismatch`); nothing is fetched. Ignored by a package with no dependencies.
    */

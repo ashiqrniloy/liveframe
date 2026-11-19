@@ -1,4 +1,4 @@
-// The transport schema of `liveframe-template/1` (plan 028 Task 3): structure only. The catalog,
+// The transport schema of `liveframe-template/1` (spec §7.6): structure only. The catalog,
 // manifest and expression rules, and every limit, are `validateTemplate`'s. Kept apart from the
 // validator so the schema publisher imports it without the validation code.
 import { jsonSchema, languageForms, objectSchema } from "../formats/language.ts";
@@ -31,7 +31,8 @@ export const templateSchema = {
     ...languageForms(false),
     objectSchema,
     json: jsonSchema,
-    // An action's `resultKey` is a label and may be an expression, so a row can key its own result (plan 029 A5).
+    localWrite: treeSchema.$defs.localWrite,
+    // An action's `resultKey` is a label and may be an expression, so a row can key its own result (spec §8).
     intent: {
       ...treeSchema.$defs.intent,
       oneOf: [
@@ -59,9 +60,11 @@ export const templateSchema = {
         props: jsonMap,
         style: jsonMap,
         events: { type: "object", additionalProperties: { $ref: "#/$defs/intent" } },
-        // Tree expressions, copied verbatim; only `{ "$embed": Expr }` inside them is a template value (plan 029 B12).
+        // Tree expressions, copied verbatim; only `{ "$embed": Expr }` inside them is a template value (spec §7.6).
         when: json,
         bind: jsonMap,
+        // A template value: the boolean that marks the node the tree's focus moves to (spec §9).
+        focus: json,
         children: { type: "array", items: { $ref: "#/$defs/node" } },
         $let: {
           type: "array",

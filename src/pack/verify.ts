@@ -69,7 +69,7 @@ export function validatePackageInputs(pkg: WidgetPackage, options: PackageContex
 export type VerifyOptions = PackageContext & {
   /**
    * Library packages to check the dependency pins and imported names against. Without it a package is
-   * checked only for consistency between its code and its manifest's pins (plan 030 Task 9).
+   * checked only for consistency between its code and its manifest's pins (spec §7.3).
    */
   readonly libraries?: readonly WidgetPackage[];
 };

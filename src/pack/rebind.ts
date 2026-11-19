@@ -19,7 +19,7 @@ const headerLine = (local: string, specifier: string): string =>
 
 /**
  * A new version of a code package whose dependency pins move to other versions of the libraries it
- * uses (plan 030 Task 9), without transpiling again: the code is the same bytes except the version in
+ * uses (spec §7.3), without transpiling again: the code is the same bytes except the version in
  * each library's header line. `libraries` holds one verified package for every dependency's id, at
  * the version to pin; each name the code reads must still be exported (`unknown-name` otherwise).
  * Nothing is mutated or stored, and the result is a new package with its own hash; run

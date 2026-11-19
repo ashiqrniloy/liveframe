@@ -1,9 +1,10 @@
 import { LiveframeFailure, type Result } from "../errors.ts";
-import { validateWidgetPackageShape, type WidgetPackage } from "../formats/package.ts";
-import { canonicalJson, packageHash } from "../pack/hash.ts";
+import { sameJson } from "../formats/json.ts";
+import type { WidgetPackage } from "../formats/package.ts";
+import { canonicalJson } from "../pack/hash.ts";
 import { verifyPackage } from "../pack/verify.ts";
 
-/** Host-owned LRU of verified frozen packages; keys include content and installation documents. */
+/** Host-owned LRU of verified frozen packages; keys include package identity and installation documents. */
 export function verifiedPackages({ max = 256 }: { max?: number } = {}) {
   if (!Number.isSafeInteger(max) || max <= 0)
     throw new LiveframeFailure([
@@ -27,6 +28,44 @@ export function verifiedPackages({ max = 256 }: { max?: number } = {}) {
   };
 }
 
+const installKeys = new WeakMap<object, WeakMap<object, string>>();
+
+function deepFrozen(value: unknown): boolean {
+  if (value === null || typeof value !== "object") return true;
+  if (!Object.isFrozen(value)) return false;
+  for (const entry of Object.values(Object.getOwnPropertyDescriptors(value))) {
+    if (!("value" in entry) || !deepFrozen(entry.value)) return false;
+  }
+  return true;
+}
+
+function installKey(install: Parameters<typeof verifyPackage>[1]): string {
+  const { catalog, capabilities } = install;
+  if (typeof catalog === "object" && catalog !== null && typeof capabilities === "object" && capabilities !== null) {
+    const cached = installKeys.get(catalog)?.get(capabilities);
+    if (cached !== undefined) return cached;
+    const key = JSON.stringify([canonicalJson(catalog), canonicalJson(capabilities)]);
+    if (deepFrozen(catalog) && deepFrozen(capabilities)) {
+      let byCapabilities = installKeys.get(catalog);
+      if (!byCapabilities) {
+        byCapabilities = new WeakMap();
+        installKeys.set(catalog, byCapabilities);
+      }
+      byCapabilities.set(capabilities, key);
+    }
+    return key;
+  }
+  return JSON.stringify([canonicalJson(catalog), canonicalJson(capabilities)]);
+}
+
+function keyOf(doc: unknown, install: string): string | undefined {
+  if (typeof doc !== "object" || doc === null) return undefined;
+  const manifest = (doc as { readonly manifest?: unknown }).manifest;
+  if (typeof manifest !== "object" || manifest === null) return undefined;
+  const { id, version } = manifest as { readonly id?: unknown; readonly version?: unknown };
+  return typeof id === "string" && typeof version === "string" ? JSON.stringify([id, version, install]) : undefined;
+}
+
 /** Stored records stay untrusted even when the host retains a previous verification. */
 export function verifyStoredPackage(
   doc: unknown,
@@ -34,20 +73,23 @@ export function verifyStoredPackage(
   cache?: ReturnType<typeof verifiedPackages>,
 ): Result<WidgetPackage> {
   if (!cache) return verifyPackage(doc, install);
-  const shape = validateWidgetPackageShape(doc);
-  if (!shape.ok) return shape;
-  let key: string;
+  let installPart: string;
   try {
-    const hash = packageHash(shape.value);
-    if (hash !== shape.value.hash) return verifyPackage(doc, install);
-    key = JSON.stringify([hash, canonicalJson(install.catalog), canonicalJson(install.capabilities)]);
+    installPart = installKey(install);
   } catch (error) {
     if (!(error instanceof TypeError)) throw error;
     return { ok: false, errors: [{ kind: "invalid-document", pointer: "", message: error.message }] };
   }
-  const cached = cache.get(key);
-  if (cached) return { ok: true, value: cached };
+  const key = keyOf(doc, installPart);
+  if (key !== undefined) {
+    const cached = cache.get(key);
+    if (cached && sameJson(cached, doc)) return { ok: true, value: cached };
+  }
   const verified = verifyPackage(doc, install);
-  if (verified.ok) cache.set(key, verified.value);
+  if (verified.ok)
+    cache.set(
+      key ?? JSON.stringify([verified.value.manifest.id, verified.value.manifest.version, installPart]),
+      verified.value,
+    );
   return verified;
 }

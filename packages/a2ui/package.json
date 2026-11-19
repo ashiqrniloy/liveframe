@@ -1,0 +1,44 @@
+{
+  "name": "@arnilo/liveframe-a2ui",
+  "version": "0.3.0",
+  "description": "Convert an A2UI v0.9 or v0.9.1 surface to Liveframe element JSON through an app-supplied mapping. The output is validated like any element JSON.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.4.2"
+  },
+  "author": "Niloy Rahman",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ashiqrniloy/liveframe.git",
+    "directory": "packages/a2ui"
+  },
+  "homepage": "https://github.com/ashiqrniloy/liveframe#readme",
+  "bugs": {
+    "url": "https://github.com/ashiqrniloy/liveframe/issues"
+  },
+  "keywords": ["liveframe", "a2ui", "agent", "converter", "bun"],
+  "publishConfig": {
+    "access": "public",
+    "tag": "next"
+  },
+  "exports": {
+    ".": {
+      "liveframe:source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "peerDependencies": {
+    "@arnilo/liveframe": "~0.3.0"
+  },
+  "devDependencies": {
+    "@arnilo/liveframe": "workspace:*",
+    "@arnilo/liveframe-starter": "workspace:*"
+  },
+  "sideEffects": false
+}

@@ -11,7 +11,7 @@ import {
   type UiTree,
   validateTreePatch,
 } from "@arnilo/liveframe";
-import { ex, local, primitive, render, self, type WidgetInputs } from "@arnilo/liveframe/sdk";
+import { action, ex, local, primitive, render, self, state, type WidgetInputs } from "@arnilo/liveframe/sdk";
 import { renderTemplate, type Template, validateTemplate } from "../template/index.ts";
 import catalog from "./fixtures/proof/catalog.json" with { type: "json" };
 import capabilities from "./fixtures/widgets/capabilities.json" with { type: "json" };
@@ -248,6 +248,230 @@ describe("setLocal", () => {
     // Nor a setState posted against an event offered as setLocal.
     const state = checkOffered(tree, origin, { type: "setState", key: "filter", value: "all" }, validator);
     expect(state).toMatchObject({ ok: false, errors: [{ pointer: "/type" }] });
+  });
+});
+
+describe("compound local writes on host intents", () => {
+  const button = (events: unknown): UiNode =>
+    ({ id: "root/b", kind: "button", props: { label: "Go" }, events }) as UiNode;
+  const field = (events: unknown): UiNode =>
+    ({ id: "root/f", kind: "textField", props: { label: "F" }, events }) as UiNode;
+  const Stack = primitive<{ readonly children?: unknown }>("stack");
+  const Button = primitive<{ readonly label: string; readonly onPress?: unknown }>("button");
+  const options = { validator, surfaceId: "s", revision: 0 };
+
+  test("local_writes_validate_on_arrival_and_render", () => {
+    expect(
+      errorsOf(
+        button({
+          onPress: action("tasks.claim", { id: "t1" }, { local: [local.set("expanded", true, { until: "revision" })] }),
+        }),
+      ),
+    ).toEqual([]);
+    expect(
+      errorsOf(
+        field({
+          onChange: state.set("reason", undefined, {
+            local: [local.set("q"), local.set("expanded", true, { until: "revision" })],
+          }),
+        }),
+      ),
+    ).toEqual([]);
+    const widget = () => (
+      <Stack>
+        <Button
+          label="Save"
+          onPress={action("tasks.claim", { id: "t1" }, { local: [local.set("expanded", true, { until: "revision" })] })}
+        />
+      </Stack>
+    );
+    expect(render(widget, inputs, options).ok).toBe(true);
+  });
+
+  test("local_write_to_an_undeclared_key_is_unknown_name", () => {
+    rejected(
+      errorsOf(button({ onPress: action("tasks.claim", { id: "t1" }, { local: [local.set("nope", true)] }) })),
+      "/root/children/0/events/onPress/local/0/key",
+      "unknown-name",
+    );
+    const badWidget = () => (
+      <Stack>
+        <Button label="Save" onPress={action("tasks.claim", { id: "t1" }, { local: [local.set("nope", true)] })} />
+      </Stack>
+    );
+    const rendered = render(badWidget, inputs, options);
+    expect(rendered.ok).toBe(false);
+    if (!rendered.ok)
+      expect(rendered.errors[0]).toMatchObject({
+        kind: "unknown-name",
+        pointer: "/root/button/events/onPress/local/0/key",
+      });
+  });
+
+  test("more_than_four_writes_is_rejected", () => {
+    const five = Array.from({ length: 5 }, (_, i) => ({ key: "count", value: i }));
+    rejected(
+      errorsOf(button({ onPress: { type: "action", name: "tasks.claim", args: { id: "t1" }, local: five } })),
+      "/root/children/0/events/onPress/local",
+      "limit-exceeded",
+    );
+    expect(() => action("tasks.claim", { id: "t1" }, { local: [] })).toThrow(TypeError);
+    expect(() => action("tasks.claim", { id: "t1" }, { local: five as never })).toThrow(TypeError);
+  });
+
+  test("bad_local_write_shapes_and_types_are_rejected", () => {
+    rejected(
+      errorsOf(button({ onPress: { type: "action", name: "tasks.claim", args: { id: "t1" }, local: [] } })),
+      "/root/children/0/events/onPress/local",
+      "invalid-prop",
+    );
+    rejected(
+      errorsOf(
+        button({
+          onPress: {
+            type: "action",
+            name: "tasks.claim",
+            args: { id: "t1" },
+            local: [{ key: "expanded", value: true, until: "forever" }],
+          },
+        }),
+      ),
+      "/root/children/0/events/onPress/local/0/until",
+      "invalid-prop",
+    );
+    rejected(
+      errorsOf(button({ onPress: action("tasks.claim", { id: "t1" }, { local: [local.set("expanded", "yes")] }) })),
+      "/root/children/0/events/onPress/local/0/value",
+      "invalid-prop",
+    );
+    rejected(
+      errorsOf(field({ onChange: state.set("reason", undefined, { local: [local.set("expanded")] }) })),
+      "/root/children/0/events/onChange/local/0/value",
+      "invalid-prop",
+    );
+    rejected(
+      errorsOf(field({ onChange: { type: "setLocal", key: "q", until: "revision" } })),
+      "/root/children/0/events/onChange/until",
+      "invalid-prop",
+    );
+  });
+});
+
+describe("values read from local state (fromLocal)", () => {
+  const button = (events: unknown): UiNode =>
+    ({ id: "root/b", kind: "button", props: { label: "Go" }, events }) as UiNode;
+  const field = (events: unknown): UiNode =>
+    ({ id: "root/f", kind: "textField", props: { label: "F" }, events }) as UiNode;
+  const press = (name: string, args: Record<string, unknown>, extra: Record<string, unknown> = {}) =>
+    button({ onPress: { type: "action", name, args, ...extra } });
+  const at = "/root/children/0/events/onPress/fromLocal";
+
+  test("from_local_fills_arguments_including_required_ones", () => {
+    expect(errorsOf(press("tasks.escalate", { id: "t1" }, { fromLocal: { reason: "q" } }))).toEqual([]);
+    expect(errorsOf(button({ onPress: action("tasks.claim", {}, { fromLocal: { id: "q" } }) }))).toEqual([]);
+    // Without it the argument is still required.
+    rejected(errorsOf(press("tasks.escalate", { id: "t1" })), "/root/children/0/events/onPress/args/reason");
+  });
+
+  test("from_local_type_mismatch_is_invalid_prop", () => {
+    rejected(
+      errorsOf(press("tasks.escalate", { id: "t1" }, { fromLocal: { reason: "count" } })),
+      `${at}/reason`,
+      "invalid-prop",
+    );
+    rejected(
+      errorsOf(press("tasks.escalate", { id: "t1" }, { fromLocal: { reason: "expanded" } })),
+      `${at}/reason`,
+      "invalid-prop",
+    );
+  });
+
+  test("from_local_names_a_declared_key_and_argument", () => {
+    rejected(
+      errorsOf(press("tasks.escalate", { id: "t1" }, { fromLocal: { reason: "nope" } })),
+      `${at}/reason`,
+      "unknown-name",
+    );
+    rejected(
+      errorsOf(press("tasks.escalate", { id: "t1" }, { fromLocal: { extra: "q" } })),
+      `${at}/extra`,
+      "invalid-prop",
+    );
+  });
+
+  test("from_local_is_bounded_and_not_empty", () => {
+    rejected(errorsOf(press("tasks.claim", { id: "t1" }, { fromLocal: {} })), at, "invalid-prop");
+    const seventeen = Object.fromEntries(Array.from({ length: 17 }, (_, i) => [`a${i}`, "q"]));
+    rejected(errorsOf(press("tasks.claim", { id: "t1" }, { fromLocal: seventeen })), at, "limit-exceeded");
+    rejected(errorsOf(press("tasks.claim", { id: "t1" }, { fromLocal: [] })), at, "invalid-prop");
+  });
+
+  test("argument_filled_twice_is_invalid_prop", () => {
+    rejected(
+      errorsOf(press("tasks.escalate", { id: "t1", reason: "x" }, { fromLocal: { reason: "q" } })),
+      `${at}/reason`,
+      "invalid-prop",
+    );
+    rejected(
+      errorsOf(
+        field({
+          onChange: {
+            type: "action",
+            name: "tasks.escalate",
+            args: { id: "t1" },
+            bind: "reason",
+            fromLocal: { reason: "q" },
+          },
+        }),
+      ),
+      "/root/children/0/events/onChange/fromLocal/reason",
+      "invalid-prop",
+    );
+    // A different argument beside bind is fine.
+    expect(
+      errorsOf(
+        field({
+          onChange: { type: "action", name: "tasks.escalate", args: {}, bind: "reason", fromLocal: { id: "q" } },
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  test("set_state_may_read_from_local_under_the_same_rules", () => {
+    expect(errorsOf(field({ onChange: state.set("selected", undefined, { fromLocal: "q" }) }))).toEqual([]);
+    const set = (event: Record<string, unknown>) => errorsOf(field({ onChange: { type: "setState", ...event } }));
+    const where = "/root/children/0/events/onChange/fromLocal";
+    rejected(set({ key: "selected", fromLocal: "count" }), where, "invalid-prop");
+    rejected(set({ key: "selected", fromLocal: "nope" }), where, "unknown-name");
+    rejected(set({ key: "selected", value: "x", fromLocal: "q" }), where, "invalid-prop");
+    rejected(set({ key: "selected", fromLocal: "" }), where);
+  });
+
+  test("render_checks_from_local_and_the_sdk_refuses_malformed_options", () => {
+    const Stack = primitive<{ readonly children?: unknown }>("stack");
+    const Button = primitive<{ readonly label: string; readonly onPress?: unknown }>("button");
+    const options = { validator, surfaceId: "s", revision: 0 };
+    const good = () => (
+      <Stack>
+        <Button label="Go" onPress={action("tasks.escalate", { id: "t1" }, { fromLocal: { reason: "q" } })} />
+      </Stack>
+    );
+    expect(render(good, inputs, options).ok).toBe(true);
+    const bad = () => (
+      <Stack>
+        <Button label="Go" onPress={action("tasks.escalate", { id: "t1" }, { fromLocal: { reason: "count" } })} />
+      </Stack>
+    );
+    const rendered = render(bad, inputs, options);
+    expect(rendered.ok).toBe(false);
+    if (!rendered.ok)
+      expect(rendered.errors[0]).toMatchObject({
+        kind: "invalid-prop",
+        pointer: "/root/button/events/onPress/fromLocal/reason",
+      });
+    expect(() => action("tasks.claim", { id: "t1" }, { fromLocal: {} })).toThrow(TypeError);
+    expect(() => action("tasks.claim", { id: "t1" }, { fromLocal: { id: "" } })).toThrow(TypeError);
+    expect(() => state.set("selected", "x", { fromLocal: "q" })).toThrow(TypeError);
   });
 });
 
@@ -507,5 +731,64 @@ describe("templates with when and bind", () => {
     expect(validateTemplate(bad as never, installedContext).ok).toBe(false);
     const result = renderTemplate(writer, inputs, { validator, surfaceId: "s", revision: 0 });
     expect(result.ok && result.value.root.events).toEqual({ onChange: { type: "setLocal", key: "q" } });
+
+    const compound: Template = {
+      format: "liveframe-template/1",
+      root: {
+        kind: "button",
+        props: { label: "Save" },
+        events: {
+          onPress: {
+            type: "action",
+            name: "tasks.claim",
+            args: { id: { $path: "state.selected" } },
+            local: [{ key: "expanded", value: { $eq: [{ $path: "state.filter" }, "all"] }, until: "revision" }],
+          },
+        },
+      },
+    } as unknown as Template;
+    expect(validateTemplate(compound, installedContext).ok).toBe(true);
+    const expanded = renderTemplate(compound, inputs, { validator, surfaceId: "s", revision: 0 });
+    expect(expanded.ok && expanded.value.root.events).toEqual({
+      onPress: {
+        type: "action",
+        name: "tasks.claim",
+        args: { id: "task-0" },
+        local: [{ key: "expanded", value: true, until: "revision" }],
+      },
+    });
+  });
+  test("a_template_intent_can_read_local_state", () => {
+    const press = (intent: Record<string, unknown>): Template =>
+      ({
+        format: "liveframe-template/1",
+        root: { kind: "button", props: { label: "Go" }, events: { onPress: intent } },
+      }) as unknown as Template;
+    const escalate = { type: "action", name: "tasks.escalate", args: { id: { $path: "state.selected" } } };
+    const good = press({ ...escalate, fromLocal: { reason: "q" } });
+    expect(validateTemplate(good, installedContext).ok).toBe(true);
+    const expanded = renderTemplate(good, inputs, { validator, surfaceId: "s", revision: 0 });
+    expect(expanded.ok && expanded.value.root.events).toEqual({
+      onPress: { type: "action", name: "tasks.escalate", args: { id: "task-0" }, fromLocal: { reason: "q" } },
+    });
+    expect(expanded.ok && validator.validateTree(expanded.value).ok).toBe(true);
+    for (const [bad, kind] of [
+      [press({ ...escalate, fromLocal: { reason: "count" } }), "invalid-prop"],
+      [press({ ...escalate, fromLocal: { reason: "nope" } }), "unknown-name"],
+      [press({ ...escalate, fromLocal: { extra: "q" } }), "invalid-prop"],
+      [press({ ...escalate, args: { id: "a", reason: "b" }, fromLocal: { reason: "q" } }), "invalid-prop"],
+    ] as const) {
+      const result = validateTemplate(bad, installedContext);
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.errors[0]).toMatchObject({ kind });
+    }
+    const set = press({ type: "setState", key: "selected", fromLocal: "q" });
+    expect(validateTemplate(set, installedContext).ok).toBe(true);
+    const rendered = renderTemplate(set, inputs, { validator, surfaceId: "s", revision: 0 });
+    expect(rendered.ok && rendered.value.root.events).toEqual({
+      onPress: { type: "setState", key: "selected", fromLocal: "q" },
+    });
+    const both = press({ type: "setState", key: "selected", value: "x", fromLocal: "q" });
+    expect(validateTemplate(both, installedContext).ok).toBe(false);
   });
 });

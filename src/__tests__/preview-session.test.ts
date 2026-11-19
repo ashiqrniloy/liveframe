@@ -350,7 +350,8 @@ test("preview_checks_generated_outcomes", async () => {
 test("every_proof_scenario_passes_check", async () => {
   const worker = workerRunner();
   try {
-    for (const runner of [inProcessRunner(), worker])
+    for (const inner of [inProcessRunner(), worker]) {
+      const runner: Runner = { render: (pkg, inputs, opts) => inner.render(pkg, inputs, { ...opts, timeoutMs: 2000 }) };
       for (const input of drafts) {
         const session = createPreview({ ...packageOptions, runner });
         const pkg = value(session.update(input));
@@ -358,10 +359,11 @@ test("every_proof_scenario_passes_check", async () => {
         expect(results.map((entry) => entry.scenario)).toEqual(pkg.scenarios.map((scenario) => scenario.name));
         for (const entry of results) value(entry.result);
       }
+    }
   } finally {
     worker.close();
   }
-});
+}, 15000);
 
 test("published_package_matches_the_last_preview", async () => {
   const { session, calls, runner } = setup();

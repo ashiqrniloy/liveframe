@@ -5,7 +5,7 @@ import { codePointsWithin, type LanguageSchema } from "../schema.ts";
 import { reject } from "./checks.ts";
 import { compileSchema, type SchemaCheck, type SchemaSink } from "./schema.ts";
 
-/** Plan 029 design A1–A3: the host's report on one action, supplied as the `actions` input. */
+/** The host's report on one action, supplied as the `actions` input (spec §8). */
 const STATUSES = ["pending", "ok", "failed", "refused"] as const;
 export const MAX_ACTION_RESULTS = 64;
 export const MAX_RESULT_KEY = 128;
@@ -36,7 +36,7 @@ export function actionsSchema(manifest: Manifest, capabilities: Capabilities): O
 }
 
 /**
- * Checks the `actions` input (design A2–A3): at most 64 entries keyed by a result key, each a closed
+ * Checks the `actions` input (spec §8): at most 64 entries keyed by a result key, each a closed
  * status object whose `action` names a manifest action (defaulting to the key) and whose `value`
  * appears only with `ok` and fits that action's `result` schema.
  */

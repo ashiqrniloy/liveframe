@@ -1,11 +1,14 @@
-// 0.3.0 may break 0.2.1/0.2.2 by design; their checkout comparisons are retired.
-// The last patch, 0.2.3, is the single baseline for registered 0.3.0 changes.
+// 0.3.x patches compare against the 0.3.0 tag baseline through an additive-only 0.3.1 register.
+// The 0.2.3 baseline and 0.3.0 register remain in scripts/release/api/ as release history.
 import { expect, test } from "bun:test";
 import { resolve } from "node:path";
-import baselineJson from "../../scripts/release/api/0.2.3.json" with { type: "json" };
+import baselineJson from "../../scripts/release/api/0.3.0.json" with { type: "json" };
 import runnerBaselineJson from "../../scripts/release/api/0.3.0-runner-quickjs.json" with { type: "json" };
 import starterBaselineJson from "../../scripts/release/api/0.3.0-starter.json" with { type: "json" };
-import registerJson from "../../scripts/release/api/register-0.3.0.json" with { type: "json" };
+import register030Json from "../../scripts/release/api/register-0.3.0.json" with { type: "json" };
+import registerJson from "../../scripts/release/api/register-0.3.1.json" with { type: "json" };
+import register040Json from "../../scripts/release/api/register-0.4.0.json" with { type: "json" };
+import starterRegister040Json from "../../scripts/release/api/register-0.4.0-starter.json" with { type: "json" };
 import {
   type ApiSurface,
   compareApiSurface,
@@ -16,6 +19,17 @@ import {
 const root = resolve(import.meta.dir, "../..");
 const baseline = baselineJson as unknown as ApiSurface;
 const register = registerJson as unknown as readonly RegisterEntry[];
+const register030 = register030Json as unknown as readonly RegisterEntry[];
+const register040 = register040Json as unknown as readonly RegisterEntry[];
+const starterRegister040 = starterRegister040Json as unknown as readonly RegisterEntry[];
+
+/** Layers the 0.4.0 register over the 0.3.1 patch register while 0.3.0 remains the on-disk baseline. */
+function combineRegisters(patch: readonly RegisterEntry[], minor: readonly RegisterEntry[]): readonly RegisterEntry[] {
+  const merged = new Map<string, RegisterEntry>();
+  for (const entry of patch) merged.set(`${entry.subpath}\0${entry.name}`, entry);
+  for (const entry of minor) merged.set(`${entry.subpath}\0${entry.name}`, entry);
+  return [...merged.values()];
+}
 
 const fixture: ApiSurface = {
   exports: {
@@ -42,23 +56,53 @@ const fixture: ApiSurface = {
   },
 };
 
-test("baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register", async () => {
-  expect(baseline.generatedFrom).toContain("v0.2.3");
+test("baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register", async () => {
+  expect(baseline.generatedFrom).toContain("v0.3.0");
   const current = await readApiSurface(root);
-  expect(compareApiSurface(baseline, current, register)).toEqual([]);
+  expect(compareApiSurface(baseline, current, combineRegisters(register, register040))).toEqual([]);
+}, 20_000);
+
+test("register_0_4_0_is_read_by_the_api_gate", async () => {
+  expect(Array.isArray(register040)).toBe(true);
+  expect(register040.length).toBeGreaterThan(0);
+  const current = await readApiSurface(root);
+  expect(compareApiSurface(baseline, current, register).length).toBeGreaterThan(0);
+  expect(compareApiSurface(baseline, current, combineRegisters(register, register040))).toEqual([]);
+}, 20_000);
+
+test("register_0_3_1_holds_only_additive_entries", () => {
+  for (const entry of register) {
+    expect(entry.change === "added" || entry.change === "widened").toBe(true);
+  }
 });
 
 test("baseline_0_3_0_matches_the_companion_packages", async () => {
-  // The two companion packages release with the core, so a 0.3.x patch must not change their surface either.
-  for (const [dir, json] of [
-    ["packages/runner-quickjs", runnerBaselineJson],
-    ["packages/starter", starterBaselineJson],
+  // The two companion packages release with the core; the starter's generated primitives change only through
+  // its own 0.4.0 register, kept beside the core's.
+  for (const [dir, json, entries] of [
+    ["packages/runner-quickjs", runnerBaselineJson, []],
+    ["packages/starter", starterBaselineJson, starterRegister040],
   ] as const) {
     const baseline = json as unknown as ApiSurface;
     expect(baseline.generatedFrom).toContain("0.3.0");
-    expect(compareApiSurface(baseline, await readApiSurface(resolve(root, dir)), [])).toEqual([]);
+    expect(compareApiSurface(baseline, await readApiSurface(resolve(root, dir)), entries)).toEqual([]);
   }
-});
+}, 20_000);
+
+// Placeholder until 0.4.0: `@arnilo/liveframe-a2ui` is new, so it has no tag baseline yet. Its release generates
+// `scripts/release/api/0.4.0-a2ui.json` and this test then compares against it like the two companions above.
+test("a2ui_package_exports_only_the_converter_until_its_baseline", async () => {
+  const surface = await readApiSurface(resolve(root, "packages/a2ui"));
+  expect(Object.keys(surface.exports)).toEqual(["."]);
+  expect(Object.keys(surface.exports["."] ?? {}).sort()).toEqual([
+    "A2uiComponent",
+    "A2uiConversion",
+    "A2uiItem",
+    "A2uiMapping",
+    "A2uiOptions",
+    "fromA2ui",
+  ]);
+}, 20_000);
 
 test("removed_export_fails", () => {
   const current: ApiSurface = {
@@ -206,7 +250,7 @@ test("deferred_entry_with_shipped_change_fails", () => {
 
 test("register_host_actions_appear_in_adopter_notes", async () => {
   const adopters = await Bun.file(resolve(root, "docs/migration-0.3.md")).text();
-  for (const entry of register) {
+  for (const entry of register030) {
     expect(adopters).toContain(entry.hostAction);
   }
 });

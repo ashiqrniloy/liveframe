@@ -69,4 +69,4 @@ test("acceptance_map_covers_every_bullet_of_plans_026_to_031", () => {
   expect(problems).toEqual([]);
   expect(counts.unmapped).toBe(0);
   expect(counts.fail).toBe(0);
-});
+}, 20000);

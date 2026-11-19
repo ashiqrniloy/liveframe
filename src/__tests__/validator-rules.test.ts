@@ -49,10 +49,11 @@ const rules = {
     "children match the definition, and style props are declared and in range; a dimension that names a design value (`space.*`, `radius.*`, `size.*`, a breakpoint) fails when the app did not declare that name",
   variant: "variants exist",
   expressions:
-    "`when` and `bind` expressions and `setLocal` intents are well formed, bounded and fit the manifest's `local` schema and the kind's props (§8)",
+    "`when` and `bind` expressions, `setLocal` intents and intent `local` writes and `fromLocal` reads are well formed, bounded and fit the manifest's `local` schema and the kind's props, and read only the `local`, `self` and `shown` roots (§8)",
   intent:
-    "event names are declared, `setState` keys exist in the state schema and their values match it, action names are in the manifest, action args match the action's schema in the app's capabilities, a scalar `bind` names a compatible argument, and object `bindAll` and implicit object `setState` satisfy the structural fit rule (§8)",
+    "event names are declared, `setState` keys exist in the state schema and their values match it, action names are in the manifest, action args match the action's schema in the app's capabilities, a scalar or array `bind` names a compatible argument, implicit array `setState` names a compatible key, and object `bindAll` and implicit object `setState` satisfy the structural fit rule (§8)",
   id: "ids are unique and key-derived",
+  focus: "a tree's `focus` names a node of the tree that is always rendered, with no `when` on it or an ancestor (§9)",
   limits:
     "limits hold: node count (default 5,000), depth (default 64), and tree size in bytes (default 1 MiB), all configurable. Tree size is the UTF-8 length of the tree's `JSON.stringify` output, counted during the walk without serialising. String bounds count code points. The runner adds a time limit (§7.5)",
 } as const;
@@ -528,6 +529,39 @@ const rows: readonly Row[] = [
     nodeId: "root",
     pointer: "/root/events/onPress/script",
     expected: ["fields: type, key, value"],
+  },
+  {
+    rule: "focus",
+    name: "focus on a missing node",
+    source: "docs/spec.md:1369",
+    input: { ...tree(node("stack", {}, { children: [child()] })), focus: "root/other" },
+    kind: "not-found",
+    nodeId: "root",
+    pointer: "/focus",
+    expected: ["node in this tree for focus root/other"],
+  },
+  {
+    rule: "focus",
+    name: "focus under a when",
+    source: "docs/spec.md:1369",
+    input: {
+      ...tree(node("stack", {}, { when: false, children: [child()] })),
+      focus: "root/child",
+    },
+    kind: "invalid-prop",
+    nodeId: "root",
+    pointer: "/focus",
+    expected: ["always rendered"],
+  },
+  {
+    rule: "focus",
+    name: "focus not a node id",
+    source: "docs/spec.md:1369",
+    input: { ...tree(), focus: "child" },
+    kind: "invalid-prop",
+    nodeId: "root",
+    pointer: "/focus",
+    expected: ["node id for focus"],
   },
   {
     rule: "id",

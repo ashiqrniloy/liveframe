@@ -1,5 +1,6 @@
-import { expect, test } from "bun:test";
+import { expect, spyOn, test } from "bun:test";
 import { pack, packageHash, verifyPackage, type WidgetPackage } from "@arnilo/liveframe/pack";
+import { inProcessRunner } from "@arnilo/liveframe/preview";
 import {
   loadPlacement,
   memoryStore,
@@ -8,7 +9,10 @@ import {
   verifiedPackages,
   verifyPlacementInputs,
 } from "@arnilo/liveframe/store";
+import * as packageFormat from "../formats/package.ts";
 import { int, obj, type Result, str, validateCapabilities, validateCatalog } from "../index.ts";
+import { freezeCopy } from "../internal.ts";
+import * as hashing from "../pack/hash.ts";
 import capabilitiesDoc from "./fixtures/proof/capabilities.json" with { type: "json" };
 import catalogDoc from "./fixtures/proof/catalog.json" with { type: "json" };
 
@@ -291,4 +295,164 @@ test("verified_packages_lru_bound_and_invalid_max", () => {
   for (let i = 0; i < 257; i++) defaults.set(String(i), pkg);
   expect(defaults.get("0")).toBeUndefined();
   expect(defaults.get("1")).toBe(pkg);
+});
+
+test("verified_hit_returns_the_cached_object_without_hashing", async () => {
+  const store = await installed();
+  const verified = verifiedPackages();
+  const frozenInstall = freezeCopy(options);
+  const first = value(await loadPlacement(store, "home", frozenInstall, { verified }));
+  const hashed = spyOn(hashing, "packageHash");
+  const shaped = spyOn(packageFormat, "validateWidgetPackageShape");
+  const canonicalised = spyOn(hashing, "canonicalJson");
+  try {
+    const second = value(await loadPlacement(store, "home", frozenInstall, { verified }));
+    expect(second.package).toBe(first.package);
+    expect(hashed).toHaveBeenCalledTimes(0);
+    expect(shaped).toHaveBeenCalledTimes(0);
+    expect(canonicalised).toHaveBeenCalledTimes(0);
+
+    // Documents that are not deeply frozen are canonicalised on every call, as before, while still skipping packageHash.
+    const unfrozen = structuredClone(options);
+    const third = value(await loadPlacement(store, "home", unfrozen, { verified }));
+    expect(third.package).toBe(first.package);
+    expect(hashed).toHaveBeenCalledTimes(0);
+    expect(shaped).toHaveBeenCalledTimes(0);
+    expect(canonicalised).toHaveBeenCalledTimes(2);
+  } finally {
+    hashed.mockRestore();
+    shaped.mockRestore();
+    canonicalised.mockRestore();
+  }
+});
+
+test("record_differing_in_one_nested_value_misses", async () => {
+  const store = await installed();
+  const verified = verifiedPackages();
+  const first = value(await loadPlacement(store, "home", options, { verified }));
+
+  const changedScenario = {
+    ...pkg,
+    scenarios: [{ name: "default", params: { "a/~": "changed" }, context: {}, data: {} }],
+  };
+  const rehashedScenario = { ...changedScenario, hash: packageHash(changedScenario) };
+  const invalidScenario = {
+    ...pkg,
+    scenarios: [{ name: "default", params: { "a/~": "x".repeat(20) }, context: {}, data: {} }],
+  };
+  const changedCode = { ...pkg, code: (pkg.code as string).replace("null", "0") };
+  const rehashedCode = { ...changedCode, hash: packageHash(changedCode) };
+  const addedTopKey = { ...pkg, extra: 1 };
+  const addedManifestKey = { ...pkg, manifest: { ...pkg.manifest, extra: 1 } };
+  const addedScenarioKey = {
+    ...pkg,
+    scenarios: [{ name: "default", params: { "a/~": "ok", extra: "1" }, context: {}, data: {} }],
+  };
+
+  for (const candidate of [
+    changedScenario,
+    rehashedScenario,
+    invalidScenario,
+    changedCode,
+    rehashedCode,
+    addedTopKey,
+    addedManifestKey,
+    addedScenarioKey,
+  ]) {
+    const loaded = await loadPlacement(
+      { ...store, getPackage: async () => candidate as WidgetPackage },
+      "home",
+      options,
+      { verified },
+    );
+    const direct = verifyPackage(candidate, options);
+    if (!direct.ok) {
+      expect<Result<unknown>>(loaded).toEqual(direct);
+    } else {
+      const unwrapped = value(loaded);
+      expect(unwrapped.package).toEqual(direct.value);
+      expect(unwrapped.package).not.toBe(first.package);
+    }
+  }
+});
+
+test("tampered_code_with_the_original_hash_is_hash_mismatch", async () => {
+  const store = await installed();
+  const verified = verifiedPackages();
+  const first = value(await loadPlacement(store, "home", options, { verified }));
+  const tampered: WidgetPackage = { ...pkg, code: `${pkg.code}\n// tampered`, hash: pkg.hash };
+  const loaded = await loadPlacement({ ...store, getPackage: async () => tampered }, "home", options, { verified });
+  rejects(loaded, "hash-mismatch", "/hash");
+  // The failed load must not displace or taint the valid cached entry.
+  expect(value(await loadPlacement(store, "home", options, { verified })).package).toBe(first.package);
+});
+
+test("same_package_under_another_install_misses", async () => {
+  const store = await installed();
+  const verified = verifiedPackages();
+  const firstInstall = freezeCopy(options);
+  const secondInstall = freezeCopy({
+    ...options,
+    capabilities: { ...options.capabilities, actions: {}, sources: {} },
+  });
+  const first = value(await loadPlacement(store, "home", firstInstall, { verified }));
+  const hashed = spyOn(hashing, "packageHash");
+  try {
+    const second = value(await loadPlacement(store, "home", secondInstall, { verified }));
+    expect(second.package).not.toBe(first.package);
+    expect(hashed).toHaveBeenCalledTimes(1);
+    const otherCatalog = freezeCopy({
+      ...options,
+      catalog: { ...options.catalog, catalogId: "other@1" },
+    });
+    rejects(await loadPlacement(store, "home", otherCatalog, { verified }), "catalog-mismatch", "/manifest/catalogId");
+  } finally {
+    hashed.mockRestore();
+  }
+});
+
+test("runner_does_not_rehash_a_cached_package", async () => {
+  const runnable = value(
+    pack(
+      {
+        files: {
+          "entry.ts":
+            'import { primitive } from "@arnilo/liveframe/sdk"; import { jsx } from "@arnilo/liveframe/sdk/jsx-runtime"; const Stack = primitive("stack"); export default () => jsx(Stack, {});',
+        },
+        entry: "entry.ts",
+        manifest,
+        scenarios: pkg.scenarios,
+      },
+      options,
+    ),
+  );
+  const store = memoryStore();
+  await store.putPackage(runnable);
+  await store.putPlacement(placement);
+  const verified = verifiedPackages();
+  const runner = inProcessRunner();
+  const first = value(await loadPlacement(store, "home", options, { verified }));
+  value(
+    await runner.render(
+      first.package,
+      { params: first.params, state: first.state, context: {}, data: {}, actions: {} },
+      { ...options, surfaceId: "home", revision: 1 },
+    ),
+  );
+  const hashed = spyOn(hashing, "packageHash");
+  try {
+    const second = value(await loadPlacement(store, "home", options, { verified }));
+    expect(second.package).toBe(first.package);
+    const tree = value(
+      await runner.render(
+        second.package,
+        { params: second.params, state: second.state, context: {}, data: {}, actions: {} },
+        { ...options, surfaceId: "home", revision: 2 },
+      ),
+    );
+    expect(tree.root.kind).toBe("stack");
+    expect(hashed).toHaveBeenCalledTimes(0);
+  } finally {
+    hashed.mockRestore();
+  }
 });

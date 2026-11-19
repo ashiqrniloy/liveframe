@@ -1,13 +1,15 @@
 // Run by `bun scripts/release/archive-gate.ts --dir packages/starter` in the install directory, outside the checkout:
-// the installed package must resolve its catalog document, its generated modules and its peers on its own, and pass
-// the design-system conformance suite (three themes, contrast audit on) the repository's tests run.
+// the installed package must resolve its catalog document and digest, its generated modules and its peers on its own,
+// and pass the design-system conformance suite (three themes, contrast audit on) the repository's tests run.
 import { designSystemSuite } from "@arnilo/liveframe/conformance";
+import { catalog, designSystem, implementations, primitiveCss, styles, themes } from "@arnilo/liveframe-starter";
 import catalogDocument from "@arnilo/liveframe-starter/catalog.json" with { type: "json" };
 import { Button } from "@arnilo/liveframe-starter/definitions";
 import { Stack } from "@arnilo/liveframe-starter/ui";
-import { catalog, designSystem, implementations, primitiveCss, styles, themes } from "@arnilo/liveframe-starter";
 
 if (catalogDocument.catalogId !== catalog.catalogId) throw new Error("catalog.json does not match the catalog");
+const digest = await Bun.file(new URL(import.meta.resolve("@arnilo/liveframe-starter/catalog.digest.md"))).text();
+if (!digest.startsWith(`# ${catalog.catalogId}\n`)) throw new Error("catalog.digest.md does not match the catalog");
 if (Button.kind !== "button" || typeof Stack !== "function") throw new Error("Generated modules did not load");
 if (themes.length !== 3 || implementations.length !== catalog.definitions.length) throw new Error("Incomplete starter");
 if (Object.values(styles()).some((sheet) => sheet.length === 0)) throw new Error("Empty sheet");

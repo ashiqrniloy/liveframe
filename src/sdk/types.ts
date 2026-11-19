@@ -1,6 +1,6 @@
-import type { ActionStatus, Intent, Json, LocalIntent, TreeIntent } from "../formats/tree.ts";
+import type { ActionStatus, Intent, Json, LocalIntent, LocalWrite, TreeIntent } from "../formats/tree.ts";
 
-export type { ActionStatus, Intent, Json, LocalIntent, TreeIntent };
+export type { ActionStatus, Intent, Json, LocalIntent, LocalWrite, TreeIntent };
 
 /** A widget input, deeply readonly: the SDK freezes all four before the widget runs. */
 export type DeepReadonly<T> = T extends (...args: never[]) => unknown

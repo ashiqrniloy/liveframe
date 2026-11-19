@@ -15,6 +15,19 @@ export function metric(name: string, value: number): void {
   metrics[name] = value;
 }
 
+/**
+ * Runs `run` `iterations` times; returns wall and process-CPU milliseconds per iteration. CPU time counts only
+ * the cycles this process ran, so a busy host moves it far less than wall time (`bench/ab.ts` gates on it).
+ */
+export function timed(run: (i: number) => unknown, iterations: number): { wallMs: number; cpuMs: number } {
+  const cpu = process.cpuUsage();
+  const start = performance.now();
+  for (let i = 0; i < iterations; i++) run(i);
+  const wallMs = performance.now() - start;
+  const used = process.cpuUsage(cpu);
+  return { wallMs: wallMs / iterations, cpuMs: (used.user + used.system) / 1_000 / iterations };
+}
+
 /** A hard budget: throws normally, and only reports under `--json` so `bench/ab.ts` still gets every figure. */
 export function budget(ok: boolean, message: string): void {
   if (jsonMode && !ok) console.error(message);

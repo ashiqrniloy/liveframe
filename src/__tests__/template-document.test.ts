@@ -41,12 +41,26 @@ test("agent_home_template_validates", () => {
 });
 
 test("install_validation_of_agent_home_within_budget", () => {
-  for (let i = 0; i < 20; i++) validateTemplate(agentHomeTemplate, context);
-  const start = performance.now();
-  for (let i = 0; i < 100; i++) validateTemplate(agentHomeTemplate, context);
-  const perCall = (performance.now() - start) / 100;
-  console.log(`template install validation: ${perCall.toFixed(2)} ms (agent-home port, budget 5 ms)`);
-  expect(perCall).toBeLessThan(5);
+  expect(validateTemplate(agentHomeTemplate, context).ok).toBe(true);
+  const countReads = (count: number) => {
+    let reads = 0;
+    const children = Array.from({ length: count }, (_, i) => ({
+      kind: "text",
+      props: { text: `Row ${i}` },
+    }));
+    const proxied = new Proxy(children, {
+      get(target, prop, receiver) {
+        if (typeof prop === "string" && /^\d+$/.test(prop)) reads++;
+        return Reflect.get(target, prop, receiver);
+      },
+    });
+    expect(validateTemplate(template({ kind: "stack", children: proxied }), context).ok).toBe(true);
+    return reads;
+  };
+  const small = countReads(25);
+  const large = countReads(100);
+  expect(small).toBeGreaterThan(0);
+  expect(large).toBeLessThanOrEqual(small * 5);
 });
 
 test("template_unknown_path_unknown_name", () => {
@@ -572,6 +586,76 @@ test("expression_errors_point_into_the_template", () => {
   expect(problems(template(stack({ kind: "text", props: { text: { $concat: ["a", 1] } } })))).toEqual([
     "invalid-prop /root/children/0/props/text/$concat/1",
   ]);
+});
+
+test("intents_with_local_writes_are_checked_at_install_and_expanded", () => {
+  const localManifest = {
+    ...installed.value,
+    local: {
+      type: "object",
+      properties: { saving: { type: "boolean" }, q: { type: "string", maxLength: 64 } },
+      required: ["saving", "q"],
+      additionalProperties: false,
+    },
+    initialLocal: { saving: false, q: "" },
+  };
+  const check = (doc: Doc) =>
+    validateTemplate(doc, {
+      catalog: catalog.value,
+      capabilities: capabilities.value,
+      manifest: localManifest as unknown as typeof installed.value,
+    });
+  const good: Doc = template(
+    stack({
+      kind: "button",
+      props: { label: "Save" },
+      events: {
+        onPress: {
+          type: "action",
+          name: "tasks.claim",
+          args: { id: "t1" },
+          local: [{ key: "saving", value: true, until: "revision" }],
+        },
+      },
+    }),
+  );
+  expect(check(good).ok).toBe(true);
+  expect(
+    check(
+      template(
+        stack({
+          kind: "button",
+          props: { label: "Save" },
+          events: {
+            onPress: {
+              type: "action",
+              name: "tasks.claim",
+              args: { id: "t1" },
+              local: [{ key: "nope", value: true }],
+            },
+          },
+        }),
+      ),
+    ),
+  ).toMatchObject({ ok: false, errors: [{ kind: "unknown-name" }] });
+  expect(
+    check(
+      template(
+        stack({
+          kind: "button",
+          props: { label: "Save" },
+          events: {
+            onPress: {
+              type: "action",
+              name: "tasks.claim",
+              args: { id: "t1" },
+              local: [{ key: "saving", value: "yes" }],
+            },
+          },
+        }),
+      ),
+    ),
+  ).toMatchObject({ ok: false, errors: [{ kind: "invalid-prop" }] });
 });
 
 test("errors_are_bounded_at_twenty", () => {

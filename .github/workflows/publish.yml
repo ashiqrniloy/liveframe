@@ -28,7 +28,7 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.4.2
-      # All three packages release together: one version, and the tag names it.
+      # All four packages release together: one version, and the tag names it.
       - name: Packages are at one version, tag matches
         run: |
           if [ "$GITHUB_REF_TYPE" = tag ]; then bun scripts/release/versions.ts --tag "$GITHUB_REF_NAME"; else bun scripts/release/versions.ts; fi
@@ -73,7 +73,7 @@ jobs:
           version=$(bun -p 'require("./package.json").version')
           case "$version" in *-*) tag=next ;; *) tag=latest ;; esac
           dry=; if [ "${{ inputs.dry_run }}" = true ]; then dry=--dry-run; fi
-          # The core first: the other two peer on it. Each publish carries its own provenance.
+          # The core first: the others peer on it. Each publish carries its own provenance.
           # A publish cannot be undone, so a re-run after a partial one (say a package whose trusted publisher
           # is not configured yet) skips the versions the registry already holds and completes the rest.
           for dir in . packages/*; do

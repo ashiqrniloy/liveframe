@@ -12,9 +12,10 @@ const kit = await Bun.file(fileURLToPath(import.meta.resolve("@arnilo/liveframe/
 const limits = { memoryBytes: 32 << 20, stackBytes: 256 << 10, timeoutMs: 5000 };
 
 const manifest = widget("e.base", 'export default () => show("ok");').manifest;
+const config = JSON.stringify({ catalog, capabilities });
 const request = JSON.stringify({
   inputs,
-  options: { catalog, capabilities, manifest, surfaceId: "e", revision: 1 },
+  options: { manifest, surfaceId: "e", revision: 1 },
 });
 
 function link(code: string): string {
@@ -25,13 +26,13 @@ function link(code: string): string {
 
 /** A job for widget source the packer accepts. */
 function job(source: string, extra: Partial<Job> = {}): Job {
-  return { code: link(widget("e.job", source).code as string), libraries: {}, limits, request, ...extra };
+  return { code: link(widget("e.job", source).code as string), libraries: {}, limits, config, request, ...extra };
 }
 
 /** A job for hand-built package code the packer would refuse: the engine must survive whatever a host hands it. */
 function rawJob(body: string, extra: Partial<Job> = {}): Job {
   const code = `import * as __lf_sdk0 from "@arnilo/liveframe/sdk";\n${body}`;
-  return { code: link(code), libraries: {}, limits, request, ...extra };
+  return { code: link(code), libraries: {}, limits, config, request, ...extra };
 }
 
 const SHOW = '__lf_sdk0.jsx(__lf_sdk0.primitive("text"), { text: "ok" })';
@@ -106,4 +107,59 @@ test("quickjs_disposes_every_handle", async () => {
   engine.close();
   expect(engine.tainted()).toBe(0);
   expect(engine.kept()).toBe(0);
-});
+}, 20000);
+
+test("kept_runtime_compiles_the_validator_once", async () => {
+  const srcRoot = fileURLToPath(new URL("../../../../src", import.meta.url));
+  const bundle = await Bun.build({
+    entrypoints: ["/virtual/kit.ts"],
+    files: {
+      "/virtual/kit.ts": `
+        import { renderModule as innerRenderModule } from ${JSON.stringify(`${srcRoot}/runner-kit/render.ts`)};
+        import { cachedValidatorCount } from ${JSON.stringify(`${srcRoot}/runner-kit/cache.ts`)};
+        export * from ${JSON.stringify(`${srcRoot}/sdk/index.ts`)};
+        export { jsxDEV } from ${JSON.stringify(`${srcRoot}/sdk/jsx-dev-runtime.ts`)};
+        export { linkPackage, renderTemplatePackage } from ${JSON.stringify(`${srcRoot}/runner-kit/index.ts`)};
+        export { cachedValidatorCount };
+        export function renderModule(widgetDefault: unknown, inputsArg: unknown, optionsArg: { catalog: unknown; capabilities: unknown }) {
+          const g = globalThis as { __validatorCompiles?: number; __catalog?: unknown; __caps?: unknown };
+          const before = cachedValidatorCount(optionsArg.catalog as never, optionsArg.capabilities as never);
+          if (before === 0) g.__validatorCompiles = (g.__validatorCompiles ?? 0) + 1;
+          g.__catalog = optionsArg.catalog;
+          g.__caps = optionsArg.capabilities;
+          return innerRenderModule(widgetDefault, inputsArg as never, optionsArg as never);
+        }
+      `,
+    },
+    format: "esm",
+    target: "browser",
+    splitting: false,
+  });
+  const output = bundle.outputs[0];
+  if (!bundle.success || !output) throw new Error("Expected bundled test kit");
+  const instrumentedKit = await output.text();
+  const engine = createEngine(wasm, instrumentedKit);
+  const body = `import { cachedValidatorCount } from "liveframe:kit";
+export default () => __lf_sdk0.jsx(__lf_sdk0.primitive("text"), { text: globalThis.__validatorCompiles + "/" + cachedValidatorCount(globalThis.__catalog, globalThis.__caps) });`;
+  const keptJob = rawJob(body, { key: "kept" });
+  expect(answer(await engine.render(keptJob))).toBe("1/1");
+  expect(answer(await engine.render(keptJob))).toBe("1/1");
+  // Changing the config string recompiles against the new capabilities document.
+  const altConfig = JSON.stringify({
+    catalog,
+    capabilities: {
+      ...capabilities,
+      actions: {
+        ...capabilities.actions,
+        "test.extra": {
+          description: "Extra",
+          args: { type: "object", properties: {}, required: [], additionalProperties: false },
+        },
+      },
+    },
+  });
+  expect(answer(await engine.render({ ...keptJob, config: altConfig }))).toBe("2/1");
+  expect(engine.tainted()).toBe(0);
+  engine.close();
+  expect(engine.tainted()).toBe(0);
+}, 20000);

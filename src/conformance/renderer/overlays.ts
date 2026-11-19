@@ -1,7 +1,7 @@
 import type { Locator, Page } from "playwright";
 import { compileValidator, type UiTree, validateCatalog } from "../../index.ts";
 import { check } from "../case.ts";
-import type { PageOptions, Styles } from "./page.tsx";
+import type { Styles, SuiteOptions } from "./page.ts";
 
 type Target = (page: Page) => Locator;
 export type LifecycleFixtures = {
@@ -21,7 +21,7 @@ export type LifecycleFixtures = {
 };
 
 export function lifecycleCases(
-  options: PageOptions & { fixtures: LifecycleFixtures },
+  options: SuiteOptions & { fixtures: LifecycleFixtures },
   mount: (page: Page, tree: UiTree, styles: Styles) => Promise<void>,
   settle: (page: Page) => Promise<void>,
 ) {

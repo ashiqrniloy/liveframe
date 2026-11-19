@@ -1,4 +1,4 @@
-export { type Expr, ex, local, self } from "./bindings.ts";
+export { type Expr, ex, local, self, shown } from "./bindings.ts";
 export { type Component, type Element, primitive } from "./element.ts";
 export { type Elements, ephemeralManifest, renderElements } from "./elements.ts";
 export { action, state } from "./intents.ts";
@@ -13,6 +13,7 @@ export type {
   Intent,
   Json,
   LocalIntent,
+  LocalWrite,
   TreeIntent,
   WidgetInputs,
   WidgetProps,

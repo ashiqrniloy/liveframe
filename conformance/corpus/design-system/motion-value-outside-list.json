@@ -1,0 +1,16 @@
+{
+  "inputs": {
+    "doc": "docs/motion-value-outside-list.json",
+    "catalog": "../common/catalog.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "invalid-document",
+        "pointer": "/recipes/button.*.root.rest/motion"
+      }
+    ]
+  }
+}

@@ -7,11 +7,11 @@ The package is pre-1.0; install it and use the subpaths it exports.
 
 | Suite | What it proves | What it leaves to your app or the library's tests |
 | --- | --- | --- |
-| `storeSuite` | Empty/missing records, keyed placement reads, immutable package versions (typed rejection), every valid id including long and non-ASCII ones, copy isolation, sorted placements, state isolation by placement and scope, scope bounds with typed rejection, deletion across every scope, style keys, loadable records and a malformed sibling not blocking a load; persistence when `reopen` is supplied | Transactions, concurrent writers, tenant boundaries, authorization and durability under crashes |
+| `storeSuite` | Empty/missing records, keyed placement reads, immutable package versions (typed rejection), every valid id including long and non-ASCII ones, copy isolation, sorted placements, state isolation by placement and scope, scope bounds with typed rejection, deletion across every scope, style keys, loadable records and a malformed sibling not blocking a load; when the store has `putStateIf`, compare-and-set by canonical JSON, no write on a mismatch, copy isolation and scope isolation; persistence when `reopen` is supplied | Transactions, atomicity of `putStateIf` under real concurrent writers, tenant boundaries, authorization and durability under crashes |
 | `catalogSuite` | Catalog, capabilities and manifest install; URL-named string props (`href`, `src`, `url` and names ending in `Href`, `Src`, `Url`) declare a `url` rule, a `pattern` or an `enum`; valid examples cover every kind/variant and every value of each declared axis; version compatibility when `published` is supplied | The library's validator algorithm, SDK internals and whether your primitives are accessible |
 | `designSystemSuite` | Themes/design systems install, inheritance and recipe completeness, CSS projection (including that every extension a design system sets reaches the sheet as `--lf-p-<name>` and every axis combination gets its slot classes), no literal colour in supplied app sheets, and (opt-in) recipe-derived contrast pairs | External imported sheets, pixel parity, native platform/assistive-technology audits and the library's CSS selector/preference algorithms |
-| `rendererSuite` | Complete implementation registry, successful server rendering for each example × theme × design system, root slot/style output, fallback-only invalid arrivals with no implementation calls, and every `refProps` value naming an element (`domId` rendered as an `id`) | Content deferred until client mount, browser interactions and the renderer's internal caching/error-boundary machinery |
-| `rendererBrowserSuite` | Hydration, arrival rejection/recovery, expected complete intents, focus/scroll/draft survival, switching without renders, styled-state reachability, declared overlay lifecycle and text bounds | Undeclared overlay/input roles, unprovided interaction scenarios, timing budgets, production authorization and unsupported nested surfaces |
+| `rendererSuite` | Complete implementation registry, successful server rendering for each example × theme × design system, root slot/style output, fallback-only invalid arrivals with no implementation calls, every `refProps` value naming an element (`domId` rendered as an `id`), and a binding that fails when evaluated drawing the node fallback in its place with a `binding-failed` event | Content deferred until client mount, browser interactions and the renderer's internal caching/error-boundary machinery |
+| `rendererBrowserSuite` | Hydration, arrival rejection/recovery (fallback by default; `invalid="keep-last"` keeps the last tree's nodes, marked stale, with no implementation call), expected complete intents, focus/scroll/draft survival, switching without renders, styled-state reachability, declared overlay lifecycle and text bounds, `when`-false nodes never drawn, `setLocal` redrawing without reaching the host, compound `local` writes, `fromLocal` intents arriving complete, and a changed focus mark moving focus once | Undeclared overlay/input roles, unprovided interaction scenarios, timing budgets, production authorization and unsupported nested surfaces |
 | `runnerSuite` | A runner's contract: every scenario of the packages you supply renders the tree the reference renderer produces, a hash mismatch is refused before loading, a thrown widget, a non-function default and an invalid tree are never `ok`, a widget that outlives `timeoutMs` is `limit-exceeded` and the next render succeeds, pinned libraries load, and the other package kind is refused with `invalid-document`; with `isolation: true`, no host global is reachable, no state survives a render, and infinite loops, memory bombs, deep recursion, one uninterruptible native call and forged results are contained | Your sandbox's configuration, the host operating system, side channels and anything the fixtures do not try |
 
 ## Language-neutral corpus
@@ -219,8 +219,9 @@ backend host module into the client entry. Only trees cross into the page.
 
 `conformancePage` installs the projected sheets and exposes
 `window.liveframeConformance`: `mount(tree, styles)`,
-`hydrate(markup, tree, styles)`, `switch(styles)`, `intents()`, `emissions()` and `renders()`.
-`emissions()` records `{ intent, origin }` together; `intents()` preserves the intent-only view.
+`hydrate(markup, tree, styles)`, `switch(styles)`, `intents()`, `emissions()`, `events()` and `renders()`.
+`emissions()` records `{ intent, origin }` together; `intents()` preserves the intent-only view;
+`events()` returns what the surface reported to `onEvent`, such as `focus-missed`.
 The browser interaction cases check each recorded origin and completed intent with
 `checkOffered(tree, origin, intent, validator)`.
 `styles` has `{ theme: { id, version }, designSystem: { id, version } }`, naming
@@ -270,6 +271,39 @@ Keep example sets explicit:
   hydrate without warnings or recoverable errors. Browser interaction/state/
   overlay fixtures must then open that content and exercise it after mount.
 
+## Prove a `/dom` registry
+
+An app that draws with `@arnilo/liveframe/dom` uses `@arnilo/liveframe/conformance/dom` instead. It imports no
+framework. The cases are `/conformance/react`'s, defined once and mounted through `/dom`; the two subpaths differ
+only in how they mount. `/dom` has no server rendering, so the structural cases of `rendererSuite()` (registry,
+surface attributes, root slot classes and styles, invalid arrival, references and failed bindings) run on your
+page, under the same names, before the browser cases. There is no hydration case.
+
+The page entry calls `domConformancePage()` with `{ catalog, capabilities, manifest, implementations, themes,
+designSystems, fallback }`, where `implementations` are your `/dom` bindings and `fallback` returns a new element
+each call:
+
+```ts
+import { domConformancePage } from "@arnilo/liveframe/conformance/dom";
+import { domPageOptions } from "./dom-host.ts";
+
+domConformancePage(domPageOptions);
+```
+
+It exposes the same `window.liveframeConformance` API as `conformancePage()`, without `hydrate`, and counts each
+`draw` call as a render, so it needs no development build. In the test process:
+
+```ts
+function domCases(options: Omit<DomSuiteOptions, "page" | "url">, page: () => Promise<Page>, url: string) {
+  return domRendererBrowserSuite({ ...options, page, url });
+}
+```
+
+`options` holds the page options without `fallback`, plus `examples` (the structural examples, which must cover
+every node kind your structural checks should see) and `fixtures`, the same `BrowserFixtures` as for React.
+Register the cases as above. Overlay implementations draw into `node.portal`, and own the scroll lock, the inert
+background and the exit animation, as React Aria does for a React app.
+
 ## Describe your app's interactions and lifecycle
 
 Export fixtures typed as `BrowserFixtures`. Locators are functions
@@ -281,6 +315,10 @@ interaction and tree props; do not manufacture state attributes in the DOM.
 | --- | --- |
 | `interactions` | Nonempty array of `{ tree, act(page), intents }`. Drive local interactions with expected `[]`; supply state/action interactions with the exact complete intent array. Each entry starts on a fresh page. |
 | `survival` | `{ tree, next, focus, scroll?, input? }`. `next` has the same surface id and a higher revision; retain stable node ids/ancestry, and reorder relevant siblings. `focus` locates a focusable element. Optional `scroll` must actually overflow; optional `input` holds an uncommitted draft. The suite also sends the old tree as a stale arrival. |
+| `local` | `{ tree, show(page), hide(page), gated }`. The tree gates a node with a `when` on local state, hidden on arrival; `show` and `hide` raise `setLocal` events (for example two buttons) that draw and remove it, and `gated` locates it. The suite checks the node is absent, drawn, then absent again, and that no intent reached the host. |
+| `compound` | `{ tree, act(page), intents, gated }`. `act` raises a host intent that carries `local` writes; one of them draws the hidden node `gated` locates. `intents` is the exact complete intent array, without `local`. |
+| `fromLocal` | `{ tree, act(page), intents }`. `act` writes local state (for example by typing into a field bound with `setLocal`), then raises an action that reads arguments `fromLocal`; `intents` holds the filled action. |
+| `focus` | `{ tree, next, target }`. `next` is a later revision of `tree` whose `focus` names a different node, and `target` locates that node's focusable element, which must carry the node's `domId`. The suite blurs, mounts `next` and expects focus inside `target`; it then blurs again and mounts a higher revision with the same mark, which must not move focus. |
 | `states` | Map from `"kind.variant.state"` to `{ tree, target, drive? }`. Required for every non-rest state, including the catalog's app states, whose resolved declarations differ from rest in any installed system. `target` carries the root slot class or an affected slot's class and must match the spec §6.4 selector. Without `drive`, hover/active are driven automatically; other states come from tree props. Supply `drive` for keyboard focus or opening deferred content. Missing keys are reported. |
 | `overlayKinds` | Array declaring **every overlay kind in your app**, e.g. `["dialog"]`. The catalog does not identify overlays. |
 | `overlays` | One or more `{ kind, tree, open, close, content, backdrop, background, exitCss }` entries covering each declared overlay kind. Each validated tree contains its explicit `kind`. Mount a **closed tree**, then let `open(page)` open it after the portal mounts. `close(page)` requests closure. Locators identify the content, backdrop and a background control. |

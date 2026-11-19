@@ -38,6 +38,13 @@ const manifest = {
       enabled: { type: "boolean" },
     },
   },
+  // The renderer conformance cases for local state, compound writes and fromLocal read these.
+  local: {
+    ...empty,
+    properties: { open: { type: "boolean" }, title: { type: "string", maxLength: 100 } },
+    required: ["open", "title"],
+  },
+  initialLocal: { open: false, title: "" },
 };
 export const validator = compileValidator({ catalog, capabilities: checked.value, manifest });
 export const { Surface } = createRenderer({ catalog, implementations });

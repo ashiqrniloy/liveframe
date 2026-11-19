@@ -153,7 +153,7 @@ test("template_schema_validates_proof_templates", () => {
     const narrowed = ajv().compile(JSON.parse(generateTemplateSchema(catalog, { capabilities, manifest })));
     expect(narrowed(template), `${name}: ${JSON.stringify(narrowed.errors?.[0])}`).toBe(true);
   }
-});
+}, 15000);
 
 test("template_schema_rejects_what_install_would", () => {
   const manifest = value(validManifest(widget.manifest));

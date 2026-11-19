@@ -1,4 +1,4 @@
-import type { UiTree } from "@arnilo/liveframe";
+import type { TreeIntent, UiNode, UiTree } from "@arnilo/liveframe";
 import type { BrowserFixtures } from "@arnilo/liveframe/conformance/react";
 import type { Page } from "playwright";
 import { conformanceOptions } from "./renderer.ts";
@@ -81,7 +81,61 @@ export const lifecycleRules = [
   "open_overlay_locks_scroll_and_makes_background_inert",
   "text_input_counts_code_points",
 ];
+const screen = (surfaceId: string, children: UiNode[]): UiTree => ({
+  ...tree,
+  surfaceId,
+  root: { id: "root", kind: "stack", props: {}, children },
+});
+const gated: UiNode = { id: "root/shown", kind: "text", props: { text: "Shown" }, when: { $path: "local.open" } };
+const shown = (p: Page) => p.getByText("Shown", { exact: true });
+const press = (name: string) => (p: Page) => p.getByRole("button", { name, exact: true }).click();
+const button = (id: string, label: string, onPress: TreeIntent): UiNode => ({
+  id,
+  kind: "button",
+  props: { label },
+  events: { onPress },
+});
 export const fixtures = {
+  local: {
+    tree: screen("local", [
+      button("root/show", "Show", { type: "setLocal", key: "open", value: true }),
+      button("root/hide", "Hide", { type: "setLocal", key: "open", value: false }),
+      gated,
+    ]),
+    show: press("Show"),
+    hide: press("Hide"),
+    gated: shown,
+  },
+  compound: {
+    tree: screen("compound", [
+      button("root/save", "Save", { type: "action", name: "save", args: {}, local: [{ key: "open", value: true }] }),
+      gated,
+    ]),
+    act: press("Save"),
+    intents: [{ type: "action", name: "save", args: {} }],
+    gated: shown,
+  },
+  fromLocal: {
+    tree: screen("from-local", [
+      {
+        id: "root/title",
+        kind: "textField",
+        props: { label: "Title", value: "" },
+        events: { onChange: { type: "setLocal", key: "title" } },
+      },
+      button("root/save", "Save", { type: "action", name: "save", args: {}, fromLocal: { from: "title" } }),
+    ]),
+    async act(p: Page) {
+      await p.getByRole("textbox", { name: "Title" }).fill("draft");
+      await press("Save")(p);
+    },
+    intents: [{ type: "action", name: "save", args: { from: "draft" } }],
+  },
+  focus: {
+    tree,
+    next: { ...tree, revision: 2, focus: "root/scroll/other" },
+    target: (p: Page) => p.getByRole("textbox", { name: "Other", exact: true }),
+  },
   overlayKinds: ["dialog"],
   overlays: [
     {

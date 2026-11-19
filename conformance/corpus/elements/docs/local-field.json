@@ -1,0 +1,9 @@
+{
+  "kind": "text",
+  "props": {
+    "text": "x"
+  },
+  "local": {
+    "type": "object"
+  }
+}

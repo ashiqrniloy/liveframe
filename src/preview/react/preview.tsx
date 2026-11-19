@@ -24,6 +24,7 @@ export type PreviewProps = {
   readonly intents: readonly Intent[];
   readonly renderer: ReturnType<typeof createRenderer>;
   readonly validator: ComponentProps<ReturnType<typeof createRenderer>["Surface"]>["validator"];
+  readonly limits?: ComponentProps<ReturnType<typeof createRenderer>["Surface"]>["limits"];
   readonly fallback: ReactNode;
   readonly onSelect: (cell: PreviewCell) => void;
   readonly onIntent: (intent: Intent, origin: IntentOrigin) => void;
@@ -47,6 +48,7 @@ export function Preview({
   intents,
   renderer,
   validator,
+  limits,
   fallback,
   onSelect,
   onIntent,
@@ -167,6 +169,7 @@ export function Preview({
                         key={cell.scenario}
                         tree={tree}
                         validator={validator}
+                        limits={limits}
                         theme={theme}
                         designSystem={designSystem}
                         fallback={fallback}

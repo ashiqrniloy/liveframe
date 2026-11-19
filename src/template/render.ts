@@ -1,4 +1,4 @@
-// `renderTemplate` (plan 028 Task 4, design T17–T19): a template is compiled once to closures, run
+// `renderTemplate` (spec §7.6): a template is compiled once to closures, run
 // over the checked inputs to SDK elements, and those go through the SDK's one build-and-validate
 // pass. Nothing here builds a tree node, assigns an id or checks a prop: `render()` owns those rules.
 import { addBoundMarker, DEFAULT_MAX_ERRORS, type LiveframeError, type Result } from "../errors.ts";
@@ -118,7 +118,7 @@ function failure(pointer: string, expected: string, message = `Expected ${expect
 
 /**
  * Compiles a template against the validator's input schemas, with the scope rules of `validateTemplate`
- * (design T9, T12): the same analysis that passed at install, so a template that does not fit this
+ * and its type inference: the same analysis that passed at install, so a template that does not fit this
  * validator's manifest fails here with the install errors rather than at some later value.
  */
 class Compiler {
@@ -197,7 +197,7 @@ class Compiler {
     return { scope: next, slot: next.names.get(name as string)?.slot ?? 0 };
   }
 
-  /** `$let`, then `$if`, then `$each`, then the body (design T3). */
+  /** `$let`, then `$if`, then `$each`, then the body: `$let` cannot see `$each` names (spec §7.6). */
   node(node: Raw, pointer: string, outer: Scope, depth: number): Emitter {
     if (depth > TEMPLATE_LIMITS.nesting) {
       this.reject(pointer, `nodes nested at most ${TEMPLATE_LIMITS.nesting} deep`, "limit-exceeded");
@@ -324,8 +324,9 @@ class Compiler {
     const events = isRecord(node.events) ? node.events : {};
     for (const [name, intent] of Object.entries(events))
       props.push([name, this.intent(intent as Raw, scope, at(at(pointer, "events"), name))]);
+    if (Object.hasOwn(node, "focus")) props.push(["focus", this.expr(node.focus, scope, at(pointer, "focus"))]);
 
-    // Browser-evaluated expressions are copied verbatim, but for each `$embed` (plan 029 B12).
+    // `when` and `bind` are tree expressions, copied verbatim but for each `$embed`, which becomes a literal (spec §7.6).
     const expressions: (readonly [string, Fn])[] = [];
     for (const field of ["when", "bind"])
       if (Object.hasOwn(node, field))
@@ -378,18 +379,46 @@ class Compiler {
     return node.children.map((child, i) => this.node(child as Raw, at(at(pointer, "children"), i), scope, depth + 1));
   }
 
-  /** An intent whose `value` and `args` members are expressions (design T14). */
+  /** Compiles an intent's optional `local` writes, evaluating each `value` expression during expansion. */
+  localWrites(intent: Raw, scope: Scope, pointer: string): ((frame: Frame) => Record<string, unknown>[]) | undefined {
+    if (!Object.hasOwn(intent, "local") || !Array.isArray(intent.local)) return undefined;
+    const writesPointer = at(pointer, "local");
+    const entries = intent.local.map((raw, i) => {
+      const entry = raw as Raw;
+      const key = entry.key as string;
+      const until = entry.until === "revision" ? ("revision" as const) : undefined;
+      const valuePointer = at(at(writesPointer, i), "value");
+      const fn = Object.hasOwn(entry, "value") ? this.expr(entry.value, scope, valuePointer) : undefined;
+      return { key, until, valuePointer, fn };
+    });
+    return (frame) =>
+      entries.map((item) => {
+        if (!item.fn) return { key: item.key, ...(item.until ? { until: item.until } : {}) };
+        const v = item.fn(frame);
+        if (v === absent) failure(item.valuePointer, "a value", "A local write value is absent");
+        return { key: item.key, value: v, ...(item.until ? { until: item.until } : {}) };
+      });
+  }
+
+  /** An intent whose `value` and `args` members are expressions; its other fields are static. */
   intent(intent: Raw, scope: Scope, pointer: string): Fn {
     if (intent.type === "setState" || intent.type === "setLocal") {
       const { type } = intent;
       const key = intent.key as string;
-      if (!Object.hasOwn(intent, "value")) return () => ({ type, key });
+      const localFn = type === "setState" ? this.localWrites(intent, scope, pointer) : undefined;
+      const fromLocal =
+        type === "setState" && typeof intent.fromLocal === "string" ? { fromLocal: intent.fromLocal } : {};
+      if (!Object.hasOwn(intent, "value")) {
+        return localFn
+          ? (frame) => ({ type, key, ...fromLocal, local: localFn(frame) })
+          : () => ({ type, key, ...fromLocal });
+      }
       const value = this.expr(intent.value, scope, at(pointer, "value"));
       const where = at(pointer, "value");
       return (frame) => {
         const v = value(frame);
         if (v === absent) failure(where, "a value", "A setState value is absent");
-        return { type, key, value: v };
+        return localFn ? { type, key, value: v, local: localFn(frame) } : { type, key, value: v };
       };
     }
     const args = isRecord(intent.args) ? intent.args : {};
@@ -399,6 +428,7 @@ class Compiler {
     const base: Record<string, unknown> = { type: "action", name: intent.name };
     const where = at(pointer, "resultKey");
     const resultKey = Object.hasOwn(intent, "resultKey") ? this.expr(intent.resultKey, scope, where) : undefined;
+    const localFn = this.localWrites(intent, scope, pointer);
     return (frame) => {
       const record: Record<string, unknown> = {};
       for (const [name, fn] of members) {
@@ -413,12 +443,14 @@ class Compiler {
         if (v === absent) failure(where, "a result key", "A resultKey is absent");
         built.resultKey = v;
       }
+      if (localFn) built.local = localFn(frame);
+      if (isRecord(intent.fromLocal)) built.fromLocal = intent.fromLocal;
       return built;
     };
   }
 }
 
-// A frozen template compiles once per validator (design T18); an unfrozen one could change under the cache.
+// A frozen template compiles once per validator; an unfrozen one could change under the cache.
 const cache = new WeakMap<object, WeakMap<CompiledValidator, Result<Compiled>>>();
 
 function compile(template: Template, validator: CompiledValidator): Result<Compiled> {
@@ -465,7 +497,7 @@ function expand(
 
 /**
  * Runs a template over its inputs and returns the validated tree: the same ids, limits and error
- * kinds as `render()`. Errors point into the template document (design T16).
+ * kinds as `render()`. Errors point at their place in the template.
  */
 export function renderTemplate(
   template: Template,

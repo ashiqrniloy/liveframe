@@ -1,0 +1,9 @@
+{
+  "inputs": {
+    "doc": "docs/outcome-pending-valid.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": true
+  }
+}

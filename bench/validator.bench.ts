@@ -1,9 +1,24 @@
 import { strict as assert } from "node:assert";
 import { cpus, loadavg, platform, release } from "node:os";
 import { validatorCatalog, validatorFixtures } from "../src/__tests__/fixtures/validator.ts";
-import { applyPatch, arr, checkValue, diffTrees, obj, str, type TreePatch, type UiNode, union } from "../src/index.ts";
+import proofVocabulary from "../src/__tests__/fixtures/vocabulary.json" with { type: "json" };
+import {
+  applyPatch,
+  arr,
+  checkValue,
+  diffTrees,
+  obj,
+  str,
+  type TreePatch,
+  type UiNode,
+  union,
+  validateCapabilities,
+  validateCatalog,
+  validateManifest,
+  validateVocabulary,
+} from "../src/index.ts";
 import { compileSchema, type SchemaSink } from "../src/validate/schema.ts";
-import { budget, metric } from "./metrics.ts";
+import { budget, metric, timed } from "./metrics.ts";
 
 const fixtures = await validatorFixtures();
 const schemas = new Map(validatorCatalog.definitions.map((definition) => [definition.kind, definition.props]));
@@ -26,17 +41,18 @@ function props(node: UiNode, checks: ReadonlyMap<string, (value: unknown) => boo
   return true;
 }
 
-/** Milliseconds per run: the median of five batches of 200, so one disturbed batch cannot decide a gate. */
-function measure(run: () => boolean): number {
+/**
+ * Wall and CPU milliseconds per run, each the median of five batches of 200, so one disturbed batch cannot
+ * decide a gate.
+ */
+function measureBoth(run: () => boolean): { wallMs: number; cpuMs: number } {
   for (let i = 0; i < 200; i++) assert(run(), "Validation failed during warm-up");
-  const batches: number[] = [];
-  for (let batch = 0; batch < 5; batch++) {
-    const start = performance.now();
-    for (let i = 0; i < 200; i++) assert(run(), "Validation failed during timing");
-    batches.push((performance.now() - start) / 200);
-  }
-  return batches.sort((a, b) => a - b)[2] as number;
+  const checked = () => assert(run(), "Validation failed during timing");
+  const batches = Array.from({ length: 5 }, () => timed(checked, 200));
+  const mid = (values: number[]) => values.sort((a, b) => a - b)[2] as number;
+  return { wallMs: mid(batches.map((b) => b.wallMs)), cpuMs: mid(batches.map((b) => b.cpuMs)) };
 }
+const measure = (run: () => boolean): number => measureBoth(run).wallMs;
 
 console.log(`Bun ${Bun.version}; ${platform()} ${release()}; ${cpus()[0]?.model}; ${cpus().length} logical CPUs`);
 console.log(
@@ -51,7 +67,7 @@ for (const { name, nodes, tree, validateTree } of fixtures) {
     assert(!props({ ...tree.root, kind: "unknown-benchmark-kind" }, checks));
     sink.errors.length = 0;
   }
-  const compiledMs = measure(() => validateTree(tree).ok);
+  const { wallMs: compiledMs, cpuMs: compiledCpuMs } = measureBoth(() => validateTree(tree).ok);
   const genericMs = measure(() => props(tree.root, interpreted));
   const compiledPropsMs = measure(() => props(tree.root, compiled));
   const perNode = (compiledMs * 1_000) / nodes;
@@ -62,6 +78,7 @@ for (const { name, nodes, tree, validateTree } of fixtures) {
   metric(`${name}.genericMs`, genericMs);
   metric(`${name}.genericUsPerNode`, (genericMs * 1_000) / nodes);
   metric(`${name}.compiledPropsMs`, compiledPropsMs);
+  metric(`${name}.compiledCpuMs`, compiledCpuMs);
   console.log(
     `${name}: ${nodes} nodes; compiled ${compiledMs.toFixed(4)} ms, ${perNode.toFixed(3)} µs/node; generic ${genericMs.toFixed(4)} ms, ${((genericMs * 1_000) / nodes).toFixed(3)} µs/node; ${speedup.toFixed(2)}×`,
   );
@@ -73,6 +90,7 @@ for (const { name, nodes, tree, validateTree } of fixtures) {
     failed = true;
   }
 }
+
 console.log(`Load average at end: ${loadavg().join(", ")}`);
 const feedSchema = arr(
   union("kind", {
@@ -253,5 +271,58 @@ if (hitMedian > 0.25) {
     failed = true;
   }
 }
+// Plan 033 T9: CPU-time budgets moved from schema/catalog/vocabulary/manifest unit tests.
+{
+  const medianCpu = (fn: () => void, rounds = 9, batch = 10) => {
+    for (let i = 0; i < 3; i++) fn();
+    const samples: number[] = [];
+    for (let r = 0; r < rounds; r++) {
+      const start = process.cpuUsage();
+      for (let b = 0; b < batch; b++) fn();
+      const used = process.cpuUsage(start);
+      samples.push((used.user + used.system) / 1000 / batch);
+    }
+    samples.sort((a, b) => a - b);
+    return samples[Math.floor(samples.length / 2)] as number;
+  };
+  const validCatalog = validateCatalog(catalogDocument);
+  const validCaps = validateCapabilities(capabilitiesDocument);
+  assert(validCatalog.ok && validCaps.ok, "proof catalog/capabilities must validate");
+  let nextCatalog = 200;
+  const firstCompileCpuMs = medianCpu(
+    () => {
+      compileValidator(catalogWith(nextCatalog++));
+    },
+    9,
+    1,
+  );
+  const catalogCpuMs = medianCpu(() => {
+    assert(validateCatalog(catalogDocument).ok, "proof catalog");
+  });
+  const vocabularyCpuMs = medianCpu(() => {
+    assert(validateVocabulary(proofVocabulary).ok, "proof vocabulary");
+  });
+  const manifestCpuMs = medianCpu(() => {
+    assert(
+      validateManifest(manifestDocument, { catalog: validCatalog.value, capabilities: validCaps.value }).ok,
+      "agent-home manifest",
+    );
+  });
+  metric("compileValidator.firstCompileCpuMs", firstCompileCpuMs);
+  metric("validateCatalog.cpuMs", catalogCpuMs);
+  metric("validateVocabulary.cpuMs", vocabularyCpuMs);
+  metric("validateManifest.cpuMs", manifestCpuMs);
+  console.log(
+    `validator CPU budgets: compile first ${firstCompileCpuMs.toFixed(3)} ms (<= 20), catalog ${catalogCpuMs.toFixed(3)} ms (<= 5), vocabulary ${vocabularyCpuMs.toFixed(3)} ms (<= 1), manifest ${manifestCpuMs.toFixed(3)} ms (<= 2)`,
+  );
+  budget(
+    firstCompileCpuMs <= 20,
+    `compileValidator first compile CPU ${firstCompileCpuMs.toFixed(3)} ms exceeds 20 ms`,
+  );
+  budget(catalogCpuMs <= 5, `validateCatalog CPU ${catalogCpuMs.toFixed(3)} ms exceeds 5 ms`);
+  budget(vocabularyCpuMs <= 1, `validateVocabulary CPU ${vocabularyCpuMs.toFixed(3)} ms exceeds 1 ms`);
+  budget(manifestCpuMs <= 2, `validateManifest CPU ${manifestCpuMs.toFixed(3)} ms exceeds 2 ms`);
+}
+
 console.log(`Load average at end: ${loadavg().join(", ")}`);
 if (failed) process.exitCode = 1;

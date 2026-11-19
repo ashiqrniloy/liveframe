@@ -74,8 +74,11 @@ const propertyKinds = {
   placeholderColor: "colour",
   scrollbarThumbColor: "colour",
   scrollbarTrackColor: "colour",
+  motion: "motion",
 } as const;
 const lineStyle = str({ maxLength: 6, enum: ["solid", "dashed", "none"] });
+/** Enter, exit and move motion of a node's root (spec §6.2): a closed library keyword, never a CSS string. */
+const motionKind = str({ maxLength: 9, enum: ["none", "fade", "move", "fade-move"] });
 type Property = keyof typeof propertyKinds;
 type PropertyValue<P extends Property, Alpha = number | string> = (typeof propertyKinds)[P] extends "colour"
   ? ColourValue<Alpha>
@@ -83,13 +86,15 @@ type PropertyValue<P extends Property, Alpha = number | string> = (typeof proper
     ? string
     : (typeof propertyKinds)[P] extends "style"
       ? Infer<typeof lineStyle>
-      : (typeof propertyKinds)[P] extends "shadow"
-        ? ShadowLayer<Alpha> | readonly ShadowLayer<Alpha>[]
-        : Extract<DesignValue, { kind: (typeof propertyKinds)[P] }>["value"];
+      : (typeof propertyKinds)[P] extends "motion"
+        ? Infer<typeof motionKind>
+        : (typeof propertyKinds)[P] extends "shadow"
+          ? ShadowLayer<Alpha> | readonly ShadowLayer<Alpha>[]
+          : Extract<DesignValue, { kind: (typeof propertyKinds)[P] }>["value"];
 /** An extension's literal: one of the design-value kinds an app may declare (`extensionKinds`). */
 export type ExtensionLiteral = Extract<DesignValue, { kind: (typeof extensionKinds)[number] }>["value"];
 export type Recipe = {
-  readonly [P in Property]?: PropertyValue<P> | ((typeof propertyKinds)[P] extends "style" ? never : string);
+  readonly [P in Property]?: PropertyValue<P> | ((typeof propertyKinds)[P] extends "style" | "motion" ? never : string);
 } & {
   /** Role aliases of an axis overlay (`kind.axis:value.slot.state`): a role or family → another, once, at resolve time. */
   readonly roles?: Readonly<Record<string, string>>;
@@ -131,6 +136,7 @@ function propertySchema(property: Property) {
   if (kind === "colour") return colourReference;
   if (kind === "typography") return roleName;
   if (kind === "style") return lineStyle;
+  if (kind === "motion") return motionKind;
   const schema = property === "translateY" || property === "outlineOffset" ? signedDimension : literalSchemas[kind];
   return { oneOf: [roleName, schema] };
 }
@@ -263,6 +269,16 @@ function declaresAxisValue(definition: Definition, overlay: string): boolean {
   return schema?.type === "string" && (schema.enum?.includes(value) ?? false);
 }
 
+/** Why a property may not appear in this slot's state recipe, or undefined when it may. */
+function placement(property: string, slot: string | undefined, state: string | undefined): string | undefined {
+  // Container hover/active is not thumb hover/active, so native scrollbar colours are rest-only.
+  if (state !== "rest" && scrollbarProperties.includes(property)) return `${property} is declared only in rest recipes`;
+  // The renderer finds a node's root element by its `domId`, so motion belongs to the root's rest recipe.
+  if (property === "motion" && (slot !== "root" || state !== "rest"))
+    return "motion is declared only in root rest recipes";
+  return undefined;
+}
+
 function checkRecipe(
   name: string,
   entry: Record<string, unknown>,
@@ -285,10 +301,9 @@ function checkRecipe(
   )
     c.reject(path, "Unknown recipe kind, variant, slot or state", "unknown-name");
   for (const [property, value] of Object.entries(entry)) {
-    // Container hover/active is not thumb hover/active, so native scrollbar colours are rest-only.
     if (property === "extensions" || property === "roles") continue;
-    if (state !== "rest" && scrollbarProperties.includes(property))
-      c.reject(at(path, property), `${property} is declared only in rest recipes`);
+    const misplaced = placement(property, slot, state);
+    if (misplaced) c.reject(at(path, property), misplaced);
     else checkRecipeProperty(property, value, at(path, property), c, context, colours);
   }
   if (isRecord(entry.extensions))
@@ -437,6 +452,7 @@ function checkReferences(
           kind !== "colour" &&
           kind !== "typography" &&
           kind !== "style" &&
+          kind !== "motion" &&
           values[value]?.kind !== kind
         )
           c.reject(at(at("/recipes", key), property), `Expected a ${kind} value reference`, "unknown-name");

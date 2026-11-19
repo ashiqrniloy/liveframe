@@ -28,6 +28,29 @@ const suite = (mode = "") =>
     url: `${server.url.href}?mutant=${mode}`,
   });
 
+test("react_suite_is_unchanged_by_the_shared_cases", () => {
+  // The case names and their order before the cases moved to `src/conformance/renderer/` (plan 038 Task 6); the
+  // outcomes are the tests below.
+  expect(suite().map((c) => c.name)).toEqual([
+    "every_example_hydrates_without_mismatch",
+    "invalid_arrival_shows_only_the_fallback_and_recovers",
+    "keep_last_invalid_arrival_keeps_the_last_tree_marked",
+    "interactions_raise_one_complete_intent",
+    "when_false_node_is_not_drawn",
+    "set_local_redraws_and_never_reaches_the_host",
+    "local_writes_apply_with_one_complete_host_intent",
+    "from_local_intent_arrives_complete",
+    "focus_mark_moves_focus_once",
+    "focus_scroll_and_local_state_survive_revisions",
+    "switching_keeps_nodes_and_focus_and_rerenders_nothing",
+    "every_styled_state_is_reachable",
+    "overlay_keeps_surface_scope",
+    "overlay_exit_finishes_before_unmount",
+    "open_overlay_locks_scroll_and_makes_background_inert",
+    "text_input_counts_code_points",
+  ]);
+});
+
 test("conformance_form_fixture", async () => {
   await suite()
     .find((c) => c.name === "interactions_raise_one_complete_intent")
@@ -94,6 +117,9 @@ for (const [mode, name] of [
   ["wrong-value", "interactions_raise_one_complete_intent"],
   ["index", "focus_scroll_and_local_state_survive_revisions"],
   ["context", "switching_keeps_nodes_and_focus_and_rerenders_nothing"],
+  ["post-local", "local_writes_apply_with_one_complete_host_intent"],
+  ["unfilled", "from_local_intent_arrives_complete"],
+  ["no-dom-id", "focus_mark_moves_focus_once"],
 ] as const)
   test(`renderer_browser_cases_catch_${mode}`, async () => {
     const c = suite(mode).find((c) => c.name === name);
@@ -106,6 +132,40 @@ for (const [mode, name] of [
       expect((error as ConformanceFailure).rule).toBe(name);
     }
   }, 120000);
+
+const localRules = [
+  "when_false_node_is_not_drawn",
+  "set_local_redraws_and_never_reaches_the_host",
+  "local_writes_apply_with_one_complete_host_intent",
+  "from_local_intent_arrives_complete",
+  "focus_mark_moves_focus_once",
+];
+/** Runs the local-state cases against one subject: only `rule` may fail, and it must. */
+async function failsOnly(mode: string, rule: string) {
+  const cases = suite(mode).filter((c) => localRules.includes(c.name));
+  expect(cases.map((c) => c.name)).toEqual(localRules);
+  for (const c of cases) {
+    if (c.name === rule) await expect(c.run()).rejects.toMatchObject({ rule });
+    else await c.run();
+  }
+}
+test("renderer_that_forwards_set_local_fails_its_rule", async () => {
+  await failsOnly("forward-local", "set_local_redraws_and_never_reaches_the_host");
+}, 240000);
+test("renderer_that_draws_a_hidden_node_fails_its_rule", async () => {
+  await failsOnly("stale-children", "when_false_node_is_not_drawn");
+}, 240000);
+test("missing_local_fixtures_fail_with_the_named_rule", async () => {
+  const { local: _l, compound: _c, fromLocal: _f, focus: _focus, ...rest } = fixtures;
+  for (const c of rendererBrowserSuite({
+    ...pageOptions,
+    examples,
+    fixtures: rest,
+    page: () => browser.newPage(),
+    url: server.url.href,
+  }).filter((c) => localRules.includes(c.name)))
+    await expect(c.run()).rejects.toMatchObject({ rule: c.name, details: [expect.stringContaining("fixture")] });
+}, 60000);
 
 test("conformance_page_accepts_trees_only_and_rejects_unknown_styles", async () => {
   const page = await browser.newPage();
@@ -171,7 +231,7 @@ test("hydration_can_be_followed_by_updates_without_remounting", async () => {
     await page.goto(server.url.href);
     await page.waitForFunction(() => !!window.liveframeConformance);
     await page.evaluate(
-      ({ markup, serialized, styles }) => window.liveframeConformance.hydrate(markup, JSON.parse(serialized), styles),
+      ({ markup, serialized, styles }) => window.liveframeConformance.hydrate?.(markup, JSON.parse(serialized), styles),
       { markup, serialized: JSON.stringify(fixtures.survival.tree), styles },
     );
     const field = fixtures.survival.focus(page);

@@ -1,5 +1,5 @@
 // The structural checks every element-JSON node shares, whether its values are literals
-// (`renderElements`) or expressions (`validateTemplate`, plan 028 Task 3): which fields a node may
+// (`renderElements`) or expressions (`validateTemplate`): which fields a node may
 // carry, how `props`/`style`/`events` merge into one flat prop set, and what a fragment may omit.
 import type { LiveframeError } from "../errors.ts";
 import { at } from "../internal.ts";
@@ -36,6 +36,9 @@ export const ELEMENT_KEYS: ReadonlySet<string> = new Set([
   "props",
   "style",
   "events",
+  "when",
+  "bind",
+  "focus",
   "children",
 ]);
 
@@ -52,9 +55,13 @@ export function rejectUnknownFields(
 
 /** A fragment adds no node, so it carries only a key and children. */
 export function rejectFragmentFields(value: Record<string, unknown>, pointer: string, reject: ElementReject): void {
-  for (const name of ["$anchor", "variant", "props", "style", "events", "when", "bind"] as const)
+  for (const name of ["$anchor", "variant", "props", "style", "events", "when", "bind", "focus"] as const)
     if (Object.hasOwn(value, name)) reject.at(at(pointer, name), `no ${name} on a fragment`);
 }
+
+/** Node fields that no property section may carry: the SDK reads them off the node itself. */
+const RESERVED = ["key", "children", "variant", "$anchor", "when", "bind", "focus"] as const;
+const isReserved = (name: string): boolean => (RESERVED as readonly string[]).includes(name);
 
 function section(value: unknown, pointer: string, reject: ElementReject): Record<string, unknown> | undefined {
   if (value === undefined) return undefined;
@@ -75,8 +82,7 @@ function merge(
   if (!source) return;
   for (const name in source) {
     if (!Object.hasOwn(source, name)) continue;
-    if (name === "key" || name === "children" || name === "variant" || name === "$anchor")
-      reject.at(at(pointer, name), `no ${name} in ${sectionName}`);
+    if (isReserved(name)) reject.at(at(pointer, name), `no ${name} in ${sectionName}`);
     else if (Object.hasOwn(target, name)) reject.at(at(pointer, name), "one property section per name");
     else target[name] = source[name];
   }
@@ -84,8 +90,8 @@ function merge(
 
 /**
  * The node's `props`, `style` and `events` as one flat record, which is how the SDK sees them: a
- * name belongs to one section, and the reserved names `key`, `children`, `variant` and `$anchor`
- * belong to none.
+ * name belongs to one section, and the reserved names `key`, `children`, `variant`, `$anchor`,
+ * `when`, `bind` and `focus` belong to none.
  */
 export function mergeSections(
   value: Record<string, unknown>,
@@ -97,7 +103,7 @@ export function mergeSections(
   const events = section(value.events, at(pointer, "events"), reject);
   if (reject.stopped) return undefined;
   const merged: Record<string, unknown> = { ...props };
-  for (const reserved of ["key", "children", "variant", "$anchor"] as const)
+  for (const reserved of RESERVED)
     if (Object.hasOwn(merged, reserved)) reject.at(at(at(pointer, "props"), reserved), `no ${reserved} in props`);
   merge(merged, style, at(pointer, "style"), "style", reject);
   merge(merged, events, at(pointer, "events"), "events", reject);

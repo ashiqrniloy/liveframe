@@ -1,0 +1,12 @@
+{
+  "inputs": {
+    "doc": "docs/focus-valid.json",
+    "catalog": "../common/reference-catalog.json",
+    "capabilities": "../common/capabilities.json",
+    "manifest": "../common/local-manifest.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": true
+  }
+}

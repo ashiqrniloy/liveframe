@@ -11,8 +11,10 @@ import * as liveframe from "@arnilo/liveframe";
 import * as authoring from "@arnilo/liveframe/authoring";
 import type { ConformanceCase } from "@arnilo/liveframe/conformance";
 import * as conformance from "@arnilo/liveframe/conformance";
+import * as conformanceDom from "@arnilo/liveframe/conformance/dom";
 import * as conformanceReact from "@arnilo/liveframe/conformance/react";
 import * as css from "@arnilo/liveframe/css";
+import * as dom from "@arnilo/liveframe/dom";
 import * as host from "@arnilo/liveframe/host";
 import * as pack from "@arnilo/liveframe/pack";
 import * as preview from "@arnilo/liveframe/preview";
@@ -91,6 +93,12 @@ test("surface_export_surface", () => {
 
 test("react_export_surface", () => {
   expect(Object.keys(react).sort()).toEqual(["RendererError", "createRenderer", "implement"]);
+});
+
+test("dom_export_surface", () => {
+  expect(Object.keys(dom).sort()).toEqual(["RendererError", "createDomRenderer", "implement", "place"]);
+  // One error class: a DOM host catches what a React host catches.
+  expect(dom.RendererError).toBe(react.RendererError);
 });
 
 test("renderer_error_is_a_value_export", () => {
@@ -217,6 +225,7 @@ test("sdk_export_surface", () => {
     "render",
     "renderElements",
     "self",
+    "shown",
     "state",
     "streamElements",
   ]);
@@ -231,6 +240,7 @@ test("exports_list_sdk_gen", () => {
   expect(Object.keys(sdkGen).sort()).toEqual([
     "generate",
     "generateDefinitions",
+    "generateDigest",
     "generateElementsSchema",
     "generateTemplateSchema",
   ]);
@@ -289,6 +299,7 @@ test("root_export_surface", () => {
       "validateTreePatch",
       "arr",
       "bool",
+      "checkUrl",
       "checkValue",
       "classifyCatalogChange",
       "compileValidator",
@@ -355,6 +366,7 @@ test("public_validator_types_support_error_guided_repairs", () => {
 
 test("subpath_export_surfaces", () => {
   expect(Object.keys(conformanceReact).sort()).toEqual(["conformancePage", "rendererBrowserSuite", "rendererSuite"]);
+  expect(Object.keys(conformanceDom).sort()).toEqual(["domConformancePage", "domRendererBrowserSuite"]);
   expect(Object.keys(conformance).sort()).toEqual([
     "ConformanceFailure",
     "catalogSuite",
@@ -363,7 +375,7 @@ test("subpath_export_surfaces", () => {
     "storeSuite",
   ]);
   const cases: ConformanceCase[] = conformance.storeSuite({ create: store.memoryStore });
-  expect(cases).toHaveLength(19);
+  expect(cases).toHaveLength(21);
   expect(Object.keys(previewReact).sort()).toEqual(["Preview"]);
   expect(Object.keys(fileStore).sort()).toEqual(["fileStore"]);
   expect(Object.keys(preview).sort()).toEqual(["createPreview", "inProcessRunner", "templateRunner"]);

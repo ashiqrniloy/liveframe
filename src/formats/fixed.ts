@@ -171,6 +171,7 @@ export const recipeProperties = [
   "placeholderColor",
   "scrollbarThumbColor",
   "scrollbarTrackColor",
+  "motion",
 ] as const;
 
 /**

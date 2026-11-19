@@ -64,11 +64,11 @@ test("store_suite_catches_broken_stores", async () => {
 
 test("store_suite_cases_are_independent_and_runner_agnostic", async () => {
   const cases: ConformanceCase[] = storeSuite({ create: async () => memoryStore() });
-  expect(cases).toHaveLength(19);
-  expect(new Set(cases.map((c) => c.name)).size).toBe(19);
+  expect(cases).toHaveLength(21);
+  expect(new Set(cases.map((c) => c.name)).size).toBe(21);
   await Promise.all(cases.map((c) => c.run()));
   const reopened = storeSuite({ create: memoryStore, reopen: async (store) => store });
-  expect(reopened).toHaveLength(20);
+  expect(reopened).toHaveLength(22);
   await Promise.all(reopened.map((c) => c.run()));
 });
 
@@ -150,4 +150,30 @@ test("store_suite_catches_missing_values_style_collisions_and_corrupt_loads", as
       getPackage: async () => saved,
     };
   }, "ignores_a_same_hash_put");
+});
+
+test("store_suite_checks_compare_and_set_when_present", async () => {
+  // Ignores `expected`: every compare matches.
+  await fails(() => {
+    const store = memoryStore();
+    return {
+      ...store,
+      putStateIf: async (id, scope, _expected, next) => {
+        await store.putState(id, scope, next);
+        return true;
+      },
+    };
+  }, "put_state_if_compares_by_canonical_json");
+  // Compares across scopes.
+  await fails(() => {
+    const store = memoryStore();
+    return {
+      ...store,
+      putStateIf: async (id, _scope, expected, next) => (await store.putStateIf?.(id, "", expected, next)) === true,
+    };
+  }, "put_state_if_is_scoped");
+  // A store without the method passes both cases.
+  const { putStateIf: _, ...plain } = memoryStore();
+  for (const c of storeSuite({ create: () => plain }).filter((c) => c.name.startsWith("store_put_state_if")))
+    await c.run();
 });

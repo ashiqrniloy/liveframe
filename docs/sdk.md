@@ -108,6 +108,11 @@ if (!result.ok) throw new LiveframeFailure(result.errors);
 // result.value is a validated UiTree containing primitives and intent data.
 ```
 
+A validator works only with the library copy that compiled it: `render()`,
+`renderElements()` and `renderTemplate()` given a wrapper object, or a validator
+from a second bundled copy, throw `LiveframeFailure` with one `invalid-document`
+error ("Expected a validator compiled by this copy of `compileValidator`").
+
 `WidgetProps<P, S, D, C>` gives deeply readonly `params`, `state`, `data` and
 `context`. A widget returns exactly one SDK element. Compose widgets with plain
 TSX functions: they expand during `render()`, leaving only primitives in the
@@ -163,8 +168,8 @@ const validator = compileValidator({ catalog, capabilities, manifest });
 const result = renderElements(json, { validator, surfaceId: "chat", revision: 1 });
 ```
 
-Each element is `{ kind, key?, variant?, props?, style?, events?, children? }`.
-Intents use the normal `Intent` shape. `renderElements()` derives the same
+Each element is `{ kind, key?, $anchor?, variant?, props?, style?, events?, when?, bind?, focus?, children? }`.
+Intents use the tree's `TreeIntent` shape. `renderElements()` derives the same
 key-path ids as `render()`, applies the same props, style, event, child, limit
 and error checks in one walk plus reference resolution, and reports every error with a JSON pointer into
 the input. A `fragment` element (`{ kind: "fragment", key?, children }`) groups
@@ -176,6 +181,48 @@ initial `state` value. It is not stored. The host still validates the document
 with `validateManifest()` and still re-checks the tree on arrival; an ephemeral
 surface grants nothing.
 
+### Live filters in agent JSON
+
+An agent can ask for browser-side interaction (spec §8) with `when`, `bind` and
+`setLocal`, as a TSX widget does with `local()` and `local.set()`. The `local`
+schema and its starting values are yours, passed to `ephemeralManifest`; a
+document can never declare them (`local` on an element is `invalid-prop`
+"no such element field"), so an agent cannot choose its own bounds:
+
+```ts
+const manifest = ephemeralManifest({
+  catalogId: catalog.catalogId,
+  actions: [],
+  local: obj({ q: str({ maxLength: 80 }) }),
+  initialLocal: { q: "" },
+});
+const json = {
+  kind: "stack",
+  children: [
+    {
+      kind: "textField",
+      props: { label: "Filter", value: "" },
+      bind: { value: { $path: "local.q" } },
+      events: { onChange: { type: "setLocal", key: "q" } },
+    },
+    {
+      kind: "text",
+      key: "t1",
+      props: { text: "Write the report" },
+      when: { $contains: [{ $path: "self.text" }, { $path: "local.q" }] },
+    },
+    { kind: "text", key: "empty", props: { text: "Nothing matches" }, when: { $eq: [{ $path: "shown" }, 0] } },
+  ],
+};
+```
+
+`local` and `initialLocal` come together, and `initialLocal` must fit `local`
+(`TypeError` otherwise). Expressions, compound `local` writes on an intent and
+`fromLocal` reads are checked exactly as for TSX: an undeclared key is
+`unknown-name` with a pointer into the JSON (`/children/1/when/$contains/1/$path`).
+Without `local`, an expression may read only `self` and `shown`. `when`, `bind`
+and `focus` belong on the element, never inside `props`, `style` or `events`.
+
 The typed form is `Elements<Catalog>`. To give an agent tool a JSON Schema,
 generate one per catalog:
 
@@ -184,12 +231,52 @@ bunx liveframe gen catalog.json --elements-schema --out elements.schema.json
 ```
 
 `generateElementsSchema(catalog)` from `@arnilo/liveframe/sdk/gen` produces the
-same bytes. The schema uses JSON Schema 2020-12, has the id
+same bytes. Pass the same `local` schema (`--local local.json`, or
+`generateElementsSchema(catalog, { local })`) and the schema also describes
+`when`, `bind`, the tree expression grammar and the local intents over your keys;
+without it the schema is unchanged. The schema uses JSON Schema 2020-12, has the id
 `urn:liveframe:elements:1`, and is drift-checked like the other generated files.
 `/authoring` exposes no tool for this path; wire `renderElements()` into your own
-agent tool. A *template widget* (data-bound, installable, no sandbox) has its own
+agent tool.
+
+### Describe the catalog to an agent
+
+An agent that is not on MCP needs the catalog's facts in its prompt. The digest is
+one Markdown file with them, at about a quarter of the element schema's size: how
+to write element JSON (with an example built from your catalog's own kinds), each
+kind's props with their bounds, variants, events and what they carry, child rules,
+style values, and, when you pass them, your actions and sources and the expression
+grammar over your `local` keys:
+
+```sh
+bunx liveframe gen catalog.json --digest --capabilities capabilities.json --local local.json --budget 20000 --out catalog.digest.md
+```
+
+`generateDigest(catalog, { capabilities, local, budget })` from
+`@arnilo/liveframe/sdk/gen` returns the same text. The bytes depend only on the
+documents (`--check` catches drift). It never holds file paths, theme or
+design-system values, recipes or capability `meta`; to leave an action out, pass a
+capabilities document without it. Over `budget` characters it throws
+`LiveframeFailure` (`limit-exceeded` at `/digest`; the CLI exits 1) instead of
+cutting the text. Nothing an agent writes from it is trusted: `renderElements` still
+validates the document. `@arnilo/liveframe-starter/catalog.digest.md` is the
+starter's, without capabilities or `local`.
+
+A *template widget* (data-bound, installable, no sandbox) has its own
 per-catalog schema, `liveframe gen catalog.json --template-schema`; see
 [template widgets](templates.md#a-json-schema-for-the-model).
+
+### Convert an A2UI document
+
+An agent that speaks [A2UI](https://a2ui.org) (v0.9 or v0.9.1) can draw through
+`@arnilo/liveframe-a2ui`, a separate package. `fromA2ui(messages, mapping)` turns one
+surface into element JSON through a mapping you write (A2UI component to your kind,
+property to prop, action name to your action). It checks only the A2UI document's
+shape and refuses what it cannot map with a pointer into the input; kinds, props,
+bounds, URLs and actions are checked by `renderElements` like any element JSON, so a
+converted action must still be in your manifest. See the
+[converter's guide](https://github.com/ashiqrniloy/liveframe/tree/main/packages/a2ui#readme)
+for the mapping, the refusal table and a worked starter mapping.
 
 ## Draw agent JSON while it streams
 
@@ -237,14 +324,91 @@ Things to know:
   `end()` returns the errors, as `renderElements` would, with pointers into the text.
 - **References.** A node with a `$ref` is drawn when the text ends, when the reference
   can be resolved.
+- **Expressions.** A shell carries its own `when` and `bind`, which are written before
+  its `children`, so a filtered list is drawn filtered from its first row.
 - **Failure.** Malformed JSON is `invalid-document` at `/$stream/<offset>`, reported
-  once the value that holds the fault closes. A tree past `limits.bytes`, `limits.nodes`
-  or `limits.depth`, or a text longer than four times `limits.bytes` characters, is
+  once the value that holds the fault closes. A tree past `limits.bytes`, `limits.nodes`,
+  `limits.depth` or 10,000 expression nodes, or a text longer than four times `limits.bytes` characters, is
   `limit-exceeded`. After a failure `push` and `end` keep returning it; the stream
   holds nothing more.
 - **Cost.** The work over a whole stream is linear in the text: about 2.8 times one
   `renderElements` of the same 679-node document fed in 64-byte chunks (`bun run bench`
   gates it at 3 times).
+
+## Sources that may be pending
+
+A source the app declares with `sourceOutcome(result, { pending: true })` may
+arrive as `{ status: "pending" }`: the host has not read it yet and will render
+the widget again when it has. Narrow on `status` before reading `value`:
+`Infer` of the source's `result` makes an unnarrowed read a compile error, and
+includes `pending` only for sources that declare it:
+
+```tsx
+export default function Digest({ data }: WidgetProps<{}, {}, { digest: Infer<typeof digestResult> }>) {
+  if (data.digest.status === "pending") return <Hint text="Counting…" />;
+  return <Text text={data.digest.status === "ok" ? data.digest.value.summary : "Unavailable"} />;
+}
+```
+
+## Lists longer than the node limit
+
+A tree holds at most 5,000 nodes, and every node costs time on the host, the
+wire and the browser. A list of 50,000 rows therefore draws only the rows
+around the ones the user sees. The widget never measures anything: a
+`scroll` primitive that windows reports the visible range, the range is
+widget state, and the source reads only the rows around it. The starter's
+`scroll` does this (the repository's `packages/starter/src/__tests__/windowed.tsx`
+is the tested example):
+
+```tsx
+const range = obj({ start: int({ minimum: 0, maximum: 1_000_000_000 }), end: int({ minimum: 0, maximum: 1_000_000_000 }) });
+const manifest = {
+  // …
+  state: obj({ range }),
+  initialState: { range: { start: 0, end: 0 } },
+  sources: {
+    rows: {
+      source: "rows.window", // the app's: { total, offset, rows } around [start, end), at most 200 rows
+      params: { start: { from: "state", path: "range.start" }, end: { from: "state", path: "range.end" } },
+    },
+  },
+};
+
+export function WindowedList({ data }: WidgetProps<object, { range: Range }, { rows: Page }, object>) {
+  const { total, offset, rows } = data.rows;
+  return (
+    <Scroll label="Rows" height="size.panel" itemCount={total} itemStart={offset} itemSize="size.row" onRange={state.set("range")}>
+      {rows.slice(0, 200).map((row) => (
+        <Inline key={row.id} height="size.row">
+          <Text text={row.title} />
+        </Inline>
+      ))}
+    </Scroll>
+  );
+}
+```
+
+- **`itemCount`, `itemStart` and `itemSize`** tell the primitive how many rows
+  the collection has, which one the first child is, and the design value one
+  row is tall. The implementation reserves the undrawn rows' space from that
+  value in its own CSS, so the tree names no length (law 3). Without `itemSize`
+  the scroll draws as before.
+- **`onRange`** carries `{ start, end }`, the visible rows (end exclusive),
+  when they come within `step` rows (default 20) of either edge of the drawn
+  slice. `state.set("range")` stores it and the host renders again.
+- **The source decides the window.** Bindings carry values, not expressions,
+  so the app's source widens the visible range by its overscan, clamps it to
+  the collection and to the row budget, and returns `offset`. The widget passes
+  `offset` as `itemStart` and caps the slice.
+- **Rows are the scroll's direct children, have stable keys and are exactly one
+  `itemSize` tall.** A row present in two windows keeps its key-path id, so the
+  patch between them holds only the rows that entered and left, and the browser
+  keeps those rows' elements, focus and scroll position. Rows of varying height
+  are the app's to handle.
+- **Every window is a whole validated tree, and the range is state** the host
+  checks against the manifest's schema like any `setState` value (law 2,
+  law 4). The round-trip latency of a range change is the transport's; the
+  overscan hides it for short scrolls.
 
 ## Intents and author constraints
 
@@ -265,6 +429,10 @@ An event prop carries one frozen intent, never a callback:
   property names, required fields and scalar types; `integer` can fill `number`.
   The host and Preview check bounds and enums after completion. An object event
   can also replace a whole object state key with `state.set("draft")`.
+- An event that carries an array (a multi-select's `carries: { array: … }`)
+  fills one array argument with `bind`, or a whole array state key with
+  `state.set("picked")`, when the target's items take the carried scalar. It
+  cannot use `bindAll` or fill `local`, which holds scalars only.
 
 - `action("tasks.claim", { id }, { resultKey: "claim:" + id })` names the key
   the host reports this intent's status under. Without it the key is the action
@@ -285,10 +453,25 @@ An event prop carries one frozen intent, never a callback:
 - `local.set("q")` writes the surface's local state from an event, and `when`
   and `bind` read it, so a filter over rows already in the tree needs no round
   trip. The manifest declares the state (`local`, `initialLocal`); the renderer
-  applies the write and never calls `onIntent`:
+  applies the write and never calls `onIntent`. A `setState` or `action` intent
+  can also carry `local` (1 to 4 writes, e.g. `local.set("saving", true, { until: "revision" })`),
+  which the renderer applies before raising the host intent and strips from what the
+  host sees; `{ until: "revision" }` undoes the write on the next accepted revision.
+  To send values held in local state when an intent fires, pass `fromLocal`
+  (`{ arg: "localKey" }` on `action`, up to 16 entries, or `"localKey"` on
+  `state.set(key, undefined, { fromLocal })`); the renderer fills the values on
+  `emit` and the host re-checks them against the capability or state schema:
 
   ```tsx
   <TextField label="Filter" onChange={local.set("q")} />
+  <Button
+    label="Save"
+    onPress={action(
+      "tasks.escalate",
+      { id },
+      { fromLocal: { reason: "q" }, local: [local.set("saving", true, { until: "revision" })] },
+    )}
+  />
   {rows.map((r) => (
     <Row key={r.id} when={ex.contains(r.title, local("q"))}>
       <Text text={r.title} bind={{ text: ex.concat(r.title, "!") }} />
@@ -297,7 +480,9 @@ An event prop carries one frozen intent, never a callback:
   ```
 
   `local(key)` and `self(prop)` build expressions (the node's own props are the
-  `self` root), and `ex` has one builder per operator an expression may use
+  `self` root), `shown()` reads how many siblings that carry a `when` are drawn
+  (siblings that read `shown` are not counted, so `when={ex.eq(shown(), 0)}` is an
+  empty state for a filtered list), and `ex` has one builder per operator an expression may use
   (`eq ne lt lte gt gte and or not cond coalesce len concat text contains slice add
   sub mul div round get at lit has omit`). A bare string, number or boolean is a
   literal operand; wrap an object or array in `ex.lit`. `when` and `bind` are node
@@ -306,6 +491,12 @@ An event prop carries one frozen intent, never a callback:
   reach `variant`, style props, events or `refProps` props. The validator and
   `render()` check each expression statically; `liveframe gen` types `when` and
   `bind` per prop. Expressions are data the renderer evaluates, never widget code.
+- `focus` (a boolean, also a node field) marks the element a later revision moves
+  focus to: `<TextField focus={state.adding} … />` puts that node's id on the tree's
+  `focus`. Mark at most one element (a second is `duplicate-key`), never one under a
+  `when` (`invalid-prop`); `false` marks nothing. Element JSON takes the same
+  `focus: true` field. The renderer moves focus only when the mark changes between
+  revisions, never on the first tree.
 
 The helpers produce data; they do not update state or dispatch actions. They
 reject functions, promises, class instances, cycles and non-finite numbers with
@@ -388,9 +579,9 @@ because the prop's schema rejects the value first.
 ## Public exports and executable examples
 
 `@arnilo/liveframe/sdk` exports `jsx`, `jsxs`, `Fragment`, `primitive`, `state`,
-`action`, `ex`, `local`, `self`, `ref`, `render`, `renderElements`, `streamElements` and `ephemeralManifest`. Its type exports are
+`action`, `ex`, `local`, `self`, `shown`, `ref`, `render`, `renderElements`, `streamElements` and `ephemeralManifest`. Its type exports are
 `ActionStatus`, `ActionStatuses`, `Component`, `DeepReadonly`, `Element`, `ElementStream`, `Elements`, `Expr`,
-`Intent`, `Json`, `LocalIntent`, `RenderLimits`, `RenderOptions`, `StreamElementsOptions`, `TreeIntent`,
+`Intent`, `Json`, `LocalIntent`, `LocalWrite`, `RenderLimits`, `RenderOptions`, `StreamElementsOptions`, `TreeIntent`,
 `WidgetInputs` and `WidgetProps`. `/sdk/gen` exports `generate`,
 `generateDefinitions`, `generateElementsSchema` and `generateTemplateSchema`. `/sdk/jsx-runtime` exports
 `jsx`, `jsxs`, `Fragment` and the `JSX` type namespace; `/sdk/jsx-dev-runtime`

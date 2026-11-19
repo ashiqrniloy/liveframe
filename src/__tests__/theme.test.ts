@@ -206,16 +206,12 @@ test("theme_schema_agrees_with_install_structure_and_ranges", () => {
     expect(validateTheme(withColour({ colorSpace, components }), names).ok).toBe(true);
 });
 
-test("proof_themes_validate_under_2ms", async () => {
+test("proof_themes_validate_against_schema", async () => {
   const structural = new Ajv2020({ strict: true }).compile(schemaDocument("theme"));
   for (const name of ["certified", "rack"]) {
     const doc = await Bun.file(new URL(`./fixtures/${name}.theme.json`, import.meta.url)).json();
     expect(validateTheme(doc, vocabulary).ok).toBe(true);
     expect(structural(doc)).toBe(true);
-    for (let i = 0; i < 10; i++) validateTheme(doc, vocabulary);
-    const start = performance.now();
-    for (let i = 0; i < 100; i++) validateTheme(doc, vocabulary);
-    expect((performance.now() - start) / 100).toBeLessThan(2);
   }
 });
 

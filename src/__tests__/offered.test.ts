@@ -13,7 +13,7 @@ import {
 import { complete } from "../validate/complete.ts";
 import * as numeric from "./fixtures/numeric-events.ts";
 import * as form from "./fixtures/object-events.ts";
-import { surfaceProps, withRoot } from "./fixtures/react-surface.tsx";
+import { catalog, surfaceProps, withRoot } from "./fixtures/react-surface.tsx";
 
 test("complete_returns_a_frozen_copy_without_structured_clone", () => {
   const descriptor = Object.getOwnPropertyDescriptor(globalThis, "structuredClone");
@@ -36,6 +36,16 @@ test("complete_returns_a_frozen_copy_without_structured_clone", () => {
         { type: "action", name: "submit", args: { fixed: payload }, bindAll: true },
         { value: payload },
         { type: "action", name: "submit", args: { fixed: payload, value: payload } },
+      ],
+      [
+        {
+          type: "action",
+          name: "submit",
+          args: { fixed: payload },
+          local: [{ key: "saving", value: true, until: "revision" }],
+        },
+        undefined,
+        { type: "action", name: "submit", args: { fixed: payload } },
       ],
     ];
     function assertCopy(copy: unknown, source: unknown): void {
@@ -202,4 +212,135 @@ test("check_offered_follows_patched_revision", () => {
   const stale = checkOffered(result.value, origin(bound), intent, surfaceProps.validator);
   expect(stale.ok).toBe(false);
   if (!stale.ok) expect(stale.errors[0]?.kind).toBe("version-conflict");
+});
+
+test("host_rejects_a_posted_local_field_and_accepts_stripped_compound_intent", () => {
+  const validator = compileValidator({
+    catalog,
+    capabilities: {
+      format: "liveframe-capabilities/1",
+      actions: {
+        "tasks.escalate": {
+          description: "Escalate.",
+          args: obj({ id: str({ maxLength: 64 }), reason: str({ maxLength: 200 }) }),
+        },
+      },
+      sources: {},
+    },
+    manifest: {
+      format: "liveframe-manifest/1",
+      id: "w",
+      version: "1.0.0",
+      catalogId: catalog.catalogId,
+      params: obj({}),
+      state: obj({ reason: str({ maxLength: 200 }) }),
+      context: obj({}),
+      initialState: { reason: "" },
+      sources: {},
+      actions: ["tasks.escalate"],
+      local: obj({ saving: bool() }),
+      initialLocal: { saving: false },
+    },
+  });
+  const compoundTree = withRoot({
+    id: "root",
+    kind: "textField",
+    props: { label: "Reason" },
+    events: {
+      onCommit: {
+        type: "action",
+        name: "tasks.escalate",
+        args: { id: "t1" },
+        bind: "reason",
+        local: [{ key: "saving", value: true, until: "revision" }],
+      },
+    },
+  });
+  expect(checkOffered(compoundTree, origin(compoundTree), intent, validator)).toEqual({ ok: true, value: undefined });
+  expect(
+    checkOffered(compoundTree, origin(compoundTree), { ...intent, local: [{ key: "saving", value: true }] }, validator),
+  ).toMatchObject({ ok: false, errors: [{ kind: "invalid-prop", pointer: "/local" }] });
+});
+
+function fromLocalFixture() {
+  const validator = compileValidator({
+    catalog,
+    capabilities: {
+      format: "liveframe-capabilities/1",
+      actions: {
+        "tasks.escalate": {
+          description: "Escalate.",
+          args: obj({ id: str({ maxLength: 64 }), reason: str({ maxLength: 200 }) }),
+        },
+      },
+      sources: {},
+    },
+    manifest: {
+      format: "liveframe-manifest/1",
+      id: "w",
+      version: "1.0.0",
+      catalogId: catalog.catalogId,
+      params: obj({}),
+      state: obj({ reason: str({ maxLength: 200 }) }),
+      context: obj({}),
+      initialState: { reason: "" },
+      sources: {},
+      actions: ["tasks.escalate"],
+      local: obj({ draft: str({ maxLength: 200 }) }),
+      initialLocal: { draft: "" },
+    },
+  });
+  const tree = (offered: unknown) =>
+    withRoot({
+      id: "root",
+      kind: "textField",
+      props: { label: "Reason" },
+      events: { onCommit: offered },
+    } as never);
+  return { validator, tree };
+}
+
+const escalate = (args: Record<string, unknown>, extra: Record<string, unknown> = {}) =>
+  ({ type: "action", name: "tasks.escalate", args, ...extra }) as Intent;
+
+test("host_accepts_a_completed_from_local_intent_and_checks_filled_values_against_the_capability_schema", () => {
+  const { validator, tree } = fromLocalFixture();
+  const served = tree({ type: "action", name: "tasks.escalate", args: { id: "t1" }, fromLocal: { reason: "draft" } });
+  const check = (candidate: Intent) => checkOffered(served, origin(served), candidate, validator);
+  expect(check(escalate({ id: "t1", reason: "review" }))).toEqual({ ok: true, value: undefined });
+  // A value over the capability's maxLength is refused: the tree's word is never trusted.
+  expect(check(escalate({ id: "t1", reason: "x".repeat(201) }))).toMatchObject({
+    ok: false,
+    errors: [{ kind: "invalid-prop", pointer: "/args/reason" }],
+  });
+  expect(check(escalate({ id: "t1", reason: 5 }))).toMatchObject({ ok: false, errors: [{ pointer: "/args/reason" }] });
+  expect(check(escalate({ id: "t1" }))).toMatchObject({ ok: false });
+});
+
+test("host_rejects_a_changed_literal_a_posted_extra_argument_and_a_posted_from_local_beside_from_local", () => {
+  const { validator, tree } = fromLocalFixture();
+  const served = tree({ type: "action", name: "tasks.escalate", args: { id: "t1" }, fromLocal: { reason: "draft" } });
+  const check = (candidate: Intent) => checkOffered(served, origin(served), candidate, validator);
+  expect(check(escalate({ id: "changed", reason: "review" }))).toMatchObject({
+    ok: false,
+    errors: [{ kind: "invalid-prop", pointer: "/args/id" }],
+  });
+  expect(check(escalate({ id: "t1", reason: "review", extra: true }))).toMatchObject({
+    ok: false,
+    errors: [{ kind: "invalid-prop" }],
+  });
+  expect(check(escalate({ id: "t1", reason: "review" }, { fromLocal: { reason: "draft" } }))).toMatchObject({
+    ok: false,
+    errors: [{ kind: "invalid-prop", pointer: "/fromLocal" }],
+  });
+});
+
+test("host_checks_a_set_state_filled_from_local", () => {
+  const { validator, tree } = fromLocalFixture();
+  const served = tree({ type: "setState", key: "reason", fromLocal: "draft" });
+  const check = (candidate: Intent) => checkOffered(served, origin(served), candidate, validator);
+  expect(check({ type: "setState", key: "reason", value: "review" })).toEqual({ ok: true, value: undefined });
+  expect(check({ type: "setState", key: "reason", value: "x".repeat(201) }).ok).toBe(false);
+  expect(check({ type: "setState", key: "reason" }).ok).toBe(false);
+  expect(check({ type: "setState", key: "reason", value: "review", fromLocal: "draft" }).ok).toBe(false);
 });

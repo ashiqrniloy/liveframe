@@ -261,15 +261,32 @@ test("catalog_errors_are_bounded_and_escape_pointers", () => {
   );
 });
 
-test("proof_catalog_validates_under_five_milliseconds", () => {
-  // Regenerate with: timeout 20s bun proof/scripts/export-catalog.ts
-  for (let i = 0; i < 20; i++) validateCatalog(proofCatalog);
-  const start = performance.now();
+test("catalog_validation_is_linear", () => {
   const result = validateCatalog(proofCatalog);
-  const elapsed = performance.now() - start;
   expect(result.ok).toBe(true);
   expect(proofCatalog.definitions).toHaveLength(25);
-  expect(elapsed).toBeLessThan(5);
+  const countReads = (count: number) => {
+    let reads = 0;
+    const definitions = Array.from({ length: count }, (_, i) => ({
+      ...button,
+      kind: `button${i}`,
+      a11y: { role: "button" as const, name: "label" },
+    }));
+    const proxied = new Proxy(definitions, {
+      get(target, prop, receiver) {
+        if (typeof prop === "string" && /^\d+$/.test(prop)) reads++;
+        return Reflect.get(target, prop, receiver);
+      },
+    });
+    const doc = { ...proofCatalog, definitions: proxied };
+    expect(validateCatalog(doc).ok).toBe(true);
+    return reads;
+  };
+  const small = countReads(25);
+  const large = countReads(100);
+  // 4x as many definitions must stay linear in read count (no quadratic definition-vs-definition scan).
+  expect(small).toBeGreaterThan(0);
+  expect(large).toBeLessThanOrEqual(small * 5);
 });
 
 test("contrast_contract_changes_are_major_but_descriptions_are_not", () => {

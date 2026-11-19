@@ -12,6 +12,10 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Section: Phase 1 (spec §10, §12)
 - Priority: P1
 - Source: plans/002-Phase-0-Parity-Re-Proof.md (G32), plans/004-Phase-1-Part-B-Compiled-Validator.md, plans/005-Phase-2-Part-A-SDK.md Task 8, plans/014-Phase-7-Part-A-Release-Scope-Packaging-And-Schema-Language.md Task 8 (F1), plans/015-Phase-7-Part-B-Events-Manifests-Capabilities-And-State.md Task 9 (F1), plans/016-Phase-7-Part-C-Styling-Paint-Alpha-Contrast-And-Native-Parts.md Task 9
+- Measured (2026-11-20, plan 039 Task 7 F4): each of the 15 `bun run bench` scripts run alone at load 4.7–9.3 (the host shared its cores with other projects' builds and two VMs). `render`, `css`, `template`, `stream-elements`, `host`, `a2ui` and `starter-content` passed; `validator` failed in three runs (load 9.3, 4.8, 4.7) and passed in a fourth at load 6 (`core-queue.full` 1.480, agent-home 1.336): `core-queue.large`/`full` 1.50–1.60 µs/node against 1.5, agent-home 1.37–1.38. The generic comparison path, unchanged by plan 039, read 1.49–1.56 in the same runs, so the host was slow, not the compiled path. No run isolates plan 039, because plans 033–039 are uncommitted together. Rows in `plans/evidence/039-impact-analysis.md` §1 area 7. Run the whole bench once on a host under load 3; thresholds unchanged.
+- Measured (2026-11-19, plan 038 Task 7): each of the 13 `bun run bench` scripts run alone at load 3.5–5.7 passed, including the three rows plan 037 recorded as failing: `validator` `core-queue.large`/`full` 1.485/1.492 µs/node, `template` `validateTemplate` agent-home 4.725 ms CPU, `runner` QuickJS recovery 245.1 ms. Plan 038 changed none of these paths; the pass reflects a quieter host, so the entry stays open until a whole `bun run bench` passes on a quiet machine.
+- Measured (2026-11-19, plan 037 Task 9 F5): each script run alone at load 4.0–9.3. `validator` failed `core-queue.large`/`full` narrowly (1.502/1.507 µs/node against 1.5); the 50-`when` bindings row passed (1.612). `template` failed `validateTemplate` agent-home CPU in two of three runs (5.657, 5.034, 4.348 ms against 5; no earlier value recorded). `runner` failed QuickJS recovery (304.4 ms against 300). `render` (agent-home 2.348, `core-queue.full` 2.780, elements 2.783 µs/node), `css`, `streaming`, `stream-elements`, `host`, `pack-libraries`, `hash` and `selection` passed. No base ref isolates plan 037, because plans 033–037 are uncommitted together. Rows in `plans/evidence/037-impact-analysis.md` §1 area 7. Run the whole bench once on a host under load 3; thresholds unchanged.
+- Measured (2026-11-18, plan 036 Task 7 F12): no pass of the whole `bun run bench` this plan; the host was shared with another project's test runs. `bun run bench` stops at its first failing script, so each script was run alone. At load 5.6–6.0, `validator` failed `core-queue.large`/`full` (1.628/1.669 µs/node against 1.5) and the 50-`when` bindings row (1.751 against 1.75), `render` failed `core-queue.full` (4.719 against 3; the other seven rows 2.20–2.82) and `agent-home elements` (3.108), `template` failed the `templateRunner` overhead (5.03% against 5%) and `runner` failed QuickJS recovery (362.8 ms against 300). `css`, `streaming`, `stream-elements`, `host`, `pack-libraries`, `hash` and `selection` passed. Plan 036's per-task evidence (equal work counts against the base, in-process A/B within the control's spread) is in `plans/evidence/036-impact-analysis.md` §1 area 7. Run the whole bench once on a host under load 3; thresholds unchanged.
 - Measured (2026-10-29, plan 018 Task 8 F4): at load 6.0–6.4 from the host virtual machine, `bun run bench` failed the validator gate twice (`core-queue.full` 1.570 and 1.540 µs/node against 1.5; every other fixture ≤ 1.46 in the first run). The unmodified baseline `05d6b7c` (before plan 018) failed the same gate at load 6.33 (`core-queue.large` and `core-queue.full`, full 1.507), and `git diff 05d6b7c..HEAD` touches no validator, format or render code, so plan 018 did not cause it. Render (≤ 2.484 µs/node, agent-home 1.406 ms) and CSS passed in the same state. No threshold changed; output in `plans/evidence/018-task-8/`. This is the load-sensitive pattern already recorded below, not a resolution.
 - Measured (2026-10-28–29, plan 014 Task 8 F1): initial pinned-Bun 1.4.2 validator run overlapping the full check failed at 1.546 µs/node on agent-home and up to 1.608 on queues. A subsequent sequential whole bench on the isolated delivered commit `ec088e0` passed: standalone validation 0.908–1.472 µs/node, render 1.718–2.572 µs/node, agent-home 1.3138 ms, mixed tagged feed 0.0389 ms/500 elements. Render's separate validation diagnostic measured medium/large/full at 1.708/1.642/1.789 µs/node; this is not an in-render profile. Retain the existing owner-approved P1 investigation, strict thresholds and plan 020 release gates. Both runs, machine/load and commands are recorded in `plans/evidence/014-impact-analysis.md` and `plans/evidence/014-task-8/`; no new timing exception or resolved-cause claim.
 - Status: reopened 2026-10-24 for the standalone validator gate (plan 005 Task 10, F8). The full SDK render gate remains delivered. Plan 012 Task 13 stabilised the render bench's verdict (median of 5 batches of ≥ 50 ms). Thresholds are unchanged: the 2026-10-25 readiness run measured `core-queue.small` at 3.006 µs/node with one 1,000-run batch; on 2026-10-26 the same machine, Bun and threshold measured 2.075 / 2.180 / 2.023 µs/node in three full `bun run bench` runs.
@@ -449,6 +453,7 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 
 ## Identify the intermittent full-check failure seen in plan 018 Task 6
 
+- Closed 2026-11-15 (plan 033 Task 9): all wall-clock assertions were removed from `bun run check` (`src/__tests__/`, `proof/tests/`, `packages/*/src/__tests__`), replaced by structural / operation-count / read-count checks for linear-time guards, `bun:test` per-test timeouts for hang guards, and `bench/metrics.ts` `budget()` checks in `bench/` (using `process.cpuUsage()` where appropriate). `src/__tests__/no-wall-clock-gate.test.ts` (`no_wall_clock_assertions_in_the_gate`) prevents reintroducing wall-clock assertions in `bun run check`, allowing only the same-run ratio guards in `src/__tests__/compiled-schema.test.ts` and `src/__tests__/sdk-stream.test.ts`.
 - Disposition: added 2026-10-29 with the owner's approval after plan 018 Task 8 (`plans/evidence/018-impact-analysis.md` F5).
 - Section: Test suite (spec §13)
 - Priority: P4
@@ -578,6 +583,7 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 
 ## Reach 2× on the pure-JS SHA-256 only if hashing shows up in a profile
 
+- Status: closed 2026-11-16 by plan 034 Task 4: `digest()` (`src/pack/hash.ts`) now streams canonical JSON UTF-8 bytes directly into the SHA-256 block buffer (`buf` + `compress`) in a single pass, shared by `renderKey` and `packageHash`, without building the canonical string and its `utf8()` copy first. Across 9 interleaved runs (`bun bench/ab.ts HEAD bench/hash.bench.ts --runs 9`), `packageHash` on the 199 KiB `agent-home` code package drops from 5.505 ms to 2.369 ms CPU (paired ratio 0.373 = 2.68× speedup; 2.56× in-process paired speedup vs 2-pass) and `renderKey` over the 109 KiB (1,000-row) input drops from 3.435 ms to 1.121 ms CPU (paired ratio 0.318 = 3.14× speedup; 2.61× in-process paired speedup vs 2-pass; wall time 2.990 ms → 0.997 ms, ratio 0.351 = 2.85×). Both ≥ 2× gates and CPU budgets are enforced in `bench/hash.bench.ts`.
 - Section: Packages (spec §7.3), re-run cache (spec §8)
 - Priority: P4
 - Source: plans/024-Phase-7-Part-K-Release-0-2-3-Performance.md Task 5 (R15), plans/evidence/024-sha256.md
@@ -700,6 +706,7 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 
 ## Add `when` and `bind` to element JSON
 
+- Status: closed 2026-11-19 by plan 039 Task 2: element JSON carries `when`, `bind` and local intents; the caller supplies `local` and `initialLocal` through `ephemeralManifest`, and a document cannot declare them (`decision-logs/2026-11-19-2034-agent-ui-additions-for-0-4-0.md`).
 - Section: SDK rendering (spec §7.2)
 - Priority: P4
 - Source: plans/029-Phase-7-Part-P-Release-0-3-0-Interaction-Outcomes-Local-Bindings-And-Surface-Core.md Task 3 finding 4, plans/evidence/029-impact-analysis.md F5
@@ -708,6 +715,7 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 
 ## Cover the surface core and local bindings in the renderer conformance suites
 
+- Status: closed 2026-11-19 by plan 037 Task 8: `rendererSuite` gains `failed_binding_draws_the_node_fallback`; `rendererBrowserSuite` gains `when_false_node_is_not_drawn`, `set_local_redraws_and_never_reaches_the_host`, `local_writes_apply_with_one_complete_host_intent`, `from_local_intent_arrives_complete` and `focus_mark_moves_focus_once`. A suite for renderers on `/surface` stays with plan 038 Task 6.
 - Section: Conformance (spec §13)
 - Priority: P3
 - Source: plans/029-Phase-7-Part-P-Release-0-3-0-Interaction-Outcomes-Local-Bindings-And-Surface-Core.md Task 7, plans/evidence/029-impact-analysis.md F6
@@ -716,6 +724,7 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 
 ## Let a filtered list know it is empty
 
+- Status: closed 2026-11-19 by plan 037 Task 7: tree expressions gain a third read-only root, `shown` (`shown()` in the SDK), the number of a node's `when`-gated siblings that are drawn, not counting siblings that read `shown`. `<Text when={ex.eq(shown(), 0)} text="No matches" />` needs no round trip. Spec §8, §10, §11; `plans/evidence/037-interaction-design.md` §6.
 - Section: Interaction (spec §8)
 - Priority: P3
 - Source: plans/029-Phase-7-Part-P-Release-0-3-0-Interaction-Outcomes-Local-Bindings-And-Surface-Core.md Task 7, plans/evidence/029-impact-analysis.md F7
@@ -724,6 +733,7 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 
 ## Make a verified-package cache hit cheap
 
+- Status: closed 2026-11-16 by plan 034 Task 2: `verifyStoredPackage` (`src/store/verified.ts`) now keys `verifiedPackages()` by `(id, version)` and the canonical JSON of `catalog` and `capabilities` (memoised once per pair when both installation documents are deeply frozen), confirms hits by deep equality (`sameJson`), and returns the cached frozen object without shape-checking or hashing the stored record (so runners also reuse its hash verification). On the 200 KiB `agent-home` code package (`bench/host.bench.ts`), `loadVerifiedMs` drops from 15.802 ms to 1.285 ms (`memoryStore`, vs 12.148 ms uncached) and 17.525 ms to 0.810 ms (`fileStore`, vs 11.132 ms uncached), `verifyVerifiedMs` drops from 16.431 ms to 0.255 ms, and on the 8 KB template subject `loadMs` drops from 0.786 ms to 0.033 ms. The 2026-11-08 update note on `loadLibraries` and `publish` below remains recorded.
 - Section: Storage (spec §7.4)
 - Priority: P3
 - Source: plans/030-Phase-7-Part-Q-Release-0-3-0-Host-Pipeline-Evolution-And-Dependencies.md Task 2, `bench/host.bench.ts`
@@ -874,8 +884,203 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 
 ## Generate the core 0.3.0 API baseline before 0.3.1
 
+- Status: closed 2026-11-15 (plan 033 Task 1): generated `scripts/release/api/0.3.0.json` from `v0.3.0` (`18f2fe1`) in a detached worktree (`bun install --frozen-lockfile && bun run build`, `bun scripts/release/api-surface.ts`), created `scripts/release/api/register-0.3.1.json` as `[]`, switched `src/__tests__/api-stability.test.ts` to compare against `0.3.0.json` through `register-0.3.1.json` (keeping `register-0.3.0.json` as history), and updated `docs/compatibility.md`.
 - Section: Release process (public API)
 - Priority: P3
 - Source: plans/032-Phase-7-Part-S-Release-0-3-0.md Task 8, plans/evidence/032-impact-analysis.md F4
 - What: `docs/compatibility.md:33` promises that 0.3.x patches compare against a baseline generated from the `v0.3.0` tag. `scripts/release/api/` has `0.2.1.json`, `0.2.2.json`, `0.2.3.json`, `register-0.3.0.json` and both companion `0.3.0` baselines, but no core `0.3.0.json`; plan 032 Task 5 created the companions only. Generate the core baseline from `v0.3.0`, switch `api-stability.test.ts` to it with an empty `register-0.3.1.json`, and keep `register-0.3.0.json` as history.
 - Why: against `0.2.3` plus the 0.3.0 register, an `added` entry only has to be absent from the baseline and present now, so a later change to a declaration that 0.3.0 added passes unreviewed; a 0.3.0 baseline pins what shipped, as `0.2.3.json` pinned 0.2.3 for this release.
+
+## Do not carry a prior render's `patch`, `reset` or `migrated` on a skipped `renderPlacement`
+
+- Section: Host pipeline (spec §7.7 R6)
+- Priority: P4
+- Source: plans/033-Phase-7-Part-T-Review-Defects-And-Release-Scope.md Task 3 and Task 10, plans/evidence/033-impact-analysis.md F5
+- What: When `renderPlacement` skips a render at step R6, it returns `previous` by identity (`result.value === previous`), so `previous.patch`, `previous.reset` and `previous.migrated` from the render that produced `previous` remain on the returned object. In `0.3.x`, Task 3 documented the `result.value !== previous` check in `docs/host.md` and `docs/spec.md` §7.7 R6 to preserve patch compatibility; in `0.4.0`, consider stripping per-render fields (`patch`, `reset`, `migrated`) or returning a distinct skipped shape so a host that forgets the identity check cannot resend an already-applied patch.
+- Why: Relying on reference equality (`result.value !== previous`) to avoid resending `patch` works for hosts that follow `docs/host.md`, but removing the stale `patch` from the skipped return value eliminates the footgun at the value level.
+
+## Report a thrown or rejected `onIntent` through `SurfaceEvent`
+
+- Section: Renderer observability (spec §11)
+- Priority: P4
+- Source: plans/033-Phase-7-Part-T-Review-Defects-And-Release-Scope.md Task 8 and Task 10, plans/evidence/033-impact-analysis.md F6
+- What: Both the confirmed and unconfirmed (`emit`) paths in `createSurfaceCore` contain a synchronous throw or async rejection from the host's `onIntent` callback without raising a `SurfaceEvent`, because `SurfaceEvent` only grows in a minor release (`docs/spec.md` §11). In `0.4.0`, consider adding `{ type: "intent-failed"; nodeId: string; event: string }` to `SurfaceEvent` so `onEvent` can observe `onIntent` failures alongside `emit-rejected` and `confirm-dropped`.
+- Why: Containing `onIntent` throws prevents a broken host callback from crashing a primitive's event handler, and an observability event lets a host log the failure without carrying values.
+
+## Gate the remaining request-time pipeline budgets in `bench/host.bench.ts`
+
+- Section: Host pipeline performance (spec §7.7)
+- Priority: P3
+- Source: plans/034-Phase-7-Part-U-Request-Time-Performance.md Task 1 and Task 7, plans/evidence/034-impact-analysis.md F5
+- What: `plans/evidence/034-baseline.md` confirmed 20 CPU budgets across `memoryStore`, `fileStore`, and the 10-row `split` on the `agent-home` code package. `bench/host.bench.ts:561-574` currently enforces `budget()` on 5 rows (`template load`, `homeLoadVerified`, `homeFileLoadVerified`, `homeVerifyVerified`, `homeEquality`), while `renderUncachedMs`, `renderVerifiedMs`, `skippedMs`, `loadUncachedMs`, `renderKeyMs`, `runnerMs`, `validateTreeMs`, `diffTreesMs`, and the read splits are emitted as metrics without `budget()` gates (`renderKey`, `composed-6-layers`, and `quickjsPackage` have their own gates in `hash.bench.ts`, `render.bench.ts`, and `runner.bench.ts`). Add `budget()` gates for the remaining `host.bench.ts` rows alongside the quiet-host benchmark verification so future regressions fail the bench gate.
+- Why: All 20 rows pass today; gating them in `bench/host.bench.ts` ensures end-to-end `renderPlacement` regressions are caught automatically when the full benchmark suite runs on a quiet host.
+
+## Review `workerRunner()` default `100 ms` timeout for cold-JIT MCP renders under load
+
+- Section: Authoring MCP server and worker runner (spec §7.5)
+- Priority: P4
+- Source: plans/034-Phase-7-Part-U-Request-Time-Performance.md Task 7, plans/evidence/034-impact-analysis.md F6
+- What: During `bun run check` under heavy host load (~16), three `src/__tests__/cli-mcp.test.ts` tests (`pack_errors_keep_the_previous_package`, `render_scenarios_returns_tree_or_errors`, `render_all_matches_session_check`) failed when `workerRunner()`'s default `timeoutMs: 100` tripped (`limit-exceeded`) on the first `agent-home` render inside a fresh worker (which compiles the validator and JIT-warms the module), while all three passed in `620–730 ms` when run standalone. Evaluate raising the `liveframe mcp` default worker `timeoutMs` or warming/configuring the test fixture config under load.
+- Why: Cold-JIT + validator compilation inside a fresh worker can exceed `100 ms` on a contended host even though worker startup is excluded by the `ready` handshake.
+
+## Re-measure the browser renderer's wall times on a quiet host and make the focus gate load-resistant
+
+- Section: Renderer performance (spec §11)
+- Priority: P3
+- Source: plans/035-Phase-7-Part-V-Browser-Renderer-Cost-And-Resilience.md Task 6, plans/evidence/035-impact-analysis.md F4
+- What: Re-run `bun --conditions liveframe:source bench/streaming.bench.ts --production` on a quiet host (load average under 2) and record the `createRoot` / `hydrateRoot` mount wall times after Task 3 and the patched-update rows after Task 4 against `plans/evidence/035-browser-baseline.md`. Make the focus-continuity gate (`diffMs < 0.5` at ≥ 1,000 host elements) hold under load: for example, take the on and off samples interleaved and compare medians of paired differences, or gate the ratio to the 0-element difference instead of an absolute figure.
+- Why: Every after-run in plan 035 ran at load 26–47. The render counts are deterministic and gated, but the wall times are not comparable with the baseline. The focus gate passed quietly (`+0.2 ms`) but failed at load ~35 (`+1.3 ms`), so it is not yet a reliable regression signal.
+
+## Expose `prepare` / `commit` on `SurfaceCore` for concurrent adapters other than React
+
+- Section: Surface core and adapters (spec §11)
+- Priority: P3
+- Source: plans/035-Phase-7-Part-V-Browser-Renderer-Cost-And-Resilience.md Task 4 and Task 6, plans/evidence/035-impact-analysis.md F5
+- What: `src/surface/core.ts` now splits `accept` into `prepare` (validate and build, no observable change) and `commit` (install). Only the internal `createStagedCore` exposes them, for `/react`. A concurrent non-React adapter (for example the 0.4.0 DOM adapter on `/surface`, review finding F8) can only call `accept`, which is safe only if every render it starts is committed. Decide whether to make `prepare` / `commit` public on `SurfaceCore`, and if so register it `added` in the 0.4.0 API register and document it in spec §11.
+- Why: Without the split, an adapter that can abandon a render may move the core ahead of the screen, which is the defect Task 4 fixed for React.
+
+## Say how a host clears a stale keep-last surface when the stream stops
+
+- Section: Renderer resilience (spec §11)
+- Priority: P4
+- Source: plans/035-Phase-7-Part-V-Browser-Renderer-Cost-And-Resilience.md Task 5 and Task 6, plans/evidence/035-impact-analysis.md F6; risk recorded in decision-logs/2026-11-17-1255-keep-last-valid-tree.md
+- What: With `<Surface invalid="keep-last">`, a stream that stops after a rejected arrival leaves the wrapper `aria-busy="true"` and `data-lf-stale` indefinitely, because only an accepted arrival clears the mark. Document the host's options in `docs/renderer.md` ("Keep the last tree on screen when an arrival is rejected"): switch to `invalid="fallback"`, send a corrected revision, or show its own notice on `arrival-rejected`. Decide whether a host needs a direct way to clear the mark.
+- Why: An indefinitely busy region tells assistive technology the content is still loading when it never will.
+
+## Align element JSON's error kinds with `render()` and the arrival walk
+
+- Section: SDK element JSON (spec §7.2, §9, §10)
+- Priority: P3
+- Source: plans/036-Phase-7-Part-W-Internal-Structure-And-Parity.md Task 2, plans/evidence/036-impact-analysis.md F1, F2
+- What: Element JSON whose `kind` is missing or not a nonempty string is `invalid-prop` at `/…/kind` from `renderElements`/`streamElements`; `render()` and `validateTree` say `unknown-component`. Element JSON whose `children` is not an array is `invalid-prop` at `/…/children`; the walk says `invalid-children`. Change the element conversion to the walk's kinds and update `src/__tests__/sdk-elements.test.ts:82`; then enable the strict cases in `tree-rule-parity.test.ts` `known_differences_strict`. Public error kinds change, so this needs a minor release (0.4.0, with plan 039's element JSON work).
+- Why: Spec §7.2 says `renderElements` uses `render()`'s error kinds. The parity test (plan 036 Task 2) shows two inputs where it does not. All three implementations still reject both, so no tree is wrongly accepted.
+
+## Align the SDK build pass's child-count pointer with the walk, and say where a byte-limit error points
+
+- Section: Validation (spec §10)
+- Priority: P3
+- Source: plans/036-Phase-7-Part-W-Internal-Structure-And-Parity.md Task 2, plans/evidence/036-impact-analysis.md F3, F4
+- What: (F3) For too many children of a kind, the build passes point at the node (`/root/menu`) and `validateTree` at its `children`. Make the build pass append `/children` and update the pinned pointer in `src/__tests__/local-bindings.test.tsx:428`, in a plan that may change pointers. (F4) The byte limit has the same budget and kind everywhere, but the walk counts in document order and the build counts a node's own fields when the node closes. Add one sentence to spec §10 saying the pointer names where the count crossed the limit. Enable the matching strict cases in `known_differences_strict`.
+- Why: The two disagreements are the remaining differences the three-way parity test found. They change nothing a host can accept or reject, only where an error points.
+
+## Make `proof/tests/mcp-capture.test.ts` independent of host load
+
+- Section: Test reliability
+- Priority: P3
+- Source: plans/036-Phase-7-Part-W-Internal-Structure-And-Parity.md Task 1a, plans/evidence/036-impact-analysis.md F5
+- What: `capture_returns_png_snapshot_and_errors_per_cell` fails inside `bun run check` with `limit-exceeded` "Render exceeded 100 ms" when the host is loaded (the preview runner's wall-clock render limit). Give the test a larger render limit or measure its budget in CPU time, as plan 033 Task 9 did for bench budgets. It is the same exposure as the existing entry on `workerRunner()`'s default `100 ms` timeout; fix them together if the default changes.
+- Why: It was the only failure in three of this plan's full runs (Tasks 1a, 2 and 5) (it passes alone, 10/10), so a red `bun run check` under load does not point at the change under test.
+
+## Let `bench/ab.ts` decide 2% on a host that is never idle
+
+- Section: Benchmarks
+- Priority: P3
+- Source: plans/036-Phase-7-Part-W-Internal-Structure-And-Parity.md Tasks 1a, 3 and 4, plans/evidence/036-impact-analysis.md F6
+- What: `bench/ab.ts` (separate processes) left every gated row inconclusive at load 10–25; control/base intervals moved about ±15%. An in-process interleaved A/B, run in both load orders (base and head loaded side by side, alternating, with an A/A control), resolved about 1% at load around 5 in Tasks 3–5. Add that mode to `bench/ab.ts`, or compare hardware instruction counts (`perf stat -e instructions:u`) where `perf` is available.
+- Also (2026-11-20, plan 039 Task 7 F4): plan 039 Task 2's "`renderElements` A/B within 2%" was not decided either; `bench/ab.ts` called its control unusable at load 6–28, and the evidence is the equal-work stream and filtered-document ratios in `bench/stream-elements.bench.ts`.
+- Why: Rule 2 of plans 034–036 asks for a 2% bound that the current harness cannot confirm, so each structural task passed on a deterministic count and a scratch harness that is not in the repository.
+
+## Make the API-surface reader independent of which declaration file holds a helper type
+
+- Section: Release gates (`scripts/release/api-surface.ts`)
+- Priority: P4
+- Source: plans/036-Phase-7-Part-W-Internal-Structure-And-Parity.md Task 5, plans/evidence/036-impact-analysis.md F7
+- What: The reader inlines a non-exported helper type into a recorded declaration only from a declaration file that also declares one of the subpath's exports. Moving `absent` into a file with no export of `./template` changed `evaluate`'s recorded declaration with no change to the type, and `api-stability.test.ts` asked for a register entry. Task 5 worked around it by placing `absent` in `src/template/scope.ts`. Follow helper types across the package's declaration files without changing the other recorded entries (a first attempt changed a dozen), so a file split cannot move the recorded surface.
+- Why: A structural move should not need a register entry or a placement chosen to satisfy the reader.
+
+## Gate bare design ids in source comments
+
+- Section: Documentation hygiene
+- Priority: P4
+- Source: plans/036-Phase-7-Part-W-Internal-Structure-And-Parity.md Task 6, plans/evidence/036-impact-analysis.md F8
+- What: `source_comments_cite_no_plan_or_decision_ids` fails on `plan NNN`, `decision YYYY-MM-DD`, a design id after "plan" or "design", and `Task N`. It does not gate a bare id in parentheses such as `(B4)`, because spec §7.7's step labels `R1`–`R11` match the same shape. Allow-list the `R` ids and gate the rest.
+- Why: Task 6 removed 94 such citations by hand; a bare id can come back without failing the test.
+
+## Reserve `when`, `bind` and `focus` as prop names in catalogs
+
+- Status: partly done 2026-11-19 by plan 039 Task 2: element JSON's `props`, `style` and `events` now refuse `when`, `bind` and `focus` (`invalid-prop` at the member), so element JSON no longer changes their meaning. The catalog-install half remains.
+- Section: Formats and validation (spec §5, §9)
+- Priority: P3
+- Source: plans/037-Phase-7-Part-X-Interaction-Capabilities.md Task 5 finding, plans/evidence/037-impact-analysis.md F7
+- What: `validateCatalog` accepts a definition whose `props` declare `when`, `bind` or `focus`. Only `liveframe gen` refuses those names (`src/sdk/gen.ts:184`). Element JSON reads a `focus` or `when` inside `props` as the node field, because `mergeSections` reserves only `key`, `children`, `variant` and `$anchor`. Reject the reserved names at catalog install (`invalid-document` at the prop) and in element JSON's `props`, or decide they are allowed and say what wins.
+- Why: a catalog that declares such a prop installs and validates, but no authoring path can set it, and element JSON silently changes its meaning.
+
+## Narrow generated `bind` types to the argument a carry fits
+
+- Section: SDK codegen (spec §7.2)
+- Priority: P4
+- Source: plans/037-Phase-7-Part-X-Interaction-Capabilities.md Task 4 note, plans/evidence/037-impact-analysis.md F8
+- What: generated author types accept any argument name for `bind`, whatever the event carries. An array or object carry bound to a scalar argument compiles and is rejected only by the validator (`invalid-prop`). Type `bind` against the event's carry and the action's argument schemas where both are known.
+- Why: an agent writing TSX would see the mismatch in the type checker instead of after `render()`.
+
+## Show the 0.4.0 interaction additions in the demo host
+
+- Section: Examples (docs)
+- Priority: P4
+- Source: plans/037-Phase-7-Part-X-Interaction-Capabilities.md Task 9, plans/evidence/037-impact-analysis.md F9
+- What: `examples/demo-host/widgets/queue` uses local bindings but none of the six 0.4.0 additions. Add a saving flag with `until: "revision"`, an add-task form read with `fromLocal`, a multi-select array carry, a focus mark on the new-task field, an empty row with `shown`, and a store with `putStateIf`. Then cover them in `demo:test`.
+- Why: no example in the repository shows the additions working end to end against the installed package.
+
+## Add a motion case to the renderer conformance suites
+
+- Section: Conformance (spec §13), design-system motion (spec §6.4, §11)
+- Priority: P3
+- Source: plans/038-Phase-7-Part-Y-Rendering-Capabilities.md Task 6 note, plans/evidence/038-impact-analysis.md F4
+- What: neither `rendererBrowserSuite` (`/conformance/react`) nor `domRendererBrowserSuite` (`/conformance/dom`) has a motion case. The eight motion tests in `src/__tests__/fixtures/motion-browser.ts` test the library's adapters against its own fixtures, not an app's implementations. Add one shared case, driven by a fixture design system with `motion` on a root rest recipe, that fails when a primitive does not put `domId` on its root element (so exit, move and the kept element cannot find it). Pin the React suite's new case list in `react_suite_is_unchanged_by_the_shared_cases`.
+- Why: motion resolves elements by `domId`. A primitive without it silently never animates, and no suite an app runs today catches that. Design D.6 planned these cases for `/conformance/dom`.
+
+## Gate a catalog digest built with capabilities and `local` keys
+
+- Section: Agent tooling (spec §7.2)
+- Priority: P3
+- Source: plans/039-Phase-7-Part-Z-Agent-Generated-UI.md Task 7, plans/evidence/039-impact-analysis.md
+- What: `gen:check` holds the starter's own digest to 24,000 characters (20,210 now), but a host's digest adds its actions, sources and `local` keys: the demo host's measured 23,269 characters, 97% of the budget, after Tasks 5–6. Decide the budget a host's digest is held to, and gate a representative one (the demo capabilities with `local.q`) in `gen:check`, or shorten the per-kind text so the starter has room.
+- Why: one more starter kind or a few more actions would pass the budget with no check failing, and an agent's prompt would grow past what the design set. (F3)
+
+## Move the starter's `radio` off React Aria's deprecated `Radio`
+
+- Section: Starter (spec §13)
+- Priority: P3
+- Source: plans/039-Phase-7-Part-Z-Agent-Generated-UI.md Task 7, plans/evidence/039-impact-analysis.md
+- What: `@arnilo/liveframe-starter` draws `radio` with React Aria Components `Radio`, which 1.22.1 marks deprecated in favour of `RadioField` and `RadioButton`. Check whether the `^1.22.0` peer floor has the replacement, and either raise the floor or keep `Radio` with a test that fails when it is removed.
+- Why: a React Aria major would break the starter's radio group at install time. (F5)
+
+## Let a scalar carry be nullable or bounded
+
+- Section: Catalog format (spec §5, §7.1)
+- Priority: P4
+- Source: plans/039-Phase-7-Part-Z-Agent-Generated-UI.md Task 7, plans/evidence/039-impact-analysis.md
+- What: a catalog's scalar `carries` (`"string"`, `"number"`) take no bound and no null, so the starter's `dateField` raises the empty string when cleared, and a host's state schema supplies the 128-character bound for `radioGroup` and the 10-character bound for dates. Allow a bounded or nullable scalar carry, or document the empty-string convention in the format guide.
+- Why: a cleared date is a distinct value that an object carry or a nullable scalar would state exactly; today every host needs a pattern that also allows `""`. (F6)
+
+## Give live filters a case-insensitive match
+
+- Section: Element JSON and templates (spec §8)
+- Priority: P3
+- Source: plans/039-Phase-7-Part-Z-Agent-Generated-UI.md Task 7, plans/evidence/039-impact-analysis.md
+- What: `$contains` is case-sensitive and the allowed tree operators have no case-folding form, so a filter that ignores case needs the app to hold a lowered copy of each row's text. Add a case-folding operator (or a `$lower`) to the shared operator table and the digest, or record in the digest that none exists.
+- Why: a fresh agent asked whether `$contains` folds case in both acceptance runs (plan 039 Task 3 guess 2, Task 7 guess 2), and a filter box that misses "ship" for "Ship the importer" is the usual complaint. (F7)
+
+## Convert A2UI incrementally and against v1.0
+
+- Section: `@arnilo/liveframe-a2ui` (spec §14)
+- Priority: P3
+- Source: plans/039-Phase-7-Part-Z-Agent-Generated-UI.md Task 7, plans/evidence/039-impact-analysis.md
+- What: `fromA2ui` converts a snapshot of one surface for v0.9 and v0.9.1. Convert a stream of messages into patches for `streamElements` as they arrive, and add A2UI v1.0 when it is published, each with its own design note.
+- Why: agents that speak A2UI send updates as messages; today the app gathers all of them first. Spec §14 keeps incremental conversion out of 0.4.0. (F8)
+
+## Add a `meter` kind and an interactive table to the starter
+
+- Section: Starter (spec §13)
+- Priority: P4
+- Source: plans/039-Phase-7-Part-Z-Agent-Generated-UI.md Task 7, plans/evidence/039-impact-analysis.md
+- What: a `meter` kind (a value in a known range, distinct from `progress`) and an interactive `table` with sorting, row selection and grid focus (React Aria `Table`). `progress` and the static `table` triple cover the first 0.4.0 set.
+- Why: both were considered in plan 039's design (T.6) and left out by rule 2 (primitives only, no kind without a clear need); revisit when an adopter asks. (F8)
+
+## Let definitions declare their parent kinds
+
+- Section: Catalog format (spec §5)
+- Priority: P3
+- Source: plans/039-Phase-7-Part-Z-Agent-Generated-UI.md Task 7, plans/evidence/039-impact-analysis.md
+- What: a definition lists its child kinds but not its allowed parents, so a `radio` placed under a `stack` (children `any`) or a `tableCell` outside a `tableRow` is a valid tree. A stray `radio` is caught only at draw time by per-node error containment (`stray_radio_is_contained`). Add a parent rule to definitions.
+- Why: the starter's `radio`, `tableRow` and `tableCell` only make sense inside one parent, and the failure for a stray one is a fallback node, not a typed error at its own pointer. (F8)

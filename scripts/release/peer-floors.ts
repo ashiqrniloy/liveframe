@@ -24,6 +24,7 @@ const floors: Floor[] = [
     packages: { react: "19.0.0", "react-dom": "19.0.0" },
     suites: [
       "src/__tests__/react-browser.test.tsx",
+      "src/__tests__/react-motion-browser.test.tsx",
       "src/__tests__/react-intents.test.tsx",
       "src/__tests__/react-registry.test.tsx",
       "src/__tests__/react-ssr.test.tsx",

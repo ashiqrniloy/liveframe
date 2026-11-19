@@ -258,7 +258,8 @@ counts, where `min <= max`.
 
 An event map has at most 256 entries. Names match `^on[A-Z][A-Za-z]*$` and have
 at most 64 characters. Each event requires `carries` (`none`, `string`,
-`boolean`, `number`, `integer` or `{ object: ObjectSchema }`) and a description.
+`boolean`, `number`, `integer`, `{ object: ObjectSchema }` or
+`{ array: { items, maxItems } }`) and a description.
 Unknown fields and invalid schemas fail closed.
 Numeric events carry finite values only; `integer` also requires an integer.
 For `bind` and implicit `setState`, `number` fills only a `number` schema, while
@@ -267,6 +268,10 @@ value by the host (and by Preview).
 Object events have at most 32 scalar properties, with bounded strings, no nested
 objects or arrays, and no top-level `nullable: true`. Individual scalar fields
 may be nullable. Their schemas are closed like every object schema.
+Array events hold one scalar `items` schema (`string` with `maxLength`,
+`boolean`, `number` or `integer`, each optionally nullable) and an integer
+`maxItems` from 1 to 256; nested arrays, objects, unbounded strings and other
+fields are rejected at the event's `carries`.
 Malformed structure returns `invalid-document`; unresolved references return
 `unknown-name`. Errors are bounded to 20 and point into the catalog, including
 its vocabulary. Success preserves the input object.
@@ -384,13 +389,18 @@ const tree: UiTree = {
 };
 ```
 
+A tree may also carry `focus`, the id of one node that exists and is always
+rendered (no `when` on it or an ancestor): the renderer moves focus there when a
+later revision of the surface changes the mark. A missing target is `not-found` at
+`/focus`, a gated one or a malformed id `invalid-prop`.
+
 Every node requires `id`, `kind` and `props`; `variant`, `style`, `events` and
 `children` are optional. Props, style values and action arguments contain only
 JSON values. Each event carries one intent:
 
-- `{ type: "setState", key, value? }`: an absent `value` uses the event's
-  value; an explicit `null` sets null.
-- `{ type: "action", name, args, bind?, bindAll?, resultKey? }`: `args` is required, even when empty. `resultKey` (1–128 characters) names the key the host reports the action's status under; the renderer and `checkOffered` carry it unchanged.
+- `{ type: "setState", key, value?, fromLocal?, local? }`: an absent `value` (and `fromLocal`) uses the event's
+  value; `fromLocal` reads a `local` property (`unknown-name` otherwise, mutually exclusive with `value`); an explicit `null` sets null.
+- `{ type: "action", name, args, bind?, bindAll?, fromLocal?, resultKey?, local? }`: `args` is required, even when empty. `resultKey` (1–128 characters) names the key the host reports the action's status under; the renderer and `checkOffered` carry it unchanged.
   `bind` names the argument filled by the event's value; it carries no value
   or authority. The host checks and authorises the completed arguments.
   `bindAll: true` instead merges an object event into `args`; no other value is
@@ -398,10 +408,17 @@ JSON values. Each event carries one intent:
   Event properties must exist in the remaining argument schema, cover its required
   fields and match scalar types (`integer` also fits `number`); nullable fields
   need nullable targets. Bounds and enums are checked on the completed value.
+  An array event fills an array argument through `bind`, or an array state key
+  through implicit `setState`, when the target's items take the carried scalar
+  (`integer` items fit `number` items; nullable items need nullable targets).
+  `bindAll`, implicit `setLocal` and a value-less `local` write on an array
+  event are `invalid-prop`.
   Implicit object `setState` uses the same structural fit rule and replaces a whole key.
+- `fromLocal` on `action` (1 to 16 `{ [arg]: localKey }` entries) or `setState` (a single `localKey` string, without `value`): each `localKey` names a property of the manifest's `local` schema (`unknown-name` otherwise) whose scalar type fits the target (`integer` fits `number`; nullable sources require nullable targets; `invalid-prop` otherwise), and on `action` each `arg` must be a declared capability argument not already supplied by literal `args`, `bind` or `bindAll`. On `emit`, `complete()` fills each target from the surface's current local state and strips `fromLocal`; `checkOffered` rejects a posted `fromLocal` field (`invalid-prop` at `/fromLocal`) and re-checks the filled values against the capability or state schema.
+- `local` on `setState` or `action` (1 to 4 `{ key, value?, until? }` `LocalWrite` entries): each `key` names a property of the manifest's `local` schema (`unknown-name` otherwise), `value` satisfies that property (or omits `value` to take the event's scalar value), and optional `until: "revision"` reverts the key on the next accepted revision of the same `surfaceId`. The renderer applies `local` writes and strips `local` before calling `onIntent`; `checkOffered` rejects a posted `local` field (`invalid-prop` at `/local`).
 - `{ type: "setLocal", key, value? }`: writes the surface's local state (below). `key` names a property of the manifest's `local` schema (`unknown-name` otherwise) and `value` follows `setState`'s fill rules against that property. The renderer applies it; it never reaches `onIntent`, and `checkOffered` rejects it with `invalid-prop` at `/type`. In TypeScript `Intent` is `setState | action` (what a host can dispatch); `LocalIntent` is `setLocal`, and an event may carry `TreeIntent = Intent | LocalIntent`.
 
-A node may also carry `when` and `bind`, expressions the renderer evaluates in the browser from the template expression language narrowed to the operators `$path $lit $omit $has $eq $ne $lt $lte $gt $gte $and $or $not $cond $coalesce $len $concat $text $contains $slice $add $sub $mul $div $round $get $at` with two roots, `local` and `self` (the node's own `props`). `when` must be boolean and hides the node when false; `bind` maps bindable prop names to expressions whose value replaces the static prop. The compiled validator rejects, at the expression's pointer, an operator outside the list (`invalid-prop`), a path whose root is not `local` or `self` or that names an undeclared `local` key or prop (`unknown-name`), a `when` that is not boolean, a `bind` target that is not a bindable prop (`variant`, style props, events and `refProps` props are not) or whose inferred type does not fit it, and any expression over 16 levels or 64 nodes, a node with more than 16 `bind` entries, or a tree over 10,000 expression nodes (`limit-exceeded`). A prop named by a `refProps` prop must not carry a `when` or sit under one, and child-count rules hold with every `when` child present (maximum) and absent (minimum). Bound values are checked again against the prop schema when the renderer evaluates them.
+A node may also carry `when` and `bind`, expressions the renderer evaluates in the browser from the template expression language narrowed to the operators `$path $lit $omit $has $eq $ne $lt $lte $gt $gte $and $or $not $cond $coalesce $len $concat $text $contains $slice $add $sub $mul $div $round $get $at` with three roots, `local`, `self` (the node's own `props`) and `shown` (the number of the node's siblings that carry a `when`, are drawn without a fault and do not read `shown`; 0 at the root). `when` must be boolean and hides the node when false; `bind` maps bindable prop names to expressions whose value replaces the static prop. The compiled validator rejects, at the expression's pointer, an operator outside the list (`invalid-prop`), a path whose root is not `local`, `self` or `shown`, that reads a property of `shown`, or that names an undeclared `local` key or prop (`unknown-name`), a `when` that is not boolean, a `bind` target that is not a bindable prop (`variant`, style props, events and `refProps` props are not) or whose inferred type does not fit it, and any expression over 16 levels or 64 nodes, a node with more than 16 `bind` entries, or a tree over 10,000 expression nodes (`limit-exceeded`). A prop named by a `refProps` prop must not carry a `when` or sit under one, and child-count rules hold with every `when` child present (maximum) and absent (minimum). Bound values are checked again against the prop schema when the renderer evaluates them.
 
 The catalog-independent schema is published at
 `@arnilo/liveframe/schemas/ui-tree.json`. It rejects unknown tree, node and
@@ -441,6 +458,8 @@ if (result.ok) {
 ```
 
 `validateTreePatch(unknown)` checks closed shapes and JSON values, including node and intent fields. `schemas/tree-patch.json` (`urn:liveframe:tree-patch:1`) agrees on standalone shape; the validator additionally checks `revision > base`. Revisions and indexes are nonnegative safe integers. Empty ops advance the revision.
+
+A patch may carry `focus`: a node id sets the tree's mark, `null` clears it, and an omitted `focus` keeps the base's. `diffTrees` emits it only when the mark changed.
 
 Operations address node ids and run in order: `set` replaces kind, props and optional variant/style/events/when/bind, deleting omitted optional fields and preserving id/children; `insert` carries `{ parent, index, node }` and accepts zero through current child count; `remove` carries `{ id }` and omits children when the last is removed; `move` carries `{ id, index }` within the current parent, with the index measured after detachment. Root set is allowed; root removal/move is rejected. Parent changes require remove plus insert with new key-path ids. Inserted descendants are immediately addressable; removed descendants cease to be targets.
 
@@ -667,6 +686,13 @@ const sources = { queue: { description: "Queue", params: obj({}), result } };
 | --- | --- |
 | `ok` | Required `value` matching `result`; optional `checkedAt`, a string of at most 128 code points |
 | `unauthorized`, `unavailable`, `stale`, `failed` | Optional `reason` (at most 500 code points) and optional `value` matching `result` |
+| `pending` (only with `{ pending: true }`) | Nothing: `{ status: "pending" }` |
+
+`sourceOutcome(result, { pending: true })` adds the `pending` branch for a
+source the host may not have read yet (a slow read, a cold cache). Without the
+option the schema is the 0.3.0 one byte for byte, so the capability document's
+hash does not change. A 0.3.x host that receives `reason: "pending"` treats it
+as `failed`.
 
 All branches are closed objects. `checkedAt` is host-provided text; the helper
 does not parse dates. `Infer` retains the result's value type and narrows by
@@ -926,6 +952,7 @@ slots, and a fixed Liveframe state. Recipes accept only the exported `recipeProp
 | `borderStyle`, `outlineStyle` | `solid`, `dashed` or `none` |
 | `opacity`, `backgroundOpacity` | `opacity` reference or number |
 | `shadow`, `backdropBlur`, `backdropSaturate`, `transitionDuration`, `transitionTiming` | Respectively `shadow`, `backdrop-blur`, `saturation`, `motion-duration`, `easing` reference or literal |
+| `motion` | `none`, `fade`, `move` or `fade-move`, never a reference. Declared only in a `root` slot's `rest` recipe; a resolved value other than `none` needs a `transitionDuration` (`invalid-document` at `/recipes/<key>/motion` otherwise) |
 
 A recipe may also carry an `extensions` map for properties its catalog declared in
 `vocabulary.extensions` (at most 64 per recipe). A `colour` extension takes a

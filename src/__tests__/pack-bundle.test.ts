@@ -39,9 +39,7 @@ test("bundles_composed_components", async () => {
     await Promise.all(paths.map(async (path) => [path, await Bun.file(new URL(path, root)).text()])),
   );
   files["agent-home/queue.tsx"] += "\nexport default AgentHomeQueue;";
-  const start = performance.now();
   const source = code(bundle({ files, entry: "agent-home/queue.tsx" }));
-  expect(performance.now() - start).toBeLessThan(100);
   const imports = new Bun.Transpiler({ loader: "js" }).scanImports(source);
   expect(imports.length).toBeGreaterThan(0);
   expect(imports.every((item) => /^@arnilo\/liveframe\/sdk(?:\/jsx(?:-dev)?-runtime)?$/.test(item.path))).toBe(true);

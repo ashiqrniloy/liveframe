@@ -225,6 +225,38 @@ An open recipe that differs from rest receives `@starting-style` entry rules,
 using its declared transition. Exit motion, delayed unmounting, scroll locking
 and making the background inert remain renderer responsibilities.
 
+## Motion: enter, exit and reorder
+
+A design system gives a kind motion with the `motion` recipe property on its
+root slot's rest recipe. Durations and easings are the recipe's own:
+
+```ts
+recipes: {
+  "box.plate.root.rest": { /* … */ transitionDuration: "motion.fast", transitionTiming: "ease-out", motion: "fade-move" },
+}
+```
+
+| Value | When a later revision inserts the node | When it removes the node | When its siblings change |
+| --- | --- | --- | --- |
+| `fade` | fades in from `opacity: 0` | fades out, then goes | jumps |
+| `move` | appears | goes at once | slides from its old box |
+| `fade-move` | fades in | fades out; siblings close the gap | slides |
+| `none` | as without motion: lets a variant switch a wildcard off | | |
+
+`motion` is valid only on a `root` slot's `rest` recipe, and a resolved motion
+other than `none` needs a `transitionDuration`; otherwise the design system is
+`invalid-document` at `/recipes/<key>/motion`. Widget code cannot ask for motion:
+there is no style prop for it, and the tree carries nothing new.
+
+For such slots only, the sheet adds a `--lf-m` marker to the rest rule, a
+`@starting-style` enter rule and a `[data-lf-exiting]` exit rule, all scoped by
+the design system and by `data-lf-motion`, which the renderer sets on the
+wrapper and portal container after the first drawn tree. A design system that
+sets no `motion` projects byte-identical CSS. A host that uses `<Surface>` needs
+nothing else: the renderer keeps a removed element (inert and `aria-hidden`)
+until it has faded out and slides moved siblings (spec §11). Reduced motion and
+the switching sequence compute a zero duration, so nothing plays.
+
 ## Switch without re-rendering
 
 After the next theme and design-system sheets have loaded, update all scope

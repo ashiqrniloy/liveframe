@@ -1,0 +1,11 @@
+{
+  "kind": "switch",
+  "props": {
+    "label": "More"
+  },
+  "bind": {
+    "checked": {
+      "$path": "local.q"
+    }
+  }
+}

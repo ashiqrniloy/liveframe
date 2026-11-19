@@ -105,6 +105,45 @@ export function storeSuite({
     }
     equal(await store.getState("home", ""), false, "Invalid scopes must not overwrite shared state");
   });
+  // Optional method (spec §7.4): a store without `putStateIf` passes these cases unchanged.
+  add("put_state_if_compares_by_canonical_json", async (store, equal) => {
+    if (!store.putStateIf) return;
+    equal(await store.putStateIf("home", "", { a: 1 }, { a: 2 }), false, "Absent state must not match a value");
+    equal(await store.getState("home", ""), undefined, "A failed compare must write nothing");
+    equal(await store.putStateIf("home", "", undefined, { a: 1, b: [1, 2] }), true, "undefined must match no state");
+    equal(await store.putStateIf("home", "", undefined, { a: 9 }), false, "undefined must not match stored state");
+    equal(
+      await store.putStateIf("home", "", { b: [1, 2], a: 1 }, { a: 2 }),
+      true,
+      "Equal JSON must match regardless of key order",
+    );
+    equal(await store.getState("home", ""), { a: 2 }, "A matched compare must write the next state");
+    for (const stale of [{ a: 1, b: [1, 2] }, { a: "2" }, { a: 2, b: null }, 2, null])
+      equal(await store.putStateIf("home", "", stale, { a: 3 }), false, "A different stored state must not match");
+    equal(await store.getState("home", ""), { a: 2 }, "A failed compare must keep the stored state");
+    const next = { a: { deep: 1 } };
+    await store.putStateIf("home", "", { a: 2 }, next);
+    next.a.deep = 2;
+    equal(await store.getState("home", ""), { a: { deep: 1 } }, "putStateIf must store a copy");
+  });
+  add("put_state_if_is_scoped", async (store, equal) => {
+    if (!store.putStateIf) return;
+    await store.putState("home", "viewer:42", { n: 1 });
+    equal(await store.putStateIf("home", "", { n: 1 }, { n: 2 }), false, "Another scope's state must not match");
+    equal(await store.putStateIf("other", "viewer:42", { n: 1 }, { n: 2 }), false, "Another placement must not match");
+    equal(await store.putStateIf("home", "viewer:43", undefined, { n: 3 }), true, "A new scope must start empty");
+    equal(await store.getState("home", "viewer:42"), { n: 1 }, "Writes must stay within their scope");
+    let failure: unknown;
+    try {
+      await store.putStateIf("home", "a".repeat(129), undefined, true);
+    } catch (error) {
+      failure = error;
+    }
+    check(failure instanceof LiveframeFailure, "store_put_state_if_is_scoped", "§7.4", [
+      "An invalid scope must reject, never fall back to shared state",
+    ]);
+    equal(failure.errors[0]?.pointer, "/scope", "Scope failure must identify /scope");
+  });
   add("opens_empty_and_returns_undefined_for_missing_records", async (store, equal) => {
     equal(await store.listPlacements(), [], "A new scope must have no placements");
     equal(await store.getPackage("missing", "1"), undefined, "Missing package must be undefined");

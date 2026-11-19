@@ -35,6 +35,36 @@ export const primitiveCss = `
 .lf_box_default_rail,.lf_box_plate_rail,.lf_box_rule_rail{display:none}
 .lf_box_callout_rail{display:block;width:3px}
 .lf_disclosure_default_summary{width:fit-content;min-height:2rem;cursor:pointer}
+.lf_radioGroup_default_root,.lf_slider_default_root,.lf_progress_default_root,.lf_dateField_default_root{display:flex;flex-direction:column}
+.lf_radioGroup_default_root[data-orientation=horizontal]{flex-direction:row;flex-wrap:wrap;align-items:center}
+.lf_radio_default_root{display:inline-flex;align-items:center;min-height:2rem;cursor:pointer}
+.lf_radio_default_indicator{display:inline-block;flex:none;width:1.1em;height:1.1em;box-sizing:border-box}
+.lf_slider_default_root{display:grid;grid-template-columns:1fr auto}
+.lf_slider_default_track{grid-column:1/-1;position:relative;height:0.375rem;margin-block:0.6rem}
+.lf_slider_default_fill{position:absolute;inset-block:0;inset-inline-start:0}
+.lf_slider_default_thumb{width:1.1rem;height:1.1rem;top:50%;box-sizing:border-box;cursor:grab}
+.lf_progress_default_track{display:block;position:relative;height:0.375rem;overflow:hidden}
+.lf_progress_default_fill{position:absolute;inset-block:0;inset-inline-start:0}
+.lf_progress_default_root[data-mixed] .lf_progress_default_fill{inset-inline-end:0}
+.lf_dateField_default_input{display:inline-flex;align-items:center;width:fit-content;min-height:2.25rem;box-sizing:border-box}
+.lf_dateField_default_segment{padding-inline:0.1em;font-variant-numeric:tabular-nums}
+.lf_richText_default_root{display:flex;flex-direction:column}
+.lf_richText_default_paragraph,.lf_richText_default_heading,.lf_richText_default_list{margin:0}
+.lf_richText_default_heading{text-wrap:balance}
+.lf_richText_default_link{text-decoration:underline;text-underline-offset:0.15em}
+.starter-chart{display:flex;flex-direction:column;height:16rem}
+.starter-chart-area{flex:1;min-height:0;display:grid;grid-template-columns:auto 1fr;grid-template-rows:1fr auto;column-gap:0.5rem}
+.starter-chart-ticks{position:relative;min-width:2ch;text-align:end}
+.starter-chart-ticks>span{position:absolute;inset-inline-end:0;transform:translateY(-50%);line-height:1}
+.lf_chart_default_plot{width:100%;height:100%;overflow:visible}
+.starter-chart-labels{grid-column:2;display:flex}
+.starter-chart-labels>span{flex:1 1 0;min-width:0;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.starter-chart-legend{display:flex;flex-wrap:wrap;list-style:none;padding:0;margin:0}
+.starter-chart-legend>li{display:inline-flex;align-items:center;gap:0.35em}
+.starter-swatch{display:inline-block;width:0.75em;height:0.75em;background:currentColor}
+.lf_table_default_root{border-collapse:collapse;width:100%}
+.lf_table_default_caption{text-align:start}
+.lf_tableCell_default_root{text-align:start;vertical-align:top}
 `;
 
 /**

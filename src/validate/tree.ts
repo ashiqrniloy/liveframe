@@ -43,10 +43,12 @@ type TreeContext = {
   readonly path: (string | number)[];
   readonly sink: SchemaSink;
   readonly ids: Set<string>;
-  /** Ids of nodes carrying a `when`; a node is gated when it or an ancestor is in here (plan 029 B5.6). */
+  /** Ids of nodes carrying a `when`; a node is gated when it or an ancestor is in here (spec §8). */
   readonly gated: Set<string>;
   readonly refProps: ReadonlyMap<string, readonly string[]>;
   readonly references: { target: string; nodeId: string; path: readonly (string | number)[]; name: string }[];
+  /** The tree's `focus` mark once it passed its own check; resolved after the walk like a reference. */
+  focus: string | undefined;
   readonly ancestors: Set<object>;
   readonly jsonSink: JsonWalk;
   readonly structureSink: StructureSink & { nodeId: string };
@@ -105,6 +107,7 @@ export function compileTree(
       );
     }
     checkReferences(ctx);
+    checkFocus(ctx);
     if (ctx.bounded) addBoundMarker(errors, ctx.lastNodeId);
     return errors.length ? { ok: false, errors } : { ok: true, value: tree as UiTree };
   };
@@ -122,7 +125,7 @@ function checkReferences(ctx: TreeContext): void {
   for (const reference of ctx.references) {
     if (ctx.stopped) break;
     const found = ctx.ids.has(reference.target);
-    // A hidden node has no DOM id for `aria-labelledby` to resolve (plan 029 B5.6).
+    // A `refProps` target may not be gated: a hidden node has no DOM id for `aria-labelledby` to resolve (spec §8).
     if (found && !isGated(ctx.gated, reference.target)) continue;
     let prefix = "";
     for (const key of reference.path) prefix = at(prefix, key);
@@ -136,6 +139,29 @@ function checkReferences(ctx: TreeContext): void {
       at(`${prefix}/props`, reference.name),
     );
   }
+}
+
+/** The focus mark names a node of this tree that is always rendered, as a `refProps` target does (spec §9). */
+function checkFocus(ctx: TreeContext): void {
+  const { focus } = ctx;
+  if (focus === undefined || ctx.stopped) return;
+  const found = ctx.ids.has(focus);
+  if (found && !isGated(ctx.gated, focus)) return;
+  ctx.path.length = 0;
+  fail(
+    ctx,
+    found
+      ? `a focus node that is always rendered, without a when on it or an ancestor: ${focus}`
+      : `a node in this tree for focus ${focus}`,
+    "root",
+    found ? "invalid-prop" : "not-found",
+    "/focus",
+  );
+}
+
+/** A node id: `root`, or an encoded key path under it. */
+export function isNodeId(value: unknown): value is string {
+  return typeof value === "string" && (value === "root" || (value.startsWith("root/") && keyPath.test(value.slice(5))));
 }
 
 function createContext(
@@ -163,6 +189,7 @@ function createContext(
     gated: new Set<string>(),
     refProps,
     references: [],
+    focus: undefined,
     ancestors,
     jsonSink: {
       nodeId: "root",
@@ -366,6 +393,10 @@ function enterTree(ctx: TreeContext, value: unknown): boolean {
     field(check, Object.hasOwn(value, key) ? value[key] : undefined, ctx.sink, key);
   }
   annotate(ctx, start, "root");
+  if (Object.hasOwn(value, "focus")) {
+    if (isNodeId(value.focus)) ctx.focus = value.focus;
+    else fail(ctx, "a node id for focus", "root", "invalid-prop", "/focus");
+  }
   if (!Object.hasOwn(value, "root")) fail(ctx, "a root UI node", "root", "invalid-prop", "/root");
   return true;
 }

@@ -1,0 +1,18 @@
+{
+  "inputs": {
+    "doc": "docs/array-bind-item-mismatch.json",
+    "catalog": "../common/array-catalog.json",
+    "capabilities": "../common/array-capabilities.json",
+    "manifest": "../common/array-manifest.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "pointer": "/root/events/onSelect/bind"
+      }
+    ]
+  }
+}

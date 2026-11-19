@@ -86,9 +86,10 @@ export const implementations = [
     readOnly?: boolean;
     maxLength?: number;
     describedBy?: string;
-  }>("textField", function TextField({ props, slot, style, emit }) {
+  }>("textField", function TextField({ props, slot, style, emit, domId }) {
     const [value, setValue] = useValue(props.value ?? "");
     const input = {
+      id: domId,
       className: slot("input"),
       ...(props.placeholder === undefined ? {} : { placeholder: props.placeholder }),
       onBlur: () => emit("onChange", value),

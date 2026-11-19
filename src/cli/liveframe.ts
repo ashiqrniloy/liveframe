@@ -1,11 +1,18 @@
 #!/usr/bin/env bun
+import { LiveframeFailure } from "../errors.ts";
 import { validateCapabilities } from "../formats/capabilities.ts";
 import { type Catalog, validateCatalog } from "../formats/catalog.ts";
-import { validateManifest } from "../formats/manifest.ts";
+import { validateLocal, validateManifest } from "../formats/manifest.ts";
 import { errorMessage } from "../internal.ts";
 import { checkPackages, type PackageCheck } from "../pack/check.ts";
 import { templateRunner } from "../preview/template.ts";
-import { generate, generateDefinitions, generateElementsSchema, generateTemplateSchema } from "../sdk/gen.ts";
+import {
+  generate,
+  generateDefinitions,
+  generateDigest,
+  generateElementsSchema,
+  generateTemplateSchema,
+} from "../sdk/gen.ts";
 import { CaptureError } from "./capture.ts";
 
 const captureUsage =
@@ -160,10 +167,17 @@ async function checkPackagesCommand(args: string[]): Promise<number> {
 }
 
 const genUsage =
-  "Usage: liveframe gen <catalog.json> --out <file> [--check] [--implementations | --elements-schema | --template-schema [--manifest <file>] [--capabilities <file>] [--structured-subset]]";
+  "Usage: liveframe gen <catalog.json> --out <file> [--check] [--implementations | --elements-schema [--local <file>] | --template-schema [--manifest <file>] [--capabilities <file>] [--structured-subset] | --digest [--capabilities <file>] [--local <file>] [--budget <chars>]]";
 
-const genBooleans = ["--check", "--implementations", "--elements-schema", "--template-schema", "--structured-subset"];
-const genValued = ["--out", "--manifest", "--capabilities"];
+const genBooleans = [
+  "--check",
+  "--implementations",
+  "--elements-schema",
+  "--template-schema",
+  "--structured-subset",
+  "--digest",
+];
+const genValued = ["--out", "--manifest", "--capabilities", "--local", "--budget"];
 
 function genFlags(flags: string[]) {
   const given = new Set<string>();
@@ -179,20 +193,30 @@ function genFlags(flags: string[]) {
   const implementations = given.has("--implementations");
   const elements = given.has("--elements-schema");
   const template = given.has("--template-schema");
-  if (Number(implementations) + Number(elements) + Number(template) > 1) throw new Error(genUsage);
+  const digest = given.has("--digest");
+  if (Number(implementations) + Number(elements) + Number(template) + Number(digest) > 1) throw new Error(genUsage);
   const subset = given.has("--structured-subset");
   const manifest = values.get("--manifest");
   const capabilities = values.get("--capabilities");
-  if (!template && (subset || manifest || capabilities)) throw new Error(genUsage);
+  if (!template && (subset || manifest)) throw new Error(genUsage);
+  if (!template && !digest && capabilities) throw new Error(genUsage);
+  const local = values.get("--local");
+  if (!elements && !digest && local) throw new Error(genUsage);
+  const budgetText = values.get("--budget");
+  const budget = budgetText === undefined ? undefined : Number(budgetText);
+  if (budget !== undefined && (!digest || !Number.isSafeInteger(budget) || budget < 0)) throw new Error(genUsage);
   return {
     out: values.get("--out"),
     check: given.has("--check"),
     implementations,
     elements,
     template,
+    digest,
+    budget,
     subset,
     manifest,
     capabilities,
+    local,
   };
 }
 
@@ -226,33 +250,66 @@ async function templateSchema(
   };
 }
 
+/** `--digest`: the agent-facing catalog description; over `--budget` it exits 1 and writes nothing. */
+async function digest(
+  catalog: Catalog,
+  flags: { capabilities: string | undefined; local: string | undefined; budget: number | undefined },
+): Promise<GenOutput> {
+  const capabilities = flags.capabilities ? validateCapabilities(await Bun.file(flags.capabilities).json()) : undefined;
+  if (capabilities && !capabilities.ok) return capabilities;
+  const local = flags.local ? validateLocal(await Bun.file(flags.local).json()) : undefined;
+  if (local && !local.ok) return local;
+  try {
+    const text = generateDigest(catalog, {
+      ...(capabilities ? { capabilities: capabilities.value } : {}),
+      ...(local ? { local: local.value } : {}),
+      ...(flags.budget === undefined ? {} : { budget: flags.budget }),
+    });
+    return { ok: true, text };
+  } catch (error) {
+    if (error instanceof LiveframeFailure) return { ok: false, errors: error.errors, exit: 1 };
+    throw error;
+  }
+}
+
+type GenOutput = { ok: true; text: string } | { ok: false; errors: readonly unknown[]; exit?: number };
+
+/** The text the selected `gen` mode writes, or the errors of the documents it read. */
+async function genOutput(catalog: Catalog, gen: ReturnType<typeof genFlags>): Promise<GenOutput> {
+  if (gen.template) return templateSchema(catalog, gen);
+  if (gen.digest) return digest(catalog, gen);
+  if (gen.elements && gen.local) {
+    // The `local` file holds the object schema the caller passes to `ephemeralManifest` (spec §8).
+    const local = validateLocal(await Bun.file(gen.local).json());
+    return local.ok ? { ok: true, text: generateElementsSchema(catalog, { local: local.value }) } : local;
+  }
+  const text = gen.elements
+    ? generateElementsSchema(catalog)
+    : gen.implementations
+      ? generateDefinitions(catalog)
+      : generate(catalog);
+  return { ok: true, text };
+}
+
 async function main(args: string[]): Promise<number> {
   if (args[0] === "mcp") return mcpCommand(args.slice(1));
   if (args[0] === "check-packages") return checkPackagesCommand(args.slice(1));
   if (args[0] === "preview" && args[1] === "capture") return previewCapture(args.slice(2));
   const [command, catalogPath, ...flags] = args;
   const gen = genFlags(flags);
-  const { out, check, implementations, elements } = gen;
+  const { out, check } = gen;
   if (command !== "gen" || !catalogPath || !out) throw new Error(genUsage);
   const catalog = validateCatalog(await Bun.file(catalogPath).json());
   if (!catalog.ok) {
     console.error(JSON.stringify(catalog.errors, null, 2));
     return 2;
   }
-  let expected: string;
-  if (gen.template) {
-    const schema = await templateSchema(catalog.value, gen);
-    if (!schema.ok) {
-      console.error(JSON.stringify(schema.errors, null, 2));
-      return 2;
-    }
-    expected = schema.text;
-  } else
-    expected = elements
-      ? generateElementsSchema(catalog.value)
-      : implementations
-        ? generateDefinitions(catalog.value)
-        : generate(catalog.value);
+  const generated = await genOutput(catalog.value, gen);
+  if (!generated.ok) {
+    console.error(JSON.stringify(generated.errors, null, 2));
+    return generated.exit ?? 2;
+  }
+  const expected = generated.text;
   if (check) {
     const file = Bun.file(out);
     if (!(await file.exists())) {

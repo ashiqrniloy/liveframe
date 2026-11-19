@@ -226,6 +226,7 @@ Import `Store`, `Placement` and `StyleRecord` as types from
 | `listPlacements()` | `Promise<Placement[]>` | Return placements sorted by id. |
 | `putState(placementId, scope, state)` | `Promise<void>` | Store any JSON value, including `null`, for this placement and scope. |
 | `getState(placementId, scope)` | `Promise<Json \| undefined>` | Read only this scope; distinguish absent state from JSON `null`. |
+| `putStateIf(placementId, scope, expected, next)` (optional) | `Promise<boolean>` | Atomically write `next` only if the stored state equals `expected` by canonical JSON (`undefined`: none stored); resolve whether it wrote. `handleIntent` uses it for `setState`. |
 | `putStyle(style)` | `Promise<void>` | Store `{ kind, id, version, body }`; kind is `theme` or `designSystem`. |
 | `getStyle(kind, id, version)` | `Promise<StyleRecord \| undefined>` | Return a style record, or `undefined` if absent. |
 
@@ -244,10 +245,13 @@ its UTF-8 bytes — 65 bytes, and it cannot collide with an escaped name because
 `~` is always escaped. Listing still takes each id from the record it reads, so
 no name is ever decoded. This layout is part of the 0.1.x compatibility promise:
 a store written by one release opens in the next. It assumes one writing process;
-it is not a multi-process database or a transaction across records.
+it is not a multi-process database or a transaction across records. Within that
+process its `putStateIf` runs each compare and write in turn.
 
 For your own database, implement `Store` with the same conflict, copy, missing
-record and deletion rules. Enforce the package hash rule atomically in your
+record and deletion rules. Implement `putStateIf` as one conditional update (for
+example `UPDATE … WHERE state = $expected`, or an insert that fails when a row
+exists for `expected: undefined`) if more than one process writes state. Enforce the package hash rule atomically in your
 backend. Keep tenant scoping, authorization and active style selection in the
 app. Stores persist records without validating their semantics; treat every
 read as untrusted. `validatePlacement`, `validateState` and `validateStyleRecord`
@@ -302,13 +306,19 @@ invalid values throw `LiveframeFailure` with `invalid-document` at `/max`.
 Its `get`/`set` methods are trusted host operations; only insert verified frozen
 packages. Discard the cache to release its entries.
 
-Every load still checks the record structure and freshly hashes package content,
-including comparison with the declared hash. The key combines that computed hash
-with canonical catalog and capabilities JSON, so changed records and installation
-documents cannot reuse an old verification. A hit skips manifest, scenario and
-code verification; placement identity, params and scoped state checks still run.
-Omitting `verified` keeps full verification on every load. Hashing and canonical
-installation keys still cost time; profile your packages before opting in.
+Entries are keyed by `(id, version)` and the canonical JSON of `catalog` and
+`capabilities`. When both installation documents are deeply frozen, that
+installation part of the key is canonicalised once per pair and memoised;
+documents that are not deeply frozen are canonicalised on every call. A load
+looks up the cached package for `(id, version, install)` and checks deep
+equality (`sameJson`, value for value at every depth) against the stored record.
+On a hit, `loadPlacement` returns the cached frozen object without hashing,
+parsing or shape-checking the record, and the reference runners reuse its hash
+verification by object identity. Any record that differs in any value or depth
+misses the cache and takes the full `verifyPackage` path, so a tampered package
+is still `hash-mismatch`. Placement identity, params and scoped state checks
+still run on every load; omitting `verified` keeps full verification on every
+load.
 
 An own `state` property bypasses `getState` and uses the same validation and reset
 rules. `{ state: undefined }` explicitly selects initial state without reading
@@ -441,7 +451,7 @@ await runner.render(loaded.package, inputs, { ...options, libraries: loaded.libr
 | `templateRunner()` (`/preview`) | No | None needed: a template is data | `limits.steps`; a late return is `limit-exceeded` | 1.5 ms | Template widgets, including from authors you do not trust |
 | `inProcessRunner()` (`/preview`) | Yes, in your realm | None | A late return is `limit-exceeded`; cannot stop a loop | 1.7 ms | Tests and code you wrote |
 | `workerRunner()` (`/preview/worker`) | Yes, in a worker | None: the worker reaches what the process reaches | Terminates on timeout or crash | 6 ms | Trusted code that may misbehave |
-| `quickjsRunner()` (`@arnilo/liveframe-runner-quickjs`, Bun only) | Yes, in QuickJS | No host API in the realm; the host validates the tree | Heap, stack, soft deadline, then a hard kill of the child process | 80 ms (`reuse: "none"`); 47 ms (`reuse: "package"`); 4 ms for a one-node widget with `reuse: "package"` | TSX from authors or agents you do not trust |
+| `quickjsRunner()` (`@arnilo/liveframe-runner-quickjs`, Bun only) | Yes, in QuickJS | No host API in the realm; the host validates the tree | Heap, stack, soft deadline, then a hard kill of the child process | 80 ms (`reuse: "none"`); 47 ms (`reuse: "package"`); 1.3 ms for a one-node widget with `reuse: "package"` | TSX from authors or agents you do not trust |
 
 Route by package kind: templates to `templateRunner()`, hostile TSX to `quickjsRunner()`, code you trust to the worker or in-process runner. Figures are medians on one Linux machine under light load (`bench/runner.bench.ts`); a fresh `quickjsRunner()` also spends about 16 ms starting its child process, and the first render in a new child costs 100 ms or more more (engine warm-up). The default `timeoutMs` is 250 ms for that reason: a render that must succeed on a cold child should not be given less.
 
@@ -479,12 +489,12 @@ objects when their contracts change.
   (default 256) a package whose hash is not loaded yet is refused with
   `limit-exceeded`, while loaded packages still render. A host with unbounded
   drafts should use the worker runner, which recycles its worker.
-- `workerRunner({ timeoutMs?, maxPackages? })` serializes requests in one lazy
+- `workerRunner({ timeoutMs?, maxPackages?, startTimeoutMs? })` serializes requests in one lazy
   worker, with a
-  default 100 ms deadline including startup. Per-render `timeoutMs` overrides
-  that default. The effective timeout also applies to module evaluation and rendering inside the worker.
+  default 100 ms render deadline (`timeoutMs`) that starts when the request is posted to a ready worker, so worker startup does not count against a render's budget. Per-render `timeoutMs` overrides
+  that default. Worker startup is bounded separately by `startTimeoutMs` (default 5,000 ms); a worker that is not ready in time is terminated and fails the render with `render-failed` ("Worker did not start"). The effective render timeout applies to module evaluation and rendering inside the worker.
   Timeout terminates the worker and returns `limit-exceeded`;
-  crashes return `render-failed`. The next request starts a fresh worker.
+  crashes return `render-failed`. The next request starts a fresh worker (again excluding its boot from the render deadline).
   Inputs and trees cross by structured clone. Call `close()` to release it;
   active, queued and future requests then settle as `render-failed`.
   Every tree the worker returns is validated again on the host against the

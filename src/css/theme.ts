@@ -58,7 +58,7 @@ const acceptedCatalogs = new Map<string, unknown>();
 /**
  * `validateCatalog`, skipped for content that already passed. The key is the catalog's JSON text and
  * the entry is the cache's own parse of it, so a later change to the caller's object cannot alter
- * an entry (plan 022 F2). A hit also needs the object to equal that parse, so values the text hides
+ * an entry. A hit also needs the object to equal that parse, so values the text hides
  * (`NaN`, `undefined`, a `Date`) never match. Failures are not kept: their errors go to the caller.
  */
 function installedCatalog(catalog: Catalog): Result<Catalog> {

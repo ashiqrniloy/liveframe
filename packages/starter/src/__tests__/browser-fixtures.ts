@@ -1,6 +1,6 @@
-import type { UiNode, UiTree } from "@arnilo/liveframe";
+import type { TreeIntent, UiNode, UiTree } from "@arnilo/liveframe";
 import type { BrowserFixtures } from "@arnilo/liveframe/conformance/react";
-import type { Page } from "playwright";
+import type { Locator, Page } from "playwright";
 import { notify, tree } from "./host.ts";
 
 const text = (id: string, label: string): UiNode => ({ id, kind: "text", props: { text: label } });
@@ -64,6 +64,7 @@ const dialog = (open: boolean): UiTree =>
 
 // The slot each state is driven on. A state that several slots style is reached through the first.
 const reach = [
+  ["scroll", ["default"], ["focus"], "viewport"],
   ["button", ["default", "primary", "ghost"], ["hover", "active", "focus", "disabled"], "root"],
   ["link", ["default"], ["hover", "focus"], "root"],
   ["textField", ["default"], ["hover", "focus", "disabled"], "input"],
@@ -144,7 +145,130 @@ function stateFixtures(): NonNullable<BrowserFixtures["states"]> {
   return result;
 }
 
+const keyboardFocus = (target: (page: Page) => Locator) => async (page: Page) => {
+  // A key press first puts the engine and React Aria in keyboard modality, so the focus is visible.
+  await page.keyboard.press("Tab");
+  await target(page).focus();
+};
+const first = (selector: string) => (page: Page) => page.locator(selector).first();
+
+/** The 0.4 controls and content kinds: each state is reached on the element that carries its attribute. */
+function controlStateFixtures(): NonNullable<BrowserFixtures["states"]> {
+  const label = "State target";
+  const group = (props: UiNode["props"] = {}, radio: UiNode["props"] = {}): UiNode => ({
+    id: "root",
+    kind: "radioGroup",
+    props: { label, ...props },
+    children: [
+      { id: "root/a", kind: "radio", props: { label: "A", value: "a", ...radio } },
+      { id: "root/b", kind: "radio", props: { label: "B", value: "b" } },
+    ],
+  });
+  const slider = (props: UiNode["props"] = {}): UiNode => ({
+    id: "root",
+    kind: "slider",
+    props: { label, value: 40, ...props },
+  });
+  const date = (props: UiNode["props"] = {}): UiNode => ({
+    id: "root",
+    kind: "dateField",
+    props: { label, value: "2026-11-19", ...props },
+  });
+  const rich: UiNode = { id: "root", kind: "richText", props: { text: "See the [report](#state)." } };
+  const link = first(".lf_richText_default_link");
+  const radioInput = first(".lf_radio_default_root input");
+  const thumbInput = first(".lf_slider_default_thumb input");
+  const segment = first(".lf_dateField_default_segment[role=spinbutton]");
+  const entries: [string, UiNode, (page: Page) => Locator, ((page: Page) => Promise<unknown>)?][] = [
+    [
+      "radioGroup.default.focus",
+      group({ value: "a" }),
+      first(".lf_radioGroup_default_root"),
+      keyboardFocus(radioInput),
+    ],
+    ["radioGroup.default.disabled", group({ disabled: true }), first(".lf_radioGroup_default_root")],
+    ["radio.default.hover", group(), first(".lf_radio_default_root")],
+    ["radio.default.active", group(), first(".lf_radio_default_root")],
+    ["radio.default.focus", group({ value: "a" }), first(".lf_radio_default_root"), keyboardFocus(radioInput)],
+    ["radio.default.disabled", group({}, { disabled: true }), first(".lf_radio_default_root")],
+    ["radio.default.selected", group({ value: "a" }), first(".lf_radio_default_root")],
+    ["slider.default.hover", slider(), first(".lf_slider_default_thumb")],
+    ["slider.default.active", slider(), first(".lf_slider_default_thumb")],
+    ["slider.default.focus", slider(), first(".lf_slider_default_thumb"), keyboardFocus(thumbInput)],
+    ["slider.default.disabled", slider({ disabled: true }), first(".lf_slider_default_root")],
+    // No value: indeterminate.
+    ["progress.default.mixed", { id: "root", kind: "progress", props: { label } }, first(".lf_progress_default_root")],
+    ["dateField.default.hover", date(), first(".lf_dateField_default_input")],
+    ["dateField.default.focus", date(), first(".lf_dateField_default_input"), keyboardFocus(segment)],
+    ["dateField.default.readonly", date({ readOnly: true }), first(".lf_dateField_default_root")],
+    // A value after `maximum` is out of range, shown as it arrives.
+    ["dateField.default.invalid", date({ maximum: "2026-01-01" }), first(".lf_dateField_default_root")],
+    ["dateField.default.disabled", date({ disabled: true }), first(".lf_dateField_default_root")],
+    // The content kinds raise nothing; a formatted text's links are its one styled interaction.
+    ["richText.default.hover", rich, link],
+    ["richText.default.focus", rich, link, keyboardFocus(link)],
+  ];
+  return Object.fromEntries(
+    entries.map(([key, root, target, drive]) => [
+      key,
+      { tree: tree(`state-${key}`, root), target, ...(drive ? { drive } : {}) },
+    ]),
+  );
+}
+
+const screen = (surfaceId: string, children: UiNode[]) =>
+  tree(surfaceId, { id: "root", kind: "stack", props: {}, children });
+const button = (id: string, label: string, onPress: TreeIntent): UiNode => ({
+  id,
+  kind: "button",
+  props: { label },
+  events: { onPress },
+});
+const gated: UiNode = { id: "root/shown", kind: "text", props: { text: "Shown" }, when: { $path: "local.open" } };
+const shown = (page: Page) => page.getByText("Shown", { exact: true });
+const click = (name: string) => (page: Page) => page.getByRole("button", { name, exact: true }).click();
+
 export const fixtures = {
+  local: {
+    tree: screen("local", [
+      button("root/show", "Show", { type: "setLocal", key: "open", value: true }),
+      button("root/hide", "Hide", { type: "setLocal", key: "open", value: false }),
+      gated,
+    ]),
+    show: click("Show"),
+    hide: click("Hide"),
+    gated: shown,
+  },
+  compound: {
+    tree: screen("compound", [
+      button("root/save", "Save", { ...notify("saved"), local: [{ key: "open", value: true }] }),
+      gated,
+    ]),
+    act: click("Save"),
+    intents: [notify("saved")],
+    gated: shown,
+  },
+  fromLocal: {
+    tree: screen("from-local", [
+      {
+        id: "root/title",
+        kind: "textField",
+        props: { label: "Title", value: "" },
+        events: { onChange: { type: "setLocal", key: "title" } },
+      },
+      button("root/save", "Save", { type: "action", name: "app.notify", args: {}, fromLocal: { message: "title" } }),
+    ]),
+    async act(page: Page) {
+      await page.getByRole("textbox", { name: "Title" }).fill("draft");
+      await click("Save")(page);
+    },
+    intents: [notify("draft")],
+  },
+  focus: {
+    tree: interaction,
+    next: { ...interaction, revision: 2, focus: "root/scroll/draft" },
+    target: draftBox,
+  },
   interactions: [
     {
       tree: interaction,
@@ -168,7 +292,7 @@ export const fixtures = {
     input: draftBox,
     scroll: (page: Page) => page.getByRole("region", { name: "Results" }),
   },
-  states: stateFixtures(),
+  states: { ...stateFixtures(), ...controlStateFixtures() },
   overlayKinds: ["dialog"],
   overlays: [
     {

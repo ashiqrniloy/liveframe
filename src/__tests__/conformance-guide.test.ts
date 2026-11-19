@@ -6,6 +6,7 @@ import {
   rendererBrowserSuite,
   rendererSuite,
 } from "@arnilo/liveframe/conformance/react";
+import { type DomSuiteOptions, domRendererBrowserSuite } from "@arnilo/liveframe/conformance/dom";
 import { memoryStore } from "@arnilo/liveframe/store";
 import type { Page } from "playwright";
 import { launchBrowser } from "./fixtures/browser.ts";
@@ -90,3 +91,29 @@ test("conformance_guide_renderer_examples_run", async () => {
     await server.stop(true);
   }
 }, 30000);
+
+// dom:start
+function domCases(options: Omit<DomSuiteOptions, "page" | "url">, page: () => Promise<Page>, url: string) {
+  return domRendererBrowserSuite({ ...options, page, url });
+}
+// dom:end
+
+test("conformance_guide_dom_example_runs", async () => {
+  const guide = await Bun.file(new URL("../../docs/conformance.md", import.meta.url)).text();
+  const source = await Bun.file(import.meta.path).text();
+  const example = source.split("// dom:start\n")[1]?.split("// dom:end")[0];
+  if (!example) throw new Error("Missing DOM source block");
+  expect(guide).toContain(example.trimEnd());
+  // The full suite runs in conformance-dom-browser.test.ts; here, the helper builds it.
+  const { domImplementations, domPageOptions } = await import("./fixtures/conformance-dom.ts");
+  const { fallback: _fallback, ...options } = domPageOptions;
+  const cases = domCases(
+    { ...options, implementations: domImplementations(), examples: [fixtures.survival.tree], fixtures },
+    async () => {
+      throw new Error("No page");
+    },
+    "http://127.0.0.1/",
+  );
+  expect(cases.map((c) => c.name)).toContain("registry_check_passes");
+  await cases[0]?.run();
+});

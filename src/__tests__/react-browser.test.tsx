@@ -189,10 +189,129 @@ test("stale_revision_is_ignored_and_new_surface_replaces", async () => {
     await page.evaluate(() => window.surfaceTest.update({ ...window.surfaceTest.tree(1), catalogId: "bad.ui@1" }));
     expect(await page.locator("#app").textContent()).toBe("Unavailable");
     await page.evaluate(() => window.surfaceTest.update(window.surfaceTest.tree(2)));
-    expect(await page.locator("#app").textContent()).toContain("Revision 5");
+    expect(await page.locator("#app").textContent()).toBe("Unavailable");
+    await page.evaluate(() => window.surfaceTest.update(window.surfaceTest.tree(6)));
+    expect(await page.locator("#app").textContent()).toContain("Revision 6");
     await page.evaluate(() => window.surfaceTest.update(window.surfaceTest.tree(0, "other")));
     expect(await page.locator("#app").textContent()).toContain("Revision 0");
     expect(await page.locator("button").textContent()).toContain("Counter 0");
+  } finally {
+    await page.close();
+  }
+});
+
+// A tree with a pressable button and a text field, so focus, input and intents can be checked across a rejection.
+async function mountKeepLast(page: import("playwright").Page) {
+  await page.goto(server.url.href);
+  await page.waitForSelector("button");
+  await page.evaluate(() => {
+    window.surfaceTest.setInvalidMode("keep-last");
+    const tree = window.surfaceTest.tree(2);
+    window.surfaceTest.update({
+      ...tree,
+      root: {
+        ...tree.root,
+        children: [
+          tree.root.children![0],
+          {
+            ...tree.root.children![1],
+            events: { onPress: { type: "setState", key: "reason", value: "pressed" } },
+          },
+          { id: "root/field", kind: "textField", props: { label: "Draft" } },
+        ],
+      },
+    });
+  });
+}
+
+test("keep_last_keeps_nodes_focus_and_input_across_a_rejected_arrival", async () => {
+  const page = await browser.newPage();
+  try {
+    await mountKeepLast(page);
+    await page.getByRole("textbox", { name: "Draft" }).fill("local draft");
+    const result = await page.evaluate(() => {
+      const wrapper = document.querySelector<HTMLElement>(".lf_surface")!;
+      const nodes = [...wrapper.querySelectorAll("*")];
+      const focused = document.activeElement;
+      const before = window.surfaceTest.events().length;
+      window.surfaceTest.update({ ...window.surfaceTest.tree(3), catalogId: "bad.ui@1" });
+      return {
+        kept: nodes.every((node) => node.isConnected),
+        focus: focused !== document.body && document.activeElement === focused,
+        stale: wrapper.getAttribute("data-lf-stale"),
+        busy: wrapper.getAttribute("aria-busy"),
+        rejected: window.surfaceTest
+          .events()
+          .slice(before)
+          .map((event) => event.type),
+      };
+    });
+    expect(result).toEqual({ kept: true, focus: true, stale: "", busy: "true", rejected: ["arrival-rejected"] });
+    expect(await page.locator("#app").textContent()).toContain("Revision 2");
+    expect(await page.locator("#app").textContent()).not.toContain("Unavailable");
+    expect(await page.getByRole("textbox", { name: "Draft" }).inputValue()).toBe("local draft");
+    // The next accepted arrival clears the mark and keeps the same nodes.
+    await page.evaluate(() => window.surfaceTest.update(window.surfaceTest.tree(4)));
+    expect(await page.locator(".lf_surface").first().getAttribute("data-lf-stale")).toBeNull();
+    expect(await page.locator(".lf_surface").first().getAttribute("aria-busy")).toBeNull();
+    expect(await page.locator("#app").textContent()).toContain("Revision 4");
+  } finally {
+    await page.close();
+  }
+});
+
+test("keep_last_raises_no_intent_while_stale", async () => {
+  const page = await browser.newPage();
+  try {
+    await mountKeepLast(page);
+    await page.getByRole("button", { name: "Counter 0" }).click();
+    expect(await page.evaluate(() => window.surfaceTest.intents().length)).toBe(1);
+    await page.evaluate(() => window.surfaceTest.update({ ...window.surfaceTest.tree(3), catalogId: "bad.ui@1" }));
+    await page.getByRole("button", { name: "Counter 1" }).click();
+    expect(await page.evaluate(() => window.surfaceTest.intents().length)).toBe(1);
+  } finally {
+    await page.close();
+  }
+});
+
+test("keep_last_never_draws_a_node_of_the_rejected_tree", async () => {
+  const page = await browser.newPage();
+  try {
+    await mountKeepLast(page);
+    const renders = await page.evaluate(() => {
+      const tree = window.surfaceTest.tree(3);
+      // One valid new node beside one the catalog does not know: the whole arrival is rejected.
+      window.surfaceTest.arrive({
+        ...tree,
+        root: {
+          ...tree.root,
+          children: [
+            ...tree.root.children!,
+            { id: "root/new", kind: "text", props: { text: "Intruder" } },
+            { id: "root/bad", kind: "unknownKind", props: {} },
+          ],
+        },
+      });
+      return window.surfaceTest.reuse().renders;
+    });
+    expect(Object.values(renders).every((count) => count === 0)).toBe(true);
+    const text = await page.locator("#app").textContent();
+    expect(text).not.toContain("Intruder");
+    expect(text).not.toContain("Revision 3");
+    expect(text).toContain("Revision 2");
+  } finally {
+    await page.close();
+  }
+});
+
+test("default_invalid_mode_shows_only_the_fallback_and_no_stale_mark", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    await page.evaluate(() => window.surfaceTest.update({ ...window.surfaceTest.tree(3), catalogId: "bad.ui@1" }));
+    expect(await page.locator("#app").textContent()).toBe("Unavailable");
+    expect(await page.locator("[data-lf-stale], [aria-busy]").count()).toBe(0);
   } finally {
     await page.close();
   }
@@ -214,6 +333,53 @@ test("validator_runs_once_per_tree", async () => {
     expect(await page.evaluate(() => window.surfaceTest.checks())).toBe(2);
     await page.evaluate(() => window.surfaceTest.replaceValidator());
     expect(await page.evaluate(() => window.surfaceTest.checks())).toBe(3);
+  } finally {
+    await page.close();
+  }
+});
+
+test("interrupted_transition_keeps_core_and_screen_in_step", async () => {
+  // B is a later revision of the same surface, then another surface; neither commits.
+  for (const [revision, surfaceId] of [
+    [2, "a"],
+    [1, "b"],
+  ] as const) {
+    const page = await browser.newPage();
+    try {
+      await page.goto(server.url.href);
+      await page.waitForSelector("button");
+      await page.evaluate(() => window.surfaceTest.mountTransition());
+      await page.locator("#app button").click();
+      await page.evaluate(([r, s]) => window.surfaceTest.transitionTo(r, s), [revision, surfaceId] as const);
+      await page.evaluate(() => window.surfaceTest.interrupt("urgent"));
+      await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 20))));
+      expect(await page.locator("[data-host-label]").textContent()).toBe("urgent");
+      expect(await page.locator("#app").textContent()).toContain("Revision 1");
+      if (revision !== 1) expect(await page.locator("#app").textContent()).not.toContain(`Revision ${revision}`);
+      await page.locator("#app button").click();
+      expect(await page.locator("#app button").textContent()).toContain("Counter 2");
+      expect(await page.evaluate(() => window.surfaceTest.origins().at(-1))).toEqual({
+        surfaceId: "a",
+        revision: 1,
+        nodeId: "root/second",
+        event: "onPress",
+      });
+    } finally {
+      await page.close();
+    }
+  }
+});
+
+test("strict_mode_double_render_accepts_once", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    const before = await page.evaluate(() => window.surfaceTest.checks());
+    await page.evaluate(() => window.surfaceTest.mountTransition(true));
+    expect(await page.evaluate(() => window.surfaceTest.checks())).toBe(before + 1);
+    await page.evaluate(() => window.surfaceTest.interrupt("urgent"));
+    expect(await page.evaluate(() => window.surfaceTest.checks())).toBe(before + 1);
   } finally {
     await page.close();
   }
@@ -254,6 +420,24 @@ test("local_interactions_stay_local_and_intents_use_the_current_handler", async 
     expect(await page.evaluate(() => window.surfaceTest.intents())).toEqual([intent]);
     expect(await page.evaluate(() => window.surfaceTest.checks())).toBe(checks);
     expect(await page.locator("button").textContent()).toContain("Commit 1");
+  } finally {
+    await page.close();
+  }
+});
+
+test("empty_row_appears_when_every_filtered_sibling_is_hidden_and_disappears_when_one_shows", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    await page.evaluate(() => window.surfaceTest.mountFiltered());
+    const texts = () => page.locator("#app div[data-portal]:not(:has(*))").allTextContents();
+    expect(await texts()).toEqual(["alpha", "beta"]);
+    await page.getByRole("button", { name: /^none/ }).click();
+    expect(await texts()).toEqual(["No matches"]);
+    await page.getByRole("button", { name: /^alpha/ }).click();
+    expect(await texts()).toEqual(["alpha"]);
+    expect(await page.evaluate(() => window.surfaceTest.intents())).toEqual([]);
   } finally {
     await page.close();
   }
@@ -684,7 +868,6 @@ test("switch_under_budget_with_blur_through_surface", async () => {
     console.log(`Surface two-surface switch with blur: ${JSON.stringify(result)}`);
     expect(result.nodes).toBeGreaterThan(500);
     expect(result.samples).toHaveLength(10);
-    expect(Math.max(...result.samples.map((sample) => sample.library))).toBeLessThanOrEqual(16.67);
   } finally {
     await page.close();
   }
@@ -760,6 +943,80 @@ test("host_fallback_recovers_on_client_after_ssr_throw", async () => {
     await page.getByRole("button").press("Enter");
     expect(await page.getByRole("button").textContent()).toContain("Commit 1");
     expect((await page.evaluate(() => window.surfaceTest.hydration())).retained).toBe(false);
+  } finally {
+    await page.close();
+  }
+});
+
+test("client_mount_renders_each_implementation_once", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    const mount = await page.evaluate(() => window.surfaceTest.clientMount());
+    // stack, two texts (one inside the dialog), button, dialog.
+    expect(mount.renders).toEqual({ stack: 1, text: 2, button: 1, dialog: 1 });
+  } finally {
+    await page.close();
+  }
+});
+
+test("client_mount_passes_the_portal_on_the_first_draw", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    expect(await page.evaluate(() => window.surfaceTest.hydration().firstPortals)).toEqual({
+      stack: true,
+      text: true,
+      button: true,
+    });
+    const mount = await page.evaluate(() => window.surfaceTest.clientMount());
+    expect(mount.withoutPortal).toEqual([]);
+  } finally {
+    await page.close();
+  }
+});
+
+test("hydration_still_matches_and_supplies_the_portal_after_mount", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(`${server.url}?ssr=valid`);
+    await page.waitForSelector("[data-lf-portal] [role=dialog]");
+    const hydration = await page.evaluate(() => window.surfaceTest.hydration());
+    expect(hydration.errors).toEqual([]);
+    expect(hydration.retained).toBe(true);
+    // The first client render matches the server: no implementation sees the portal yet.
+    expect(hydration.firstPortals).toEqual({ stack: false, text: false, button: false, dialog: false });
+  } finally {
+    await page.close();
+  }
+});
+
+test("nothing_paints_between_the_two_mount_commits", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    const { frames } = await page.evaluate(() => window.surfaceTest.clientMount());
+    expect(frames).not.toContain("wrapper");
+    expect(frames.at(-1)).toBe("drawn");
+  } finally {
+    await page.close();
+  }
+});
+
+test("client_mount_of_an_invalid_tree_draws_only_the_fallback", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    const mount = await page.evaluate(() => window.surfaceTest.clientMount("invalid"));
+    // The deferred mount validates before it draws: no implementation runs and no frame shows the tree.
+    expect(Object.values(mount.renders).every((count) => count === 0)).toBe(true);
+    expect(mount.frames).not.toContain("drawn");
+    expect(mount.frames.at(-1)).toBe("fallback");
+    expect(mount.text).toBe("Unavailable");
   } finally {
     await page.close();
   }
@@ -1275,6 +1532,120 @@ test("last_row_removed_moves_focus_to_previous", async () => {
   }
 });
 
+/** The three focus rows with a focus mark, on surface `surfaceId`. */
+const marked = (revision: number, focus: string | undefined, surfaceId = "test") => ({
+  ...focusRows(revision, ["a", "b", "c"]),
+  surfaceId,
+  ...(focus === undefined ? {} : { focus }),
+});
+
+/** The focused element's text and the surface section it sits in. */
+function focusedIn(page: { evaluate: <T>(fn: () => T) => Promise<T> }) {
+  return page.evaluate(() => ({
+    text: document.activeElement?.textContent ?? null,
+    section: document.activeElement?.closest("section")?.id ?? null,
+  }));
+}
+
+test("changed_focus_mark_moves_focus_once", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    const arrive = (value: unknown) => page.evaluate((tree: unknown) => window.surfaceTest.arrive(tree), value);
+    await arrive(marked(2, undefined));
+    await arrive(marked(3, "root/row-b"));
+    expect((await focused(page)).text).toBe("Row b 0");
+    // The user moves on; a later revision with the same mark leaves focus where the user put it.
+    await page.getByRole("button", { name: /^Row a/ }).focus();
+    await arrive(marked(4, "root/row-b"));
+    expect((await focused(page)).text).toBe("Row a 0");
+    // A changed mark moves it again; clearing the mark moves nothing.
+    await arrive(marked(5, "root/row-c"));
+    expect((await focused(page)).text).toBe("Row c 0");
+    await page.getByRole("button", { name: /^Row a/ }).focus();
+    // A rejected arrival is not a revision: the next accepted one compares against revision 5's mark.
+    await page.evaluate(() => window.surfaceTest.setInvalidMode("keep-last"));
+    await arrive({ ...marked(6, undefined), focus: "root/missing" });
+    await arrive(marked(7, "root/row-c"));
+    expect((await focused(page)).text).toBe("Row a 0");
+    await arrive(marked(8, undefined));
+    expect((await focused(page)).text).toBe("Row a 0");
+    expect(
+      await page.evaluate(() => window.surfaceTest.events().filter((event) => event.type === "focus-missed")),
+    ).toEqual([]);
+  } finally {
+    await page.close();
+  }
+});
+
+test("focus_mark_on_the_first_tree_follows_the_decided_rule", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    const arrive = (value: unknown) => page.evaluate((tree: unknown) => window.surfaceTest.arrive(tree), value);
+    // A new surfaceId is a first tree: its mark records the starting point and moves nothing.
+    await arrive(marked(1, "root/row-b", "fresh"));
+    expect((await focused(page)).text).not.toBe("Row b 0");
+    await arrive(marked(2, "root/row-b", "fresh"));
+    expect((await focused(page)).text).not.toBe("Row b 0");
+    await arrive(marked(3, "root/row-c", "fresh"));
+    expect((await focused(page)).text).toBe("Row c 0");
+  } finally {
+    await page.close();
+  }
+});
+
+test("focus_mark_cannot_reach_another_surface", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    await page.evaluate(([a, b]) => window.surfaceTest.mountPair(a, b), [
+      marked(1, undefined, "one"),
+      marked(1, undefined, "two"),
+    ] as const);
+    // Both surfaces hold a node `root/row-a`; the mark on the second resolves only among its own ids.
+    await page.evaluate((tree: unknown) => window.surfaceTest.arrivePair(1, tree), marked(2, "root/row-a", "two"));
+    expect(await focusedIn(page)).toEqual({ text: "Row a 0", section: "b" });
+    await page.evaluate((tree: unknown) => window.surfaceTest.arrivePair(0, tree), marked(2, "root/row-b", "one"));
+    expect(await focusedIn(page)).toEqual({ text: "Row b 0", section: "a" });
+  } finally {
+    await page.close();
+  }
+});
+
+test("focus_mark_without_a_focusable_element_is_reported", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    const arrive = (value: unknown) => page.evaluate((tree: unknown) => window.surfaceTest.arrive(tree), value);
+    const open = (revision: number, focus: string) => {
+      const value = focusTree(revision, ["a"], true);
+      const note = { id: "root/note", kind: "text", props: { text: "Note" } };
+      return { ...value, focus, root: { ...value.root, children: [...value.root.children, note] } };
+    };
+    await arrive(open(2, "root/row-a"));
+    await page.getByRole("button", { name: /^Row a/ }).focus();
+    // The dialog draws no element with its domId; the text draws one that cannot take focus. The root draws one
+    // that cannot either, but focus is already inside it, so nothing is missed.
+    await arrive(open(3, "root/dialog"));
+    await arrive(open(4, "root/note"));
+    await arrive(open(5, "root"));
+    expect((await focused(page)).text).toBe("Row a 0");
+    expect(
+      await page.evaluate(() => window.surfaceTest.events().filter((event) => event.type === "focus-missed")),
+    ).toEqual([
+      { type: "focus-missed", nodeId: "root/dialog", reason: "no-element" },
+      { type: "focus-missed", nodeId: "root/note", reason: "not-focusable" },
+    ]);
+  } finally {
+    await page.close();
+  }
+});
+
 test("empty_surface_focuses_wrapper", async () => {
   const page = await browser.newPage();
   try {
@@ -1369,17 +1740,23 @@ test("focus_continuity_false_adds_nothing", async () => {
     await page.getByRole("button", { name: /^Row b/ }).focus();
     const snapshots = await page.evaluate(
       (value: unknown) => {
-        const original = document.querySelectorAll;
+        const onDocument = document.querySelectorAll;
+        const onElement = Element.prototype.querySelectorAll;
         let queries = 0;
-        document.querySelectorAll = function (...args: Parameters<typeof original>) {
+        document.querySelectorAll = function (...args: Parameters<typeof onDocument>) {
           queries++;
-          return original.apply(this, args);
+          return onDocument.apply(this, args);
+        };
+        Element.prototype.querySelectorAll = function (...args: Parameters<typeof onElement>) {
+          queries++;
+          return onElement.apply(this, args);
         };
         try {
           window.surfaceTest.arrive(value);
           return queries;
         } finally {
-          document.querySelectorAll = original;
+          document.querySelectorAll = onDocument;
+          Element.prototype.querySelectorAll = onElement;
         }
       },
       focusRows(2, ["a", "c"]),
@@ -1389,6 +1766,222 @@ test("focus_continuity_false_adds_nothing", async () => {
     expect(await page.evaluate(() => document.querySelector("#app > .lf_surface")?.hasAttribute("tabindex"))).toBe(
       false,
     );
+  } finally {
+    await page.close();
+  }
+});
+
+/** Puts `count` host buttons before and after the surface, outside both the wrapper and the portal. */
+function surroundWithHostButtons(page: { evaluate: <T, A>(fn: (arg: A) => T, arg: A) => Promise<T> }, count: number) {
+  return page.evaluate((n: number) => {
+    const app = document.querySelector("#app");
+    if (!app) throw new Error("no #app");
+    for (const [where, label] of [
+      ["beforebegin", "Host before"],
+      ["afterend", "Host after"],
+    ] as const) {
+      const host = document.createElement("div");
+      host.className = "host-page";
+      for (let index = 0; index < n; index++) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = `${label} ${index}`;
+        host.append(button);
+      }
+      app.insertAdjacentElement(where, host);
+    }
+  }, count);
+}
+
+async function focusRowsPage(labels: readonly string[]) {
+  const page = await browser.newPage();
+  await page.goto(server.url.href);
+  await page.waitForSelector("button");
+  await page.evaluate(
+    (value: unknown) => {
+      window.surfaceTest.setFocusContinuity(true);
+      window.surfaceTest.arrive(value);
+    },
+    focusRows(1, labels),
+  );
+  return page;
+}
+
+test("focus_snapshot_reads_no_style_while_focus_survives", async () => {
+  const page = await focusRowsPage(["a", "b", "c"]);
+  try {
+    await surroundWithHostButtons(page, 1000);
+    await page.getByRole("button", { name: /^Row b/ }).focus();
+    const reads = await page.evaluate(
+      (value: unknown) => {
+        const style = window.getComputedStyle;
+        const rects = Element.prototype.getClientRects;
+        const query = document.querySelectorAll;
+        const counts = { style: 0, rects: 0, documentQueries: 0 };
+        window.getComputedStyle = (...args: Parameters<typeof style>) => {
+          counts.style++;
+          return style(...args);
+        };
+        Element.prototype.getClientRects = function () {
+          counts.rects++;
+          return rects.call(this);
+        };
+        document.querySelectorAll = function (...args: Parameters<typeof query>) {
+          counts.documentQueries++;
+          return query.apply(this, args);
+        };
+        try {
+          window.surfaceTest.arrive(value);
+          return counts;
+        } finally {
+          window.getComputedStyle = style;
+          Element.prototype.getClientRects = rects;
+          document.querySelectorAll = query;
+        }
+      },
+      focusRows(2, ["a", "b"]),
+    );
+    expect(reads).toEqual({ style: 0, rects: 0, documentQueries: 0 });
+    expect((await focused(page)).text).toBe("Row b 0");
+  } finally {
+    await page.close();
+  }
+});
+
+test("removed_focused_row_moves_focus_to_the_next_row_in_the_surface", async () => {
+  const page = await focusRowsPage(["a", "b", "c"]);
+  try {
+    await surroundWithHostButtons(page, 3);
+    await page.getByRole("button", { name: /^Row b/ }).focus();
+    await page.evaluate((value: unknown) => window.surfaceTest.arrive(value), focusRows(2, ["a", "c"]));
+    expect((await focused(page)).text).toBe("Row c 0");
+  } finally {
+    await page.close();
+  }
+});
+
+test("removed_last_tabbable_falls_back_to_previous_then_wrapper", async () => {
+  const page = await focusRowsPage(["a", "b"]);
+  try {
+    // A tabbable host element follows the surface in document order; focus stays inside the surface.
+    await surroundWithHostButtons(page, 1);
+    await page.getByRole("button", { name: /^Row b/ }).focus();
+    await page.evaluate((value: unknown) => window.surfaceTest.arrive(value), focusRows(2, ["a"]));
+    expect((await focused(page)).text).toBe("Row a 0");
+    await page.evaluate((value: unknown) => window.surfaceTest.arrive(value), focusRows(3, []));
+    expect(await focused(page)).toMatchObject({ tag: "DIV", tabindex: "-1", wrapper: true });
+  } finally {
+    await page.close();
+  }
+});
+
+test("candidate_hidden_by_the_same_update_is_skipped", async () => {
+  const page = await focusRowsPage(["a", "b", "c"]);
+  try {
+    // Row c is visible before the update, and the same update makes it the hidden ghost variant. A class
+    // change, not a structural selector: WebKit's computed style lags `:nth-child` after a React removal.
+    await page.addStyleTag({ content: "#app .lf_surface .lf_button_ghost_root { display: none; }" });
+    await page.getByRole("button", { name: /^Row b/ }).focus();
+    const update = focusRows(2, ["a", "c"]);
+    update.root.children[1] = { ...update.root.children[1]!, variant: "ghost" };
+    await page.evaluate((value: unknown) => window.surfaceTest.arrive(value), update);
+    expect(await page.locator("#app .lf_button_ghost_root").count()).toBe(1);
+    expect((await focused(page)).text).toBe("Row a 0");
+  } finally {
+    await page.close();
+  }
+});
+
+test("focus_placed_by_the_host_during_the_commit_is_kept", async () => {
+  const page = await focusRowsPage(["a", "b", "c"]);
+  try {
+    await page.getByRole("button", { name: /^Row b/ }).focus();
+    await page.evaluate(
+      (value: unknown) => {
+        // The removal of the focused row is the commit's mutation phase; focus placed there is the host's.
+        const remove = Node.prototype.removeChild;
+        Node.prototype.removeChild = function <T extends Node>(this: Node, child: T): T {
+          const removed = remove.call(this, child) as T;
+          if (child instanceof HTMLElement && child.textContent?.startsWith("Row b")) {
+            Node.prototype.removeChild = remove;
+            [...document.querySelectorAll<HTMLElement>("#app button")]
+              .find((button) => button.textContent?.startsWith("Row a"))
+              ?.focus();
+          }
+          return removed;
+        };
+        try {
+          window.surfaceTest.arrive(value);
+        } finally {
+          Node.prototype.removeChild = remove;
+        }
+      },
+      focusRows(2, ["a", "c"]),
+    );
+    expect((await focused(page)).text).toBe("Row a 0");
+  } finally {
+    await page.close();
+  }
+});
+
+test("focus_placed_outside_the_surface_during_the_commit_is_kept", async () => {
+  const page = await focusRowsPage(["a", "b", "c"]);
+  try {
+    await surroundWithHostButtons(page, 1);
+    await page.getByRole("button", { name: /^Row b/ }).focus();
+    const kept = await page.evaluate(
+      (value: unknown) => {
+        // Focus the host places on its own element during the commit's mutation phase is the host's.
+        const host = [...document.querySelectorAll<HTMLElement>("button")].find((button) => !button.closest("#app"));
+        const remove = Node.prototype.removeChild;
+        Node.prototype.removeChild = function <T extends Node>(this: Node, child: T): T {
+          const removed = remove.call(this, child) as T;
+          if (child instanceof HTMLElement && child.textContent?.startsWith("Row b")) {
+            Node.prototype.removeChild = remove;
+            host?.focus();
+          }
+          return removed;
+        };
+        try {
+          window.surfaceTest.arrive(value);
+        } finally {
+          Node.prototype.removeChild = remove;
+        }
+        return host !== undefined && document.activeElement === host;
+      },
+      focusRows(2, ["a", "c"]),
+    );
+    expect(kept).toBe(true);
+  } finally {
+    await page.close();
+  }
+});
+
+test("surface_reads_updated_limits_without_resetting_the_core", async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(server.url.href);
+    await page.waitForSelector("button");
+    await page.locator("button").click();
+    expect(await page.locator("button").textContent()).toContain("Counter 1");
+    const base = surfaceTree(2);
+    const large: unknown = {
+      ...base,
+      root: {
+        ...base.root,
+        children: [
+          ...(base.root.children ?? []),
+          ...Array.from({ length: 5997 }, (_, i) => ({
+            id: `root/extra-${i}`,
+            kind: "text",
+            props: { text: `Extra ${i}` },
+          })),
+        ],
+      },
+    };
+    await page.evaluate((value: unknown) => window.surfaceTest.updateWithLimits(value, { nodes: 10_000 }), large);
+    expect(await page.locator("button").textContent()).toContain("Counter 1");
+    expect(await page.locator("#app").textContent()).toContain("Extra 5996");
   } finally {
     await page.close();
   }

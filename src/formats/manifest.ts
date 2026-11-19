@@ -24,7 +24,7 @@ const binding = obj({
   from: str({ maxLength: 7, enum: ["params", "state", "context"] }),
   path: str({ maxLength: 512, pattern: "^[a-zA-Z_$][a-zA-Z0-9_$]*(\\.[a-zA-Z_$][a-zA-Z0-9_$]*){0,7}$" }),
 });
-/** A pinned library package (plan 030 Task 9): the exact `(id, version)` and the hash `pack()` recorded. */
+/** A pinned library package (spec §7.3): the exact `(id, version)` and the hash `pack()` recorded. */
 const dependency = obj({
   id: str({ maxLength: 128, pattern: "^[a-z][a-zA-Z0-9.-]*$" }),
   version: str({ maxLength: 128, pattern: "^[A-Za-z0-9._+-]+$" }),
@@ -60,11 +60,11 @@ export type Manifest = Omit<
   "params" | "state" | "context" | "initialState" | "sources" | "meta" | "local" | "initialLocal" | "migrateState"
 > & {
   readonly meta?: Json;
-  /** Scalar state the renderer keeps per mounted surface and `setLocal` writes (plan 029 L1); absent means none. */
+  /** Scalar state the renderer keeps per mounted surface and `setLocal` writes (spec §8); absent means none. */
   readonly local?: ObjectSchema;
   readonly initialLocal?: Json;
   /**
-   * Declarative state migration (plan 030 Task 8): per state key, a template expression over one root,
+   * Declarative state migration (spec §7.4): per state key, a template expression over one root,
    * `previous` (the stored state). Run only when the stored state no longer fits `state`.
    */
   readonly migrateState?: Readonly<Record<string, Json>>;
@@ -129,7 +129,7 @@ const LOCAL_TYPES: readonly (string | undefined)[] = ["boolean", "integer", "num
 /** The schema `local` takes when a manifest declares none: a closed object with no properties. */
 export const NO_LOCAL: ObjectSchema = { type: "object", properties: {}, required: [], additionalProperties: false };
 
-/** `local` holds bounded scalars and every property is required, so `local.<key>` is always present (plan 029 L1). */
+/** `local` holds bounded scalars and every property is required, so `local.<key>` is always present (spec §8). */
 function checkLocal(local: ObjectSchema, c: Checks): void {
   const names = Object.keys(local.properties);
   if (names.length > MAX_LOCAL_PROPERTIES)
@@ -191,7 +191,7 @@ function checkMigrateState(manifest: Manifest, c: Checks): void {
 }
 
 /**
- * Library fields (plan 030 Task 9). An export name may not be `default` (the gallery) or start with the
+ * Library fields (spec §7.3). An export name may not be `default` (the gallery) or start with the
  * linker's `__lf_` prefix; dependencies are strictly ascending by id, which is also unique by id and
  * the order of the linker header lines, so one set of pins has one canonical manifest.
  */
@@ -425,4 +425,27 @@ export function bindSources(
     if (params) bound[key] = { source: entry.source, params };
   }
   return c.errors.length ? { ok: false, errors: c.errors } : { ok: true, value: bound };
+}
+
+/**
+ * Internal: checks a `local` schema on its own, as a manifest's `local` is checked, for the tools that
+ * take one beside a document (`liveframe gen --elements-schema --local`, MCP `generated_types`).
+ */
+export function validateLocal(local: unknown): Result<ObjectSchema> {
+  const empty = NO_LOCAL;
+  const checked = validateManifestShape({
+    format: "liveframe-manifest/1",
+    id: "local",
+    version: "0",
+    catalogId: "local@1",
+    params: empty,
+    state: empty,
+    context: empty,
+    initialState: {},
+    sources: {},
+    actions: [],
+    local,
+  });
+  if (!checked.ok) return checked;
+  return { ok: true, value: checked.value.local as ObjectSchema };
 }

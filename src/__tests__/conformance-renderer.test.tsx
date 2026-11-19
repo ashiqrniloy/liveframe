@@ -45,7 +45,16 @@ function implementations(broken = ""): Implementation[] {
           }
           style={broken === "style" && definition.kind === "text" ? undefined : input.style}
         >
-          {input.children}
+          {broken === "proxy-text" && definition.kind === "stack"
+            ? // Draws text children from their props instead of through the renderer, so a failed binding is ignored.
+              input.items.map((item) =>
+                item.kind === "text" ? (
+                  <div key={item.id} className={item.slot("root")} style={item.style} />
+                ) : (
+                  item.render()
+                ),
+              )
+            : input.children}
         </div>
       );
     }),
@@ -97,6 +106,7 @@ test("renderer_server_cases_pass_and_are_runner_independent", async () => {
     "every_node_carries_its_root_slot_class_and_style",
     "invalid_arrival_renders_only_the_fallback",
     "ref_props_resolve_to_elements_in_the_surface",
+    "failed_binding_draws_the_node_fallback",
   ]);
   await Promise.all(cases.map((c) => c.run()));
 });
@@ -122,6 +132,18 @@ test("renderer_server_cases_catch_broken_implementations", async () => {
     ),
     slots,
   );
+});
+
+test("renderer_that_ignores_a_failed_binding_fails_its_rule", async () => {
+  const rule = "failed_binding_draws_the_node_fallback";
+  const cases = rendererSuite({ ...options, implementations: implementations("proxy-text") });
+  for (const c of cases) {
+    if (c.name !== rule) {
+      await c.run();
+      continue;
+    }
+    await expect(c.run()).rejects.toMatchObject({ rule, spec: "§8" });
+  }
 });
 
 test("renderer_server_cases_reject_invalid_or_empty_examples", async () => {

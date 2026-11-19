@@ -1,0 +1,4 @@
+[
+  { "name": "counted", "params": {}, "context": {}, "data": { "digest": { "status": "ok", "value": { "summary": "9 of 12 tasks open" } } } },
+  { "name": "counting", "params": {}, "context": {}, "data": { "digest": { "status": "pending" } } }
+]

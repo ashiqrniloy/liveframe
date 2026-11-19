@@ -9,7 +9,7 @@ import { exportsBySpecifier, indexLibraries, libraryKey } from "./libraries.ts";
 import { checkLibraries, validatePackageInputs } from "./verify.ts";
 
 type Install = Parameters<typeof validatePackageInputs>[1] & {
-  /** Verified library packages a code draft may import as `liveframe:lib/<id>@<version>` (plan 030 Task 9). */
+  /** Verified library packages a code draft may import as `liveframe:lib/<id>@<version>` (spec §7.3). */
   readonly libraries?: readonly WidgetPackage[];
 };
 type CodeDraft = {

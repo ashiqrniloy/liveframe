@@ -19,7 +19,7 @@ function pinned(pin: Pin, at: string, supplied: ReadonlyMap<string, WidgetPackag
 }
 
 /**
- * The library packages `pkg` needs, dependencies first and each once (plan 030 Task 10): every pin must
+ * The library packages `pkg` needs, dependencies first and each once (spec §7.5): every pin must
  * name a supplied library with that hash (`not-found`, `hash-mismatch`), and the graph stays within
  * the bounds `verifyPackage` enforces. Each library's content is also re-hashed once per object
  * (`hash-mismatch`); a worker that received libraries from a host that already did that passes

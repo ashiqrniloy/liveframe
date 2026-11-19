@@ -22,10 +22,11 @@ const host = {
   runner,                      // your Runner: the sandbox is yours (spec §7.5)
   installs: { "acme.ui@1": { catalog, capabilities } },
   resolve,                     // (calls, viewer) => Promise<Record<alias, SourceResult>>
-  verified: verifiedPackages(), // optional: skips re-verifying the same package
+  verified: verifiedPackages(), // supply in production: a hit compares the stored record instead of re-verifying it
   onEvent: (event) => log(event.type, event),
 };
 
+const previous = servedByPlacement.get("tasks"); // what you stored last time, if anything
 const result = await renderPlacement({
   ...host,
   placementId: "tasks",
@@ -33,13 +34,26 @@ const result = await renderPlacement({
   scope: session.userId,    // the state scope
   viewer: session.user,     // opaque: handed to `resolve` as given
   context: { locale: "en" },
-  previous: servedByPlacement.get("tasks"), // what you stored last time, if anything
+  previous,
 });
-if (result.ok) {
+if (result.ok && result.value !== previous) {
   servedByPlacement.set("tasks", result.value);
   send(client, result.value.patch ?? result.value.tree);
 }
 ```
+
+Supply `verified: verifiedPackages()` in production. Without it, every request
+runs full `verifyPackage` (shape, Acorn parse, scenario checks and `packageHash`)
+and hands a fresh package object to the runner, which hashes it again; with it, a
+cache hit confirms the stored record equals the cached frozen package (`sameJson`)
+and returns that same frozen object so the runner skips re-hashing too. On the
+200 KiB `agent-home` code package (`bench/host.bench.ts`), supplying `verified`
+with deeply frozen `catalog` and `capabilities` cuts `loadPlacement` from 12.1 ms
+to 1.3 ms CPU (`fileStore`: 11.1 ms to 0.81 ms; Task 1 baseline under load 16:
+27.1 ms / 15.8 ms) and a full `renderPlacement` from 29.7 ms to 7.9 ms (skipped:
+2.9 ms), and on the 8 KB template package `loadPlacement` drops from 0.79 ms to
+0.033 ms. Deeply freeze `catalog` and `capabilities` so the installation part of
+the cache key is canonicalised once per pair rather than on every load.
 
 `resolve` gets every source read of the render at once, so you can batch:
 
@@ -62,6 +76,51 @@ crashing; a source that does not declare the envelope fails the render at
 `/data/<alias>`. If `resolve` itself throws, every call counts as `failed` and
 the error text is never copied.
 
+## Answer a slow source with `pending`
+
+A source declared with `sourceOutcome(result, { pending: true })` lets `resolve`
+answer `{ ok: false, reason: "pending" }` instead of waiting. The widget sees
+`{ status: "pending" }` and draws a placeholder for that region while the rest of
+the surface renders. Start the read, and when it lands, render the readers again:
+
+```ts
+const cache = new Map<string, Json>();
+const reading = new Map<string, Promise<void>>();
+
+const resolve = async (calls, viewer) =>
+  Object.fromEntries(
+    calls.map(({ alias, source, params }) => {
+      const key = `${source}:${canonicalJson(params)}`;
+      if (cache.has(key)) return [alias, { ok: true, value: { status: "ok", value: cache.get(key) } }];
+      if (!reading.has(key))
+        reading.set(
+          key,
+          slowRead(source, params, viewer).then(async (value) => {
+            cache.set(key, value);
+            reading.delete(key);
+            // The value landed: re-render whoever reads it and send each patch.
+            for (const id of dependents([...servedByPlacement.values()], { source, params })) await rerender(id);
+          }),
+        );
+      return [alias, { ok: false, reason: "pending" }];
+    }),
+  );
+```
+
+- **One status, no text.** A pending answer carries no `message`, and one that
+  also carries a `value` counts as `failed`, so nothing but the status reaches
+  the widget.
+- **Declared sources only.** A source without the variant fails the render at
+  `/data/<alias>`, as any undeclared failure does.
+- **The next render is never skipped.** `{ status: "pending" }` and the resolved
+  value give different `renderKey`s, so the render after the value lands runs
+  and produces a patch.
+- **It raises `source-pending`**, not `source-failed`.
+- **The wait is yours.** The library adds no timer, queue or subscription: you
+  choose when to read, how long to cache, and how the second frame reaches the
+  client. `examples/demo-host/server.ts` streams it on the same response as the
+  first frame (`tasks.digest`, `settle`).
+
 ## What a call returns
 
 `Served` holds the validated `tree`, its `revision`, the `key` it was rendered
@@ -70,15 +129,18 @@ rendered from, and the `bound` source calls. Store it per placement and scope an
 hand it back as `previous`.
 
 - **Unchanged inputs are skipped.** When the `renderKey` of the new inputs equals
-  `previous.key` (same surface, placement and scope), you get `previous` back
-  unchanged, with a `render-skipped` event. No runner, validation or diff runs.
+  `previous.key` (same surface, placement and scope), you get `previous` itself
+  back unchanged, with a `render-skipped` event. No runner, validation or diff runs.
+  The returned `previous` still carries the `patch` that produced it, so compare
+  `result.value !== previous` and send nothing for a skipped render.
 - **Send the patch only to a client that can take it.** `patch.base` is
   `previous.revision`. Send it to a client whose last accepted revision is
   `base`; send the whole `tree` to anyone else.
 - **A revision floor.** If you can lose `previous` while a client stays connected
-  (a restart), pass `revision: Date.now()` or a persisted counter so the client
-  does not ignore the first tree as stale (spec §11). A new page load needs
-  nothing.
+  (a restart), pass `revision: Date.now()` or a persisted counter on every call
+  so the client does not ignore the first tree as stale (spec §11). With
+  `previous` given, the revision is `max(revision ?? 0, previous.revision + 1)`,
+  so a lagging floor never moves it backwards. A new page load needs nothing.
 - **`validator` is process-local.** It is compiled for the package and install it
   was built from. Rebuild `Served` after a restart instead of persisting it.
 
@@ -101,11 +163,17 @@ const handled = await handleIntent({
     const task = await claim(intent.args.id, viewer);
     return { ok: true, value: { owner: task.owner } }; // or { ok: false, reason: "Taken" }
   },
-  publish: (frame) => send(client, frame.patch ?? frame.tree), // optional: push hosts only
+  publish: (frame) => { // optional: push hosts only
+    if (frame === servedByPlacement.get("tasks")) return;
+    send(client, frame.patch ?? frame.tree);
+    servedByPlacement.set("tasks", frame);
+  },
 });
 if (handled.ok) {
   servedByPlacement.set("tasks", handled.value.served);
   actionsByPlacement.set("tasks", handled.value.actions);
+} else if (handled.actions) {
+  actionsByPlacement.set("tasks", handled.actions);
 }
 ```
 
@@ -113,7 +181,11 @@ if (handled.ok) {
   `version-conflict`; refetch the surface. Nothing was written.
 - **`setState`** asks `authorize` first (a viewer who may not write gets the `served` frame back, nothing
   loaded or written, and an `intent-refused` event), then re-checks `{ ...storedState, [key]: value }` against
-  the manifest (`invalid-prop` at `/value`), writes it with `store.putState`, and renders it. `setLocal`
+  the manifest (`invalid-prop` at `/value`), writes it, and renders it. With a store that implements
+  `putStateIf`, the write is a compare-and-set against the state it read: when another writer got there
+  first, it re-reads, re-applies the one key and tries again, at most four attempts, then returns
+  `version-conflict` at `/state` with an `intent-refused` (`conflict`) event. Without the method it writes
+  with `store.putState`, and two concurrent writes to one placement and scope can lose one of them. `setLocal`
   never reaches the host. Your `authorize` therefore sees both `action` and `setState` intents.
 - **`authorize` fails closed.** `false`, a throw or a rejection records `refused` (`"Not allowed"`) for an
   action and runs nothing. Your policy's error text is never copied. The same refusal sent again, with the
@@ -125,14 +197,15 @@ if (handled.ok) {
 - **Pending needs a `publish`.** With `publish`, the widget first gets a `pending` frame; without it nobody
   could see one, so none is rendered. A request/response host uses the returned `served`; a push host uses
   `publish`. Use one or the other to avoid sending a frame twice.
-- **An offered action that fails the check** (changed arguments, a forged `resultKey`) is recorded
+- **An offered action that fails the check** (changed arguments, a forged `resultKey`, or a `bind` / `fromLocal` value outside the capability's `args` schema) is recorded
   `refused` under the key *your tree* offered, and the surface re-renders. Repeating it changes nothing, so the
   render is skipped.
 - **At most 64 results.** The oldest settled ones make room; if all 64 are `pending`, the call fails with
   `limit-exceeded` at `/actions` before `authorize` or `dispatch`. You decide when an entry expires by leaving
   it out of the next `actions`.
-- **If the re-render fails** the call returns its errors, but the action has already happened. Record the
-  outcome in your own `dispatch` if you need it regardless.
+- **If the re-render fails** the call returns its errors (`ok: false`) and, when an action outcome or
+  refusal was recorded, the updated `actions` alongside them (`handled.actions`); store `actions` so the
+  outcome is not lost, and leave `served` unchanged.
 
 ## Coordinate placements
 
@@ -153,8 +226,12 @@ if (handled.ok) {
   // The action changed `selection.current`: re-render whoever reads it.
   const readers = [...servedByPlacement.values()]; // each Served carries `placementId` and `bound`
   for (const id of dependents(readers, { source: "selection.current" })) {
-    const next = await renderPlacement({ ...host, placementId: id, catalogId, viewer, context, previous: servedByPlacement.get(id) });
-    if (next.ok) { servedByPlacement.set(id, next.value); send(id, next.value.patch ?? next.value.tree); }
+    const previous = servedByPlacement.get(id);
+    const next = await renderPlacement({ ...host, placementId: id, catalogId, viewer, context, previous });
+    if (next.ok && next.value !== previous) {
+      servedByPlacement.set(id, next.value);
+      send(id, next.value.patch ?? next.value.tree);
+    }
   }
 }
 ```
@@ -175,7 +252,11 @@ if (handled.ok) {
 The library never holds these, on purpose:
 
 - **Concurrency.** Serialise calls per placement and scope. A stateless function
-  cannot tell two callers holding the same stale `previous` apart.
+  cannot tell two callers holding the same stale `previous` apart. In a host with
+  several processes, give your `Store` an atomic `putStateIf` (a conditional
+  update in your database): then concurrent `setState` calls keep each other's
+  keys. A store without it is safe only when one process writes each placement's
+  state, which is what `fileStore()` assumes.
 - **Double submits.** Nothing stops the same action arriving twice, and `pending` is visible only to a push
   host. Make `dispatch` idempotent or de-duplicate on your side (a claim that is already taken answers
   `{ ok: false, reason: "Taken" }`).
@@ -185,15 +266,16 @@ The library never holds these, on purpose:
 - **Read de-duplication.** Wrap `resolve` with a per-request memo if several
   placements read the same source.
 - **Transport, sessions, identity, tenancy, approval.**
-- **Caching beyond `renderKey`.** Note that `loadPlacement` still re-hashes the
-  package on a `verified` cache hit; for a very hot path, cache the `Served`.
+- **Caching beyond `renderKey`.** A `verified` cache hit still reads the stored
+  records and compares the package record with the cached frozen copy; for a very
+  hot path, cache the `Served`.
 
 ## Events
 
 `onEvent` receives frozen objects: `render-skipped`, `state-reset`, `state-migrated`, `source-failed`
-(with `reason` `unauthorized`, `unavailable`, `stale`, `failed` or `invalid-result`),
+(with `reason` `unauthorized`, `unavailable`, `stale`, `failed` or `invalid-result`), `source-pending`,
 `tree-rejected`, `load-failed` and `render-failed`, and from `handleIntent` `intent-refused`
-(with `reason` `stale`, `not-offered`, `unauthorized`, `invalid-state` or `limit`),
+(with `reason` `stale`, `not-offered`, `unauthorized`, `invalid-state`, `limit` or `conflict`),
 `action-failed` and `publish-failed`. They carry ids, kinds, reasons
 and `LiveframeError`s, never state, params, source data or the viewer. A handler
 that throws or rejects is contained, and nothing is built when you pass none.

@@ -197,5 +197,6 @@ test("compiled_is_faster_than_interpreter", () => {
   console.info(
     `compiled schema: ${(interpretedMs / compiledMs).toFixed(1)}x faster (${compiledMs.toFixed(2)} / ${interpretedMs.toFixed(2)} ms per 10,000 values)`,
   );
+  // Same-run ratio guard: compiled schema checking must stay substantially faster than interpreted checkValue.
   expect(interpretedMs / compiledMs).toBeGreaterThanOrEqual(3);
 });

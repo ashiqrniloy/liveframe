@@ -1,9 +1,12 @@
-import type { Capabilities } from "../formats/capabilities.ts";
+import { LiveframeFailure } from "../errors.ts";
+import type { Capabilities, ObjectSchema } from "../formats/capabilities.ts";
 import type { Catalog } from "../formats/catalog.ts";
 import type { styleProps } from "../formats/fixed.ts";
 import type { Manifest } from "../formats/manifest.ts";
 import type { LanguageSchema } from "../schema.ts";
 import { type UrlRule, urlExpected, urlPattern } from "../url.ts";
+import { MAX_BINDINGS, MAX_TREE_EXPRESSION_NODES, TREE_EXPRESSION, TREE_OPERATORS } from "../validate/bindings.ts";
+import { DEFAULT_LIMITS } from "../validate/tree.ts";
 
 const quote = (value: string) => JSON.stringify(value);
 const property = (value: string) => (/^[A-Za-z_$][\w$]*$/.test(value) ? value : quote(value));
@@ -181,7 +184,16 @@ function component(d: Catalog["definitions"][number], names: Set<string>): strin
   const name = componentName(d.kind);
   if (names.has(name)) throw new TypeError(`Component name collision: ${name}`);
   names.add(name);
-  const reserved = new Set(["key", "variant", "children", "when", "bind", ...d.styleProps, ...Object.keys(d.events)]);
+  const reserved = new Set([
+    "key",
+    "variant",
+    "children",
+    "when",
+    "bind",
+    "focus",
+    ...d.styleProps,
+    ...Object.keys(d.events),
+  ]);
   for (const key of Object.keys(d.props.properties))
     if (reserved.has(key)) throw new TypeError(`Prop name collision: ${d.kind}.${key}`);
   const props = [
@@ -196,6 +208,7 @@ function component(d: Catalog["definitions"][number], names: Set<string>): strin
     ),
     member("when", true, "_Expr"),
     ...bindMember(d),
+    member("focus", true, "boolean"),
     ...(d.children === "none" ? [] : [member("children", true, "_Child")]),
   ];
   const description = d.description
@@ -206,14 +219,65 @@ function component(d: Catalog["definitions"][number], names: Set<string>): strin
   return `/**\n${description}\n */\nexport const ${name} = primitive<{\n${props.join("\n")}\n}>(${quote(d.kind)});`;
 }
 
+/** Manifest-typed `action` and `state` exports emitted when `generate` receives a manifest. */
+function manifestIntentPrelude(manifest: Manifest): string[] {
+  const localSchema = manifest.local;
+  const entries = localSchema ? Object.entries(localSchema.properties) : [];
+  const localType = entries.length
+    ? `{\n${entries.map(([key, schema]) => member(key, !localSchema?.required.includes(key), schemaType(schema, "  "), "  ")).join("\n")}\n}`
+    : "Record<never, never>";
+  const writeUnion = entries.length
+    ? entries
+        .map(([key, schema]) => {
+          const valType = schemaType(schema, "  ");
+          return [
+            `  | (_LocalIntent & { readonly key: ${quote(key)}; readonly value?: ${valType} })`,
+            `  | { readonly key: ${quote(key)}; readonly value?: ${valType}; readonly until?: "revision" }`,
+          ].join("\n");
+        })
+        .join("\n")
+    : "  never";
+  return [
+    "type _Local =",
+    localType.startsWith("{") ? localType : `  ${localType};`,
+    "type _ManifestLocalWrite =",
+    `${writeUnion};`,
+    "type _ManifestStateOptions = { readonly local?: readonly _ManifestLocalWrite[]; readonly fromLocal?: keyof _Local & string };",
+    "type _ManifestActionOptions = {",
+    "  readonly resultKey?: string;",
+    "  readonly local?: readonly _ManifestLocalWrite[];",
+    "  readonly fromLocal?: Readonly<Record<string, keyof _Local & string>>;",
+    "};",
+    "export const state: {",
+    "  readonly set: {",
+    '    (key: string, value: _Json, options?: _ManifestStateOptions): Extract<_Intent, { type: "setState" }> & { readonly value: _Json };',
+    '    (key: string, value?: undefined, options?: _ManifestStateOptions): Extract<_Intent, { type: "setState" }> & { readonly value?: never };',
+    '    (key: string, value?: _Json, options?: _ManifestStateOptions): Extract<_Intent, { type: "setState" }>;',
+    "  };",
+    "} = _state;",
+    "export const action: {",
+    '  (actionName: string, args?: Readonly<Record<string, _Json>>, options?: _ManifestActionOptions & { readonly bind?: never; readonly bindAll?: never }): Extract<_Intent, { type: "action" }> & { readonly bind?: never; readonly bindAll?: never };',
+    '  (actionName: string, args: Readonly<Record<string, _Json>>, options: _ManifestActionOptions & { readonly bind: string; readonly bindAll?: never }): Extract<_Intent, { type: "action" }> & { readonly bind: string; readonly bindAll?: never };',
+    '  (actionName: string, args: Readonly<Record<string, _Json>>, options: _ManifestActionOptions & { readonly bindAll: true; readonly bind?: never }): Extract<_Intent, { type: "action" }> & { readonly bindAll: true; readonly bind?: never };',
+    '  (actionName: string, args?: Readonly<Record<string, _Json>>, options?: _ManifestActionOptions & { readonly bind?: string; readonly bindAll?: true }): Extract<_Intent, { type: "action" }>;',
+    "} = _action;",
+  ];
+}
+
 /** Emits a typed source module from a validated catalog, without host APIs or a formatter dependency. */
-export function generate(catalog: Catalog): string {
+export function generate(catalog: Catalog, options?: { readonly manifest?: Manifest }): string {
   const names = new Set<string>();
   const components = catalog.definitions.map((d) => component(d, names));
   const imports = catalog.definitions.some((d) => d.refProps?.length)
     ? ['import type { NodeRef as _NodeRef } from "@arnilo/liveframe";']
     : [];
-  return `${[...prelude(catalog.vocabulary), ...imports].join("\n")}\n\n${components.join("\n\n")}\n`;
+  const head = prelude(catalog.vocabulary);
+  if (options?.manifest) {
+    const idx = head.indexOf("  primitive,");
+    if (idx >= 0) head.splice(idx, 1, "  action as _action,", "  primitive,", "  state as _state,");
+    head.push(...manifestIntentPrelude(options.manifest));
+  }
+  return `${[...head, ...imports].join("\n")}\n\n${components.join("\n\n")}\n`;
 }
 
 const LINE = 120;
@@ -267,14 +331,36 @@ export function generateDefinitions(catalog: Catalog): string {
 }
 
 /** The tree format's JSON-Schema fragments, rebuilt here so this host-free subpath never names a host API. */
-function intentSchemas(): { json: Record<string, unknown>; intent: Record<string, unknown> } {
+function intentSchemas(localKeys?: readonly string[]): {
+  json: Record<string, unknown>;
+  intent: Record<string, unknown>;
+} {
   const json = { $ref: "#/$defs/json" };
   const jsonMap = { type: "object", additionalProperties: json };
   const name = { type: "string", maxLength: 128, pattern: "^.+$" };
+  // With the caller's `local`, every local key is one it declares, and `setLocal` is offered.
+  const localName = localKeys ? { enum: [...localKeys] } : name;
   const capability = {
     type: "string",
     maxLength: 128,
     pattern: "^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)*$",
+  };
+  const localWrites = {
+    type: "array",
+    minItems: 1,
+    maxItems: 4,
+    items: {
+      type: "object",
+      additionalProperties: false,
+      required: ["key"],
+      properties: { key: localName, value: json, until: { type: "string", enum: ["revision"] } },
+    },
+  };
+  const setLocal = {
+    type: "object",
+    additionalProperties: false,
+    required: ["type", "key"],
+    properties: { type: { const: "setLocal" }, key: localName, value: json },
   };
   return {
     json: {
@@ -293,7 +379,8 @@ function intentSchemas(): { json: Record<string, unknown>; intent: Record<string
           type: "object",
           additionalProperties: false,
           required: ["type", "key"],
-          properties: { type: { const: "setState" }, key: name, value: json },
+          properties: { type: { const: "setState" }, key: name, value: json, local: localWrites, fromLocal: localName },
+          not: { properties: { value: {}, fromLocal: {} }, required: ["value", "fromLocal"] },
         },
         {
           type: "object",
@@ -305,9 +392,12 @@ function intentSchemas(): { json: Record<string, unknown>; intent: Record<string
             args: jsonMap,
             bind: name,
             bindAll: { const: true },
+            local: localWrites,
+            fromLocal: { type: "object", minProperties: 1, maxProperties: 16, additionalProperties: localName },
           },
           not: { properties: { bind: {}, bindAll: {} }, required: ["bind", "bindAll"] },
         },
+        ...(localKeys ? [setLocal] : []),
       ],
     },
   };
@@ -379,8 +469,75 @@ function objectSchema(schema: Extract<LanguageSchema, { readonly type: "object" 
   return out;
 }
 
-/** Deterministic agent-facing element JSON Schema for one catalog (LF-16). */
-export function generateElementsSchema(catalog: Catalog): string {
+/** What `generateElementsSchema` adds to the element schema. */
+export type ElementsSchemaOptions = {
+  /**
+   * The `local` schema the caller passes to `ephemeralManifest` (spec §8). With it, elements may carry
+   * `when` and `bind`, and intents may write and read the declared local keys. Without it the schema is
+   * unchanged.
+   */
+  readonly local?: ObjectSchema;
+};
+
+/** A tree `$path` reads a declared local key, `shown`, or one of the node's own props (spec §8). */
+function treePathOperand(local: ObjectSchema): Record<string, unknown> {
+  return {
+    anyOf: [
+      { enum: [...Object.keys(local.properties).map((key) => `local.${key}`), "shown"] },
+      { type: "string", maxLength: 64, pattern: "^self\\.[a-z][A-Za-z0-9]*$" },
+    ],
+  };
+}
+
+/** The tree expression grammar (spec §8): the template operators narrowed to the tree allow-list. */
+function treeExpressionDefs(local: ObjectSchema): Record<string, unknown> {
+  const operands = operatorOperands(treePathOperand(local));
+  return {
+    expr: {
+      anyOf: [
+        { type: "string" },
+        { type: "number" },
+        { type: "boolean" },
+        { type: "null" },
+        { type: "array", items: expr },
+        ref("operator"),
+        // An object constructor: no `$` key, so a misspelt operator is not one.
+        { type: "object", propertyNames: { pattern: "^[^$]" }, additionalProperties: expr },
+      ],
+    },
+    operator: {
+      anyOf: Object.entries(operands)
+        .filter(([name]) => TREE_OPERATORS.has(name))
+        .map(([name, operand]) => ({
+          type: "object",
+          additionalProperties: false,
+          required: [name],
+          properties: { [name]: operand },
+        })),
+    },
+  };
+}
+
+/** `when` and `bind` for one kind: `bind` reaches its bindable props, never its reference props. */
+function expressionMembers(definition: Catalog["definitions"][number]): Record<string, unknown> {
+  const bindable = Object.keys(definition.props.properties).filter((name) => !definition.refProps?.includes(name));
+  return {
+    when: { ...expr, description: "Draws the node only while this boolean expression holds." },
+    bind: {
+      type: "object",
+      maxProperties: MAX_BINDINGS,
+      properties: Object.fromEntries(bindable.map((name) => [name, expr])),
+      additionalProperties: false,
+    },
+  };
+}
+
+/**
+ * Deterministic agent-facing element JSON Schema for one catalog (LF-16). With `local`, it also
+ * describes `when`, `bind`, the tree expression grammar and the local intents (spec §7.2).
+ */
+export function generateElementsSchema(catalog: Catalog, options: ElementsSchemaOptions = {}): string {
+  const { local } = options;
   const fragment = {
     type: "object",
     description: "A keyed group with no node of its own.",
@@ -433,23 +590,30 @@ export function generateElementsSchema(catalog: Catalog): string {
             ),
             additionalProperties: false,
           },
+          ...(local ? expressionMembers(definition) : {}),
+          focus: { type: "boolean", description: "Moves focus here when a later revision first carries this mark." },
           children: { type: "array", items: { $ref: "#/$defs/element" } },
         },
       })),
     ],
   };
-  const intents = intentSchemas();
+  const intents = intentSchemas(local && Object.keys(local.properties));
   const document = {
     $schema: "https://json-schema.org/draft/2020-12/schema",
     $id: "urn:liveframe:elements:1",
     title: `Liveframe elements for ${catalog.catalogId}`,
     $ref: "#/$defs/element",
-    $defs: { json: intents.json, intent: intents.intent, element },
+    $defs: {
+      json: intents.json,
+      intent: intents.intent,
+      ...(local ? treeExpressionDefs(local) : {}),
+      element,
+    },
   };
   return `${JSON.stringify(document, null, 2)}\n`;
 }
 
-// ---- Template schema (plan 028 Task 6) ------------------------------------------------------------
+// ---- Template schema (spec §7.6) ------------------------------------------------------------------
 
 /** What `generateTemplateSchema` narrows by. Everything is optional; each document adds precision. */
 export type TemplateSchemaOptions = {
@@ -477,7 +641,7 @@ const binder = (body: "where" | "value") => ({
   properties: { in: expr, as: bindingName, index: bindingName, [body]: expr },
 });
 
-/** Operand shape of each operator, in the order of the design's table (evidence/028-template-design.md T7). */
+/** Operand shape of each operator (spec §7.6). */
 function operatorOperands(path: Record<string, unknown>): Record<string, unknown> {
   return {
     $path: path,
@@ -596,9 +760,54 @@ function pathOperand(paths: string[] | undefined): Record<string, unknown> {
   };
 }
 
+/** `fromLocal` schema for one template action branch. */
+function templateActionFromLocal(
+  hasLocal: boolean,
+  localName: Record<string, unknown>,
+  capability: Capabilities["actions"][string] | undefined,
+): Record<string, unknown> {
+  if (!hasLocal) return {};
+  return {
+    fromLocal: {
+      type: "object",
+      minProperties: 1,
+      maxProperties: 16,
+      ...(capability
+        ? {
+            additionalProperties: false,
+            properties: Object.fromEntries(Object.keys(capability.args.properties).map((key) => [key, localName])),
+          }
+        : { additionalProperties: localName }),
+    },
+  };
+}
+
 /** `setState`, `setLocal` and `action` intents whose `value` and `args` members are expressions. */
 function templateIntent(manifest: Manifest | undefined, capabilities: Capabilities | undefined) {
   const stateKeys = manifest ? Object.keys(manifest.state.properties) : undefined;
+  const localKeys = manifest ? Object.keys(manifest.local?.properties ?? {}) : undefined;
+  const hasLocal = !localKeys || localKeys.length > 0;
+  const localName = localKeys ? { enum: localKeys } : { type: "string", maxLength: 128 };
+  const localWrites = hasLocal
+    ? {
+        local: {
+          type: "array",
+          minItems: 1,
+          maxItems: 4,
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["key"],
+            properties: {
+              key: localName,
+              value: expr,
+              until: { enum: ["revision"] },
+            },
+          },
+        },
+      }
+    : {};
+  const fromLocalState = hasLocal ? { fromLocal: localName } : {};
   const actionNames = manifest ? manifest.actions : capabilities ? Object.keys(capabilities.actions) : undefined;
   const branches: Record<string, unknown>[] = [];
   if (!stateKeys || stateKeys.length)
@@ -610,17 +819,18 @@ function templateIntent(manifest: Manifest | undefined, capabilities: Capabiliti
         type: { const: "setState" },
         key: stateKeys ? { enum: stateKeys } : { type: "string", maxLength: 128 },
         value: expr,
+        ...localWrites,
+        ...fromLocalState,
       },
     });
-  const localKeys = manifest ? Object.keys(manifest.local?.properties ?? {}) : undefined;
-  if (!localKeys || localKeys.length)
+  if (hasLocal)
     branches.push({
       type: "object",
       additionalProperties: false,
       required: ["type", "key"],
       properties: {
         type: { const: "setLocal" },
-        key: localKeys ? { enum: localKeys } : { type: "string", maxLength: 128 },
+        key: localName,
         value: expr,
       },
     });
@@ -645,6 +855,8 @@ function templateIntent(manifest: Manifest | undefined, capabilities: Capabiliti
             }
           : { type: "object", additionalProperties: expr },
         ...bind,
+        ...localWrites,
+        ...templateActionFromLocal(hasLocal, localName, capability),
       },
     };
   };
@@ -732,7 +944,7 @@ function templateKind(
         additionalProperties: false,
         properties: Object.fromEntries(Object.keys(definition.events).map((name) => [name, ref("intent")])),
       },
-      // Tree expressions the renderer evaluates (plan 029 B12); `$embed` is the one template value inside them.
+      // Tree expressions the renderer evaluates (spec §7.6); `$embed` is the one template value inside them.
       when: expr,
       bind: {
         type: "object",
@@ -743,6 +955,7 @@ function templateKind(
             .map((name) => [name, expr]),
         ),
       },
+      focus: { anyOf: [{ type: "boolean" }, ref("operator")] },
       ...(definition.children === "none" ? {} : { children: { type: "array", items: ref("node") } }),
       ...directives,
     },
@@ -750,7 +963,7 @@ function templateKind(
 }
 const directives = { $let: ref("let"), $if: expr, $each: ref("each") };
 
-/** Keywords some structured-output APIs reject (checked against OpenAI and Claude docs, plan 028 Task 6). */
+/** Keywords some structured-output APIs reject (checked against the OpenAI and Claude docs). */
 const SUBSET_DROPPED = new Set([
   "minLength",
   "maxLength",
@@ -914,4 +1127,363 @@ export function generateTemplateSchema(catalog: Catalog, options: TemplateSchema
     },
   };
   return `${JSON.stringify(options.structuredSubset ? structuredSubset(document) : document, null, 2)}\n`;
+}
+
+/** What `generateDigest` describes beside the catalog, and its size bound. */
+export type DigestOptions = {
+  /** The actions and sources to describe. Pass a filtered copy to leave some out (the library never reads `meta`). */
+  readonly capabilities?: Capabilities;
+  /** The `local` schema the caller passes to `ephemeralManifest`; with it the digest describes expressions and local intents. */
+  readonly local?: ObjectSchema;
+  /** The largest digest, in characters (string length). A longer one throws `LiveframeFailure`; it is never cut. */
+  readonly budget?: number;
+};
+
+function sortedEntries<T>(record: Readonly<Record<string, T>>): [string, T][] {
+  return Object.entries(record).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+}
+/** A path from the `self` root, joined at run time so the host-API scans do not read it as the worker global. */
+const selfPath = (name: string) => ["self", name].join(".");
+const flags = (...names: (string | false | undefined)[]) => {
+  const shown = names.filter(Boolean);
+  return shown.length ? ` (${shown.join(", ")})` : "";
+};
+
+/** A compact type notation with bounds: `string≤80`, `integer 1..6`, `a|b`, `url≤2048(https; relative)`. */
+function digestType(schema: LanguageSchema): string {
+  const type = digestForm(schema);
+  return schema.nullable === true ? `${type}|null` : type;
+}
+
+function digestRange(min: number | undefined, max: number | undefined): string {
+  if (min !== undefined && max !== undefined) return min === max ? ` ${min}` : ` ${min}..${max}`;
+  if (min !== undefined) return ` ≥${min}`;
+  return max === undefined ? "" : ` ≤${max}`;
+}
+
+function digestForm(schema: LanguageSchema): string {
+  if ("discriminator" in schema)
+    return sortedEntries(schema.mapping)
+      .map(([tag, entry]) => digestMembers(entry, [`${schema.discriminator}: ${quote(tag)}`]))
+      .join(" | ");
+  switch (schema.type) {
+    case "string": {
+      if (schema.enum) return schema.enum.join("|");
+      const length = schema.minLength ? `${schema.minLength}..${schema.maxLength}` : `≤${schema.maxLength}`;
+      if (schema.url) return `url${length}(${schema.url.schemes.join(", ")}${schema.url.relative ? "; relative" : ""})`;
+      return `string${length}${schema.pattern ? ` /${schema.pattern}/` : ""}`;
+    }
+    case "number":
+    case "integer":
+      return `${schema.type}${digestRange(schema.minimum, schema.maximum)}`;
+    case "boolean":
+      return "boolean";
+    case "array": {
+      const item = digestType(schema.items);
+      const bound = schema.minItems ? `${schema.minItems}..${schema.maxItems}` : `≤${schema.maxItems}`;
+      return `${/[|\s]/.test(item) && !item.startsWith("{") ? `(${item})` : item}[${bound}]`;
+    }
+    case "object":
+      return digestMembers(schema);
+  }
+}
+
+function digestMembers(schema: ObjectSchema, head: readonly string[] = []): string {
+  return `{${[...head, ...digestProps(schema)].join("; ")}}`;
+}
+
+/** `name?: type`, sorted, with deprecation and description. */
+function digestProps(schema: ObjectSchema, refProps: readonly string[] = []): string[] {
+  return sortedEntries(schema.properties).map(([name, child]) => {
+    const optional = schema.required.includes(name) ? "" : "?";
+    const type = refProps.includes(name) ? 'ref {"$ref": anchor}' : digestType(child);
+    return `${name}${optional}: ${type}${flags(child.deprecated && "deprecated", child.description)}`;
+  });
+}
+
+function digestCarries(carries: Catalog["definitions"][number]["events"][string]["carries"]): string {
+  if (typeof carries === "string") return carries === "none" ? "" : carries;
+  if ("object" in carries) return digestMembers(carries.object);
+  return `${digestType(carries.array.items)}[≤${carries.array.maxItems}]`;
+}
+
+/** The value set each style prop's `styleTypes` entry names in the digest. */
+function styleValueSets(v: Catalog["vocabulary"]): [string, string][] {
+  return [
+    ["space", v.space.join(", ")],
+    ["size", v.size.join(", ")],
+    ["length", "a space or size name"],
+    ["dimension", "a length, fill, fit, <n>ch or <n>%"],
+    ["track", "a length or <n>fr"],
+    ["surface", v.surfaceRoles.join(", ")],
+    ["fill", v.fillableRoles.join(", ")],
+    ["radius", [...v.radius, "full"].join(", ")],
+    ["textStyle", v.typographyRoles.join(", ")],
+    ["tone", Object.keys(v.tones).sort().join(", ")],
+  ];
+}
+
+const styleValueNames: Record<string, string> = {
+  _Space: "space",
+  _Length: "length",
+  _Dimension: "dimension",
+  "ReadonlyArray<_Track>": "track[]",
+  "ReadonlyArray<string>": "string[]",
+  _Surface: "surface",
+  _Fill: "fill",
+  _Radius: "radius",
+  _TextStyle: "textStyle",
+  _Tone: "tone",
+};
+
+function digestStyle(catalog: Catalog): string[] {
+  const used = new Set(catalog.definitions.flatMap((d) => d.styleProps));
+  const groups = new Map<string, string[]>();
+  for (const [name, type] of Object.entries(styleTypes)) {
+    if (!used.has(name as keyof typeof styleTypes)) continue;
+    const value = styleValueNames[type] ?? type.replaceAll('"', "").replaceAll(" | ", "|");
+    groups.set(value, [...(groups.get(value) ?? []), name]);
+  }
+  const v = catalog.vocabulary;
+  return [
+    "## Style values",
+    "",
+    '`style` takes the kind\'s style props (listed per kind). Any value may instead be responsive: `{"base": value, "<breakpoint>"?: value}`,',
+    `with breakpoints ${v.breakpoints.join(", ")}.`,
+    "",
+    ...styleValueSets(v).map(([name, values]) => `- ${name}: ${values}`),
+    "",
+    ...[...groups].map(([value, names]) => `- ${names.join(", ")}: ${value}`),
+    "",
+  ];
+}
+
+/** A value that fits the schema with no pattern to satisfy, or undefined; used only for the digest's example. */
+function sampleValue(schema: LanguageSchema, text: string): unknown {
+  if (schema.nullable === true) return null;
+  if ("discriminator" in schema) return undefined;
+  switch (schema.type) {
+    case "string":
+      if (schema.enum) return schema.enum[0];
+      return schema.pattern || schema.url || (schema.minLength ?? 0) > text.length
+        ? undefined
+        : text.slice(0, schema.maxLength);
+    case "number":
+    case "integer":
+      return Math.min(schema.minimum ?? 0, schema.maximum ?? Number.POSITIVE_INFINITY);
+    case "boolean":
+      return false;
+    case "array":
+      return schema.minItems ? undefined : [];
+    case "object":
+      return sampleProps(schema, text, []);
+  }
+}
+
+function sampleProps(
+  schema: ObjectSchema,
+  text: string,
+  refProps: readonly string[],
+): Record<string, unknown> | undefined {
+  const props: Record<string, unknown> = {};
+  for (const name of schema.required) {
+    const child = schema.properties[name];
+    const value = child && !refProps.includes(name) ? sampleValue(child, text) : undefined;
+    if (value === undefined) return undefined;
+    props[name] = value;
+  }
+  return props;
+}
+
+/** A small document from the catalog's first container and first text-bearing leaf, so it is valid for this catalog. */
+function digestExample(catalog: Catalog, local: ObjectSchema | undefined): string[] {
+  const sample = (d: Catalog["definitions"][number], text: string) => sampleProps(d.props, text, d.refProps ?? []);
+  const container = catalog.definitions.find((d) => d.children === "any" && !d.deprecated && sample(d, "List"));
+  const leaf = catalog.definitions.find(
+    (d) =>
+      d.children === "none" &&
+      !d.deprecated &&
+      sample(d, "First") &&
+      d.props.required.some((name) => typeof sample(d, "First")?.[name] === "string"),
+  );
+  if (!container || !leaf) return [];
+  const textProp = leaf.props.required.find((name) => typeof sample(leaf, "First")?.[name] === "string") as string;
+  const filterKey = local && sortedEntries(local.properties).find(([, s]) => s.type === "string" && !s.enum)?.[0];
+  const child = (key: string, text: string) => ({
+    kind: leaf.kind,
+    key,
+    props: sample(leaf, text),
+    ...(filterKey ? { when: { $contains: [{ $path: selfPath(textProp) }, { $path: `local.${filterKey}` }] } } : {}),
+  });
+  const props = sample(container, "List") ?? {};
+  const head = [
+    `  "kind": ${quote(container.kind)},`,
+    ...(Object.keys(props).length ? [`  "props": ${JSON.stringify(props)},`] : []),
+  ];
+  return [
+    "Example:",
+    "",
+    "```json",
+    "{",
+    ...head,
+    '  "children": [',
+    `    ${JSON.stringify(child("a", "First"))},`,
+    `    ${JSON.stringify(child("b", "Second"))}`,
+    "  ]",
+    "}",
+    "```",
+    "",
+  ];
+}
+
+function digestWriting(catalog: Catalog, local: ObjectSchema | undefined): string[] {
+  return [
+    "## Writing element JSON",
+    "",
+    'Each element is `{"kind", "key"?, "$anchor"?, "variant"?, "props"?, "style"?, "events"?, "when"?, "bind"?, "focus"?, "children"?}`.',
+    "",
+    '- `kind`: a kind below, or `"fragment"` (`{"kind": "fragment", "key"?, "children"}` groups children without adding a node).',
+    "- `key`: a string or number, distinct among siblings. Give one to every element of a list.",
+    "- `props`: the kind's props; the ones without `?` are required. A `ref` prop names another element's `$anchor`.",
+    "- `variant`, `style`, `events`, `children`: as each kind lists. `events` maps an event name to one intent.",
+    ...(local ? ["- `when`, `bind`: see Expressions."] : []),
+    "- `focus`: `true` moves focus here when a later revision first carries it.",
+    "- Write `children` after the element's other members, so the document can be drawn while it streams.",
+    `- At most ${DEFAULT_LIMITS.nodes} elements, depth ${DEFAULT_LIMITS.depth} and ${DEFAULT_LIMITS.bytes} bytes (the host may set less).`,
+    "",
+    ...digestExample(catalog, local),
+    "Intents:",
+    "",
+    '- `{"type": "setState", "key": <state key>, "value"?: <json>}`: without `value`, the value the event carries.',
+    '- `{"type": "action", "name": <action>, "args": {…}, "bind"?: <arg>, "bindAll"?: true}`: `bind` fills one argument with the value the event carries; `bindAll` fills arguments from the object it carries.',
+    ...(local
+      ? [
+          '- `{"type": "setLocal", "key": <local key>, "value"?: <json>}`: changes local state in the browser, with no request; without `value`, the value the event carries.',
+          '- On `setState` or `action`, `"local": [{"key": <local key>, "value"?: <json>, "until"?: "revision"}]` (1 to 4) also writes local state, and `fromLocal` reads it: a local key on `setState` (instead of `value`), `{<arg>: <local key>}` on `action`.',
+        ]
+      : []),
+    "",
+    "The host decides which state keys and actions a surface may use; anything else is rejected.",
+    "",
+  ];
+}
+
+/** Operator operand shapes in the digest's notation, from the same table the schemas use. */
+function operandText(name: string, operand: Record<string, unknown>): string {
+  if (name === "$path") return "path";
+  if (name === "$lit") return "json";
+  if (operand.type === "null") return "null";
+  if (operand.type !== "array") return "x";
+  const min = operand.minItems as number;
+  const max = operand.maxItems as number | undefined;
+  const names = ["a", "b", "c"];
+  const items = names.slice(0, max ?? min).map((n, i) => (i < min ? n : `${n}?`));
+  return `[${items.join(", ")}${max === undefined ? ", …" : ""}]`;
+}
+
+function digestExpressions(local: ObjectSchema): string[] {
+  const groups = new Map<string, string[]>();
+  for (const [name, operand] of Object.entries(operatorOperands({}))) {
+    if (!TREE_OPERATORS.has(name)) continue;
+    const text = operandText(name, operand as Record<string, unknown>);
+    groups.set(text, [...(groups.get(text) ?? []), name]);
+  }
+  return [
+    "## Expressions",
+    "",
+    "`when` draws the element only while its expression is true. `bind` maps prop names to expressions that supply",
+    "those props; `props` still holds a complete static value. A kind's props are bindable except `ref` props; `variant`,",
+    "`style` and `events` never are.",
+    "",
+    "An expression is a JSON literal, an array or object of expressions, or an object with one operator key:",
+    "",
+    ...[...groups].map(([text, names]) => `- ${names.join(", ")}: ${text}`),
+    "",
+    "`$contains: [text, part]` is true when `part` occurs in `text`, case-sensitive (an empty `part` always does);",
+    "`$contains: [array, item]` tests membership. A string literal is a valid operand.",
+    "",
+    "`$path` reads:",
+    "",
+    ...digestProps(local).map((entry) => `- local.${entry.replace("?:", ":")}`),
+    `- ${selfPath("<prop>")}: the element's own props`,
+    "- shown: integer ≥0, how many of the element's siblings that carry `when` are drawn (an element that reads `shown` is not counted)",
+    "",
+    `Limits: ${TREE_EXPRESSION.depth} levels and ${TREE_EXPRESSION.nodes} nodes per expression, ${MAX_BINDINGS} \`bind\` entries per element, ${MAX_TREE_EXPRESSION_NODES} expression nodes per surface.`,
+    "",
+  ];
+}
+
+function digestKind(d: Catalog["definitions"][number]): string[] {
+  const children =
+    typeof d.children === "string" ? d.children : d.children.map((c) => `${c.kind} ${c.min}..${c.max}`).join(", ");
+  const events = sortedEntries(d.events).map(([name, event]) => `${name}(${digestCarries(event.carries)})`);
+  const axes = sortedEntries(d.axes ?? {}).map(([name, axis]) => `${name} (default ${axis.default})`);
+  const props = digestProps(d.props, d.refProps);
+  return [
+    `### ${d.kind}${d.deprecated ? ` (deprecated: ${d.deprecated})` : ""}`,
+    "",
+    d.description,
+    "",
+    ...(props.length ? [`- props: ${props.join("; ")}`] : []),
+    ...(d.variants.length > 1 ? [`- variants: ${d.variants.join(", ")} (default ${d.defaultVariant})`] : []),
+    ...(axes.length ? [`- axes: ${axes.join(", ")}`] : []),
+    ...(events.length ? [`- events: ${events.join(", ")}`] : []),
+    `- children: ${children}`,
+    ...(d.styleProps.length ? [`- style: ${d.styleProps.join(", ")}`] : []),
+    "",
+  ];
+}
+
+function digestCapabilities(capabilities: Capabilities): string[] {
+  const actions = sortedEntries(capabilities.actions).map(([name, a]) => {
+    const result = a.result ? ` → ${digestType(a.result)}` : "";
+    return `- ${name}(${digestProps(a.args).join("; ")})${result}: ${a.description}${flags(a.confirm && "confirm", a.irreversible && "irreversible")}`;
+  });
+  const sources = sortedEntries(capabilities.sources).map(
+    ([name, s]) => `- ${name}(${digestProps(s.params).join("; ")}) → ${digestType(s.result)}: ${s.description}`,
+  );
+  return [
+    ...(actions.length ? ["## Actions", "", ...actions, ""] : []),
+    ...(sources.length ? ["## Sources", "", ...sources, ""] : []),
+  ];
+}
+
+/**
+ * A deterministic Markdown description of a catalog for an agent that writes element JSON without MCP
+ * (spec §7.2): kinds, props with bounds, variants, events and their carries, child rules, style values,
+ * and, when given, expressions over `local` and the declared actions and sources. Over `budget` characters
+ * it throws `LiveframeFailure` (`limit-exceeded` at `/digest`) and never truncates.
+ */
+export function generateDigest(catalog: Catalog, options: DigestOptions = {}): string {
+  const { capabilities, local, budget } = options;
+  const text = [
+    `# ${catalog.catalogId}`,
+    "",
+    "Generated by `liveframe gen --digest`. Do not edit.",
+    "",
+    catalog.description,
+    "",
+    "Element JSON describes one surface as a tree of this catalog's kinds. The host validates every document before",
+    "drawing it, so anything this file does not describe is rejected.",
+    "",
+    ...digestWriting(catalog, local),
+    ...(local ? digestExpressions(local) : []),
+    ...digestStyle(catalog),
+    "## Kinds",
+    "",
+    ...catalog.definitions.flatMap(digestKind),
+    ...(capabilities ? digestCapabilities(capabilities) : []),
+  ]
+    .join("\n")
+    .replace(/\n+$/, "\n");
+  if (budget !== undefined && text.length > budget)
+    throw new LiveframeFailure([
+      {
+        kind: "limit-exceeded",
+        pointer: "/digest",
+        message: "The digest is longer than its budget",
+        expected: `at most ${budget} characters, got ${text.length}`,
+      },
+    ]);
+  return text;
 }

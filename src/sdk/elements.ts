@@ -1,10 +1,12 @@
-import { addBoundMarker, DEFAULT_MAX_ERRORS, type Result } from "../errors.ts";
+import { addBoundMarker, DEFAULT_MAX_ERRORS, type LiveframeError, type Result } from "../errors.ts";
 import type { ObjectSchema } from "../formats/capabilities.ts";
 import type { Catalog } from "../formats/catalog.ts";
 import type { Manifest } from "../formats/manifest.ts";
-import type { Intent, Json, NodeRef, UiTree } from "../formats/tree.ts";
+import type { Json, NodeRef, TreeIntent, UiTree } from "../formats/tree.ts";
 import { at } from "../internal.ts";
 import { arr, bool, type Infer, int, isRecord, type LanguageSchema, num, obj, str } from "../schema.ts";
+import { compileSchema } from "../validate/schema.ts";
+import type { Expr } from "./bindings.ts";
 import { Element } from "./element.ts";
 import { ELEMENT_KEYS, mergeSections, Reject, rejectFragmentFields, rejectUnknownFields } from "./element-node.ts";
 import { Fragment } from "./jsx-runtime.ts";
@@ -25,7 +27,18 @@ type ElementFor<C extends Catalog, D> = D extends Catalog["definitions"][number]
           : Infer<D["props"]>[K];
       };
       readonly style?: Readonly<Record<string, Json>>;
-      readonly events?: { readonly [E in keyof D["events"]]?: Intent };
+      readonly events?: { readonly [E in keyof D["events"]]?: TreeIntent };
+      /** Draws the node only while this boolean expression holds (spec §8). */
+      readonly when?: Expr;
+      /** Browser-evaluated values for the kind's bindable props, never its reference props (spec §8). */
+      readonly bind?: {
+        readonly [K in Exclude<
+          keyof Infer<D["props"]>,
+          D extends { readonly refProps: readonly string[] } ? D["refProps"][number] : never
+        >]?: Expr;
+      };
+      /** Marks the node the tree's focus moves to (spec §9); at most one per tree. */
+      readonly focus?: boolean;
       readonly children?: readonly Elements<C>[];
     }
   : never;
@@ -60,6 +73,7 @@ function elementProps(
   if (!merged) return undefined;
   if (Object.hasOwn(value, "$anchor")) merged.$anchor = value.$anchor;
   if (value.variant !== undefined) merged.variant = value.variant;
+  for (const name of ["when", "bind", "focus"] as const) if (Object.hasOwn(value, name)) merged[name] = value[name];
   return merged;
 }
 
@@ -163,7 +177,7 @@ function elementHead(
 
 /**
  * Internal: converts one element object's own fields, leaving `children` to the caller, for a stream
- * that has seen everything but the children (`streamElements`, plan 028 Task 7). Not for fragments.
+ * that has seen everything but the children (`streamElements`). Not for fragments.
  */
 export function convertShell(
   value: Record<string, unknown>,
@@ -238,18 +252,29 @@ function stateSchema(value: unknown, pointer: string, depth: number): LanguageSc
   return obj(properties);
 }
 
-/** A manifest an ephemeral surface validates against; `state` is its initial value (spec §7.2). */
+/**
+ * A manifest an ephemeral surface validates against; `state` is its initial value (spec §7.2). `local` and
+ * `initialLocal` are the caller's (spec §8): a document can never declare them. `compileValidator` checks
+ * `local` against the local rules as for every manifest.
+ */
 export function ephemeralManifest({
   catalogId,
   actions,
   state = {},
+  local,
+  initialLocal,
 }: {
   readonly catalogId: string;
   readonly actions: readonly string[];
   readonly state?: Json;
+  readonly local?: ObjectSchema;
+  readonly initialLocal?: Json;
 }): Manifest {
   const initialState = state === undefined ? {} : state;
   if (!isRecord(initialState)) throw new TypeError("Expected a state object");
+  if ((local === undefined) !== (initialLocal === undefined))
+    throw new TypeError("Expected local and initialLocal together");
+  if (local !== undefined) checkInitialLocal(local, initialLocal);
   return {
     format: "liveframe-manifest/1",
     id: "ephemeral",
@@ -261,5 +286,21 @@ export function ephemeralManifest({
     initialState,
     sources: {},
     actions: [...actions],
+    ...(local === undefined ? {} : { local, initialLocal }),
   };
+}
+
+/** `initialLocal` must satisfy `local`; a malformed `local` is left to `compileValidator`'s manifest check. */
+function checkInitialLocal(local: ObjectSchema, initialLocal: unknown): void {
+  if (!isRecord(initialLocal)) throw new TypeError("Expected an initialLocal object");
+  let check: ReturnType<typeof compileSchema>;
+  try {
+    check = compileSchema(local);
+  } catch {
+    return;
+  }
+  const errors: LiveframeError[] = [];
+  check(initialLocal, "/initialLocal", { errors, maxErrors: 1 });
+  const error = errors[0];
+  if (error) throw new TypeError(`Expected initialLocal to fit local at ${error.pointer}: ${error.message}`);
 }

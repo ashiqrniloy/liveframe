@@ -277,6 +277,53 @@
                             ]
                           }
                         }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "array"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "array": {
+                            "type": "object",
+                            "required": [
+                              "items",
+                              "maxItems"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "items": {
+                                "allOf": [
+                                  {
+                                    "$ref": "#/$defs/schema"
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "enum": [
+                                          "string",
+                                          "number",
+                                          "integer",
+                                          "boolean"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "type"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "maxItems": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 256
+                              }
+                            }
+                          }
+                        }
                       }
                     ]
                   },

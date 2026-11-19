@@ -8,7 +8,7 @@ import type { DesignSystem } from "../../formats/design-system.ts";
 import { type UiTree, validateCatalog } from "../../index.ts";
 import { resolveRecipes } from "../../resolve.ts";
 import { ConformanceFailure, check } from "../case.ts";
-import type { PageOptions } from "./page.tsx";
+import type { SuiteOptions } from "./page.ts";
 
 export type StateFixtures = Readonly<
   Record<
@@ -53,7 +53,7 @@ function recordState(
 
 function requiredStates(
   catalog: Catalog,
-  designSystems: PageOptions["designSystems"],
+  designSystems: SuiteOptions["designSystems"],
   registry: Readonly<Record<string, DesignSystem>>,
 ): Map<string, Set<string>> {
   const required = new Map<string, Set<string>>();
@@ -69,7 +69,7 @@ function requiredStates(
 }
 
 export async function styledStates(
-  options: PageOptions,
+  options: SuiteOptions,
   fixtures: StateFixtures | undefined,
   page: Page,
   rule: string,

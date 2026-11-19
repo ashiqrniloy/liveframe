@@ -1,8 +1,12 @@
 /** @jsxImportSource @arnilo/liveframe/sdk */
 import { describe, expect, test } from "bun:test";
-import { primitive, type WidgetProps } from "@arnilo/liveframe/sdk";
+import { action, local, primitive, state, type WidgetProps } from "@arnilo/liveframe/sdk";
 
-const Button = primitive<{ readonly label: string; readonly variant?: "primary" | "ghost" }>("button");
+const Button = primitive<{
+  readonly label: string;
+  readonly variant?: "primary" | "ghost";
+  readonly onPress?: import("@arnilo/liveframe/sdk").TreeIntent;
+}>("button");
 
 type Params = { readonly id: string };
 type State = { readonly filter: string };
@@ -53,5 +57,43 @@ describe("sdk types", () => {
     // @ts-expect-error: nested data is readonly
     first.id = "other";
     expect(props.context.size).toBe("md");
+  });
+
+  test("manifest_typed_action_and_state_reject_undeclared_local_keys", () => {
+    type Local = { readonly saving: boolean; readonly q: string };
+    const valid = (
+      <Button
+        label="Save"
+        onPress={action<Local>(
+          "tasks.save",
+          { id: "t1" },
+          { local: [local.set("saving", true, { until: "revision" })] },
+        )}
+      />
+    );
+    const validState = state.set<Local>("filter", "all", { local: [local.set("q", "abc")] });
+    expect([valid, validState]).toHaveLength(2);
+
+    // @ts-expect-error: undeclared local key fails when manifest local state is typed
+    const badActionKey = action<Local>("tasks.save", {}, { local: [local.set("missing", true)] });
+    // @ts-expect-error: wrong local value type fails when manifest local state is typed
+    const badActionType = action<Local>("tasks.save", {}, { local: [local.set("saving", "yes")] });
+    // @ts-expect-error: undeclared local key fails on state.set as well
+    const badStateKey = state.set<Local>("filter", "all", { local: [local.set("missing", true)] });
+    // @ts-expect-error: until: "revision" local.set returns a LocalWrite, not a standalone TreeIntent
+    const untilOnEvent = <Button label="Bad" onPress={local.set("saving", true, { until: "revision" })} />;
+    expect([badActionKey, badActionType, badStateKey, untilOnEvent]).toHaveLength(4);
+  });
+  test("from_local_keys_are_typed_from_the_manifest_local_state", () => {
+    type Local = { readonly saving: boolean; readonly q: string };
+    const valid = action<Local>("tasks.escalate", { id: "t1" }, { fromLocal: { reason: "q" } });
+    const validState = state.set<Local>("selected", undefined, { fromLocal: "q" });
+    expect([valid, validState]).toHaveLength(2);
+
+    // @ts-expect-error: undeclared local key fails when manifest local state is typed
+    const badActionKey = action<Local>("tasks.escalate", { id: "t1" }, { fromLocal: { reason: "missing" } });
+    // @ts-expect-error: undeclared local key fails on state.set as well
+    const badStateKey = state.set<Local>("selected", undefined, { fromLocal: "missing" });
+    expect([badActionKey, badStateKey]).toHaveLength(2);
   });
 });

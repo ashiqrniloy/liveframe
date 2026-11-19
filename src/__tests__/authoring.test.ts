@@ -114,6 +114,45 @@ test("set_state_applies_offered_event_and_refuses_invalid_origins_and_actions", 
   }
 });
 
+test("set_state_applies_a_from_local_event_with_value_as_the_local_read", async () => {
+  const harness = drafts[4]!;
+  const apply = `<Button key="apply" label="Apply" onPress={state.set("query", undefined, { fromLocal: "draft" })} />`;
+  const files: Record<string, string> = harness.files;
+  const widget = files["harness/widget.tsx"]!;
+  const anchor = `<TextField label="Query" value={s.query} onChange={state.set("query")} />`;
+  expect(widget).toContain(anchor);
+  const input = {
+    ...harness,
+    files: { ...files, "harness/widget.tsx": widget.replace(anchor, `${anchor}\n      ${apply}`) },
+    manifest: {
+      ...(harness.manifest as Record<string, unknown>),
+      local: {
+        type: "object",
+        properties: { draft: { type: "string", maxLength: 100 } },
+        required: ["draft"],
+        additionalProperties: false,
+      },
+      initialLocal: { draft: "" },
+    },
+  };
+  const a = createAuthoring({ ...options(), capture: fakeCapture().backend });
+  try {
+    value(await a.packDraft(input as never));
+    const tree = value(await a.renderScenarios({ scenario: input.scenarios[0]!.name })) as UiTree;
+    const nodes = (node: UiNode): UiNode[] => [node, ...(node.children ?? []).flatMap(nodes)];
+    const button = nodes(tree.root).find((n) => n.props.label === "Apply")!;
+    expect(button.events?.onPress).toEqual({ type: "setState", key: "query", fromLocal: "draft" });
+    const next = value(await a.setState({ origin: { nodeId: button.id, event: "onPress" }, value: "from local" }));
+    expect(nodes(next.root).find((n) => n.props.label === "Query")?.props.value).toBe("from local");
+    expect(await a.setState({ origin: { nodeId: button.id, event: "onPress" }, value: 42 })).toMatchObject({
+      ok: false,
+      errors: [{ kind: "invalid-prop", pointer: "/value" }],
+    });
+  } finally {
+    await a.close();
+  }
+});
+
 test("set_state_bounds_the_rerendered_tree", async () => {
   const delegate = inProcessRunner();
   let large = false;
@@ -171,7 +210,7 @@ test("generated_types_default_unchanged", async () => {
           {
             kind: "invalid-document",
             pointer: "/module",
-            expected: '"types", "implementations", "elementsSchema", "templateSchema"',
+            expected: '"types", "implementations", "elementsSchema", "templateSchema", "digest"',
           },
         ],
       });

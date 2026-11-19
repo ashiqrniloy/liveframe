@@ -16,7 +16,8 @@ shown; nothing calls your operations.
 `inProcessRunner()` or `workerRunner()`. Both return only trees their own
 validator accepted, and `workerRunner()` also ignores answers it did not ask
 for: one worker serves every package, so a hostile draft can still answer a
-later render with a tree that is valid for it. For hostile drafts, plug your
+later render with a tree that is valid for it. `workerRunner({ timeoutMs?, maxPackages?, startTimeoutMs? })`
+starts each render's `timeoutMs` (default 100 ms) only once the worker posts `ready`, so worker boot is bounded separately by `startTimeoutMs` (default 5,000 ms, failing with `render-failed` if it never starts) and never eats the render budget. For hostile drafts, plug your
 isolated runner into `createPreview`, and use that same runner in production.
 `templateRunner()` renders template widgets only: it loads no code, so it needs no isolation (see
 [packages](packages.md#template-packages)). A session takes a [template draft](templates.md),
@@ -136,6 +137,8 @@ Wire the callbacks like this:
 - If a render fails, errors are listed with `nodeId` and `pointer`. An earlier
   good tree for that scenario is drawn dimmed and labelled "last good render",
   and its matching nodes get `data-lf-error`. Otherwise `fallback` shows.
+- If your preview session raises `limits` (for example `{ nodes: 10_000 }`), pass
+  the same `limits` to `<Preview>`, which forwards them to each cell's `<Surface>`.
 - The chrome is plain elements with no colour. Your page's styles own its look.
 
 `proof/host/preview.ts` (routes) and `proof/host/preview-client.tsx` (page) are a

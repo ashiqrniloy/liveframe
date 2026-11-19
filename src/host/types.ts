@@ -21,7 +21,9 @@ export type SourceResult =
       readonly ok: false;
       readonly reason: "unauthorized" | "unavailable" | "stale" | "failed";
       readonly message?: string;
-    };
+    }
+  /** Not read yet: shown only to a source declared with `sourceOutcome(result, { pending: true })`. */
+  | { readonly ok: false; readonly reason: "pending" };
 
 /**
  * What a host injects once and spreads into every call. The library keeps none of it: no call reads
@@ -31,7 +33,7 @@ export type HostWiring<V> = {
   readonly store: Store;
   readonly runner: Runner;
   readonly installs: Installs;
-  /** Resolve as the viewer. A rejection, or a missing alias, counts as `failed`. */
+  /** Resolve as the viewer. A rejection, a missing alias, or a `pending` answer carrying a `value` counts as `failed`. */
   readonly resolve: (calls: readonly SourceCall[], viewer: V) => Promise<Readonly<Record<string, SourceResult>>>;
   readonly verified?: ReturnType<typeof verifiedPackages>;
   readonly runOptions?: { readonly timeoutMs?: number; readonly limits?: TemplateLimits };
@@ -85,13 +87,14 @@ export type HostEvent = Readonly<
       source: string;
       reason: "unauthorized" | "unavailable" | "stale" | "failed" | "invalid-result";
     }
+  | { type: "source-pending"; placementId: string; alias: string; source: string }
   | { type: "tree-rejected"; placementId: string; errors: readonly LiveframeError[] }
   | { type: "load-failed"; placementId: string; errors: readonly LiveframeError[] }
   | { type: "render-failed"; placementId: string; errors: readonly LiveframeError[] }
   | {
       type: "intent-refused";
       placementId: string;
-      reason: "stale" | "not-offered" | "unauthorized" | "invalid-state" | "limit";
+      reason: "stale" | "not-offered" | "unauthorized" | "invalid-state" | "limit" | "conflict";
       errors?: readonly LiveframeError[];
     }
   | { type: "action-failed"; placementId: string; action: string; error?: string }

@@ -1,0 +1,32 @@
+{
+  "format": "liveframe/1",
+  "catalogId": "proof.ui@1",
+  "surfaceId": "corpus",
+  "revision": 1,
+  "root": {
+    "id": "root",
+    "kind": "stack",
+    "props": {},
+    "children": [
+      {
+        "id": "root/button",
+        "kind": "button",
+        "props": {
+          "label": "Escalate"
+        },
+        "events": {
+          "onPress": {
+            "type": "action",
+            "name": "tasks.escalate",
+            "args": {
+              "id": "task:1"
+            },
+            "fromLocal": {
+              "reason": "missing"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

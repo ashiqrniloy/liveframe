@@ -33,8 +33,10 @@ export type ArchiveRules = { forbid: RegExp[]; require: RegExp[] };
 const noWasm = /\.wasm$/;
 export const archiveRules: Record<string, ArchiveRules> = {
   // Spec §13 rule 3 (scoped by decision 2026-11-08-2310): the core ships no WebAssembly, no isolation
-  // engine and no starter components. Those are the two other packages.
-  "@arnilo/liveframe": { forbid: [noWasm, /quickjs|starter/i], require: [] },
+  // engine, no starter components and no A2UI converter. Those are the other packages (design 039 A.10).
+  "@arnilo/liveframe": { forbid: [noWasm, /quickjs|starter|a2ui/i], require: [] },
+  // The converter is one module with no dependency beyond its core peer.
+  "@arnilo/liveframe-a2ui": { forbid: [noWasm], require: [/^dist\/index\.js$/] },
   // The runner spawns its compiled child entry; the wasm comes from its pinned dependency, which the install
   // smoke proves resolves outside the checkout (decision 2026-11-08-2310).
   "@arnilo/liveframe-runner-quickjs": { forbid: [], require: [/^dist\/child\.js$/] },

@@ -36,15 +36,25 @@ test("dependents_match_params_canonically", () => {
 
 test("dependents_linear_scale", () => {
   const scan = (n: number) => {
-    const placements = Array.from({ length: n }, (_, i) =>
-      placement(`p${i}`, { a: call("rows", { page: i }), s: call("selection.current") }),
+    let reads = 0;
+    const placements = new Proxy(
+      Array.from({ length: n }, (_, i) =>
+        placement(`p${i}`, { a: call("rows", { page: i }), s: call("selection.current") }),
+      ),
+      {
+        get(target, prop, receiver) {
+          if (typeof prop === "string" && /^\d+$/.test(prop)) reads++;
+          return Reflect.get(target, prop, receiver);
+        },
+      },
     );
-    const start = performance.now();
     const ids = dependents(placements, { source: "selection.current" });
     expect(ids.length).toBe(n);
-    return performance.now() - start;
+    return reads;
   };
-  scan(1000);
-  // 1,000 placements finish in well under a frame; the bench records the figure.
-  expect(scan(1000)).toBeLessThan(20);
+  const small = scan(100);
+  const large = scan(1000);
+  // One linear pass over placements; the CPU-time budget is enforced in bench/host.bench.ts.
+  expect(small).toBe(100);
+  expect(large).toBe(1000);
 });

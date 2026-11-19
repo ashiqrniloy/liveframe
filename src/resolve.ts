@@ -136,6 +136,7 @@ function fillSlot(
   const axes = axisNames(definition);
   const wildcard = `${kind}.*.${slot}`;
   const specific = `${kind}.${variant}.${slot}`;
+  let reportedMotion = false;
   for (const values of axisCombinations(definition)) {
     const resolvedKey = `${kind}.${joinVariant(variant, values)}.${slot}`;
     if (axes.length) {
@@ -166,6 +167,16 @@ function fillSlot(
         "scrollbarThumbColor and scrollbarTrackColor must be declared together",
         "incomplete-design-system",
       );
+    // Motion plays through the recipe's own transition; without a duration it would silently never play.
+    if (
+      !reportedMotion &&
+      rest?.motion !== undefined &&
+      rest.motion !== "none" &&
+      rest.transitionDuration === undefined
+    ) {
+      reportedMotion = true;
+      reject(`/recipes/${specific}.rest/motion`, "motion needs a transition duration", "invalid-document");
+    }
   }
 }
 
@@ -207,7 +218,7 @@ export function cascadeRecipes(
           typeof input === "string" &&
           Object.hasOwn(ds.values, input) &&
           !colourProperties.includes(property) &&
-          !["typography", "borderStyle", "outlineStyle"].includes(property)
+          !["typography", "borderStyle", "outlineStyle", "motion"].includes(property)
             ? ds.values[input]?.value
             : input;
         return [

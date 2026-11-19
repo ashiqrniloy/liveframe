@@ -439,7 +439,16 @@ describe("bounds", () => {
   });
 
   test("nested_loops_hit_fuel_not_the_clock", () => {
-    const xs = Array.from({ length: 2000 }, (_, i) => i);
+    let reads = 0;
+    const xs = new Proxy(
+      Array.from({ length: 2000 }, (_, i) => i),
+      {
+        get(target, prop, receiver) {
+          if (typeof prop === "string" && /^\d+$/.test(prop)) reads++;
+          return Reflect.get(target, prop, receiver);
+        },
+      },
+    );
     const cube = {
       $map: {
         in: path("xs"),
@@ -447,9 +456,9 @@ describe("bounds", () => {
         value: { $map: { in: path("xs"), as: "b", value: { $map: { in: path("xs"), as: "c", value: path("c") } } } },
       },
     };
-    const started = performance.now();
     expect(run(cube, { xs })).toMatch(/^limit-exceeded@/);
-    expect(performance.now() - started).toBeLessThan(2000);
+    expect(reads).toBeGreaterThan(0);
+    expect(reads).toBeLessThanOrEqual(EXPR_LIMITS.steps);
   });
 
   test("long_inputs_cost_fuel_in_proportion", () => {
@@ -749,15 +758,20 @@ describe("security", () => {
   });
 
   test("the_modules_use_no_dynamic_code_and_no_host_api", async () => {
-    for (const file of ["expr.ts", "scope.ts"]) {
-      const source = await Bun.file(new URL(`../template/${file}`, import.meta.url)).text();
+    const parts = [...new Bun.Glob("expr/*.ts").scanSync(new URL("../template/", import.meta.url).pathname)];
+    expect(parts.length).toBeGreaterThan(0);
+    for (const file of ["expr.ts", "scope.ts", ...parts]) {
+      const url = new URL(`../template/${file}`, import.meta.url);
+      const source = await Bun.file(url).text();
       expect(source).not.toMatch(
         /\beval\s*\(|new Function\b|\bFunction\s*\(|\bglobalThis\b|\bimport\s*\(|\brequire\s*\(/,
       );
       expect(source).not.toMatch(/from "(node|bun):/);
-      const imports = [...source.matchAll(/from "(\.[^"]+)"/g)].map((m) => m[1]);
+      const imports = [...source.matchAll(/from "(\.[^"]+)"/g)].map((m) => m[1] as string);
       for (const spec of imports)
-        expect(spec).toMatch(/^\.\.?\/(errors|internal|schema|formats\/(capabilities|json|tree)|scope|expr)\.ts$/);
+        expect(new URL(spec, url).pathname.split("/src/").at(-1)).toMatch(
+          /^(errors|internal|schema|formats\/(capabilities|json|tree)|template\/(scope|expr|expr\/[a-z]+))\.ts$/,
+        );
     }
   });
 
@@ -768,4 +782,13 @@ describe("security", () => {
     expect(merged.ok && Object.getPrototypeOf(merged.value)).toBe(Object.prototype);
     expect(merged.ok && Object.hasOwn(merged.value as object, "__proto__")).toBe(true);
   });
+});
+
+test("template_operator_set_is_exactly_the_documented_one", async () => {
+  const doc = await Bun.file(new URL("../../docs/templates.md", import.meta.url)).text();
+  const table = doc.split("| Group | Operators |")[1]?.split("\n\n")[0] ?? "";
+  const documented = [...table.matchAll(/`(\$[A-Za-z]+)/g)].map((m) => m[1] as string);
+  expect(documented.length).toBeGreaterThan(0);
+  expect(new Set(OPERATORS).size).toBe(OPERATORS.length);
+  expect([...OPERATORS].sort()).toEqual([...new Set(documented)].sort());
 });

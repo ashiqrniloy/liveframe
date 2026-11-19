@@ -8,10 +8,11 @@ import { proofWidgets } from "../src/__tests__/fixtures/widgets/index.ts";
 import { freezeCopy } from "../src/internal.ts";
 import { pack } from "../src/pack/index.ts";
 import { templateRunner } from "../src/preview/template.ts";
+import { validateTemplate } from "../src/template/index.ts";
 import { compileExpression, type Frame } from "../src/template/expr.ts";
 import { renderTemplate } from "../src/template/render.ts";
 import { rootScope } from "../src/template/scope.ts";
-import { budget, metric } from "./metrics.ts";
+import { budget, metric, timed } from "./metrics.ts";
 
 // Evaluation cost per expression node (plan 028 Task 2). The target is 50 ns per node on the reference
 // machine: recorded, not gated. One step is one node evaluated, so `steps spent` is the node count.
@@ -84,23 +85,25 @@ const treeAt = (i: number) => {
 };
 const BATCHES = 5;
 const BATCH_MS = 50;
-function batch(run: (i: number) => void): number {
+/** One batch's mean wall and CPU milliseconds per run, grown until it covers `BATCH_MS`. */
+function batch(run: (i: number) => void): { wallMs: number; cpuMs: number } {
   let iterations = 16;
   for (;;) {
-    const start = performance.now();
-    for (let i = 0; i < iterations; i++) run(i);
-    const elapsed = performance.now() - start;
-    if (elapsed >= BATCH_MS || iterations >= 10_000_000) return elapsed / iterations;
+    const sample = timed(run, iterations);
+    if (sample.wallMs * iterations >= BATCH_MS || iterations >= 10_000_000) return sample;
     iterations *= 2;
   }
 }
 for (let i = 0; i < 200; i++) treeAt(i);
-const samples = Array.from({ length: BATCHES }, () => batch(treeAt)).sort((a, b) => a - b);
-const renderMs = samples[BATCHES >> 1] as number;
+const samples = Array.from({ length: BATCHES }, () => batch(treeAt));
+const middle = (values: number[]) => values.sort((a, b) => a - b)[values.length >> 1] as number;
+const renderMs = middle(samples.map((sample) => sample.wallMs));
+const renderCpuMs = middle(samples.map((sample) => sample.cpuMs));
 const outputNodes = Array.from({ length: 50 }, (_, i) => countNodes(treeAt(i).root)).reduce((a, b) => a + b) / 50;
 const perNode = (renderMs * 1_000) / outputNodes;
 metric("template.agentHome.renderMs", renderMs);
 metric("template.agentHome.usPerNode", perNode);
+metric("template.agentHome.renderCpuMs", renderCpuMs);
 console.log(
   `agent-home template: ${outputNodes.toFixed(1)} mean nodes; renderTemplate ${renderMs.toFixed(4)} ms, ${perNode.toFixed(3)} µs/node (budget 3)`,
 );
@@ -140,11 +143,28 @@ for (let i = 0; i < 200; i++) await runnerAt(i);
 const direct: number[] = [];
 const viaRunner: number[] = [];
 for (let round = 0; round < 7; round++) {
-  direct.push(batch(treeAt));
+  direct.push(batch(treeAt).wallMs);
   viaRunner.push(await asyncBatch(runnerAt));
 }
-const middle = (values: number[]) => values.sort((a, b) => a - b)[values.length >> 1] as number;
 const overhead = middle(viaRunner) / middle(direct) - 1;
 metric("template.runner.overhead", overhead);
 console.log(`templateRunner: ${(overhead * 100).toFixed(2)}% over renderTemplate (budget 5%)`);
 budget(overhead <= 0.05, `templateRunner adds ${(overhead * 100).toFixed(2)}% over renderTemplate, over the 5% budget`);
+
+// Plan 033 T9: validateTemplate CPU-time budget moved from template-document.test.ts (<= 5 ms).
+{
+  const context = { catalog: catalog as never, capabilities: capabilities as never, manifest: home.manifest };
+  for (let i = 0; i < 5; i++) assert(validateTemplate(agentHomeTemplate, context).ok, "agentHomeTemplate warmup");
+  const samples: number[] = [];
+  for (let r = 0; r < 9; r++) {
+    const start = process.cpuUsage();
+    for (let b = 0; b < 10; b++) assert(validateTemplate(agentHomeTemplate, context).ok, "agentHomeTemplate");
+    const used = process.cpuUsage(start);
+    samples.push((used.user + used.system) / 1000 / 10);
+  }
+  samples.sort((a, b) => a - b);
+  const validateCpuMs = samples[Math.floor(samples.length / 2)] as number;
+  metric("validateTemplate.agentHome.cpuMs", validateCpuMs);
+  console.log(`validateTemplate (agent-home): ${validateCpuMs.toFixed(3)} ms CPU (<= 5 ms)`);
+  budget(validateCpuMs <= 5, `validateTemplate agent-home CPU time ${validateCpuMs.toFixed(3)} ms exceeds 5 ms`);
+}

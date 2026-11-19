@@ -44,7 +44,7 @@ Both also accept `libraries: readonly WidgetPackage[]`, the shared library packa
 
 The runner is required and remains owned by your host. This subpath loads neither the MCP SDK nor Playwright. Capture needs both your `preview(binding)` factory and an injected `CaptureBackend`; missing configuration returns `not-found`. The factory starts lazily on the first capture, is reused after success and retried after failure. `close()` waits for queued draft operations and closes the bound page. The four draft methods share one queue; catalog reads stay concurrent. `exposeMeta` defaults to `false`, as in the CLI config.
 
-`renderScenarios({ outcomes: true })` checks all five outcomes of each scenario with one `sourceOutcome` source. Add `scenario` to select a single seed, and optionally `state` or `context` to override its render inputs. Scenarios with no outcome source are checked once; two outcome sources in one scenario return `invalid-document` at `/scenarios/<index>`, so split the seeds. Invalid expansion returns errors before any scenario renders. Expanded renders use the injected runner without changing the page's current selection, state, intents or packed package. With `outcomes: true` the result is always scenario statuses.
+`renderScenarios({ outcomes: true })` checks all five outcomes (six when the source declares `pending`) of each scenario with one `sourceOutcome` source. Add `scenario` to select a single seed, and optionally `state` or `context` to override its render inputs. Scenarios with no outcome source are checked once; two outcome sources in one scenario return `invalid-document` at `/scenarios/<index>`, so split the seeds. Invalid expansion returns errors before any scenario renders. Expanded renders use the injected runner without changing the page's current selection, state, intents or packed package. With `outcomes: true` the result is always scenario statuses.
 
 These operations grant no store, dispatcher, resolver, installation, placement or approval authority. Keep authoring on your backend; neither reference runner is an isolation boundary.
 
@@ -85,7 +85,7 @@ export default config;
 
 - `catalog` and `capabilities` are the documents your app installs, not a fixture.
 - `runner` is the runner production uses. Omit it and the server uses
-  `workerRunner()`, which needs the `Worker` global (Bun has it). Preview and
+  `workerRunner()`, which needs the `Worker` global (Bun has it) and starts each render's `timeoutMs` (default 100 ms) once the worker is ready, with startup bounded separately by `startTimeoutMs` (default 5,000 ms). Preview and
   production must agree, so pass your own if you have one.
 - `draftRoot` optionally allows `pack_draft({ dir, entry? })` to read files from disk.
   It must name an existing directory; relative roots resolve from the server's
@@ -209,7 +209,7 @@ and omit `structuredContent`.
 | `list_vocabulary` | — | `{ catalogId, vocabulary }`: the id a manifest must name, then colours, surfaces, typography, tones and the `space`/`radius`/`size`/`bp` names |
 | `list_capabilities` | — | Each source's params and result schema and each action's args schema (capability `meta` only with `exposeMeta`) |
 | `list_libraries` | — | Each library the host supplied: `{ id, version, hash, exports, specifier, description? }`; empty when the host supplied none |
-| `generated_types` | `{ module?, manifest? }` | `{ note, types }`: byte-identical `liveframe gen` output for `"types"` (default), `"implementations"` (`--implementations`), `"elementsSchema"` (`--elements-schema`) or `"templateSchema"` (`--template-schema`; `manifest` adds the draft's own paths, state keys and actions) |
+| `generated_types` | `{ module?, manifest?, local? }` | `{ note, types }`: byte-identical `liveframe gen` output for `"types"` (default), `"implementations"` (`--implementations`), `"elementsSchema"` (`--elements-schema`; `local`, the object schema the host passes to `ephemeralManifest`, gives `--local` and adds `when`, `bind` and the local intents) `"templateSchema"` (`--template-schema`; `manifest` adds the draft's own paths, state keys and actions) or `"digest"` (`--digest`, from the server's catalog and capabilities; `local` adds the expression grammar over those keys), a Markdown description to hand an agent that writes element JSON |
 | `pack_draft` | `{ files, entry, manifest, scenarios }`, `{ template, manifest, scenarios }` or `{ dir, entry? }` | `{ hash, id, version, description?, scenarios }` (plus `meta` with `exposeMeta`) |
 | `render_scenarios` | `{ scenario?, state?, context?, outcomes? }` | One scenario's tree (at most 256 KiB), or scenario statuses and each distinct error once; `outcomes: true` expands source outcomes and always returns statuses |
 | `set_state` | `{ origin: { nodeId, event }, value? }` | Applies an offered state event and returns its new tree (at most 256 KiB); refuses actions |
@@ -258,7 +258,9 @@ After `render_scenarios({ scenario: "ready" })`, call
 `set_state({ origin: { nodeId, event }, value? })` using the node id and event
 from that tree. In process, use `authoring.setState()` with the same input.
 The server fills the current surface and revision, preserves literal intent
-values and otherwise fills the event value, then checks the offered intent.
+values and otherwise fills the event value, then checks the offered intent. The
+preview holds no browser local state, so for an event that reads `fromLocal`,
+`value` stands for the value of that local key.
 Unknown nodes/events fail at `/origin/nodeId` or `/origin/event`; invalid values
 keep the intent validation error. Missing origin is `invalid-document`; actions
 are `invalid-prop` at `/origin/event` and never enter the intent log. With no
@@ -327,8 +329,9 @@ one's node count; with one, it returns the tree or the errors:
 [{ "scenario": "ready", "ok": true, "nodes": 679 }, { "scenario": "empty", "ok": true, "nodes": 10 }]
 ```
 
-Set `outcomes: true` to check `ok`, `unauthorized`, `unavailable`, `stale` and
-`failed` for each selected scenario's single `sourceOutcome` source. Add
+Set `outcomes: true` to check `ok`, `unauthorized`, `unavailable`, `stale`,
+`failed` and, when the source declares it, `pending` for each selected scenario's
+single `sourceOutcome` source. Add
 `scenario` to select one seed; the result still contains statuses, never a tree.
 Scenarios with no outcome source render once; more than one returns
 `invalid-document` at `/scenarios/<index>`. A non-boolean `outcomes` returns

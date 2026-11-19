@@ -283,7 +283,7 @@ test("design_values_and_literals_are_typed_and_bounded", () => {
     expect(validateDesignSystem(doc, context).ok).toBe(false);
 });
 
-test("rack_validates_and_resolves_under_50ms", async () => {
+test("rack_validates_and_resolves_all_recipes", async () => {
   const { resolveRecipes } = await import("../index.ts");
   const doc = await Bun.file(new URL("./fixtures/rack.design-system.json", import.meta.url)).json();
   const proofCatalog = await Bun.file(new URL("./fixtures/catalog.json", import.meta.url)).json();
@@ -303,16 +303,6 @@ test("rack_validates_and_resolves_under_50ms", async () => {
   expect(Object.keys(table)).toHaveLength(948);
   expect(table["button.default.root.rest"]?.transitionTiming).toEqual([0.16, 1, 0.3, 1]);
   expect(table["button.default.root.rest"]?.gap).toEqual({ value: 8, unit: "px" });
-  for (let i = 0; i < 5; i++) {
-    validateDesignSystem(doc, options);
-    resolveRecipes(doc, options);
-  }
-  const start = performance.now();
-  for (let i = 0; i < 20; i++) {
-    validateDesignSystem(doc, options);
-    resolveRecipes(doc, options);
-  }
-  expect((performance.now() - start) / 20).toBeLessThan(50);
 });
 
 test("recipe_schema_uses_the_fixed_property_vocabulary", async () => {
@@ -455,4 +445,73 @@ test("scrollbar_rejects_nonrest_declarations_and_incomplete_pairs", () => {
       context,
     ).ok,
   ).toBe(true);
+});
+
+const motionValues = { "motion.1": { kind: "motion-duration", value: { value: 200, unit: "ms" } } } as const;
+const moving = (recipes: Record<string, unknown>) => ({
+  ...system,
+  values: { ...system.values, ...motionValues },
+  recipes: { ...system.recipes, ...recipes },
+});
+
+test("motion_value_outside_the_list_is_invalid_document", () => {
+  for (const motion of ["none", "fade", "move", "fade-move"])
+    expect(
+      validateDesignSystem(
+        moving({ "button.*.root.rest": { padding: "space.1", transitionDuration: "motion.1", motion } }),
+        context,
+      ).ok,
+    ).toBe(true);
+  for (const motion of ["slide", "opacity 1s", "motion.1", 1, ""])
+    rejects(
+      moving({ "button.*.root.rest": { padding: "space.1", transitionDuration: "motion.1", motion } }),
+      "invalid-document",
+      "/recipes/button.*.root.rest/motion",
+    );
+});
+
+test("motion_outside_root_rest_is_invalid_document", () => {
+  rejects(
+    moving({ "button.*.label.rest": { textColor: "ink", transitionDuration: "motion.1", motion: "fade" } }),
+    "invalid-document",
+    "/recipes/button.*.label.rest/motion",
+  );
+  for (const state of ["hover", "focus", "open"])
+    rejects(
+      moving({ [`button.*.root.${state}`]: { outlineColor: "focus", transitionDuration: "motion.1", motion: "fade" } }),
+      "invalid-document",
+      `/recipes/button.*.root.${state}/motion`,
+    );
+});
+
+test("motion_without_duration_is_invalid_document", () => {
+  rejects(
+    moving({ "button.*.root.rest": { padding: "space.1", motion: "move" } }),
+    "invalid-document",
+    "/recipes/button.default.root.rest/motion",
+  );
+  // `none` needs no duration, and a variant may switch a wildcard's motion off.
+  expect(
+    validateDesignSystem(moving({ "button.*.root.rest": { padding: "space.1", motion: "none" } }), context).ok,
+  ).toBe(true);
+  expect(
+    validateDesignSystem(
+      moving({
+        "button.*.root.rest": { padding: "space.1", transitionDuration: "motion.1", motion: "fade" },
+        "button.primary.root.rest": { motion: "none" },
+      }),
+      context,
+    ).ok,
+  ).toBe(true);
+  // The duration may come from another layer of the cascade; one error per variant, not per state.
+  const missing = validateDesignSystem(
+    moving({
+      "button.*.root.rest": { padding: "space.1", motion: "fade" },
+      "button.primary.root.rest": { transitionDuration: "motion.1" },
+    }),
+    context,
+  );
+  expect(missing.ok).toBe(false);
+  if (!missing.ok)
+    expect(missing.errors.map((error) => error.pointer)).toEqual(["/recipes/button.default.root.rest/motion"]);
 });

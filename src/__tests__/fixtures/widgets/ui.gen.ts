@@ -146,6 +146,7 @@ export const Box = primitive<{
     readonly semantics?: _Expr;
     readonly label?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("box");
 
@@ -206,6 +207,7 @@ export const Stack = primitive<{
     readonly semantics?: _Expr;
     readonly label?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("stack");
 
@@ -266,6 +268,7 @@ export const Inline = primitive<{
     readonly semantics?: _Expr;
     readonly label?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("inline");
 
@@ -327,6 +330,7 @@ export const Grid = primitive<{
     readonly semantics?: _Expr;
     readonly label?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("grid");
 
@@ -368,6 +372,7 @@ export const Scroll = primitive<{
     readonly label?: _Expr;
     readonly axis?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("scroll");
 
@@ -405,6 +410,7 @@ export const Separator = primitive<{
   readonly bind?: {
     readonly orientation?: _Expr;
   };
+  readonly focus?: boolean;
 }>("separator");
 
 /**
@@ -444,6 +450,7 @@ export const Text = primitive<{
   readonly bind?: {
     readonly text?: _Expr;
   };
+  readonly focus?: boolean;
 }>("text");
 
 /**
@@ -481,6 +488,7 @@ export const Hint = primitive<{
   readonly bind?: {
     readonly text?: _Expr;
   };
+  readonly focus?: boolean;
 }>("hint");
 
 /**
@@ -522,6 +530,7 @@ export const Heading = primitive<{
     readonly text?: _Expr;
     readonly level?: _Expr;
   };
+  readonly focus?: boolean;
 }>("heading");
 
 /**
@@ -561,6 +570,7 @@ export const Icon = primitive<{
     readonly name?: _Expr;
     readonly label?: _Expr;
   };
+  readonly focus?: boolean;
 }>("icon");
 
 /**
@@ -600,6 +610,7 @@ export const Image = primitive<{
     readonly src?: _Expr;
     readonly alt?: _Expr;
   };
+  readonly focus?: boolean;
 }>("image");
 
 /**
@@ -639,6 +650,7 @@ export const Link = primitive<{
     readonly label?: _Expr;
     readonly href?: _Expr;
   };
+  readonly focus?: boolean;
 }>("link");
 
 /**
@@ -663,6 +675,7 @@ export const Button = primitive<{
     readonly current?: _Expr;
     readonly pressed?: _Expr;
   };
+  readonly focus?: boolean;
 }>("button");
 
 /**
@@ -714,6 +727,7 @@ export const TextField = primitive<{
     readonly readOnly?: _Expr;
     readonly maxLength?: _Expr;
   };
+  readonly focus?: boolean;
 }>("textField");
 
 /**
@@ -761,6 +775,7 @@ export const Select = primitive<{
     readonly disabled?: _Expr;
     readonly options?: _Expr;
   };
+  readonly focus?: boolean;
 }>("select");
 
 /**
@@ -802,6 +817,7 @@ export const Checkbox = primitive<{
     readonly checked?: _Expr;
     readonly disabled?: _Expr;
   };
+  readonly focus?: boolean;
 }>("checkbox");
 
 /**
@@ -843,6 +859,7 @@ export const Switch = primitive<{
     readonly checked?: _Expr;
     readonly disabled?: _Expr;
   };
+  readonly focus?: boolean;
 }>("switch");
 
 /**
@@ -881,6 +898,7 @@ export const Menu = primitive<{
     readonly label?: _Expr;
     readonly disabled?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("menu");
 
@@ -923,6 +941,7 @@ export const MenuItem = primitive<{
     readonly icon?: _Expr;
     readonly disabled?: _Expr;
   };
+  readonly focus?: boolean;
 }>("menuItem");
 
 /**
@@ -959,6 +978,7 @@ export const Popover = primitive<{
   readonly bind?: {
     readonly label?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("popover");
 
@@ -999,6 +1019,7 @@ export const Dialog = primitive<{
     readonly label?: _Expr;
     readonly open?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("dialog");
 
@@ -1036,6 +1057,7 @@ export const Tooltip = primitive<{
   readonly bind?: {
     readonly text?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("tooltip");
 
@@ -1076,6 +1098,7 @@ export const Tabs = primitive<{
     readonly label?: _Expr;
     readonly value?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("tabs");
 
@@ -1116,6 +1139,7 @@ export const Disclosure = primitive<{
     readonly label?: _Expr;
     readonly open?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("disclosure");
 
@@ -1159,5 +1183,6 @@ export const Tab = primitive<{
     readonly value?: _Expr;
     readonly disabled?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("tab");

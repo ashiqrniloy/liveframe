@@ -9,8 +9,8 @@ import type { LanguageSchema } from "../schema.ts";
 import { actionsSchema, compileActions } from "./actions.ts";
 import { type BindingCheck, compileBindings } from "./bindings.ts";
 import { closed, field, reject } from "./checks.ts";
-import { compileIntents } from "./intent.ts";
-import { type OfferedEvent, offeredChecks } from "./offered.ts";
+import { carriesCheck, compileIntents } from "./intent.ts";
+import type { OfferedEvent } from "./offered.ts";
 import { compileSchema, type SchemaCheck, type SchemaSink } from "./schema.ts";
 import { type ChildRules, type CompiledStructure, compileStructure } from "./structure.ts";
 import { compileStyles } from "./style.ts";
@@ -84,7 +84,7 @@ export type CompiledInputs = {
   readonly state: SchemaCheck;
   readonly context: SchemaCheck;
   readonly data: SchemaCheck;
-  /** The host's action statuses, keyed by result key (plan 029 design A2–A4). */
+  /** The host's action statuses, keyed by result key (spec §8). */
   readonly actions: SchemaCheck;
 };
 export type CompiledValidator = {
@@ -92,20 +92,7 @@ export type CompiledValidator = {
   readonly validateTree: TreeValidator;
 };
 
-const builds = new WeakMap<CompiledValidator, CompiledBuild>();
-const actions = new WeakMap<
-  CompiledValidator,
-  ReadonlyMap<string, Readonly<{ confirm: boolean; irreversible: boolean }>>
->();
-
-/** @internal Renderer metadata from the capabilities this validator was compiled with. */
-export function actionFacts(validator: CompiledValidator) {
-  const facts = actions.get(validator);
-  if (!facts) throw new LiveframeFailure([{ kind: "invalid-document", pointer: "", message: "Unknown validator" }]);
-  return facts;
-}
-
-/** @internal What a surface core needs to hold local state (plan 029 L1–L5). */
+/** @internal What a surface core needs to hold local state (spec §8, `setLocal`). */
 export type LocalFacts = {
   readonly schema: ObjectSchema;
   /** The manifest's `initialLocal`, frozen; `{}` when it declares none. */
@@ -113,25 +100,49 @@ export type LocalFacts = {
   /** One check per declared local key, for the value a `setLocal` writes. */
   readonly checks: ReadonlyMap<string, SchemaCheck>;
 };
-const locals = new WeakMap<CompiledValidator, LocalFacts>();
-
-/** @internal The manifest's local state, from the manifest this validator was compiled with. */
-export function localFacts(validator: CompiledValidator): LocalFacts {
-  const facts = locals.get(validator);
-  if (!facts) throw new LiveframeFailure([{ kind: "invalid-document", pointer: "", message: "Unknown validator" }]);
-  return facts;
-}
+/** @internal Each declared action's renderer-side flags, from the capabilities. */
+export type ActionFacts = ReadonlyMap<string, Readonly<{ confirm: boolean; irreversible: boolean }>>;
+/** @internal What `checkOffered` matches an intent against. */
+export type OfferedChecks = {
+  readonly intent: SchemaCheck;
+  readonly events: ReadonlyMap<string, ReadonlyMap<string, OfferedEvent>>;
+};
+/** @internal Everything a validator was compiled from that its callers read back. */
+export type ValidatorFacts = {
+  readonly build: CompiledBuild;
+  readonly actions: ActionFacts;
+  readonly local: LocalFacts;
+  readonly offered: OfferedChecks;
+};
 
 /**
- * The facts behind a validator, for `render()`'s one-pass builder. A `WeakMap`
- * keeps them off the public type, so no consumer can read or replace them, and
- * the lookup happens once per render rather than once per node.
+ * The facts behind each validator. A `WeakMap` keeps them off the public type, so no consumer can read or
+ * replace them (forging an action's `confirm` flag or the offered-intent schema), and one lookup serves a
+ * whole render rather than one per node.
  */
-export function buildFacts(validator: CompiledValidator): CompiledBuild {
-  const facts = builds.get(validator);
-  if (!facts) throw new LiveframeFailure([{ kind: "invalid-document", pointer: "", message: "Unknown validator" }]);
+const table = new WeakMap<CompiledValidator, ValidatorFacts>();
+
+/** @internal The message every caller gives for a validator this copy of the library did not compile. */
+export const UNKNOWN_VALIDATOR = "Expected a validator compiled by this copy of `compileValidator`";
+
+/** @internal The facts of a validator this copy compiled, or `undefined` for any other value. */
+export function factsOf(validator: CompiledValidator): ValidatorFacts | undefined {
+  return table.get(validator);
+}
+
+function known(validator: CompiledValidator): ValidatorFacts {
+  const facts = table.get(validator);
+  if (!facts) throw new LiveframeFailure([{ kind: "invalid-document", pointer: "", message: UNKNOWN_VALIDATOR }]);
   return facts;
 }
+
+/** @internal `render()`'s one-pass builder facts; throws `LiveframeFailure` for an unknown validator. */
+export const buildFacts = (validator: CompiledValidator): CompiledBuild => known(validator).build;
+/** @internal The renderer's action flags; throws `LiveframeFailure` for an unknown validator. */
+export const actionFacts = (validator: CompiledValidator): ActionFacts => known(validator).actions;
+/** @internal The manifest's local state; throws `LiveframeFailure` for an unknown validator. */
+export const localFacts = (validator: CompiledValidator): LocalFacts => known(validator).local;
+
 type NodeCheckSpec = {
   readonly fields: ReadonlySet<string>;
   readonly props: SchemaCheck;
@@ -343,7 +354,7 @@ function compileCatalog(catalogDoc: unknown, capabilitiesDoc: unknown): CatalogW
       new Map(
         Object.entries(definition.events).map(([name, { carries }]) => [
           name,
-          { carries, check: typeof carries === "object" ? compileSchema(carries.object) : undefined },
+          { carries, check: carriesCheck(carries) },
         ]),
       ),
     ]),
@@ -393,9 +404,29 @@ function compile(work: CatalogWork, manifest: Manifest): CompiledValidator {
     checkNode,
     validateTree: compileTree(catalog, checkNode, work.structure),
   };
-  actions.set(
-    validator,
-    new Map(
+  const local = manifest.local ?? NO_LOCAL;
+  const data = dataSchema(manifest, work.capabilities);
+  table.set(validator, {
+    build: {
+      catalogId: catalog.catalogId,
+      kinds: facts,
+      structure: work.structure,
+      inputs: {
+        params: compileSchema(manifest.params),
+        state: compileSchema(manifest.state),
+        context: compileSchema(manifest.context),
+        data: compileSchema(data),
+        actions: compileActions(manifest, work.capabilities),
+      },
+      schemas: {
+        params: manifest.params,
+        state: manifest.state,
+        context: manifest.context,
+        data,
+        actions: actionsSchema(manifest, work.capabilities),
+      },
+    },
+    actions: new Map(
       manifest.actions.map((name) => {
         const action = work.capabilities.actions[name];
         return [
@@ -404,33 +435,12 @@ function compile(work: CatalogWork, manifest: Manifest): CompiledValidator {
         ];
       }),
     ),
-  );
-  const local = manifest.local ?? NO_LOCAL;
-  locals.set(validator, {
-    schema: local,
-    initial: frozenJsonCopy((manifest.initialLocal ?? {}) as Json) as Readonly<Record<string, Json>>,
-    checks: new Map(Object.entries(local.properties).map(([key, schema]) => [key, compileSchema(schema)])),
-  });
-  offeredChecks.set(validator, { intent: intent("none"), events: work.offered });
-  const data = dataSchema(manifest, work.capabilities);
-  builds.set(validator, {
-    catalogId: catalog.catalogId,
-    kinds: facts,
-    structure: work.structure,
-    inputs: {
-      params: compileSchema(manifest.params),
-      state: compileSchema(manifest.state),
-      context: compileSchema(manifest.context),
-      data: compileSchema(data),
-      actions: compileActions(manifest, work.capabilities),
+    local: {
+      schema: local,
+      initial: frozenJsonCopy((manifest.initialLocal ?? {}) as Json) as Readonly<Record<string, Json>>,
+      checks: new Map(Object.entries(local.properties).map(([key, schema]) => [key, compileSchema(schema)])),
     },
-    schemas: {
-      params: manifest.params,
-      state: manifest.state,
-      context: manifest.context,
-      data,
-      actions: actionsSchema(manifest, work.capabilities),
-    },
+    offered: { intent: intent("none"), events: work.offered },
   });
   return validator;
 }

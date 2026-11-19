@@ -45,3 +45,13 @@ test("agent_home_server_render_time_is_recorded", () => {
   expect(html).toContain("lf_stack_default_root");
   expect(html).not.toContain("Unavailable");
 });
+
+test("keep_last_without_a_tree_draws_the_fallback", () => {
+  let calls = 0;
+  const { Surface } = renderer(() => calls++);
+  const html = renderToString(<Surface {...surfaceProps} invalid="keep-last" tree={hydrationTree("invalid")} />);
+  expect(html).toContain("<p>Unavailable</p>");
+  expect(html).not.toContain("data-lf-stale");
+  expect(html).not.toContain("aria-busy");
+  expect(calls).toBe(0);
+});

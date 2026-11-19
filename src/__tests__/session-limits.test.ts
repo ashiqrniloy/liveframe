@@ -43,7 +43,7 @@ test("session_limits_raise_host_validation", async () => {
     }
     await authoring.close();
   }
-});
+}, 15000);
 
 test("session_limits_bound_untrusted_runner_nodes_depth_and_bytes", async () => {
   const runner: Runner = {

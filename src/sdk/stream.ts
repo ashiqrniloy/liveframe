@@ -1,4 +1,4 @@
-// Progressive drawing of streamed element JSON (spec §7.2, plan 028 Task 7). One incremental JSON
+// Progressive drawing of streamed element JSON (spec §7.2). One incremental JSON
 // reader, and a driver that feeds `renderElements`'s own build steps (`streamBuild`) as nodes complete.
 
 import type { LiveframeError, Result } from "../errors.ts";
@@ -72,8 +72,8 @@ const ESCAPES: Readonly<Record<number, string>> = {
 
 /** What the reader reports about the element objects it meets; the driver decides what to do. */
 interface Sink<F> {
-  /** An object at an element position: the root, or an entry of an element's `children` array. */
-  element(object: Record<string, unknown>, parent: F | undefined): F;
+  /** An object at an element position: the root, or entry `index` of an element's `children` array. */
+  element(object: Record<string, unknown>, parent: F | undefined, index: number): F;
   /** The `children` array of this element begins: every member written before it is known. */
   childrenStart(frame: F): void;
   /** A member arrived after `children` began, so the fields the children were built on may change. */
@@ -279,8 +279,9 @@ class Reader<F> {
     const parent = this.current;
     const value: Record<string, unknown> = {};
     let element: F | undefined;
-    if (!parent) element = this.sink.element(value, undefined);
-    else if (parent.owner !== undefined) element = this.sink.element(value, parent.owner);
+    if (!parent) element = this.sink.element(value, undefined, 0);
+    else if (parent.owner !== undefined)
+      element = this.sink.element(value, parent.owner, (parent.value as unknown[]).length);
     this.current = { value, parent, element, owner: undefined, key: "", sawChildren: false };
     this.state = OBJECT_FIRST;
   }
@@ -523,6 +524,8 @@ class Reader<F> {
 type Frame = {
   readonly object: Record<string, unknown>;
   readonly parent: Frame | undefined;
+  /** The element's JSON pointer into the document, so errors point where `renderElements` points. */
+  readonly pointer: string;
   /** The root is level 1, as in `renderElements`. */
   readonly depth: number;
   /** Whether the element sits on the path the stream draws: every ancestor was opened as a shell. */
@@ -558,7 +561,7 @@ class Stream implements Sink<Frame> {
     this.options = options;
     this.revision = options.revision ?? 0;
     const { revision: _start, ...rest } = options;
-    const built = streamBuild({ ...rest, revision: this.revision + 1 });
+    const built = streamBuild({ ...rest, revision: this.revision + 1 }, this.pointers);
     if (Array.isArray(built)) this.result = { ok: false, errors: built };
     else this.build = built;
     this.reader = new Reader<Frame>(this, INPUT_FACTOR * (options.limits?.bytes ?? DEFAULT_LIMITS.bytes));
@@ -579,10 +582,11 @@ class Stream implements Sink<Frame> {
 
   // What the reader tells the stream about the elements it meets.
 
-  element(object: Record<string, unknown>, parent: Frame | undefined): Frame {
+  element(object: Record<string, unknown>, parent: Frame | undefined, index: number): Frame {
     return {
       object,
       parent,
+      pointer: parent ? `${parent.pointer}/children/${index}` : "",
       depth: parent ? parent.depth + 1 : 1,
       live: parent === undefined || parent.opened !== undefined,
       opened: undefined,
@@ -596,7 +600,7 @@ class Stream implements Sink<Frame> {
     const { kind } = frame.object;
     // A fragment draws nothing of its own, and a node nested this deep is an error `end()` reports.
     if (typeof kind !== "string" || kind === "fragment" || frame.depth >= ELEMENT_DEPTH) return;
-    const element = this.checked(convertShell(frame.object, "", this.reject, this.pointers));
+    const element = this.checked(convertShell(frame.object, frame.pointer, this.reject, this.pointers));
     const open = element && build.open(element, frame.parent?.opened?.open ?? null);
     if (!open) {
       this.dirty = frame.skip = true;
@@ -623,7 +627,9 @@ class Stream implements Sink<Frame> {
       this.chain.pop();
       placed = build.close(frame.opened.open);
     } else {
-      const element = this.checked(convertElement(frame.object, "", frame.depth, this.reject, this.pointers));
+      const element = this.checked(
+        convertElement(frame.object, frame.pointer, frame.depth, this.reject, this.pointers),
+      );
       placed = element && build.whole(element, parentOpen);
     }
     if (!placed) {

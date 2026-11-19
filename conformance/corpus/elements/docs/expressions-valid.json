@@ -1,0 +1,122 @@
+{
+  "kind": "stack",
+  "children": [
+    {
+      "kind": "textField",
+      "key": "filter",
+      "props": {
+        "label": "Filter",
+        "value": ""
+      },
+      "bind": {
+        "value": {
+          "$path": "local.q"
+        }
+      },
+      "events": {
+        "onChange": {
+          "type": "setLocal",
+          "key": "q"
+        }
+      }
+    },
+    {
+      "kind": "text",
+      "key": "a",
+      "props": {
+        "text": "Write the report"
+      },
+      "when": {
+        "$contains": [
+          {
+            "$path": "self.text"
+          },
+          {
+            "$path": "local.q"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "text",
+      "key": "b",
+      "props": {
+        "text": "Review the plan"
+      },
+      "when": {
+        "$contains": [
+          {
+            "$path": "self.text"
+          },
+          {
+            "$path": "local.q"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "text",
+      "key": "empty",
+      "props": {
+        "text": "Nothing matches"
+      },
+      "when": {
+        "$eq": [
+          {
+            "$path": "shown"
+          },
+          0
+        ]
+      }
+    },
+    {
+      "kind": "button",
+      "key": "claim",
+      "props": {
+        "label": "Claim"
+      },
+      "events": {
+        "onPress": {
+          "type": "action",
+          "name": "tasks.claim",
+          "args": {},
+          "fromLocal": {
+            "id": "q"
+          },
+          "local": [
+            {
+              "key": "expanded",
+              "value": true,
+              "until": "revision"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "kind": "switch",
+      "key": "more",
+      "props": {
+        "label": "More",
+        "checked": false
+      },
+      "bind": {
+        "checked": {
+          "$path": "local.expanded"
+        }
+      },
+      "events": {
+        "onChange": {
+          "type": "setState",
+          "key": "selected",
+          "value": "task:1",
+          "local": [
+            {
+              "key": "expanded"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

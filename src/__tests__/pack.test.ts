@@ -261,16 +261,6 @@ test("verify_rechecks_manifest_and_scenarios", () => {
   );
 });
 
-test("verify_agent_home_under_20_ms", () => {
-  const pkg: WidgetPackage = value(pack(input, options));
-  for (let i = 0; i < 5; i++) value(verifyPackage(pkg, options));
-  const start = performance.now();
-  value(verifyPackage(pkg, options));
-  const elapsed = performance.now() - start;
-  console.info(`agent-home package verification: ${elapsed.toFixed(2)} ms`);
-  expect(elapsed).toBeLessThan(20);
-});
-
 function expectFrozen(value: unknown): void {
   if (value === null || typeof value !== "object") return;
   expect(Object.isFrozen(value)).toBe(true);

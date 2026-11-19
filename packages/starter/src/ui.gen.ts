@@ -19,7 +19,8 @@ type _Length =
   | "space.6"
   | "space.7"
   | "size.glyph"
-  | "size.panel";
+  | "size.panel"
+  | "size.row";
 type _Track = _Length | `${number}fr`;
 type _Dimension = _Length | "fill" | "fit" | `${number}ch` | `${number}%`;
 type _Surface =
@@ -118,6 +119,7 @@ export const Box = primitive<{
     readonly semantics?: _Expr;
     readonly label?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("box");
 
@@ -178,6 +180,7 @@ export const Stack = primitive<{
     readonly semantics?: _Expr;
     readonly label?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("stack");
 
@@ -238,6 +241,7 @@ export const Inline = primitive<{
     readonly semantics?: _Expr;
     readonly label?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("inline");
 
@@ -299,15 +303,20 @@ export const Grid = primitive<{
     readonly semantics?: _Expr;
     readonly label?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("grid");
 
 /**
- * A named, keyboard-focusable region that scrolls its children.
+ * A named, keyboard-focusable region that scrolls its children, or windows a long list.
  */
 export const Scroll = primitive<{
   readonly label: string;
   readonly axis?: "vertical" | "horizontal" | "both";
+  readonly itemCount?: number;
+  readonly itemStart?: number;
+  readonly itemSize?: "size.glyph" | "size.panel" | "size.row";
+  readonly step?: number;
   readonly variant?: "default";
   readonly padding?: _Responsive<_Space>;
   readonly paddingX?: _Responsive<_Space>;
@@ -335,11 +344,17 @@ export const Scroll = primitive<{
   readonly insetBottom?: _Responsive<_Space>;
   readonly minHeight?: _Responsive<_Dimension>;
   readonly maxHeight?: _Responsive<_Dimension>;
+  readonly onRange?: _Intent | _LocalIntent;
   readonly when?: _Expr;
   readonly bind?: {
     readonly label?: _Expr;
     readonly axis?: _Expr;
+    readonly itemCount?: _Expr;
+    readonly itemStart?: _Expr;
+    readonly itemSize?: _Expr;
+    readonly step?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("scroll");
 
@@ -377,6 +392,7 @@ export const Separator = primitive<{
   readonly bind?: {
     readonly orientation?: _Expr;
   };
+  readonly focus?: boolean;
 }>("separator");
 
 /**
@@ -416,6 +432,7 @@ export const Text = primitive<{
   readonly bind?: {
     readonly text?: _Expr;
   };
+  readonly focus?: boolean;
 }>("text");
 
 /**
@@ -453,6 +470,7 @@ export const Hint = primitive<{
   readonly bind?: {
     readonly text?: _Expr;
   };
+  readonly focus?: boolean;
 }>("hint");
 
 /**
@@ -494,6 +512,7 @@ export const Heading = primitive<{
     readonly text?: _Expr;
     readonly level?: _Expr;
   };
+  readonly focus?: boolean;
 }>("heading");
 
 /**
@@ -533,6 +552,7 @@ export const Icon = primitive<{
     readonly name?: _Expr;
     readonly label?: _Expr;
   };
+  readonly focus?: boolean;
 }>("icon");
 
 /**
@@ -572,6 +592,7 @@ export const Image = primitive<{
     readonly src?: _Expr;
     readonly alt?: _Expr;
   };
+  readonly focus?: boolean;
 }>("image");
 
 /**
@@ -611,6 +632,7 @@ export const Link = primitive<{
     readonly label?: _Expr;
     readonly href?: _Expr;
   };
+  readonly focus?: boolean;
 }>("link");
 
 /**
@@ -637,6 +659,7 @@ export const Button = primitive<{
     readonly pressed?: _Expr;
     readonly tone?: _Expr;
   };
+  readonly focus?: boolean;
 }>("button");
 
 /**
@@ -688,6 +711,7 @@ export const TextField = primitive<{
     readonly readOnly?: _Expr;
     readonly maxLength?: _Expr;
   };
+  readonly focus?: boolean;
 }>("textField");
 
 /**
@@ -735,6 +759,7 @@ export const Select = primitive<{
     readonly disabled?: _Expr;
     readonly options?: _Expr;
   };
+  readonly focus?: boolean;
 }>("select");
 
 /**
@@ -776,6 +801,7 @@ export const Checkbox = primitive<{
     readonly checked?: _Expr;
     readonly disabled?: _Expr;
   };
+  readonly focus?: boolean;
 }>("checkbox");
 
 /**
@@ -817,7 +843,441 @@ export const Switch = primitive<{
     readonly checked?: _Expr;
     readonly disabled?: _Expr;
   };
+  readonly focus?: boolean;
 }>("switch");
+
+/**
+ * Chooses one of its `radio` children by arrow keys, with one tab stop.
+ */
+export const RadioGroup = primitive<{
+  readonly label: string;
+  readonly value?: string | null;
+  readonly orientation?: "vertical" | "horizontal";
+  readonly disabled?: boolean;
+  readonly describedBy?: _NodeRef;
+  readonly variant?: "default";
+  readonly padding?: _Responsive<_Space>;
+  readonly paddingX?: _Responsive<_Space>;
+  readonly paddingY?: _Responsive<_Space>;
+  readonly paddingTop?: _Responsive<_Space>;
+  readonly paddingRight?: _Responsive<_Space>;
+  readonly paddingBottom?: _Responsive<_Space>;
+  readonly paddingLeft?: _Responsive<_Space>;
+  readonly margin?: _Responsive<_Space>;
+  readonly marginX?: _Responsive<_Space>;
+  readonly marginY?: _Responsive<_Space>;
+  readonly marginTop?: _Responsive<_Space>;
+  readonly marginRight?: _Responsive<_Space>;
+  readonly marginBottom?: _Responsive<_Space>;
+  readonly marginLeft?: _Responsive<_Space>;
+  readonly width?: _Responsive<_Dimension>;
+  readonly height?: _Responsive<_Dimension>;
+  readonly minWidth?: _Responsive<_Dimension>;
+  readonly maxWidth?: _Responsive<_Dimension>;
+  readonly grow?: _Responsive<number>;
+  readonly shrink?: _Responsive<number>;
+  readonly basis?: _Responsive<number>;
+  readonly position?: _Responsive<"static" | "sticky">;
+  readonly insetTop?: _Responsive<_Space>;
+  readonly insetBottom?: _Responsive<_Space>;
+  readonly onChange?: _Intent | _LocalIntent;
+  readonly when?: _Expr;
+  readonly bind?: {
+    readonly label?: _Expr;
+    readonly value?: _Expr;
+    readonly orientation?: _Expr;
+    readonly disabled?: _Expr;
+  };
+  readonly focus?: boolean;
+  readonly children?: _Child;
+}>("radioGroup");
+
+/**
+ * One option of a `radioGroup`; drawn only inside one.
+ */
+export const Radio = primitive<{
+  readonly label: string;
+  readonly value: string;
+  readonly disabled?: boolean;
+  readonly variant?: "default";
+  readonly padding?: _Responsive<_Space>;
+  readonly paddingX?: _Responsive<_Space>;
+  readonly paddingY?: _Responsive<_Space>;
+  readonly paddingTop?: _Responsive<_Space>;
+  readonly paddingRight?: _Responsive<_Space>;
+  readonly paddingBottom?: _Responsive<_Space>;
+  readonly paddingLeft?: _Responsive<_Space>;
+  readonly margin?: _Responsive<_Space>;
+  readonly marginX?: _Responsive<_Space>;
+  readonly marginY?: _Responsive<_Space>;
+  readonly marginTop?: _Responsive<_Space>;
+  readonly marginRight?: _Responsive<_Space>;
+  readonly marginBottom?: _Responsive<_Space>;
+  readonly marginLeft?: _Responsive<_Space>;
+  readonly width?: _Responsive<_Dimension>;
+  readonly height?: _Responsive<_Dimension>;
+  readonly minWidth?: _Responsive<_Dimension>;
+  readonly maxWidth?: _Responsive<_Dimension>;
+  readonly grow?: _Responsive<number>;
+  readonly shrink?: _Responsive<number>;
+  readonly basis?: _Responsive<number>;
+  readonly position?: _Responsive<"static" | "sticky">;
+  readonly insetTop?: _Responsive<_Space>;
+  readonly insetBottom?: _Responsive<_Space>;
+  readonly when?: _Expr;
+  readonly bind?: {
+    readonly label?: _Expr;
+    readonly value?: _Expr;
+    readonly disabled?: _Expr;
+  };
+  readonly focus?: boolean;
+}>("radio");
+
+/**
+ * Picks a number in a range; `onChange` fires when a drag or key step ends, never while dragging.
+ */
+export const Slider = primitive<{
+  readonly label: string;
+  readonly value: number;
+  readonly minimum?: number;
+  readonly maximum?: number;
+  readonly step?: number;
+  readonly valueText?: string;
+  readonly disabled?: boolean;
+  readonly variant?: "default";
+  readonly padding?: _Responsive<_Space>;
+  readonly paddingX?: _Responsive<_Space>;
+  readonly paddingY?: _Responsive<_Space>;
+  readonly paddingTop?: _Responsive<_Space>;
+  readonly paddingRight?: _Responsive<_Space>;
+  readonly paddingBottom?: _Responsive<_Space>;
+  readonly paddingLeft?: _Responsive<_Space>;
+  readonly margin?: _Responsive<_Space>;
+  readonly marginX?: _Responsive<_Space>;
+  readonly marginY?: _Responsive<_Space>;
+  readonly marginTop?: _Responsive<_Space>;
+  readonly marginRight?: _Responsive<_Space>;
+  readonly marginBottom?: _Responsive<_Space>;
+  readonly marginLeft?: _Responsive<_Space>;
+  readonly width?: _Responsive<_Dimension>;
+  readonly height?: _Responsive<_Dimension>;
+  readonly minWidth?: _Responsive<_Dimension>;
+  readonly maxWidth?: _Responsive<_Dimension>;
+  readonly grow?: _Responsive<number>;
+  readonly shrink?: _Responsive<number>;
+  readonly basis?: _Responsive<number>;
+  readonly position?: _Responsive<"static" | "sticky">;
+  readonly insetTop?: _Responsive<_Space>;
+  readonly insetBottom?: _Responsive<_Space>;
+  readonly onChange?: _Intent | _LocalIntent;
+  readonly when?: _Expr;
+  readonly bind?: {
+    readonly label?: _Expr;
+    readonly value?: _Expr;
+    readonly minimum?: _Expr;
+    readonly maximum?: _Expr;
+    readonly step?: _Expr;
+    readonly valueText?: _Expr;
+    readonly disabled?: _Expr;
+  };
+  readonly focus?: boolean;
+}>("slider");
+
+/**
+ * Shows progress through a range; without a `value` it is indeterminate.
+ */
+export const Progress = primitive<{
+  readonly label: string;
+  readonly value?: number | null;
+  readonly minimum?: number;
+  readonly maximum?: number;
+  readonly valueText?: string;
+  readonly variant?: "default";
+  readonly padding?: _Responsive<_Space>;
+  readonly paddingX?: _Responsive<_Space>;
+  readonly paddingY?: _Responsive<_Space>;
+  readonly paddingTop?: _Responsive<_Space>;
+  readonly paddingRight?: _Responsive<_Space>;
+  readonly paddingBottom?: _Responsive<_Space>;
+  readonly paddingLeft?: _Responsive<_Space>;
+  readonly margin?: _Responsive<_Space>;
+  readonly marginX?: _Responsive<_Space>;
+  readonly marginY?: _Responsive<_Space>;
+  readonly marginTop?: _Responsive<_Space>;
+  readonly marginRight?: _Responsive<_Space>;
+  readonly marginBottom?: _Responsive<_Space>;
+  readonly marginLeft?: _Responsive<_Space>;
+  readonly width?: _Responsive<_Dimension>;
+  readonly height?: _Responsive<_Dimension>;
+  readonly minWidth?: _Responsive<_Dimension>;
+  readonly maxWidth?: _Responsive<_Dimension>;
+  readonly grow?: _Responsive<number>;
+  readonly shrink?: _Responsive<number>;
+  readonly basis?: _Responsive<number>;
+  readonly position?: _Responsive<"static" | "sticky">;
+  readonly insetTop?: _Responsive<_Space>;
+  readonly insetBottom?: _Responsive<_Space>;
+  readonly when?: _Expr;
+  readonly bind?: {
+    readonly label?: _Expr;
+    readonly value?: _Expr;
+    readonly minimum?: _Expr;
+    readonly maximum?: _Expr;
+    readonly valueText?: _Expr;
+  };
+  readonly focus?: boolean;
+}>("progress");
+
+/**
+ * Edits an ISO date (YYYY-MM-DD) in segments; `onChange` carries it, or the empty string when cleared.
+ */
+export const DateField = primitive<{
+  readonly label: string;
+  readonly value?: string | null;
+  readonly minimum?: string;
+  readonly maximum?: string;
+  readonly disabled?: boolean;
+  readonly readOnly?: boolean;
+  readonly describedBy?: _NodeRef;
+  readonly variant?: "default";
+  readonly padding?: _Responsive<_Space>;
+  readonly paddingX?: _Responsive<_Space>;
+  readonly paddingY?: _Responsive<_Space>;
+  readonly paddingTop?: _Responsive<_Space>;
+  readonly paddingRight?: _Responsive<_Space>;
+  readonly paddingBottom?: _Responsive<_Space>;
+  readonly paddingLeft?: _Responsive<_Space>;
+  readonly margin?: _Responsive<_Space>;
+  readonly marginX?: _Responsive<_Space>;
+  readonly marginY?: _Responsive<_Space>;
+  readonly marginTop?: _Responsive<_Space>;
+  readonly marginRight?: _Responsive<_Space>;
+  readonly marginBottom?: _Responsive<_Space>;
+  readonly marginLeft?: _Responsive<_Space>;
+  readonly width?: _Responsive<_Dimension>;
+  readonly height?: _Responsive<_Dimension>;
+  readonly minWidth?: _Responsive<_Dimension>;
+  readonly maxWidth?: _Responsive<_Dimension>;
+  readonly grow?: _Responsive<number>;
+  readonly shrink?: _Responsive<number>;
+  readonly basis?: _Responsive<number>;
+  readonly position?: _Responsive<"static" | "sticky">;
+  readonly insetTop?: _Responsive<_Space>;
+  readonly insetBottom?: _Responsive<_Space>;
+  readonly onChange?: _Intent | _LocalIntent;
+  readonly when?: _Expr;
+  readonly bind?: {
+    readonly label?: _Expr;
+    readonly value?: _Expr;
+    readonly minimum?: _Expr;
+    readonly maximum?: _Expr;
+    readonly disabled?: _Expr;
+    readonly readOnly?: _Expr;
+  };
+  readonly focus?: boolean;
+}>("dateField");
+
+/**
+ * Formatted text in a closed subset, drawn as text, never HTML. Links take `https` or relative URLs.
+ */
+export const RichText = primitive<{
+  readonly text: string;
+  readonly headingLevel?: number;
+  readonly variant?: "default";
+  readonly padding?: _Responsive<_Space>;
+  readonly paddingX?: _Responsive<_Space>;
+  readonly paddingY?: _Responsive<_Space>;
+  readonly paddingTop?: _Responsive<_Space>;
+  readonly paddingRight?: _Responsive<_Space>;
+  readonly paddingBottom?: _Responsive<_Space>;
+  readonly paddingLeft?: _Responsive<_Space>;
+  readonly margin?: _Responsive<_Space>;
+  readonly marginX?: _Responsive<_Space>;
+  readonly marginY?: _Responsive<_Space>;
+  readonly marginTop?: _Responsive<_Space>;
+  readonly marginRight?: _Responsive<_Space>;
+  readonly marginBottom?: _Responsive<_Space>;
+  readonly marginLeft?: _Responsive<_Space>;
+  readonly width?: _Responsive<_Dimension>;
+  readonly height?: _Responsive<_Dimension>;
+  readonly minWidth?: _Responsive<_Dimension>;
+  readonly maxWidth?: _Responsive<_Dimension>;
+  readonly grow?: _Responsive<number>;
+  readonly shrink?: _Responsive<number>;
+  readonly basis?: _Responsive<number>;
+  readonly position?: _Responsive<"static" | "sticky">;
+  readonly insetTop?: _Responsive<_Space>;
+  readonly insetBottom?: _Responsive<_Space>;
+  readonly when?: _Expr;
+  readonly bind?: {
+    readonly text?: _Expr;
+    readonly headingLevel?: _Expr;
+  };
+  readonly focus?: boolean;
+}>("richText");
+
+/**
+ * A bar or line chart of up to 4 series over `labels`, with a text alternative of every value.
+ */
+export const Chart = primitive<{
+  readonly label: string;
+  readonly type: "bar" | "line";
+  readonly labels: ReadonlyArray<string>;
+  readonly series: ReadonlyArray<{
+    readonly name: string;
+    readonly values: ReadonlyArray<number>;
+  }>;
+  readonly summary?: string;
+  readonly variant?: "default";
+  readonly padding?: _Responsive<_Space>;
+  readonly paddingX?: _Responsive<_Space>;
+  readonly paddingY?: _Responsive<_Space>;
+  readonly paddingTop?: _Responsive<_Space>;
+  readonly paddingRight?: _Responsive<_Space>;
+  readonly paddingBottom?: _Responsive<_Space>;
+  readonly paddingLeft?: _Responsive<_Space>;
+  readonly margin?: _Responsive<_Space>;
+  readonly marginX?: _Responsive<_Space>;
+  readonly marginY?: _Responsive<_Space>;
+  readonly marginTop?: _Responsive<_Space>;
+  readonly marginRight?: _Responsive<_Space>;
+  readonly marginBottom?: _Responsive<_Space>;
+  readonly marginLeft?: _Responsive<_Space>;
+  readonly width?: _Responsive<_Dimension>;
+  readonly height?: _Responsive<_Dimension>;
+  readonly minWidth?: _Responsive<_Dimension>;
+  readonly maxWidth?: _Responsive<_Dimension>;
+  readonly grow?: _Responsive<number>;
+  readonly shrink?: _Responsive<number>;
+  readonly basis?: _Responsive<number>;
+  readonly position?: _Responsive<"static" | "sticky">;
+  readonly insetTop?: _Responsive<_Space>;
+  readonly insetBottom?: _Responsive<_Space>;
+  readonly when?: _Expr;
+  readonly bind?: {
+    readonly label?: _Expr;
+    readonly type?: _Expr;
+    readonly labels?: _Expr;
+    readonly series?: _Expr;
+    readonly summary?: _Expr;
+  };
+  readonly focus?: boolean;
+}>("chart");
+
+/**
+ * A static data table of `tableRow` children; put header cells in the first row or column.
+ */
+export const Table = primitive<{
+  readonly label: string;
+  readonly caption?: string;
+  readonly variant?: "default";
+  readonly padding?: _Responsive<_Space>;
+  readonly paddingX?: _Responsive<_Space>;
+  readonly paddingY?: _Responsive<_Space>;
+  readonly paddingTop?: _Responsive<_Space>;
+  readonly paddingRight?: _Responsive<_Space>;
+  readonly paddingBottom?: _Responsive<_Space>;
+  readonly paddingLeft?: _Responsive<_Space>;
+  readonly margin?: _Responsive<_Space>;
+  readonly marginX?: _Responsive<_Space>;
+  readonly marginY?: _Responsive<_Space>;
+  readonly marginTop?: _Responsive<_Space>;
+  readonly marginRight?: _Responsive<_Space>;
+  readonly marginBottom?: _Responsive<_Space>;
+  readonly marginLeft?: _Responsive<_Space>;
+  readonly width?: _Responsive<_Dimension>;
+  readonly height?: _Responsive<_Dimension>;
+  readonly minWidth?: _Responsive<_Dimension>;
+  readonly maxWidth?: _Responsive<_Dimension>;
+  readonly grow?: _Responsive<number>;
+  readonly shrink?: _Responsive<number>;
+  readonly basis?: _Responsive<number>;
+  readonly position?: _Responsive<"static" | "sticky">;
+  readonly insetTop?: _Responsive<_Space>;
+  readonly insetBottom?: _Responsive<_Space>;
+  readonly when?: _Expr;
+  readonly bind?: {
+    readonly label?: _Expr;
+    readonly caption?: _Expr;
+  };
+  readonly focus?: boolean;
+  readonly children?: _Child;
+}>("table");
+
+/**
+ * One row of a `table`.
+ */
+export const TableRow = primitive<{
+  readonly variant?: "default";
+  readonly padding?: _Responsive<_Space>;
+  readonly paddingX?: _Responsive<_Space>;
+  readonly paddingY?: _Responsive<_Space>;
+  readonly paddingTop?: _Responsive<_Space>;
+  readonly paddingRight?: _Responsive<_Space>;
+  readonly paddingBottom?: _Responsive<_Space>;
+  readonly paddingLeft?: _Responsive<_Space>;
+  readonly margin?: _Responsive<_Space>;
+  readonly marginX?: _Responsive<_Space>;
+  readonly marginY?: _Responsive<_Space>;
+  readonly marginTop?: _Responsive<_Space>;
+  readonly marginRight?: _Responsive<_Space>;
+  readonly marginBottom?: _Responsive<_Space>;
+  readonly marginLeft?: _Responsive<_Space>;
+  readonly width?: _Responsive<_Dimension>;
+  readonly height?: _Responsive<_Dimension>;
+  readonly minWidth?: _Responsive<_Dimension>;
+  readonly maxWidth?: _Responsive<_Dimension>;
+  readonly grow?: _Responsive<number>;
+  readonly shrink?: _Responsive<number>;
+  readonly basis?: _Responsive<number>;
+  readonly position?: _Responsive<"static" | "sticky">;
+  readonly insetTop?: _Responsive<_Space>;
+  readonly insetBottom?: _Responsive<_Space>;
+  readonly when?: _Expr;
+  readonly focus?: boolean;
+  readonly children?: _Child;
+}>("tableRow");
+
+/**
+ * One cell of a `tableRow`; `header` makes it a column or row header.
+ */
+export const TableCell = primitive<{
+  readonly header?: "column" | "row";
+  readonly span?: number;
+  readonly variant?: "default";
+  readonly padding?: _Responsive<_Space>;
+  readonly paddingX?: _Responsive<_Space>;
+  readonly paddingY?: _Responsive<_Space>;
+  readonly paddingTop?: _Responsive<_Space>;
+  readonly paddingRight?: _Responsive<_Space>;
+  readonly paddingBottom?: _Responsive<_Space>;
+  readonly paddingLeft?: _Responsive<_Space>;
+  readonly margin?: _Responsive<_Space>;
+  readonly marginX?: _Responsive<_Space>;
+  readonly marginY?: _Responsive<_Space>;
+  readonly marginTop?: _Responsive<_Space>;
+  readonly marginRight?: _Responsive<_Space>;
+  readonly marginBottom?: _Responsive<_Space>;
+  readonly marginLeft?: _Responsive<_Space>;
+  readonly width?: _Responsive<_Dimension>;
+  readonly height?: _Responsive<_Dimension>;
+  readonly minWidth?: _Responsive<_Dimension>;
+  readonly maxWidth?: _Responsive<_Dimension>;
+  readonly grow?: _Responsive<number>;
+  readonly shrink?: _Responsive<number>;
+  readonly basis?: _Responsive<number>;
+  readonly position?: _Responsive<"static" | "sticky">;
+  readonly insetTop?: _Responsive<_Space>;
+  readonly insetBottom?: _Responsive<_Space>;
+  readonly textAlign?: _Responsive<"start" | "center" | "end">;
+  readonly when?: _Expr;
+  readonly bind?: {
+    readonly header?: _Expr;
+    readonly span?: _Expr;
+  };
+  readonly focus?: boolean;
+  readonly children?: _Child;
+}>("tableCell");
 
 /**
  * A button that opens a list of menu items.
@@ -855,6 +1315,7 @@ export const Menu = primitive<{
     readonly label?: _Expr;
     readonly disabled?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("menu");
 
@@ -897,6 +1358,7 @@ export const MenuItem = primitive<{
     readonly icon?: _Expr;
     readonly disabled?: _Expr;
   };
+  readonly focus?: boolean;
 }>("menuItem");
 
 /**
@@ -933,6 +1395,7 @@ export const Popover = primitive<{
   readonly bind?: {
     readonly label?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("popover");
 
@@ -973,6 +1436,7 @@ export const Dialog = primitive<{
     readonly label?: _Expr;
     readonly open?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("dialog");
 
@@ -1010,6 +1474,7 @@ export const Tooltip = primitive<{
   readonly bind?: {
     readonly text?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("tooltip");
 
@@ -1050,6 +1515,7 @@ export const Tabs = primitive<{
     readonly label?: _Expr;
     readonly value?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("tabs");
 
@@ -1090,6 +1556,7 @@ export const Disclosure = primitive<{
     readonly label?: _Expr;
     readonly open?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("disclosure");
 
@@ -1133,5 +1600,6 @@ export const Tab = primitive<{
     readonly value?: _Expr;
     readonly disabled?: _Expr;
   };
+  readonly focus?: boolean;
   readonly children?: _Child;
 }>("tab");

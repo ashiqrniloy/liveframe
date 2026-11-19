@@ -1,0 +1,15 @@
+{
+  "inputs": {
+    "doc": "docs/array-carry-nested-array.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "invalid-document",
+        "pointer": "/definitions/1/events/onSelect/carries/array/items/type"
+      }
+    ]
+  }
+}

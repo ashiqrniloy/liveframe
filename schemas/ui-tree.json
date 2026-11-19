@@ -24,6 +24,10 @@
       "minimum": 0,
       "type": "integer"
     },
+    "focus": {
+      "type": "string",
+      "pattern": "^root(?:/(?:[a-zA-Z0-9_.!~*'():-]|%[0-9A-F]{2})+)*$"
+    },
     "root": {
       "$ref": "#/$defs/node"
     }
@@ -65,6 +69,30 @@
         }
       ]
     },
+    "localWrite": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "$ref": "#/$defs/json"
+        },
+        "until": {
+          "maxLength": 8,
+          "enum": [
+            "revision"
+          ],
+          "type": "string"
+        },
+        "key": {
+          "maxLength": 128,
+          "pattern": "^.+$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "additionalProperties": false
+    },
     "intent": {
       "oneOf": [
         {
@@ -72,6 +100,19 @@
           "properties": {
             "value": {
               "$ref": "#/$defs/json"
+            },
+            "local": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/$defs/localWrite"
+              }
+            },
+            "fromLocal": {
+              "maxLength": 128,
+              "pattern": "^.+$",
+              "type": "string"
             },
             "type": {
               "maxLength": 8,
@@ -90,7 +131,17 @@
             "type",
             "key"
           ],
-          "additionalProperties": false
+          "additionalProperties": false,
+          "not": {
+            "properties": {
+              "value": {},
+              "fromLocal": {}
+            },
+            "required": [
+              "value",
+              "fromLocal"
+            ]
+          }
         },
         {
           "type": "object",
@@ -107,6 +158,24 @@
               "maxLength": 128,
               "pattern": "^.+$",
               "type": "string"
+            },
+            "local": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/$defs/localWrite"
+              }
+            },
+            "fromLocal": {
+              "type": "object",
+              "minProperties": 1,
+              "maxProperties": 16,
+              "additionalProperties": {
+                "maxLength": 128,
+                "pattern": "^.+$",
+                "type": "string"
+              }
             },
             "type": {
               "maxLength": 6,

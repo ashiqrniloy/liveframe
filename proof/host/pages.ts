@@ -43,7 +43,7 @@ export async function createSession(pkg: WidgetPackage, initial: WidgetInputs) {
   const validator = compileValidator({ ...packageOptions, manifest: pkg.manifest });
   let inputs = structuredClone(initial);
   const draw = async (next: WidgetInputs, revision: number) =>
-    value(await runner.render(pkg, next, { ...packageOptions, surfaceId, revision }));
+    value(await runner.render(pkg, next, { ...packageOptions, surfaceId, revision, timeoutMs: 2000 }));
   let tree = await draw(inputs, 1);
   const actions: Intent[] = [];
   const snapshot = (): Snapshot => ({ tree, manifest: pkg.manifest, actions: structuredClone(actions) });

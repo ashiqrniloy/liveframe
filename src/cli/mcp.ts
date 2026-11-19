@@ -160,17 +160,21 @@ function registerCatalogTools(sdk: Sdk, server: Server, authoring: Authoring): v
       outputSchema: sdk.fromJsonSchema(outputSchemas.generated_types),
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       description:
-        "A generated catalog module, byte-identical to `liveframe gen` output: types (default), implementations, elementsSchema or templateSchema (a JSON Schema for template drafts, from this server's capabilities; pass `manifest` to enumerate the widget's own paths, state keys and actions). The result's note names the file to save.",
+        "A generated catalog module, byte-identical to `liveframe gen` output: types (default), implementations, elementsSchema, templateSchema (a JSON Schema for template drafts, from this server's capabilities; pass `manifest` to enumerate the widget's own paths, state keys and actions) or digest (a Markdown description of the catalog and this server's capabilities for an agent that writes element JSON). With elementsSchema or digest, pass `local` to describe `when`, `bind` and local intents. The result's note names the file to save.",
       inputSchema: sdk.fromJsonSchema<Parameters<Authoring["generatedTypes"]>[0]>({
         type: "object",
         properties: {
           module: {
             description:
-              'Optional module: "types" (default, ui.gen.ts), "implementations" (--implementations, ui.definitions.gen.ts), "elementsSchema" (--elements-schema, elements.schema.json) or "templateSchema" (--template-schema, template.schema.json).',
+              'Optional module: "types" (default, ui.gen.ts), "implementations" (--implementations, ui.definitions.gen.ts), "elementsSchema" (--elements-schema, elements.schema.json), "templateSchema" (--template-schema, template.schema.json) or "digest" (--digest, catalog.digest.md).',
           },
           manifest: {
             description:
               'Optional, with module "templateSchema" only: a draft manifest. The schema then lists the `$path`s it can read and the state keys and actions it can use.',
+          },
+          local: {
+            description:
+              'Optional, with module "elementsSchema" or "digest" only: the `local` object schema the host passes to ephemeralManifest. The output then describes `when`, `bind`, the tree expression grammar and the local intents for those keys.',
           },
         },
       }),
@@ -382,7 +386,7 @@ const renderSchema = {
     },
     outcomes: {
       description:
-        "Optional boolean: true expands each selected scenario's single sourceOutcome source into ok, unauthorized, unavailable, stale and failed. Scenarios with no outcome source render once; more than one is an error. Always returns scenario statuses when true, even with scenario.",
+        "Optional boolean: true expands each selected scenario's single sourceOutcome source into ok, unauthorized, unavailable, stale, failed and, when declared, pending. Scenarios with no outcome source render once; more than one is an error. Always returns scenario statuses when true, even with scenario.",
     },
   },
   $defs: { json: (packageDoc.$defs as JsonObject).json },
@@ -409,13 +413,14 @@ function registerDraftTools(sdk: Sdk, server: Server, authoring: Authoring): voi
       outputSchema: sdk.fromJsonSchema(outputSchemas.set_state),
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       description:
-        "Applies an offered setState event from the current single-scenario render and returns its new tree (at most 256 KiB). Origin requires nodeId and event. Literal values are preserved; otherwise value completes the event. Actions are refused. Call render_scenarios with a scenario first.",
+        "Applies an offered setState event from the current single-scenario render and returns its new tree (at most 256 KiB). Origin requires nodeId and event. Literal values are preserved; otherwise value completes the event, or stands for the local key a fromLocal event reads. Actions are refused. Call render_scenarios with a scenario first.",
       inputSchema: sdk.fromJsonSchema<Parameters<Authoring["setState"]>[0]>({
         type: "object",
         properties: {
           origin: { description: "Required. An object with nodeId and event from the current tree's own events." },
           value: {
-            description: "Optional JSON value carried by the event; ignored when the intent has a literal value.",
+            description:
+              "Optional JSON value carried by the event, or the local value a fromLocal event reads; ignored when the intent has a literal value.",
           },
         },
       }),

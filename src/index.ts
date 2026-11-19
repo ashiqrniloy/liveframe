@@ -28,6 +28,7 @@ export type {
   IntentOrigin,
   Json,
   LocalIntent,
+  LocalWrite,
   NodeRef,
   TreeIntent,
   UiNode,
@@ -50,6 +51,7 @@ export {
   str,
   union,
 } from "./schema.ts";
+export { checkUrl, type UrlRule } from "./url.ts";
 export { type CompiledValidator, type CompileValidatorOptions, compileValidator } from "./validate/compile.ts";
 export { checkOffered } from "./validate/offered.ts";
 export { applyPatch, diffTrees } from "./validate/patch.ts";

@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { ConformanceFailure } from "../conformance/case.ts";
-import { styledStates } from "../conformance/react/states.ts";
+import { styledStates } from "../conformance/renderer/states.ts";
 import { stateDeclarations } from "../css/design-system.ts";
 import { recipeDeclarations } from "../css/recipe.ts";
 import { pageOptions } from "./fixtures/conformance-browser.tsx";

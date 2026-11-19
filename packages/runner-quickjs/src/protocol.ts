@@ -12,6 +12,8 @@ export type RenderRequest = {
   readonly id: number;
   readonly code: string;
   readonly libraries: Readonly<Record<string, string>>;
+  /** Catalog and capabilities JSON, kept separate so a reused runtime skips re-parsing and keeps its validator cache warm. */
+  readonly config: string;
   readonly request: string;
   readonly limits: Limits;
   /** Set when the runtime is kept between renders (`reuse: "package"`): the package hash. */
@@ -27,7 +29,7 @@ export type Reason = "timeout" | "memory" | "stack";
 
 /**
  * Which limit a QuickJS message names. The engine reports a stopped render as an ordinary message
- * (spike finding F7), so the host classifies by text: a widget that throws the same words only
+ * rather than a distinct error, so the host classifies by text: a widget that throws the same words only
  * changes the kind of its own failure.
  */
 export function limitOf(message: string): Reason | undefined {

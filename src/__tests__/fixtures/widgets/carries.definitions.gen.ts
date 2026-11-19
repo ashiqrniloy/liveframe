@@ -56,6 +56,18 @@ export const Carries = {
       },
       description: "Submitted.",
     },
+    onSelect: {
+      carries: {
+        array: {
+          items: {
+            type: "string",
+            maxLength: 64,
+          },
+          maxItems: 50,
+        },
+      },
+      description: "Selected ids.",
+    },
   },
   variants: ["default"],
   defaultVariant: "default",

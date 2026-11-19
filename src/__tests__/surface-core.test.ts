@@ -85,10 +85,15 @@ describe("arrival", () => {
     const bad = core.accept({ ...tree(rows()), format: "other" });
     expect(bad.ok).toBe(false);
     expect(core.snapshot().valid).toBe(false);
-    // The tree is kept, so a later revision still compares against it.
+    // The tree is kept, so a later revision still compares against it while the surface stays invalid.
     expect(core.snapshot().tree?.revision).toBe(1);
-    expect(core.accept(tree(rows(), { revision: 0 })).ok).toBe(true);
+    const stale = core.accept(tree(rows(), { revision: 0 }));
+    expect(stale.ok).toBe(false);
+    if (!bad.ok && !stale.ok) expect(stale.errors).toEqual(bad.errors);
     expect(core.snapshot().tree?.revision).toBe(1);
+    expect(core.snapshot().valid).toBe(false);
+    expect(core.accept(tree(rows(), { revision: 2 })).ok).toBe(true);
+    expect(core.snapshot().tree?.revision).toBe(2);
     expect(core.snapshot().valid).toBe(true);
   });
 
@@ -118,12 +123,96 @@ describe("arrival", () => {
     expect(core.snapshot()).toBe(snapshot);
   });
 
+  test("surface_accepts_a_tree_within_raised_limits", () => {
+    const many = Array.from({ length: 5999 }, (_, i) => row(String(i)));
+    const large = tree(many);
+    const limited = open();
+    const rejected = limited.core.accept(large);
+    expect(rejected.ok).toBe(false);
+    if (!rejected.ok) expect(rejected.errors[0]?.kind).toBe("limit-exceeded");
+
+    const raised = open({ limits: { nodes: 10_000 } });
+    expect(raised.core.accept(large).ok).toBe(true);
+    expect(raised.core.snapshot().valid).toBe(true);
+
+    const malformed = open({ limits: { nodes: -1 } });
+    const bad = malformed.core.accept(tree(rows()));
+    expect(bad.ok).toBe(false);
+    if (!bad.ok) expect(bad.errors[0]?.kind).toBe("invalid-prop");
+    expect(malformed.core.snapshot().valid).toBe(false);
+  });
+
+  test("surface_reads_limits_when_a_tree_arrives", () => {
+    let limits: SurfaceCoreOptions["limits"];
+    const core = createSurfaceCore({
+      catalog,
+      validator,
+      onIntent: () => {},
+      get limits() {
+        return limits;
+      },
+    });
+    expect(core.accept(tree([field], { revision: 1 })).ok).toBe(true);
+    core.snapshot().root?.items[0]?.emit("onChange", "kept");
+    expect(core.snapshot().local.q).toBe("kept");
+
+    limits = { nodes: 10_000 };
+    const large = tree([field, ...Array.from({ length: 5998 }, (_, i) => row(String(i)))], { revision: 2 });
+    expect(core.accept(large).ok).toBe(true);
+    expect(core.snapshot().valid).toBe(true);
+    expect(core.snapshot().local.q).toBe("kept");
+  });
+
+  test("unreadable_validator_draws_the_fallback", () => {
+    const seen: SurfaceEvent[] = [];
+    const wrapper = { checkNode: validator.checkNode, validateTree: validator.validateTree };
+    const { core } = open({ validator: wrapper, onEvent: (event) => void seen.push(event) });
+    const result = core.accept(tree(rows()));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.errors).toMatchObject([{ kind: "catalog-mismatch", pointer: "/validator" }]);
+    expect(core.snapshot().valid).toBe(false);
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toMatchObject({
+      type: "arrival-rejected",
+      errors: [{ kind: "catalog-mismatch", pointer: "/validator" }],
+    });
+  });
+
   test("an_unchanged_revision_keeps_every_node_context", () => {
     const { core } = open();
     core.accept(tree(rows()));
     const before = core.snapshot().root;
     core.accept(tree(rows(), { revision: 2 }));
     expect(core.snapshot().root).toBe(before);
+  });
+
+  test("stale_arrival_keeps_an_invalid_surface_invalid", () => {
+    const seen: SurfaceEvent[] = [];
+    const { core } = open({ onEvent: (event) => void seen.push(event) });
+    expect(core.accept(tree(rows(), { revision: 5 })).ok).toBe(true);
+    const rejected = core.accept({ ...tree(rows(), { revision: 6 }), format: "other" });
+    expect(rejected.ok).toBe(false);
+    const invalidSnap = core.snapshot();
+    expect(invalidSnap.valid).toBe(false);
+    const stale = core.accept(tree(rows(), { revision: 3 }));
+    expect(stale.ok).toBe(false);
+    if (!rejected.ok && !stale.ok) expect(stale.errors).toEqual(rejected.errors);
+    expect(core.snapshot()).toBe(invalidSnap);
+    expect(core.snapshot().valid).toBe(false);
+    expect(seen).toHaveLength(2);
+    expect(seen[0]?.type).toBe("arrival-rejected");
+    expect(seen[1]).toEqual({ type: "stale-revision", surfaceId: "s", revision: 3, current: 5 });
+  });
+
+  test("stale_arrival_on_a_valid_surface_changes_nothing", () => {
+    const seen: SurfaceEvent[] = [];
+    const { core } = open({ onEvent: (event) => void seen.push(event) });
+    core.accept(tree(rows(), { revision: 5 }));
+    const kept = core.snapshot();
+    const stale = core.accept(tree(rows(), { revision: 3 }));
+    expect(stale).toEqual({ ok: true, value: kept });
+    expect(core.snapshot()).toBe(kept);
+    expect(seen).toEqual([{ type: "stale-revision", surfaceId: "s", revision: 3, current: 5 }]);
   });
 });
 
@@ -319,6 +408,295 @@ describe("intents", () => {
     release(true);
     await first;
     expect(intents).toEqual([]);
+  });
+
+  test("sync_throw_from_on_intent_is_contained", () => {
+    let calls = 0;
+    const { core } = open({
+      onIntent: () => {
+        calls++;
+        throw new Error("host boom");
+      },
+    });
+    core.accept(tree([button({ onPress: { type: "action", name: "tasks.claim", args: { id: "t1" } } })]));
+    expect(core.snapshot().root?.items[0]?.emit("onPress")).toBeUndefined();
+    expect(calls).toBe(1);
+  });
+
+  test("carries_mismatch_still_throws", () => {
+    let calls = 0;
+    const { core } = open({
+      onIntent: () => {
+        calls++;
+        throw new Error("host boom");
+      },
+    });
+    core.accept(tree([button({ onPress: { type: "action", name: "tasks.claim", args: { id: "t1" } } })]));
+    expect(() => core.snapshot().root?.items[0]?.emit("onPress", "x")).toThrow("Invalid event value");
+    expect(calls).toBe(0);
+  });
+
+  test("action_arguments_are_filled_from_local_state_at_emit", () => {
+    const { core, intents } = open();
+    core.accept(
+      tree([
+        field,
+        button({
+          onPress: { type: "action", name: "tasks.escalate", args: { id: "t1" }, fromLocal: { reason: "q" } },
+        }),
+      ]),
+    );
+    core.snapshot().root?.items[0]?.emit("onChange", "because");
+    core.snapshot().root?.items[1]?.emit("onPress");
+    expect(intents.map((entry) => entry.intent)).toEqual([
+      { type: "action", name: "tasks.escalate", args: { id: "t1", reason: "because" } },
+    ]);
+    expect("fromLocal" in (intents[0]?.intent ?? {})).toBe(false);
+    // Each press reads the state as it is then.
+    core.snapshot().root?.items[0]?.emit("onChange", "again");
+    core.snapshot().root?.items[1]?.emit("onPress");
+    expect(intents[1]?.intent).toMatchObject({ args: { reason: "again" } });
+  });
+
+  test("set_state_is_filled_from_local_state_at_emit", () => {
+    const { core, intents } = open();
+    core.accept(tree([field, button({ onPress: { type: "setState", key: "selected", fromLocal: "q" } })]));
+    core.snapshot().root?.items[0]?.emit("onChange", "picked");
+    core.snapshot().root?.items[1]?.emit("onPress");
+    expect(intents.map((entry) => entry.intent)).toEqual([{ type: "setState", key: "selected", value: "picked" }]);
+  });
+
+  test("from_local_reads_the_writes_of_the_same_event_even_after_confirmation", async () => {
+    const press = {
+      onPress: {
+        type: "action",
+        name: "tasks.escalate",
+        args: { id: "t1" },
+        local: [{ key: "q", value: "after" }],
+        fromLocal: { reason: "q" },
+      },
+    } as const;
+    const plain = open();
+    plain.core.accept(tree([button(press)]));
+    plain.core.snapshot().root?.items[0]?.emit("onPress");
+    expect(plain.intents[0]?.intent).toMatchObject({ args: { reason: "after" } });
+
+    const asked: Intent[] = [];
+    const confirmed = open({
+      validator: confirming,
+      confirm: (intent) => {
+        asked.push(intent);
+        return Promise.resolve(true);
+      },
+    });
+    confirmed.core.attach();
+    confirmed.core.accept(tree([button(press)]));
+    await confirmed.core.snapshot().root?.items[0]?.emit("onPress");
+    expect(confirmed.intents).toHaveLength(1);
+    expect(confirmed.intents[0]?.intent).toMatchObject({ args: { reason: "after" } });
+    expect(asked).toHaveLength(1);
+  });
+
+  test("event_applies_local_writes_then_raises_one_intent", () => {
+    const order: string[] = [];
+    const { core, intents } = open({
+      onIntent: (intent, origin) => {
+        order.push(`intent:${core.snapshot().local.expanded}:${core.snapshot().local.count}`);
+        intents.push({ intent, origin });
+      },
+    });
+    core.accept(
+      tree([
+        button({
+          onPress: {
+            type: "action",
+            name: "tasks.claim",
+            args: { id: "t1" },
+            local: [
+              { key: "expanded", value: true },
+              { key: "count", value: 1 },
+              { key: "count", value: 2 },
+            ],
+          },
+        }),
+        row("details", { when: { $path: "local.expanded" } }),
+      ]),
+    );
+    expect(ids(core.snapshot().root)).toEqual(["root/b"]);
+    let notifications = 0;
+    core.subscribe(() => {
+      notifications++;
+      order.push(`sub:${core.snapshot().local.expanded}:${core.snapshot().local.count}`);
+    });
+    core.snapshot().root?.items[0]?.emit("onPress");
+    expect(notifications).toBe(1);
+    expect(order).toEqual(["sub:true:2", "intent:true:2"]);
+    expect(ids(core.snapshot().root)).toEqual(["root/b", "root/details"]);
+    expect(intents).toEqual([
+      {
+        intent: { type: "action", name: "tasks.claim", args: { id: "t1" } },
+        origin: { surfaceId: "s", revision: 1, nodeId: "root/b", event: "onPress" },
+      },
+    ]);
+    expect("local" in (intents[0]?.intent ?? {})).toBe(false);
+  });
+
+  test("until_revision_write_is_undone_by_the_next_accepted_revision", () => {
+    const { core } = open();
+    const save = button({
+      onPress: {
+        type: "action",
+        name: "tasks.claim",
+        args: { id: "t1" },
+        local: [{ key: "expanded", value: true, until: "revision" }],
+      },
+    });
+    const rev1 = tree([save, row("saving", { when: { $path: "local.expanded" } })], { revision: 1 });
+    core.accept(rev1);
+    core.snapshot().root?.items[0]?.emit("onPress");
+    expect(core.snapshot().local.expanded).toBe(true);
+    expect(ids(core.snapshot().root)).toEqual(["root/b", "root/saving"]);
+
+    // Identical repeated tree object does not revert.
+    core.accept(rev1);
+    expect(core.snapshot().local.expanded).toBe(true);
+
+    // Rejected arrival is not a revision: revert survives it.
+    expect(core.accept({ ...rev1, format: "other", revision: 2 }).ok).toBe(false);
+    expect(core.snapshot().local.expanded).toBe(true);
+
+    // Stale arrival is not a revision: revert survives it.
+    expect(core.accept(tree([save], { revision: 0 })).ok).toBe(false);
+    expect(core.snapshot().local.expanded).toBe(true);
+
+    // Next accepted revision of the same surfaceId undoes the temporary write.
+    core.accept(tree([save, row("saving", { when: { $path: "local.expanded" } })], { revision: 2 }));
+    expect(core.snapshot().local.expanded).toBe(false);
+    expect(ids(core.snapshot().root)).toEqual(["root/b"]);
+  });
+
+  test("permanent_write_supersedes_until_revision_and_earliest_pre_write_is_kept", () => {
+    const { core } = open();
+    const first = button({
+      onPress: {
+        type: "action",
+        name: "tasks.claim",
+        args: { id: "t1" },
+        local: [
+          { key: "count", value: 1, until: "revision" },
+          { key: "expanded", value: true, until: "revision" },
+        ],
+      },
+    });
+    const second = {
+      ...button({
+        onPress: {
+          type: "action",
+          name: "tasks.claim",
+          args: { id: "t2" },
+          local: [{ key: "count", value: 2, until: "revision" }],
+        },
+      }),
+      id: "root/b2",
+    };
+    core.accept(tree([first, second, field], { revision: 1 }));
+    // Two until:"revision" writes to `count`: earliest pre-write (0) is preserved.
+    core.snapshot().root?.items[0]?.emit("onPress");
+    core.snapshot().root?.items[1]?.emit("onPress");
+    expect(core.snapshot().local).toEqual({ q: "", expanded: true, count: 2 });
+
+    // A permanent write to `expanded` supersedes its pending revert.
+    const permanent = {
+      ...button({
+        onPress: {
+          type: "setState",
+          key: "selected",
+          value: "x",
+          local: [{ key: "expanded", value: true }],
+        },
+      }),
+      id: "root/b3",
+    };
+    core.accept(tree([first, second, permanent, field], { revision: 2 }));
+    expect(core.snapshot().local).toEqual({ q: "", expanded: false, count: 0 });
+    core.snapshot().root?.items[0]?.emit("onPress");
+    core.snapshot().root?.items[2]?.emit("onPress");
+    core.accept(tree([first, second, permanent, field], { revision: 3 }));
+    expect(core.snapshot().local).toEqual({ q: "", expanded: true, count: 0 });
+  });
+
+  test("unconfirmed_intent_writes_nothing", async () => {
+    let release: (approved: boolean) => void = () => undefined;
+    const { core, intents } = open({
+      validator: confirming,
+      confirm: () =>
+        new Promise<boolean>((resolve) => {
+          release = resolve;
+        }),
+    });
+    const detach = core.attach();
+    const escalate = button({
+      onPress: {
+        type: "action",
+        name: "tasks.escalate",
+        args: { id: "t1", reason: "r" },
+        local: [{ key: "expanded", value: true, until: "revision" }],
+      },
+    });
+    core.accept(tree([escalate], { revision: 1 }));
+    const first = core.snapshot().root?.items[0]?.emit("onPress");
+    // Before confirmation resolves, nothing is written yet.
+    expect(core.snapshot().local.expanded).toBe(false);
+    // Refused confirmation writes nothing and raises nothing.
+    release(false);
+    await first;
+    expect(core.snapshot().local.expanded).toBe(false);
+    expect(intents).toEqual([]);
+
+    // Unmounted before confirmation resolves: dropped, writes nothing.
+    const second = core.snapshot().root?.items[0]?.emit("onPress");
+    detach();
+    release(true);
+    await second;
+    expect(core.snapshot().local.expanded).toBe(false);
+    expect(intents).toEqual([]);
+
+    // Approved while mounted: writes local state before calling onIntent.
+    const reattach = core.attach();
+    const third = core.snapshot().root?.items[0]?.emit("onPress");
+    expect(core.snapshot().local.expanded).toBe(false);
+    release(true);
+    await third;
+    reattach();
+    expect(core.snapshot().local.expanded).toBe(true);
+    expect(intents).toHaveLength(1);
+    expect("local" in (intents[0]?.intent ?? {})).toBe(false);
+  });
+
+  test("failed_local_write_on_intent_throws_mutates_nothing_and_raises_nothing", () => {
+    const seen: SurfaceEvent[] = [];
+    const { core, intents } = open({ onEvent: (event) => void seen.push(event) });
+    // Bypass validator with a textField carrying an oversized string to test runtime local schema check on emit.
+    core.accept(
+      tree([
+        {
+          id: "root/f",
+          kind: "textField",
+          props: { label: "Filter" },
+          events: {
+            onChange: {
+              type: "setState",
+              key: "selected",
+              local: [{ key: "expanded", value: true }, { key: "q" }],
+            },
+          },
+        },
+      ]),
+    );
+    expect(() => core.snapshot().root?.items[0]?.emit("onChange", "x".repeat(65))).toThrow("Invalid event value");
+    expect(core.snapshot().local).toEqual({ q: "", expanded: false, count: 0 });
+    expect(intents).toEqual([]);
+    expect(seen).toEqual([{ type: "emit-rejected", nodeId: "root/f", event: "onChange", reason: "invalid-local" }]);
   });
 });
 

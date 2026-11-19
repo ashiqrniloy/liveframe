@@ -57,7 +57,7 @@ async function parity(runs: readonly { manifest: unknown; tree: UiTree; steps?: 
   }
 }
 
-test("dom_renderer_matches_react_structure", async () => {
+test("dom_draws_the_same_structure_as_react", async () => {
   const runs: { name: string; manifest: unknown; tree: UiTree }[] = [];
   for (const fixture of proofWidgets) {
     const validator = compileValidator({ catalog, capabilities, manifest: fixture.manifest });

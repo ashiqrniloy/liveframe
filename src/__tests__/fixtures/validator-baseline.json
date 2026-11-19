@@ -523,9 +523,45 @@
       {
         "kind": "invalid-prop",
         "pointer": "/root/events/onPress/script",
-        "expected": "one of the fields: type, key, value",
-        "message": "Expected one of the fields: type, key, value",
+        "expected": "one of the fields: type, key, value, local, fromLocal",
+        "message": "Expected one of the fields: type, key, value, local, fromLocal",
         "nodeId": "root"
+      }
+    ]
+  },
+  {
+    "name": "focus on a missing node",
+    "errors": [
+      {
+        "kind": "not-found",
+        "nodeId": "root",
+        "pointer": "/focus",
+        "expected": "a node in this tree for focus root/other",
+        "message": "Expected a node in this tree for focus root/other"
+      }
+    ]
+  },
+  {
+    "name": "focus under a when",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "nodeId": "root",
+        "pointer": "/focus",
+        "expected": "a focus node that is always rendered, without a when on it or an ancestor: root/child",
+        "message": "Expected a focus node that is always rendered, without a when on it or an ancestor: root/child"
+      }
+    ]
+  },
+  {
+    "name": "focus not a node id",
+    "errors": [
+      {
+        "kind": "invalid-prop",
+        "nodeId": "root",
+        "pointer": "/focus",
+        "expected": "a node id for focus",
+        "message": "Expected a node id for focus"
       }
     ]
   },
@@ -584,7 +620,7 @@
         "kind": "unknown-name",
         "pointer": "/root/when/$path",
         "message": "Unknown name \"data\"",
-        "expected": "one of: local, self",
+        "expected": "one of: local, self, shown",
         "nodeId": "root"
       }
     ]

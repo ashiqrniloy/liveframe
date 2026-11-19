@@ -3,24 +3,21 @@ import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { baseCss, designSystemCss, themeCss } from "../../css/index.ts";
 import {
-  type CompileValidatorOptions,
   compileValidator,
-  type DesignSystem,
   type Intent,
   type IntentOrigin,
   LiveframeFailure,
   type Result,
-  type Theme,
   validateCatalog,
 } from "../../index.ts";
 import { binding } from "../../react/implement.ts";
 import { createRenderer, type Implementation, implement } from "../../react/index.ts";
+import type { SurfaceEvent } from "../../surface/index.ts";
+import type { ConformancePageApi, Styles, SuiteOptions } from "../renderer/page.ts";
 
-export type Styles = { theme: { id: string; version: string }; designSystem: { id: string; version: string } };
-export type PageOptions = CompileValidatorOptions & {
+export type { Styles };
+export type PageOptions = SuiteOptions & {
   implementations: readonly Implementation[];
-  themes: readonly Theme[];
-  designSystems: readonly DesignSystem[];
   fallback: ReactNode;
 };
 function value<T>(result: Result<T>): T {
@@ -79,9 +76,14 @@ export function conformancePage(options: PageOptions) {
   let root: Root | undefined;
   let tree: unknown;
   let styles: Styles;
+  let invalid: "fallback" | "keep-last" = "fallback";
   let recorded: { intent: Intent; origin: IntentOrigin }[] = [];
+  let events: SurfaceEvent[] = [];
   const onIntent = (intent: Intent, origin: IntentOrigin) => {
     recorded.push({ intent, origin });
+  };
+  const onEvent = (event: SurfaceEvent) => {
+    events.push(event);
   };
   function accept(input: unknown, nextStyles: Styles) {
     // Malformed arrivals go to Surface's validator; non-tree commands never mount.
@@ -114,21 +116,31 @@ export function conformancePage(options: PageOptions) {
     styles = nextStyles;
   }
   const surface = () => (
-    <Surface tree={tree} validator={validator} {...styles} fallback={options.fallback} onIntent={onIntent} />
+    <Surface
+      tree={tree}
+      validator={validator}
+      {...styles}
+      fallback={options.fallback}
+      onIntent={onIntent}
+      onEvent={onEvent}
+      invalid={invalid}
+    />
   );
   const draw = () => {
     root ??= createRoot(container);
     flushSync(() => root?.render(<Mounted>{surface()}</Mounted>));
   };
   const api = {
-    mount(input: unknown, nextStyles: Styles) {
+    mount(input: unknown, nextStyles: Styles, mode: "fallback" | "keep-last" = "fallback") {
       accept(input, nextStyles);
+      invalid = mode;
       draw();
     },
     async hydrate(markup: string, input: unknown, nextStyles: Styles) {
       accept(input, nextStyles);
       if (root) flushSync(() => root?.unmount());
       recorded = [];
+      events = [];
       container.innerHTML = markup;
       const nodes = [...container.querySelectorAll("*")];
       const errors: string[] = [];
@@ -147,18 +159,14 @@ export function conformancePage(options: PageOptions) {
     },
     intents: () => structuredClone(recorded.map(({ intent }) => intent)),
     emissions: () => structuredClone(recorded),
+    /** What the surface reported to `onEvent`, such as `focus-missed`. */
+    events: () => structuredClone(events),
     renders() {
       if (renders && !profiled)
         throw new Error("Conformance render counts require a development or profiling React build");
       return renders;
     },
   };
-  window.liveframeConformance = api;
+  window.liveframeConformance = api satisfies ConformancePageApi;
   return api;
-}
-
-declare global {
-  interface Window {
-    liveframeConformance: ReturnType<typeof conformancePage>;
-  }
 }

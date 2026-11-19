@@ -1,0 +1,12 @@
+{
+  "inputs": {
+    "doc": "docs/array-bind-valid.json",
+    "catalog": "../common/array-catalog.json",
+    "capabilities": "../common/array-capabilities.json",
+    "manifest": "../common/array-manifest.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": true
+  }
+}

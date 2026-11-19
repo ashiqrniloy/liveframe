@@ -269,11 +269,15 @@ const vectors: DiffVector[] = await Bun.file(
 const bindingVectors: DiffVector[] = await Bun.file(
   new URL(import.meta.resolve("@arnilo/liveframe/conformance/patch/bindings.json")),
 ).json();
+const focusVectors: DiffVector[] = await Bun.file(
+  new URL(import.meta.resolve("@arnilo/liveframe/conformance/patch/focus.json")),
+).json();
 
 test("patch_vectors_through_public_exports_and_deterministic_edit_order", () => {
   expect(vectors).toHaveLength(9);
   expect(bindingVectors).toHaveLength(2);
-  for (const { name, prev, next, patch } of [...vectors, ...bindingVectors]) {
+  expect(focusVectors).toHaveLength(4);
+  for (const { name, prev, next, patch } of [...vectors, ...bindingVectors, ...focusVectors]) {
     const first = value(diffTrees(prev, next));
     expect(canonicalJson(first), name).toBe(canonicalJson(patch));
     expect(canonicalJson(value(diffTrees(prev, next))), name).toBe(canonicalJson(first));

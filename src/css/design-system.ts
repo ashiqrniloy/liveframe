@@ -252,6 +252,38 @@ function stateRules(
           );
 }
 
+/**
+ * The motion rules (spec §6.2): `--lf-m` never inherits, so a child without motion reads none; enter starts
+ * from `opacity: 0` and an exiting element (kept by the renderer) ends there. Both apply only once the
+ * renderer marks the surface with `data-lf-motion` after its first drawn tree. Empty when no root rest
+ * recipe sets motion, so such a system projects exactly what it did in 0.3.0.
+ */
+function motionRules(
+  system: DesignSystem,
+  context: DesignSystemContext,
+  resolved: Readonly<Partial<Record<RecipeKey, ResolvedRecipe>>>,
+): { readonly used: boolean; readonly enter: string[]; readonly exit: string[] } {
+  let used = false;
+  const enter: string[] = [];
+  const exit: string[] = [];
+  const scope = `:where([data-lf-ds=${cssString(`${system.id}@${system.version}`)}][data-lf-motion])`;
+  const definitions = [...context.catalog.definitions].sort((a, b) => (a.kind < b.kind ? -1 : a.kind > b.kind ? 1 : 0));
+  for (const definition of definitions) {
+    if (!definition.slots.includes("root")) continue;
+    for (const variant of [...variantKeys(definition)].sort()) {
+      const motion = resolved[`${definition.kind}.${variant}.root.rest` as RecipeKey]?.motion;
+      if (motion === undefined || motion === "none") continue;
+      used = true;
+      if (motion === "move") continue;
+      const target = `${scope} .${slotClass(definition.kind, variant, "root")}`;
+      // A staying element the renderer re-inserted to reorder it (and its subtree) does not enter again.
+      enter.push(`${target}:where(:not([data-lf-stay],[data-lf-stay] *))`);
+      exit.push(`${target}:where([data-lf-exiting])`);
+    }
+  }
+  return { used, enter, exit };
+}
+
 /** Sorted breakpoint widths for the responsive layer. */
 function breakpoints(
   prepared: { readonly values: Readonly<Record<string, DesignValue>> },
@@ -281,11 +313,20 @@ export function designSystemCss(system: DesignSystem, context: DesignSystemConte
   const scope = `:where([data-lf-ds=${cssString(`${system.id}@${system.version}`)}])`;
   const reducedScope = `:where([data-lf-ds=${cssString(`${system.id}@${system.version}`)}][data-lf-transparency=reduced])`;
   const vocabulary = context.catalog.vocabulary;
-  const rules = [`${scope}{${tokenVariables(prepared.value, vocabulary).join(";")}}`];
+  const motion = motionRules(system, context, resolved);
+  // `--lf-motion` lets the renderer ask the wrapper once whether this system moves anything at all.
+  const variables = [...tokenVariables(prepared.value, vocabulary), ...(motion.used ? ["--lf-motion:1"] : [])];
+  const rules = [
+    ...(motion.used ? ['@property --lf-m{syntax:"*";inherits:false}'] : []),
+    `${scope}{${variables.join(";")}}`,
+  ];
   const forced: string[] = [];
   const reduced: string[] = [];
   const declared = new Set(Object.keys(prepared.value.recipes).map((key) => key.slice(key.lastIndexOf(".") + 1)));
   stateRules(scope, context, resolved, rules, forced, reduced, suppressed(declared));
+  // After every state rule, so a kept exiting element ends at `opacity: 0` whatever state it was in.
+  if (motion.enter.length) rules.push(`@starting-style{${motion.enter.join(",")}{opacity:0}}`);
+  if (motion.exit.length) rules.push(`${motion.exit.join(",")}{opacity:0}`);
   if (reduced.length) {
     const block = reduced.join("");
     rules.push(`@media (prefers-reduced-transparency:reduce){${block}}`);

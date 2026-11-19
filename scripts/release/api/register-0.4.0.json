@@ -1,0 +1,482 @@
+[
+  {
+    "subpath": "./schemas/*",
+    "name": "ui-tree.json",
+    "change": "widened",
+    "reason": "Adds optional `localWrite` entries (`local?: LocalWrite[]`, 1 to 4 writes) and `fromLocal` reads on `setState` and `action` intents in `liveframe/1` (F1, F2); adds the optional tree `focus` mark (F4).",
+    "hostAction": "None; 0.3.x validators reject `/local` and `/fromLocal` fail-closed and hosts still receive completed intents without either field.",
+    "task": "037 T2, T3, T5"
+  },
+  {
+    "subpath": "./schemas/*",
+    "name": "tree-patch.json",
+    "change": "widened",
+    "reason": "Inherits optional `localWrite` entries (`local?: LocalWrite[]`) and `fromLocal` reads on `setState` and `action` intents in patch `set` and `insert` nodes (F1, F2); adds optional `focus` (node id or `null`) to the patch (F4).",
+    "hostAction": "None; existing patches and 0.3.x consumers remain compatible.",
+    "task": "037 T2, T3, T5"
+  },
+  {
+    "subpath": "./schemas/*",
+    "name": "template.json",
+    "change": "widened",
+    "reason": "Adds `$defs.localWrite` and optional `local` writes and `fromLocal` reads on `setState` and `action` intents in `liveframe-template/1` (F1, F2); adds the optional node `focus` template value (F4).",
+    "hostAction": "None; existing templates remain valid.",
+    "task": "037 T2, T3, T5"
+  },
+  {
+    "subpath": ".",
+    "name": "LocalWrite",
+    "change": "added",
+    "reason": "Names one renderer-applied local write (`{ key, value?, until? }`) attached to a host intent (F1).",
+    "hostAction": "None; hosts never receive `local` writes in completed intents.",
+    "task": "037 T2"
+  },
+  {
+    "subpath": ".",
+    "name": "Intent",
+    "change": "widened",
+    "reason": "Adds optional `local?: readonly LocalWrite[]` and `fromLocal` on `setState` and `action` intents (F1, F2).",
+    "hostAction": "None; completed intents delivered to `onIntent` and `checkOffered` strip `local` and `fromLocal`.",
+    "task": "037 T2, T3"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "shown",
+    "change": "added",
+    "reason": "Adds `shown()`, the read-only `shown` expression root: how many `when`-gated siblings are drawn, for an empty state without a round trip.",
+    "hostAction": "None; additive export. 0.3.x validators reject `{ \"$path\": \"shown\" }` with `unknown-name`.",
+    "task": "037 T7"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "LocalWrite",
+    "change": "added",
+    "reason": "Re-exports `LocalWrite` from `@arnilo/liveframe/sdk` (F1).",
+    "hostAction": "None; additive type export.",
+    "task": "037 T2"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "Intent",
+    "change": "widened",
+    "reason": "Widens `Intent` with optional `local?: readonly LocalWrite[]` and `fromLocal` on `setState` and `action` (F1, F2).",
+    "hostAction": "None; existing intents are unchanged.",
+    "task": "037 T2, T3"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "action",
+    "change": "widened",
+    "reason": "Adds optional `local` write list, `fromLocal` argument map and manifest-local type parameter `<L>` to `action()` options (F1, F2).",
+    "hostAction": "None; existing `action()` calls are unchanged.",
+    "task": "037 T2, T3"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "state",
+    "change": "widened",
+    "reason": "Adds optional `{ local, fromLocal }` options argument and manifest-local type parameter `<L>` to `state.set()` (F1, F2).",
+    "hostAction": "None; existing `state.set()` calls are unchanged.",
+    "task": "037 T2, T3"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "local",
+    "change": "widened",
+    "reason": "Widens `local.set(key, value?, options?)` with `{ until?: \"revision\" }` returning a `LocalWrite` when `until` is set (F1).",
+    "hostAction": "None; existing `local.set(key, value?)` calls are unchanged.",
+    "task": "037 T2"
+  },
+  {
+    "subpath": "./sdk/gen",
+    "name": "generate",
+    "change": "widened",
+    "reason": "Adds optional `{ manifest? }` second parameter so generated modules can type `action` and `state.set` `local` writes and `fromLocal` reads against `manifest.local` (F1, F2).",
+    "hostAction": "None; `generate(catalog)` output without `manifest` is unchanged.",
+    "task": "037 T2, T3"
+  },
+  {
+    "subpath": "./template",
+    "name": "TemplateLocalWrite",
+    "change": "added",
+    "reason": "Names one expression-valued local write attached to a template intent (F1).",
+    "hostAction": "None; additive type export.",
+    "task": "037 T2"
+  },
+  {
+    "subpath": "./template",
+    "name": "TemplateIntent",
+    "change": "widened",
+    "reason": "Adds optional `local?: readonly TemplateLocalWrite[]` and `fromLocal` on template `setState` and `action` intents (F1, F2).",
+    "hostAction": "None; existing templates are unchanged.",
+    "task": "037 T2, T3"
+  },
+  {
+    "subpath": "./schemas/*",
+    "name": "catalog.json",
+    "change": "widened",
+    "reason": "Adds a third event carry form, `{ array: { items, maxItems } }`: one scalar item schema and 1 to 256 items (F3).",
+    "hostAction": "None; existing catalogs stay valid, and a 0.3.x validator rejects an array carry fail-closed.",
+    "task": "037 T4"
+  },
+  {
+    "subpath": ".",
+    "name": "Definition",
+    "change": "widened",
+    "reason": "An event's `carries` may be `{ array: { items, maxItems } }`, a bounded array of one scalar type (F3).",
+    "hostAction": "None; code that switches on `carries` should handle the array form before relying on `object`.",
+    "task": "037 T4"
+  },
+  {
+    "subpath": "./react",
+    "name": "ImplementationProps",
+    "change": "widened",
+    "reason": "`emit` on an array-carrying event takes `readonly Infer<items>[]` (F3).",
+    "hostAction": "None.",
+    "task": "037 T4"
+  },
+  {
+    "subpath": ".",
+    "name": "UiTree",
+    "change": "widened",
+    "reason": "Adds the optional tree-level `focus?: string` mark: the id of one always-rendered node that takes focus when a later revision first carries the mark (F4).",
+    "hostAction": "None; a tree without `focus` is unchanged. 0.3.x validators reject `/focus` fail-closed.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": ".",
+    "name": "TreePatch",
+    "change": "widened",
+    "reason": "Adds optional `focus?: string | null`: omitted keeps the base's mark, a node id sets it, `null` clears it (F4).",
+    "hostAction": "None; `diffTrees` emits it only when the mark changes.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "Elements",
+    "change": "widened",
+    "reason": "Element JSON gains the optional `focus?: boolean` field (F4). Element JSON gains optional `when` and `bind` (bindable props only) and `TreeIntent` events (F9).",
+    "hostAction": "None; additive optional field.",
+    "task": "037 T5, 039 T2"
+  },
+  {
+    "subpath": "./surface",
+    "name": "SurfaceEvent",
+    "change": "widened",
+    "reason": "Adds `focus-missed` (`no-element` or `not-focusable`), reported when a changed focus mark cannot move focus (F4).",
+    "hostAction": "An exhaustive `onEvent` switch gains one case; otherwise none.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./surface",
+    "name": "SurfaceSnapshot",
+    "change": "widened",
+    "reason": "Adds optional `focus?: string`, the accepted tree's focus mark while the surface is valid (F4).",
+    "hostAction": "None; additive optional field.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./template",
+    "name": "TemplateNode",
+    "change": "widened",
+    "reason": "Adds the optional `focus` boolean template value (F4).",
+    "hostAction": "None; existing templates remain valid.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./store",
+    "name": "Store",
+    "change": "widened",
+    "reason": "Adds the optional `putStateIf(placementId, scope, expected, next): Promise<boolean>` compare-and-set by canonical JSON, implemented by `memoryStore()` and `fileStore()` (G2).",
+    "hostAction": "None; a custom store without the method still implements `Store`, and `handleIntent` writes it with `putState` as before. Implement the method atomically to make concurrent `setState` safe across processes.",
+    "task": "037 T6"
+  },
+  {
+    "subpath": "./host",
+    "name": "HostEvent",
+    "change": "widened",
+    "reason": "Adds the `conflict` reason to `intent-refused`, raised when `handleIntent`'s compare-and-set loses four times in a row (G2); adds the `source-pending` event, raised when a resolver answers `pending` (F5).",
+    "hostAction": "An exhaustive `switch` over `intent-refused` reasons gains one case; a handler that switches on `type` gains `source-pending` or ignores it, as unknown types already are.",
+    "task": "037 T6, 038 T2"
+  },
+  {
+    "subpath": "./conformance/react",
+    "name": "BrowserFixtures",
+    "change": "widened",
+    "reason": "Adds optional `local`, `compound`, `fromLocal` and `focus` fixtures for the new `rendererBrowserSuite` cases covering local state, compound local writes, `fromLocal` and focus marks; `conformancePage()` also exposes `events()`.",
+    "hostAction": "Supply the four fixtures (and the `local` keys they use in the test manifest); without them the new cases fail and name the missing field.",
+    "task": "037 T8"
+  },
+  {
+    "subpath": ".",
+    "name": "sourceOutcome",
+    "change": "widened",
+    "reason": "Adds an optional second argument, `{ pending?: boolean }`; with `pending: true` the envelope gains a closed `pending` variant (`{ status: \"pending\" }`). Without it the returned schema is the 0.3.0 one byte for byte (F5).",
+    "hostAction": "None; existing calls and capability documents are unchanged.",
+    "task": "038 T2"
+  },
+  {
+    "subpath": "./host",
+    "name": "SourceResult",
+    "change": "widened",
+    "reason": "Adds `{ ok: false, reason: \"pending\" }` for a source the host has not read yet; `renderPlacement` shows it as `{ status: \"pending\" }` to a source that declares the variant and fails the render otherwise (F5).",
+    "hostAction": "None; a resolver that never answers `pending` is unaffected. Code that switches exhaustively over `SourceResult` reasons gains one case.",
+    "task": "038 T2"
+  },
+  {
+    "subpath": "./schemas/*",
+    "name": "design-system.json",
+    "change": "widened",
+    "reason": "Adds the optional recipe property `motion` (`none`, `fade`, `move`, `fade-move`): enter, exit and reorder motion of a node's root. Valid only on a root slot's `rest` recipe and requires a `transitionDuration` (F6).",
+    "hostAction": "None; existing design systems are unchanged and project the same CSS. A 0.3.x validator rejects `motion` fail-closed as `invalid-document`.",
+    "task": "038 T3"
+  },
+  {
+    "subpath": ".",
+    "name": "Recipe",
+    "change": "widened",
+    "reason": "Adds optional `motion?: \"none\" | \"fade\" | \"move\" | \"fade-move\"`. Valid only on a root slot's `rest` recipe and requires a `transitionDuration` (F6).",
+    "hostAction": "None.",
+    "task": "038 T3"
+  },
+  {
+    "subpath": ".",
+    "name": "ResolvedRecipe",
+    "change": "widened",
+    "reason": "Adds optional `motion`, resolved through the cascade like any scalar recipe property (F6).",
+    "hostAction": "None; code that reads every property of a resolved recipe sees one more optional key.",
+    "task": "038 T3"
+  },
+  {
+    "subpath": ".",
+    "name": "recipeProperties",
+    "change": "widened",
+    "reason": "Appends `motion` to the closed recipe-property list (F6).",
+    "hostAction": "None; code that switches over the list exhaustively gains one case.",
+    "task": "038 T3"
+  },
+  {
+    "subpath": "./dom",
+    "name": "createDomRenderer",
+    "change": "added",
+    "reason": "The plain DOM adapter's factory (F8): runs `/react`'s registry check through one shared function and returns `{ mount }`; `mount(container, options)` draws a surface over the surface core with no framework.",
+    "hostAction": "None; a new subpath.",
+    "task": "038 T5"
+  },
+  {
+    "subpath": "./dom",
+    "name": "implement",
+    "change": "added",
+    "reason": "Binds a primitive's definition to `draw(node, element?)`, which creates or updates the node's element; typed from the definition as `/react`'s `implement` is (F8).",
+    "hostAction": "None; a new subpath.",
+    "task": "038 T5"
+  },
+  {
+    "subpath": "./dom",
+    "name": "place",
+    "change": "added",
+    "reason": "Sets a parent's child nodes to a list with the fewest moves, using `moveBefore` where the engine has it (F8).",
+    "hostAction": "None; a new subpath.",
+    "task": "038 T5"
+  },
+  {
+    "subpath": "./dom",
+    "name": "RendererError",
+    "change": "added",
+    "reason": "Re-exports `/react`'s `RendererError` class (the same class), so a DOM host catches registry failures without importing React (F8).",
+    "hostAction": "None; a new subpath.",
+    "task": "038 T5"
+  },
+  {
+    "subpath": "./dom",
+    "name": "DomImplementation",
+    "change": "added",
+    "reason": "The opaque binding `implement` returns (F8).",
+    "hostAction": "None; a new subpath.",
+    "task": "038 T5"
+  },
+  {
+    "subpath": "./dom",
+    "name": "DomNode",
+    "change": "added",
+    "reason": "What `draw` receives for one node: the core context's fields, drawn children, child items and the portal (F8).",
+    "hostAction": "None; a new subpath.",
+    "task": "038 T5"
+  },
+  {
+    "subpath": "./dom",
+    "name": "DomItem",
+    "change": "added",
+    "reason": "A child node with `render()` for its drawn element (F8).",
+    "hostAction": "None; a new subpath.",
+    "task": "038 T5"
+  },
+  {
+    "subpath": "./dom",
+    "name": "Draw",
+    "change": "added",
+    "reason": "The `draw(node, element?)` function type (F8).",
+    "hostAction": "None; a new subpath.",
+    "task": "038 T5"
+  },
+  {
+    "subpath": "./dom",
+    "name": "DrawHooks",
+    "change": "added",
+    "reason": "Optional `dispose(element)`, called when a node leaves the tree or its element is replaced (F8).",
+    "hostAction": "None; a new subpath.",
+    "task": "038 T5"
+  },
+  {
+    "subpath": "./dom",
+    "name": "MountOptions",
+    "change": "added",
+    "reason": "`mount`'s options: validator, theme, design system, transparency, callbacks, limits, fallback and host classes (F8).",
+    "hostAction": "None; a new subpath.",
+    "task": "038 T5"
+  },
+  {
+    "subpath": "./dom",
+    "name": "DomSurface",
+    "change": "added",
+    "reason": "What `mount` returns: `update(tree)`, `set(partial)` and `dispose()` (F8).",
+    "hostAction": "None; a new subpath.",
+    "task": "038 T5"
+  },
+  {
+    "subpath": "./react",
+    "name": "implement",
+    "change": "widened",
+    "reason": "No type change: the internal `Props` helper the declaration names moved to a module shared with `/dom` (`src/surface/implementation.ts`), so the printed declaration no longer inlines it.",
+    "hostAction": "None.",
+    "task": "038 T5"
+  },
+  {
+    "subpath": "./conformance/dom",
+    "name": "domRendererBrowserSuite",
+    "change": "added",
+    "reason": "The renderer conformance cases run against an app's `/dom` implementations (F8): `rendererSuite()`'s structural cases on the app's page, then `rendererBrowserSuite()`'s cases without hydration. The cases are defined once for both adapters.",
+    "hostAction": "None; a new subpath.",
+    "task": "038 T6"
+  },
+  {
+    "subpath": "./conformance/dom",
+    "name": "domConformancePage",
+    "change": "added",
+    "reason": "The app-owned page host for `/dom`: mounts one surface with the app's DOM implementations and exposes the `window.liveframeConformance` API the suite drives (F8).",
+    "hostAction": "None; a new subpath.",
+    "task": "038 T6"
+  },
+  {
+    "subpath": "./conformance/dom",
+    "name": "DomSuiteOptions",
+    "change": "added",
+    "reason": "`domRendererBrowserSuite()`'s options: catalog, validator inputs, DOM implementations, themes, design systems, examples, fixtures, `page()` and `url` (F8).",
+    "hostAction": "None; a new subpath.",
+    "task": "038 T6"
+  },
+  {
+    "subpath": "./conformance/dom",
+    "name": "DomPageOptions",
+    "change": "added",
+    "reason": "`domConformancePage()`'s options, with `fallback: () => Element` (F8).",
+    "hostAction": "None; a new subpath.",
+    "task": "038 T6"
+  },
+  {
+    "subpath": "./conformance/dom",
+    "name": "BrowserFixtures",
+    "change": "added",
+    "reason": "Re-exports `/conformance/react`'s fixture type, shared by both suites (F8).",
+    "hostAction": "None; a new subpath.",
+    "task": "038 T6"
+  },
+  {
+    "subpath": "./conformance/dom",
+    "name": "Styles",
+    "change": "added",
+    "reason": "Re-exports `/conformance/react`'s style-identity type, shared by both pages (F8).",
+    "hostAction": "None; a new subpath.",
+    "task": "038 T6"
+  },
+  {
+    "subpath": "./conformance/react",
+    "name": "PageOptions",
+    "change": "widened",
+    "reason": "No type change: its theme, design-system and validator fields come from a type shared with `/conformance/dom` (`src/conformance/renderer/page.ts`), so the printed declaration names it.",
+    "hostAction": "None; no type change.",
+    "task": "038 T6"
+  },
+  {
+    "subpath": "./conformance/react",
+    "name": "rendererSuite",
+    "change": "widened",
+    "reason": "No type change: the cases moved to a module shared with `/conformance/dom`, and the options parameter is no longer destructured in the printed declaration. Case names, order and outcomes are unchanged.",
+    "hostAction": "None; no type change.",
+    "task": "038 T6"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "ephemeralManifest",
+    "change": "widened",
+    "reason": "Adds optional `local` and `initialLocal` (both or neither) so element JSON may carry `when`, `bind` and local intents against the caller's local schema (F9).",
+    "hostAction": "None; existing calls are unchanged.",
+    "task": "039 T2"
+  },
+  {
+    "subpath": "./sdk/gen",
+    "name": "generateElementsSchema",
+    "change": "widened",
+    "reason": "Adds optional `{ local? }`: with it, the schema describes `when`, `bind`, the tree expression grammar and local intents; without it the output is byte-identical (F9).",
+    "hostAction": "None; `generateElementsSchema(catalog)` output is unchanged.",
+    "task": "039 T2"
+  },
+  {
+    "subpath": "./sdk/gen",
+    "name": "ElementsSchemaOptions",
+    "change": "added",
+    "reason": "The options type of `generateElementsSchema` (F9).",
+    "hostAction": "None; additive type export.",
+    "task": "039 T2"
+  },
+  {
+    "subpath": "./authoring",
+    "name": "createAuthoring",
+    "change": "widened",
+    "reason": "`generatedTypes` takes an optional `local` object schema with `module: \"elementsSchema\"` or `\"digest\"`, giving `liveframe gen --elements-schema --local` (F9), and accepts `module: \"digest\"`, giving `liveframe gen --digest` from the server's catalog and capabilities (F10).",
+    "hostAction": "None; existing calls are unchanged.",
+    "task": "039 T2, T3"
+  },
+  {
+    "subpath": "./sdk/gen",
+    "name": "generateDigest",
+    "change": "added",
+    "reason": "A deterministic Markdown description of a catalog, and optionally its capabilities and `local` schema, for an agent that writes element JSON without MCP; over `budget` it throws `LiveframeFailure` (F10).",
+    "hostAction": "None; additive export.",
+    "task": "039 T3"
+  },
+  {
+    "subpath": "./sdk/gen",
+    "name": "DigestOptions",
+    "change": "added",
+    "reason": "The options type of `generateDigest` (F10).",
+    "hostAction": "None; additive type export.",
+    "task": "039 T3"
+  },
+  {
+    "subpath": ".",
+    "name": "checkUrl",
+    "change": "added",
+    "reason": "Exposes the `url` keyword's check (spec §5) to trusted implementations that draw a link from text, such as the starter's `richText` (F12).",
+    "hostAction": "None; additive export.",
+    "task": "039 T6"
+  },
+  {
+    "subpath": ".",
+    "name": "UrlRule",
+    "change": "added",
+    "reason": "Names the rule `checkUrl` takes: the allowed schemes and whether a relative reference passes (F12).",
+    "hostAction": "None; additive export.",
+    "task": "039 T6"
+  }
+]

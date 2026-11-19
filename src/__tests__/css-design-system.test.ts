@@ -83,6 +83,7 @@ test("every_recipe_property_projects", () => {
     placeholderColor: "text.muted",
     scrollbarThumbColor: "surface.scrollbar",
     scrollbarTrackColor: "surface.well",
+    motion: "fade-move",
   };
   expect(Object.keys(recipe).sort()).toEqual([...recipeProperties].sort());
   const declarations = recipeDeclarations(recipe).split(";");
@@ -121,6 +122,7 @@ test("every_recipe_property_projects", () => {
     "outline-offset:2px",
     "outline-style:solid",
     "scrollbar-color:var(--lf-c-surface_scrollbar) var(--lf-c-surface_well)",
+    "--lf-m:fade-move",
     "transition-property:background-color,color,border-color,outline-color,opacity,translate,box-shadow,backdrop-filter",
   ]);
 });
@@ -217,14 +219,16 @@ test("new_states_validate_and_project_in_order", () => {
     expect(forced).toContain(cue);
 });
 
+// The 0.2.1 projection of the proof catalog with each proof design system, hashed before the
+// vocabulary widened. Plan 022's other tasks touched no CSS projection. Plan 027 T3 added the `hint`
+// kind to both proof design systems, which grew each sheet by that kind's rules alone. 0.3.0 projects
+// the same bytes.
+const baseline: Record<string, { bytes: number; sha256: string }> = {
+  certified: { bytes: 152457, sha256: "bd949d6ad8b073030ab221dd95bd37a9d19e5de4a14a9f09380b9ec2856ba9ec" },
+  rack: { bytes: 164425, sha256: "7b18125948c08ac19eb5c75c2a78774233a63905f0c649613e6e63a925d38cfa" },
+};
+
 test("unused_new_states_leave_css_byte_identical", () => {
-  // The 0.2.1 projection of the proof catalog with each proof design system, hashed before the
-  // vocabulary widened. Plan 022's other tasks touched no CSS projection. Plan 027 T3 added the `hint`
-  // kind to both proof design systems, which grew each sheet by that kind's rules alone.
-  const baseline: Record<string, { bytes: number; sha256: string }> = {
-    certified: { bytes: 152457, sha256: "bd949d6ad8b073030ab221dd95bd37a9d19e5de4a14a9f09380b9ec2856ba9ec" },
-    rack: { bytes: 164425, sha256: "7b18125948c08ac19eb5c75c2a78774233a63905f0c649613e6e63a925d38cfa" },
-  };
   for (const [i, name] of ["certified", "rack"].entries()) {
     const css = sheet(systems[i]!);
     expect({ bytes: css.length, sha256: createHash("sha256").update(css).digest("hex") }).toEqual(baseline[name]!);
@@ -514,4 +518,65 @@ test("native_parts_no_system_colour_outside_forced_block", () => {
   // The placeholder restore also covers a slot that sets it only in a state.
   expect(forced).toContain(".lf_button_default_label::placeholder{color:GrayText;opacity:1}");
   expect(forced).not.toContain("scrollbar-color:var");
+});
+
+test("system_without_motion_projects_identical_css", () => {
+  // Neither proof system sets `motion`; a variant that sets `none` adds nothing either.
+  for (const [i, name] of ["certified", "rack"].entries()) {
+    const system = systems[i]!;
+    for (const input of [
+      system,
+      {
+        ...system,
+        recipes: {
+          ...system.recipes,
+          "button.primary.root.rest": { ...system.recipes["button.primary.root.rest"], motion: "none" as const },
+        },
+      },
+    ]) {
+      const css = sheet(input);
+      expect({ bytes: css.length, sha256: createHash("sha256").update(css).digest("hex") }).toEqual(baseline[name]!);
+      for (const marker of ["--lf-m", "--lf-motion", "data-lf-motion", "data-lf-exiting", "@property"])
+        expect(css).not.toContain(marker);
+    }
+  }
+});
+
+test("motion_projects_marker_enter_and_exit_rules", () => {
+  const base = systems[0]!;
+  const id = `${base.id}@${base.version}`;
+  const scope = `:where([data-lf-ds="${id}"][data-lf-motion])`;
+  const recipe = (key: RecipeKey) => base.recipes[key] ?? {};
+  const css = sheet({
+    ...base,
+    recipes: {
+      ...base.recipes,
+      "text.default.root.rest": {
+        ...recipe("text.default.root.rest"),
+        transitionDuration: "motion.fast",
+        motion: "fade-move",
+      },
+      "button.default.root.rest": {
+        ...recipe("button.default.root.rest"),
+        transitionDuration: "motion.fast",
+        motion: "move",
+      },
+    },
+  });
+  const lines = css.split("\n");
+  expect(lines[0]).toBe('@property --lf-m{syntax:"*";inherits:false}');
+  expect(lines[1]).toEndWith(";--lf-motion:1}");
+  const text = `.${slotClass("text", "default", "root")}`;
+  const button = `.${slotClass("button", "default", "root")}`;
+  expect(css).toContain(`@starting-style{${scope} ${text}:where(:not([data-lf-stay],[data-lf-stay] *)){opacity:0}}`);
+  expect(css).toContain(`${scope} ${text}:where([data-lf-exiting]){opacity:0}`);
+  // `move` alone needs no rule beyond its marker: `translate` is already a transitioned property.
+  expect(css).not.toContain(`${scope} ${button}`);
+  expect(css).toMatch(
+    new RegExp(`${button.replace(".", "\\.")}\\{[^}]*--lf-m:move;transition-property:[^}]*translate`),
+  );
+  // The enter and exit rules follow every state rule, so they win at equal specificity.
+  const lastState = css.lastIndexOf(`${text}:where(`);
+  expect(css.indexOf(`@starting-style{${scope}`)).toBeGreaterThan(css.indexOf(`${text}{`));
+  expect(css.indexOf(`${text}:where([data-lf-exiting])`)).toBeGreaterThanOrEqual(lastState);
 });

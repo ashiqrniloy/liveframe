@@ -1,10 +1,10 @@
-// Browser half of the DOM parity test: the same trees through `/react` and through the test-only DOM renderer.
+// Browser half of the DOM parity test: the same trees through `/react` and through `/dom`.
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
-import { compileValidator, type Intent, type UiTree } from "../../index.ts";
+import { createDomRenderer } from "../../dom/index.ts";
+import { compileValidator, type Intent, type Json, type UiTree } from "../../index.ts";
 import { createRenderer, implement } from "../../react/index.ts";
-import type { NodeContext } from "../../surface/index.ts";
-import { createDomSurface, PROPS_ATTRIBUTE } from "./dom-renderer.ts";
+import { domImplementations, PROPS_ATTRIBUTE } from "./dom-renderer.ts";
 import { catalog } from "./react-surface.tsx";
 import capabilities from "./widgets/capabilities.json" with { type: "json" };
 
@@ -42,21 +42,15 @@ const { Surface } = createRenderer({
   ),
 });
 
+const domEmitters = new Map<string, (event: string, value?: Json) => Promise<void> | undefined>();
+const { mount } = createDomRenderer({ catalog, implementations: domImplementations(catalog, domEmitters) });
+
 /** Element structure with sorted attributes; React's `useId` prefix is replaced so both sides compare equal. */
 function shape(element: Element): Shape {
   const attributes = [...element.attributes]
     .map((attribute) => [attribute.name, attribute.value.replace(/lf-[^:"]*:/g, "lf:")] as const)
     .sort(([left], [right]) => (left < right ? -1 : 1));
   return [element.tagName, attributes, [...element.children].map(shape)] as const;
-}
-
-function find(context: NodeContext | undefined, id: string): NodeContext | undefined {
-  if (!context || context.id === id) return context;
-  for (const item of context.items) {
-    const found = find(item, id);
-    if (found) return found;
-  }
-  return undefined;
 }
 
 const identity = { id: "certified", version: "1.0.0" };
@@ -70,11 +64,12 @@ window.parity = {
     const domHost = document.createElement("div");
     document.body.append(reactHost, domHost);
     const root = createRoot(reactHost);
-    const dom = createDomSurface({
-      catalog,
+    const dom = mount(domHost, {
       validator,
-      container: domHost,
+      theme: identity,
+      designSystem: identity,
       onIntent: (intent) => domIntents.push(intent),
+      fallback: () => Object.assign(document.createElement("p"), { textContent: "Unavailable" }),
     });
     flushSync(() =>
       root.render(
@@ -91,16 +86,16 @@ window.parity = {
     );
     dom.update(tree);
     const snapshots = () => ({
-      // React draws a wrapper for the surface and a sibling portal container; the surface's content is the wrapper's.
+      // Both draw a wrapper for the surface and a sibling portal container; the surface's content is the wrapper's.
       react: [...(reactHost.firstElementChild?.children ?? [])].map(shape),
-      dom: [...domHost.children].map(shape),
+      dom: [...(domHost.firstElementChild?.children ?? [])].map(shape),
       reactIntents: [...reactIntents],
       domIntents: [...domIntents],
     });
     const outcomes = [snapshots()];
     for (const { nodeId, event, value } of steps) {
       flushSync(() => void emitters.get(nodeId)?.(event, value as never));
-      find(dom.core.snapshot().root, nodeId)?.emit(event, value as never);
+      domEmitters.get(nodeId)?.(event, value as never);
       outcomes.push(snapshots());
     }
     root.unmount();

@@ -7,7 +7,7 @@ export type SchemaSink = {
   readonly errors: LiveframeError[];
   readonly maxErrors: number;
   readonly nodeId?: string;
-  /** A running count of tree-expression nodes, when the caller bounds them for the whole tree (plan 029 B4). */
+  /** A running count of tree-expression nodes, when the caller bounds them for the whole tree (spec §8). */
   readonly expressions?: { nodes: number };
 };
 

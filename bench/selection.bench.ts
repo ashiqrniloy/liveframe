@@ -1,5 +1,5 @@
 import { strict as assert } from "node:assert";
-import { metric } from "./metrics.ts";
+import { budget, metric } from "./metrics.ts";
 
 // Reuse the production proof measurement, including both design systems and its browser assertions.
 const child = Bun.spawn({
@@ -10,7 +10,7 @@ const child = Bun.spawn({
     "liveframe:source",
     "proof/tests/renderer-browser.test.tsx",
     "--test-name-pattern",
-    "^(selection_rerender_cost_is_recorded_in_production|focus_continuity_selection_cost_is_recorded_in_production)$",
+    "^(selection_rerender_cost_is_recorded_in_production|focus_continuity_selection_cost_is_recorded_in_production|live_filter_50_rows_no_round_trip)$",
   ],
   stdout: "pipe",
   stderr: "pipe",
@@ -36,3 +36,23 @@ for (const [, mode, median] of focus) {
   assert(Number.isFinite(Number(median)) && Number(median) > 0);
   metric(`focusContinuity.${mode}.wallMs`, Number(median));
 }
+
+const liveFilterMatch = (out + err).match(/keystroke flipping 9 of 50 rows median ([\d.]+) ms/);
+assert(liveFilterMatch?.[1], out + err);
+const liveFilterMedianMs = Number(liveFilterMatch[1]);
+assert(Number.isFinite(liveFilterMedianMs) && liveFilterMedianMs > 0);
+metric("liveFilter.medianMs", liveFilterMedianMs);
+budget(
+  liveFilterMedianMs <= 4,
+  `live_filter_50_rows_no_round_trip median ${liveFilterMedianMs.toFixed(3)} ms exceeds 4 ms`,
+);
+
+const emptyRowMatch = (out + err).match(/keystroke flipping 9 of 50 rows beside an empty row median ([\d.]+) ms/);
+assert(emptyRowMatch?.[1], out + err);
+const emptyRowMedianMs = Number(emptyRowMatch[1]);
+assert(Number.isFinite(emptyRowMedianMs) && emptyRowMedianMs > 0);
+metric("liveFilter.emptyRow.medianMs", emptyRowMedianMs);
+budget(
+  emptyRowMedianMs <= 4,
+  `live_filter_50_rows_no_round_trip with an empty row median ${emptyRowMedianMs.toFixed(3)} ms exceeds 4 ms`,
+);

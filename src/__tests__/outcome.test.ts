@@ -8,7 +8,7 @@ import {
   str,
   validateCapabilities,
 } from "@arnilo/liveframe";
-import { outcomeScenarios, type Scenario } from "@arnilo/liveframe/pack";
+import { canonicalJson, outcomeScenarios, type Scenario } from "@arnilo/liveframe/pack";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { schemaDocument } from "../formats/registry.ts";
 import { packageOptions, value } from "./fixtures/widgets/drafts.ts";
@@ -119,4 +119,92 @@ test("outcome_scenarios_reject_invalid_seed_and_generated_names", () => {
     sources: { "queue.read": { ...capabilities.sources["queue.read"]!, result: { ...result, nullable: true } } },
   };
   expect(outcomeScenarios(scenario, { ...options, capabilities: nullable }).ok).toBe(false);
+});
+
+/** The 0.3.0 envelope, written out so a change to `sourceOutcome` without the option cannot go unnoticed. */
+const outcome030 = (payload: unknown) => {
+  const failure = {
+    type: "object",
+    properties: { reason: { type: "string", maxLength: 500 }, value: payload },
+    required: [],
+    additionalProperties: false,
+  };
+  return {
+    discriminator: "status",
+    mapping: {
+      ok: {
+        type: "object",
+        properties: { checkedAt: { type: "string", maxLength: 128 }, value: payload },
+        required: ["value"],
+        additionalProperties: false,
+      },
+      unauthorized: failure,
+      unavailable: failure,
+      stale: failure,
+      failed: failure,
+    },
+  };
+};
+
+test("source_outcome_without_the_option_is_unchanged", () => {
+  const payload = obj({ title: str({ minLength: 1, maxLength: 20 }) });
+  for (const schema of [
+    sourceOutcome(payload),
+    sourceOutcome(payload, {}),
+    sourceOutcome(payload, { pending: false }),
+  ]) {
+    expect(schema).toEqual(outcome030(payload) as never);
+    expect(canonicalJson(schema)).toBe(canonicalJson(outcome030(payload) as never));
+  }
+});
+
+test("source_outcome_with_pending_adds_one_closed_variant", () => {
+  const pending = sourceOutcome(obj({ title: str({ maxLength: 20 }) }), { pending: true });
+  expect(isLanguageSchema(pending)).toBe(true);
+  expect(Object.keys(pending.mapping)).toEqual(["ok", "unauthorized", "unavailable", "stale", "failed", "pending"]);
+  expect(checkValue(pending, { status: "pending" }).ok).toBe(true);
+  expect(checkValue(pending, { status: "pending", value: { title: "x" } }).ok).toBe(false);
+  expect(checkValue(pending, { status: "pending", reason: "slow" }).ok).toBe(false);
+  expect(checkValue(result, { status: "pending" }).ok).toBe(false);
+});
+
+test("unnarrowed_value_read_fails_to_compile", () => {
+  const pending = sourceOutcome(obj({ title: str({ maxLength: 20 }) }), { pending: true });
+  const seen = (data: Infer<typeof pending>): string => {
+    // @ts-expect-error a source that may be pending has no value until narrowed
+    const unnarrowed = () => data.value.title;
+    expect(unnarrowed).toBeFunction();
+    if (data.status === "pending") {
+      // @ts-expect-error pending carries no reason
+      data.reason;
+      return "loading";
+    }
+    return data.status === "ok" ? data.value.title : data.status;
+  };
+  expect(seen({ status: "pending" })).toBe("loading");
+  expect(seen({ status: "ok", value: { title: "Ready" } })).toBe("Ready");
+  // Without the option the union has no pending member.
+  // @ts-expect-error pending is not declared
+  const absent: Infer<typeof result> = { status: "pending" };
+  expect(absent).toBeDefined();
+});
+
+test("outcome_scenarios_add_pending_when_declared", () => {
+  const pending = sourceOutcome(obj({ title: str({ minLength: 1, maxLength: 20 }) }), { pending: true });
+  const declared = value(
+    validateCapabilities({
+      ...packageOptions.capabilities,
+      sources: { "queue.read": { description: "Queue", params: obj({}), result: pending } },
+    }),
+  );
+  const expanded = value(outcomeScenarios(scenario, { ...options, capabilities: declared }));
+  expect(expanded.map((entry) => entry.name)).toEqual([
+    "full.ok",
+    "full.unauthorized",
+    "full.unavailable",
+    "full.stale",
+    "full.failed",
+    "full.pending",
+  ]);
+  expect(expanded[5]?.data.queue).toEqual({ status: "pending" });
 });

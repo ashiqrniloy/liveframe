@@ -17,6 +17,13 @@ export const manifest = {
   sources: {},
   actions: ["demo.notify"],
   state: { ...empty, properties: { query: { type: "string", maxLength: 100 }, help: { type: "boolean" } } },
+  // The renderer conformance cases for local state, compound writes and fromLocal read these.
+  local: {
+    ...empty,
+    properties: { open: { type: "boolean" }, title: { type: "string", maxLength: 100 } },
+    required: ["open", "title"],
+  },
+  initialLocal: { open: false, title: "" },
 };
 
 /** The page entry and the test process share these: the page draws with them, the suites check them. */

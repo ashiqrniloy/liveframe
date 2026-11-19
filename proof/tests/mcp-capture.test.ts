@@ -50,7 +50,7 @@ const texts = (content: Content[]) => content.flatMap((block) => (block.type ===
 const images = (content: Content[]) => content.flatMap((block) => (block.type === "image" ? [block.data ?? ""] : []));
 
 test("set_state_then_capture_shows_state", async () => {
-  await withClient(proofConfig, async (client) => {
+  await withProofRunner(async (client) => {
     const input = drafts[4]!;
     expect((await call(client, "pack_draft", input)).isError).toBeFalsy();
     const scenario = input.scenarios[0]!.name;
@@ -94,8 +94,25 @@ test("capture_returns_png_snapshot_and_errors_per_cell", async () => {
   for (const png of pngs) expect(png.startsWith("iVBORw0KGgo")).toBe(true);
 }, 180000);
 
+async function withProofRunner<T>(fn: (client: Client) => Promise<T>): Promise<T> {
+  const dir = await mkdtemp(join(tmpdir(), "liveframe-mcp-runner-"));
+  const cfgPath = join(dir, "mcp.config.ts");
+  await Bun.write(
+    cfgPath,
+    `import { workerRunner } from "@arnilo/liveframe/preview/worker";
+import proofConfig from ${JSON.stringify(join(process.cwd(), proofConfig))};
+export default { ...proofConfig, runner: workerRunner({ timeoutMs: 2000 }) };
+`,
+  );
+  try {
+    return await withClient(cfgPath, fn);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
 test("capture_shows_the_draft_last_packed", async () => {
-  const [before, after] = await withClient(proofConfig, async (client) => {
+  const [before, after] = await withProofRunner(async (client) => {
     await call(client, "pack_draft", agentHome);
     const before = await call(client, "capture_preview", { scenarios: ["ready"], widths: [360] });
     await call(client, "pack_draft", draftWith("SecondDraftHeading"));
@@ -121,7 +138,7 @@ test("capture_over_12_cells_is_an_error_naming_the_narrowing_arguments", async (
 }, 120000);
 
 test("capture_after_pack_sees_that_pack", async () => {
-  const [captured] = await withClient(proofConfig, async (client) => {
+  const [captured] = await withProofRunner(async (client) => {
     await call(client, "pack_draft", draftWith("PackedBeforeCapture"));
     // Queue both: the capture must show the draft packed before it, not the one packed during it.
     const capturing = call(client, "capture_preview", { scenarios: ["ready"], widths: [360] });
@@ -182,7 +199,11 @@ test("capture_before_pack_and_without_preview_config_are_errors", async () => {
 }, 60000);
 
 test("capture_page_and_bundle_hold_no_draft_code", async () => {
-  const session = createPreview({ ...packageOptions, runner: inProcessRunner() });
+  const baseRunner = inProcessRunner();
+  const session = createPreview({
+    ...packageOptions,
+    runner: { render: (pkg, inputs, opts) => baseRunner.render(pkg, inputs, { ...opts, timeoutMs: 2000 }) },
+  });
   const pkg = value(session.update(draftWith("LawOneMarker")));
   const bound = await config.preview?.({ session, package: () => pkg });
   if (!bound) throw new Error("The proof config needs a preview()");

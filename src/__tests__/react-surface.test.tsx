@@ -4,8 +4,9 @@ import validTree from "../../conformance/corpus/ui-tree/docs/valid.json" with { 
 import { slotClass, styleDeclarations, surfaceAttributes } from "../css/index.ts";
 import type { UiNode, UiTree } from "../index.ts";
 import type { ImplementationProps, Item } from "../react/index.ts";
+import type { SurfaceEvent } from "../surface/index.ts";
 import { shareNodes } from "../surface/share.ts";
-import { catalog, identity, renderer, surfaceProps, tree, withRoot } from "./fixtures/react-surface.tsx";
+import { catalog, identity, renderer, surfaceProps, tree, validator, withRoot } from "./fixtures/react-surface.tsx";
 
 test("reused_tree_deep_equals_the_arrival", () => {
   const base = tree(1);
@@ -205,4 +206,31 @@ test("items_expose_child_node_contexts", () => {
   expect(item?.style).toBe(child?.style);
   expect(item?.children).toBe(child?.children);
   expect(item?.emit).toBe(child?.emit);
+});
+
+test("surface_limits_prop_reaches_the_core", () => {
+  const { Surface } = renderer();
+  const large = rows(Array.from({ length: 5999 }, (_, index) => index));
+  expect(renderToString(<Surface {...surfaceProps} tree={large} />)).toContain("<p>Unavailable</p>");
+  const html = renderToString(<Surface {...surfaceProps} tree={large} limits={{ nodes: 10_000 }} />);
+  expect(html).not.toContain("<p>Unavailable</p>");
+  expect(html).toContain("Row 5998");
+  expect(renderToString(<Surface {...surfaceProps} tree={tree()} limits={{ nodes: -1 }} />)).toContain(
+    "<p>Unavailable</p>",
+  );
+});
+
+test("unreadable_validator_draws_the_fallback_in_surface", () => {
+  const { Surface } = renderer();
+  const events: SurfaceEvent[] = [];
+  const wrapper = { checkNode: validator.checkNode, validateTree: validator.validateTree };
+  const html = renderToString(
+    <Surface {...surfaceProps} validator={wrapper} tree={tree()} onEvent={(event) => void events.push(event)} />,
+  );
+  expect(html).toContain("<p>Unavailable</p>");
+  expect(events).toHaveLength(1);
+  expect(events[0]).toMatchObject({
+    type: "arrival-rejected",
+    errors: [{ kind: "catalog-mismatch", pointer: "/validator" }],
+  });
 });

@@ -1,0 +1,280 @@
+[
+  {
+    "name": "a focus mark is set",
+    "prev": {
+      "format": "liveframe/1",
+      "catalogId": "test@1",
+      "surfaceId": "vectors",
+      "revision": 1,
+      "root": {
+        "id": "root",
+        "kind": "stack",
+        "props": {},
+        "children": [
+          {
+            "id": "root/a",
+            "kind": "text",
+            "props": {
+              "text": "A"
+            }
+          },
+          {
+            "id": "root/b",
+            "kind": "text",
+            "props": {
+              "text": "B"
+            }
+          }
+        ]
+      }
+    },
+    "next": {
+      "format": "liveframe/1",
+      "catalogId": "test@1",
+      "surfaceId": "vectors",
+      "revision": 2,
+      "focus": "root/a",
+      "root": {
+        "id": "root",
+        "kind": "stack",
+        "props": {},
+        "children": [
+          {
+            "id": "root/a",
+            "kind": "text",
+            "props": {
+              "text": "A"
+            }
+          },
+          {
+            "id": "root/b",
+            "kind": "text",
+            "props": {
+              "text": "B"
+            }
+          }
+        ]
+      }
+    },
+    "patch": {
+      "format": "liveframe/tree-patch/1",
+      "catalogId": "test@1",
+      "surfaceId": "vectors",
+      "base": 1,
+      "revision": 2,
+      "focus": "root/a",
+      "ops": []
+    }
+  },
+  {
+    "name": "a focus mark moves",
+    "prev": {
+      "format": "liveframe/1",
+      "catalogId": "test@1",
+      "surfaceId": "vectors",
+      "revision": 1,
+      "focus": "root/a",
+      "root": {
+        "id": "root",
+        "kind": "stack",
+        "props": {},
+        "children": [
+          {
+            "id": "root/a",
+            "kind": "text",
+            "props": {
+              "text": "A"
+            }
+          },
+          {
+            "id": "root/b",
+            "kind": "text",
+            "props": {
+              "text": "B"
+            }
+          }
+        ]
+      }
+    },
+    "next": {
+      "format": "liveframe/1",
+      "catalogId": "test@1",
+      "surfaceId": "vectors",
+      "revision": 2,
+      "focus": "root/b",
+      "root": {
+        "id": "root",
+        "kind": "stack",
+        "props": {},
+        "children": [
+          {
+            "id": "root/a",
+            "kind": "text",
+            "props": {
+              "text": "A"
+            }
+          },
+          {
+            "id": "root/b",
+            "kind": "text",
+            "props": {
+              "text": "B"
+            }
+          }
+        ]
+      }
+    },
+    "patch": {
+      "format": "liveframe/tree-patch/1",
+      "catalogId": "test@1",
+      "surfaceId": "vectors",
+      "base": 1,
+      "revision": 2,
+      "focus": "root/b",
+      "ops": []
+    }
+  },
+  {
+    "name": "a focus mark is cleared with null",
+    "prev": {
+      "format": "liveframe/1",
+      "catalogId": "test@1",
+      "surfaceId": "vectors",
+      "revision": 1,
+      "focus": "root/b",
+      "root": {
+        "id": "root",
+        "kind": "stack",
+        "props": {},
+        "children": [
+          {
+            "id": "root/a",
+            "kind": "text",
+            "props": {
+              "text": "A"
+            }
+          },
+          {
+            "id": "root/b",
+            "kind": "text",
+            "props": {
+              "text": "B"
+            }
+          }
+        ]
+      }
+    },
+    "next": {
+      "format": "liveframe/1",
+      "catalogId": "test@1",
+      "surfaceId": "vectors",
+      "revision": 2,
+      "root": {
+        "id": "root",
+        "kind": "stack",
+        "props": {},
+        "children": [
+          {
+            "id": "root/a",
+            "kind": "text",
+            "props": {
+              "text": "A"
+            }
+          },
+          {
+            "id": "root/b",
+            "kind": "text",
+            "props": {
+              "text": "B"
+            }
+          }
+        ]
+      }
+    },
+    "patch": {
+      "format": "liveframe/tree-patch/1",
+      "catalogId": "test@1",
+      "surfaceId": "vectors",
+      "base": 1,
+      "revision": 2,
+      "focus": null,
+      "ops": []
+    }
+  },
+  {
+    "name": "an unchanged focus mark is omitted",
+    "prev": {
+      "format": "liveframe/1",
+      "catalogId": "test@1",
+      "surfaceId": "vectors",
+      "revision": 1,
+      "focus": "root/a",
+      "root": {
+        "id": "root",
+        "kind": "stack",
+        "props": {},
+        "children": [
+          {
+            "id": "root/a",
+            "kind": "text",
+            "props": {
+              "text": "A"
+            }
+          },
+          {
+            "id": "root/b",
+            "kind": "text",
+            "props": {
+              "text": "B"
+            }
+          }
+        ]
+      }
+    },
+    "next": {
+      "format": "liveframe/1",
+      "catalogId": "test@1",
+      "surfaceId": "vectors",
+      "revision": 2,
+      "focus": "root/a",
+      "root": {
+        "id": "root",
+        "kind": "stack",
+        "props": {},
+        "children": [
+          {
+            "id": "root/a",
+            "kind": "text",
+            "props": {
+              "text": "Changed"
+            }
+          },
+          {
+            "id": "root/b",
+            "kind": "text",
+            "props": {
+              "text": "B"
+            }
+          }
+        ]
+      }
+    },
+    "patch": {
+      "format": "liveframe/tree-patch/1",
+      "catalogId": "test@1",
+      "surfaceId": "vectors",
+      "base": 1,
+      "revision": 2,
+      "ops": [
+        {
+          "op": "set",
+          "id": "root/a",
+          "kind": "text",
+          "props": {
+            "text": "Changed"
+          }
+        }
+      ]
+    }
+  }
+]

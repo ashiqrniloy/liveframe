@@ -38,7 +38,7 @@ async function archive(dir: string): Promise<{ files: Set<string>; manifest: { e
 }
 
 test("workspace_lists_the_core_then_both_packages", async () => {
-  expect(await packageDirs()).toEqual([".", "packages/runner-quickjs", "packages/starter"]);
+  expect(await packageDirs()).toEqual([".", "packages/a2ui", "packages/runner-quickjs", "packages/starter"]);
 });
 
 test("workspace_packages_share_one_version", async () => {
@@ -89,6 +89,7 @@ test("root_archive_has_no_wasm", async () => {
   expect(archiveProblems(rules, ["dist/a.wasm"])).toHaveLength(1);
   expect(archiveProblems(rules, ["dist/runner-quickjs/index.js"])).toHaveLength(1);
   expect(archiveProblems(rules, ["dist/starter/ui.gen.js"])).toHaveLength(1);
+  expect(archiveProblems(rules, ["dist/a2ui/index.js"])).toHaveLength(1);
   const { files } = await archive(".");
   expect([...files].filter((file) => file.endsWith(".wasm"))).toEqual([]);
   expect(archiveProblems(rules, files)).toEqual([]);

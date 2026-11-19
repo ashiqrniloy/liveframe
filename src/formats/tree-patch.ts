@@ -16,18 +16,23 @@ export type TreePatch = {
   readonly surfaceId: string;
   readonly base: number;
   readonly revision: number;
+  /** The tree's focus mark: omitted keeps the base's, a node id sets it, `null` clears it (spec §9.1). */
+  readonly focus?: string | null;
   readonly ops: readonly PatchOp[];
 };
 const natural = int({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER });
 const tag = (value: string) => str({ maxLength: value.length, enum: [value] });
-const fields = obj({
-  format: tag("liveframe/tree-patch/1"),
-  catalogId: treeSchema.properties.catalogId,
-  surfaceId: treeSchema.properties.surfaceId,
-  base: natural,
-  revision: natural,
-  ops: bool(),
-});
+const fields = obj(
+  {
+    format: tag("liveframe/tree-patch/1"),
+    catalogId: treeSchema.properties.catalogId,
+    surfaceId: treeSchema.properties.surfaceId,
+    base: natural,
+    revision: natural,
+    ops: bool(),
+  },
+  { focus: bool() },
+);
 // Patch transport checks JSON shape; applyPatch validates style domains against the installation.
 const nodeProperties = {
   ...treeSchema.$defs.node.properties,
@@ -46,7 +51,12 @@ const moveFields = obj({ op: tag("move"), id, index: natural });
 export const treePatchSchema = {
   ...fields,
   properties: {
-    ...fields.properties,
+    format: fields.properties.format,
+    catalogId: fields.properties.catalogId,
+    surfaceId: fields.properties.surfaceId,
+    base: fields.properties.base,
+    revision: fields.properties.revision,
+    focus: { anyOf: [treeSchema.properties.focus, { type: "null" }] },
     ops: {
       type: "array",
       items: {

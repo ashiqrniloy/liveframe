@@ -1,15 +1,16 @@
 import type { LiveframeError, Result } from "../errors.ts";
+import type { WidgetPackage } from "../formats/package.ts";
 import type { ActionStatus, Intent, IntentOrigin, Json, UiTree } from "../formats/tree.ts";
 import { canonicalJson } from "../pack/hash.ts";
 import { checkValue } from "../schema.ts";
-import { loadPlacement } from "../store/load.ts";
+import { loadPlacement, verifyPlacementInputs } from "../store/load.ts";
 import { checkOffered } from "../validate/offered.ts";
 import { findNode } from "../validate/patch.ts";
 import { notifier } from "./events.ts";
 import { cut, renderLoaded, renderPlacement } from "./render.ts";
 import type { Actions, HostWiring, Installs, Served } from "./types.ts";
 
-/** The most results one surface carries (plan 029 design A2); the oldest settled ones make room. */
+/** The most results one surface carries (spec §8); the oldest settled ones make room. */
 const MAX_ACTIONS = 64;
 
 /** What the host's operation reports. `value` is shown to the widget only when the action declares a `result` schema. */
@@ -36,6 +37,14 @@ export type IntentArgs<V> = HostWiring<V> & {
 };
 
 export type Handled = { readonly served: Served; readonly actions: Actions };
+
+/**
+ * Result of `handleIntent`. Failures after a recorded action outcome or refusal carry `actions` so the host can
+ * persist them while keeping its `served` frame unchanged; earlier failures carry no `actions`.
+ */
+export type HandleResult =
+  | { readonly ok: true; readonly value: Handled }
+  | { readonly ok: false; readonly errors: readonly LiveframeError[]; readonly actions?: Actions };
 
 const refuse = (kind: LiveframeError["kind"], pointer: string, message: string): LiveframeError[] => [
   { kind, pointer, message },
@@ -80,7 +89,7 @@ function outcome(answer: unknown, name: string, install: Installs[string]): { st
     : failed("Invalid result");
 }
 
-type Reason = "stale" | "not-offered" | "unauthorized" | "invalid-state" | "limit";
+type Reason = "stale" | "not-offered" | "unauthorized" | "invalid-state" | "limit" | "conflict";
 type Notify = ReturnType<typeof notifier>;
 
 /** Whether two status maps say the same thing; the order of their entries does not matter. */
@@ -103,9 +112,9 @@ type Run<V> = {
   /** Deliver a frame to a push host. A throw is contained: the effect has happened either way. */
   readonly send: (frame: Served) => Promise<void>;
   /** H8–H9. Render the next map, deliver it and answer. */
-  readonly finish: (actions: Actions, previous?: Served) => Promise<Result<Handled>>;
+  readonly finish: (actions: Actions, previous?: Served) => Promise<HandleResult>;
   /** H8–H9 for a refusal: no effect ran, so a map that says what it said before has nothing new to show. */
-  readonly finishRefusal: (actions: Actions) => Promise<Result<Handled>>;
+  readonly finishRefusal: (actions: Actions) => Promise<HandleResult>;
 };
 
 function begin<V>(args: IntentArgs<V>, install: Installs[string], notify: Notify): Run<V> {
@@ -129,9 +138,9 @@ function begin<V>(args: IntentArgs<V>, install: Installs[string], notify: Notify
       notify?.({ type: "publish-failed", placementId, ...(error instanceof Error ? { error: error.name } : {}) });
     }
   };
-  const finish = async (actions: Actions, previous?: Served): Promise<Result<Handled>> => {
+  const finish = async (actions: Actions, previous?: Served): Promise<HandleResult> => {
     const next = await render(actions, previous);
-    if (!next.ok) return next;
+    if (!next.ok) return { ok: false, errors: next.errors, actions };
     await send(next.value);
     return { ok: true, value: { served: next.value, actions } };
   };
@@ -155,7 +164,7 @@ function begin<V>(args: IntentArgs<V>, install: Installs[string], notify: Notify
 const tooManyPending = () => refuse("limit-exceeded", "/actions", "Too many pending actions");
 
 /** H2, failure. A stale origin is refused as it is; an offered action is told to the widget as refused. */
-function refuseOffered<V>(run: Run<V>, errors: readonly LiveframeError[]): Promise<Result<Handled>> | Result<never> {
+function refuseOffered<V>(run: Run<V>, errors: readonly LiveframeError[]): Promise<HandleResult> | HandleResult {
   const { served, origin } = run.args;
   if (errors.some((error) => error.kind === "version-conflict")) {
     run.refused("stale", errors);
@@ -169,8 +178,22 @@ function refuseOffered<V>(run: Run<V>, errors: readonly LiveframeError[]): Promi
   return recorded ? run.finishRefusal(recorded) : { ok: false, errors: tooManyPending() };
 }
 
+/** Attempts at a contended compare-and-set before `version-conflict` (spec §7.7). */
+const STATE_ATTEMPTS = 4;
+
+/** The stored state with the intent's key replaced, or `undefined` when it does not fit the manifest. */
+function withKey(
+  current: Json,
+  intent: Extract<Intent, { type: "setState" }>,
+  schema: WidgetPackage["manifest"]["state"],
+): Json | undefined {
+  if (current === null || typeof current !== "object" || Array.isArray(current)) return undefined;
+  const next = Object.fromEntries([...Object.entries(current), [intent.key, intent.value as Json]]);
+  return checkValue(schema, next).ok ? next : undefined;
+}
+
 /** H3. Authorise, write the next state, then render it. */
-async function applyState<V>(run: Run<V>, intent: Extract<Intent, { type: "setState" }>): Promise<Result<Handled>> {
+async function applyState<V>(run: Run<V>, intent: Extract<Intent, { type: "setState" }>): Promise<HandleResult> {
   const { args, install } = run;
   const { placementId, scope } = args.served;
   // H3, first (law 4): a state write is an effect like any other. A refusal leaves everything as the host stored it.
@@ -178,28 +201,49 @@ async function applyState<V>(run: Run<V>, intent: Extract<Intent, { type: "setSt
     run.refused("unauthorized");
     return { ok: true, value: { served: args.served, actions: args.actions ?? {} } };
   }
-  // H3a. The stored state, not the served one, is the base: another tab's committed write is kept.
-  const loaded = await loadPlacement(args.store, placementId, install, {
+  // H3a. The stored state, not the served one, is the base: another tab's committed write is kept. With
+  // `putStateIf`, the raw stored value is read once here so the compare-and-set can expect exactly it.
+  const { store } = args;
+  const cas = typeof store.putStateIf === "function";
+  let expected = cas ? await store.getState(placementId, scope) : undefined;
+  const loaded = await loadPlacement(store, placementId, install, {
     scope,
+    ...(cas ? { state: expected } : {}),
     ...(args.verified ? { verified: args.verified } : {}),
   });
   if (!loaded.ok) {
     run.notify?.({ type: "load-failed", placementId, errors: loaded.errors });
     return loaded;
   }
-  // H3b. Spec §8: check the whole next state against the manifest, even though the event's value was checked.
-  const current = loaded.value.state;
-  const next =
-    current !== null && typeof current === "object" && !Array.isArray(current)
-      ? Object.fromEntries([...Object.entries(current), [intent.key, intent.value as Json]])
-      : undefined;
-  if (!next || !checkValue(loaded.value.package.manifest.state, next).ok) {
-    const errors = refuse("invalid-prop", "/value", "State value rejected");
-    run.refused("invalid-state", errors);
-    return { ok: false, errors };
+  const { package: pkg, params, libraries } = loaded.value;
+  let base: typeof loaded.value = loaded.value;
+  let next: Json;
+  for (let attempt = 1; ; attempt++) {
+    // H3b. Spec §8: check the whole next state against the manifest, even though the event's value was checked.
+    const candidate = withKey(base.state, intent, pkg.manifest.state);
+    if (!candidate) {
+      const errors = refuse("invalid-prop", "/value", "State value rejected");
+      run.refused("invalid-state", errors);
+      return { ok: false, errors };
+    }
+    next = candidate;
+    // H3c. The only write, after H2 and H3b. Without `putStateIf` the host serialises writers (spec §7.4).
+    if (!cas) {
+      await store.putState(placementId, scope, next);
+      break;
+    }
+    if (await store.putStateIf?.(placementId, scope, expected, next)) break;
+    if (attempt === STATE_ATTEMPTS) {
+      const errors = refuse("version-conflict", "/state", "State changed concurrently");
+      run.refused("conflict", errors);
+      return { ok: false, errors };
+    }
+    // Another writer won: re-read, re-verify (reset or migrate as a load would) and re-apply the one key.
+    expected = await store.getState(placementId, scope);
+    const again = verifyPlacementInputs(pkg, { params, state: expected });
+    if (!again.ok) return again;
+    base = { package: pkg, ...again.value, ...(libraries ? { libraries } : {}) };
   }
-  // H3c. The only write, after H2 and H3b.
-  await args.store.putState(placementId, scope, next);
   const actions = args.actions ?? {};
   const { served, ...rest } = args;
   const rendered = await renderLoaded(
@@ -213,7 +257,7 @@ async function applyState<V>(run: Run<V>, intent: Extract<Intent, { type: "setSt
       previous: served,
     },
     install,
-    { ...loaded.value, state: next },
+    { ...base, state: next },
   );
   if (!rendered.ok) return rendered;
   await run.send(rendered.value);
@@ -248,7 +292,7 @@ async function dispatched<V>(run: Run<V>, intent: Extract<Intent, { type: "actio
 }
 
 /** H4–H9 for an action. */
-async function runAction<V>(run: Run<V>, intent: Extract<Intent, { type: "action" }>): Promise<Result<Handled>> {
+async function runAction<V>(run: Run<V>, intent: Extract<Intent, { type: "action" }>): Promise<HandleResult> {
   const key = intent.resultKey ?? intent.name;
   // H7, first: a surface with every slot pending runs nothing.
   const pending = admit(run.args.actions ?? {}, key, { status: "pending", action: intent.name });
@@ -279,7 +323,7 @@ async function runAction<V>(run: Run<V>, intent: Extract<Intent, { type: "action
  * result and re-render (spec §7.7, steps H1–H9). Nothing runs before `checkOffered` and `authorize` (law 4).
  * Stateless: the host serialises calls per placement and scope and stores the returned `served` and `actions`.
  */
-export async function handleIntent<V>(args: IntentArgs<V>): Promise<Result<Handled>> {
+export async function handleIntent<V>(args: IntentArgs<V>): Promise<HandleResult> {
   const { served, origin, intent, installs } = args;
   const notify = notifier(args.onEvent);
 

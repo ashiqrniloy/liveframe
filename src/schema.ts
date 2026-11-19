@@ -107,16 +107,32 @@ export function union<
   return { ...(annotations as Pick<A, keyof A & keyof Annotations>), discriminator, mapping } as const;
 }
 
-/** Optional convention for outcomes resolved by the host, without granting authority. */
-export function sourceOutcome<const S extends LanguageSchema>(result: S) {
+function outcomeMapping<const S extends LanguageSchema>(result: S) {
   const failure = obj({}, { reason: str({ maxLength: 500 }), value: result });
-  return union("status", {
+  return {
     ok: obj({ value: result }, { checkedAt: str({ maxLength: 128 }) }),
     unauthorized: failure,
     unavailable: failure,
     stale: failure,
     failed: failure,
-  });
+  };
+}
+const pendingVariant = () => obj({});
+type OutcomeMapping<S extends LanguageSchema, P extends boolean> = P extends true
+  ? ReturnType<typeof outcomeMapping<S>> & { readonly pending: ReturnType<typeof pendingVariant> }
+  : ReturnType<typeof outcomeMapping<S>>;
+
+/**
+ * Optional convention for outcomes resolved by the host, without granting authority. `{ pending: true }` adds a
+ * `pending` variant, `{ status: "pending" }`, for a source the host has not read yet; without it the envelope is
+ * the 0.3.0 one.
+ */
+export function sourceOutcome<const S extends LanguageSchema, const P extends boolean = false>(
+  result: S,
+  options?: { readonly pending?: P },
+): { readonly discriminator: "status"; readonly mapping: OutcomeMapping<S, P> } {
+  const mapping = outcomeMapping(result);
+  return union("status", options?.pending ? { ...mapping, pending: pendingVariant() } : mapping) as never;
 }
 
 // Publishing-only forms; these are deliberately outside the author schema language.

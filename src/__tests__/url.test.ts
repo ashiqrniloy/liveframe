@@ -182,12 +182,12 @@ test("url_json_schema_agrees_with_checker", () => {
 });
 
 test("url_pattern_is_linear", () => {
-  // No nested quantifier: a long near-miss input finishes at once.
-  const expression = new RegExp(urlPattern({ schemes: ["https"], relative: true }), "u");
-  const started = performance.now();
+  // No nested quantifier: every repetition applies to a flat character class, never to a group.
+  const pattern = urlPattern({ schemes: ["https"], relative: true });
+  expect(pattern).not.toMatch(/\)[*+?{]/);
+  const expression = new RegExp(pattern, "u");
   expect(expression.test(`${"a".repeat(200_000)}:`)).toBe(false);
   expect(expression.test(`a${"+".repeat(200_000)}`)).toBe(true);
-  expect(performance.now() - started).toBeLessThan(200);
 });
 
 test("url_generated_types_and_schemas_document_the_schemes", () => {

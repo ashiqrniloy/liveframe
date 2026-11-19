@@ -1,8 +1,8 @@
-// The template widget format and its install-time validation (plan 028, design T1–T4, T9, T10, T14–T16).
+// The template widget format and its install-time validation (spec §7.6).
 // A template is element JSON whose values may be expressions, plus the directives `$let`, `$if`,
 // `$each` and `$use`. `validateTemplate` is the only place that reads a template document: it checks
 // structure, bounds, the component graph and every expression against the manifest's schemas, so
-// `renderTemplate` (Task 4) can rely on a template that passed.
+// `renderTemplate` can rely on a template that passed.
 import type { LiveframeError, Result } from "../errors.ts";
 import { at, type Capabilities, documentChecks, isRecord, type ObjectSchema } from "../formats/capabilities.ts";
 import type { Catalog, Definition } from "../formats/catalog.ts";
@@ -16,7 +16,7 @@ import { type ElementReject, mergeSections, rejectFragmentFields } from "../sdk/
 import { actionsSchema } from "../validate/actions.ts";
 import { type BindingCheck, compileBindings, EMBED } from "../validate/bindings.ts";
 import { dataSchema, type KindFacts, kindFacts, propTarget } from "../validate/compile.ts";
-import { type Carries, carriesFits, objectFits } from "../validate/intent.ts";
+import { type Carries, carriesFits, describeCarries, eventFits, localFits, objectFits } from "../validate/intent.ts";
 import { type CompiledStructure, compileStructure } from "../validate/structure.ts";
 import { compileStyles } from "../validate/style.ts";
 import { analyzeExpression, analyzeOperand, EXPR_LIMITS, itemsOf } from "./expr.ts";
@@ -36,23 +36,40 @@ import {
   typeOf,
 } from "./scope.ts";
 
-/** Any JSON value, read as an expression (design T5): scalars are literals, `$`-objects are operators. */
+/** Any JSON value, read as an expression: scalars are literals, `$`-objects are operators. */
 export type Expr = Json;
 
-/** An intent whose `value` and `args` members are expressions (design T14). */
+/** One renderer-applied local write in a template intent (spec §8). */
+export type TemplateLocalWrite = {
+  readonly key: string;
+  readonly value?: Expr;
+  readonly until?: "revision";
+};
+
+/** An intent whose `value` and `args` members are expressions; its other fields are static. */
 export type TemplateIntent =
-  | { readonly type: "setState"; readonly key: string; readonly value?: Expr }
+  | {
+      readonly type: "setState";
+      readonly key: string;
+      readonly value?: Expr;
+      readonly local?: readonly TemplateLocalWrite[];
+      /** A static local key: the value is read from local state when the event is raised (spec §8). */
+      readonly fromLocal?: string;
+    }
   | {
       readonly type: "action";
       readonly name: string;
       readonly args: Readonly<Record<string, Expr>>;
       readonly bind?: string;
       readonly bindAll?: true;
-      /** The key the host reports this action's status under (plan 029 A5); may be an expression. */
+      /** The key the host reports this action's status under (spec §8); may be an expression. */
       readonly resultKey?: Expr;
+      readonly local?: readonly TemplateLocalWrite[];
+      /** Static argument name to local key: each argument is read from local state when the event is raised. */
+      readonly fromLocal?: Readonly<Record<string, string>>;
     };
 
-/** An element-JSON node whose values may be expressions, plus the directives (design T2, T3). */
+/** An element-JSON node whose values may be expressions, plus the directives `$let`, `$if`, `$each` and `$use`. */
 export type TemplateNode = {
   readonly kind?: string;
   readonly key?: Expr;
@@ -61,6 +78,8 @@ export type TemplateNode = {
   readonly props?: Readonly<Record<string, Expr>>;
   readonly style?: Readonly<Record<string, Expr>>;
   readonly events?: Readonly<Record<string, TemplateIntent>>;
+  /** A boolean template value; true marks the node the tree's focus moves to (spec §9). */
+  readonly focus?: Expr;
   readonly children?: readonly TemplateNode[];
   readonly $let?: readonly { readonly as: string; readonly value: Expr }[];
   readonly $if?: Expr;
@@ -77,7 +96,7 @@ export type Template = {
   readonly root: TemplateNode;
 };
 
-/** Install bounds that are not expression bounds (design T10); expression bounds live in `EXPR_LIMITS`. */
+/** Install bounds that are not expression bounds; expression bounds live in `EXPR_LIMITS`. */
 export const TEMPLATE_LIMITS = {
   bytes: TEMPLATE_BYTES,
   nodes: 10_000,
@@ -193,7 +212,7 @@ class Walk {
     return analyzeExpression(value, scope, pointer, this.c).type;
   }
 
-  // Components are checked first, each against its own params only (design T9).
+  // Components are checked first, each against its own params only: a component body sees nothing else.
   checkComponents(): void {
     const empty = rootScope({});
     const entries = Object.entries(this.components);
@@ -233,7 +252,7 @@ class Walk {
     this.walk(this.template.root as Raw, "/root", scope, { depth: 1, owner: "", role: "root" });
   }
 
-  // The component graph is acyclic and shallow enough (design T10).
+  // The component graph is acyclic and shallow enough.
   checkGraph(): void {
     const heights = new Map<string, number>();
     const height = (owner: string): number => {
@@ -303,7 +322,7 @@ class Walk {
     else this.reject(at(pointer, "kind"), `a catalog kind: ${expected(this.facts.kinds.keys())}`, "unknown-component");
   }
 
-  // ---- directives (design T3) ----
+  // ---- directives ----
 
   /** `$let`, then `$if`, then `$each`. Returns the scope the body sees. */
   directives(node: Raw, pointer: string, outer: Scope, role: Place["role"]): Scope {
@@ -381,7 +400,7 @@ class Walk {
 
   /** A `$use` node: no element fields of its own, and `with` against the component's params. */
   componentNode(node: Raw, pointer: string, scope: Scope, here: Place): void {
-    for (const field of ["props", "style", "events", "children", "variant", "$anchor", "when", "bind"])
+    for (const field of ["props", "style", "events", "children", "variant", "$anchor", "when", "bind", "focus"])
       if (Object.hasOwn(node, field))
         this.reject(at(pointer, field), `no ${field} on a $use node (set it in the component)`, "invalid-document");
     const name = node.$use as string;
@@ -438,10 +457,18 @@ class Walk {
       this.reject(at(pointer, "children"), `no children in ${kind}`, "invalid-children");
     this.members(node, pointer, entry, scope);
     this.expressions(node, pointer, entry, scope);
+    // The focus mark is a template value, a boolean known once rendered (spec §7.6); `render()` keeps one per tree.
+    if (Object.hasOwn(node, "focus"))
+      this.bindTo(
+        this.expression(node.focus, scope, at(pointer, "focus")),
+        { type: "boolean" },
+        false,
+        at(pointer, "focus"),
+      );
     this.children(node, pointer, scope, here, kind);
   }
 
-  // ---- when and bind (plan 029 B12) ----
+  // ---- when and bind: tree expressions, checked as the validator checks them (spec §8) ----
 
   /**
    * A node's browser-evaluated `when` and `bind`. Each `$embed` operand is a template expression; the rest is
@@ -524,7 +551,7 @@ class Walk {
       return false;
     }
     const type = this.expression(value, scope, pointer);
-    // `{ $ref }` markers are how a prop in `refProps` names another node (plan 027).
+    // `{ $ref }` markers are how a prop in `refProps` names another node (spec §9).
     if (!(definition.refProps?.includes(name) && isReference(type)))
       this.bindTo(type, schema, definition.props.required.includes(name), pointer);
     return true;
@@ -549,15 +576,122 @@ class Walk {
     this.reject(at(events, name), `a declared event: ${expected(facts.events)}`, "undeclared-event");
   }
 
-  // ---- intents (design T14) ----
+  // ---- intents ----
 
   intent(value: unknown, pointer: string, carries: Carries, scope: Scope): void {
     if (!isRecord(value)) this.reject(pointer, "one setState or action intent");
-    else if (value.type === "setState") this.write(value, pointer, carries, scope, this.manifest.state, "state");
-    else if (value.type === "setLocal")
+    else if (value.type === "setState") {
+      if (Object.hasOwn(value, "fromLocal")) this.stateFromLocal(value, pointer);
+      else this.write(value, pointer, carries, scope, this.manifest.state, "state");
+      this.localWrites(value, pointer, carries, scope);
+    } else if (value.type === "setLocal")
       this.write(value, pointer, carries, scope, this.manifest.local ?? NO_LOCAL, "local");
-    else if (value.type === "action") this.action(value, pointer, carries, scope);
-    else this.reject(at(pointer, "type"), "intent type setState or action");
+    else if (value.type === "action") {
+      this.action(value, pointer, carries, scope);
+      this.localWrites(value, pointer, carries, scope);
+    } else this.reject(at(pointer, "type"), "intent type setState or action");
+  }
+
+  localWrites(value: Raw, pointer: string, carries: Carries, scope: Scope): void {
+    if (!Object.hasOwn(value, "local")) return;
+    const writes = value.local;
+    const where = at(pointer, "local");
+    if (!Array.isArray(writes) || writes.length === 0) {
+      this.reject(where, "1 to 4 local writes");
+      return;
+    }
+    if (writes.length > 4) {
+      this.reject(where, "at most 4 local writes", "limit-exceeded");
+      return;
+    }
+    const { properties } = this.manifest.local ?? NO_LOCAL;
+    for (const [i, entry] of writes.entries()) {
+      const itemPointer = at(where, i);
+      if (!isRecord(entry)) {
+        this.reject(itemPointer, "a local write object");
+        continue;
+      }
+      const key = entry.key;
+      const target = typeof key === "string" && Object.hasOwn(properties, key) ? properties[key] : undefined;
+      if (!target) {
+        this.reject(
+          at(itemPointer, "key"),
+          `a declared local key: ${expected(Object.keys(properties))}`,
+          "unknown-name",
+        );
+        continue;
+      }
+      if (Object.hasOwn(entry, "value")) {
+        const valuePointer = at(itemPointer, "value");
+        this.bindTo(this.expression(entry.value, scope, valuePointer), target, true, valuePointer);
+      } else {
+        const type = target.type ?? "object";
+        if (!carriesFits(carries, type))
+          this.reject(at(itemPointer, "value"), `an explicit ${type} value, or an event carrying ${type}`);
+      }
+    }
+  }
+
+  /** A `setState` that reads its value from one local key when the event is raised. */
+  stateFromLocal(value: Raw, pointer: string): void {
+    const key = value.key;
+    const state =
+      typeof key === "string" && Object.hasOwn(this.manifest.state.properties, key)
+        ? this.manifest.state.properties[key]
+        : undefined;
+    if (!state) {
+      this.reject(at(pointer, "key"), `a declared state key: ${expected(Object.keys(this.manifest.state.properties))}`);
+      return;
+    }
+    const where = at(pointer, "fromLocal");
+    if (Object.hasOwn(value, "value")) this.reject(where, "fromLocal without an explicit value");
+    const target = this.localTarget(value.fromLocal, where);
+    if (target && !localFits(target, state)) this.reject(where, `a local key fitting ${state.type ?? "object"}`);
+  }
+
+  /** The `local` property a `fromLocal` names, or undefined after reporting why not. */
+  localTarget(key: unknown, pointer: string): LanguageSchema | undefined {
+    const { properties } = this.manifest.local ?? NO_LOCAL;
+    const local = typeof key === "string" && Object.hasOwn(properties, key) ? properties[key] : undefined;
+    if (!local) this.reject(pointer, `a declared local key: ${expected(Object.keys(properties))}`, "unknown-name");
+    return local;
+  }
+
+  /** An action's `fromLocal`: the argument names it fills, after checking each against the capability and `local`. */
+  actionFromLocal(value: Raw, args: Raw, pointer: string, carries: Carries, schema: ObjectSchema): ReadonlySet<string> {
+    const supplied = new Set<string>();
+    if (!Object.hasOwn(value, "fromLocal")) return supplied;
+    const where = at(pointer, "fromLocal");
+    const entries = isRecord(value.fromLocal) ? Object.entries(value.fromLocal) : undefined;
+    if (!entries || entries.length === 0) {
+      this.reject(where, "1 to 16 fromLocal entries");
+      return supplied;
+    }
+    if (entries.length > 16) {
+      this.reject(where, "at most 16 fromLocal entries", "limit-exceeded");
+      return supplied;
+    }
+    for (const [arg, localKey] of entries) {
+      const entry = at(where, arg);
+      const target = Object.hasOwn(schema.properties, arg) ? schema.properties[arg] : undefined;
+      if (!target) {
+        this.reject(entry, `a declared argument of ${String(value.name)}: ${expected(Object.keys(schema.properties))}`);
+        continue;
+      }
+      supplied.add(arg);
+      if (
+        Object.hasOwn(args, arg) ||
+        value.bind === arg ||
+        (value.bindAll === true &&
+          typeof carries === "object" &&
+          "object" in carries &&
+          Object.hasOwn(carries.object.properties, arg))
+      )
+        this.reject(entry, "an argument filled once: not also a literal, bind or bindAll");
+      const local = this.localTarget(localKey, entry);
+      if (local && !localFits(local, target)) this.reject(entry, `a local key fitting ${target.type ?? "object"}`);
+    }
+    return supplied;
   }
 
   /** A `setState` or `setLocal`: a key of the manifest's state or local schema, with an expression or an event's value. */
@@ -575,7 +709,13 @@ class Walk {
       return;
     }
     const type = state.type ?? "object";
-    const fits = typeof carries === "object" ? objectFits(carries.object, state) : carriesFits(carries, type);
+    // `local` holds scalars only, so an array carry fills a `state` key alone.
+    const fits =
+      typeof carries === "object" && "object" in carries
+        ? objectFits(carries.object, state)
+        : what === "state"
+          ? eventFits(carries, state)
+          : carriesFits(carries, type);
     if (!fits) this.reject(at(pointer, "value"), `an explicit ${type} value, or an event carrying ${type}`);
   }
 
@@ -601,7 +741,8 @@ class Walk {
         where,
       );
     }
-    const completion = this.completion(value, args, pointer, carries, schema);
+    const supplied = this.actionFromLocal(value, args, pointer, carries, schema);
+    const completion = this.completion(value, args, pointer, carries, schema, supplied);
     for (const key of Object.keys(args)) {
       const target = Object.hasOwn(schema.properties, key) ? schema.properties[key] : undefined;
       const where = at(at(pointer, "args"), key);
@@ -610,7 +751,12 @@ class Walk {
     }
     if (!completion) return;
     for (const key of schema.required)
-      if (!Object.hasOwn(args, key) && key !== completion.bound && !completion.event.includes(key))
+      if (
+        !Object.hasOwn(args, key) &&
+        key !== completion.bound &&
+        !completion.event.includes(key) &&
+        !supplied.has(key)
+      )
         this.reject(at(at(pointer, "args"), key), `the required argument ${key}`);
   }
 
@@ -624,16 +770,17 @@ class Walk {
     pointer: string,
     carries: Carries,
     schema: ObjectSchema,
+    supplied: ReadonlySet<string>,
   ): { readonly bound?: string; readonly event: readonly string[] } | undefined {
-    if (Object.hasOwn(value, "bindAll")) return this.bindAll(value, args, pointer, carries, schema);
+    if (Object.hasOwn(value, "bindAll")) return this.bindAll(value, args, pointer, carries, schema, supplied);
     if (!Object.hasOwn(value, "bind")) return { event: [] };
     const bound = value.bind;
     const target =
       typeof bound === "string" && Object.hasOwn(schema.properties, bound) ? schema.properties[bound] : undefined;
-    if (!target || typeof bound !== "string" || !carriesFits(carries, target.type ?? "object")) {
+    if (!target || typeof bound !== "string" || !eventFits(carries, target)) {
       this.reject(
         at(pointer, "bind"),
-        `an action argument the event can carry (event carries ${JSON.stringify(carries)})`,
+        `an action argument the event can carry (event carries ${describeCarries(carries)})`,
       );
       return undefined;
     }
@@ -647,15 +794,21 @@ class Walk {
     pointer: string,
     carries: Carries,
     schema: ObjectSchema,
+    supplied: ReadonlySet<string>,
   ): { readonly event: readonly string[] } | undefined {
-    if (value.bindAll !== true || Object.hasOwn(value, "bind") || typeof carries !== "object") {
+    if (
+      value.bindAll !== true ||
+      Object.hasOwn(value, "bind") ||
+      typeof carries !== "object" ||
+      !("object" in carries)
+    ) {
       this.reject(at(pointer, "bindAll"), "bindAll: true on an object event, without bind");
       return undefined;
     }
     for (const key of Object.keys(carries.object.properties))
       if (Object.hasOwn(args, key))
         this.reject(at(at(pointer, "args"), key), "event properties omitted from literal args");
-    if (objectFits(carries.object, schema, args)) return { event: carries.object.required };
+    if (objectFits(carries.object, schema, args, supplied)) return { event: carries.object.required };
     this.reject(at(pointer, "bindAll"), "an event schema fitting the action arguments minus literal args");
     return undefined;
   }

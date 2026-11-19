@@ -18,7 +18,7 @@ Make an empty directory and, inside it:
 
 ```sh
 bun init -y
-bun add @arnilo/liveframe @arnilo/liveframe-starter react react-dom react-aria-components
+bun add @arnilo/liveframe @arnilo/liveframe-starter react react-dom react-aria-components @internationalized/date
 bun add -d @types/react @types/react-dom
 ```
 
@@ -27,7 +27,10 @@ Add `"DOM"` to `lib` in the `tsconfig.json` that `bun init` wrote, because two f
 `@arnilo/liveframe` is the library: formats, the validator, the host pipeline, the stores and runners. It
 ships **no components and no look** (spec §3). `@arnilo/liveframe-starter` is a ready-made catalog of generic
 primitives, their React implementations, three themes and a design system, so you can see every piece
-working before you write your own. Copy it or replace it; it is not part of the contract.
+working before you write your own. Copy it or replace it; it is not part of the contract. Its controls
+include `radioGroup` with `radio`, `slider`, `progress` and `dateField` (which needs `@internationalized/date`),
+and its content kinds `richText`, `chart` and `table` with `tableRow` and `tableCell`;
+the [starter README](https://github.com/ashiqrniloy/liveframe/tree/main/packages/starter#the-primitives) lists every kind.
 
 ## 2. Say what the app offers
 

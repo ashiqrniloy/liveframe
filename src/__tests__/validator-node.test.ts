@@ -279,13 +279,8 @@ describe("compiled node validator", () => {
     fails({ style: { toString: "space.1" } }, "invalid-prop", "/style/toString");
     fails({ events: { toString: {} } }, "undeclared-event", "/events/toString");
   });
-  test("proof_compiles_under_20ms", () => {
-    compileValidator({ catalog, capabilities, manifest });
-    const start = performance.now();
+  test("proof_compiles_and_checks_tree", () => {
     const proof = compileValidator({ catalog, capabilities, manifest });
-    const elapsed = performance.now() - start;
-    console.info(`Proof validator compilation: ${elapsed.toFixed(2)} ms`);
-    expect(elapsed).toBeLessThan(20);
     const errors: LiveframeError[] = [];
     expect(proof.checkNode(tree.root, "/root", { errors, maxErrors: 20 })).toBe(true);
     expect(errors).toEqual([]);

@@ -137,7 +137,15 @@ export function applyPatch(base: UiTree, patch: unknown): Result<UiTree> {
     const edited = edit(op, entry, path);
     if (!edited.ok) return edited;
   }
-  return { ok: true, value: { ...base, revision: doc.revision, root } };
+  const { focus: _focus, ...framing } = base;
+  const focus = doc.focus === undefined ? base.focus : doc.focus;
+  return {
+    ok: true,
+    value:
+      focus === null || focus === undefined
+        ? { ...framing, revision: doc.revision, root }
+        : { ...framing, revision: doc.revision, focus, root },
+  };
 }
 
 /**
@@ -220,6 +228,7 @@ export function diffTrees(prev: UiTree, next: UiTree): Result<TreePatch> {
       surfaceId: prev.surfaceId,
       base: prev.revision,
       revision: next.revision,
+      ...(prev.focus === next.focus ? {} : { focus: next.focus ?? null }),
       ops,
     },
   };

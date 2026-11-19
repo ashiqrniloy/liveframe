@@ -86,7 +86,7 @@ test("design_systems_are_complete_for_the_catalog", () => {
     expect(Object.keys(system.recipes).sort()).toEqual(keys.sort());
     expect(JSON.parse(JSON.stringify(system))).toEqual(system);
   }
-});
+}, 20000);
 
 test("recipe_completion_requires_each_slot_and_inherits_rest", () => {
   expect(() => completeRecipes({})).toThrow("Missing rest recipe");

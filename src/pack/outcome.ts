@@ -6,6 +6,21 @@ import { at, freezeCopy } from "../internal.ts";
 import { checkValue, isLanguageSchema, isRecord, sourceOutcome } from "../schema.ts";
 import { canonicalJson } from "./hash.ts";
 
+const STATUSES = ["ok", "unauthorized", "unavailable", "stale", "failed"] as const;
+
+/**
+ * The statuses of a `sourceOutcome` envelope, with `pending` last when it declares that variant, or `undefined` when
+ * the schema is not one. Throws a `TypeError` for a schema `canonicalJson` cannot encode.
+ */
+export function outcomeStatuses(schema: unknown): readonly string[] | undefined {
+  const payload = isLanguageSchema(schema) && "mapping" in schema ? schema.mapping.ok?.properties.value : undefined;
+  if (!payload) return undefined;
+  const canonical = canonicalJson(schema);
+  if (canonical === canonicalJson(sourceOutcome(payload))) return STATUSES;
+  if (canonical === canonicalJson(sourceOutcome(payload, { pending: true }))) return [...STATUSES, "pending"];
+  return undefined;
+}
+
 /** Expands one source alias using the seed envelope's value for the successful outcome. */
 export function outcomeScenarios(
   scenario: Scenario,
@@ -27,9 +42,10 @@ export function outcomeScenarios(
     return { ok: false, errors: c.errors };
   }
   const schema = capability.result;
-  const payload = isLanguageSchema(schema) && "mapping" in schema ? schema.mapping.ok?.properties.value : undefined;
+  let statuses: readonly string[] | undefined;
   try {
-    if (!payload || canonicalJson(schema) !== canonicalJson(sourceOutcome(payload))) {
+    statuses = outcomeStatuses(schema);
+    if (!statuses) {
       c.reject("/source", "Expected a sourceOutcome result schema");
       return { ok: false, errors: c.errors };
     }
@@ -46,7 +62,7 @@ export function outcomeScenarios(
     c.reject("/source", "The seed envelope must contain a valid value for the ok scenario");
   if (c.errors.length) return { ok: false, errors: c.errors };
   const seedValue = isRecord(seed) ? seed.value : undefined;
-  const generated = ["ok", "unauthorized", "unavailable", "stale", "failed"].map((status) => ({
+  const generated = statuses.map((status) => ({
     ...scenario,
     name: `${scenario.name}.${status}`,
     data: { ...scenario.data, [source]: status === "ok" ? { status, value: seedValue } : { status } },

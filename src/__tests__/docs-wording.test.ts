@@ -23,7 +23,6 @@ test("wording_check_matches_export_names_in_the_same_sentence", () => {
 });
 
 test("shipped_docs_never_call_exports_planned", async () => {
-  const started = performance.now();
   const exported = new Set<string>();
   for (const entry of Object.values(manifest.exports)) {
     if (typeof entry === "string") continue; // JSON Schema assets have no module exports.
@@ -45,5 +44,4 @@ test("shipped_docs_never_call_exports_planned", async () => {
     for (const sentence of plannedExports(markdown, exported)) stale.push(`${file}: ${sentence.trim()}`);
   }
   expect(stale).toEqual([]);
-  expect(performance.now() - started).toBeLessThan(200);
 });

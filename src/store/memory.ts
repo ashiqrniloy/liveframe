@@ -3,6 +3,7 @@ import type { WidgetPackage } from "../formats/package.ts";
 import type { Placement, StyleRecord } from "../formats/records.ts";
 import type { Json } from "../formats/tree.ts";
 import type { Store } from "./index.ts";
+import { sameState } from "./same.ts";
 import { assertScope } from "./scope.ts";
 
 function copy<T>(value: T): T {
@@ -15,6 +16,14 @@ export function memoryStore(): Store {
   const placements = new Map<string, Placement>();
   const states = new Map<string, Map<string, Json>>();
   const styles = new Map<string, StyleRecord>();
+  const setState = (id: string, scope: string, state: Json) => {
+    let scoped = states.get(id);
+    if (!scoped) {
+      scoped = new Map();
+      states.set(id, scoped);
+    }
+    scoped.set(scope, copy(state));
+  };
   return {
     async putPackage(pkg) {
       const key = JSON.stringify([pkg.manifest.id, pkg.manifest.version]);
@@ -50,12 +59,14 @@ export function memoryStore(): Store {
     },
     async putState(id, scope, state) {
       assertScope(scope);
-      let scoped = states.get(id);
-      if (!scoped) {
-        scoped = new Map();
-        states.set(id, scoped);
-      }
-      scoped.set(scope, copy(state));
+      setState(id, scope, state);
+    },
+    // No await between the check and the write, so the pair is atomic.
+    async putStateIf(id, scope, expected, next) {
+      assertScope(scope);
+      if (!sameState(states.get(id)?.get(scope), expected)) return false;
+      setState(id, scope, next);
+      return true;
     },
     async getState(id, scope) {
       assertScope(scope);

@@ -26,6 +26,9 @@ const subpaths = [
     globals: ["TextEncoder", "TextDecoder", "URL"],
   },
   { path: "conformance/react", dependencies: false, loader: false, host: "DOM", globals: [] },
+  // The DOM adapter's suite, and the internal renderer cases it shares with `/conformance/react`: no framework.
+  { path: "conformance/dom", dependencies: false, loader: false, host: "DOM", globals: [] },
+  { path: "conformance/renderer", dependencies: false, loader: false, host: "DOM", globals: [] },
   {
     path: "conformance",
     dependencies: true,
@@ -46,7 +49,12 @@ const subpaths = [
   { path: "preview/worker", dependencies: false, loader: true, host: "Worker/self", globals: [] },
   { path: "preview/react", dependencies: false, loader: false, host: "DOM", globals: [] },
   { path: "react", dependencies: false, loader: false, host: "DOM", globals: [] },
+  // The plain DOM adapter, whose modules `/react` also imports; it imports no framework (checked below).
+  { path: "dom", dependencies: false, loader: false, host: "DOM", globals: [] },
 ] as const;
+
+/** DOM subpaths that may import no framework. */
+const frameworkFree = new Set<string>(["dom", "conformance/dom", "conformance/renderer"]);
 
 const nonEcmascriptGlobals = new Set([
   "structuredClone",
@@ -201,6 +209,7 @@ async function scanHostApiFree(root: string): Promise<void> {
     for (const dependency of transpiler.scanImports(source)) {
       if (
         subpath?.host === "DOM" &&
+        !frameworkFree.has(subpath.path) &&
         [
           "react",
           "react/jsx-runtime",

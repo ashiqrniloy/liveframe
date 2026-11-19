@@ -10,7 +10,7 @@ export type SdkSpecifier = (typeof sdkSpecifiers)[number];
 
 const libraryPattern = /^liveframe:lib\/([a-z][a-zA-Z0-9.-]*)@([A-Za-z0-9._+-]+)$/;
 
-/** `liveframe:lib/<id>@<version>`: how a package names a library it imports (plan 030 Task 9). */
+/** `liveframe:lib/<id>@<version>`: how a package names a library it imports (spec §7.5). */
 export function librarySpecifier(id: string, version: string): string {
   return `liveframe:lib/${id}@${version}`;
 }

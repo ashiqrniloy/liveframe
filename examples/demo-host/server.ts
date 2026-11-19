@@ -78,7 +78,7 @@ const tasks: readonly { id: string; title: string }[] = [
  * sources and re-renders them: widgets coordinate through capabilities, never through each other.
  */
 const affects: Record<string, readonly string[]> = {
-  "tasks.claim": ["tasks.page", "selection.current"],
+  "tasks.claim": ["tasks.page", "selection.current", "tasks.digest"],
   "selection.select": ["selection.current"],
 };
 
@@ -105,11 +105,14 @@ export async function startHost({
   dataDir = dataDirectory,
   port = 3300,
   latencyMs = 0,
+  digestMs = 300,
 }: {
   dataDir?: string;
   port?: number;
   /** Delay `tasks.claim`, so a browser can show the pending state. */
   latencyMs?: number;
+  /** How long the slow `tasks.digest` read takes; until it lands its readers see `pending`. */
+  digestMs?: number;
 } = {}) {
   const bundle = await clientBundle;
   const store = fileStore(dataDir);
@@ -146,14 +149,42 @@ export async function startHost({
       return task ? withOwner(task) : { id: "", title: "Nothing selected", owner: "" };
     },
   };
+  /**
+   * Slow reads. `resolve` answers `pending` for one until its value lands, and the host then renders its readers again
+   * (`settle`). The source declares the variant with `sourceOutcome(result, { pending: true })`. The demo's slow sources
+   * take no params, so the source name is the cache key; a real host keys by source and params, and by viewer if the
+   * value depends on who reads it.
+   */
+  const slowReads: Record<string, () => Json> = {
+    "tasks.digest": () => ({ summary: `${tasks.length - owners.size} of ${tasks.length} tasks open` }),
+  };
+  const landed = new Map<string, Json>();
+  /** Reads started and not yet followed by a render of their readers; `settle` removes each one. */
+  const reading = new Map<string, Promise<void>>();
+  function slowAnswer(source: string, read: () => Json): SourceResult {
+    // An outcome source's value is its whole envelope.
+    if (landed.has(source)) return { ok: true, value: { status: "ok", value: landed.get(source) as Json } };
+    if (!reading.has(source))
+      reading.set(
+        source,
+        Bun.sleep(digestMs).then(() => {
+          landed.set(source, read());
+        }),
+      );
+    return { ok: false, reason: "pending" };
+  }
+
   /** Read every source of one render as the viewer. A source this host does not offer is `unavailable`. */
   const resolve = async (calls: readonly SourceCall[], who: Viewer): Promise<Record<string, SourceResult>> =>
     Object.fromEntries(
       calls.map(({ alias, source, params }) => {
         const read = reads[source];
-        const answer: SourceResult = read
-          ? { ok: true, value: read(isRecord(params) ? params : {}, who) }
-          : { ok: false, reason: "unavailable" };
+        const slow = slowReads[source];
+        const answer: SourceResult = slow
+          ? slowAnswer(source, slow)
+          : read
+            ? { ok: true, value: read(isRecord(params) ? params : {}, who) }
+            : { ok: false, reason: "unavailable" };
         return [alias, answer];
       }),
     );
@@ -234,6 +265,23 @@ export async function startHost({
       actions: actions.filter((entry) => entry.placement === next.placementId),
     };
   }
+  /**
+   * Wait for the slow reads in flight, then render again every placement that reads one (`dependents`) and send its
+   * frame. Each of those renders has a new key, so none is skipped.
+   */
+  async function settle(emit: (line: unknown) => void, accepted: Map<string, number>) {
+    while (reading.size) {
+      const sources = [...reading.keys()];
+      await Promise.all(reading.values());
+      for (const source of sources) reading.delete(source);
+      const readers = [...served.values()];
+      for (const id of new Set(sources.flatMap((source) => dependents(readers, { source })))) {
+        const next = await surface(id);
+        emit(next.ok ? await frame(next.value, accepted) : { placement: id, error: "Surface unavailable" });
+      }
+    }
+  }
+
   const revisionsFrom = (value: unknown): Map<string, number> =>
     new Map(
       isRecord(value)
@@ -336,19 +384,25 @@ export async function startHost({
           emit(await frame(next, accepted));
         },
       });
-      if (!handled.ok) return Response.json({ errors: handled.errors }, { status: failure(handled.errors) });
+      if (!handled.ok) {
+        if (handled.actions) results.set(id, handled.actions);
+        return Response.json({ errors: handled.errors }, { status: failure(handled.errors) });
+      }
       served.set(id, handled.value.served);
       results.set(id, handled.value.actions);
       // The action may have changed what other placements read: re-render exactly those.
       if (intent.type === "action") {
+        const changed = affects[intent.name] ?? [];
+        for (const source of changed) landed.delete(source);
         const readers = [...served.values()];
-        const stale = new Set((affects[intent.name] ?? []).flatMap((source) => dependents(readers, { source })));
+        const stale = new Set(changed.flatMap((source) => dependents(readers, { source })));
         stale.delete(id);
         for (const other of stale) {
           const next = await surface(other);
           emit(next.ok ? await frame(next.value, accepted) : { placement: other, error: "Surface unavailable" });
         }
       }
+      await settle(emit, accepted);
       return undefined;
     });
   }
@@ -441,14 +495,20 @@ export async function startHost({
       "/placements/:id/intents": {
         POST: sendIntent,
       },
-      "/surfaces/:id": async (request: Request<"/surfaces/:id">) => {
+      // A stream of JSON lines like an intent's answer: the frame, then, if a source answered `pending`, a frame for
+      // each placement that reads it once its value lands.
+      "/surfaces/:id": (request: Request<"/surfaces/:id">) => {
         const id = request.params.id;
         const base = Number(new URL(request.url).searchParams.get("base"));
-        const rendered = await serialized(() => surface(id));
-        if (!rendered.ok)
-          return Response.json({ errors: rendered.errors, error: "Surface unavailable" }, { status: 404 });
         const accepted = new Map(Number.isInteger(base) && base > 0 ? [[id, base] as const] : []);
-        return Response.json(await frame(rendered.value, accepted), { headers: { "Cache-Control": "no-store" } });
+        return streamed(async (emit) => {
+          const rendered = await surface(id);
+          if (!rendered.ok)
+            return Response.json({ errors: rendered.errors, error: "Surface unavailable" }, { status: 404 });
+          emit(await frame(rendered.value, accepted));
+          await settle(emit, accepted);
+          return undefined;
+        });
       },
     },
     error(cause) {

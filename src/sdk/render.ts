@@ -2,7 +2,7 @@ import { addBoundMarker, DEFAULT_MAX_ERRORS, type LiveframeError, type Result } 
 import { at, isRecord } from "../formats/capabilities.ts";
 import type { UiNode, UiTree } from "../formats/tree.ts";
 import { isThenable } from "../internal.ts";
-import { isGated } from "../validate/bindings.ts";
+import { isGated, MAX_TREE_EXPRESSION_NODES } from "../validate/bindings.ts";
 import {
   BIND_MEMBER_BYTES,
   BRACKET_BYTES,
@@ -34,9 +34,27 @@ const FORMAT = "liveframe/1" as const;
 /** Matches the tree walker: JSON never nests deeper than this (spec §10). */
 const INPUT_DEPTH = 128;
 
+/*
+ * What membership of each table means, and who may add to it. Only the copying input walk
+ * (`checkInputs` → `isJsonContainer` → `checkChild`) writes the first three; every entry is a
+ * caller's object, held weakly and never changed.
+ * - `deepFrozen`: a caller container that is frozen, holds only data properties, and whose child
+ *   containers are all in `deepFrozen` too, so its contents can never change. `isJsonContainer`
+ *   adds it after walking it, unless `mutableChildren` holds it.
+ * - `mutableChildren`: a caller container that holds a child container not in `deepFrozen`, or,
+ *   being frozen, an accessor property. `checkChild` adds it; it never enters `deepFrozen`, and so
+ *   neither does any container above it.
+ * - `inputCopies`: a top-level input in `deepFrozen` that passed its input check, mapped to that
+ *   check and the frozen copy the widget received. `checkInputs` adds it and hands the same copy to
+ *   a later render whose validator has the same check; any other input is copied every render.
+ * - `ownedCopies`: frozen copies the SDK made itself (and `NO_ACTIONS`). `isJsonContainer` adds a
+ *   copy once its walk found it valid; `isJson` then skips walking it again when a composed
+ *   component passes it on as a prop.
+ */
 const deepFrozen = new WeakSet<object>();
 const mutableChildren = new WeakSet<object>();
 const inputCopies = new WeakMap<object, { check: SchemaCheck; copy: unknown }>();
+const ownedCopies = new WeakSet<object>();
 
 export type RenderLimits = {
   readonly nodes?: number;
@@ -80,7 +98,7 @@ export function renderPrepared(
 
 /**
  * Internal: renders what `expand` builds from the checked, frozen inputs, for template widgets
- * (plan 028). `expand` returns the root element, or the errors that stopped it, which are then the
+ * (spec §7.6). `expand` returns the root element, or the errors that stopped it, which are then the
  * result as they are.
  */
 export function renderExpansion(
@@ -130,18 +148,21 @@ export type StreamBuild = {
 };
 
 /**
- * Internal: `renderElements`'s single pass, resumable, for `streamElements` (plan 028 Task 7). The
+ * Internal: `renderElements`'s single pass, resumable, for `streamElements` (spec §7.2). The
  * caller feeds nodes as they complete, in document order; the steps and their order are the ones
  * `emit` takes, so a stream with no errors ends in exactly the tree `renderElements` builds.
  * Returns the option errors instead when the options are unusable.
  */
-export function streamBuild(options: RenderOptions): StreamBuild | LiveframeError[] {
-  const { catalogId } = buildFacts(options.validator);
-  const ctx = createContext(options, undefined);
+export function streamBuild(
+  options: RenderOptions,
+  sourcePointers: WeakMap<Element, string>,
+): StreamBuild | LiveframeError[] {
+  const ctx = createContext(options, sourcePointers);
+  const { catalogId } = ctx.build;
   if (!checkOptions(ctx, options)) return ctx.errors;
   addFraming(ctx, options, catalogId);
   const roots: UiNode[] = [];
-  const rootSiblings = new Set<string>();
+  const root = rootParent(roots);
   const scratch: LiveframeError[] = [];
   const scratchSink = { errors: scratch, maxErrors: 1 };
   let silent = true;
@@ -158,40 +179,21 @@ export function streamBuild(options: RenderOptions): StreamBuild | LiveframeErro
     errors: ctx.errors,
     open(element, parent) {
       if (ctx.stopped) return;
-      const parentId = parent ? parent.id : null;
+      const at = parent ?? root;
       if (element.key !== undefined && !isValidKey(element.key)) {
-        rejectKey(ctx, undefined, parentId);
+        rejectKey(ctx, sourcePointers.get(element), at.id);
         return;
       }
-      return openNode(
-        ctx,
-        element,
-        element.key,
-        undefined,
-        parentId,
-        parent ? parent.kind : "",
-        parent ? parent.depth + 1 : 1,
-        false,
-        parent ? parent.siblings : rootSiblings,
-        parent ? parent.out : roots,
-      );
+      return openNode(ctx, element, element.key, at, false);
     },
     whole(element, parent) {
       if (ctx.stopped) return;
-      const into = parent ? parent.out : roots;
+      const at = parent ?? root;
+      const into = at.out;
       const before = into.length;
       const errors = ctx.errors.length;
       const references = ctx.references.length;
-      emit(
-        ctx,
-        element,
-        parent ? parent.id : null,
-        parent ? parent.kind : "",
-        parent ? parent.depth + 1 : 1,
-        false,
-        parent ? parent.siblings : rootSiblings,
-        into,
-      );
+      emit(ctx, element, at, false);
       if (ctx.errors.length > errors) {
         into.length = before;
         return undefined;
@@ -258,17 +260,21 @@ export function streamBuild(options: RenderOptions): StreamBuild | LiveframeErro
  */
 type RenderContext = {
   readonly validator: CompiledValidator;
+  /** The validator's facts, read once per render. */
+  readonly build: CompiledBuild;
   readonly kinds: ReadonlyMap<string, KindFacts>;
   readonly structure: CompiledBuild["structure"];
   readonly budget: { readonly nodes: number; readonly depth: number; readonly bytes: number };
   readonly maxErrors: number;
   readonly errors: LiveframeError[];
   readonly ids: Set<string>;
-  /** Ids of nodes carrying a `when`; a node is gated when it or an ancestor is in here (plan 029 B5.6). */
+  /** Ids of nodes carrying a `when`; a node is gated when it or an ancestor is in here (spec §8). */
   readonly gated: Set<string>;
   readonly anchors: Map<string, string>;
   readonly references: { props: Record<string, unknown>; name: string; anchor?: string; id: string; pointer: string }[];
   readonly deferred: { node: UiNode; id: string; pointer: string }[];
+  /** The element marked `focus`, and where; at most one per tree (spec §9). */
+  focus: { readonly id: string; readonly pointer: string } | undefined;
   readonly idPointers: Map<string, string>;
   readonly path: (string | number)[];
   readonly ancestors: Set<object>;
@@ -283,10 +289,35 @@ type RenderContext = {
   lastNodeId: string;
   /** Pointer of the emitted field `count` is walking; the JSON walk's errors are relative to it. */
   fieldPointer: string;
+  /** Where the data walk `isJson` is on started; its errors are relative to it. */
+  dataPointer: string;
+  /** The composed component whose props the data walk is checking, by node id; undefined for an input. */
+  dataOwner: string | undefined;
 };
 
+/**
+ * Where an element is emitted: the open node it goes under (an `OpenNode` is one), or the root
+ * value for the tree's single root. A keyed fragment gets its own, with its id scope and sibling set.
+ */
+type Parent = {
+  /** The parent node's id (or a keyed fragment's id scope); null at the root. */
+  readonly id: string | null;
+  readonly kind: string;
+  /** The parent's level: its children are at `depth + 1`, so the root value's is 0. */
+  readonly depth: number;
+  /** The id segments its children have taken. */
+  readonly siblings: Set<string>;
+  /** Where its finished children go. */
+  readonly out: UiNode[];
+};
+
+function rootParent(roots: UiNode[]): Parent {
+  return { id: null, kind: "", depth: 0, siblings: new Set<string>(), out: roots };
+}
+
 function createContext(options: RenderOptions, sourcePointers: WeakMap<Element, string> | undefined): RenderContext {
-  const { kinds, structure } = buildFacts(options.validator);
+  const build = buildFacts(options.validator);
+  const { kinds, structure } = build;
   const budget = options.limits ? { ...DEFAULT_LIMITS, ...options.limits } : DEFAULT_LIMITS;
   const maxErrors = options.maxErrors ?? DEFAULT_MAX_ERRORS;
   const errors: LiveframeError[] = [];
@@ -294,6 +325,7 @@ function createContext(options: RenderOptions, sourcePointers: WeakMap<Element, 
   const ancestors = new Set<object>();
   const ctx: RenderContext = {
     validator: options.validator,
+    build,
     kinds,
     structure,
     budget,
@@ -304,6 +336,7 @@ function createContext(options: RenderOptions, sourcePointers: WeakMap<Element, 
     anchors: new Map(),
     references: [],
     deferred: [],
+    focus: undefined,
     idPointers: new Map<string, string>(),
     path,
     ancestors,
@@ -342,6 +375,8 @@ function createContext(options: RenderOptions, sourcePointers: WeakMap<Element, 
     bounded: false,
     lastNodeId: "root",
     fieldPointer: "",
+    dataPointer: "",
+    dataOwner: undefined,
   };
   return ctx;
 }
@@ -381,13 +416,18 @@ function conclude(
   catalogId: string,
 ): Result<UiTree> {
   if (roots.length !== 1 && !ctx.stopped) fail(ctx, "invalid-children", "", "exactly one root element", "root");
+  const { focus } = ctx;
+  if (focus) addBytes(ctx, treeFieldBytes("focus", false, stringBytes(focus.id)), focus.pointer, focus.id);
   addBytes(ctx, BRACKET_BYTES, "", "root");
   resolveReferences(ctx);
 
   if (ctx.errors.length) return { ok: false, errors: finish(ctx) };
   const { surfaceId, revision } = options;
   const root = roots[0];
-  return { ok: true, value: { format: FORMAT, catalogId, surfaceId, revision, root } as UiTree };
+  const tree = focus
+    ? { format: FORMAT, catalogId, surfaceId, revision, focus: focus.id, root }
+    : { format: FORMAT, catalogId, surfaceId, revision, root };
+  return { ok: true, value: tree as UiTree };
 }
 
 function renderValue(
@@ -397,8 +437,8 @@ function renderValue(
   validateInputs: boolean,
   sourcePointers?: WeakMap<Element, string>,
 ): Result<UiTree> {
-  const { catalogId } = buildFacts(options.validator);
   const ctx = createContext(options, sourcePointers);
+  const { catalogId } = ctx.build;
   const { errors } = ctx;
 
   if (!checkOptions(ctx, options)) return { ok: false, errors };
@@ -410,11 +450,11 @@ function renderValue(
   try {
     result = getResult(owned);
   } catch (thrown) {
-    fail(ctx, "render-failed", "", "the widget to run without throwing", "root", thrownMessage(thrown));
+    failThrown(ctx, "", "root", thrown);
     return { ok: false, errors: finish(ctx) };
   }
   if (isThenable(result)) {
-    fail(ctx, "async-render", "", "a synchronous element", "root", "Expected a synchronous element");
+    fail(ctx, "async-render", "", "a synchronous element", "root");
     return { ok: false, errors: finish(ctx) };
   }
   if (!isElement(result)) {
@@ -422,7 +462,7 @@ function renderValue(
     return { ok: false, errors: finish(ctx) };
   }
   const roots: UiNode[] = [];
-  emit(ctx, result, null, "", 1, false, new Set<string>(), roots);
+  emit(ctx, result, rootParent(roots), false);
   return conclude(ctx, roots, options, catalogId);
 }
 
@@ -474,11 +514,19 @@ function fail(
   pointer: string,
   expected: string,
   nodeId?: string,
-  message = `Expected ${expected}`,
 ): void {
   if (ctx.stopped) return;
-  ctx.errors.push({ kind, pointer, ...(nodeId ? { nodeId } : {}), expected, message });
-  if (nodeId) ctx.lastNodeId = nodeId;
+  report(ctx, { kind, pointer, ...(nodeId ? { nodeId } : {}), expected, message: `Expected ${expected}` });
+}
+/** A widget or component threw: the message is what it threw. */
+function failThrown(ctx: RenderContext, pointer: string, nodeId: string, thrown: unknown): void {
+  const message = thrownMessage(thrown);
+  if (ctx.stopped) return;
+  report(ctx, { kind: "render-failed", pointer, nodeId, expected: "the widget to run without throwing", message });
+}
+function report(ctx: RenderContext, error: LiveframeError): void {
+  ctx.errors.push(error);
+  if (error.nodeId) ctx.lastNodeId = error.nodeId;
   full(ctx);
 }
 function limit(ctx: RenderContext, expected: string, nodeId: string, pointer: string): void {
@@ -509,81 +557,79 @@ function parentPointer(ctx: RenderContext, parentId: string | null): string {
 
 /**
  * Rejects a non-JSON value (function, promise, class instance, NaN, cycle) at its pointer, within
- * the depth bound every input walk uses. `composed` is a composed component's node id: its props
- * are data too, so a nested function or promise keeps its own kind (spec §7.1).
- * Optionally builds a frozen copy during this same walk.
+ * the depth bound every input walk uses. The walk starts at `ctx.dataPointer`; `ctx.dataOwner` is a
+ * composed component's node id: its props are data too, so a nested function or promise keeps its
+ * own kind (spec §7.1). Optionally builds a frozen copy during this same walk.
  */
-function isJson(
-  ctx: RenderContext,
-  value: unknown,
-  pointer: string,
-  ancestors: Set<object>,
-  composed?: string,
-  depth = 0,
-  copy?: unknown,
-): boolean {
-  const reject = (kind: LiveframeError["kind"], expected: string): false => {
-    fail(ctx, kind, pointer + jsonPointer(ctx.path), expected, composed);
-    return false;
-  };
+function isJson(ctx: RenderContext, value: unknown, depth = 0, copy?: unknown): boolean {
+  if (copy === undefined && typeof value === "object" && value !== null && ownedCopies.has(value)) return true;
   const shape = shapeOf(value);
   if (shape === "json") return true;
-  if (shape === "function") return reject(composed ? "function-prop" : "invalid-prop", "JSON data, not a function");
-  if (shape === "promise") return reject(composed ? "async-render" : "invalid-prop", "JSON data, not a promise");
-  if (shape === "number") return reject("invalid-prop", "a finite number");
-  if (shape === "other") return reject("invalid-prop", "plain JSON data");
-  return isJsonContainer(ctx, value as object, pointer, ancestors, composed, depth, reject, copy);
+  const composed = ctx.dataOwner;
+  if (shape === "function")
+    return rejectData(ctx, composed ? "function-prop" : "invalid-prop", "JSON data, not a function");
+  if (shape === "promise")
+    return rejectData(ctx, composed ? "async-render" : "invalid-prop", "JSON data, not a promise");
+  if (shape === "number") return rejectData(ctx, "invalid-prop", "a finite number");
+  if (shape === "other") return rejectData(ctx, "invalid-prop", "plain JSON data");
+  return isJsonContainer(ctx, value as object, depth, copy);
 }
 
+function rejectData(ctx: RenderContext, kind: LiveframeError["kind"], expected: string): false {
+  fail(ctx, kind, ctx.dataPointer + jsonPointer(ctx.path), expected, ctx.dataOwner);
+  return false;
+}
+
+/** A container the copying walk is in, for `checkChild`. */
+type CopyLevel = {
+  readonly ctx: RenderContext;
+  /** The caller's container, and the copy being filled in its place. */
+  readonly value: object;
+  readonly copy: unknown;
+  readonly depth: number;
+  /** The container is frozen, so an accessor in it can still change what it holds. */
+  readonly immutable: boolean;
+};
+
 /** The recursion half of `isJson`: depth bound, cycle guard, then every child. */
-function isJsonContainer(
-  ctx: RenderContext,
-  value: object,
-  pointer: string,
-  ancestors: Set<object>,
-  composed: string | undefined,
-  depth: number,
-  reject: (kind: LiveframeError["kind"], expected: string) => false,
-  copy?: unknown,
-): boolean {
-  if (depth >= INPUT_DEPTH) return reject("invalid-prop", `data nested at most ${INPUT_DEPTH} deep`);
-  if (ancestors.has(value)) return reject("invalid-prop", "acyclic data");
+function isJsonContainer(ctx: RenderContext, value: object, depth: number, copy?: unknown): boolean {
+  if (depth >= INPUT_DEPTH) return rejectData(ctx, "invalid-prop", `data nested at most ${INPUT_DEPTH} deep`);
+  const { ancestors } = ctx;
+  if (ancestors.has(value)) return rejectData(ctx, "invalid-prop", "acyclic data");
   ancestors.add(value);
-  const { path } = ctx;
   const immutable = copy !== undefined && Object.isFrozen(value);
-  let valid = true;
-  if (Array.isArray(value)) {
-    for (let i = 0; i < value.length && valid; i++) {
-      path.push(i);
-      valid = checkChild(ctx, value[i], pointer, ancestors, composed, depth, copy, i, value, immutable);
-      path.pop();
-    }
-  } else {
-    for (const key in value) {
-      if (!Object.hasOwn(value, key)) continue;
-      path.push(key);
-      valid = checkChild(
-        ctx,
-        (value as Record<string, unknown>)[key],
-        pointer,
-        ancestors,
-        composed,
-        depth,
-        copy,
-        key,
-        value,
-        immutable,
-      );
-      path.pop();
-      if (!valid) break;
-    }
-  }
+  const level: CopyLevel | undefined = copy === undefined ? undefined : { ctx, value, copy, depth, immutable };
+  const valid = walkEntries(ctx, value, depth, level);
   ancestors.delete(value);
   if (copy !== undefined) {
     Object.freeze(copy);
+    if (valid && copy !== null) ownedCopies.add(copy);
     if (immutable && !mutableChildren.has(value)) deepFrozen.add(value);
   }
   return valid;
+}
+
+/** Every entry of a container, in order, until one is not JSON; into `level`'s copy when there is one. */
+function walkEntries(ctx: RenderContext, value: object, depth: number, level: CopyLevel | undefined): boolean {
+  const { path } = ctx;
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      path.push(i);
+      const valid = level ? checkChild(level, value[i], i) : isJson(ctx, value[i], depth + 1);
+      path.pop();
+      if (!valid) return false;
+    }
+    return true;
+  }
+  for (const key in value) {
+    if (!Object.hasOwn(value, key)) continue;
+    path.push(key);
+    const child = (value as Record<string, unknown>)[key];
+    const valid = level ? checkChild(level, child, key) : isJson(ctx, child, depth + 1);
+    path.pop();
+    if (!valid) return false;
+  }
+  return true;
 }
 
 /** Cheapest-first classification of one value; `container` means a non-empty recursion is due. */
@@ -596,9 +642,10 @@ function shapeOf(value: unknown): "json" | "container" | "function" | "promise" 
 }
 
 const NO_ACTIONS = Object.freeze({});
+ownedCopies.add(NO_ACTIONS);
 
 function checkInputs(ctx: RenderContext, inputs: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
-  const checks = buildFacts(ctx.validator).inputs;
+  const checks = ctx.build.inputs;
   const owned: Record<string, unknown> = {};
   for (const name of ["params", "state", "context", "data", "actions"] as const) {
     const value = inputs[name];
@@ -613,7 +660,10 @@ function checkInputs(ctx: RenderContext, inputs: Readonly<Record<string, unknown
     }
     const copy = inputCopy(value);
     const before = ctx.errors.length;
-    if (isJson(ctx, value, `/${name}`, ctx.ancestors, undefined, 0, copy)) checks[name](copy, `/${name}`, ctx.sink);
+    const pointer = `/${name}`;
+    ctx.dataPointer = pointer;
+    ctx.dataOwner = undefined;
+    if (isJson(ctx, value, 0, copy)) checks[name](copy, pointer, ctx.sink);
     if (ctx.errors.length === before) {
       owned[name] = copy;
       if (value !== null && typeof value === "object" && deepFrozen.has(value))
@@ -629,31 +679,24 @@ function dataKind(value: unknown): LiveframeError["kind"] | undefined {
   return undefined;
 }
 
-function children(
-  ctx: RenderContext,
-  child: unknown,
-  parentId: string | null,
-  parentKind: string,
-  depth: number,
-  list: boolean,
-  siblings: Set<string>,
-  out: UiNode[],
-  staticChildren: boolean,
-  nesting = 0,
-): void {
+/**
+ * Emits an element's `children` under `parent`. A child directly under the element needs no key;
+ * neither does an entry of the element's own static list (`jsxs`); every other list entry does.
+ */
+function children(ctx: RenderContext, child: unknown, parent: Parent, staticChildren: boolean, nesting = 0): void {
   if (ctx.stopped || child === null || child === undefined || typeof child === "boolean") return;
   if (Array.isArray(child)) {
     if (nesting > ctx.budget.depth) {
-      limit(ctx, `at most ${ctx.budget.depth} nested child arrays`, parentId ?? "root", parentPointer(ctx, parentId));
+      limit(ctx, `at most ${ctx.budget.depth} nested child arrays`, parent.id ?? "root", parentPointer(ctx, parent.id));
       return;
     }
     for (const entry of child) {
       if (ctx.stopped) return;
-      children(ctx, entry, parentId, parentKind, depth, !staticChildren, siblings, out, false, nesting + 1);
+      children(ctx, entry, parent, staticChildren, nesting + 1);
     }
     return;
   }
-  emit(ctx, child as Element, parentId, parentKind, depth, list, siblings, out);
+  emit(ctx, child as Element, parent, nesting > 1 || (nesting === 1 && !staticChildren));
 }
 
 /**
@@ -661,52 +704,30 @@ function children(
  * byte-counted node. One pass builds, validates and counts each node, so the budget is checked once
  * per node.
  */
-function emit(
-  ctx: RenderContext,
-  start: Element,
-  parentId: string | null,
-  parentKind: string,
-  depth: number,
-  requireKey: boolean,
-  siblings: Set<string>,
-  out: UiNode[],
-): void {
+function emit(ctx: RenderContext, start: Element, parent: Parent, requireKey: boolean): void {
   if (ctx.stopped) return;
-  const sourcePointer = ctx.sourcePointers?.get(start);
-  if (parentId === null && out.length) {
+  if (parent.id === null && parent.out.length) {
     fail(ctx, "invalid-children", "", "exactly one root element", "root");
     return;
   }
   let element = start;
   let key = start.key;
   if (typeof element.type === "function" && element.type !== Fragment) {
-    const expanded = expand(ctx, start, parentId);
+    const expanded = expand(ctx, start, parent);
     if (!expanded) return;
     [element, key] = expanded;
   }
   if (key !== undefined && !isValidKey(key)) {
-    rejectKey(ctx, sourcePointer, parentId);
+    rejectKey(ctx, ctx.sourcePointers?.get(start), parent.id);
     return;
   }
   if (element.type === Fragment) {
-    emitFragment(ctx, element, key, parentId, parentKind, depth, requireKey, siblings, out);
+    emitFragment(ctx, element, key, parent, requireKey);
     return;
   }
-  const open = openNode(ctx, element, key, sourcePointer, parentId, parentKind, depth, requireKey, siblings, out);
+  const open = openNode(ctx, element, key, parent, requireKey);
   if (!open) return;
-  if (Object.hasOwn(element.props, "children")) {
-    children(
-      ctx,
-      element.props.children,
-      open.id,
-      open.kind,
-      depth + 1,
-      false,
-      open.siblings,
-      open.out,
-      element.staticChildren,
-    );
-  }
+  if (Object.hasOwn(element.props, "children")) children(ctx, element.props.children, open, element.staticChildren);
   closeNode(ctx, open);
 }
 
@@ -733,14 +754,18 @@ function copyNode(record: Readonly<Record<string, unknown>>, children: readonly 
   return copy as unknown as UiNode;
 }
 
-/** A node whose own fields are classified and whose id is claimed, but whose children are not yet emitted. */
+/**
+ * A node whose id is claimed but whose children are not yet emitted; the parent of those children.
+ * `openNode` fills `record` with the node's own fields and returns it once they are classified.
+ */
 type OpenNode = {
   readonly id: string;
   readonly kind: string;
   readonly pointer: string;
   readonly record: Record<string, unknown>;
-  readonly hasReferences: boolean;
+  hasReferences: boolean;
   readonly referenceStart: number;
+  /** The node's level; the root is level 1. */
   readonly depth: number;
   readonly parentKind: string;
   /** Where the finished node goes. */
@@ -757,52 +782,51 @@ type OpenNode = {
   countsValid?: boolean;
 };
 
-/** The first half of a node: kind, id, budgets and its own fields. Undefined after reporting why. */
+/**
+ * The first half of a node: kind, id, budgets and its own fields. Undefined after reporting why.
+ * The source pointer is the element's own: elements that carry one (element JSON, templates) are
+ * never composed components, so it is the pointer of the element as written.
+ */
 function openNode(
   ctx: RenderContext,
   element: Element,
   key: Element["key"],
-  sourcePointer: string | undefined,
-  parentId: string | null,
-  parentKind: string,
-  depth: number,
+  parent: Parent,
   requireKey: boolean,
-  siblings: Set<string>,
-  into: UiNode[],
 ): OpenNode | undefined {
-  const kind = kindOf(ctx, element, sourcePointer, parentId);
+  const sourcePointer = ctx.sourcePointers?.get(element);
+  const at = sourcePointer ?? parentPointer(ctx, parent.id);
+  const kind = kindOf(ctx, element, at, parent.id);
   if (kind === undefined) return;
   const definition = ctx.kinds.get(kind) as KindFacts;
-  const segment = siblingSegment(
-    ctx,
-    key,
-    kind,
-    requireKey,
-    siblings,
-    sourcePointer ?? parentPointer(ctx, parentId),
-    parentId,
-  );
+  if (requireKey && key === undefined) {
+    fail(ctx, "missing-key", at, "a key on every element in a list", parent.id ?? "root");
+    return;
+  }
+  const segment = siblingSegment(ctx, key, kind, parent, at);
   if (segment === undefined) return;
-  const id = parentId === null ? "root" : `${parentId}/${encodeSegment(segment)}`;
+  const id = parent.id === null ? "root" : `${parent.id}/${encodeSegment(segment)}`;
   const pointer = sourcePointer ?? `/${id}`;
+  const depth = parent.depth + 1;
   if (!admitNode(ctx, id, pointer, depth)) return;
 
   const referenceStart = ctx.references.length;
-  const record = classifyProps(ctx, element, definition, id, kind, pointer);
-  if (!record) return;
-  return {
+  const open: OpenNode = {
     id,
     kind,
     pointer,
-    record,
-    hasReferences: ctx.references.length !== referenceStart,
+    record: { id, kind },
+    hasReferences: false,
     referenceStart,
     depth,
-    parentKind,
-    into,
+    parentKind: parent.kind,
+    into: parent.out,
     out: [],
     siblings: new Set<string>(),
   };
+  if (!classifyProps(ctx, element, definition, open)) return;
+  open.hasReferences = ctx.references.length !== referenceStart;
+  return open;
 }
 
 /** The second half: the children rules, the node check and the byte count. Pushes the node into its parent. */
@@ -810,12 +834,12 @@ function closeNode(ctx: RenderContext, open: OpenNode): UiNode | undefined {
   const { id, kind, pointer, record, out: childrenOut } = open;
   if (ctx.structure.forbidsChildren(kind) && childrenOut.length)
     fail(ctx, "invalid-children", `${pointer}/children`, "no children for this kind", id);
-  checkStructure(ctx, id, kind, open.parentKind, open.depth, childrenOut);
+  checkStructure(ctx, open);
   if (ctx.stopped) return;
   if (childrenOut.length) record.children = childrenOut;
   const node = record as unknown as UiNode;
   checkNode(ctx, node, id, pointer, open.hasReferences);
-  countNode(ctx, record, id, kind, pointer, childrenOut.length);
+  countNode(ctx, open);
   open.into.push(node);
   return node;
 }
@@ -825,16 +849,14 @@ function closeNode(ctx: RenderContext, open: OpenNode): UiNode | undefined {
  * along the chain. Composed components are ordinary functions: expand them here, never inside `jsx`
  * (spec §7.1).
  */
-function expand(
-  ctx: RenderContext,
-  start: Element,
-  parentId: string | null,
-): readonly [Element, Element["key"]] | undefined {
-  const at = parentPointer(ctx, parentId);
-  const nodeId = parentId ?? "root";
+function expand(ctx: RenderContext, start: Element, parent: Parent): readonly [Element, Element["key"]] | undefined {
+  const at = parentPointer(ctx, parent.id);
+  const nodeId = parent.id ?? "root";
   let element = start;
   let key = start.key;
   let expansion = 0;
+  ctx.dataPointer = at;
+  ctx.dataOwner = nodeId;
   while (typeof element.type === "function" && element.type !== Fragment) {
     if (++expansion > ctx.budget.depth) {
       limit(ctx, `at most ${ctx.budget.depth} component expansions`, nodeId, at);
@@ -845,7 +867,7 @@ function expand(
     for (const name in element.props) {
       if (name === "children" || !Object.hasOwn(element.props, name)) continue;
       ctx.path.push(name);
-      const valid = isJson(ctx, element.props[name], at, ctx.ancestors, nodeId);
+      const valid = isJson(ctx, element.props[name]);
       ctx.path.pop();
       if (!valid && ctx.stopped) return;
     }
@@ -853,11 +875,11 @@ function expand(
     try {
       expanded = (element.type as (props: Record<string, unknown>) => unknown)(element.props);
     } catch (thrown) {
-      fail(ctx, "render-failed", at, "the widget to run without throwing", nodeId, thrownMessage(thrown));
+      failThrown(ctx, at, nodeId, thrown);
       return;
     }
     if (isThenable(expanded)) {
-      fail(ctx, "async-render", at, "a synchronous element", nodeId, "Expected a synchronous element");
+      fail(ctx, "async-render", at, "a synchronous element", nodeId);
       return;
     }
     if (!isElement(expanded)) {
@@ -880,15 +902,11 @@ function emitFragment(
   ctx: RenderContext,
   element: Element,
   key: Element["key"],
-  parentId: string | null,
-  parentKind: string,
-  depth: number,
+  parent: Parent,
   requireKey: boolean,
-  siblings: Set<string>,
-  out: UiNode[],
 ): void {
-  const at = parentPointer(ctx, parentId);
-  const nodeId = parentId ?? "root";
+  const at = parentPointer(ctx, parent.id);
+  const nodeId = parent.id ?? "root";
   for (const name in element.props) {
     if (name === "children" || !Object.hasOwn(element.props, name)) continue;
     fail(ctx, "invalid-prop", `${at}/${name}`, "only children and a key on a fragment", nodeId);
@@ -900,53 +918,35 @@ function emitFragment(
   }
   if (key !== undefined) {
     const segment = String(key);
-    if (siblings.has(segment)) {
+    if (parent.siblings.has(segment)) {
       fail(ctx, "duplicate-key", at, "siblings with distinct keys", nodeId);
       return;
     }
-    siblings.add(segment);
+    parent.siblings.add(segment);
   }
   // A keyed fragment scopes ids without adding a primitive to the tree.
-  const fragmentId = key === undefined || parentId === null ? parentId : `${parentId}/${encodeSegment(String(key))}`;
-  children(
-    ctx,
-    element.props.children,
-    fragmentId,
-    parentKind,
-    depth,
-    false,
-    key === undefined ? siblings : new Set<string>(),
-    out,
-    element.staticChildren,
-  );
+  const scope: Parent =
+    key === undefined
+      ? parent
+      : {
+          id: parent.id === null ? null : `${parent.id}/${encodeSegment(String(key))}`,
+          kind: parent.kind,
+          depth: parent.depth,
+          siblings: new Set<string>(),
+          out: parent.out,
+        };
+  children(ctx, element.props.children, scope, element.staticChildren);
 }
 
-/** The element's catalog kind, or undefined after reporting a host element or an unknown kind. */
-function kindOf(
-  ctx: RenderContext,
-  element: Element,
-  sourcePointer: string | undefined,
-  parentId: string | null,
-): string | undefined {
+/** The element's catalog kind, or undefined after reporting a host element or an unknown kind at `at`. */
+function kindOf(ctx: RenderContext, element: Element, at: string, parentId: string | null): string | undefined {
   if (typeof element.type === "string") {
-    fail(
-      ctx,
-      "host-element",
-      sourcePointer ?? parentPointer(ctx, parentId),
-      `no host element <${element.type}>`,
-      parentId ?? "root",
-    );
+    fail(ctx, "host-element", at, `no host element <${element.type}>`, parentId ?? "root");
     return;
   }
   const kind = isRecord(element.type) ? element.type.kind : undefined;
   if (typeof kind !== "string" || !ctx.kinds.has(kind)) {
-    fail(
-      ctx,
-      "unknown-component",
-      sourcePointer ?? parentPointer(ctx, parentId),
-      `a catalog kind: ${[...ctx.kinds.keys()].join(", ")}`,
-      parentId ?? "root",
-    );
+    fail(ctx, "unknown-component", at, `a catalog kind: ${[...ctx.kinds.keys()].join(", ")}`, parentId ?? "root");
     return;
   }
   return kind;
@@ -957,27 +957,21 @@ function siblingSegment(
   ctx: RenderContext,
   key: Element["key"],
   kind: string,
-  requireKey: boolean,
-  siblings: Set<string>,
+  parent: Parent,
   at: string,
-  parentId: string | null,
 ): string | undefined {
-  if (requireKey && key === undefined) {
-    fail(ctx, "missing-key", at, "a key on every element in a list", parentId ?? "root");
-    return;
-  }
   const segment = key === undefined ? kind : String(key);
-  if (siblings.has(segment)) {
+  if (parent.siblings.has(segment)) {
     fail(
       ctx,
       key === undefined ? "missing-key" : "duplicate-key",
       at,
       "siblings with distinct keys",
-      parentId ?? "root",
+      parent.id ?? "root",
     );
     return;
   }
-  siblings.add(segment);
+  parent.siblings.add(segment);
   return segment;
 }
 
@@ -1002,17 +996,23 @@ function admitNode(ctx: RenderContext, id: string, pointer: string, depth: numbe
   return true;
 }
 
-/** Consumes author-only anchors and reference markers before normal prop classification. */
+/** An author-only anchor, or one of the kind's reference props. */
+function isAuthorReference(definition: KindFacts, name: string): boolean {
+  return name === "$anchor" || definition.refProps?.has(name) === true;
+}
+
+/**
+ * Consumes an author-only anchor or reference marker (`name` is `$anchor` or one of the kind's
+ * reference props) before normal prop classification. False when `entry` is an ordinary value.
+ */
 function authorReference(
   ctx: RenderContext,
+  open: OpenNode,
   props: Record<string, unknown>,
-  definition: KindFacts,
   name: string,
   entry: unknown,
-  id: string,
-  pointer: string,
 ): boolean {
-  if (name !== "$anchor" && !definition.refProps?.has(name)) return false;
+  const { id, pointer } = open;
   if (name === "$anchor") {
     if (typeof entry !== "string") fail(ctx, "invalid-prop", `${pointer}/$anchor`, "a string anchor", id);
     else if (ctx.anchors.has(entry)) fail(ctx, "duplicate-key", `${pointer}/$anchor`, "a tree-unique anchor", id);
@@ -1037,41 +1037,53 @@ function authorReference(
   return true;
 }
 
-/** Adds a node's `when` and `bind`, which must be JSON data like any prop; undefined after reporting why not. */
-function attachExpressions(
-  ctx: RenderContext,
-  record: Record<string, unknown>,
-  props: Readonly<Record<string, unknown>>,
-  id: string,
-  pointer: string,
-): Record<string, unknown> | undefined {
+/**
+ * Adds a node's `when` and `bind`, which must be JSON data like any prop, and takes its `focus` mark; false
+ * after a stopping error.
+ */
+function attachExpressions(ctx: RenderContext, open: OpenNode, props: Readonly<Record<string, unknown>>): boolean {
+  const { id, pointer, record } = open;
+  if (Object.hasOwn(props, "focus")) markFocus(ctx, open, props.focus);
   for (const name of ["when", "bind"] as const) {
     const entry = Object.hasOwn(props, name) ? props[name] : undefined;
     if (entry === undefined) continue;
     const rejected = dataKind(entry);
     if (rejected) {
       fail(ctx, rejected, `${pointer}/${name}`, "JSON data, not a function or a promise", id);
-      if (ctx.stopped) return;
+      if (ctx.stopped) return false;
       continue;
     }
     record[name] = entry;
     if (name === "when") ctx.gated.add(id);
   }
-  return record;
+  // Ancestors are open before their descendants, so the gated set already holds every `when` above this node.
+  if (ctx.focus?.id === id && isGated(ctx.gated, id))
+    fail(
+      ctx,
+      "invalid-prop",
+      `${pointer}/focus`,
+      "focus on a node that is always rendered, without a when on it or an ancestor",
+      id,
+    );
+  return !ctx.stopped;
 }
 
-/** Element attributes that are never props: children, and the node's browser-evaluated expressions (plan 029 B1). */
-const NOT_PROPS: ReadonlySet<string> = new Set(["children", "when", "bind"]);
+/** `focus={true}` marks the node the tree's focus moves to; one per tree, never on a gated node (spec §9). */
+function markFocus(ctx: RenderContext, open: OpenNode, value: unknown): void {
+  const { id, pointer } = open;
+  if (value === undefined || value === false) return;
+  if (value !== true) fail(ctx, "invalid-prop", `${pointer}/focus`, "a boolean focus", id);
+  else if (ctx.focus)
+    fail(ctx, "duplicate-key", `${pointer}/focus`, `one focus mark per tree (${ctx.focus.id} has it)`, id);
+  else ctx.focus = { id, pointer };
+}
 
-/** Sorts props into wire sections, rejecting function and promise values. */
-function classifyProps(
-  ctx: RenderContext,
-  element: Element,
-  definition: KindFacts,
-  id: string,
-  kind: string,
-  pointer: string,
-): Record<string, unknown> | undefined {
+/** Element attributes that are never props: children, the node's browser-evaluated expressions (spec §8) and its focus mark. */
+const NOT_PROPS: ReadonlySet<string> = new Set(["children", "when", "bind", "focus"]);
+
+/** Sorts props into the node's wire sections, rejecting function and promise values; false after a stopping error. */
+function classifyProps(ctx: RenderContext, element: Element, definition: KindFacts, open: OpenNode): boolean {
+  const { id, pointer, record } = open;
   const props: Record<string, unknown> = {};
   const style: Record<string, unknown> = {};
   const events: Record<string, unknown> = {};
@@ -1082,13 +1094,13 @@ function classifyProps(
   for (const name in element.props) {
     if (NOT_PROPS.has(name) || !Object.hasOwn(element.props, name)) continue;
     const entry = element.props[name];
-    if (authorReference(ctx, props, definition, name, entry, id, pointer)) continue;
+    if (isAuthorReference(definition, name) && authorReference(ctx, open, props, name, entry)) continue;
     const target = propTarget(definition, name);
     const rejected = dataKind(entry);
     if (rejected) {
       const data = rejected === "function-prop" ? "JSON data, not a function" : "JSON data, not a promise";
       fail(ctx, rejected, `${pointer}/${target}/${name}`, data, id);
-      if (ctx.stopped) return;
+      if (ctx.stopped) return false;
       continue;
     }
     if (target === "variant") {
@@ -1102,26 +1114,19 @@ function classifyProps(
       hasStyle = true;
     } else props[name] = entry;
   }
-  const record: Record<string, unknown> = { id, kind };
   if (hasVariant) record.variant = variant;
   record.props = props;
   if (hasStyle) record.style = style;
   if (hasEvents) record.events = events;
-  return attachExpressions(ctx, record, element.props, id, pointer);
+  return attachExpressions(ctx, open, element.props);
 }
 
 /** The node's place under its parent, and its children's counts (spec §5). */
-function checkStructure(
-  ctx: RenderContext,
-  id: string,
-  kind: string,
-  parentKind: string,
-  depth: number,
-  childrenOut: readonly UiNode[],
-): void {
+function checkStructure(ctx: RenderContext, open: OpenNode): void {
+  const { id, kind, out: childrenOut } = open;
   const { structure, structureSink } = ctx;
   structureSink.nodeId = id;
-  structure.node(parentKind, kind, depth, childrenOut.length > 0, structureSink);
+  structure.node(open.parentKind, kind, open.depth, childrenOut.length > 0, structureSink);
   if (childrenOut.length) {
     const tally = newTally();
     for (const child of childrenOut) tallyKind(tally, child.kind, child.when !== undefined);
@@ -1146,17 +1151,14 @@ function checkNode(ctx: RenderContext, node: UiNode, id: string, pointer: string
     ctx.lastNodeId = id;
     full(ctx);
   }
+  // The tree's expression bound is a limit like its bytes: past it, nothing more is built or drawn (spec §8).
+  if ((ctx.sink.expressions?.nodes ?? 0) > MAX_TREE_EXPRESSION_NODES) ctx.stopped = true;
 }
 
 /** The node's bytes: its shell from the framing rules, and its values through the shared JSON walk. */
-function countNode(
-  ctx: RenderContext,
-  record: Readonly<Record<string, unknown>>,
-  id: string,
-  kind: string,
-  pointer: string,
-  childCount: number,
-): void {
+function countNode(ctx: RenderContext, open: OpenNode): void {
+  const { id, kind, pointer, record } = open;
+  const childCount = open.out.length;
   addBytes(ctx, nodeOpenBytes(id, kind), pointer, id);
   if (Object.hasOwn(record, "variant")) {
     addBytes(ctx, VARIANT_MEMBER_BYTES, `${pointer}/variant`, id);
@@ -1189,27 +1191,16 @@ function inputCopy(value: unknown): unknown {
   return Array.isArray(value) ? [] : Object.create(null);
 }
 
-function checkChild(
-  ctx: RenderContext,
-  child: unknown,
-  pointer: string,
-  ancestors: Set<object>,
-  composed: string | undefined,
-  depth: number,
-  copy: unknown,
-  key: string | number,
-  parent: object,
-  immutable: boolean,
-): boolean {
-  const owned = copy === undefined ? undefined : inputCopy(child);
-  const valid = isJson(ctx, child, pointer, ancestors, composed, depth + 1, owned);
-  if (copy !== undefined) {
-    (copy as Record<string | number, unknown>)[key] = owned;
-    if (
-      (child !== null && typeof child === "object" && !deepFrozen.has(child)) ||
-      (immutable && !Object.hasOwn(Object.getOwnPropertyDescriptor(parent, key) ?? {}, "value"))
-    )
-      mutableChildren.add(parent);
-  }
+/** One child of a container the copying walk is in: walks it into its own copy, then records what it means for the container. */
+function checkChild(level: CopyLevel, child: unknown, key: string | number): boolean {
+  const { value: parent, copy, immutable } = level;
+  const owned = inputCopy(child);
+  const valid = isJson(level.ctx, child, level.depth + 1, owned);
+  (copy as Record<string | number, unknown>)[key] = owned;
+  if (
+    (child !== null && typeof child === "object" && !deepFrozen.has(child)) ||
+    (immutable && !Object.hasOwn(Object.getOwnPropertyDescriptor(parent, key) ?? {}, "value"))
+  )
+    mutableChildren.add(parent);
   return valid;
 }

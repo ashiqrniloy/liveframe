@@ -38,7 +38,24 @@ export const manifest = {
   initialState: {},
   sources: {},
   actions: ["app.notify"],
-  state: { ...empty, properties: { query: { type: "string", maxLength: 100 }, help: { type: "boolean" } } },
+  state: {
+    ...empty,
+    properties: {
+      query: { type: "string", maxLength: 100 },
+      help: { type: "boolean" },
+      // The 0.4 controls carry into these.
+      priority: { type: "string", maxLength: 128 },
+      level: { type: "number", minimum: 0, maximum: 100 },
+      due: { type: "string", maxLength: 10 },
+    },
+  },
+  // The renderer conformance cases for local state, compound writes and fromLocal read these.
+  local: {
+    ...empty,
+    properties: { open: { type: "boolean" }, title: { type: "string", maxLength: 100 } },
+    required: ["open", "title"],
+  },
+  initialLocal: { open: false, title: "" },
 };
 
 // Switching needs a second design system identity; one derived from the starter shows nothing else about it.
@@ -114,6 +131,92 @@ function nodes(): UiNode[] {
     part("select", "root/select", { label: "Pick", value: "one", options: [{ label: "One", value: "one" }] }),
     part("checkbox", "root/checkbox", { label: "Check" }),
     part("switch", "root/switch", { label: "Switch" }),
+    part(
+      "radioGroup",
+      "root/radios",
+      { label: "Priority", value: "low", describedBy: "root/hint" },
+      {
+        events: { onChange: { type: "setState", key: "priority" } },
+        children: [
+          part("radio", "root/radios/low", { label: "Low", value: "low" }),
+          part("radio", "root/radios/high", { label: "High", value: "high" }),
+        ],
+      },
+    ),
+    part(
+      "slider",
+      "root/slider",
+      { label: "Level", value: 40, valueText: "40 percent" },
+      { events: { onChange: { type: "setState", key: "level" } } },
+    ),
+    part("progress", "root/progress", { label: "Upload", value: 30 }),
+    part("progress", "root/progress-indeterminate", { label: "Waiting" }),
+    part(
+      "dateField",
+      "root/date",
+      { label: "Due", value: "2026-11-19", minimum: "2026-01-01" },
+      { events: { onChange: { type: "setState", key: "due" } } },
+    ),
+    part("richText", "root/rich", {
+      text: "## Done\n\n**Closed** *three* tasks; see `log` or the [report](https://example.com/r).\n\n- one\n- two",
+    }),
+    part("chart", "root/chart-bar", {
+      label: "Closed per day",
+      type: "bar",
+      labels: ["Mon", "Tue"],
+      series: [
+        { name: "Closed", values: [3, 5] },
+        { name: "Opened", values: [2, 4] },
+        { name: "Moved", values: [1, 0] },
+        { name: "Dropped", values: [0, 1] },
+      ],
+    }),
+    part("chart", "root/chart-line", {
+      label: "Backlog",
+      type: "line",
+      labels: ["Mon", "Tue"],
+      series: [{ name: "Open", values: [8, 6] }],
+      summary: "The backlog shrinks.",
+    }),
+    part(
+      "table",
+      "root/table",
+      { label: "Tasks", caption: "Open tasks" },
+      {
+        children: [
+          part(
+            "tableRow",
+            "root/table/head",
+            {},
+            {
+              children: [
+                withText("tableCell", "root/table/head/name", { header: "column" }),
+                withText("tableCell", "root/table/head/owner", { header: "column" }),
+              ],
+            },
+          ),
+          part(
+            "tableRow",
+            "root/table/row",
+            {},
+            {
+              children: [
+                withText("tableCell", "root/table/row/name", { header: "row" }),
+                withText("tableCell", "root/table/row/owner", {}),
+              ],
+            },
+          ),
+          part(
+            "tableRow",
+            "root/table/wide",
+            {},
+            {
+              children: [withText("tableCell", "root/table/wide/cell", { span: 2 })],
+            },
+          ),
+        ],
+      },
+    ),
     part("menu", "root/menu", { label: "Menu" }, { children: [part("menuItem", "root/menu/item", { label: "Item" })] }),
     part("popover", "root/popover", { label: "Popover" }),
     part("dialog", "root/dialog", { label: "Dialog", open: false }),

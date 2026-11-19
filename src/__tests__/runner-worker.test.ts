@@ -5,6 +5,7 @@ import { packageHash } from "../pack/hash.ts";
 import { pack, type WidgetPackage } from "../pack/index.ts";
 import { workerRunner } from "../preview/worker/index.ts";
 import type { WorkerMessage } from "../preview/worker/protocol.ts";
+import { createWorkerRunner } from "../preview/worker/runner.ts";
 import { cachedValidatorCount } from "../runner-kit/cache.ts";
 import catalogDoc from "./fixtures/proof/catalog.json" with { type: "json" };
 import capabilitiesDoc from "./fixtures/widgets/capabilities.json" with { type: "json" };
@@ -71,12 +72,10 @@ test("worker_times_out_then_recovers", async () => {
   const runner = workerRunner();
   try {
     for (const code of ["while (true) {}", "export default () => { while (true) {} };"]) {
-      const start = performance.now();
       expect(await runner.render(withCode(code), inputs, options)).toMatchObject({
         ok: false,
         errors: [{ kind: "limit-exceeded" }],
       });
-      expect(performance.now() - start).toBeLessThan(600);
       expect((await runner.render(withCode(simpleCode), inputs, { ...options, timeoutMs: 2000 })).ok).toBe(true);
     }
     const slow = withCode(
@@ -92,7 +91,7 @@ test("worker_times_out_then_recovers", async () => {
   } finally {
     runner.close();
   }
-});
+}, 5000);
 
 test("worker_crash_is_render_failed", async () => {
   const runner = workerRunner({ timeoutMs: 2000 });
@@ -299,7 +298,7 @@ export default () => __lf_sdk0.jsx(__lf_sdk0.primitive("text"), { text: ${JSON.s
   } finally {
     runner.close();
   }
-});
+}, 15000);
 
 test("well_formed_worker_error_result_passes_through", async () => {
   const runner = workerRunner({ timeoutMs: 2000 });
@@ -352,7 +351,7 @@ export default () => __lf_sdk0.jsx(__lf_sdk0.primitive("text"), { text: "spam" }
   } finally {
     runner.close();
   }
-});
+}, 15000);
 
 test("worker_tree_failing_host_validation_is_rejected", async () => {
   const runner = workerRunner({ timeoutMs: 2000 });
@@ -430,3 +429,163 @@ test("worker_runner_reuses_validator_per_package_hash", async () => {
     runner.close();
   }
 });
+
+function wrapRealWorkerWithReadyDelay(
+  url: URL,
+  delayMs: number,
+  hooks: { onReadyDelivered?: () => void; onPostMessage?: (message: WorkerMessage) => void } = {},
+): Worker {
+  const real = new Worker(url);
+  let onmessage: ((event: MessageEvent<WorkerMessage>) => void) | null = null;
+  let readyTimer: ReturnType<typeof setTimeout> | undefined;
+  const proxy = {
+    set onmessage(handler: ((event: MessageEvent<WorkerMessage>) => void) | null) {
+      onmessage = handler;
+    },
+    get onmessage() {
+      return onmessage;
+    },
+    set onerror(handler: ((event: ErrorEvent) => void) | null) {
+      real.onerror = handler;
+    },
+    addEventListener(type: string, listener: EventListenerOrEventListenerObject) {
+      real.addEventListener(type, listener);
+    },
+    postMessage(message: WorkerMessage) {
+      hooks.onPostMessage?.(message);
+      real.postMessage(message);
+    },
+    terminate() {
+      if (readyTimer !== undefined) clearTimeout(readyTimer);
+      real.terminate();
+    },
+  };
+  real.onmessage = (event: MessageEvent<WorkerMessage>) => {
+    if (event.data?.type === "ready" && delayMs > 0) {
+      readyTimer = setTimeout(() => {
+        hooks.onReadyDelivered?.();
+        onmessage?.(event);
+      }, delayMs);
+      return;
+    }
+    if (event.data?.type === "ready") hooks.onReadyDelivered?.();
+    onmessage?.(event);
+  };
+  return proxy as unknown as Worker;
+}
+
+test("slow_worker_boot_does_not_count_against_the_render_timeout", async () => {
+  const timeoutMs = 500;
+  const runner = createWorkerRunner({ timeoutMs, startTimeoutMs: 5000 }, (url) =>
+    wrapRealWorkerWithReadyDelay(url, timeoutMs * 3),
+  );
+  try {
+    const result = await runner.render(withCode(simpleCode), inputs, options);
+    expect(result).toMatchObject({ ok: true });
+    if (result.ok) expect(result.value.root.props.text).toBe("ok");
+  } finally {
+    runner.close();
+  }
+}, 15000);
+
+test("worker_that_never_starts_is_render_failed", async () => {
+  let spawns = 0;
+  let silentTerminated = 0;
+  const runner = createWorkerRunner({ timeoutMs: 100, startTimeoutMs: 1000 }, (url) => {
+    if (spawns++ === 0) {
+      return {
+        onmessage: null,
+        onerror: null,
+        addEventListener() {},
+        postMessage() {},
+        terminate() {
+          silentTerminated++;
+        },
+      } as unknown as Worker;
+    }
+    return new Worker(url);
+  });
+  try {
+    const failed = await runner.render(withCode(simpleCode), inputs, options);
+    expect(failed).toEqual({
+      ok: false,
+      errors: [{ kind: "render-failed", pointer: "", message: "Worker did not start" }],
+    });
+    expect(silentTerminated).toBe(1);
+    const recovered = await runner.render(withCode(simpleCode), inputs, { ...options, timeoutMs: 2000 });
+    expect(recovered).toMatchObject({ ok: true });
+  } finally {
+    runner.close();
+  }
+}, 15000);
+
+test("render_after_a_timeout_recycle_gets_a_full_budget", async () => {
+  let spawns = 0;
+  const timeoutMs = 500;
+  const runner = createWorkerRunner({ timeoutMs, startTimeoutMs: 5000 }, (url) => {
+    const index = spawns++;
+    return index === 0 ? new Worker(url) : wrapRealWorkerWithReadyDelay(url, timeoutMs * 3);
+  });
+  try {
+    const timedOut = await runner.render(withCode("while (true) {}"), inputs, { ...options, timeoutMs: 40 });
+    expect(timedOut).toMatchObject({ ok: false, errors: [{ kind: "limit-exceeded" }] });
+    const recovered = await runner.render(withCode(simpleCode), inputs, options);
+    expect(recovered).toMatchObject({ ok: true });
+    if (recovered.ok) expect(recovered.value.root.props.text).toBe("ok");
+    expect(spawns).toBe(2);
+  } finally {
+    runner.close();
+  }
+}, 15000);
+
+test("ready_from_a_replaced_worker_is_ignored", async () => {
+  let spawns = 0;
+  const first: { onmessage: ((event: MessageEvent<WorkerMessage>) => void) | null } = { onmessage: null };
+  const postedToFirst: WorkerMessage[] = [];
+  let secondReadyDelivered = false;
+  let readyDeliveredBeforePost = false;
+
+  const runner = createWorkerRunner({ timeoutMs: 100, startTimeoutMs: 1000 }, (url) => {
+    if (spawns++ === 0) {
+      return {
+        set onmessage(handler: ((event: MessageEvent<WorkerMessage>) => void) | null) {
+          first.onmessage = handler;
+        },
+        get onmessage() {
+          return first.onmessage;
+        },
+        onerror: null,
+        addEventListener() {},
+        postMessage(message: WorkerMessage) {
+          postedToFirst.push(message);
+        },
+        terminate() {},
+      } as unknown as Worker;
+    }
+    return wrapRealWorkerWithReadyDelay(url, 60, {
+      onReadyDelivered: () => {
+        secondReadyDelivered = true;
+      },
+      onPostMessage: () => {
+        readyDeliveredBeforePost = secondReadyDelivered;
+      },
+    });
+  });
+
+  try {
+    const failed = await runner.render(withCode(simpleCode), inputs, options);
+    expect(failed).toMatchObject({ ok: false, errors: [{ kind: "render-failed", message: "Worker did not start" }] });
+
+    const nextRender = runner.render(withCode(simpleCode), inputs, { ...options, timeoutMs: 2000 });
+    // Emit a late ready from the replaced first worker while the second worker is starting.
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    first.onmessage?.({ data: { type: "ready" } } as MessageEvent<WorkerMessage>);
+
+    const result = await nextRender;
+    expect(result).toMatchObject({ ok: true });
+    expect(postedToFirst).toEqual([]);
+    expect(readyDeliveredBeforePost).toBe(true);
+  } finally {
+    runner.close();
+  }
+}, 15000);

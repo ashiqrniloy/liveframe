@@ -1,0 +1,20 @@
+{
+  "inputs": {
+    "doc": "docs/motion-without-duration.json",
+    "catalog": "../common/catalog.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "invalid-document",
+        "pointer": "/recipes/button.default.root.rest/motion"
+      },
+      {
+        "kind": "invalid-document",
+        "pointer": "/recipes/button.primary.root.rest/motion"
+      }
+    ]
+  }
+}

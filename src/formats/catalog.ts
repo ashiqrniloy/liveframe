@@ -4,6 +4,7 @@ import type { UrlRule } from "../url.ts";
 import { maxAxisValues, maxCatalogCombinations, maxCombinations } from "./axes.ts";
 import { at, documentChecks, isRecord } from "./capabilities.ts";
 import { checkFormat } from "./check.ts";
+import { carriesSchema } from "./events.ts";
 import { semantics, styleProps } from "./fixed.ts";
 import { validateJson } from "./json.ts";
 import { objectSchema, schemaLanguage } from "./language.ts";
@@ -57,7 +58,14 @@ export type Definition = Omit<Infer<typeof definitionFields>, "props" | "childre
           | "boolean"
           | "number"
           | "integer"
-          | { readonly object: Definition["props"] };
+          | { readonly object: Definition["props"] }
+          | {
+              /** A bounded array of one scalar type (spec §5). */
+              readonly array: {
+                readonly items: Extract<LanguageSchema, { readonly type: "string" | "number" | "integer" | "boolean" }>;
+                readonly maxItems: number;
+              };
+            };
       }
     >
   >;
@@ -115,6 +123,31 @@ const definitionSchema = {
                           },
                         },
                       ],
+                    },
+                  },
+                },
+                {
+                  type: "object",
+                  required: ["array"],
+                  additionalProperties: false,
+                  properties: {
+                    array: {
+                      type: "object",
+                      required: ["items", "maxItems"],
+                      additionalProperties: false,
+                      properties: {
+                        items: {
+                          allOf: [
+                            { $ref: "#/$defs/schema" },
+                            {
+                              type: "object",
+                              properties: { type: { enum: ["string", "number", "integer", "boolean"] } },
+                              required: ["type"],
+                            },
+                          ],
+                        },
+                        maxItems: { type: "integer", minimum: 1, maximum: 256 },
+                      },
                     },
                   },
                 },
@@ -261,8 +294,11 @@ export function validateCatalog(doc: unknown): Result<Catalog> {
   for (const [i, definition] of (doc as Catalog).definitions.entries()) {
     c.schemaRelationships(definition.props, `/definitions/${i}/props`);
     for (const [name, event] of Object.entries(definition.events))
-      if (typeof event.carries === "object")
-        c.schemaRelationships(event.carries.object, `${at(`/definitions/${i}/events`, name)}/carries/object`);
+      if (typeof event.carries === "object") {
+        const path = `${at(`/definitions/${i}/events`, name)}/carries`;
+        if ("object" in event.carries) c.schemaRelationships(event.carries.object, `${path}/object`);
+        else c.schemaRelationships(event.carries.array.items, `${path}/array/items`);
+      }
   }
   if (c.errors.length) return { ok: false, errors: c.errors };
   const value = doc as Catalog;
@@ -423,8 +459,9 @@ function compareDefinition(before: Definition, after: Definition, change: Change
     const next = after.events[key];
     if (!next) continue;
     const changed = () => change(true, `${path} event ${key} carries changed`);
-    if (typeof event.carries === "object" && typeof next.carries === "object")
-      compareSchemas(event.carries.object, next.carries.object, `${path} event ${key}`, changed);
+    const was = carriesSchema(event.carries);
+    const now = carriesSchema(next.carries);
+    if (was && now && was.type === now.type) compareSchemas(was, now, `${path} event ${key}`, changed);
     else if (event.carries !== next.carries) changed();
   }
   if (before.defaultVariant !== after.defaultVariant) change(true, `${path} defaultVariant changed`);

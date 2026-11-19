@@ -30,6 +30,25 @@ const Stack = primitive<{ readonly children?: unknown; readonly gap?: string }>(
 const Text = primitive<{ readonly text: string }>("text");
 const Button = primitive<{ readonly label: string; readonly onPress?: unknown }>("button");
 
+type TaskRow = { readonly id: string; readonly title: string };
+type LayerProps = { readonly tasks: readonly TaskRow[]; readonly wrapped?: { readonly rows: readonly TaskRow[] } };
+
+const Direct = ({ tasks }: LayerProps) => (
+  <Stack gap="space.2">
+    {tasks.map((row) => (
+      <Button key={row.id} label={row.title} onPress={action("tasks.claim", { id: row.id })} />
+    ))}
+  </Stack>
+);
+const Layer6 = (props: LayerProps) => <Direct {...props} />;
+const Layer5 = (props: LayerProps) => <Layer6 {...props} />;
+const Layer4 = (props: LayerProps) => <Layer5 {...props} />;
+const Layer3 = (props: LayerProps) => <Layer4 {...props} />;
+const Layer2 = (props: LayerProps) => <Layer3 {...props} />;
+const Layer1 = (props: LayerProps) => <Layer2 {...props} />;
+const PayloadLayer = (_props: { readonly payload: unknown }) => <Text text="ok" />;
+const ExtLayer = (_props: { readonly ext: unknown }) => <Text text="ok" />;
+
 const inputs: WidgetInputs = {
   params: { canAct: true, canEscalate: false, canViewAlerts: true },
   state: {
@@ -94,6 +113,76 @@ describe("sdk inputs", () => {
         errors: [["invalid-prop", row.pointer, undefined]],
       });
     }
+  });
+
+  test("caller_frozen_input_is_cached_by_identity_and_mutable_input_is_copied_each_render", () => {
+    const seen: unknown[] = [];
+    const widget = ({ data }: WidgetProps) => {
+      seen.push(data);
+      return <Text text="x" />;
+    };
+    const renderWith = (data: unknown): boolean => render(widget, { ...inputs, data } as WidgetProps, options).ok;
+
+    // Frozen all the way down: checked once, then the same copy for this validator's check.
+    const frozen = Object.freeze({ tasks: Object.freeze([Object.freeze({ id: "t1", title: "Fix" })]) });
+    expect(renderWith(frozen)).toBe(true);
+    expect(renderWith(frozen)).toBe(true);
+    expect(seen[1]).toBe(seen[0]);
+    expect(seen[0]).not.toBe(frozen);
+
+    // Frozen outside, writable inside: a fresh copy each render, so a change inside is seen.
+    const row = { id: "t1", title: "Fix" };
+    const shallow = Object.freeze({ tasks: Object.freeze([row]) });
+    expect(renderWith(shallow)).toBe(true);
+    row.title = "Ship";
+    expect(renderWith(shallow)).toBe(true);
+    expect(seen[3]).not.toBe(seen[2]);
+    expect((seen[3] as { tasks: TaskRow[] }).tasks[0]?.title).toBe("Ship");
+
+    // Writable: a fresh copy each render.
+    const mutable = { tasks: [{ id: "t1", title: "Fix" }] };
+    expect(renderWith(mutable)).toBe(true);
+    expect(renderWith(mutable)).toBe(true);
+    expect(seen[5]).not.toBe(seen[4]);
+  });
+
+  test("input_with_an_accessor_property_is_never_cached", () => {
+    let reads = 0;
+    const row = Object.freeze({ id: "t1", title: "Fix" });
+    const inner = Object.defineProperty({}, "tasks", {
+      enumerable: true,
+      get() {
+        reads += 1;
+        return Object.freeze([row]);
+      },
+    });
+    const data = Object.freeze(inner);
+    const seen: unknown[] = [];
+    const widget = ({ data }: WidgetProps) => {
+      seen.push(data);
+      return <Text text="x" />;
+    };
+    for (let i = 0; i < 3; i++) expect(render(widget, { ...inputs, data } as WidgetProps, options).ok).toBe(true);
+    expect(reads).toBe(3);
+    expect(new Set(seen).size).toBe(3);
+
+    // An accessor deeper down keeps every frozen container above it from being cached.
+    reads = 0;
+    const accessorRow = Object.freeze(
+      Object.defineProperty({ id: "t1" }, "title", {
+        enumerable: true,
+        get() {
+          reads += 1;
+          return "Fix";
+        },
+      }),
+    );
+    const outer = Object.freeze({ tasks: Object.freeze([accessorRow]) });
+    seen.length = 0;
+    for (let i = 0; i < 2; i++)
+      expect(render(widget, { ...inputs, data: outer } as WidgetProps, options).ok).toBe(true);
+    expect(reads).toBe(2);
+    expect(seen[1]).not.toBe(seen[0]);
   });
 
   test("frozen_accessor_inputs_are_rechecked", () => {
@@ -260,5 +349,110 @@ describe("sdk inputs", () => {
       if (result.ok) seen.add(JSON.stringify(result.value));
     }
     expect(seen.size).toBe(1);
+  });
+
+  test("composed_props_holding_owned_inputs_are_not_rewalked", () => {
+    const tasks: readonly TaskRow[] = Object.freeze([
+      Object.freeze({ id: "t1", title: "Fix" }),
+      Object.freeze({ id: "t2", title: "Ship" }),
+    ]);
+    const frozenData = Object.freeze({ tasks });
+    const resolved = { ...inputs, data: frozenData } as WidgetProps;
+
+    const directWidget = ({ data }: WidgetProps) => <Direct tasks={(data as { tasks: readonly TaskRow[] }).tasks} />;
+    const layeredWidget = ({ data }: WidgetProps) => {
+      const ownedTasks = (data as { tasks: readonly TaskRow[] }).tasks;
+      return <Layer1 tasks={ownedTasks} wrapped={{ rows: ownedTasks }} />;
+    };
+
+    const directResult = render(directWidget, resolved, options);
+    const firstLayered = render(layeredWidget, resolved, options);
+    // Second render reuses `frozenData` through `inputCopies` (`src/sdk/render.ts`).
+    const secondLayered = render(layeredWidget, resolved, options);
+
+    expect(directResult.ok).toBe(true);
+    expect(firstLayered.ok).toBe(true);
+    expect(secondLayered.ok).toBe(true);
+    if (directResult.ok && firstLayered.ok && secondLayered.ok) {
+      expect(JSON.stringify(firstLayered.value)).toBe(JSON.stringify(directResult.value));
+      expect(JSON.stringify(secondLayered.value)).toBe(JSON.stringify(directResult.value));
+    }
+  });
+
+  test("function_nested_in_a_widget_built_prop_is_still_function_prop", () => {
+    const resolved = { ...inputs, data: { tasks: [{ id: "t1", title: "Fix" }] } } as WidgetProps;
+
+    const withFn = render(
+      ({ data }: WidgetProps) => (
+        <PayloadLayer payload={{ rows: (data as { tasks: unknown }).tasks, onPick: () => {} }} />
+      ),
+      resolved,
+      options,
+    );
+    expect(withFn.ok).toBe(false);
+    expect(!withFn.ok && withFn.errors[0]).toMatchObject({
+      kind: "function-prop",
+      pointer: "/payload/onPick",
+      nodeId: "root",
+    });
+
+    const withPromise = render(
+      ({ data }: WidgetProps) => (
+        <PayloadLayer payload={{ rows: (data as { tasks: unknown }).tasks, pending: Promise.resolve(1) }} />
+      ),
+      resolved,
+      options,
+    );
+    expect(withPromise.ok).toBe(false);
+    expect(!withPromise.ok && withPromise.errors[0]).toMatchObject({
+      kind: "async-render",
+      pointer: "/payload/pending",
+      nodeId: "root",
+    });
+
+    const withNaN = render(
+      ({ data }: WidgetProps) => (
+        <PayloadLayer payload={{ rows: (data as { tasks: unknown }).tasks, count: Number.NaN }} />
+      ),
+      resolved,
+      options,
+    );
+    expect(withNaN.ok).toBe(false);
+    expect(!withNaN.ok && withNaN.errors[0]).toMatchObject({
+      kind: "invalid-prop",
+      pointer: "/payload/count",
+      nodeId: "root",
+    });
+  });
+
+  test("callers_frozen_object_is_not_trusted", () => {
+    const callerFrozenFn = Object.freeze({
+      tasks: Object.freeze([Object.freeze({ id: "t1", title: () => "Fix" })]),
+    });
+    const fnErrors = failures({ data: callerFrozenFn });
+    expect(fnErrors[0]).toMatchObject({
+      kind: "invalid-prop",
+      pointer: "/data/tasks/0/title",
+    });
+
+    const callerFrozenGetter = Object.freeze({
+      get tasks() {
+        return () => [];
+      },
+    });
+    const getterErrors = failures({ data: callerFrozenGetter });
+    expect(getterErrors[0]).toMatchObject({
+      kind: "invalid-prop",
+      pointer: "/data/tasks",
+    });
+
+    const externalFrozen = Object.freeze({ nested: Object.freeze({ onPick: () => {} }) });
+    const composedResult = render(() => <ExtLayer ext={externalFrozen} />, inputs, options);
+    expect(composedResult.ok).toBe(false);
+    expect(!composedResult.ok && composedResult.errors[0]).toMatchObject({
+      kind: "function-prop",
+      pointer: "/ext/nested/onPick",
+      nodeId: "root",
+    });
   });
 });

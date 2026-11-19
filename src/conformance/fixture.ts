@@ -63,7 +63,7 @@ export function storeFixture() {
 }
 
 /**
- * A library package and a widget that pins it (plan 030 Task 10). Like the other fixtures their code is
+ * A library package and a widget that pins it (spec §7.3). Like the other fixtures their code is
  * never executed; `loadPlacement` only verifies the pins.
  */
 export function libraryFixture() {

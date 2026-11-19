@@ -1,0 +1,12 @@
+{
+  "kind": "textField",
+  "props": {
+    "label": "Filter"
+  },
+  "events": {
+    "onChange": {
+      "type": "setLocal",
+      "key": "q"
+    }
+  }
+}

@@ -120,7 +120,21 @@ expands:
 ```
 
 A `setLocal` event (`{ "type": "setLocal", "key": "q" }`) writes the local state like
-`setState` writes state. A `$use` node and a fragment take neither `when` nor `bind`.
+`setState` writes state. A `setState` or `action` intent may also carry `local`
+(1 to 4 `{ key, value?, until? }` writes, where `value` is a template expression
+checked against `manifest.local`, and `until: "revision"` reverts on the next
+accepted revision) and `fromLocal` (a map of 1 to 16 argument names to `local`
+keys on `action`, or a single `local` key string on `setState` without `value`,
+filled from local state at `emit` and re-checked by the host). A `$use` node and a fragment take neither `when` nor `bind`.
+
+`when` and `bind` may also read `{ "$path": "shown" }`, the number of the node's
+siblings that carry a `when` and are drawn (siblings that read `shown` are not
+counted). A row after the `$each` above with
+`"when": { "$eq": [{ "$path": "shown" }, 0] }` shows "No matches" when the filter
+hides every row. `shown` is not in template scope: props, `$if`, `$let` and `$embed`
+cannot read it (`unknown-name`).
+
+A node may carry `focus`, a template expression that must be a boolean: `true` marks the node the tree's focus moves to when a later revision changes the mark (`"focus": { "$path": "state.adding" }`). A `$use` node and a fragment take no `focus`, and two marked nodes in one expansion fail at render with `duplicate-key`.
 
 A **component** is `{ params, root }`: `params` is an object schema, and the body
 sees only its own params. This is how a template reuses a row without the row

@@ -44,6 +44,15 @@ test("intent_log_lists_every_entry_and_initial_errors_show_fallback", () => {
   expect(html).not.toContain("last good render");
 });
 
+test("preview_forwards_limits_to_surface_cells", () => {
+  const limited = renderToString(<Preview {...props} limits={{ nodes: 1 }} />);
+  expect(limited.match(/Unavailable/g)).toHaveLength(4);
+  expect(limited).not.toContain("Revision 1");
+
+  const raised = renderToString(<Preview {...props} limits={{ nodes: 10_000 }} />);
+  expect(raised.match(/Revision 1/g)).toHaveLength(4);
+});
+
 let browser: Browser;
 let server: ReturnType<typeof Bun.serve>;
 beforeAll(async () => {

@@ -66,11 +66,23 @@ function receive(frame: Frame): Promise<void> | undefined {
   return undefined;
 }
 
+/** Take every frame of a streamed answer, one JSON line each, as it arrives. */
+async function receiveAll(response: Response) {
+  if (!response.body) return;
+  const lines = response.body.pipeThrough(new TextDecoderStream()).getReader();
+  let buffered = "";
+  for (let chunk = await lines.read(); !chunk.done; chunk = await lines.read()) {
+    const parts = (buffered + chunk.value).split("\n");
+    buffered = parts.pop() ?? "";
+    for (const line of parts) await receive(JSON.parse(line));
+  }
+}
+
+/** The surface's frame, then a frame for each placement whose `pending` source has since been read. */
 async function load(id: string) {
   const response = await fetch(`/surfaces/${encodeURIComponent(id)}`);
-  const body = await response.json();
-  if (response.ok) await receive(body);
-  else say(body.error ?? "Surface unavailable");
+  if (response.ok) await receiveAll(response);
+  else say((await response.json()).error ?? "Surface unavailable");
 }
 
 // Intents are requests: the server re-checks each one before it changes state or runs an action. Its answer is a
@@ -85,13 +97,7 @@ function send(id: string, intent: Intent, origin: IntentOrigin) {
         body: JSON.stringify({ intent, origin, accepted: revisions() }),
       });
       if (!response.ok || !response.body) throw new Error((await response.json()).error ?? "Intent rejected");
-      const lines = response.body.pipeThrough(new TextDecoderStream()).getReader();
-      let buffered = "";
-      for (let chunk = await lines.read(); !chunk.done; chunk = await lines.read()) {
-        const parts = (buffered + chunk.value).split("\n");
-        buffered = parts.pop() ?? "";
-        for (const line of parts) await receive(JSON.parse(line));
-      }
+      await receiveAll(response);
     })
     .catch((cause: unknown) => say(cause instanceof Error ? cause.message : String(cause)));
 }

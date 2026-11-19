@@ -1,0 +1,16 @@
+{
+  "inputs": {
+    "doc": "docs/motion-outside-root-rest.json",
+    "catalog": "../common/catalog.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": false,
+    "errors": [
+      {
+        "kind": "invalid-document",
+        "pointer": "/recipes/button.*.label.rest/motion"
+      }
+    ]
+  }
+}

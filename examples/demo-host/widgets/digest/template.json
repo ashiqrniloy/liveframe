@@ -1,0 +1,29 @@
+{
+  "format": "liveframe-template/1",
+  "root": {
+    "kind": "stack",
+    "props": { "label": "Digest" },
+    "style": { "gap": "space.2", "padding": "space.4" },
+    "children": [
+      { "kind": "heading", "props": { "text": "Open tasks", "level": 2 } },
+      {
+        "kind": "hint",
+        "key": "counting",
+        "$if": { "$eq": [{ "$path": "data.digest.status" }, "pending"] },
+        "props": { "text": "Counting…" }
+      },
+      {
+        "kind": "text",
+        "key": "summary",
+        "$if": { "$eq": [{ "$path": "data.digest.status" }, "ok"] },
+        "props": { "text": { "$coalesce": [{ "$path": "data.digest.value.summary" }, ""] } }
+      },
+      {
+        "kind": "hint",
+        "key": "unavailable",
+        "$if": { "$and": [{ "$ne": [{ "$path": "data.digest.status" }, "ok"] }, { "$ne": [{ "$path": "data.digest.status" }, "pending"] }] },
+        "props": { "text": "The count is unavailable" }
+      }
+    ]
+  }
+}

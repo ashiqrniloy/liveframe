@@ -1,0 +1,378 @@
+[
+  {
+    "subpath": "./ui",
+    "name": "Box",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Button",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./definitions",
+    "name": "Chart",
+    "change": "added",
+    "reason": "Adds the `chart` definition, one of the five 0.4.0 content kinds (`richText`, `chart`, `table` with `tableRow` and `tableCell`) the agent-UI design approves (F12).",
+    "hostAction": "None for a host using the starter implementations. A host with its own implementations for `starter.ui@1` adds one for each new kind, or the registry check fails.",
+    "task": "039 T6"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Chart",
+    "change": "added",
+    "reason": "Adds the `chart` generated primitive, one of the five 0.4.0 content kinds (`richText`, `chart`, `table` with `tableRow` and `tableCell`) the agent-UI design approves (F12).",
+    "hostAction": "None for a host using the starter implementations. A host with its own implementations for `starter.ui@1` adds one for each new kind, or the registry check fails.",
+    "task": "039 T6"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Checkbox",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./definitions",
+    "name": "DateField",
+    "change": "added",
+    "reason": "Adds the `dateField` definition, one of the four 0.4.0 form controls (`radioGroup` with `radio`, `slider`, `progress`, `dateField`) the agent-UI design approves (F12).",
+    "hostAction": "None for a host using the starter implementations. A host with its own implementations for `starter.ui@1` adds one for each new kind, or the registry check fails.",
+    "task": "039 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "DateField",
+    "change": "added",
+    "reason": "Adds the `dateField` generated primitive, one of the four 0.4.0 form controls (`radioGroup` with `radio`, `slider`, `progress`, `dateField`) the agent-UI design approves (F12).",
+    "hostAction": "None for a host using the starter implementations. A host with its own implementations for `starter.ui@1` adds one for each new kind, or the registry check fails.",
+    "task": "039 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Dialog",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Disclosure",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Grid",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Heading",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Hint",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Icon",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Image",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Inline",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Link",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Menu",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "MenuItem",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Popover",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./definitions",
+    "name": "Progress",
+    "change": "added",
+    "reason": "Adds the `progress` definition, one of the four 0.4.0 form controls (`radioGroup` with `radio`, `slider`, `progress`, `dateField`) the agent-UI design approves (F12).",
+    "hostAction": "None for a host using the starter implementations. A host with its own implementations for `starter.ui@1` adds one for each new kind, or the registry check fails.",
+    "task": "039 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Progress",
+    "change": "added",
+    "reason": "Adds the `progress` generated primitive, one of the four 0.4.0 form controls (`radioGroup` with `radio`, `slider`, `progress`, `dateField`) the agent-UI design approves (F12).",
+    "hostAction": "None for a host using the starter implementations. A host with its own implementations for `starter.ui@1` adds one for each new kind, or the registry check fails.",
+    "task": "039 T5"
+  },
+  {
+    "subpath": "./definitions",
+    "name": "Radio",
+    "change": "added",
+    "reason": "Adds the `radio` definition, one of the four 0.4.0 form controls (`radioGroup` with `radio`, `slider`, `progress`, `dateField`) the agent-UI design approves (F12).",
+    "hostAction": "None for a host using the starter implementations. A host with its own implementations for `starter.ui@1` adds one for each new kind, or the registry check fails.",
+    "task": "039 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Radio",
+    "change": "added",
+    "reason": "Adds the `radio` generated primitive, one of the four 0.4.0 form controls (`radioGroup` with `radio`, `slider`, `progress`, `dateField`) the agent-UI design approves (F12).",
+    "hostAction": "None for a host using the starter implementations. A host with its own implementations for `starter.ui@1` adds one for each new kind, or the registry check fails.",
+    "task": "039 T5"
+  },
+  {
+    "subpath": "./definitions",
+    "name": "RadioGroup",
+    "change": "added",
+    "reason": "Adds the `radioGroup` definition, one of the four 0.4.0 form controls (`radioGroup` with `radio`, `slider`, `progress`, `dateField`) the agent-UI design approves (F12).",
+    "hostAction": "None for a host using the starter implementations. A host with its own implementations for `starter.ui@1` adds one for each new kind, or the registry check fails.",
+    "task": "039 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "RadioGroup",
+    "change": "added",
+    "reason": "Adds the `radioGroup` generated primitive, one of the four 0.4.0 form controls (`radioGroup` with `radio`, `slider`, `progress`, `dateField`) the agent-UI design approves (F12).",
+    "hostAction": "None for a host using the starter implementations. A host with its own implementations for `starter.ui@1` adds one for each new kind, or the registry check fails.",
+    "task": "039 T5"
+  },
+  {
+    "subpath": "./definitions",
+    "name": "RichText",
+    "change": "added",
+    "reason": "Adds the `richText` definition, one of the five 0.4.0 content kinds (`richText`, `chart`, `table` with `tableRow` and `tableCell`) the agent-UI design approves (F12).",
+    "hostAction": "None for a host using the starter implementations. A host with its own implementations for `starter.ui@1` adds one for each new kind, or the registry check fails.",
+    "task": "039 T6"
+  },
+  {
+    "subpath": "./ui",
+    "name": "RichText",
+    "change": "added",
+    "reason": "Adds the `richText` generated primitive, one of the five 0.4.0 content kinds (`richText`, `chart`, `table` with `tableRow` and `tableCell`) the agent-UI design approves (F12).",
+    "hostAction": "None for a host using the starter implementations. A host with its own implementations for `starter.ui@1` adds one for each new kind, or the registry check fails.",
+    "task": "039 T6"
+  },
+  {
+    "subpath": "./definitions",
+    "name": "Scroll",
+    "change": "widened",
+    "reason": "The `scroll` definition gains the optional props `itemCount`, `itemStart`, `itemSize` and `step` and the event `onRange`, which carries the visible range `{ start, end }`, for windowing long collections (F7).",
+    "hostAction": "None for a host that implements `scroll` without windowing: the props are optional and an unbound `onRange` raises nothing. A host that copies the starter implementation reserves the undrawn rows' space from `itemSize`.",
+    "task": "038 T4"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Scroll",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4). It also gains the optional windowing props `itemCount`, `itemStart`, `itemSize` and `step` and the event `onRange` (F7).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5, 038 T4"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Select",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Separator",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./definitions",
+    "name": "Slider",
+    "change": "added",
+    "reason": "Adds the `slider` definition, one of the four 0.4.0 form controls (`radioGroup` with `radio`, `slider`, `progress`, `dateField`) the agent-UI design approves (F12).",
+    "hostAction": "None for a host using the starter implementations. A host with its own implementations for `starter.ui@1` adds one for each new kind, or the registry check fails.",
+    "task": "039 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Slider",
+    "change": "added",
+    "reason": "Adds the `slider` generated primitive, one of the four 0.4.0 form controls (`radioGroup` with `radio`, `slider`, `progress`, `dateField`) the agent-UI design approves (F12).",
+    "hostAction": "None for a host using the starter implementations. A host with its own implementations for `starter.ui@1` adds one for each new kind, or the registry check fails.",
+    "task": "039 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Stack",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Switch",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Tab",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./definitions",
+    "name": "Table",
+    "change": "added",
+    "reason": "Adds the `table` definition, one of the five 0.4.0 content kinds (`richText`, `chart`, `table` with `tableRow` and `tableCell`) the agent-UI design approves (F12).",
+    "hostAction": "None for a host using the starter implementations. A host with its own implementations for `starter.ui@1` adds one for each new kind, or the registry check fails.",
+    "task": "039 T6"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Table",
+    "change": "added",
+    "reason": "Adds the `table` generated primitive, one of the five 0.4.0 content kinds (`richText`, `chart`, `table` with `tableRow` and `tableCell`) the agent-UI design approves (F12).",
+    "hostAction": "None for a host using the starter implementations. A host with its own implementations for `starter.ui@1` adds one for each new kind, or the registry check fails.",
+    "task": "039 T6"
+  },
+  {
+    "subpath": "./definitions",
+    "name": "TableCell",
+    "change": "added",
+    "reason": "Adds the `tableCell` definition, one of the five 0.4.0 content kinds (`richText`, `chart`, `table` with `tableRow` and `tableCell`) the agent-UI design approves (F12).",
+    "hostAction": "None for a host using the starter implementations. A host with its own implementations for `starter.ui@1` adds one for each new kind, or the registry check fails.",
+    "task": "039 T6"
+  },
+  {
+    "subpath": "./ui",
+    "name": "TableCell",
+    "change": "added",
+    "reason": "Adds the `tableCell` generated primitive, one of the five 0.4.0 content kinds (`richText`, `chart`, `table` with `tableRow` and `tableCell`) the agent-UI design approves (F12).",
+    "hostAction": "None for a host using the starter implementations. A host with its own implementations for `starter.ui@1` adds one for each new kind, or the registry check fails.",
+    "task": "039 T6"
+  },
+  {
+    "subpath": "./definitions",
+    "name": "TableRow",
+    "change": "added",
+    "reason": "Adds the `tableRow` definition, one of the five 0.4.0 content kinds (`richText`, `chart`, `table` with `tableRow` and `tableCell`) the agent-UI design approves (F12).",
+    "hostAction": "None for a host using the starter implementations. A host with its own implementations for `starter.ui@1` adds one for each new kind, or the registry check fails.",
+    "task": "039 T6"
+  },
+  {
+    "subpath": "./ui",
+    "name": "TableRow",
+    "change": "added",
+    "reason": "Adds the `tableRow` generated primitive, one of the five 0.4.0 content kinds (`richText`, `chart`, `table` with `tableRow` and `tableCell`) the agent-UI design approves (F12).",
+    "hostAction": "None for a host using the starter implementations. A host with its own implementations for `starter.ui@1` adds one for each new kind, or the registry check fails.",
+    "task": "039 T6"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Tabs",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Text",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "TextField",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": "./ui",
+    "name": "Tooltip",
+    "change": "widened",
+    "reason": "The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).",
+    "hostAction": "None; the attribute is optional and never a prop.",
+    "task": "037 T5"
+  },
+  {
+    "subpath": ".",
+    "name": "primitiveCss",
+    "change": "widened",
+    "reason": "The trusted structural CSS gains rules for the five 0.4.0 controls (`radioGroup`, `radio`, `slider`, `progress`, `dateField`): layout, track and fill positioning, and the indeterminate fill; and for the five content kinds (`richText`, `chart`, `table`, `tableRow`, `tableCell`): text-flow margins, the chart's plot, axis and legend layout, and table collapse. Existing rules are unchanged (F12).",
+    "hostAction": "None for a host that serves `styles()` or `primitiveCss`. A host that copied the 0.3 sheet adds the new rules to draw the controls.",
+    "task": "039 T5, T6"
+  }
+]

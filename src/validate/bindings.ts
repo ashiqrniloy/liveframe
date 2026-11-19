@@ -1,14 +1,16 @@
-// Node `when` and `bind` (plan 029 B1–B7): browser-evaluated expressions, checked here before a tree is
-// accepted. They are the template language narrowed to an operator allow-list with two roots, `local`
-// (the manifest's local state) and `self` (the node's own props), so one checker serves both.
+// Node `when` and `bind` (spec §8): browser-evaluated expressions, checked here before a tree is
+// accepted. They are the template language narrowed to an operator allow-list with three roots, `local`
+// (the manifest's local state), `self` (the node's own props) and `shown` (how many `when`-gated siblings
+// are drawn), so one checker serves both.
 import type { LiveframeError } from "../errors.ts";
 import { at, documentChecks, isRecord, type ObjectSchema } from "../formats/capabilities.ts";
+import type { LanguageSchema } from "../schema.ts";
 import { analyzeExpression } from "../template/expr.ts";
 import { binds, newBudget, type Restriction, rootScope, type Scope } from "../template/scope.ts";
 import { reject } from "./checks.ts";
 import type { SchemaSink } from "./schema.ts";
 
-/** The operators a tree expression may use: references, comparison, logic, text, numbers and lookup (B3). */
+/** The operators a tree expression may use: references, comparison, logic, text, numbers and lookup (spec §8). */
 export const TREE_OPERATORS: ReadonlySet<string> = new Set([
   ...["$path", "$lit", "$omit", "$has"],
   ...["$eq", "$ne", "$lt", "$lte", "$gt", "$gte"],
@@ -18,11 +20,14 @@ export const TREE_OPERATORS: ReadonlySet<string> = new Set([
   ...["$get", "$at"],
 ]);
 
-/** Per expression: 16 levels, 64 nodes (B4). The renderer adds a fuel limit of 256 steps when it evaluates. */
+/** The `shown` root: the number of the node's `when`-gated siblings that are drawn (spec §8). */
+export const SHOWN: LanguageSchema = Object.freeze({ type: "integer", minimum: 0 });
+
+/** Per expression: 16 levels, 64 nodes (spec §8). The renderer adds a fuel limit of 256 steps when it evaluates. */
 export const TREE_EXPRESSION: Restriction = { operators: TREE_OPERATORS, depth: 16, nodes: 64 };
-/** `bind` entries per node, and expression nodes per tree (B4). */
+/** `bind` entries per node, and expression nodes per tree (spec §8). */
 export const MAX_BINDINGS = 16;
-/** A template's expression may hold `{ "$embed": Expr }`, replaced by a literal at expansion (plan 029 B12). */
+/** A template's expression may hold `{ "$embed": Expr }`, replaced by a literal at expansion (spec §7.6). */
 export const EMBED = "$embed";
 const TEMPLATE_EXPRESSION: Restriction = { ...TREE_EXPRESSION, operators: new Set([...TREE_OPERATORS, EMBED]) };
 export const MAX_TREE_EXPRESSION_NODES = 10_000;
@@ -31,7 +36,7 @@ export const MAX_TREE_EXPRESSION_NODES = 10_000;
 export type BindingFacts = {
   readonly local: ObjectSchema;
   readonly props: ObjectSchema;
-  /** Props that name another node; a binding cannot rewrite them (B5.4). */
+  /** Props that name another node; a binding cannot rewrite them. */
   readonly refProps: ReadonlySet<string> | undefined;
   /** Accept `$embed` as an operand of unknown type: a template's expression, checked again once expanded. */
   readonly embed?: boolean;
@@ -46,7 +51,7 @@ export function isGated(gated: ReadonlySet<string>, id: string): boolean {
   return gated.has(id);
 }
 
-/** The error a checker reports, as a tree error: document errors become `invalid-prop` (B5). */
+/** The error a checker reports, as a tree error: document errors become `invalid-prop`. */
 function treeError(error: LiveframeError, prefix: string): LiveframeError {
   return {
     ...error,
@@ -119,7 +124,7 @@ export function compileBindings(facts: BindingFacts): BindingCheck {
   }
 
   return (node, sink) => {
-    scope ??= rootScope({ local: facts.local, self: facts.props });
+    scope ??= rootScope({ local: facts.local, self: facts.props, shown: SHOWN });
     let valid = true;
     if (Object.hasOwn(node, "when") && !checkWhen(node.when, scope, sink)) valid = false;
     if (Object.hasOwn(node, "bind") && !checkBind(node.bind, scope, sink)) valid = false;

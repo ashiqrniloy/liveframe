@@ -111,9 +111,9 @@ const offered = (node: UiNode, event: string) => node.events?.[event] as Intent 
 
 type Fixture = Awaited<ReturnType<typeof fixture>>;
 /** A store with one placement, a runner recording each render's `actions`, and a log of every effect in order. */
-async function fixture() {
+async function fixture(doc: { template: unknown; manifest: unknown } = { template, manifest }) {
   const scenario: Scenario = { name: "default", params: {}, state: { label: "first" }, context: {}, data: {} };
-  const pkg = value(pack({ template, manifest, scenarios: [scenario] } as never, install));
+  const pkg = value(pack({ ...doc, scenarios: [scenario] } as never, install));
   const store = memoryStore();
   await store.putPackage(pkg);
   await store.putPlacement({ id: "p1", slot: "main", widget: { id: "tasks", version: "1.0.0" }, params: {} });
@@ -130,6 +130,11 @@ async function fixture() {
       log.push("putState");
       written.push(args[2]);
       return store.putState(...args);
+    },
+    putStateIf: async (...args: Parameters<NonNullable<typeof store.putStateIf>>) => {
+      log.push("putStateIf");
+      written.push(args[3]);
+      return (await store.putStateIf?.(...args)) === true;
     },
   };
   const real = templateRunner();
@@ -418,7 +423,7 @@ test("set_state_persists_then_rerenders", async () => {
   expect(result.served.revision).toBe(2);
   expect(result.served.patch?.base).toBe(1);
   expect(published).toEqual([result.served]);
-  expect(f.log).toEqual(["authorize", "putState"]);
+  expect(f.log).toEqual(["authorize", "putStateIf"]);
 });
 
 test("set_state_unauthorized_writes_nothing", async () => {
@@ -507,7 +512,7 @@ test("no_effect_before_check_offered_and_authorize", async () => {
   await handle(f, claim, "onPress");
   expect(f.log).toEqual(["authorize", "dispatch"]);
   await handle(f, field, "onChange", { intent: { type: "setState", key: "label", value: "ok" } });
-  expect(f.log).toEqual(["authorize", "dispatch", "authorize", "putState"]);
+  expect(f.log).toEqual(["authorize", "dispatch", "authorize", "putStateIf"]);
 });
 
 test("served_catalog_without_install_is_load_failed", async () => {
@@ -534,4 +539,301 @@ test("publish_failure_contained", async () => {
     { type: "publish-failed", placementId: "p1", error: "RangeError" },
   ]);
   expect(JSON.stringify(f.events)).not.toContain("socket closed");
+});
+
+test("dispatched_action_outcome_survives_a_failed_render", async () => {
+  const f = await fixture();
+  const claim = nodeOf(f.first.tree, "button", "tasks.claim");
+  const renderErrors: LiveframeError[] = [{ kind: "render-failed", pointer: "/", message: "Runner crashed" }];
+  const failingRunner: Runner = {
+    async render() {
+      return { ok: false, errors: renderErrors };
+    },
+  };
+  const result = await handle(f, claim, "onPress", { runner: failingRunner });
+  expect(f.log).toEqual(["authorize", "dispatch"]);
+  expect(result.ok).toBe(false);
+  if (result.ok) throw new Error("Expected a failure");
+  expect(result.errors).toEqual(renderErrors);
+  expect(result.actions).toEqual({
+    "tasks.claim": { status: "ok", action: "tasks.claim", value: { owner: "alice" } },
+  });
+
+  // Also when `resultKey` is offered, the outcome survives under `resultKey`.
+  const keyedTemplate = {
+    format: "liveframe-template/1",
+    root: {
+      kind: "stack",
+      children: [
+        {
+          key: "claim-row",
+          kind: "button",
+          props: { label: "Claim row" },
+          events: { onPress: { type: "action", name: "tasks.claim", args: { id: "t1" }, resultKey: "claim:t1" } },
+        },
+      ],
+    },
+  };
+  const scenario: Scenario = { name: "default", params: {}, state: { label: "first" }, context: {}, data: {} };
+  const keyedPkg = value(
+    pack(
+      { template: keyedTemplate, manifest: { ...manifest, version: "1.0.1" }, scenarios: [scenario] } as never,
+      install,
+    ),
+  );
+  await f.store.putPackage(keyedPkg);
+  await f.store.putPlacement({ id: "p2", slot: "main", widget: { id: "tasks", version: "1.0.1" }, params: {} });
+  const keyedServed = value(
+    await renderPlacement({ ...f.host, placementId: "p2", catalogId: "proof.ui@1", viewer: "alice", context: {} }),
+  );
+  const keyedButton = nodeOf(keyedServed.tree, "button", "Claim row");
+  const keyedResult = await handle(f, keyedButton, "onPress", {
+    served: keyedServed,
+    origin: originOf(keyedServed, keyedButton, "onPress"),
+    intent: offered(keyedButton, "onPress"),
+    runner: failingRunner,
+  });
+  expect(keyedResult.ok).toBe(false);
+  if (keyedResult.ok) throw new Error("Expected a failure");
+  expect(keyedResult.errors).toEqual(renderErrors);
+  expect(keyedResult.actions).toEqual({
+    "claim:t1": { status: "ok", action: "tasks.claim", value: { owner: "alice" } },
+  });
+});
+
+test("refused_action_status_survives_a_failed_render", async () => {
+  const f = await fixture();
+  const claim = nodeOf(f.first.tree, "button", "tasks.claim");
+  const renderErrors: LiveframeError[] = [{ kind: "render-failed", pointer: "/", message: "Runner crashed" }];
+  const failingRunner: Runner = {
+    async render() {
+      return { ok: false, errors: renderErrors };
+    },
+  };
+  const unauthorized = await handle(f, claim, "onPress", {
+    authorize: async () => {
+      f.log.push("authorize");
+      return false;
+    },
+    runner: failingRunner,
+  });
+  expect(f.log).toEqual(["authorize"]);
+  expect(unauthorized.ok).toBe(false);
+  if (unauthorized.ok) throw new Error("Expected a failure");
+  expect(unauthorized.errors).toEqual(renderErrors);
+  expect(unauthorized.actions).toEqual({
+    "tasks.claim": { status: "refused", action: "tasks.claim", reason: "Not allowed" },
+  });
+
+  // An offered action that fails the offered check (recorded under the tree's key) keeps its refusal too.
+  const posted = { ...offered(claim, "onPress"), resultKey: "evil", args: { id: "other" } } as Intent;
+  const notOffered = await handle(f, claim, "onPress", { intent: posted, runner: failingRunner });
+  expect(notOffered.ok).toBe(false);
+  if (notOffered.ok) throw new Error("Expected a failure");
+  expect(notOffered.errors).toEqual(renderErrors);
+  expect(notOffered.actions).toEqual({
+    "tasks.claim": { status: "refused", action: "tasks.claim", reason: "Not accepted" },
+  });
+});
+
+test("failure_before_any_status_carries_no_actions", async () => {
+  const f = await fixture();
+  const claim = nodeOf(f.first.tree, "button", "tasks.claim");
+  const field = nodeOf(f.first.tree, "textField");
+  const existingActions = { "tasks.note": { status: "ok", action: "tasks.note" } as const };
+
+  // Stale origin.
+  const stale = await handle(f, claim, "onPress", {
+    origin: { ...originOf(f.first, claim, "onPress"), revision: f.first.revision - 1 },
+    actions: existingActions,
+  });
+  expect(stale.ok).toBe(false);
+  if (stale.ok) throw new Error("Expected a failure");
+  expect(stale.actions).toBeUndefined();
+  expect(Object.hasOwn(stale, "actions")).toBe(false);
+
+  // Full pending map.
+  const allPending = Object.fromEntries(
+    Array.from({ length: 64 }, (_, i) => [`k${i}`, { status: "pending", action: "tasks.note" } as const]),
+  );
+  const full = await handle(f, claim, "onPress", { actions: allPending });
+  expect(full.ok).toBe(false);
+  if (full.ok) throw new Error("Expected a failure");
+  expect(full.actions).toBeUndefined();
+  expect(Object.hasOwn(full, "actions")).toBe(false);
+
+  // Failed load in the setState path (placement missing from store).
+  await f.store.deletePlacement("p1");
+  const missingPlacement = await handle(f, field, "onChange", {
+    intent: { type: "setState", key: "label", value: "next" },
+    actions: existingActions,
+  });
+  expect(missingPlacement.ok).toBe(false);
+  if (missingPlacement.ok) throw new Error("Expected a failure");
+  expect(missingPlacement.actions).toBeUndefined();
+  expect(Object.hasOwn(missingPlacement, "actions")).toBe(false);
+});
+
+test("from_local_values_are_checked_against_the_capability_schema_and_refused_when_they_do_not_fit", async () => {
+  const draft = {
+    key: "draft",
+    kind: "textField",
+    props: { label: "Draft" },
+    events: { onCommit: { type: "action", name: "tasks.claim", args: {}, fromLocal: { id: "draft" } } },
+  };
+  const f = await fixture({
+    template: { format: "liveframe-template/1", root: { kind: "stack", children: [draft] } },
+    manifest: {
+      ...manifest,
+      local: schema({ draft: { type: "string", maxLength: 100 } }),
+      initialLocal: { draft: "" },
+    },
+  });
+  const field = nodeOf(f.first.tree, "textField");
+  // The tree offers no value: the browser fills it, so the host holds it to the capability's own bound (20).
+  expect(offered(field, "onCommit")).toMatchObject({ fromLocal: { id: "draft" }, args: {} });
+  const fits = value(
+    await handle(f, field, "onCommit", { intent: { type: "action", name: "tasks.claim", args: { id: "t1" } } }),
+  );
+  expect(fits.actions["tasks.claim"]?.status).toBe("ok");
+  expect(f.log).toEqual(["authorize", "dispatch"]);
+
+  const g = await fixture({
+    template: { format: "liveframe-template/1", root: { kind: "stack", children: [draft] } },
+    manifest: {
+      ...manifest,
+      local: schema({ draft: { type: "string", maxLength: 100 } }),
+      initialLocal: { draft: "" },
+    },
+  });
+  const long = value(
+    await handle(g, nodeOf(g.first.tree, "textField"), "onCommit", {
+      intent: { type: "action", name: "tasks.claim", args: { id: "x".repeat(21) } },
+    }),
+  );
+  expect(long.actions["tasks.claim"]).toEqual({ status: "refused", action: "tasks.claim", reason: "Not accepted" });
+  expect(g.log).toEqual([]);
+  expect(g.events).toEqual([expect.objectContaining({ type: "intent-refused", reason: "not-offered" })]);
+});
+
+/** Two fields writing two state keys, for the compare-and-set cases (plan 037 Task 6). */
+const twoKeys = {
+  template: {
+    format: "liveframe-template/1",
+    root: {
+      kind: "stack",
+      children: ["label", "note"].map((key) => ({
+        key,
+        kind: "textField",
+        props: { label: key, value: { $path: `state.${key}` } },
+        events: { onChange: { type: "setState", key } },
+      })),
+    },
+  },
+  manifest: {
+    ...manifest,
+    // `note` is optional, so the scenario's `{ label }` still fits.
+    state: {
+      ...schema({ label: { type: "string", maxLength: 10 }, note: { type: "string", maxLength: 10 } }),
+      required: ["label"],
+    },
+  },
+};
+
+/** Both calls read the stored state before either writes: the first `count` reads wait for each other. */
+function interleaved(f: Fixture, count = 2) {
+  const getState = f.host.store.getState;
+  let waiting = 0;
+  let release: () => void = () => {};
+  const barrier = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  f.host.store.getState = async (...args) => {
+    const stored = await getState(...args);
+    if (waiting < count && ++waiting === count) release();
+    if (waiting <= count) await barrier;
+    return stored;
+  };
+}
+
+const setBoth = (f: Fixture) =>
+  Promise.all(
+    (["label", "note"] as const).map((key) =>
+      handle(f, nodeOf(f.first.tree, "textField", key), "onChange", {
+        intent: { type: "setState", key, value: `${key}-2` },
+      }),
+    ),
+  );
+
+test("concurrent_set_state_on_two_keys_keeps_both", async () => {
+  const f = await fixture(twoKeys);
+  interleaved(f);
+  const results = await setBoth(f);
+  expect(results.every((result) => result.ok)).toBe(true);
+  expect(await f.store.getState("p1", "")).toEqual({ label: "label-2", note: "note-2" });
+  // One write won at once; the other lost the compare, re-read and re-applied its key.
+  expect(f.log.filter((entry) => entry === "putStateIf")).toHaveLength(3);
+  expect(f.log).not.toContain("putState");
+
+  // The same interleaving through `putState` loses a write: the case above would fail without the method.
+  const plain = await fixture(twoKeys);
+  delete (plain.host.store as Partial<typeof plain.store>).putStateIf;
+  interleaved(plain);
+  await setBoth(plain);
+  expect(await plain.store.getState("p1", "")).not.toEqual({ label: "label-2", note: "note-2" });
+});
+
+test("contended_write_gives_up_with_version_conflict", async () => {
+  const f = await fixture();
+  let attempts = 0;
+  f.host.store.putStateIf = async () => {
+    attempts++;
+    return false;
+  };
+  const result = await handle(f, nodeOf(f.first.tree, "textField"), "onChange", {
+    intent: { type: "setState", key: "label", value: "second" },
+  });
+  expect(errorsOf(result)).toEqual([expect.objectContaining({ kind: "version-conflict", pointer: "/state" })]);
+  expect(attempts).toBe(4);
+  expect(await f.store.getState("p1", "")).toBeUndefined();
+  expect(f.rendered).toEqual([]);
+  expect(f.events).toEqual([expect.objectContaining({ type: "intent-refused", reason: "conflict" })]);
+  expect(JSON.stringify(f.events)).not.toContain("second");
+});
+
+test("store_without_the_method_behaves_as_before", async () => {
+  const f = await fixture();
+  delete (f.host.store as Partial<typeof f.store>).putStateIf;
+  let stateReads = 0;
+  const getState = f.host.store.getState;
+  f.host.store.getState = async (...args) => {
+    stateReads++;
+    return getState(...args);
+  };
+  const result = value(
+    await handle(f, nodeOf(f.first.tree, "textField"), "onChange", {
+      intent: { type: "setState", key: "label", value: "second" },
+    }),
+  );
+  expect(result.served.state).toEqual({ label: "second" });
+  expect(await f.store.getState("p1", "")).toEqual({ label: "second" });
+  expect(f.log).toEqual(["authorize", "putState"]);
+  expect(stateReads).toBe(1);
+});
+
+test("set_state_with_compare_and_set_reads_and_writes_state_once", async () => {
+  const f = await fixture();
+  let stateReads = 0;
+  const getState = f.host.store.getState;
+  f.host.store.getState = async (...args) => {
+    stateReads++;
+    return getState(...args);
+  };
+  value(
+    await handle(f, nodeOf(f.first.tree, "textField"), "onChange", {
+      intent: { type: "setState", key: "label", value: "second" },
+    }),
+  );
+  expect(stateReads).toBe(1);
+  expect(f.log).toEqual(["authorize", "putStateIf"]);
 });

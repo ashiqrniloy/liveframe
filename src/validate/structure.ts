@@ -34,7 +34,7 @@ export type CompiledStructure = {
   node(parentKind: string, childKind: string, depth: number, hasChildren: boolean, sink: StructureSink): void;
   /**
    * Rejects a parent's children that break their min or max counts. `gated` counts, per kind, the children
-   * that carry a `when`: they may be absent, so they count toward the maximum but not the minimum (plan 029 B5.7).
+   * that carry a `when`: they may be absent, so they count toward the maximum but not the minimum, so a `when` never pushes a parent outside its bounds (spec §8).
    */
   counts(
     parentKind: string,

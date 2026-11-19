@@ -38,7 +38,7 @@ export type Capabilities = {
       string,
       Omit<Infer<typeof actionFields>, "args" | "result" | "meta"> & {
         readonly args: ObjectSchema;
-        /** The shape of an `ok` action result's `value` (plan 029 design A3). */
+        /** The shape of an `ok` action result's `value` (spec §8). */
         readonly result?: LanguageSchema;
         readonly meta?: Json;
       }

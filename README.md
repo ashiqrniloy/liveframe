@@ -21,12 +21,15 @@ Four rules, none of them optional:
 bun add @arnilo/liveframe
 ```
 
-Two optional companion packages release in lockstep with the core, share its version and peer on `@arnilo/liveframe`:
+Three optional companion packages release in lockstep with the core, share its version and peer on `@arnilo/liveframe`:
 
 ```bash
 bun add @arnilo/liveframe-runner-quickjs   # an isolated runner for widget code you do not trust
 bun add @arnilo/liveframe-starter          # a conforming catalog, primitives, themes and styles to start from
+bun add @arnilo/liveframe-a2ui             # convert an A2UI v0.9/v0.9.1 surface to element JSON
 ```
+
+The [A2UI converter's guide](https://github.com/ashiqrniloy/liveframe/tree/main/packages/a2ui#readme) has the mapping and what it refuses.
 
 Each peer is optional and only the subpaths that need it use it:
 
@@ -36,7 +39,7 @@ Each peer is optional and only the subpaths that need it use it:
 | `playwright` | `^1.49.0` | `liveframe preview capture`, the MCP server's `capture_preview` |
 | `@modelcontextprotocol/server` | `^2.0.0` | `liveframe mcp` |
 
-The backend subpaths (`/store/fs`, `/preview/worker`, the in-process package loader and the CLI) need Bun ≥ 1.4.2. The host-API-free subpaths need ES2022 plus only the globals listed below. The browser subpaths (`/css`, `/react`, `/preview/react`, `/conformance/react`) need any ESM bundler. The package ships compiled ES2022 JavaScript with `.d.ts` declarations and the published JSON Schemas; [spec §13](docs/spec.md#13-tech-stack-and-packages) has the runtime matrix and package contents.
+The backend subpaths (`/store/fs`, `/preview/worker`, the in-process package loader and the CLI) need Bun ≥ 1.4.2. The host-API-free subpaths need ES2022 plus only the globals listed below. The browser subpaths (`/css`, `/react`, `/dom`, `/preview/react`, `/conformance/react`, `/conformance/dom`) need any ESM bundler. The package ships compiled ES2022 JavaScript with `.d.ts` declarations and the published JSON Schemas; [spec §13](docs/spec.md#13-tech-stack-and-packages) has the runtime matrix and package contents.
 
 | Host-API-free subpath | Non-ECMAScript globals |
 |---|---|
@@ -173,7 +176,7 @@ if (patch.ok) {
 |---|---|
 | `@arnilo/liveframe` | Definition, catalog, theme, design-system, UI-tree and tree-patch formats; `validateTreePatch`, `diffTrees` and `applyPatch`; the validator; the recipe resolver; `LiveframeFailure` and `LiveframeError` |
 | `@arnilo/liveframe/sdk` | The JSX runtime (`/sdk/jsx-runtime`, `/sdk/jsx-dev-runtime`), intent helpers and `render()` |
-| `@arnilo/liveframe/sdk/gen` | The host-side emitters behind `liveframe gen`: `generate()`, `generateDefinitions()`, `generateElementsSchema()` and `generateTemplateSchema()` |
+| `@arnilo/liveframe/sdk/gen` | The host-side emitters behind `liveframe gen`: `generate()`, `generateDefinitions()`, `generateElementsSchema()`, `generateTemplateSchema()` and `generateDigest()` (the agent digest, `liveframe gen --digest`) |
 | `@arnilo/liveframe/react` | The renderer: `createRenderer()`, `<Surface>` and `implement()` |
 | `@arnilo/liveframe/surface` | The framework-independent surface core under `/react`: `createSurfaceCore()`, node contexts and local state |
 | `@arnilo/liveframe/css` | The scoped CSS projection and the class, style, scope and variable helpers; the host inserts sheets |
@@ -188,10 +191,12 @@ if (patch.ok) {
 | `@arnilo/liveframe/runner-kit.bundle.js` | The kit, SDK and validator as one import-free ES module for isolates |
 | `@arnilo/liveframe/validator.bundle.js` | The root exports as one import-free ES module for hosts that validate without rendering |
 | `@arnilo/liveframe/preview/capture` | Capture as bytes with a pluggable backend |
+| `@arnilo/liveframe/dom` | The plain DOM adapter: `createDomRenderer()`, `implement()` and `place()`, with no framework |
 | `@arnilo/liveframe/preview/worker` | `workerRunner()`, which needs the `Worker` global |
 | `@arnilo/liveframe/preview/react` | `<Preview>` |
 | `@arnilo/liveframe/conformance` | Host-API-free catalog, design-system and store suites |
 | `@arnilo/liveframe/conformance/react` | The renderer suites and `conformancePage()` |
+| `@arnilo/liveframe/conformance/dom` | The same renderer cases against `/dom` implementations, and `domConformancePage()` |
 | `@arnilo/liveframe/schemas/<format>.json` | The JSON Schema for every format |
 
 The [spec](docs/spec.md#13-tech-stack-and-packages) defines each subpath's contract.

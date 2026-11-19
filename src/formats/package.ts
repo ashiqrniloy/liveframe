@@ -18,7 +18,7 @@ export type Scenario = Omit<Infer<typeof scenarioFields>, "params" | "context" |
   readonly context: Json;
   readonly state?: Json;
   readonly data: Readonly<Record<string, Json>>;
-  /** Action statuses to render with (plan 029); checked against the manifest by `pack()`. */
+  /** Action statuses to render with (spec §8); checked against the manifest by `pack()`. */
   readonly actions?: Readonly<Record<string, ActionStatus>>;
 };
 const fields = obj(
@@ -100,7 +100,7 @@ function checkBody(doc: Record<string, unknown>, c: Checks): void {
   if (hasCode === hasTemplate) c.reject("/code", "Expected exactly one of code and template", "invalid-document");
   else if (hasCode) checkCodeSize(doc.code, c);
   else if (isRecord(doc.manifest) && (doc.manifest.exports !== undefined || doc.manifest.dependencies !== undefined)) {
-    // Libraries link code to code (plan 030 Task 9); a template package has neither side of that.
+    // Libraries link code to code (spec §7.3); a template package has neither side of that.
     const field = doc.manifest.dependencies !== undefined ? "dependencies" : "exports";
     c.reject(`/manifest/${field}`, "Expected no exports or dependencies in a template package", "invalid-document");
   } else if (utf8Length(JSON.stringify(doc.template), TEMPLATE_BYTES) > TEMPLATE_BYTES)

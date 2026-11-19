@@ -1,0 +1,48 @@
+{
+  "format": "liveframe/1",
+  "catalogId": "proof.ui@1",
+  "surfaceId": "corpus",
+  "revision": 1,
+  "root": {
+    "id": "root",
+    "kind": "stack",
+    "props": {},
+    "children": [
+      {
+        "id": "root/button",
+        "kind": "button",
+        "props": {
+          "label": "Save"
+        },
+        "events": {
+          "onPress": {
+            "type": "action",
+            "name": "tasks.claim",
+            "args": {
+              "id": "task:1"
+            },
+            "fromLocal": {
+              "a0": "q",
+              "a1": "q",
+              "a2": "q",
+              "a3": "q",
+              "a4": "q",
+              "a5": "q",
+              "a6": "q",
+              "a7": "q",
+              "a8": "q",
+              "a9": "q",
+              "a10": "q",
+              "a11": "q",
+              "a12": "q",
+              "a13": "q",
+              "a14": "q",
+              "a15": "q",
+              "a16": "q"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

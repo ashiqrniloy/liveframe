@@ -126,6 +126,148 @@
         ],
         "additionalProperties": false
       }
+    },
+    "tasks.digest": {
+      "description": "How many tasks are open. Slow: the host answers pending first and renders again when the count lands.",
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "result": {
+        "discriminator": "status",
+        "mapping": {
+          "ok": {
+            "type": "object",
+            "properties": {
+              "checkedAt": {
+                "maxLength": 128,
+                "type": "string"
+              },
+              "value": {
+                "type": "object",
+                "properties": {
+                  "summary": {
+                    "maxLength": 80,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "summary"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          "unauthorized": {
+            "type": "object",
+            "properties": {
+              "reason": {
+                "maxLength": 500,
+                "type": "string"
+              },
+              "value": {
+                "type": "object",
+                "properties": {
+                  "summary": {
+                    "maxLength": 80,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "summary"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          },
+          "unavailable": {
+            "type": "object",
+            "properties": {
+              "reason": {
+                "maxLength": 500,
+                "type": "string"
+              },
+              "value": {
+                "type": "object",
+                "properties": {
+                  "summary": {
+                    "maxLength": 80,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "summary"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          },
+          "stale": {
+            "type": "object",
+            "properties": {
+              "reason": {
+                "maxLength": 500,
+                "type": "string"
+              },
+              "value": {
+                "type": "object",
+                "properties": {
+                  "summary": {
+                    "maxLength": 80,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "summary"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          },
+          "failed": {
+            "type": "object",
+            "properties": {
+              "reason": {
+                "maxLength": 500,
+                "type": "string"
+              },
+              "value": {
+                "type": "object",
+                "properties": {
+                  "summary": {
+                    "maxLength": 80,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "summary"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          },
+          "pending": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false
+          }
+        }
+      }
     }
   },
   "actions": {

@@ -12,7 +12,7 @@ export type QuickJsRunnerOptions = {
   readonly memoryBytes?: number;
   /**
    * QuickJS's stack limit (default 256 KiB). QuickJS recurses on the host stack: at 1 MiB some call
-   * shapes overflow it first, and the engine then aborts (decision 2026-11-08-2310).
+   * shapes overflow it first, and the engine then aborts.
    */
   readonly stackBytes?: number;
   /** The default per-render limit in ms (default 250); a render's `options.timeoutMs` overrides it. */
@@ -164,11 +164,13 @@ export async function quickjsRunner(options: QuickJsRunnerOptions = {}): Promise
     if (!linked.ok) return linked;
     const timeoutMs = runnerOptions.timeoutMs ?? defaultTimeoutMs;
     const { catalog, capabilities, surfaceId, revision, limits } = runnerOptions;
+    let config: string;
     let request: string;
     try {
+      config = JSON.stringify({ catalog, capabilities });
       request = JSON.stringify({
         inputs,
-        options: { catalog, capabilities, manifest: pkg.manifest, surfaceId, revision, ...(limits ? { limits } : {}) },
+        options: { manifest: pkg.manifest, surfaceId, revision, ...(limits ? { limits } : {}) },
       });
     } catch {
       return failed("render-failed", "The render inputs must be JSON");
@@ -177,6 +179,7 @@ export async function quickjsRunner(options: QuickJsRunnerOptions = {}): Promise
       {
         code: linked.value.code,
         libraries: linked.value.libraries,
+        config,
         request,
         ...(reuse === "package" ? { key: pkg.hash } : {}),
       },

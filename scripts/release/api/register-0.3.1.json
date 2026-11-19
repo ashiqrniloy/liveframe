@@ -1,0 +1,66 @@
+[
+  {
+    "subpath": "./host",
+    "name": "HandleResult",
+    "change": "added",
+    "reason": "Names the widened return type of handleIntent so failures after a recorded action outcome or refusal carry optional actions (D3).",
+    "hostAction": "None; existing Result<Handled> consumers remain compatible.",
+    "task": "033 T4"
+  },
+  {
+    "subpath": "./host",
+    "name": "handleIntent",
+    "change": "widened",
+    "reason": "Widens the failure branch to HandleResult with optional actions when a render fails after recording an action outcome or refusal (D3).",
+    "hostAction": "None; store handled.actions when present on failure so recorded outcomes survive a failed render.",
+    "task": "033 T4"
+  },
+  {
+    "subpath": "./surface",
+    "name": "SurfaceCoreOptions",
+    "change": "widened",
+    "reason": "Adds optional `limits` (`ValidateTreeOptions[\"limits\"]`) so a surface core passes host validation bounds to `validator.validateTree` (D5).",
+    "hostAction": "None; defaults remain 5,000 nodes, 64 depth and 1 MiB when `limits` is omitted.",
+    "task": "033 T6"
+  },
+  {
+    "subpath": "./react",
+    "name": "createRenderer",
+    "change": "widened",
+    "reason": "Adds optional `limits` (`ValidateTreeOptions[\"limits\"]`) on `SurfaceProps`, forwarded to the surface core on each arrival (D5). Adds optional `invalid` (`\"fallback\" | \"keep-last\"`, default `\"fallback\"`): `keep-last` keeps the last accepted tree drawn, silent and marked `data-lf-stale`, after a rejected arrival (035 T5, A4).",
+    "hostAction": "None; pass `limits` on `<Surface>` when the backend raises tree validation bounds. Pass `invalid=\"keep-last\"` to keep the last tree on screen after a rejected arrival; the default still draws the fallback.",
+    "task": "033 T6, 035 T5"
+  },
+  {
+    "subpath": "./preview/worker",
+    "name": "workerRunner",
+    "change": "widened",
+    "reason": "Adds optional `startTimeoutMs` (default 5,000) to `workerRunner` defaults while moving the per-render `timeoutMs` timer to start when the worker reports `ready` (D6).",
+    "hostAction": "None; defaults remain `timeoutMs: 100`, `maxPackages: 64`, `startTimeoutMs: 5000`.",
+    "task": "033 T7"
+  },
+  {
+    "subpath": "./preview/react",
+    "name": "PreviewProps",
+    "change": "widened",
+    "reason": "Adds optional `limits` (`ValidateTreeOptions[\"limits\"]`) on `PreviewProps`, forwarded to each cell's `<Surface>` (F4 / D5).",
+    "hostAction": "None; pass `limits` on `<Preview>` when the preview session raises tree validation bounds.",
+    "task": "033 T10"
+  },
+  {
+    "subpath": "./preview/react",
+    "name": "Preview",
+    "change": "widened",
+    "reason": "Accepts optional `limits` on `<Preview>` and forwards it to each cell's `<Surface>` (F4 / D5).",
+    "hostAction": "None; pass `limits` on `<Preview>` when the preview session raises tree validation bounds.",
+    "task": "033 T10"
+  },
+  {
+    "subpath": "./conformance/react",
+    "name": "conformancePage",
+    "change": "widened",
+    "reason": "The page's `mount(tree, styles, invalid?)` takes an optional `\"fallback\" | \"keep-last\"` mode so `rendererBrowserSuite` can prove keep-last (035 T5, A4).",
+    "hostAction": "None; existing pages and suites call `mount(tree, styles)` unchanged.",
+    "task": "035 T5"
+  }
+]

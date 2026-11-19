@@ -1,17 +1,26 @@
 import { strict as assert } from "node:assert";
-import { cpus, loadavg, platform, release } from "node:os";
+import { cpus, loadavg, platform, release, tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { chromium } from "playwright";
+import { createElement } from "react";
+import { renderToString } from "react-dom/server";
+import { pageTree, rowsAt } from "../packages/starter/src/__tests__/windowed.tsx";
 import { proofSheets } from "../proof/css/sheets.ts";
 import { toElements } from "../scripts/fixtures/elements.ts";
 import { browserHost } from "../src/__tests__/fixtures/conformance-browser-host.ts";
 import catalog from "../src/__tests__/fixtures/proof/catalog.json" with { type: "json" };
+import {
+  renderer as surfaceRenderer,
+  surfaceProps,
+  validator as surfaceValidator,
+} from "../src/__tests__/fixtures/react-surface.tsx";
 import { countNodes } from "../src/__tests__/fixtures/render-workloads.ts";
 import capabilities from "../src/__tests__/fixtures/widgets/capabilities.json" with { type: "json" };
 import { proofWidgets } from "../src/__tests__/fixtures/widgets/index.ts";
 import { applyPatch, compileValidator, diffTrees, type UiTree } from "../src/index.ts";
 import { renderElements } from "../src/sdk/elements.ts";
 import { render } from "../src/sdk/render.ts";
-import { jsonMode, metric } from "./metrics.ts";
+import { budget, jsonMode, metric } from "./metrics.ts";
 import { startRenderTrace, stopRenderTrace, TRACE_MARKS } from "./trace.ts";
 
 const patches = Bun.argv.includes("--patches");
@@ -19,12 +28,26 @@ const production = Bun.argv.includes("--production");
 const inlineFallback = Bun.argv.includes("--inline-fallback");
 const outFlag = Bun.argv.indexOf("--out");
 const explicitOut = outFlag >= 0 ? Bun.argv[outFlag + 1] : undefined;
+const runsFlag = Bun.argv.indexOf("--runs");
+const smokeRuns = runsFlag >= 0 ? Number(Bun.argv[runsFlag + 1]) : undefined;
+if (runsFlag >= 0 && (!Number.isInteger(smokeRuns) || (smokeRuns ?? 0) < 1)) {
+  throw new Error("--runs needs a positive integer");
+}
+
 const initialLoad = loadavg();
-const REVISIONS = 100;
-const WARMUP_REVISIONS = 20;
-const INTERVAL_MS = 100;
+const REVISIONS = smokeRuns ?? 100;
+const WARMUP_REVISIONS = smokeRuns ? 1 : 20;
+const INTERVAL_MS = smokeRuns ? 5 : 100;
+const MOUNT_RUNS = smokeRuns ?? 10;
+const MOUNT_WARMUP = smokeRuns ? 1 : 2;
+const FOCUS_RUNS = smokeRuns ?? 20;
+const FOCUS_WARMUP = smokeRuns ? 1 : 5;
+const HOST_TABBABLE_COUNTS = [0, 1000, 5000] as const;
 const MAX_GZIP_BYTES = 1024;
 const MAX_VALIDATION_AND_COMMIT_MS = 8;
+const WINDOW_RUNS = smokeRuns ?? 40;
+const WINDOW_WARMUP = smokeRuns ? 1 : 10;
+const FRAME_MS = 16.7;
 
 const fixture = proofWidgets.find((entry) => entry.name === "agent-home");
 assert(fixture, "agent-home fixture missing");
@@ -100,12 +123,59 @@ for (let index = 0; index < REVISIONS; index++) {
   previous = tree;
 }
 
+const mountTree = revisionTree(0);
+const mountTreeJson = JSON.stringify(mountTree);
+const { Surface: SsrSurface } = surfaceRenderer();
+const ssrHtml = renderToString(
+  createElement(SsrSurface, { ...surfaceProps, validator: surfaceValidator, tree: mountTree }),
+);
+const focusTreesJson = Array.from({ length: FOCUS_WARMUP + FOCUS_RUNS + 1 }, (_, index) =>
+  JSON.stringify(revisionTree(index)),
+);
+
+// Plan 038 Task 4: a 50,000-row list drawn 200 rows at a time; each range change shifts the window by 20 rows.
+const windowTrees = [0, 20, 0, 20].map((shift, index) => pageTree(rowsAt(24_000 + shift, 24_200 + shift), index + 1));
+const windowPatches = windowTrees.slice(1).map((tree, index) => {
+  const base = windowTrees[index];
+  assert(base, "window base missing");
+  const patch = diffTrees(base, tree);
+  assert(patch.ok, `window diff ${index}: ${JSON.stringify(patch)}`);
+  return patch.value;
+});
+const windowTreeBytes = Buffer.byteLength(JSON.stringify(windowTrees[0]));
+const windowPatchOps = Math.max(...windowPatches.map((patch) => patch.ops.length));
+const windowPatchBytes = Math.max(...windowPatches.map((patch) => Buffer.byteLength(JSON.stringify(patch))));
+budget(windowPatchOps <= 42, `a 20-row range change produced ${windowPatchOps} ops (budget 42)`);
+budget(
+  windowPatchBytes <= windowTreeBytes * 0.25,
+  `a 20-row range change produced ${windowPatchBytes} patch bytes for a ${windowTreeBytes}-byte tree (budget 25%)`,
+);
+
 const server = await browserHost(new URL("./streaming-client.tsx", import.meta.url).pathname, proofSheets, production);
 const browser = await chromium.launch({ headless: true });
 type Sample = Record<
   "parseMs" | "validationMs" | "profilerMs" | "commitMs" | "wallMs" | "applyMs" | "endToEndMs" | "reuseMs",
   number
 >;
+type MountSample = {
+  readonly renders: number;
+  readonly pass1Renders: number;
+  readonly pass2Renders: number;
+  readonly wallMs: number;
+  readonly pass1Ms: number;
+  readonly pass2Ms: number;
+  readonly validationMs: number;
+};
+type MountOutcome = {
+  readonly createRoot: readonly MountSample[];
+  readonly hydrateRoot: readonly MountSample[];
+};
+type FocusSample = {
+  readonly wallMs: number;
+  readonly validationMs: number;
+  readonly commitMs: number;
+};
+
 try {
   const page = await browser.newPage();
   const errors: string[] = [];
@@ -158,6 +228,62 @@ try {
     return { layoutPaintMs: Number.NaN, events: 0 };
   });
   const finalTree = patches ? await page.evaluate(() => window.streamTest.tree()) : undefined;
+
+  const mountOutcome = (await page.evaluate(
+    (input: { treeJson: string; ssrHtml: string; runs: number; warmup: number }) =>
+      window.streamTest.measureMount(input.treeJson, input.ssrHtml, input.runs, input.warmup),
+    { treeJson: mountTreeJson, ssrHtml, runs: MOUNT_RUNS, warmup: MOUNT_WARMUP },
+  )) as MountOutcome;
+
+  const focusResults: {
+    hostCount: number;
+    on: readonly FocusSample[];
+    off: readonly FocusSample[];
+  }[] = [];
+  for (const hostCount of HOST_TABBABLE_COUNTS) {
+    const on = (await page.evaluate(
+      (input: {
+        treesJson: readonly string[];
+        hostCount: number;
+        focusContinuity: boolean;
+        runs: number;
+        warmup: number;
+      }) =>
+        window.streamTest.measureFocus(
+          input.treesJson,
+          input.hostCount,
+          input.focusContinuity,
+          input.runs,
+          input.warmup,
+        ),
+      { treesJson: focusTreesJson, hostCount, focusContinuity: true, runs: FOCUS_RUNS, warmup: FOCUS_WARMUP },
+    )) as readonly FocusSample[];
+    const off = (await page.evaluate(
+      (input: {
+        treesJson: readonly string[];
+        hostCount: number;
+        focusContinuity: boolean;
+        runs: number;
+        warmup: number;
+      }) =>
+        window.streamTest.measureFocus(
+          input.treesJson,
+          input.hostCount,
+          input.focusContinuity,
+          input.runs,
+          input.warmup,
+        ),
+      { treesJson: focusTreesJson, hostCount, focusContinuity: false, runs: FOCUS_RUNS, warmup: FOCUS_WARMUP },
+    )) as readonly FocusSample[];
+    focusResults.push({ hostCount, on, off });
+  }
+
+  const windowSamples = (await page.evaluate(
+    (input: { treesJson: readonly string[]; runs: number; warmup: number }) =>
+      window.streamTest.measureWindow(input.treesJson, input.runs, input.warmup),
+    { treesJson: windowTrees.map((tree) => JSON.stringify(tree)), runs: WINDOW_RUNS, warmup: WINDOW_WARMUP },
+  )) as readonly number[];
+
   const client = await page.evaluate(() => ({
     reactVersion: window.streamTest.reactVersion,
     production: window.streamTest.production,
@@ -199,9 +325,72 @@ try {
     metric("applyMs", median(axis("applyMs")));
     metric("endToEndMs", median(axis("endToEndMs")));
   }
+
+  const mountSummary = (["createRoot", "hydrateRoot"] as const).map((mode) => {
+    const samples = mountOutcome[mode];
+    const renders = median(samples.map((s) => s.renders));
+    const pass1Renders = median(samples.map((s) => s.pass1Renders));
+    const pass2Renders = median(samples.map((s) => s.pass2Renders));
+    const wall = median(samples.map((s) => s.wallMs));
+    const pass1 = median(samples.map((s) => s.pass1Ms));
+    const pass2 = median(samples.map((s) => s.pass2Ms));
+    const share = pass1 > 0 ? pass2 / pass1 : 0;
+    metric(`mount.${mode}.renders`, renders);
+    metric(`mount.${mode}.pass1Renders`, pass1Renders);
+    metric(`mount.${mode}.pass2Renders`, pass2Renders);
+    metric(`mount.${mode}.wallMs`, wall);
+    metric(`mount.${mode}.pass1Ms`, pass1);
+    metric(`mount.${mode}.pass2Ms`, pass2);
+    metric(`mount.${mode}.secondPassShare`, share);
+    return { mode, samples, renders, pass1Renders, pass2Renders, wall, pass1, pass2, share };
+  });
+
+  // Plan 035 Task 3: a client mount draws each implementation once, with the portal already set.
+  // Hydration's first pass draws every node once, so it gives the node count.
+  {
+    const [created, hydrated] = mountSummary as [(typeof mountSummary)[0], (typeof mountSummary)[0]];
+    budget(
+      created.pass1Renders === 0 && created.renders === hydrated.pass1Renders,
+      `createRoot mount rendered ${created.renders} implementations (${created.pass1Renders} without the portal) for ${hydrated.pass1Renders} nodes`,
+    );
+  }
+
+  const focusSummary = focusResults.map(({ hostCount, on, off }) => {
+    const onCommit = median(on.map((s) => s.commitMs));
+    const offCommit = median(off.map((s) => s.commitMs));
+    const diffMs = onCommit - offCommit;
+    metric(`focus.host${hostCount}.on.commitMs`, onCommit);
+    metric(`focus.host${hostCount}.off.commitMs`, offCommit);
+    metric(`focus.host${hostCount}.diffMs`, diffMs);
+    return { hostCount, on, off, onCommit, offCommit, diffMs };
+  });
+  // Plan 035 Task 2: the focus snapshot is bounded by the surface, so host-page size adds no cost.
+  // Gated in production only: development Profiler overhead and smoke runs are too noisy for 0.5 ms.
+  if (production && !smokeRuns)
+    for (const { hostCount, diffMs } of focusSummary)
+      if (hostCount >= 1000)
+        budget(
+          diffMs < 0.5,
+          `focus continuity at ${hostCount} host elements costs ${diffMs.toFixed(3)} ms (budget 0.5 ms)`,
+        );
+
+  const windowMedian = median(windowSamples);
+  const windowP95 = p95(windowSamples);
+  metric("window.patchOps", windowPatchOps);
+  metric("window.patchShare", windowPatchBytes / windowTreeBytes);
+  metric("window.commitMs", windowMedian);
+  metric("window.commitP95Ms", windowP95);
+  // Gated in production only, like the focus budget: development React's checks are not what a user's frame pays.
+  if (production && !smokeRuns)
+    budget(
+      windowP95 < FRAME_MS,
+      `a 20-row range change commits in ${windowP95.toFixed(3)} ms at p95 (budget one frame, ${FRAME_MS} ms)`,
+    );
+
   const reactMeasure = production
     ? "React work ms (flushSync wall, net of validation)"
     : "React commit ms (Profiler, net of validation)";
+  const playwrightVersion = (await import("playwright/package.json")).default.version;
 
   const lines = [
     patches
@@ -210,15 +399,15 @@ try {
     "",
     `- Generated: ${new Date().toISOString()}`,
     `- Machine: ${platform()} ${release()}; ${cpus()[0]?.model}; ${cpus().length} logical CPUs`,
-    `- Bun: ${Bun.version}; Playwright Chromium: ${browser.version()}`,
+    `- Bun: ${Bun.version}; Playwright: ${playwrightVersion}; Chromium: ${browser.version()}`,
     `- Build: React ${client.reactVersion}, ${build} (\`process.env.NODE_ENV=${build}\`); ${production ? "no Profiler instrumentation" : "Profiler instrumentation included"}.`,
-    `- Command: \`bun --conditions liveframe:source bench/streaming.bench.ts${patches ? " --patches" : ""}${production ? " --production" : ""}${inlineFallback ? " --inline-fallback" : ""}\``,
+    `- Command: \`bun --conditions liveframe:source bench/streaming.bench.ts${patches ? " --patches" : ""}${production ? " --production" : ""}${inlineFallback ? " --inline-fallback" : ""}${smokeRuns ? ` --runs ${smokeRuns}` : ""}\``,
     `- Subject: agent-home, 679 nodes, 50 rows; ${REVISIONS} revisions at a ${1000 / INTERVAL_MS}/s target; one row's status changes per revision, ${patches ? "patches sent after a separately mounted revision-0 whole tree" : "whole trees sent"}.`,
     `- Warm: one untimed pass of ${WARMUP_REVISIONS} revisions precedes the recorded pass, so the timed first revision does not include mount; each measure below is repeated ${REVISIONS} times. A longer traced warm-up captured no render events, so the warm pass is kept short.`,
     ...(patches
       ? [
           `- Load average at start: ${initialLoad.join(", ")}`,
-          `- React: ${client.reactVersion}, ${build}; Playwright: ${(await import("playwright/package.json")).default.version}; Chromium headless.`,
+          `- React: ${client.reactVersion}, ${build}; Playwright: ${playwrightVersion}; Chromium headless.`,
           "- Bootstrap is outside the 100 timed updates and byte summaries; updates are revisions 1–100. The original revision generator is unchanged (each row status overrides the ready fixture for that revision).",
           "- Host diff timing excludes rendering, serialization and round-trip assertions. Every patch round-trips exactly; browser final-tree equality and every arrival validation are asserted.",
           "- The historical LF-17 metric calls Profiler actualDuration minus validation ‘commit’; React documents actualDuration as render work, not DOM commit or paint. That metric is retained unchanged; flushSync wall and parse + apply + flushSync end-to-end spans are also reported, excluding network, decompression and pacing.",
@@ -266,6 +455,34 @@ try {
           "",
         ]
       : []),
+    "## Mount (agent-home, 679 nodes)",
+    "",
+    `- Runs: ${MOUNT_WARMUP} warmup + ${MOUNT_RUNS} measured per mode.`,
+    "",
+    "| Mode | Renders (pass 1 + pass 2) | flushSync median ms | flushSync p95 ms | Pass 1 median ms | Pass 2 median ms | Second pass / first |",
+    "|---|---:|---:|---:|---:|---:|---:|",
+    ...mountSummary.map(
+      (row) =>
+        `| ${row.mode} | ${row.renders} (${row.pass1Renders} + ${row.pass2Renders}) | ${row.wall.toFixed(3)} | ${p95(row.samples.map((s) => s.wallMs)).toFixed(3)} | ${row.pass1.toFixed(3)} | ${row.pass2.toFixed(3)} | ${(row.share * 100).toFixed(1)}% |`,
+    ),
+    "",
+    "## Focus continuity (agent-home, focus inside surface)",
+    "",
+    `- Runs: ${FOCUS_WARMUP} warmup + ${FOCUS_RUNS} measured updates per configuration.`,
+    "",
+    "| Host tabbable elements | focusContinuity=true median ms | focusContinuity=false median ms | On − Off ms | focusContinuity=true p95 ms | focusContinuity=false p95 ms |",
+    "|---:|---:|---:|---:|---:|---:|",
+    ...focusSummary.map(
+      (row) =>
+        `| ${row.hostCount} | ${row.onCommit.toFixed(3)} | ${row.offCommit.toFixed(3)} | ${row.diffMs.toFixed(3)} | ${p95(row.on.map((s) => s.commitMs)).toFixed(3)} | ${p95(row.off.map((s) => s.commitMs)).toFixed(3)} |`,
+    ),
+    "",
+    "## Windowed list (50,000 rows, 200 drawn, starter design system)",
+    "",
+    `- Runs: ${WINDOW_WARMUP} warmup + ${WINDOW_RUNS} measured range changes of 20 rows, whole trees, viewport scrolled into the window.`,
+    `- Patch: ${windowPatchOps} ops, ${windowPatchBytes} bytes, ${((windowPatchBytes / windowTreeBytes) * 100).toFixed(1)}% of the ${windowTreeBytes}-byte tree (budgets 42 ops and 25%).`,
+    `- Commit (arrival validation + reuse + React work, flushSync wall): median ${windowMedian.toFixed(3)} ms, p95 ${windowP95.toFixed(3)} ms, max ${Math.max(...windowSamples).toFixed(3)} ms (budget p95 < ${FRAME_MS} ms, production).`,
+    "",
     "## Per revision",
     "",
     `| # | JSON bytes | gzip bytes | changed bytes | parse ms | arrival validation ms | React work ms | validation + React ms |${patches ? " diff ms | apply ms | end-to-end ms |" : ""}`,
@@ -279,19 +496,25 @@ try {
     `Load average at end: ${loadavg().join(", ")}`,
     "",
   ];
-  const evidence = explicitOut
-    ? new URL(explicitOut, `file://${process.cwd()}/`)
-    : new URL(
-        production
-          ? `../plans/evidence/022-streaming${patches ? "-patches" : ""}-production.md`
-          : patches
-            ? "../plans/evidence/021-streaming-patches.md"
-            : "../plans/evidence/019-streaming-bench.md",
-        import.meta.url,
-      );
-  await Bun.write(evidence, lines.join("\n"));
+  const evidencePath = explicitOut
+    ? resolve(process.cwd(), explicitOut)
+    : join(tmpdir(), `liveframe-streaming${patches ? "-patches" : ""}-${build}.md`);
+  await Bun.write(evidencePath, lines.join("\n"));
   console.log(lines.slice(0, 25).join("\n"));
-  console.log(`Wrote ${evidence.pathname}`);
+  for (const row of mountSummary) {
+    console.log(
+      `mount ${row.mode}: renders=${row.renders} (${row.pass1Renders}+${row.pass2Renders}) wallMs=${row.wall.toFixed(3)} pass1Ms=${row.pass1.toFixed(3)} pass2Ms=${row.pass2.toFixed(3)} share=${(row.share * 100).toFixed(1)}%`,
+    );
+  }
+  console.log(
+    `window: ops=${windowPatchOps} share=${((windowPatchBytes / windowTreeBytes) * 100).toFixed(1)}% commitMs=${windowMedian.toFixed(3)} p95=${windowP95.toFixed(3)}`,
+  );
+  for (const row of focusSummary) {
+    console.log(
+      `focus host=${row.hostCount}: onMs=${row.onCommit.toFixed(3)} offMs=${row.offCommit.toFixed(3)} diffMs=${row.diffMs.toFixed(3)}`,
+    );
+  }
+  console.log(`Wrote ${evidencePath}`);
 } finally {
   await browser.close();
   await server.stop(true);

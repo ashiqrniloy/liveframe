@@ -124,15 +124,27 @@ test("vocabulary_returns_original_value", () => {
   expect(validateVocabulary({ ...vocabulary, colourRoles: [], surfaceRoles: [], tones: {} }).ok).toBe(true);
 });
 
-test("proof_vocabulary_validates_under_one_millisecond", () => {
-  // Snapshot of proof/styles/types.ts and proof/css/project.ts; Task 8 exports the full catalog.
-  for (let i = 0; i < 20; i++) validateVocabulary(proofVocabulary);
-  const start = performance.now();
+test("vocabulary_validation_is_linear", () => {
   const result = validateVocabulary(proofVocabulary);
-  const elapsed = performance.now() - start;
   expect(result.ok).toBe(true);
-  expect(elapsed).toBeLessThan(1);
   expect(new Ajv2020({ strict: true }).compile(vocabularySchema)(proofVocabulary)).toBe(true);
+  const countReads = (count: number) => {
+    let reads = 0;
+    const colourRoles = Array.from({ length: count }, (_, i) => `role.${i}`);
+    const proxied = new Proxy(colourRoles, {
+      get(target, prop, receiver) {
+        if (typeof prop === "string" && /^\d+$/.test(prop)) reads++;
+        return Reflect.get(target, prop, receiver);
+      },
+    });
+    const doc = { ...vocabulary, colourRoles: proxied, surfaceRoles: ["role.0"], tones: { muted: "role.1" } };
+    expect(validateVocabulary(doc).ok).toBe(true);
+    return reads;
+  };
+  const small = countReads(20);
+  const large = countReads(80);
+  expect(small).toBeGreaterThan(0);
+  expect(large).toBeLessThanOrEqual(small * 5);
 });
 
 test("semantics_lists_live_regions", () => {

@@ -15,3 +15,4 @@ self.onmessage = async ({ data }: MessageEvent<WorkerMessage>) => {
     self.postMessage({ type: "result", id: data.id, result } satisfies WorkerMessage);
   }
 };
+self.postMessage({ type: "ready" } satisfies WorkerMessage);

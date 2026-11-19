@@ -126,7 +126,11 @@ handler as every other install failure; report `error.errors`.
 `compileValidator({ catalog, capabilities, manifest })` validates those documents
 and compiles the arrival checks. Reuse it while the installed documents stay the
 same. Use the same catalog as the renderer and replace the validator when the
-widget's manifest or capabilities change. **Send the manifest to the browser**
+widget's manifest or capabilities change. A validator works only with the library
+copy that compiled it: a wrapper object, or a validator from a second bundled copy,
+makes `<Surface>` and `createSurfaceCore` report `catalog-mismatch` at `/validator`
+("Expected a validator compiled by this copy of `compileValidator`") and
+`checkOffered` return `invalid-prop` at the same pointer. **Send the manifest to the browser**
 alongside the catalog and capabilities so it can independently re-check arrivals.
 Before transfer, use `capabilitiesFor(capabilities, manifest)` from the root
 export and send its successful `value` as the capabilities document. It removes
@@ -142,6 +146,11 @@ state; their events name the currently accepted revision. Replacing the validato
 portal container, or turning diagnostics on or off, resets the node cache. A new
 `fallback` element or `diagnostics` array does not, so an inline `fallback={<p>…</p>}`
 is fine.
+
+A host may pass a new `tree` inside `startTransition`. `Surface` validates and builds
+it while rendering but applies it only when React commits that render, so an urgent
+update that interrupts the transition still draws the committed tree, keeps its
+local state, and its events name the committed revision.
 
 Whole-tree transport gets the same reuse without a patch. After validation,
 `Surface` replaces every subtree whose value is unchanged since the accepted tree
@@ -167,6 +176,19 @@ function receivePatch(current: UiTree, patch: TreePatch) {
 
 Here `requestWholeTree` and `setTree` are host callbacks. Keep using
 `checkOffered` against the accepted served tree before dispatching any intent.
+
+If your backend raises validation `limits` (for example `{ nodes: 10_000 }` on `render`
+or `renderPlacement`), pass the same `limits` to `<Surface>` and to any host-side
+`validator.validateTree(tree, { limits })` call so the browser does not reject a
+tree the backend accepted:
+
+```tsx
+const limits = { nodes: 10_000 };
+<Surface {...surfaceProps} tree={tree} limits={limits} />;
+```
+
+`limits` is read when a tree arrives and never comes from the tree itself; changing it
+applies to the next arrival without resetting local state.
 
 Mount `<GuideSurface tree={tree} onIntent={sendIntent} />` in your app's React root;
 `sendIntent` is your host transport, described below. Load the matching CSS before
@@ -238,10 +260,14 @@ inside the surface by default:
 <Surface {...surfaceProps} tree={tree} />
 ```
 
-While focus is inside the wrapper or portal container, the surface records which
-elements in document order the Tab key reaches immediately before the update; if
-the focused element is gone after it, focus moves to the next one still
-connected, else the closest previous one, else the wrapper. The wrapper carries
+While focus is inside the wrapper or portal container, the surface records the
+elements inside them that the Tab key may reach, in document order, immediately
+before the update. If the focused element is gone after it, focus moves to the
+next of those that is still connected and still tabbable after the update, else
+the closest previous one, else the wrapper. Candidates come from the surface only:
+focus never moves to a host element before or after it, and the snapshot reads no
+style or layout, so a large host page adds no cost. Style is read only when focus
+was actually lost, and only for the candidates tried. The wrapper carries
 `tabIndex={-1}` in this mode only, so it can take focus without joining the tab
 order, and every move uses `focus({ preventScroll: true })` so the page does not
 jump. Focus the host or a primitive has already placed elsewhere is never taken
@@ -249,6 +275,25 @@ back.
 
 Set `focusContinuity={false}` to opt out: no snapshot, added attribute, `tabIndex`
 or listener, preserving 0.2.3 behaviour. Moving focus emits no intent.
+
+### Move focus to a node the widget names
+
+A widget can say where focus goes next: it sets `focus` on one element, and the tree carries that node's id.
+
+```tsx
+<TextField focus={state.adding} label="New task" onCommit={action("tasks.add", {}, { bind: "title" })} />
+```
+
+After the commit that draws an accepted revision whose mark differs from the previous accepted revision's,
+`<Surface>` calls `focus({ preventScroll: false })` on the element whose `id` is the node's `domId`, so the node
+scrolls into view. Nothing moves on the first tree a surface draws (or the first after its `surfaceId` changes),
+when a revision repeats the mark, when the mark is removed, or on a rejected arrival, so a mark that stays true
+never pulls focus back from where the user went. The id resolves only inside this surface's wrapper and portal.
+Focus continuity runs first in the same commit.
+
+A primitive that can take focus should put `domId` on its focusable element, as it does for references. When no
+such element exists, or it does not take focus and focus is not already inside it, nothing moves and `onEvent`
+receives `focus-missed`. Moving focus emits no intent.
 
 Preview surfaces pass an optional `diagnostics` array of `LiveframeError`s. This
 adds a `display: contents` wrapper per node with `data-lf-node`, and
@@ -263,6 +308,26 @@ reach implementations. For a valid tree with the same `surfaceId`, a lower
 keyed by `id`, preserving focus, scroll and local state when their React identity
 and ancestry remain stable. Replace tree objects when data changes: validation is
 memoized on tree and validator identity, so mutating an existing tree is unsupported.
+
+### Keep the last tree on screen when an arrival is rejected
+
+An agent that streams revisions may send one malformed frame. By default that
+frame blanks the surface to `fallback`, dropping focus, scroll and typed input.
+Pass `invalid="keep-last"` to keep the last accepted tree mounted instead:
+
+```tsx
+<Surface {...surfaceProps} tree={tree} invalid="keep-last" fallback={<Unavailable />} />
+```
+
+After a rejected arrival the drawn nodes stay as they are, the wrapper carries
+`data-lf-stale` and `aria-busy="true"`, and the kept tree raises nothing: `emit`
+sends no intent and writes no local state while the surface is invalid, so your
+`onIntent` never receives an intent from a frame you have replaced.
+`arrival-rejected` still reaches `onEvent`. No node of the rejected tree is ever
+drawn. The next accepted arrival clears both attributes. With no accepted tree
+yet, the surface draws `fallback`. Liveframe ships no style for the mark; dim
+the kept tree with your own CSS if you want, for example
+`.lf_surface[data-lf-stale] { opacity: 0.6; }`.
 
 ## Write primitive implementations
 
@@ -387,6 +452,12 @@ schema compiled once per definition event in the renderer factory. `implement()`
 infers the payload type from that schema. Keep drafts local and collect all current
 field values on submit; no earlier `setState` is needed.
 
+For `carries: { array: { items, maxItems } }`, `emit` checks the value against
+`{ type: "array", items, maxItems }`, compiled the same way: a non-array, too many
+items or an item outside `items` throws and raises nothing. `implement()` types the
+value as `readonly Infer<items>[]`, so a multi-select emits
+`emit("onChange", ["t1", "t2"])`. The emitted array is copied before freezing.
+
 `onIntent(intent, origin)` receives a fresh, frozen, complete intent and a frozen
 `{ surfaceId, revision, nodeId, event }` from the accepted tree. This also identifies
 the child for collection `items[i].emit` and events inside portals. Existing
@@ -482,10 +553,11 @@ Each event is frozen and has a `type`:
 | --- | --- | --- |
 | `arrival-rejected` | A tree failed validation (a tree for another catalog is `catalog-mismatch` at `/catalogId`) | `surfaceId?` (the surface on screen, if any), `errors` |
 | `stale-revision` | A lower revision of the same surface arrived and was ignored | `surfaceId`, `revision`, `current` |
-| `emit-rejected` | An implementation called `emit` with a value its event does not carry, or a `setLocal` value outside the local schema | `nodeId`, `event`, `reason` (`invalid-value` or `invalid-local`) |
+| `emit-rejected` | An implementation called `emit` with a value its event does not carry, or a `setLocal` / intent `local` write failed the local schema | `nodeId`, `event`, `reason` (`invalid-value` or `invalid-local`) |
 | `implementation-failed` | An implementation threw | `nodeId`, `kind` |
 | `binding-failed` | A `when` or `bind` failed to evaluate, or a bound value failed its prop schema | `nodeId`, `prop?`, `errors` |
 | `confirm-dropped` | A confirmation-requiring emit was dropped (another is pending, or approval came after unmount) | `nodeId` |
+| `focus-missed` | A changed `focus` mark found no element with the node's `domId` in the surface (`no-element`), or the element did not take focus (`not-focusable`) | `nodeId`, `reason` |
 
 Events carry ids, kinds, event names, revisions and `LiveframeError`s, never prop, state or local values, which
 may be user data. A `LiveframeError` holds a JSON Pointer and the expected shape, not the offending value.
@@ -510,6 +582,26 @@ An open overlay switches with its surface. Node identities, slot classes and
 widget output stay the same; no widget code runs. Keep the tree, validator,
 callback and fallback identities stable for style-only updates. The host still
 owns theme selection and loading the corresponding sheets.
+
+## Enter, exit and reorder motion
+
+Motion comes from the design system, never from the widget: a kind whose root
+rest recipe sets `motion` ([styling guide](styling.md#motion-enter-exit-and-reorder))
+fades in when a later revision adds it, fades out before it is removed, and
+slides when its siblings change. `Surface` takes no option for it. It:
+
+- marks the wrapper and portal with `data-lf-motion` once the first tree is
+  drawn, so the first tree (and the first after a new `surfaceId`) never
+  animates in;
+- keeps a removed element, `inert` and `aria-hidden`, until it has faded out,
+  and slides moved siblings over the recipe's own duration and easing, in the
+  frame after the commit and before it is painted;
+- finds elements only by `domId` inside the surface, so an implementation that
+  wants motion puts `domId` and `slot("root")` on the same element.
+
+A commit that also switches the theme or design system plays no motion, and
+reduced motion plays none. A design system without `motion` costs one cached
+style read per surface.
 
 ## Map layout semantics to elements
 
@@ -575,8 +667,12 @@ points. The host independently checks the committed string against its schema.
 
 Use the same implementations, installed documents, tree, identities and fallback
 on the server and first client render. Implementations must render without DOM
-access. `portal` is `undefined` during server rendering and the first client
-render, so portal overlays wait until mount.
+access. `portal` is `undefined` during server rendering and the first,
+hydrating client render, so portal overlays wait until mount and the tree is
+drawn again with `portal` set. A client mount that does not hydrate
+(`createRoot`) commits the wrapper and portal container first and then draws
+the tree once with `portal` already set, before the browser paints, so each
+implementation renders once and never sees `portal` undefined.
 
 On the server, React's error boundaries do not catch implementation failures.
 Catch around `renderToString` and supply fallback markup:
@@ -620,12 +716,138 @@ its test checks that this page includes it verbatim, validates its tree and chec
 server markup and invalid-tree fallback. Existing renderer browser tests exercise
 hydration, state retention, overlays and switching.
 
-## Writing another renderer
+## Render without a framework
 
-`@arnilo/liveframe/react` is a thin adapter over `@arnilo/liveframe/surface`, the framework-independent core.
-The core validates arrivals, applies the revision rules, builds a context for each node, completes and gates
-intents, and keeps the surface's local state. It imports no framework and touches no DOM, so a renderer for
-Web Components, Solid or plain DOM is written on it. The library ships none besides React's.
+`@arnilo/liveframe/dom` draws a surface with plain DOM: no React, no JSX, no templates. It sits on the same
+framework-free core as `/react` (spec §11, "The DOM adapter") and is client-only: it has no server rendering or
+hydration. Implementations are the app's compiled code, as with `/react`.
+
+### Implement each kind
+
+`implement(definition, draw, hooks?)` binds a kind to a function that draws it. `draw(node, element?)` creates the
+node's element when `element` is undefined and otherwise updates the element it returned last time, then returns
+it. The adapter calls it only for a node whose context changed, so an unchanged row keeps its element, its focus,
+its scroll and its typed input; returning a different element replaces the old one. Each kind of the catalog needs
+one implementation, or `createDomRenderer` throws `RendererError` with `/react`'s `catalog-mismatch` errors.
+
+```ts
+const Stack = implement(stackDefinition, (node, element) => {
+  const el = element ?? document.createElement("div");
+  el.id = node.domId; // so another node's reference can name it
+  el.className = node.slot("root");
+  el.removeAttribute("style");
+  for (const [name, value] of Object.entries(node.style)) (el as HTMLElement).style.setProperty(name, value);
+  place(el, node.children); // keeps the children already in place and moves only the rest
+  return el;
+});
+
+const Text = implement(textDefinition, (node, element) => {
+  const el = element ?? document.createElement("p");
+  el.id = node.domId;
+  el.className = node.slot("root");
+  el.textContent = String(node.props.text);
+  return el;
+});
+
+const Button = implement(buttonDefinition, (node, element) => {
+  const el = (element as HTMLButtonElement | undefined) ?? document.createElement("button");
+  if (!element) {
+    el.type = "button";
+    // Added once: `emit` is stable for the node and raises through its current context.
+    el.addEventListener("click", () => node.emit("onPress"));
+  }
+  el.id = node.domId;
+  el.className = node.slot("root");
+  el.textContent = String(node.props.label);
+  el.disabled = node.props.disabled === true;
+  return el;
+});
+```
+
+`node` carries what `/react`'s props carry: `props` (validated, with `bind` applied), `domId`, `slot(name)`,
+`style` (keyed by CSS property name, ready for `style.setProperty`), `events`, `emit`, the drawn `children`, the
+child `items` (each with `render()`) for a collection that wraps each child itself, and `portal`, the surface's
+scoped overlay container. `emit` is stable for the node id, so a listener added when the element is created stays
+right. `hooks.dispose(element)` runs once when the node leaves the tree or its element is replaced: remove what
+the implementation added outside its element there, such as an overlay in `portal`.
+
+`place(parent, nodes)` makes `parent`'s children exactly `nodes`. It keeps the longest run already in order and
+moves only the rest, using `moveBefore` where the engine has it (focus and other state survive the move) and
+`insertBefore` otherwise. An element still playing its exit motion (`data-lf-exiting`) stays until the adapter
+removes it.
+
+### Mount a surface
+
+```ts
+const { mount } = createDomRenderer({ catalog, implementations: [Stack, Text, Button, ...others] });
+
+const surface = mount(app, {
+  validator, // the host's compiled validator: every arrival is checked again
+  theme,
+  designSystem,
+  onIntent: (intent) => send(intent), // complete intents only; `setLocal` never arrives here
+  fallback: () => Object.assign(document.createElement("p"), { textContent: "Unavailable" }),
+});
+
+const drawn = surface.update(tree); // validates, then draws before it returns
+if (!drawn.ok) console.warn(drawn.errors); // the fallback is on screen
+surface.set({ theme: dark }); // runs the switching sequence on the wrapper and the portal
+```
+
+`mount(container, options)` appends a wrapper and a sibling portal container, both carrying the scope attributes.
+It takes `/react`'s options: `validator`, `theme`, `designSystem`, `transparency`, `onIntent`, `confirm`,
+`onEvent`, `limits`, `fallback`, `invalid` and `focusContinuity`, plus host-only `wrapperClass` and `portalClass`.
+`fallback` is a function that returns a new element each call. It returns:
+
+- `update(tree)`, which validates the arrival through the core and draws before it returns. An invalid arrival
+  draws only `fallback()`, or keeps the last tree with `data-lf-stale` and `aria-busy` under `invalid:
+  "keep-last"`. A lower revision of the same surface is ignored; a different `surfaceId` replaces the surface.
+- `set(partial)`, which changes any option but `validator`. A new theme, design system or transparency runs the
+  switching sequence of spec §6.4 on the wrapper and the portal together, and plays no motion.
+- `dispose()`, which disposes every drawn node and removes both containers.
+
+The rest of this guide holds for `/dom` as it does for `/react`:
+
+- A `draw` that throws draws `fallback()` at that node only, raises `implementation-failed` and is retried on the
+  next arrival.
+- Focus continuity, the focus mark and design-system motion follow the same rules and the same code (see "Keep
+  focus in the surface when a row disappears" and "Enter, exit and reorder motion").
+- Local state, `setLocal`, compound `local` writes and `fromLocal` are applied in the core; `onIntent` receives
+  complete intents only.
+
+### Wrap it in a custom element
+
+The library ships no custom element; one is a few lines over `mount`:
+
+```ts
+class LiveframeSurface extends HTMLElement {
+  #surface: DomSurface | undefined;
+
+  connectedCallback() {
+    const fallback = () => Object.assign(document.createElement("p"), { textContent: "Unavailable" });
+    this.#surface = mount(this, { validator, theme, designSystem, onIntent: send, fallback });
+  }
+
+  disconnectedCallback() {
+    this.#surface?.dispose();
+    this.#surface = undefined;
+  }
+
+  set tree(tree: unknown) {
+    this.#surface?.update(tree);
+  }
+}
+customElements.define("liveframe-surface", LiveframeSurface);
+```
+
+Prove a DOM registry with `@arnilo/liveframe/conformance/dom` ([conformance guide](conformance.md)).
+
+### Writing another renderer
+
+`@arnilo/liveframe/react` and `/dom` are thin adapters over `@arnilo/liveframe/surface`, the framework-independent
+core. The core validates arrivals, applies the revision rules, builds a context for each node, completes and gates
+intents, and keeps the surface's local state. It imports no framework and touches no DOM, so an adapter for Solid
+or another framework is written on it.
 
 ```ts
 import { createSurfaceCore, type NodeContext } from "@arnilo/liveframe/surface";
@@ -661,11 +883,13 @@ Rules for the adapter:
   implementation of a node throws, so the next arrival retries it instead of reusing it. `fail` is also what
   raises the `implementation-failed` event.
 - Call `core.accept(tree)` for every arrival; it is cheap for an input it already holds and never notifies
-  subscribers, so it is safe while your framework renders. Draw from `core.snapshot()`.
+  subscribers. It changes the core at once, so call it while your framework renders only if every render is
+  committed; if renders can be discarded, call it when the frame commits, or the core (and the origin `emit`
+  reports) runs ahead of the screen. Draw from `core.snapshot()`.
 - Put each context's `domId` on the element you render, so `refProps` references resolve.
-- Focus continuity, overlays, scope attributes and theme switching (§6.4) stay yours: the core knows nothing
-  about the page.
+- Focus continuity, overlays, scope attributes, theme switching (§6.4) and motion (§11) are the adapter's: the
+  core knows nothing about the page.
 
-The repository's test-only DOM renderer (`src/__tests__/fixtures/dom-renderer.ts`) is about 80 lines on this
-API, and a browser test compares its `data-lf-node` structure, slot classes and bound props with `/react`'s
-for every proof scenario.
+`/dom` is written on this API alone. A browser test draws every proof scenario with it and with `/react`
+(`src/__tests__/surface-dom-parity.test.ts`) and compares the `data-lf-node` structure, slot classes and bound
+props.

@@ -54,6 +54,11 @@
       "types": "./dist/react/index.d.ts",
       "default": "./dist/react/index.js"
     },
+    "./dom": {
+      "liveframe:source": "./src/dom/index.ts",
+      "types": "./dist/dom/index.d.ts",
+      "default": "./dist/dom/index.js"
+    },
     "./host": {
       "liveframe:source": "./src/host/index.ts",
       "types": "./dist/host/index.d.ts",
@@ -130,6 +135,11 @@
       "types": "./dist/conformance/react/index.d.ts",
       "default": "./dist/conformance/react/index.js"
     },
+    "./conformance/dom": {
+      "liveframe:source": "./src/conformance/dom/index.ts",
+      "types": "./dist/conformance/dom/index.d.ts",
+      "default": "./dist/conformance/dom/index.js"
+    },
     "./preview/capture": {
       "liveframe:source": "./src/preview/capture/index.ts",
       "types": "./dist/preview/capture/index.d.ts",
@@ -166,14 +176,14 @@
   },
   "scripts": {
     "build": "bun scripts/build.ts",
-    "bench": "bun --conditions liveframe:source bench/validator.bench.ts && bun --conditions liveframe:source bench/render.bench.ts && bun --conditions liveframe:source bench/css.bench.ts && bun --conditions liveframe:source bench/streaming.bench.ts && bun --conditions liveframe:source bench/template.bench.ts && bun --conditions liveframe:source bench/stream-elements.bench.ts && bun --conditions liveframe:source bench/host.bench.ts && bun --conditions liveframe:source bench/pack-libraries.bench.ts && bun --conditions liveframe:source bench/runner.bench.ts",
+    "bench": "bun --conditions liveframe:source bench/validator.bench.ts && bun --conditions liveframe:source bench/render.bench.ts && bun --conditions liveframe:source bench/css.bench.ts && bun --conditions liveframe:source bench/streaming.bench.ts && bun --conditions liveframe:source bench/motion.bench.ts && bun --conditions liveframe:source bench/dom.bench.ts && bun --conditions liveframe:source bench/template.bench.ts && bun --conditions liveframe:source bench/stream-elements.bench.ts && bun --conditions liveframe:source bench/host.bench.ts && bun --conditions liveframe:source bench/pack-libraries.bench.ts && bun --conditions liveframe:source bench/hash.bench.ts && bun --conditions liveframe:source bench/selection.bench.ts && bun --conditions liveframe:source bench/runner.bench.ts && bun --conditions liveframe:source bench/a2ui.bench.ts && bun --conditions liveframe:source bench/starter-content.bench.ts",
     "proof": "bun proof/host/server.ts",
     "test": "bun test --conditions liveframe:source src proof packages",
     "typecheck": "tsc --noEmit && tsc --noEmit -p proof",
     "lint": "biome lint --error-on-warnings .",
     "format": "biome format --write .",
     "format:check": "biome format .",
-    "gen:check": "bun src/cli/liveframe.ts gen src/__tests__/fixtures/proof/catalog.json --out src/__tests__/fixtures/widgets/ui.gen.ts --check && bun src/cli/liveframe.ts gen src/__tests__/fixtures/proof/catalog.json --out src/__tests__/fixtures/widgets/ui.definitions.gen.ts --implementations --check && bun src/cli/liveframe.ts gen src/__tests__/fixtures/widgets/carries.json --out src/__tests__/fixtures/widgets/carries.definitions.gen.ts --implementations --check && bun src/cli/liveframe.ts gen src/__tests__/fixtures/proof/catalog.json --elements-schema --out src/__tests__/fixtures/widgets/elements.schema.json --check && bun src/cli/liveframe.ts gen src/__tests__/fixtures/proof/catalog.json --template-schema --capabilities src/__tests__/fixtures/widgets/capabilities.json --out src/__tests__/fixtures/widgets/template.schema.json --check && bun src/cli/liveframe.ts gen packages/starter/src/catalog.json --out packages/starter/src/ui.gen.ts --check && bun src/cli/liveframe.ts gen packages/starter/src/catalog.json --out packages/starter/src/ui.definitions.gen.ts --implementations --check && bun --conditions liveframe:source scripts/runner-fixtures.ts --check",
+    "gen:check": "bun src/cli/liveframe.ts gen src/__tests__/fixtures/proof/catalog.json --out src/__tests__/fixtures/widgets/ui.gen.ts --check && bun src/cli/liveframe.ts gen src/__tests__/fixtures/proof/catalog.json --out src/__tests__/fixtures/widgets/ui.definitions.gen.ts --implementations --check && bun src/cli/liveframe.ts gen src/__tests__/fixtures/widgets/carries.json --out src/__tests__/fixtures/widgets/carries.definitions.gen.ts --implementations --check && bun src/cli/liveframe.ts gen src/__tests__/fixtures/proof/catalog.json --elements-schema --out src/__tests__/fixtures/widgets/elements.schema.json --check && bun src/cli/liveframe.ts gen src/__tests__/fixtures/proof/catalog.json --template-schema --capabilities src/__tests__/fixtures/widgets/capabilities.json --out src/__tests__/fixtures/widgets/template.schema.json --check && bun src/cli/liveframe.ts gen src/__tests__/fixtures/proof/catalog.json --digest --capabilities src/__tests__/fixtures/widgets/capabilities.json --budget 20000 --out src/__tests__/fixtures/widgets/catalog.digest.md --check && bun src/cli/liveframe.ts gen packages/starter/src/catalog.json --out packages/starter/src/ui.gen.ts --check && bun src/cli/liveframe.ts gen packages/starter/src/catalog.json --out packages/starter/src/ui.definitions.gen.ts --implementations --check && bun src/cli/liveframe.ts gen packages/starter/src/catalog.json --digest --budget 24000 --out packages/starter/src/catalog.digest.md --check && bun --conditions liveframe:source scripts/runner-fixtures.ts --check",
     "check": "bun run build && bun run gen:check && bun run typecheck && bun run lint && bun run format:check && bun run test",
     "release:gate": "bun scripts/release/archive-gate.ts --all",
     "release:stage": "bun scripts/release/publish-manifest.ts",

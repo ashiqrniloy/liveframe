@@ -35,6 +35,17 @@
         "react-dom",
       ],
     },
+    "packages/a2ui": {
+      "name": "@arnilo/liveframe-a2ui",
+      "version": "0.3.0",
+      "devDependencies": {
+        "@arnilo/liveframe": "workspace:*",
+        "@arnilo/liveframe-starter": "workspace:*",
+      },
+      "peerDependencies": {
+        "@arnilo/liveframe": "~0.3.0",
+      },
+    },
     "packages/runner-quickjs": {
       "name": "@arnilo/liveframe-runner-quickjs",
       "version": "0.3.0",
@@ -54,9 +65,11 @@
       "version": "0.3.0",
       "devDependencies": {
         "@arnilo/liveframe": "workspace:*",
+        "@internationalized/date": "^3.12.4",
       },
       "peerDependencies": {
         "@arnilo/liveframe": "~0.3.0",
+        "@internationalized/date": "^3.12.4",
         "react": "^19.0.0",
         "react-aria-components": "^1.22.0",
         "react-dom": "^19.0.0",
@@ -65,6 +78,8 @@
   },
   "packages": {
     "@arnilo/liveframe": ["@arnilo/liveframe@root:", {}],
+
+    "@arnilo/liveframe-a2ui": ["@arnilo/liveframe-a2ui@workspace:packages/a2ui"],
 
     "@arnilo/liveframe-runner-quickjs": ["@arnilo/liveframe-runner-quickjs@workspace:packages/runner-quickjs"],
 

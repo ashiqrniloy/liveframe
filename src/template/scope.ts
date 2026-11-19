@@ -1,4 +1,4 @@
-// Scope, expression types and compatibility for template expressions (plan 028, design T9, T12, T13).
+// Scope, expression types and compatibility for template expressions (spec §7.6).
 // Types are the schema language plus three markers, so no second type system exists:
 // "dynamic" (checked when evaluated), "null" (the null literal) and "absent" (`$omit`).
 import { sameJson } from "../formats/json.ts";
@@ -9,6 +9,10 @@ export type ObjectSchema = Extract<LanguageSchema, { readonly type: "object" }>;
 type UnionSchema = Extract<LanguageSchema, { readonly discriminator: string }>;
 
 export type ExprSchema = LanguageSchema | "dynamic" | "null" | "absent";
+
+/** The value of a missing optional: never JSON, never an array member or object property. */
+export const absent: unique symbol = Symbol("liveframe.absent");
+export type Absent = typeof absent;
 
 /** What an expression yields: a schema, whether it may be absent, and its value when it is a constant. */
 export type ExprType = { readonly schema: ExprSchema; readonly optional: boolean; readonly literal?: Json };
@@ -22,7 +26,7 @@ export const newBudget = (): Budget => ({ nodes: 0, slots: 0, refs: [] });
 
 export type Binding = { readonly slot: number; readonly type: ExprType };
 
-/** A narrower language for expressions the browser evaluates (plan 029 B3–B4): which operators, and how big. */
+/** A narrower language for expressions the browser evaluates (spec §8): which operators, and how big. */
 export type Restriction = {
   readonly operators: ReadonlySet<string>;
   readonly depth: number;
@@ -66,7 +70,7 @@ export function rootScope(roots: Readonly<Record<string, LanguageSchema | "dynam
   );
 }
 
-/** A component body's scope: its declared params as bare names, and nothing else (design T9). */
+/** A component body's scope: its declared params as bare names, and nothing else. */
 export function componentScope(params: ObjectSchema, budget = newBudget()): Scope {
   return withBindings(
     { names: new Map(), present: new Set(), budget },
@@ -381,7 +385,7 @@ function unionShape(from: LanguageSchema, to: UnionSchema, where: string): strin
     }
 }
 
-/** Shape compatibility of a present, non-literal value (design T13 rules 3–5). */
+/** Shape compatibility of a present, non-literal value: shape, not constraints. */
 function shape(from: LanguageSchema, to: LanguageSchema, where: string): string | undefined {
   const bad = (what: string) => (where ? `${where}: ${what}` : what);
   if (from.nullable === true && to.nullable !== true) return bad(`${describe(to)}, which cannot be null`);
@@ -406,7 +410,7 @@ function shape(from: LanguageSchema, to: LanguageSchema, where: string): string 
 }
 
 /**
- * Why a value of `type` cannot bind to `target`, or undefined when it can (design T13). A constant is
+ * Why a value of `type` cannot bind to `target`, or undefined when it can. A constant is
  * checked with the real schema check; a dynamic value always binds and is checked when evaluated.
  */
 export function binds(type: ExprType, target: LanguageSchema, required = true): string | undefined {

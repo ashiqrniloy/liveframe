@@ -16,12 +16,12 @@ import type { LiveframeError } from "../index.ts";
 import { pack } from "../pack/pack.ts";
 import { inProcessRunner } from "../preview/index.ts";
 import { createPreview } from "../preview/session.ts";
+import { libraryDraft, sharedLibrary } from "./fixtures/libraries.ts";
 import outcomesConfig from "./fixtures/mcp-outcomes.config.ts";
 import mcpTexts from "./fixtures/mcp-texts.json" with { type: "json" };
 import catalog from "./fixtures/proof/catalog.json" with { type: "json" };
 import { agentHomeTemplate } from "./fixtures/templates/agent-home.ts";
 import capabilities from "./fixtures/widgets/capabilities.json" with { type: "json" };
-import { libraryDraft, sharedLibrary } from "./fixtures/libraries.ts";
 import { drafts } from "./fixtures/widgets/drafts.ts";
 
 const fixtures = "src/__tests__/fixtures";
@@ -447,6 +447,69 @@ test("generated_modules_match_cli_bytes", async () => {
   }
 }, 30000);
 
+test("elements_schema_with_local_matches_cli_bytes", async () => {
+  const dir = await temp();
+  const local = {
+    type: "object",
+    properties: { q: { type: "string", maxLength: 80 } },
+    required: ["q"],
+    additionalProperties: false,
+  };
+  try {
+    const localFile = join(dir, "local.json");
+    const out = join(dir, "elements.schema.json");
+    await Bun.write(localFile, JSON.stringify(local));
+    const gen = (...flags: string[]) =>
+      Bun.spawnSync(["bun", "src/cli/liveframe.ts", "gen", `${fixtures}/proof/catalog.json`, "--out", out, ...flags]);
+    expect(gen("--elements-schema", "--local", localFile).exitCode).toBe(0);
+    expect(gen("--local", localFile).exitCode).toBe(2);
+    await withClient(async (client) => {
+      const result = await call(client, "generated_types", { module: "elementsSchema", local });
+      expect(result.isError).toBe(false);
+      const { types } = result.json() as { types: string };
+      expect(types).toBe(await Bun.file(out).text());
+      expect(types).toContain('"local.q"');
+      const wide = { ...local, properties: { q: { type: "string", maxLength: 10_000 } } };
+      const refused = await call(client, "generated_types", { module: "elementsSchema", local: wide });
+      expect(refused.isError).toBe(true);
+      expect(refused.json()).toEqual([
+        expect.objectContaining({ kind: "limit-exceeded", pointer: "/local/properties/q/maxLength" }),
+      ]);
+      await Bun.write(localFile, JSON.stringify(wide));
+      const bad = gen("--elements-schema", "--local", localFile);
+      expect(bad.exitCode).toBe(2);
+      expect(bad.stderr.toString()).toContain("/local/properties/q/maxLength");
+    });
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}, 30000);
+
+test("mcp_generated_types_returns_the_digest", async () => {
+  await withClient(async (client) => {
+    const tool = (await client.listTools()).tools.find((tool) => tool.name === "generated_types");
+    const module = tool?.inputSchema.properties?.module as { description: string } | undefined;
+    expect(module?.description).toContain("--digest");
+    // The server's catalog and capabilities are the ones `gen:check` describes in the stored digest.
+    const result = await call(client, "generated_types", { module: "digest" });
+    expect(result.isError).toBe(false);
+    expect(result.json()).toEqual({
+      note: expect.stringContaining("catalog.digest.md"),
+      types: await Bun.file(`${fixtures}/widgets/catalog.digest.md`).text(),
+    });
+    const local = {
+      type: "object",
+      properties: { q: { type: "string", maxLength: 80 } },
+      required: ["q"],
+      additionalProperties: false,
+    };
+    const withLocal = await call(client, "generated_types", { module: "digest", local });
+    expect((withLocal.json() as { types: string }).types).toContain("- local.q: string≤80");
+    const refused = await call(client, "generated_types", { module: "digest", local: { type: "string" } });
+    expect(refused.isError).toBe(true);
+  });
+}, 30000);
+
 test("generated_types_rejects_unknown_module", async () => {
   await withClient(async (client) => {
     for (const module of ["unknown", null, 42, {}, []]) {
@@ -456,7 +519,7 @@ test("generated_types_rejects_unknown_module", async () => {
         expect.objectContaining({
           kind: "invalid-document",
           pointer: "/module",
-          expected: '"types", "implementations", "elementsSchema", "templateSchema"',
+          expected: '"types", "implementations", "elementsSchema", "templateSchema", "digest"',
         }),
       ]);
     }

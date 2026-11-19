@@ -27,7 +27,9 @@ library (see [the MCP guide](mcp.md#libraries)). A draft that imports a library 
 supply fails `pack_draft` with `not-found`.
 
 Use `list_vocabulary` for the manifest's catalog id and allowed style names,
-`list_primitives` for props and `generated_types` for `ui.gen.ts`. Write a
+`list_primitives` for props and `generated_types` for `ui.gen.ts`
+(`generated_types({ "module": "digest" })` gives the same facts as one Markdown
+file, for an agent that is not on MCP). Write a
 widget with a default export and at least two scenarios. The
 [SDK guide](sdk.md) explains TSX and keys; the [package guide](packages.md)
 defines manifests, scenarios and draft files.

@@ -52,7 +52,50 @@
             },
             "value": {
               "$ref": "#/$defs/json"
+            },
+            "local": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 4,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "key"
+                ],
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "pattern": "^.+$"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/json"
+                  },
+                  "until": {
+                    "type": "string",
+                    "enum": [
+                      "revision"
+                    ]
+                  }
+                }
+              }
+            },
+            "fromLocal": {
+              "type": "string",
+              "maxLength": 128,
+              "pattern": "^.+$"
             }
+          },
+          "not": {
+            "properties": {
+              "value": {},
+              "fromLocal": {}
+            },
+            "required": [
+              "value",
+              "fromLocal"
+            ]
           }
         },
         {
@@ -85,6 +128,44 @@
             },
             "bindAll": {
               "const": true
+            },
+            "local": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 4,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "key"
+                ],
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "pattern": "^.+$"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/json"
+                  },
+                  "until": {
+                    "type": "string",
+                    "enum": [
+                      "revision"
+                    ]
+                  }
+                }
+              }
+            },
+            "fromLocal": {
+              "type": "object",
+              "minProperties": 1,
+              "maxProperties": 16,
+              "additionalProperties": {
+                "type": "string",
+                "maxLength": 128,
+                "pattern": "^.+$"
+              }
             }
           },
           "not": {
@@ -235,6 +316,10 @@
               "properties": {},
               "additionalProperties": false
             },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
+            },
             "children": {
               "type": "array",
               "items": {
@@ -344,6 +429,10 @@
               "properties": {},
               "additionalProperties": false
             },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
+            },
             "children": {
               "type": "array",
               "items": {
@@ -452,6 +541,10 @@
               "type": "object",
               "properties": {},
               "additionalProperties": false
+            },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
             },
             "children": {
               "type": "array",
@@ -563,6 +656,10 @@
               "properties": {},
               "additionalProperties": false
             },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
+            },
             "children": {
               "type": "array",
               "items": {
@@ -659,6 +756,10 @@
               "properties": {},
               "additionalProperties": false
             },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
+            },
             "children": {
               "type": "array",
               "items": {
@@ -744,6 +845,10 @@
               "type": "object",
               "properties": {},
               "additionalProperties": false
+            },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
             },
             "children": {
               "type": "array",
@@ -833,6 +938,10 @@
               "properties": {},
               "additionalProperties": false
             },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
+            },
             "children": {
               "type": "array",
               "items": {
@@ -918,6 +1027,10 @@
               "type": "object",
               "properties": {},
               "additionalProperties": false
+            },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
             },
             "children": {
               "type": "array",
@@ -1013,6 +1126,10 @@
               "properties": {},
               "additionalProperties": false
             },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
+            },
             "children": {
               "type": "array",
               "items": {
@@ -1103,6 +1220,10 @@
               "type": "object",
               "properties": {},
               "additionalProperties": false
+            },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
             },
             "children": {
               "type": "array",
@@ -1195,6 +1316,10 @@
               "properties": {},
               "additionalProperties": false
             },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
+            },
             "children": {
               "type": "array",
               "items": {
@@ -1286,6 +1411,10 @@
               "properties": {},
               "additionalProperties": false
             },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
+            },
             "children": {
               "type": "array",
               "items": {
@@ -1370,6 +1499,10 @@
                 }
               },
               "additionalProperties": false
+            },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
             },
             "children": {
               "type": "array",
@@ -1497,6 +1630,10 @@
               },
               "additionalProperties": false
             },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
+            },
             "children": {
               "type": "array",
               "items": {
@@ -1621,6 +1758,10 @@
               },
               "additionalProperties": false
             },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
+            },
             "children": {
               "type": "array",
               "items": {
@@ -1715,6 +1856,10 @@
                 }
               },
               "additionalProperties": false
+            },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
             },
             "children": {
               "type": "array",
@@ -1811,6 +1956,10 @@
               },
               "additionalProperties": false
             },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
+            },
             "children": {
               "type": "array",
               "items": {
@@ -1898,6 +2047,10 @@
               "type": "object",
               "properties": {},
               "additionalProperties": false
+            },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
             },
             "children": {
               "type": "array",
@@ -1997,6 +2150,10 @@
               },
               "additionalProperties": false
             },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
+            },
             "children": {
               "type": "array",
               "items": {
@@ -2081,6 +2238,10 @@
               "type": "object",
               "properties": {},
               "additionalProperties": false
+            },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
             },
             "children": {
               "type": "array",
@@ -2174,6 +2335,10 @@
               },
               "additionalProperties": false
             },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
+            },
             "children": {
               "type": "array",
               "items": {
@@ -2258,6 +2423,10 @@
               "type": "object",
               "properties": {},
               "additionalProperties": false
+            },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
             },
             "children": {
               "type": "array",
@@ -2353,6 +2522,10 @@
               },
               "additionalProperties": false
             },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
+            },
             "children": {
               "type": "array",
               "items": {
@@ -2444,6 +2617,10 @@
                 }
               },
               "additionalProperties": false
+            },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
             },
             "children": {
               "type": "array",
@@ -2542,6 +2719,10 @@
               "type": "object",
               "properties": {},
               "additionalProperties": false
+            },
+            "focus": {
+              "type": "boolean",
+              "description": "Moves focus here when a later revision first carries this mark."
             },
             "children": {
               "type": "array",

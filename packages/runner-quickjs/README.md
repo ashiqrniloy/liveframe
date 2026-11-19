@@ -21,7 +21,7 @@ It is a `Runner` (spec §7.5): use it wherever the app passes one, for example `
 | `memoryBytes` | 32 MiB | QuickJS heap limit per runtime |
 | `stackBytes` | 256 KiB | QuickJS stack limit. Not 1 MiB: QuickJS recurses on the host stack, and at 1 MiB some call shapes overflow it first, which aborts the engine |
 | `timeoutMs` | 250 | Soft deadline: QuickJS's interrupt handler stops the render. A render's `options.timeoutMs` overrides it |
-| `reuse` | `"none"` | `"none"`: every render gets a new runtime in a new wasm instance. `"package"`: one runtime per package hash is kept, so module state survives between renders. Faster; for code you trust to behave but have not tested, never for hostile code |
+| `reuse` | `"none"` | `"none"`: every render gets a new runtime in a new wasm instance. `"package"`: one runtime per package hash is kept, so module state and the last parsed `(catalog, capabilities)` configuration (keeping the compiled validator cache warm) survive between renders. Faster; for code you trust to behave but have not tested, never for hostile code |
 | `maxRuntimes` | 16 | Runtimes kept with `reuse: "package"`, least recently used evicted first |
 
 ## What it does

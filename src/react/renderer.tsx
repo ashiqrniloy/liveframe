@@ -2,39 +2,34 @@ import {
   Component,
   type CSSProperties,
   createContext,
-  Fragment,
   type ReactNode,
   useContext,
   useId,
+  useInsertionEffect,
   useLayoutEffect,
   useMemo,
+  useReducer,
   useRef,
   useState,
   useSyncExternalStore,
 } from "react";
 import { surfaceAttributes } from "../css/index.ts";
-import { type LiveframeError, LiveframeFailure } from "../errors.ts";
-import type { Catalog } from "../formats/catalog.ts";
-import { sameJson } from "../formats/json.ts";
-import { type CompiledValidator, type Intent, type IntentOrigin, type UiTree, validateCatalog } from "../index.ts";
-import { isThenable } from "../internal.ts";
+import type { LiveframeError } from "../errors.ts";
+import type { CompiledValidator, Intent, IntentOrigin, UiTree, ValidateTreeOptions } from "../index.ts";
 import {
-  createSurfaceCore,
-  type NodeContext,
-  type SurfaceCore,
-  type SurfaceEvent,
-  type SurfaceSnapshot,
-} from "../surface/index.ts";
-import { buildFacts } from "../validate/compile.ts";
+  createFocusMark,
+  type FocusScope,
+  type FocusSnapshot,
+  focusSnapshot,
+  moveFocus,
+  restoreFocus,
+} from "../dom/focus.ts";
+import { createMotion, type MotionPlan } from "../dom/motion.ts";
+import { beginSwitch } from "../dom/switching.ts";
+import { createStagedCore } from "../surface/core.ts";
+import type { NodeContext, SurfaceCore, SurfaceEvent, SurfaceSnapshot } from "../surface/index.ts";
+import { type CatalogBinding, checkRegistries, RendererError, refusal, refusedCore } from "../surface/registry.ts";
 import { binding, type Implementation, type Item } from "./implement.ts";
-
-/** The registry check's failures, with the diagnostics the other install-time APIs throw. */
-export class RendererError extends LiveframeFailure {
-  constructor(errors: readonly LiveframeError[]) {
-    super(errors);
-    this.name = "RendererError";
-  }
-}
 
 type HostProps = { readonly className?: string; readonly style?: CSSProperties };
 
@@ -56,9 +51,16 @@ type SurfaceProps = {
   readonly portalProps?: HostProps;
   readonly transparency?: "auto" | "reduced";
   readonly focusContinuity?: boolean;
+  /**
+   * What a rejected arrival draws: `"fallback"` (default) draws `fallback` for the whole surface; `"keep-last"`
+   * keeps the last accepted tree mounted, raising nothing, with `data-lf-stale` and `aria-busy` on the wrapper.
+   */
+  readonly invalid?: "fallback" | "keep-last";
   readonly confirm?: (intent: Intent, meta: Readonly<{ confirm: boolean; irreversible: boolean }>) => Promise<boolean>;
   /** Frozen observability events from the surface core (rejected arrivals and emits, failed nodes and bindings). */
   readonly onEvent?: (event: SurfaceEvent) => unknown;
+  /** Validation bounds forwarded to `validator.validateTree` on each arrival (defaults: 5,000 nodes, 64 depth, 1 MiB). */
+  readonly limits?: ValidateTreeOptions["limits"];
 };
 
 /**
@@ -116,79 +118,91 @@ function Node({ item, implementation }: { item: Item; implementation: Implementa
 }
 
 /**
- * Sequential focus navigation order (HTML, "tabindex processing"): the elements a Tab key reaches.
- * `tabIndex` already reads -1 for a div or an anchor without `href`, so the filter only drops what
- * is unreachable: disabled, inert, hidden or not rendered. Layout is up to date when the snapshot
- * is taken, so the rect read costs no flush of its own.
- */
-const tabbableSelector =
-  "a[href], area[href], button, input, select, textarea, iframe, object, embed, summary, [tabindex]";
-// `Node.compareDocumentPosition` bitmasks. The local `Node` is a primitive wrapper, and the module
-// may not reach the DOM interface through a global, so the two bits are named here.
-const FOLLOWING = 4;
-const PRECEDING = 2;
-
-function tabbables(): HTMLElement[] {
-  const found: HTMLElement[] = [];
-  for (const element of document.querySelectorAll<HTMLElement>(tabbableSelector)) {
-    if (element.tabIndex < 0 || element.hasAttribute("disabled")) continue;
-    if (element.getAttribute("type") === "hidden" || element.closest("[inert]")) continue;
-    const style = getComputedStyle(element);
-    if (style.visibility === "hidden" || style.display === "none" || element.getClientRects().length === 0) continue;
-    found.push(element);
-  }
-  return found;
-}
-
-type FocusSnapshot = {
-  readonly focused: HTMLElement;
-  readonly after: readonly HTMLElement[];
-  readonly before: readonly HTMLElement[];
-};
-
-/**
  * Keeps focus in the surface when a tree update removes the focused element. The snapshot is taken
- * in `getSnapshotBeforeUpdate`, the last moment the pre-update DOM is readable, and restored after
- * the commit. Rendered only under `focusContinuity`, so an opted-out surface does no work at all.
+ * in `getSnapshotBeforeUpdate`, the last moment the pre-update DOM is readable: one query over the
+ * wrapper and the portal container, with no style or layout read, so its cost does not depend on
+ * the host page. Focus is restored after the commit. Rendered only under `focusContinuity`, so an
+ * opted-out surface does no work at all.
  */
 class FocusContinuity extends Component<{
-  readonly scope: () => readonly (Element | null)[];
+  readonly scope: () => FocusScope;
   readonly wrapper: () => HTMLElement | null;
   readonly children: ReactNode;
 }> {
   getSnapshotBeforeUpdate(): FocusSnapshot | null {
-    const focused = document.activeElement;
-    if (!(focused instanceof HTMLElement)) return null;
-    if (!this.props.scope().some((element) => element?.contains(focused))) return null;
-    const order = tabbables().filter((element) => element !== focused);
-    return {
-      focused,
-      after: order.filter((element) => focused.compareDocumentPosition(element) & FOLLOWING),
-      before: order.filter((element) => focused.compareDocumentPosition(element) & PRECEDING),
-    };
+    return focusSnapshot(this.props.scope());
   }
 
   componentDidUpdate(_prevProps: unknown, _prevState: unknown, snapshot: FocusSnapshot | null) {
-    // A connected element keeps its focus; a host or a primitive that took focus during the commit
-    // stays where it is. Only the element the browser dropped is ours to replace.
-    if (!snapshot || snapshot.focused.isConnected) return;
-    const active = document.activeElement;
-    if (active instanceof HTMLElement && active !== document.body) {
-      const scope = this.props.scope();
-      if (scope.some((element) => element?.contains(active))) return;
-    }
-    // Nearest in each direction: the first still-connected successor, else the closest predecessor.
-    for (const candidate of [...snapshot.after, ...snapshot.before.slice().reverse()]) {
-      if (!candidate.isConnected) continue;
-      candidate.focus({ preventScroll: true });
-      if (document.activeElement === candidate) return;
-    }
-    this.props.wrapper()?.focus({ preventScroll: true });
+    restoreFocus(snapshot, this.props.wrapper());
   }
 
   render() {
     return this.props.children;
   }
+}
+
+/**
+ * Design-system motion (spec §6.2, §11). The pre-commit reads run in `getSnapshotBeforeUpdate`, the last
+ * moment the old DOM is readable, and the rest after the commit. It sits outside `FocusContinuity`, whose
+ * `componentDidUpdate` runs first, so focus is restored before a removed element is put back to exit.
+ * Keyed with the tree's `surfaceId`: a new surface unmounts it (unmarking the surface) and mounts a fresh
+ * one, so the first tree of the new surface never animates in. A commit that precedes a theme or design-system
+ * switch plays no motion: the switching sequence suppresses transitions only once this commit is done.
+ */
+class Motion extends Component<{
+  readonly root: NodeContext | undefined;
+  readonly identity: string;
+  readonly switching: boolean;
+  readonly scope: () => readonly (Element | null)[];
+  readonly children: ReactNode;
+}> {
+  motion = createMotion();
+
+  componentDidMount() {
+    this.motion.gate(this.props.scope(), this.props.identity);
+  }
+
+  getSnapshotBeforeUpdate(previous: Motion["props"]): MotionPlan | null {
+    if (this.props.switching) return null;
+    return this.motion.before(previous.root, this.props.root, this.props.scope(), previous.identity) ?? null;
+  }
+
+  componentDidUpdate(_previous: unknown, _state: unknown, plan: MotionPlan | null) {
+    if (this.props.switching) this.motion.halt();
+    this.motion.after(plan ?? undefined);
+    // A portal container that mounted after the first tree (hydration) is marked once it is styled.
+    this.motion.gate(this.props.scope(), this.props.identity);
+  }
+
+  componentWillUnmount() {
+    this.motion.dispose(this.props.scope());
+  }
+
+  render() {
+    return this.props.children;
+  }
+}
+
+/**
+ * The focus mark moves focus once, after the commit that draws a later accepted revision of the same surface with
+ * a changed mark; the first tree a surface draws never moves it (spec §11). Child commit work, focus continuity
+ * included, has run by the time this layout effect does. `drawn` is false until the surface draws its tree.
+ */
+function useFocusMark(
+  drawn: boolean,
+  snapshot: SurfaceSnapshot,
+  domIdPrefix: string,
+  scope: () => readonly (Element | null)[],
+  onEvent: () => ((event: SurfaceEvent) => unknown) | undefined,
+): void {
+  const [mark] = useState(createFocusMark);
+  const tree = drawn && snapshot.valid ? snapshot.tree : undefined;
+  const focus = tree ? snapshot.focus : undefined;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `scope` and `onEvent` read refs current at commit.
+  useLayoutEffect(() => {
+    mark(tree, focus, (nodeId) => moveFocus(nodeId, domIdPrefix, scope(), onEvent()));
+  }, [tree, focus, domIdPrefix]);
 }
 
 /** What an element needs beyond the core's contexts: the framework's own pieces. */
@@ -242,122 +256,28 @@ function item(state: Elements, context: NodeContext): Item {
   return result;
 }
 
+export { RendererError };
+
+const subscribeNever = () => () => {};
+const notHydrating = () => false;
+const isHydrating = () => true;
+
 const NO_REGISTRY: ReadonlyMap<string, Implementation> = new Map();
-type CatalogBinding = { readonly catalog: unknown; readonly implementations: readonly Implementation[] };
-type Registered = { readonly catalog: Catalog; readonly registry: ReadonlyMap<string, Implementation> };
-
-/** One catalog's registry check: its failures go to `errors` under `prefix`; the registry is returned when valid. */
-function register(
-  { catalog, implementations }: CatalogBinding,
-  prefix: string,
-  errors: LiveframeError[],
-): Registered | undefined {
-  const checked = validateCatalog(catalog);
-  if (!checked.ok) {
-    errors.push(...checked.errors.map((error) => ({ ...error, pointer: prefix + error.pointer })));
-    return undefined;
-  }
-  const definitions = checked.value.definitions;
-  const registry = new Map<string, Implementation>();
-  const before = errors.length;
-  const reject = (pointer: string, message: string) =>
-    errors.push({ kind: "catalog-mismatch", pointer: prefix + pointer, message });
-  for (const [i, implementation] of implementations.entries()) {
-    const { definition } = implementation[binding];
-    const pointer = `/implementations/${i}`;
-    if (registry.has(definition.kind)) reject(pointer, `Duplicate implementation: ${definition.kind}`);
-    registry.set(definition.kind, implementation);
-    const expected = definitions.find((entry) => entry.kind === definition.kind);
-    if (!expected) reject(pointer, `Kind outside catalog: ${definition.kind}`);
-    else if (!sameJson(expected, definition)) reject(pointer, `Definition differs from catalog: ${definition.kind}`);
-  }
-  for (const [i, definition] of definitions.entries()) {
-    if (!registry.has(definition.kind))
-      reject(`/catalog/definitions/${i}/kind`, `Missing implementation: ${definition.kind}`);
-  }
-  return errors.length === before ? { catalog: checked.value, registry } : undefined;
-}
-
-/** What a surface over a validator of no registered catalog holds: it draws the fallback and reports why. */
-function refusedCore(onEvent: () => ((event: SurfaceEvent) => unknown) | undefined): SurfaceCore {
-  const errors: readonly LiveframeError[] = Object.freeze([
-    {
-      kind: "catalog-mismatch",
-      pointer: "/validator",
-      message: "The validator's catalog is not registered with this renderer",
-    },
-  ]);
-  const snapshot: SurfaceSnapshot = Object.freeze({
-    valid: false,
-    errors,
-    tree: undefined,
-    root: undefined,
-    local: Object.freeze({}),
-  });
-  let last: { readonly input: unknown } | undefined;
-  return {
-    accept(input) {
-      if (!last || last.input !== input) {
-        last = { input };
-        try {
-          const settled = onEvent()?.(Object.freeze({ type: "arrival-rejected", errors }));
-          if (isThenable(settled)) settled.then(undefined, () => {});
-        } catch {
-          // A host's logger must never break rendering.
-        }
-      }
-      return { ok: false, errors };
-    },
-    snapshot: () => snapshot,
-    subscribe: () => () => {},
-    attach: () => () => {},
-    fail() {},
-  };
-}
 
 /**
  * Binds implementations to one catalog (`{ catalog, implementations }`) or to several (`{ catalogs }`), each
  * checked on its own. A `Surface` uses the catalog its `validator` was compiled with; a tree that names another
  * catalog is refused with `catalog-mismatch` (spec §11).
  */
-export function createRenderer(options: CatalogBinding | { readonly catalogs: readonly CatalogBinding[] }) {
-  const errors: LiveframeError[] = [];
-  const registered = new Map<string, Registered>();
-  if ("catalogs" in options) {
-    if (!Array.isArray(options.catalogs) || options.catalogs.length === 0)
-      errors.push({ kind: "invalid-document", pointer: "/catalogs", message: "Expected at least one catalog" });
-    else
-      for (const [i, entry] of options.catalogs.entries()) {
-        const found = register(entry, `/catalogs/${i}`, errors);
-        if (!found) continue;
-        if (registered.has(found.catalog.catalogId))
-          errors.push({
-            kind: "catalog-mismatch",
-            pointer: `/catalogs/${i}/catalog/catalogId`,
-            message: `Duplicate catalog: ${found.catalog.catalogId}`,
-          });
-        else registered.set(found.catalog.catalogId, found);
-      }
-  } else {
-    const found = register(options, "", errors);
-    if (found) registered.set(found.catalog.catalogId, found);
-  }
-  if (errors.length) throw new RendererError(errors);
-  const only = registered.size === 1 ? [...registered.values()][0] : undefined;
-  /** A lone catalog serves every validator, as before; with several, the validator's own catalog picks. */
-  function registeredFor(validator: CompiledValidator): Registered | undefined {
-    if (only) return only;
-    try {
-      return registered.get(buildFacts(validator).catalogId);
-    } catch {
-      return undefined; // A wrapper that was not compiled by `compileValidator`.
-    }
-  }
+export function createRenderer(
+  options: CatalogBinding<Implementation> | { readonly catalogs: readonly CatalogBinding<Implementation>[] },
+) {
+  const registries = checkRegistries(options, (implementation) => implementation[binding].definition);
 
   // Used only to scope the fallback before any tree has been accepted.
   const emptyTree: UiTree = {
     format: "liveframe/1",
-    catalogId: [...registered.keys()][0] as string,
+    catalogId: registries.catalogIds[0] as string,
     surfaceId: "fallback",
     revision: 0,
     root: { id: "root", kind: "fallback", props: {} },
@@ -374,25 +294,30 @@ export function createRenderer(options: CatalogBinding | { readonly catalogs: re
     diagnostics,
     confirm,
     onEvent,
+    limits,
     wrapperProps,
     portalProps,
     transparency,
     focusContinuity = true,
+    invalid = "fallback",
   }: SurfaceProps) {
     const domIdPrefix = `lf-${encodeURIComponent(useId())}`;
     // The core reads the host's callbacks when it uses them, so a new `onIntent` needs no new core.
-    const host = useRef({ onIntent, confirm, onEvent });
+    const host = useRef({ onIntent, confirm, onEvent, limits });
     useLayoutEffect(() => {
-      host.current = { onIntent, confirm, onEvent };
-    }, [onIntent, confirm, onEvent]);
+      host.current = { onIntent, confirm, onEvent, limits };
+    }, [onIntent, confirm, onEvent, limits]);
     const make = (compiled: CompiledValidator) => {
-      const found = registeredFor(compiled);
+      const found = registries.forValidator(compiled);
       const current = () => host.current.onEvent;
       const core = found
-        ? createSurfaceCore({
+        ? createStagedCore({
             catalog: found.catalog,
             validator: compiled,
             domIdPrefix,
+            get limits() {
+              return host.current.limits;
+            },
             get onIntent() {
               return host.current.onIntent;
             },
@@ -403,7 +328,7 @@ export function createRenderer(options: CatalogBinding | { readonly catalogs: re
               return host.current.onEvent;
             },
           })
-        : refusedCore(current);
+        : refusedCore(refusal(compiled), current);
       return { validator: compiled, core, registry: found?.registry ?? NO_REGISTRY };
     };
     // A new validator starts a new core: node reuse and local state never cross validators.
@@ -415,9 +340,25 @@ export function createRenderer(options: CatalogBinding | { readonly catalogs: re
     }
     const { core, registry } = current;
     useLayoutEffect(() => core.attach(), [core]);
-    core.accept(tree);
-    const snapshot = useSyncExternalStore(core.subscribe, core.snapshot, core.snapshot);
+    // `prepare` reads `limits` synchronously while rendering, before `useLayoutEffect` runs.
+    host.current.limits = limits;
+    // Rendering prepares the arrival and the commit applies it, so a render React discards (an interrupted
+    // transition) never moves the core, and `emit` reports the tree on screen. The commit runs before any layout
+    // effect, so an implementation's effects already see it.
+    const prepared = core.prepare(tree);
+    const snapshot = prepared.snapshot;
+    // Hydration draws what the server drew, portal undefined; a client mount commits the wrapper and
+    // portal first, and the portal's ref redraws with the tree in the same task, before paint.
+    const hydrating = useSyncExternalStore(subscribeNever, notHydrating, isHydrating);
+    // The server never commits, so it applies the arrival as it draws; hydration is the first draw, with nothing
+    // committed for it to overtake.
+    if (hydrating) core.commit(prepared);
+    useInsertionEffect(() => void core.commit(prepared), [core, prepared]);
+    // A local write changes the committed snapshot; subscribing in the layout phase misses none.
+    const [, redraw] = useReducer((count: number) => count + 1, 0);
+    useLayoutEffect(() => core.subscribe(redraw), [core]);
     const [portal, setPortal] = useState<HTMLDivElement | null>(null);
+    const drawTree = hydrating || portal !== null;
     const wrapper = useRef<HTMLDivElement>(null);
     const requestedScope = useMemo(
       () => ({
@@ -432,22 +373,10 @@ export function createRenderer(options: CatalogBinding | { readonly catalogs: re
     useLayoutEffect(() => {
       if (previousScope.current === requestedScope) return;
       previousScope.current = requestedScope;
-      const scopes = [wrapper.current, portal];
-      for (const scope of scopes) scope?.setAttribute("data-lf-switching", "");
       // Suppress transitions before React commits the new scope attributes.
+      const end = beginSwitch([wrapper.current, portal]);
       setAppliedScope(requestedScope);
-      const clear = () => {
-        for (const scope of scopes) scope?.removeAttribute("data-lf-switching");
-      };
-      const frame = requestAnimationFrame(() => {
-        // Resolve the new styles while transitions are still suppressed, even before the first paint.
-        for (const scope of scopes) if (scope) void scope.offsetWidth;
-        clear();
-      });
-      return () => {
-        cancelAnimationFrame(frame);
-        clear();
-      };
+      return end;
     }, [requestedScope, portal]);
     const diagnosed = diagnostics !== undefined;
     // The set is keyed on its content, so a new array naming the same nodes keeps the context value.
@@ -458,16 +387,38 @@ export function createRenderer(options: CatalogBinding | { readonly catalogs: re
     // biome-ignore lint/correctness/useExhaustiveDependencies: The inputs are keys, not read.
     const items = useMemo(() => new WeakMap<NodeContext, Item>(), [core, portal, diagnosed]);
     const root = useMemo(
-      () => (snapshot.root ? item({ core, registry, items, portal, diagnosed }, snapshot.root).render() : null),
-      [snapshot.root, core, registry, items, portal, diagnosed],
+      () =>
+        drawTree && snapshot.root ? item({ core, registry, items, portal, diagnosed }, snapshot.root).render() : null,
+      [drawTree, snapshot.root, core, registry, items, portal, diagnosed],
+    );
+    useFocusMark(
+      drawTree,
+      snapshot,
+      domIdPrefix,
+      () => [wrapper.current, portal],
+      () => host.current.onEvent,
     );
     const scope = surfaceAttributes({ ...appliedScope, tree: snapshot.tree ?? emptyTree });
+    // Keep-last draws the last accepted tree after a rejection; the core raises nothing while the surface is invalid.
+    const stale = !snapshot.valid && invalid === "keep-last" && snapshot.tree !== undefined;
     return (
       <FallbackContext value={fallback}>
         <DiagnosedContext value={flagged}>
-          <div {...mergeHostProps(scope, wrapperProps)} ref={wrapper} tabIndex={focusContinuity ? -1 : undefined}>
-            {snapshot.valid ? (
-              <Fragment key={snapshot.tree?.surfaceId}>
+          <div
+            {...mergeHostProps(scope, wrapperProps)}
+            ref={wrapper}
+            tabIndex={focusContinuity ? -1 : undefined}
+            data-lf-stale={stale ? "" : undefined}
+            aria-busy={stale ? true : undefined}
+          >
+            {!drawTree ? null : snapshot.valid || stale ? (
+              <Motion
+                key={snapshot.tree?.surfaceId}
+                root={snapshot.root}
+                identity={`${appliedScope.designSystem.id}@${appliedScope.designSystem.version}`}
+                switching={requestedScope !== appliedScope}
+                scope={() => [wrapper.current, portal]}
+              >
                 {focusContinuity ? (
                   <FocusContinuity scope={() => [wrapper.current, portal]} wrapper={() => wrapper.current}>
                     {root}
@@ -475,7 +426,7 @@ export function createRenderer(options: CatalogBinding | { readonly catalogs: re
                 ) : (
                   root
                 )}
-              </Fragment>
+              </Motion>
             ) : (
               fallback
             )}

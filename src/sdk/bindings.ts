@@ -1,6 +1,6 @@
-// Authoring helpers for a node's `when` and `bind` (plan 029 B13). They build plain JSON expressions of the
-// template language's browser subset: `local` and `self` are the only roots, so an expression can read
-// nothing the widget did not put in the tree. A bare JS string, number or boolean is a literal operand.
+// Authoring helpers for a node's `when` and `bind` (spec §7.2, §8). They build plain JSON expressions of the
+// template language's browser subset: `local`, `self` and `shown` are the only roots, so an expression can
+// read nothing the widget did not put in the tree. A bare JS string, number or boolean is a literal operand.
 
 import { setLocal } from "./intents.ts";
 import type { Json } from "./types.ts";
@@ -19,6 +19,14 @@ export const local = Object.assign((key: string): Expr => path("local", key), { 
 
 /** `self("title")` reads one of the node's own props as sent in the tree. */
 export const self = (prop: string): Expr => path("self", prop);
+
+const SHOWN: Expr = Object.freeze({ $path: "shown" });
+
+/**
+ * `shown()` reads how many of the node's siblings that carry a `when` are drawn, not counting siblings that
+ * read `shown` themselves. Use it in `when` or `bind`, e.g. `when={ex.eq(shown(), 0)}` for an empty state.
+ */
+export const shown = (): Expr => SHOWN;
 
 const list =
   (name: string) =>

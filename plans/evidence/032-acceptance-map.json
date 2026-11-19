@@ -15,7 +15,7 @@
     },
     "026.EO.2": {
       "tests": [
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register",
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register",
         "register_break_without_migration_heading_fails"
       ],
       "docs": [
@@ -82,7 +82,7 @@
     },
     "026.T1.F5": {
       "tests": [
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "026.T1.Q1": {
@@ -93,7 +93,7 @@
     },
     "026.T1.C1": {
       "tests": [
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "026.T2.F1": {
@@ -152,7 +152,7 @@
     "026.T3.F4": {
       "tests": [
         "every_break_has_a_migration_entry",
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "026.T3.P1": {
@@ -295,7 +295,7 @@
     },
     "026.T6.C1": {
       "tests": [
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "026.T7.F1": {
@@ -338,7 +338,7 @@
     },
     "026.T7.C1": {
       "tests": [
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "026.T8.F1": {
@@ -376,7 +376,7 @@
     "026.T8.C1": {
       "tests": [
         "every_break_has_a_migration_entry",
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "026.T9.F1": {
@@ -392,7 +392,7 @@
       "tests": [
         "schema_publisher_check_passes",
         "schema_publisher_detects_drift",
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "026.T9.F3": {
@@ -425,7 +425,7 @@
     },
     "026.T9.C1": {
       "tests": [
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register",
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register",
         "schema_publisher_check_passes"
       ]
     },
@@ -447,7 +447,7 @@
     },
     "026.T9a.C1": {
       "tests": [
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "026.T10.F1": {
@@ -605,7 +605,7 @@
     },
     "027.T2.C1": {
       "tests": [
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register",
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register",
         "reference_semantics_are_a_catalog_contract_change"
       ]
     },
@@ -651,7 +651,7 @@
     },
     "027.T3.C1": {
       "tests": [
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "027.T4.F1": {
@@ -693,7 +693,7 @@
     },
     "027.T4.C1": {
       "tests": [
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register",
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register",
         "catalog_change_classifies_extensions"
       ]
     },
@@ -752,7 +752,7 @@
     },
     "027.T5.C1": {
       "tests": [
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register",
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register",
         "catalog_change_classifies_axes"
       ]
     },
@@ -808,7 +808,7 @@
     "027.T6.C1": {
       "tests": [
         "app_states_and_semantics_classify_catalog_changes",
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "027.T7.F1": {
@@ -866,7 +866,7 @@
     },
     "027.T7.C1": {
       "tests": [
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "027.T7a.F1": {
@@ -913,7 +913,7 @@
     },
     "027.T7a.C1": {
       "tests": [
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "027.T8.F1": {
@@ -1125,7 +1125,7 @@
     "028.T3.C1": {
       "tests": [
         "subpath_export_surfaces",
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "028.T4.F1": {
@@ -1235,7 +1235,7 @@
     },
     "028.T5.C1": {
       "tests": [
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "028.T6.F1": {
@@ -1279,7 +1279,7 @@
     },
     "028.T6.C1": {
       "tests": [
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "028.T7.F1": {
@@ -1330,7 +1330,7 @@
     "028.T7.C1": {
       "tests": [
         "sdk_export_surface",
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "028.T8.F1": {
@@ -1383,7 +1383,7 @@
     "029.EO.4": {
       "tests": [
         "core_has_no_react_or_dom_imports",
-        "dom_renderer_matches_react_structure",
+        "dom_draws_the_same_structure_as_react",
         "surface_export_surface"
       ]
     },
@@ -1496,7 +1496,7 @@
     },
     "029.T2.C1": {
       "tests": [
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register",
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register",
         "renderKey_changes_with_actions"
       ]
     },
@@ -1577,7 +1577,7 @@
     },
     "029.T3.C1": {
       "tests": [
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register",
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register",
         "install_checks_when_and_bind_against_the_manifest"
       ]
     },
@@ -1605,7 +1605,7 @@
     },
     "029.T4.F4": {
       "tests": [
-        "dom_renderer_matches_react_structure",
+        "dom_draws_the_same_structure_as_react",
         "dom_renderer_matches_react_after_local_state_changes"
       ]
     },
@@ -1642,7 +1642,7 @@
     "029.T4.C1": {
       "tests": [
         "surface_export_surface",
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "029.T5.F1": {
@@ -1873,7 +1873,7 @@
     "030.T2.C1": {
       "tests": [
         "host_export_surface",
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "030.T3.F1": {
@@ -2108,7 +2108,7 @@
       "tests": [
         "react_export_surface",
         "surface_export_surface",
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "030.T8.F1": {
@@ -2166,7 +2166,7 @@
     "030.T8.C1": {
       "tests": [
         "migrated_state_is_served_and_reported_without_values",
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "030.T9.F1": {
@@ -2222,7 +2222,7 @@
     "030.T9.C1": {
       "tests": [
         "dependency_pin_in_hash",
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "030.T10.F1": {
@@ -2283,7 +2283,7 @@
     },
     "030.T10.C1": {
       "tests": [
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "030.T11.F1": {
@@ -2439,7 +2439,7 @@
     },
     "031.T2.C1": {
       "tests": [
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "031.T3.F1": {
@@ -2611,7 +2611,7 @@
     },
     "031.T5.C1": {
       "tests": [
-        "baseline_0_2_3_matches_the_checkout_through_the_0_3_0_register"
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
       ]
     },
     "031.T6.F1": {
@@ -2640,7 +2640,7 @@
         "starter"
       ],
       "docs": [
-        "packages/starter/src/__tests__/switch.test.tsx :: 16.67"
+        "bench/css.bench.ts :: 16.67"
       ]
     },
     "031.T6.Q1": {

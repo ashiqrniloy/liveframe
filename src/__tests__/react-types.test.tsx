@@ -214,3 +214,18 @@ test("generated_definitions_infer_numeric_and_object_carries", () => {
   });
   expect(binding).toBeDefined();
 });
+
+test("generated_definitions_infer_array_carries", () => {
+  const binding: Implementation = implement(Carries, ({ emit }) => {
+    emit("onSelect", ["a", "b"]);
+    emit("onSelect", []);
+    // @ts-expect-error an array carry checks its item type
+    emit("onSelect", [1]);
+    // @ts-expect-error an array carry takes an array, not one item
+    emit("onSelect", "a");
+    // @ts-expect-error an array carry requires its value
+    emit("onSelect");
+    return null;
+  });
+  expect(binding).toBeDefined();
+});
