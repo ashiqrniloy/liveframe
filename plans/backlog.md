@@ -899,6 +899,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - What: When `renderPlacement` skips a render at step R6, it returns `previous` by identity (`result.value === previous`), so `previous.patch`, `previous.reset` and `previous.migrated` from the render that produced `previous` remain on the returned object. In `0.3.x`, Task 3 documented the `result.value !== previous` check in `docs/host.md` and `docs/spec.md` §7.7 R6 to preserve patch compatibility; in `0.4.0`, consider stripping per-render fields (`patch`, `reset`, `migrated`) or returning a distinct skipped shape so a host that forgets the identity check cannot resend an already-applied patch.
 - Why: Relying on reference equality (`result.value !== previous`) to avoid resending `patch` works for hosts that follow `docs/host.md`, but removing the stale `patch` from the skipped return value eliminates the footgun at the value level.
 
+- Status (2026-11-20, plan 040 Task 1): deferred to 0.5.0 by the owner ([decision](../decision-logs/2026-11-20-2319-release-0-4-0-scope.md)); not part of 0.4.0.
+
 ## Report a thrown or rejected `onIntent` through `SurfaceEvent`
 
 - Section: Renderer observability (spec §11)
@@ -906,6 +908,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Source: plans/033-Phase-7-Part-T-Review-Defects-And-Release-Scope.md Task 8 and Task 10, plans/evidence/033-impact-analysis.md F6
 - What: Both the confirmed and unconfirmed (`emit`) paths in `createSurfaceCore` contain a synchronous throw or async rejection from the host's `onIntent` callback without raising a `SurfaceEvent`, because `SurfaceEvent` only grows in a minor release (`docs/spec.md` §11). In `0.4.0`, consider adding `{ type: "intent-failed"; nodeId: string; event: string }` to `SurfaceEvent` so `onEvent` can observe `onIntent` failures alongside `emit-rejected` and `confirm-dropped`.
 - Why: Containing `onIntent` throws prevents a broken host callback from crashing a primitive's event handler, and an observability event lets a host log the failure without carrying values.
+
+- Status (2026-11-20, plan 040 Task 1): deferred to 0.5.0 by the owner ([decision](../decision-logs/2026-11-20-2319-release-0-4-0-scope.md)). It is additive, so it may ship in any later minor.
 
 ## Gate the remaining request-time pipeline budgets in `bench/host.bench.ts`
 
@@ -954,6 +958,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Source: plans/036-Phase-7-Part-W-Internal-Structure-And-Parity.md Task 2, plans/evidence/036-impact-analysis.md F1, F2
 - What: Element JSON whose `kind` is missing or not a nonempty string is `invalid-prop` at `/…/kind` from `renderElements`/`streamElements`; `render()` and `validateTree` say `unknown-component`. Element JSON whose `children` is not an array is `invalid-prop` at `/…/children`; the walk says `invalid-children`. Change the element conversion to the walk's kinds and update `src/__tests__/sdk-elements.test.ts:82`; then enable the strict cases in `tree-rule-parity.test.ts` `known_differences_strict`. Public error kinds change, so this needs a minor release (0.4.0, with plan 039's element JSON work).
 - Why: Spec §7.2 says `renderElements` uses `render()`'s error kinds. The parity test (plan 036 Task 2) shows two inputs where it does not. All three implementations still reject both, so no tree is wrongly accepted.
+
+- Status (2026-11-20, plan 040 Task 1): included in 0.4.0 by the owner ([decision](../decision-logs/2026-11-20-2319-release-0-4-0-scope.md)); executed as plan 040 Task 1a before the release candidate.
 
 ## Align the SDK build pass's child-count pointer with the walk, and say where a byte-limit error points
 
