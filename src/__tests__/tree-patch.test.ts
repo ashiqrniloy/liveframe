@@ -313,8 +313,7 @@ test("diff_then_apply_round_trips_every_pair", async () => {
     if (checked.ok) trees.push(checked.value);
   }
   expect(trees.length).toBeGreaterThan(0);
-  const original = trees[0];
-  if (!original) throw new Error("Missing valid corpus tree");
+  const original = value(validator.validateTree(await read("ui-tree/docs/valid.json")));
   trees.push({ ...original, revision: original.revision + 1 });
   const explicit = { ...original, revision: original.revision + 2, root: { ...original.root, children: [] } };
   expect(validator.validateTree(explicit).ok).toBe(true);
