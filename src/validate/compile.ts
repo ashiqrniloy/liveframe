@@ -1,4 +1,4 @@
-import { LiveframeFailure } from "../errors.ts";
+import { INVALID_CHILDREN, LiveframeFailure, UNKNOWN_COMPONENT } from "../errors.ts";
 import { at, type Capabilities, isRecord, type ObjectSchema, validateCapabilities } from "../formats/capabilities.ts";
 import { type Catalog, type Definition, validateCatalog } from "../formats/catalog.ts";
 import { frozenJsonCopy, sameJson } from "../formats/json.ts";
@@ -184,7 +184,7 @@ function nodeCheck(spec: NodeCheckSpec): SchemaCheck {
     if (Object.hasOwn(node, "events") && !field(spec.events, node.events, sink, "events")) valid = false;
     if ((Object.hasOwn(node, "when") || Object.hasOwn(node, "bind")) && !spec.bindings(node, sink)) valid = false;
     if (Object.hasOwn(node, "children") && !Array.isArray(node.children))
-      valid = reject(sink, "/children", "an array of child nodes", "invalid-children");
+      valid = reject(sink, "/children", "an array of child nodes", INVALID_CHILDREN);
     return valid;
   };
 }
@@ -395,7 +395,7 @@ function compile(work: CatalogWork, manifest: Manifest): CompiledValidator {
     if (!isRecord(node)) valid = reject(sink, "", "a UI node object");
     else {
       const check = Object.hasOwn(node, "kind") && typeof node.kind === "string" ? kinds.get(node.kind) : undefined;
-      valid = check ? check(node, "", sink) : reject(sink, "/kind", kindExpected, "unknown-component");
+      valid = check ? check(node, "", sink) : reject(sink, "/kind", kindExpected, UNKNOWN_COMPONENT);
     }
     if (!valid) rebaseErrors(sink, start, path, node);
     return valid;

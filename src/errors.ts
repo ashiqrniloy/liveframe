@@ -1,3 +1,6 @@
+export const INVALID_CHILDREN = "invalid-children";
+export const UNKNOWN_COMPONENT = "unknown-component";
+
 export type LiveframeError = {
   readonly kind:
     | "invalid-document"

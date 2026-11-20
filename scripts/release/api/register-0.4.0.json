@@ -478,5 +478,31 @@
     "reason": "Names the rule `checkUrl` takes: the allowed schemes and whether a relative reference passes (F12).",
     "hostAction": "None; additive export.",
     "task": "039 T6"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "renderElements",
+    "change": "changed",
+    "reason": "Malformed element JSON reports unknown-component for a missing, empty or non-string kind and invalid-children for non-array children.",
+    "hostAction": "Update handlers that match invalid-prop for these inputs.",
+    "task": "040 T1a",
+    "migration": "Element JSON error kinds",
+    "behavior": {
+      "file": "src/__tests__/sdk-elements.test.ts",
+      "test": "render_elements_error_pointers_into_json"
+    }
+  },
+  {
+    "subpath": "./sdk",
+    "name": "streamElements",
+    "change": "changed",
+    "reason": "Malformed element JSON reports unknown-component for a missing, empty or non-string kind and invalid-children for non-array children.",
+    "hostAction": "Update handlers that match invalid-prop for these inputs.",
+    "task": "040 T1a",
+    "migration": "Element JSON error kinds",
+    "behavior": {
+      "file": "src/__tests__/tree-rule-parity.test.ts",
+      "test": "corpus_trees_get_one_verdict_from_all_three"
+    }
   }
 ]

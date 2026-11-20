@@ -143,9 +143,6 @@ function agree(validator: CompiledValidator, tree: UiTree, limits?: Limits): Ver
 /**
  * Known disagreements, recorded for the owner. All three still reject and the two builds still
  * agree with each other; the strict three-way check of each case is skipped.
- * - Element shape: element JSON whose `kind` is not a nonempty string, or whose `children` is not an
- *   array, is rejected by the element conversion as `invalid-prop` before any tree rule runs; the
- *   walk reports `unknown-component` and `invalid-children`.
  * - Child counts: a kind with too many children of a kind is `invalid-children` in all three, but the
  *   builds point at the node and the walk at its `children`.
  * - Byte limit: all three reject at the same budget, but each names the field where its own count
@@ -160,8 +157,6 @@ function knownDifference(validator: CompiledValidator, tree: UiTree, limits?: Li
   return found;
 }
 
-/** Corpus trees whose element form is malformed element JSON (see `knownDifference`). */
-const CORPUS_ELEMENT_SHAPE: ReadonlySet<string> = new Set(["invalid-children.json"]);
 /**
  * Corpus trees whose `focus` names no node: element JSON marks an element, so it cannot state a mark
  * without a target or with a malformed id. Only the walk sees them.
@@ -190,11 +185,8 @@ describe("tree rule parity", () => {
         expect(validator.validateTree(tree).ok, name).toBe(entry.expect.ok);
         continue;
       }
-      const found = CORPUS_ELEMENT_SHAPE.has(name)
-        ? knownDifference(validator, tree, entry.options.limits)
-        : verdicts(validator, tree, entry.options.limits);
-      if (!CORPUS_ELEMENT_SHAPE.has(name))
-        expect({ name, ...found }).toEqual({ name, walk: found.walk, build: found.walk, stream: found.walk });
+      const found = verdicts(validator, tree, entry.options.limits);
+      expect({ name, ...found }).toEqual({ name, walk: found.walk, build: found.walk, stream: found.walk });
       // The corpus states the walk's verdict; the parity test only adds the other two.
       expect(found.walk.ok).toBe(entry.expect.ok);
     }
@@ -282,18 +274,7 @@ describe("tree rule parity", () => {
     return framed(root);
   }
 
-  /** Breaks the element form rejects as malformed element JSON (see `knownDifference`). */
-  const ELEMENT_SHAPE: ReadonlySet<string> = new Set(["kind_removed", "kind_retyped", "children_retyped"]);
-
   describe("known_differences_strict", () => {
-    for (const name of ELEMENT_SHAPE)
-      test.skip(`${name}_gets_the_walk_kind_from_the_builds`, () => {
-        const [field, change] = name.split("_") as [(typeof FIELDS)[number], string];
-        const { root, node } = at(CARRIER[field]);
-        if (change === "removed") delete node[field];
-        else node[field] = RETYPED[field];
-        agree(proof, framed(root));
-      });
     test.skip("child_count_over_names_the_same_field_in_all_three", () => {
       agree(proof, overfullMenu());
     });
@@ -315,14 +296,12 @@ describe("tree rule parity", () => {
         const tree = framed(root);
         // Without props the element form defaults them; that case is the walk's alone.
         if (field === "props") expect(treeOnly(tree)).toBeDefined();
-        else if (ELEMENT_SHAPE.has(`${field}_removed`)) knownDifference(proof, tree);
         else agree(proof, tree);
       });
       test(`${field}_retyped`, () => {
         const { root, node } = at(CARRIER[field]);
         node[field] = RETYPED[field];
-        if (ELEMENT_SHAPE.has(`${field}_retyped`)) knownDifference(proof, framed(root));
-        else expect(agree(proof, framed(root)).ok).toBe(false);
+        expect(agree(proof, framed(root)).ok).toBe(false);
       });
       test(`${field}_on_a_duplicated_node`, () => {
         // The carrier written twice among its siblings: the copy reuses the id.

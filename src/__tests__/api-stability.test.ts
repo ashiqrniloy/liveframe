@@ -22,6 +22,10 @@ const register = registerJson as unknown as readonly RegisterEntry[];
 const register030 = register030Json as unknown as readonly RegisterEntry[];
 const register040 = register040Json as unknown as readonly RegisterEntry[];
 const starterRegister040 = starterRegister040Json as unknown as readonly RegisterEntry[];
+const migrationGuides = await Promise.all(
+  ["migration-0.3.md", "migration-0.4.md"].map((name) => Bun.file(resolve(root, "docs", name)).text()),
+);
+const releaseMigration = migrationGuides.join("\n");
 
 /** Layers the 0.4.0 register over the 0.3.1 patch register while 0.3.0 remains the on-disk baseline. */
 function combineRegisters(patch: readonly RegisterEntry[], minor: readonly RegisterEntry[]): readonly RegisterEntry[] {
@@ -59,7 +63,7 @@ const fixture: ApiSurface = {
 test("baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register", async () => {
   expect(baseline.generatedFrom).toContain("v0.3.0");
   const current = await readApiSurface(root);
-  expect(compareApiSurface(baseline, current, combineRegisters(register, register040))).toEqual([]);
+  expect(compareApiSurface(baseline, current, combineRegisters(register, register040), releaseMigration)).toEqual([]);
 }, 20_000);
 
 test("register_0_4_0_is_read_by_the_api_gate", async () => {
@@ -67,7 +71,7 @@ test("register_0_4_0_is_read_by_the_api_gate", async () => {
   expect(register040.length).toBeGreaterThan(0);
   const current = await readApiSurface(root);
   expect(compareApiSurface(baseline, current, register).length).toBeGreaterThan(0);
-  expect(compareApiSurface(baseline, current, combineRegisters(register, register040))).toEqual([]);
+  expect(compareApiSurface(baseline, current, combineRegisters(register, register040), releaseMigration)).toEqual([]);
 }, 20_000);
 
 test("register_0_3_1_holds_only_additive_entries", () => {

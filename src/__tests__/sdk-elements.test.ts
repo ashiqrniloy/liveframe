@@ -79,7 +79,9 @@ test("render_elements_error_pointers_into_json", () => {
       "/children/0",
       1,
     ],
-    [{ kind: "text", props: { text: "x" }, children: {} }, "invalid-prop", "/children"],
+    [{ props: { text: "x" } }, "unknown-component", ""],
+    [{ kind: "", props: { text: "x" } }, "unknown-component", ""],
+    [{ kind: "text", props: { text: "x" }, children: {} }, "invalid-children", "/children"],
   ];
   for (const [input, kind, pointer, nodes] of cases) {
     const result = renderElements(input, {

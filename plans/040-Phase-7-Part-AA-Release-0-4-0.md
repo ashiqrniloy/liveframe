@@ -69,12 +69,12 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
     - The owner's A2UI claim and publisher setup is a prerequisite of Task 7, not done here.
     - Task 1a is added below, above Task 2. Task 4's map and Task 8's readiness review must cover it.
 
-- [ ] Task 1a: Align element JSON's error kinds with `render()` and the arrival walk (included by Task 1)
+- [x] Task 1a: Align element JSON's error kinds with `render()` and the arrival walk (included by Task 1)
   - Acceptance Criteria:
     - Functional:
       - `renderElements` and `streamElements` report a missing or non-nonempty-string `kind` as `unknown-component` at the node's own pointer, and a `children` that is not an array as `invalid-children`, the kinds `render()` and `validateTree` give. The pointers match the walk's.
-      - `src/__tests__/sdk-elements.test.ts` (the `children: {}` case near line 82) expects the new kind; the three element-shape cases in `tree-rule-parity.test.ts` `known_differences_strict` (`kind_removed`, `kind_retyped`, `children_retyped`) are enabled and `agree` across all three implementations. `ELEMENT_SHAPE` and `knownDifference` are removed if nothing else uses them.
-      - Spec §7.2 says `renderElements` uses `render()`'s error kinds with no exception. `docs/migration-0.4.md` has an "error kinds" entry for adopters who match on `invalid-prop` for these two inputs. `register-0.4.0.json` records the change (the kind is a documented behaviour, not a declaration), and `CHANGELOG.md` (Task 3) lists it under `Changed`.
+      - `src/__tests__/sdk-elements.test.ts` (the `children: {}` case near line 82) expects the new kind; the three element-shape cases in `tree-rule-parity.test.ts` (`kind_removed`, `kind_retyped`, `children_retyped`) run in the strict generated suite and `agree` across all three implementations. Remove `ELEMENT_SHAPE` and retain `knownDifference` for the F3/F4 pointer cases.
+      - Spec §7.2 says `renderElements` uses `render()`'s error kinds with no exception. `docs/migration-0.4.md` has an "error kinds" entry for adopters who match on `invalid-prop` for these two inputs. `register-0.4.0.json` records the change (the kind is a documented behaviour, not a declaration), and `CHANGELOG.md` lists it under `Changed` for Task 3 to carry into the 0.4.0 section.
       - The F3/F4 pointer differences (build-pass child-count pointer, byte-limit pointer) stay out of scope and stay in the backlog.
     - Performance: none; the error path only.
     - Code Quality: the element conversion reuses the walk's kind constants; no second copy of the rule.
@@ -85,10 +85,16 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
     - Documentation Reviewed: `plans/evidence/036-impact-analysis.md` F1, F2; `src/__tests__/tree-rule-parity.test.ts` (`known_differences_strict`); `src/sdk/elements.ts` (the `kind` check near line 169, `elementChildren`).
     - Options Considered: keep `invalid-prop` and document it — rejected: spec §7.2 promises `render()`'s kinds.
     - Chosen Approach: change the two kinds in the element conversion, then enable the parity cases.
-    - Files to Create/Edit: `src/sdk/elements.ts`; `src/__tests__/sdk-elements.test.ts`; `src/__tests__/tree-rule-parity.test.ts`; `docs/spec.md` §7.2; `docs/migration-0.4.md`; `scripts/release/api/register-0.4.0.json` (only if the register tracks error kinds).
+    - Files to Create/Edit: `src/errors.ts`; `src/sdk/{elements,element-node,render}.ts`; `src/validate/{compile,tree}.ts`; `src/__tests__/{api-stability,sdk-elements,tree-rule-parity}.test.ts`; `docs/spec.md` §7.2; `docs/migration-0.4.md`; `scripts/release/api/register-0.4.0.json`; `CHANGELOG.md`.
   - Test Cases to Write:
-    - `element_json_missing_kind_is_unknown_component`, `element_json_children_not_an_array_is_invalid_children`: fail on the old `invalid-prop` kinds.
-    - The three enabled `known_differences_strict` element-shape cases.
+    - `render_elements_error_pointers_into_json` covers missing and empty kinds and non-array children, including the exact element JSON pointers.
+    - Strict generated parity for the three element-shape cases and strict corpus parity for `invalid-children.json`.
+
+  - Notes (executed 2026-11-21):
+    - Element conversion reports `unknown-component` at the element and `invalid-children` at its `children` field. Both builds share the arrival walk's error constants.
+    - All three element-shape parity cases and the invalid-children corpus case run strict. F3/F4 remain in the backlog.
+    - Spec §7.2, migration guidance, changelog and both SDK register entries document the change. The layered API gate reads the 0.3 and 0.4 migration guides.
+    - Focused SDK, parity and API tests passed. `bun run check` passed with 2,124 tests and six skips.
 
 - [ ] Task 2: Make the release gates green and trustworthy
   - Acceptance Criteria:

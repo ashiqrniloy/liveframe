@@ -764,7 +764,7 @@ Capabilities are how an author, person or agent, learns what exists, and what le
 - `state.set(key, value?)` and `action(name, args, { bind?, bindAll? }?)` return frozen intent data. Without a value, `state.set(key)` sends the value the event produced. `bind` fills a scalar argument; `bindAll: true` fills several arguments from one object event (§8).
 - **Agent element JSON.** `renderElements(json, { validator, surfaceId, revision, limits?, maxErrors? })` from `/sdk` builds a tree from an unpackaged surface an agent emitted as JSON: `{ kind, key?, $anchor?, variant?, props?, style?, events?, when?, bind?, focus?, children? }`, with intents in the `TreeIntent` shape. `when` and `bind` are the node fields of §8, checked as a TSX widget's are; `when`, `bind` and `focus` are node fields only, so `props`, `style` or `events` carrying one is `invalid-prop` at that member.
 
-  It uses `render()`'s key-path ids, limits, validation and error kinds, uses one node walk plus deferred reference checks, and rewrites each error `pointer` to point into the JSON (`nodeId` stays the derived key-path id).
+  It uses `render()`'s key-path ids, limits, validation and error kinds, uses one node walk plus deferred reference checks, and rewrites each error `pointer` to point into the JSON (`nodeId` stays the derived key-path id). A missing, empty or non-string `kind` is `unknown-component` at the element pointer. A non-array `children` is `invalid-children` at the `children` pointer.
 
   A `fragment` element groups keyed children without adding a node.
 

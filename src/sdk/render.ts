@@ -1,4 +1,11 @@
-import { addBoundMarker, DEFAULT_MAX_ERRORS, type LiveframeError, type Result } from "../errors.ts";
+import {
+  addBoundMarker,
+  DEFAULT_MAX_ERRORS,
+  INVALID_CHILDREN,
+  type LiveframeError,
+  type Result,
+  UNKNOWN_COMPONENT,
+} from "../errors.ts";
 import { at, isRecord } from "../formats/capabilities.ts";
 import type { UiNode, UiTree } from "../formats/tree.ts";
 import { isThenable } from "../internal.ts";
@@ -365,7 +372,7 @@ function createContext(options: RenderOptions, sourcePointers: WeakMap<Element, 
       reject(expected: string, suffix = "") {
         const nodeId = ctx.structureSink.nodeId;
         const base = ctx.idPointers.get(nodeId) ?? `/${nodeId}`;
-        fail(ctx, "invalid-children", `${base}${suffix}`, expected, nodeId);
+        fail(ctx, INVALID_CHILDREN, `${base}${suffix}`, expected, nodeId);
       },
     },
     sourcePointers,
@@ -415,7 +422,7 @@ function conclude(
   options: RenderOptions,
   catalogId: string,
 ): Result<UiTree> {
-  if (roots.length !== 1 && !ctx.stopped) fail(ctx, "invalid-children", "", "exactly one root element", "root");
+  if (roots.length !== 1 && !ctx.stopped) fail(ctx, INVALID_CHILDREN, "", "exactly one root element", "root");
   const { focus } = ctx;
   if (focus) addBytes(ctx, treeFieldBytes("focus", false, stringBytes(focus.id)), focus.pointer, focus.id);
   addBytes(ctx, BRACKET_BYTES, "", "root");
@@ -458,7 +465,7 @@ function renderValue(
     return { ok: false, errors: finish(ctx) };
   }
   if (!isElement(result)) {
-    fail(ctx, "invalid-children", "", "one SDK element from the widget", "root");
+    fail(ctx, INVALID_CHILDREN, "", "one SDK element from the widget", "root");
     return { ok: false, errors: finish(ctx) };
   }
   const roots: UiNode[] = [];
@@ -707,7 +714,7 @@ function children(ctx: RenderContext, child: unknown, parent: Parent, staticChil
 function emit(ctx: RenderContext, start: Element, parent: Parent, requireKey: boolean): void {
   if (ctx.stopped) return;
   if (parent.id === null && parent.out.length) {
-    fail(ctx, "invalid-children", "", "exactly one root element", "root");
+    fail(ctx, INVALID_CHILDREN, "", "exactly one root element", "root");
     return;
   }
   let element = start;
@@ -833,7 +840,7 @@ function openNode(
 function closeNode(ctx: RenderContext, open: OpenNode): UiNode | undefined {
   const { id, kind, pointer, record, out: childrenOut } = open;
   if (ctx.structure.forbidsChildren(kind) && childrenOut.length)
-    fail(ctx, "invalid-children", `${pointer}/children`, "no children for this kind", id);
+    fail(ctx, INVALID_CHILDREN, `${pointer}/children`, "no children for this kind", id);
   checkStructure(ctx, open);
   if (ctx.stopped) return;
   if (childrenOut.length) record.children = childrenOut;
@@ -883,7 +890,7 @@ function expand(ctx: RenderContext, start: Element, parent: Parent): readonly [E
       return;
     }
     if (!isElement(expanded)) {
-      fail(ctx, "unknown-component", at, "one SDK element from a component", nodeId);
+      fail(ctx, UNKNOWN_COMPONENT, at, "one SDK element from a component", nodeId);
       return;
     }
     element = expanded;
@@ -946,7 +953,7 @@ function kindOf(ctx: RenderContext, element: Element, at: string, parentId: stri
   }
   const kind = isRecord(element.type) ? element.type.kind : undefined;
   if (typeof kind !== "string" || !ctx.kinds.has(kind)) {
-    fail(ctx, "unknown-component", at, `a catalog kind: ${[...ctx.kinds.keys()].join(", ")}`, parentId ?? "root");
+    fail(ctx, UNKNOWN_COMPONENT, at, `a catalog kind: ${[...ctx.kinds.keys()].join(", ")}`, parentId ?? "root");
     return;
   }
   return kind;

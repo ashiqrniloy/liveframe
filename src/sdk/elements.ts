@@ -1,4 +1,11 @@
-import { addBoundMarker, DEFAULT_MAX_ERRORS, type LiveframeError, type Result } from "../errors.ts";
+import {
+  addBoundMarker,
+  DEFAULT_MAX_ERRORS,
+  INVALID_CHILDREN,
+  type LiveframeError,
+  type Result,
+  UNKNOWN_COMPONENT,
+} from "../errors.ts";
 import type { ObjectSchema } from "../formats/capabilities.ts";
 import type { Catalog } from "../formats/catalog.ts";
 import type { Manifest } from "../formats/manifest.ts";
@@ -86,7 +93,7 @@ function elementChildren(
   pointers: WeakMap<Element, string>,
 ): Element[] | undefined {
   if (!Array.isArray(value)) {
-    reject.at(pointer, "an array of elements");
+    reject.at(pointer, "an array of elements", INVALID_CHILDREN);
     return undefined;
   }
   ancestors.add(value);
@@ -166,7 +173,7 @@ function elementHead(
   rejectUnknownFields(value, pointer, ELEMENT_KEYS, reject);
   const kind = value.kind;
   if (typeof kind !== "string" || kind.length === 0) {
-    reject.at(at(pointer, "kind"), "a nonempty catalog kind");
+    reject.at(pointer, "a nonempty catalog kind", UNKNOWN_COMPONENT);
     return undefined;
   }
   const key = value.key;

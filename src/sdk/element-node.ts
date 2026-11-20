@@ -11,7 +11,7 @@ export type ElementReject = {
   readonly stopped: boolean;
 };
 
-/** Collects `invalid-prop` errors up to a bound, as `renderElements` reports them. */
+/** Collects element conversion errors up to a bound, as `renderElements` reports them. */
 export class Reject implements ElementReject {
   readonly errors: LiveframeError[] = [];
   readonly maxErrors: number;
@@ -21,9 +21,9 @@ export class Reject implements ElementReject {
     this.maxErrors = maxErrors;
   }
 
-  at(pointer: string, expected: string): void {
+  at(pointer: string, expected: string, kind: LiveframeError["kind"] = "invalid-prop"): void {
     if (this.stopped) return;
-    this.errors.push({ kind: "invalid-prop", pointer, expected, message: `Expected ${expected}` });
+    this.errors.push({ kind, pointer, expected, message: `Expected ${expected}` });
     if (this.errors.length >= this.maxErrors) this.stopped = true;
   }
 }

@@ -1,4 +1,4 @@
-import { addBoundMarker, DEFAULT_MAX_ERRORS, type LiveframeError, type Result } from "../errors.ts";
+import { addBoundMarker, DEFAULT_MAX_ERRORS, INVALID_CHILDREN, type LiveframeError, type Result } from "../errors.ts";
 import { at, isRecord } from "../formats/capabilities.ts";
 import type { Catalog } from "../formats/catalog.ts";
 import { validateJson } from "../formats/json.ts";
@@ -213,7 +213,7 @@ function createContext(
     structureSink: {
       nodeId: "root",
       reject(expected, pointer = "") {
-        fail(ctx, expected, ctx.structureSink.nodeId, "invalid-children", pointer);
+        fail(ctx, expected, ctx.structureSink.nodeId, INVALID_CHILDREN, pointer);
       },
     },
     bytes: 0,
@@ -414,7 +414,7 @@ function walkItems(
   const { path, structure, structureSink } = ctx;
   const counts = mode === "children" && structure.children.get(parentKind) instanceof Map ? newTally() : undefined;
   if (mode === "children" && structure.forbidsChildren(parentKind) && value.length)
-    fail(ctx, "no children for this kind", nodeId, "invalid-children");
+    fail(ctx, "no children for this kind", nodeId, INVALID_CHILDREN);
   for (let i = 0; i < value.length && !ctx.stopped; i++) {
     path.push(i);
     if (i) add(ctx, SEPARATOR_BYTES, nodeId);

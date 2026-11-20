@@ -20,6 +20,10 @@ Copy the starter's recipes for the ten kinds from `packages/starter/src/design-s
 
 The starter's own `designSystem` already has all of these. `designSystemSuite()` names every error, so run it in CI before you upgrade.
 
+## Element JSON error kinds
+
+Update handlers that match `invalid-prop` for these inputs to `renderElements` or `streamElements`. A missing, empty or non-string `kind` now reports `unknown-component` at the element pointer. A non-array `children` now reports `invalid-children` at the `children` pointer.
+
 ## Compatible additions
 
 ### A slow source can answer `pending` (`sourceOutcome(result, { pending: true })`)
