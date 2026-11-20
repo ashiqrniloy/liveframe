@@ -259,11 +259,11 @@ test("defer_offscreen_content_stays_focusable", async () => {
       return { visibility, focused: document.activeElement === inner, tabIndex: inner.tabIndex };
     }, deferred);
     expect(state).toEqual({ visibility: "auto", focused: true, tabIndex: 0 });
-    expect(await page.evaluate(() => scrollY)).toBeGreaterThan(0);
+    await page.waitForFunction(() => window.scrollY > 0, undefined, { timeout: 5000 });
   } finally {
     await page.close();
   }
-});
+}, 15000);
 
 test("switching_fixture_loads_primitive_css", async () => {
   const page = await browser.newPage({ viewport: { width: 1700, height: 1000 } });

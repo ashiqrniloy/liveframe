@@ -155,6 +155,7 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
     - The React browser file passed twice on Firefox after the timeout change (63 tests each, one-minute loads 8.09 and 5.99). The independent React 19.0.0 peer-floor runs each passed 163 tests at one-minute loads 3.83 and 12.77. The Playwright 1.49.0 floor passed 23 tests and the MCP SDK 2.0.0 floor passed 89.
     - On the final test changes, `LIVEFRAME_BROWSER=firefox bun run check` passed with 2,123 tests and seven skips. The full WebKit suite passed with 2,117 tests and 13 skips. Both runs passed the worker recovery and React confirmation cases that failed in the earlier Firefox run.
     - With the owner's approval, pushed `main`. [CI run 44817568825](https://github.com/ashiqrniloy/liveframe/actions/runs/44817568825) exposed an order-dependent tree-patch test. The test now uses the named `valid.json` fixture for its empty-children case and still checks all eligible corpus pairs. The CI job limit is 60 minutes to allow for three sequential browser suites and the release gates. The first Chromium check alone took over 11 minutes.
+    - [CI run 44819635854](https://github.com/ashiqrniloy/liveframe/actions/runs/44819635854) passed Chromium. In WebKit, the offscreen control had focus but the scroll position was still zero on the immediate read. The test now waits up to five seconds for the same positive scroll position and still checks focus, tab order and CSS visibility.
 
 - [ ] Task 3: Write the release documentation
   - Acceptance Criteria:
