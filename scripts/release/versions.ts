@@ -1,24 +1,36 @@
 #!/usr/bin/env bun
 /**
  * Fail unless every workspace package is at one version (lockstep releases, decision 2026-11-08-2310),
- * every package that peers on `@arnilo/liveframe` says so with a `~` range, and, with `--tag`, the tag
+ * every package that peers on `@arnilo/liveframe` says so with the `~X.Y.0` range of that version
+ * (`~X.Y.0-0` for a prerelease), and, with `--tag`, the tag
  * names that version.
  *
  *   timeout 60s bun scripts/release/versions.ts [--tag v0.3.0]
  */
 import { type Manifest, packageDirs, readManifest } from "./packages.ts";
 
+/** The range a companion must peer on: `~X.Y.0` for `X.Y.Z`, `~X.Y.0-0` while the version is a prerelease. */
+function expectedPeerRange(version: string): string | undefined {
+  const match = /^(\d+)\.(\d+)\.\d+(-[\w.-]+)?(?:\+[\w.-]+)?$/.exec(version);
+  return match ? `~${match[1]}.${match[2]}.0${match[3] ? "-0" : ""}` : undefined;
+}
+
 export function versionProblems(manifests: readonly Manifest[], tag?: string): string[] {
   const problems: string[] = [];
   const [first] = manifests;
   if (!first) return ["no packages"];
+  const expected = expectedPeerRange(first.version);
+  if (expected === undefined) problems.push(`${first.name} has invalid release version ${first.version}`);
   for (const manifest of manifests)
     if (manifest.version !== first.version)
       problems.push(`${manifest.name} is ${manifest.version}, ${first.name} is ${first.version}`);
   for (const manifest of manifests) {
+    if (manifest.name === "@arnilo/liveframe") continue;
     const peer = manifest.peerDependencies?.["@arnilo/liveframe"];
-    if (manifest.name !== "@arnilo/liveframe" && !peer?.startsWith("~"))
-      problems.push(`${manifest.name} must peer on @arnilo/liveframe with a ~ range, not ${peer ?? "nothing"}`);
+    if (expected !== undefined && peer !== expected)
+      problems.push(
+        `${manifest.name} must peer on @arnilo/liveframe at ${expected} for ${first.version}, not ${peer ?? "nothing"}`,
+      );
   }
   if (tag !== undefined && tag !== `v${first.version}`)
     problems.push(`tag ${tag} does not match the package version v${first.version}`);

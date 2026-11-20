@@ -103,7 +103,7 @@ test("unconfirmed_action_never_reaches_on_intent_and_confirm_throw_raises_nothin
       await page.close();
     }
   }
-});
+}, 30000);
 test("form_submit_carries_all_fields", async () => {
   const page = await browser.newPage();
   try {

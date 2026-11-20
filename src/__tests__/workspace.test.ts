@@ -72,6 +72,40 @@ test("publish_workflow_fails_on_version_mismatch", () => {
   expect(versionProblems([])).toEqual(["no packages"]);
 });
 
+test("version_problems_reject_a_peer_range_for_another_minor", () => {
+  const core = { name: "@arnilo/liveframe", version: "0.4.0", exports: null, files: [] };
+  const runner = {
+    name: "@arnilo/liveframe-runner-quickjs",
+    version: "0.4.0",
+    exports: null,
+    files: [],
+    peerDependencies: { "@arnilo/liveframe": "~0.4.0" },
+  };
+  expect(versionProblems([core, runner])).toEqual([]);
+  expect(
+    versionProblems([
+      { ...core, version: "0.4.1" },
+      { ...runner, version: "0.4.1" },
+    ]),
+  ).toEqual([]);
+  expect(versionProblems([core, { ...runner, peerDependencies: { "@arnilo/liveframe": "~0.3.0" } }])).toEqual([
+    "@arnilo/liveframe-runner-quickjs must peer on @arnilo/liveframe at ~0.4.0 for 0.4.0, not ~0.3.0",
+  ]);
+});
+
+test("version_problems_require_the_prerelease_floor_on_an_rc", () => {
+  const core = { name: "@arnilo/liveframe", version: "0.4.0-rc.1", exports: null, files: [] };
+  const runner = {
+    name: "@arnilo/liveframe-runner-quickjs",
+    version: "0.4.0-rc.1",
+    exports: null,
+    files: [],
+    peerDependencies: { "@arnilo/liveframe": "~0.4.0-0" },
+  };
+  expect(versionProblems([core, runner])).toEqual([]);
+  expect(versionProblems([core, { ...runner, peerDependencies: { "@arnilo/liveframe": "~0.4.0" } }])).toHaveLength(1);
+});
+
 test("archive_rules_forbid_and_require_files", () => {
   const needs = { forbid: [], require: [/^dist\/child\.js$/, /\.wasm$/] };
   expect(archiveProblems(needs, ["dist/child.js", "dist/q.wasm"])).toEqual([]);

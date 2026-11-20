@@ -165,7 +165,7 @@ test("missing_local_fixtures_fail_with_the_named_rule", async () => {
     url: server.url.href,
   }).filter((c) => localRules.includes(c.name)))
     await expect(c.run()).rejects.toMatchObject({ rule: c.name, details: [expect.stringContaining("fixture")] });
-}, 60000);
+}, 240000);
 
 test("conformance_page_accepts_trees_only_and_rejects_unknown_styles", async () => {
   const page = await browser.newPage();

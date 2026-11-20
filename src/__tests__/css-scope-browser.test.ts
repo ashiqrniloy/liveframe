@@ -33,7 +33,7 @@ beforeAll(async () => {
   // This CSS-only harness supplies its own scopes around the captured Surface markup.
   markup = markup.replace(/ data-lf-(?:theme|ds)="[^"]*"/g, "");
   browser = await launchBrowser();
-});
+}, 30000);
 afterAll(async () => browser?.close());
 
 async function mount(page: Page, installed = { sheets, markup }) {

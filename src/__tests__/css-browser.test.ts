@@ -47,7 +47,7 @@ const system: DesignSystem = { ...proofSystem, recipes };
 let browser: Browser;
 beforeAll(async () => {
   browser = await launchBrowser();
-});
+}, 30000);
 afterAll(async () => {
   await browser?.close();
 });

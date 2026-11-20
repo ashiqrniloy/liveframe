@@ -682,11 +682,15 @@ export default function Big() {
 `,
     },
   };
-  const result = await withClient(async (client) => {
-    const packed = await call(client, "pack_draft", { ...draft, entry: "big.tsx" });
-    expect(packed.isError).toBe(false);
-    return call(client, "render_scenarios", { scenario: agentScenario });
-  });
+  // The render budget is raised so a loaded host cannot hit the 100 ms render limit (pointer "") first.
+  const result = await withClient(
+    async (client) => {
+      const packed = await call(client, "pack_draft", { ...draft, entry: "big.tsx" });
+      expect(packed.isError).toBe(false);
+      return call(client, "render_scenarios", { scenario: agentScenario });
+    },
+    { config: `${fixtures}/mcp-slow-render.config.ts` },
+  );
   expect(result.isError).toBe(true);
   const [error] = result.json() as LiveframeError[];
   expect(error?.kind).toBe("limit-exceeded");

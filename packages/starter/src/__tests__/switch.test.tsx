@@ -13,7 +13,7 @@ import { capabilities, manifest, pageOptions, tree } from "./host.ts";
 let browser: Browser;
 beforeAll(async () => {
   browser = await launchBrowser();
-});
+}, 60000);
 afterAll(() => browser?.close());
 
 // Fifty rows: a title, a hint, a switch and two buttons each, the shape of a list widget.

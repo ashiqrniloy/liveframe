@@ -118,8 +118,8 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
       - `surgical-patch` — the timeout and the peer-range check.
       - `liveframe-execution` — never weaken a law test.
     - Library Documentation to Check Before Implementation:
-      - Bun 1.4 test runner per-test timeout argument (`find-docs`).
-      - Playwright 1.64 `browser.newPage` lifecycle, if a crash cascade reproduces (`find-docs`).
+      - Bun 1.4.2 confirms the third argument to `test` sets the timeout in milliseconds ([Bun documentation](https://github.com/oven-sh/bun/blob/bun-v1.4.2/docs/test/runtime-behavior.mdx), checked via Context7).
+      - Playwright 1.64.1 confirms that closing a page created by `browser.newPage` closes its context ([Playwright documentation](https://github.com/microsoft/playwright/blob/v1.64.1/docs/src/api/class-browser.md), checked via Context7).
     - Documentation Reviewed:
       - The 2026-11-20 readiness check: WebKit 2114 pass / 1 fail; Firefox 2112 / 10; peer floors 101 / 62, then all three floors pass on re-run.
       - CI run 42996104401: red on the removed `in_process_warm_overhead_under_point_one_ms`.
@@ -138,11 +138,23 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
       - `src/__tests__/conformance-renderer-browser.test.tsx`: timeout.
       - `scripts/release/versions.ts`: peer-range rule.
       - `src/__tests__/workspace.test.ts`: the existing `versionProblems` tests gain the peer-range cases.
-      - The owning files of any failure that reproduces (tentative).
+      - `packages/starter/src/__tests__/switch.test.tsx`: give browser launch the same 60 s setup budget as the starter renderer browser suite.
+      - `src/__tests__/{css-browser,css-scope-browser,preview-react}.test.tsx`: give browser setup a 30 s budget.
+      - `src/__tests__/react-browser.test.tsx`: give the four-outcome confirmation test a 30 s timeout after its default 5 s timeout killed the shared Firefox process.
+      - `src/__tests__/cli-mcp.test.ts` and `src/__tests__/fixtures/mcp-slow-render.config.ts`: isolate the tree byte-cap assertion from the default render deadline.
   - Test Cases to Write:
     - `version_problems_reject_a_peer_range_for_another_minor`: `0.4.0` with `~0.3.0` fails; breaks if the rule is removed.
     - `version_problems_require_the_prerelease_floor_on_an_rc`: `0.4.0-rc.1` with `~0.4.0` fails and `~0.4.0-0` passes; breaks if prereleases are not handled.
     - Existing `missing_local_fixtures_fail_with_the_named_rule` passes three times under `LIVEFRAME_BROWSER=webkit`.
+  - Notes (local verification 2026-11-21):
+    - On a 16-CPU host, isolated Firefox reruns used one-minute load averages of 5.74 and 4.23 for starter conformance (16 passed each), 4.25 and 5.57 for the windowed suite (3 passed each), and 4.23 and 5.52 for switch setup (no failure, with its existing Chromium-only timing test skipped). Starter conformance and the windowed failures did not recur. The 2026-11-20 report does not record the original numeric load.
+    - The MCP byte-cap test passed twice at one-minute loads of 4.23 and 5.52. Its default in-process runner can return `limit-exceeded` with pointer `""` when its 100 ms module evaluation or render deadline wins. The original error message is unavailable, so the pointer alone cannot distinguish the two stages. The test-only render deadline is 10 s and the assertion still requires the 262,144-byte cap at `/scenario`.
+    - The version gate checks the exact companion peer range for the lockstep version. The workspace tests cover stable, patch and prerelease versions. In a temporary CLI check, `0.4.0` with peer `~0.3.0` exited 1 and `~0.4.0` exited 0.
+    - The named WebKit fixture test passed three times in 25.18 s, 24.17 s and 25.07 s. The Chromium `bun run check` passed with 2,124 tests and six skips before the confirmation test timeout change below. The archive gate passed for all four packages, the demo passed 78 tests, and the getting-started guide passed.
+    - A concurrent full Firefox run hit two independent failures. The worker-recycle test reported `Worker did not start` and passed both isolated reruns at a one-minute load of 17.85. The four-outcome confirmation test hit Bun's 5 s default, Bun logged `killed 1 dangling process`, and subsequent cases reported the shared browser was closed. The confirmation test now has a 30 s timeout.
+    - The React browser file passed twice on Firefox after the timeout change (63 tests each, one-minute loads 8.09 and 5.99). The independent React 19.0.0 peer-floor runs each passed 163 tests at one-minute loads 3.83 and 12.77. The Playwright 1.49.0 floor passed 23 tests and the MCP SDK 2.0.0 floor passed 89.
+    - On the final test changes, `LIVEFRAME_BROWSER=firefox bun run check` passed with 2,123 tests and seven skips. The full WebKit suite passed with 2,117 tests and 13 skips. Both runs passed the worker recovery and React confirmation cases that failed in the earlier Firefox run.
+    - The task remains open pending approval to push `main` and a green CI run on the pushed commit. The last run on `main` is [42996104401](https://github.com/ashiqrniloy/liveframe/actions/runs/42996104401) on `b4e2359`.
 
 - [ ] Task 3: Write the release documentation
   - Acceptance Criteria:
