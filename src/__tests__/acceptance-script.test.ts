@@ -57,6 +57,27 @@ test("acceptance_script_lists_every_bullet", () => {
   expect(isNotApplicable(text(5))).toBe(false);
 });
 
+const release040 = {
+  plans: "033-039",
+  map: "plans/evidence/040-acceptance-map.json",
+  plansDir: "plans",
+  benchRecord: "plans/evidence/040-bench.md",
+  skipRuns: true,
+};
+
+test("acceptance_map_covers_every_bullet_of_plans_033_to_039", () => {
+  const { counts, problems } = generate(release040);
+  expect(problems).toEqual([]);
+  expect(counts.unmapped).toBe(0);
+  expect(counts.fail).toBe(0);
+}, 20000);
+
+test("acceptance_log_header_names_the_given_map", () => {
+  const header = generate(release040).markdown.split("## Run")[0];
+  expect(header).toContain(`joined to its proof by \`${release040.map}\``);
+  expect(header).toContain(`--bench ${release040.benchRecord}`);
+}, 20000);
+
 test("acceptance_map_covers_every_bullet_of_plans_026_to_031", () => {
   // Joins the real plan files to the real mapping file without running any proof.
   const { counts, problems } = generate({

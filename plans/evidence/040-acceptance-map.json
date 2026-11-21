@@ -1,0 +1,3517 @@
+{
+  "commands": {
+    "demo": "timeout 900 bun run demo:test",
+    "033.T9": "timeout 300 bun test --conditions liveframe:source src/__tests__/catalog.test.ts src/__tests__/schema.test.ts src/__tests__/vocabulary.test.ts src/__tests__/manifest.test.ts src/__tests__/sdk-stream.test.ts",
+    "034.T4": "timeout 300 bun test --conditions liveframe:source src/__tests__/hash-vectors.test.ts src/__tests__/pack-hash.test.ts",
+    "034.T5": "timeout 300 bun test --conditions liveframe:source src/__tests__/sdk-inputs.test.tsx",
+    "034.T6": "timeout 300 bun test --conditions liveframe:source packages/runner-quickjs/src/__tests__/engine.test.ts src/__tests__/conformance-runner.test.ts",
+    "036.T1": "timeout 300 bun test --conditions liveframe:source src/__tests__/validator-facts.test.tsx src/__tests__/offered.test.ts",
+    "036.T1a": "timeout 300 bun test --conditions liveframe:source src/__tests__/bench-stats.test.ts src/__tests__/sdk-build-work.test.ts src/__tests__/surface-core-work.test.ts",
+    "036.T2": "timeout 300 bun test --conditions liveframe:source src/__tests__/tree-rule-parity.test.ts src/__tests__/sdk-elements.test.ts",
+    "036.T3": "timeout 300 bun test --conditions liveframe:source src/__tests__/sdk-build-work.test.ts src/__tests__/tree-rule-parity.test.ts src/__tests__/sdk-render.test.tsx src/__tests__/sdk-stream.test.ts src/__tests__/template-render.test.ts",
+    "036.T4": "timeout 300 bun test --conditions liveframe:source src/__tests__/surface-core-work.test.ts src/__tests__/surface-core.test.ts src/__tests__/surface-dom-parity.test.ts",
+    "036.T5": "timeout 300 bun test --conditions liveframe:source src/__tests__/template-expr.test.ts src/__tests__/template-render.test.ts src/__tests__/template-document.test.ts src/__tests__/local-bindings.test.tsx src/__tests__/portability.test.ts",
+    "036.T6": "timeout 300 bun test --conditions liveframe:source src/__tests__/source-comments.test.ts",
+    "037.T2": "timeout 300 bun test --conditions liveframe:source src/__tests__/local-bindings.test.tsx src/__tests__/surface-core.test.ts src/__tests__/offered.test.ts",
+    "037.T3": "timeout 300 bun test --conditions liveframe:source src/__tests__/local-bindings.test.tsx src/__tests__/surface-core.test.ts src/__tests__/offered.test.ts src/__tests__/host-intent.test.ts",
+    "037.T4": "timeout 300 bun test --conditions liveframe:source src/__tests__/array-events.test.tsx src/__tests__/offered.test.ts",
+    "037.T5": "timeout 300 bun test --conditions liveframe:source src/__tests__/focus-mark.test.tsx",
+    "037.T6": "timeout 300 bun test --conditions liveframe:source src/__tests__/host-intent.test.ts src/__tests__/store-memory.test.ts src/__tests__/store-file.test.ts src/__tests__/conformance-store.test.ts",
+    "037.T7": "timeout 300 bun test --conditions liveframe:source src/__tests__/shown-root.test.tsx src/__tests__/elements-bindings.test.ts",
+    "037.T8": "timeout 300 bun test --conditions liveframe:source src/__tests__/conformance-renderer.test.tsx src/__tests__/conformance-renderer-browser.test.tsx src/__tests__/conformance-guide.test.ts proof/tests/conformance-browser.test.ts",
+    "038.T2": "timeout 300 bun test --conditions liveframe:source src/__tests__/outcome.test.ts src/__tests__/host-render.test.ts src/__tests__/host-guide.test.ts",
+    "038.T3": "timeout 300 bun test --conditions liveframe:source src/__tests__/design-system.test.ts src/__tests__/react-motion-browser.test.tsx src/__tests__/dom-motion-browser.test.ts",
+    "038.T4": "timeout 300 bun test --conditions liveframe:source packages/starter/src/__tests__/windowed.test.ts packages/starter/src/__tests__/windowed-browser.test.ts",
+    "038.T5": "timeout 300 bun test --conditions liveframe:source src/__tests__/dom-browser.test.ts src/__tests__/surface-dom-parity.test.ts src/__tests__/portability.test.ts",
+    "038.T6": "timeout 300 bun test --conditions liveframe:source src/__tests__/conformance-dom-browser.test.ts src/__tests__/dom-browser.test.ts src/__tests__/dom-motion-browser.test.ts src/__tests__/dom-guide.test.ts",
+    "038.T6a": "timeout 300 bun test --conditions liveframe:source src/__tests__/migration-guide.test.ts packages/starter/src/__tests__/suites.test.ts",
+    "039.T2": "timeout 300 bun test --conditions liveframe:source src/__tests__/elements-bindings.test.ts src/__tests__/sdk-elements.test.ts src/__tests__/tree-rule-parity.test.ts",
+    "039.T3": "timeout 300 bun test --conditions liveframe:source src/__tests__/sdk-digest.test.ts src/__tests__/cli-mcp.test.ts",
+    "039.T4": "timeout 300 bun test --conditions liveframe:source packages/a2ui/src/__tests__/a2ui.test.ts src/__tests__/workspace.test.ts src/__tests__/exports.test.ts",
+    "039.T5": "timeout 300 bun test --conditions liveframe:source packages/starter/src/__tests__/controls-browser.test.ts packages/starter/src/__tests__/generic.test.ts packages/starter/src/__tests__/suites.test.ts packages/starter/src/__tests__/browser.test.ts",
+    "039.T6": "timeout 300 bun test --conditions liveframe:source packages/starter/src/__tests__/content-browser.test.ts packages/starter/src/__tests__/rich-text.test.ts src/__tests__/url.test.ts src/__tests__/exports.test.ts"
+  },
+  "rows": {
+    "033.EO.1": {
+      "docs": [
+        "decision-logs/2026-11-15-1251-review-2026-11-15-scope.md"
+      ]
+    },
+    "033.EO.2": {
+      "tests": [
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
+      ],
+      "docs": [
+        "decision-logs/2026-11-15-1251-review-2026-11-15-scope.md",
+        "scripts/release/api/0.3.0.json :: generatedFrom",
+        "scripts/release/api/register-0.3.1.json"
+      ]
+    },
+    "033.EO.3": {
+      "tests": [
+        "revision_floor_used_without_previous",
+        "revision_floor_below_previous_still_advances",
+        "revision_floor_above_previous_is_used"
+      ]
+    },
+    "033.EO.4": {
+      "tests": [
+        "skips_render_when_key_unchanged",
+        "guide_examples_send_nothing_for_a_skipped_render",
+        "skipped_render_returns_previous_with_its_patch"
+      ]
+    },
+    "033.EO.5": {
+      "tests": [
+        "dispatched_action_outcome_survives_a_failed_render",
+        "refused_action_status_survives_a_failed_render",
+        "failure_before_any_status_carries_no_actions",
+        "dispatch_throw_becomes_failed_without_leak"
+      ]
+    },
+    "033.EO.6": {
+      "tests": [
+        "stale_arrival_keeps_an_invalid_surface_invalid",
+        "stale_arrival_on_a_valid_surface_changes_nothing"
+      ]
+    },
+    "033.EO.7": {
+      "tests": [
+        "surface_accepts_a_tree_within_raised_limits",
+        "surface_reads_limits_when_a_tree_arrives",
+        "unreadable_validator_draws_the_fallback"
+      ]
+    },
+    "033.EO.8": {
+      "tests": [
+        "slow_worker_boot_does_not_count_against_the_render_timeout",
+        "worker_that_never_starts_is_render_failed",
+        "render_after_a_timeout_recycle_gets_a_full_budget",
+        "ready_from_a_replaced_worker_is_ignored",
+        "worker_tree_failing_host_validation_is_rejected"
+      ]
+    },
+    "033.EO.9": {
+      "tests": [
+        "sync_throw_from_on_intent_is_contained",
+        "carries_mismatch_still_throws"
+      ]
+    },
+    "033.EO.10": {
+      "cmds": [
+        "033.T9"
+      ],
+      "docs": [
+        "bench/metrics.ts :: function budget",
+        ".github/workflows/ci.yml :: bun run bench",
+        "plans/evidence/033-impact-analysis.md"
+      ],
+      "note": "Current checks plus the recorded timing-assertion inventory."
+    },
+    "033.T1.F1": {
+      "tests": [
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
+      ],
+      "docs": [
+        "decision-logs/2026-11-15-1251-review-2026-11-15-scope.md",
+        "scripts/release/api/0.3.0.json :: generatedFrom",
+        "scripts/release/api/register-0.3.1.json"
+      ]
+    },
+    "033.T1.F2": {
+      "tests": [
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
+      ],
+      "docs": [
+        "decision-logs/2026-11-15-1251-review-2026-11-15-scope.md",
+        "scripts/release/api/0.3.0.json :: generatedFrom",
+        "scripts/release/api/register-0.3.1.json"
+      ]
+    },
+    "033.T1.F3": {
+      "tests": [
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
+      ],
+      "docs": [
+        "decision-logs/2026-11-15-1251-review-2026-11-15-scope.md",
+        "scripts/release/api/0.3.0.json :: generatedFrom",
+        "scripts/release/api/register-0.3.1.json"
+      ]
+    },
+    "033.T1.F4": {
+      "docs": [
+        "roadmap.md :: 2026-11-15-1251-review-2026-11-15-scope.md",
+        "decision-logs/2026-11-15-1251-review-2026-11-15-scope.md"
+      ]
+    },
+    "033.T1.Q1": {
+      "tests": [
+        "baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register"
+      ],
+      "docs": [
+        "decision-logs/2026-11-15-1251-review-2026-11-15-scope.md",
+        "scripts/release/api/0.3.0.json :: generatedFrom",
+        "scripts/release/api/register-0.3.1.json"
+      ]
+    },
+    "033.T2.F1": {
+      "tests": [
+        "revision_floor_used_without_previous",
+        "revision_floor_below_previous_still_advances",
+        "revision_floor_above_previous_is_used"
+      ]
+    },
+    "033.T2.F2": {
+      "tests": [
+        "revision_floor_used_without_previous",
+        "revision_floor_below_previous_still_advances",
+        "revision_floor_above_previous_is_used"
+      ]
+    },
+    "033.T2.F3": {
+      "tests": [
+        "revision_floor_used_without_previous",
+        "revision_floor_below_previous_still_advances",
+        "revision_floor_above_previous_is_used"
+      ],
+      "docs": [
+        "docs/spec.md :: previous.revision + 1"
+      ]
+    },
+    "033.T2.P1": {
+      "tests": [
+        "revision_floor_used_without_previous",
+        "revision_floor_below_previous_still_advances",
+        "revision_floor_above_previous_is_used"
+      ],
+      "bench": [
+        "| `bench/host.bench.ts` | pass |"
+      ]
+    },
+    "033.T2.Q1": {
+      "tests": [
+        "revision_floor_used_without_previous",
+        "revision_floor_below_previous_still_advances",
+        "revision_floor_above_previous_is_used"
+      ]
+    },
+    "033.T2.S1": {
+      "tests": [
+        "revision_floor_used_without_previous",
+        "revision_floor_below_previous_still_advances",
+        "revision_floor_above_previous_is_used"
+      ]
+    },
+    "033.T3.F1": {
+      "tests": [
+        "skips_render_when_key_unchanged",
+        "guide_examples_send_nothing_for_a_skipped_render",
+        "skipped_render_returns_previous_with_its_patch"
+      ]
+    },
+    "033.T3.F2": {
+      "docs": [
+        "docs/host.md :: send nothing for a skipped render"
+      ],
+      "tests": [
+        "guide_examples_send_nothing_for_a_skipped_render"
+      ]
+    },
+    "033.T3.F3": {
+      "tests": [
+        "skips_render_when_key_unchanged",
+        "guide_examples_send_nothing_for_a_skipped_render",
+        "skipped_render_returns_previous_with_its_patch"
+      ]
+    },
+    "033.T3.F4": {
+      "tests": [
+        "skips_render_when_key_unchanged",
+        "guide_examples_send_nothing_for_a_skipped_render",
+        "skipped_render_returns_previous_with_its_patch"
+      ],
+      "docs": [
+        "docs/spec.md :: patch` that produced it"
+      ]
+    },
+    "033.T3.Q1": {
+      "tests": [
+        "skips_render_when_key_unchanged",
+        "guide_examples_send_nothing_for_a_skipped_render",
+        "skipped_render_returns_previous_with_its_patch"
+      ]
+    },
+    "033.T4.F1": {
+      "tests": [
+        "dispatched_action_outcome_survives_a_failed_render",
+        "refused_action_status_survives_a_failed_render",
+        "failure_before_any_status_carries_no_actions",
+        "dispatch_throw_becomes_failed_without_leak"
+      ]
+    },
+    "033.T4.F2": {
+      "tests": [
+        "dispatched_action_outcome_survives_a_failed_render",
+        "refused_action_status_survives_a_failed_render",
+        "failure_before_any_status_carries_no_actions",
+        "dispatch_throw_becomes_failed_without_leak"
+      ]
+    },
+    "033.T4.F3": {
+      "tests": [
+        "dispatched_action_outcome_survives_a_failed_render",
+        "refused_action_status_survives_a_failed_render",
+        "failure_before_any_status_carries_no_actions",
+        "dispatch_throw_becomes_failed_without_leak"
+      ]
+    },
+    "033.T4.F4": {
+      "tests": [
+        "dispatched_action_outcome_survives_a_failed_render",
+        "refused_action_status_survives_a_failed_render",
+        "failure_before_any_status_carries_no_actions",
+        "dispatch_throw_becomes_failed_without_leak"
+      ],
+      "docs": [
+        "docs/spec.md :: failed re-render"
+      ]
+    },
+    "033.T4.P1": {
+      "tests": [
+        "dispatched_action_outcome_survives_a_failed_render",
+        "refused_action_status_survives_a_failed_render",
+        "failure_before_any_status_carries_no_actions",
+        "dispatch_throw_becomes_failed_without_leak"
+      ]
+    },
+    "033.T4.Q1": {
+      "tests": [
+        "dispatched_action_outcome_survives_a_failed_render",
+        "refused_action_status_survives_a_failed_render",
+        "failure_before_any_status_carries_no_actions",
+        "dispatch_throw_becomes_failed_without_leak"
+      ]
+    },
+    "033.T4.S1": {
+      "tests": [
+        "dispatched_action_outcome_survives_a_failed_render",
+        "refused_action_status_survives_a_failed_render",
+        "failure_before_any_status_carries_no_actions",
+        "dispatch_throw_becomes_failed_without_leak"
+      ]
+    },
+    "033.T5.F1": {
+      "tests": [
+        "stale_arrival_keeps_an_invalid_surface_invalid",
+        "stale_arrival_on_a_valid_surface_changes_nothing"
+      ]
+    },
+    "033.T5.F2": {
+      "tests": [
+        "stale_arrival_keeps_an_invalid_surface_invalid",
+        "stale_arrival_on_a_valid_surface_changes_nothing"
+      ]
+    },
+    "033.T5.F3": {
+      "tests": [
+        "stale_arrival_keeps_an_invalid_surface_invalid",
+        "stale_arrival_on_a_valid_surface_changes_nothing"
+      ],
+      "docs": [
+        "docs/spec.md :: ignored arrival"
+      ]
+    },
+    "033.T5.P1": {
+      "tests": [
+        "stale_arrival_keeps_an_invalid_surface_invalid",
+        "stale_arrival_on_a_valid_surface_changes_nothing"
+      ]
+    },
+    "033.T5.Q1": {
+      "tests": [
+        "stale_arrival_keeps_an_invalid_surface_invalid",
+        "stale_arrival_on_a_valid_surface_changes_nothing"
+      ]
+    },
+    "033.T5.S1": {
+      "tests": [
+        "stale_arrival_keeps_an_invalid_surface_invalid",
+        "emit_is_inert_while_the_arrival_is_invalid"
+      ]
+    },
+    "033.T6.F1": {
+      "tests": [
+        "surface_accepts_a_tree_within_raised_limits",
+        "surface_reads_limits_when_a_tree_arrives",
+        "unreadable_validator_draws_the_fallback"
+      ]
+    },
+    "033.T6.F2": {
+      "tests": [
+        "surface_accepts_a_tree_within_raised_limits",
+        "surface_reads_limits_when_a_tree_arrives",
+        "unreadable_validator_draws_the_fallback"
+      ]
+    },
+    "033.T6.F3": {
+      "tests": [
+        "surface_accepts_a_tree_within_raised_limits",
+        "surface_reads_limits_when_a_tree_arrives",
+        "unreadable_validator_draws_the_fallback"
+      ]
+    },
+    "033.T6.F4": {
+      "tests": [
+        "surface_accepts_a_tree_within_raised_limits",
+        "surface_reads_limits_when_a_tree_arrives",
+        "unreadable_validator_draws_the_fallback"
+      ]
+    },
+    "033.T6.F5": {
+      "tests": [
+        "surface_accepts_a_tree_within_raised_limits",
+        "surface_reads_limits_when_a_tree_arrives",
+        "unreadable_validator_draws_the_fallback"
+      ],
+      "docs": [
+        "docs/renderer.md :: limits"
+      ]
+    },
+    "033.T6.P1": {
+      "tests": [
+        "surface_accepts_a_tree_within_raised_limits",
+        "surface_reads_limits_when_a_tree_arrives",
+        "unreadable_validator_draws_the_fallback"
+      ],
+      "bench": [
+        "| `bench/render.bench.ts` | pass |",
+        "| `bench/selection.bench.ts` | pass |"
+      ]
+    },
+    "033.T6.Q1": {
+      "tests": [
+        "surface_accepts_a_tree_within_raised_limits",
+        "surface_reads_limits_when_a_tree_arrives",
+        "unreadable_validator_draws_the_fallback"
+      ]
+    },
+    "033.T6.S1": {
+      "tests": [
+        "surface_accepts_a_tree_within_raised_limits",
+        "surface_reads_limits_when_a_tree_arrives",
+        "unreadable_validator_draws_the_fallback"
+      ]
+    },
+    "033.T7.F1": {
+      "tests": [
+        "slow_worker_boot_does_not_count_against_the_render_timeout",
+        "worker_that_never_starts_is_render_failed",
+        "render_after_a_timeout_recycle_gets_a_full_budget",
+        "ready_from_a_replaced_worker_is_ignored",
+        "worker_tree_failing_host_validation_is_rejected"
+      ]
+    },
+    "033.T7.F2": {
+      "tests": [
+        "slow_worker_boot_does_not_count_against_the_render_timeout",
+        "worker_that_never_starts_is_render_failed",
+        "render_after_a_timeout_recycle_gets_a_full_budget",
+        "ready_from_a_replaced_worker_is_ignored",
+        "worker_tree_failing_host_validation_is_rejected"
+      ]
+    },
+    "033.T7.F3": {
+      "tests": [
+        "slow_worker_boot_does_not_count_against_the_render_timeout",
+        "worker_that_never_starts_is_render_failed",
+        "render_after_a_timeout_recycle_gets_a_full_budget",
+        "ready_from_a_replaced_worker_is_ignored",
+        "worker_tree_failing_host_validation_is_rejected"
+      ]
+    },
+    "033.T7.F4": {
+      "tests": [
+        "slow_worker_boot_does_not_count_against_the_render_timeout",
+        "worker_that_never_starts_is_render_failed",
+        "render_after_a_timeout_recycle_gets_a_full_budget",
+        "ready_from_a_replaced_worker_is_ignored",
+        "worker_tree_failing_host_validation_is_rejected"
+      ],
+      "docs": [
+        "docs/preview.md :: startTimeoutMs"
+      ]
+    },
+    "033.T7.P1": {
+      "tests": [
+        "slow_worker_boot_does_not_count_against_the_render_timeout",
+        "worker_that_never_starts_is_render_failed",
+        "render_after_a_timeout_recycle_gets_a_full_budget",
+        "ready_from_a_replaced_worker_is_ignored",
+        "worker_tree_failing_host_validation_is_rejected"
+      ],
+      "bench": [
+        "| `bench/runner.bench.ts` | pass |"
+      ]
+    },
+    "033.T7.Q1": {
+      "tests": [
+        "slow_worker_boot_does_not_count_against_the_render_timeout",
+        "worker_that_never_starts_is_render_failed",
+        "render_after_a_timeout_recycle_gets_a_full_budget",
+        "ready_from_a_replaced_worker_is_ignored",
+        "worker_tree_failing_host_validation_is_rejected"
+      ]
+    },
+    "033.T7.S1": {
+      "tests": [
+        "slow_worker_boot_does_not_count_against_the_render_timeout",
+        "worker_that_never_starts_is_render_failed",
+        "render_after_a_timeout_recycle_gets_a_full_budget",
+        "ready_from_a_replaced_worker_is_ignored",
+        "worker_tree_failing_host_validation_is_rejected"
+      ]
+    },
+    "033.T8.F1": {
+      "tests": [
+        "sync_throw_from_on_intent_is_contained",
+        "carries_mismatch_still_throws"
+      ]
+    },
+    "033.T8.F2": {
+      "tests": [
+        "sync_throw_from_on_intent_is_contained",
+        "carries_mismatch_still_throws"
+      ]
+    },
+    "033.T8.F3": {
+      "tests": [
+        "sync_throw_from_on_intent_is_contained",
+        "carries_mismatch_still_throws"
+      ],
+      "docs": [
+        "docs/spec.md :: a rejection or a throw is contained"
+      ]
+    },
+    "033.T8.P1": {
+      "tests": [
+        "sync_throw_from_on_intent_is_contained",
+        "carries_mismatch_still_throws"
+      ]
+    },
+    "033.T8.Q1": {
+      "tests": [
+        "sync_throw_from_on_intent_is_contained",
+        "carries_mismatch_still_throws"
+      ]
+    },
+    "033.T9.F1": {
+      "cmds": [
+        "033.T9"
+      ],
+      "docs": [
+        "bench/metrics.ts :: function budget",
+        ".github/workflows/ci.yml :: bun run bench",
+        "plans/evidence/033-impact-analysis.md"
+      ]
+    },
+    "033.T9.F2": {
+      "cmds": [
+        "033.T9"
+      ],
+      "docs": [
+        "bench/metrics.ts :: function budget",
+        ".github/workflows/ci.yml :: bun run bench",
+        "plans/evidence/033-impact-analysis.md"
+      ]
+    },
+    "033.T9.F3": {
+      "cmds": [
+        "033.T9"
+      ],
+      "docs": [
+        "bench/metrics.ts :: function budget",
+        ".github/workflows/ci.yml :: bun run bench",
+        "plans/evidence/033-impact-analysis.md"
+      ]
+    },
+    "033.T9.P1": {
+      "bench": [
+        "| `bench/validator.bench.ts` | pass |",
+        "| `bench/render.bench.ts` | pass |",
+        "| `bench/css.bench.ts` | pass |",
+        "| `bench/streaming.bench.ts` | pass |",
+        "| `bench/template.bench.ts` | pass |",
+        "| `bench/host.bench.ts` | pass |",
+        "| `bench/runner.bench.ts` | pass |"
+      ],
+      "docs": [
+        "plans/evidence/033-impact-analysis.md",
+        "bench/metrics.ts :: function budget"
+      ]
+    },
+    "033.T9.Q1": {
+      "cmds": [
+        "033.T9"
+      ],
+      "docs": [
+        "bench/metrics.ts :: function budget",
+        ".github/workflows/ci.yml :: bun run bench",
+        "plans/evidence/033-impact-analysis.md"
+      ]
+    },
+    "033.T9.S1": {
+      "cmds": [
+        "033.T9"
+      ],
+      "docs": [
+        "bench/metrics.ts :: function budget",
+        ".github/workflows/ci.yml :: bun run bench",
+        "plans/evidence/033-impact-analysis.md"
+      ]
+    },
+    "033.T10.F1": {
+      "docs": [
+        "plans/evidence/033-impact-analysis.md :: ## 2. Findings and Disposition"
+      ]
+    },
+    "033.T10.P1": {
+      "docs": [
+        "plans/evidence/033-impact-analysis.md :: ### 7. Performance"
+      ]
+    },
+    "033.T10.Q1": {
+      "docs": [
+        "plans/evidence/033-impact-analysis.md :: ## 2. Findings and Disposition"
+      ]
+    },
+    "033.T10.S1": {
+      "docs": [
+        "plans/evidence/033-impact-analysis.md :: ### 3. The Four Laws"
+      ]
+    },
+    "034.EO.1": {
+      "tests": [
+        "bench_json_reports_the_code_package_split"
+      ],
+      "docs": [
+        "plans/evidence/034-baseline.md",
+        "bench/host.bench.ts"
+      ]
+    },
+    "034.EO.2": {
+      "tests": [
+        "verified_hit_returns_the_cached_object_without_hashing",
+        "record_differing_in_one_nested_value_misses",
+        "tampered_code_with_the_original_hash_is_hash_mismatch",
+        "same_package_under_another_install_misses",
+        "runner_does_not_rehash_a_cached_package"
+      ],
+      "docs": [
+        "src/store/verified.ts :: sameJson"
+      ],
+      "bench": [
+        "| `bench/host.bench.ts` | pass |"
+      ]
+    },
+    "034.EO.3": {
+      "docs": [
+        "plans/evidence/034-scenarios-at-request-time.md :: Options Considered and Rationale for Outcome"
+      ]
+    },
+    "034.EO.4": {
+      "cmds": [
+        "034.T4"
+      ],
+      "docs": [
+        "bench/hash.bench.ts"
+      ]
+    },
+    "034.EO.5": {
+      "cmds": [
+        "034.T5"
+      ],
+      "docs": [
+        "src/sdk/render.ts :: WeakSet",
+        "bench/render.bench.ts :: composed-6-layers"
+      ]
+    },
+    "034.EO.6": {
+      "cmds": [
+        "034.T6"
+      ],
+      "docs": [
+        "plans/evidence/034-quickjs-validator.md"
+      ]
+    },
+    "034.T1.F1": {
+      "tests": [
+        "bench_json_reports_the_code_package_split"
+      ],
+      "docs": [
+        "plans/evidence/034-baseline.md",
+        "bench/host.bench.ts"
+      ]
+    },
+    "034.T1.F2": {
+      "tests": [
+        "bench_json_reports_the_code_package_split"
+      ],
+      "docs": [
+        "plans/evidence/034-baseline.md",
+        "bench/host.bench.ts"
+      ]
+    },
+    "034.T1.F3": {
+      "tests": [
+        "bench_json_reports_the_code_package_split"
+      ],
+      "docs": [
+        "plans/evidence/034-baseline.md",
+        "bench/host.bench.ts"
+      ]
+    },
+    "034.T1.P1": {
+      "tests": [
+        "bench_json_reports_the_code_package_split"
+      ],
+      "docs": [
+        "plans/evidence/034-baseline.md",
+        "bench/host.bench.ts"
+      ]
+    },
+    "034.T1.Q1": {
+      "tests": [
+        "bench_json_reports_the_code_package_split"
+      ],
+      "docs": [
+        "plans/evidence/034-baseline.md",
+        "bench/host.bench.ts"
+      ]
+    },
+    "034.T2.F1": {
+      "tests": [
+        "verified_hit_returns_the_cached_object_without_hashing",
+        "record_differing_in_one_nested_value_misses",
+        "tampered_code_with_the_original_hash_is_hash_mismatch",
+        "same_package_under_another_install_misses",
+        "runner_does_not_rehash_a_cached_package"
+      ],
+      "docs": [
+        "src/store/verified.ts :: sameJson"
+      ]
+    },
+    "034.T2.F2": {
+      "tests": [
+        "verified_hit_returns_the_cached_object_without_hashing",
+        "record_differing_in_one_nested_value_misses",
+        "tampered_code_with_the_original_hash_is_hash_mismatch",
+        "same_package_under_another_install_misses",
+        "runner_does_not_rehash_a_cached_package"
+      ],
+      "docs": [
+        "src/store/verified.ts :: sameJson"
+      ]
+    },
+    "034.T2.F3": {
+      "tests": [
+        "verified_hit_returns_the_cached_object_without_hashing",
+        "record_differing_in_one_nested_value_misses",
+        "tampered_code_with_the_original_hash_is_hash_mismatch",
+        "same_package_under_another_install_misses",
+        "runner_does_not_rehash_a_cached_package"
+      ],
+      "docs": [
+        "src/store/verified.ts :: sameJson"
+      ]
+    },
+    "034.T2.F4": {
+      "tests": [
+        "verified_hit_returns_the_cached_object_without_hashing",
+        "record_differing_in_one_nested_value_misses",
+        "tampered_code_with_the_original_hash_is_hash_mismatch",
+        "same_package_under_another_install_misses",
+        "runner_does_not_rehash_a_cached_package"
+      ],
+      "docs": [
+        "src/store/verified.ts :: sameJson"
+      ]
+    },
+    "034.T2.F5": {
+      "tests": [
+        "verified_hit_returns_the_cached_object_without_hashing",
+        "record_differing_in_one_nested_value_misses",
+        "tampered_code_with_the_original_hash_is_hash_mismatch",
+        "same_package_under_another_install_misses",
+        "runner_does_not_rehash_a_cached_package"
+      ],
+      "docs": [
+        "src/store/verified.ts :: sameJson",
+        "docs/host.md :: verifiedPackages"
+      ]
+    },
+    "034.T2.P1": {
+      "tests": [
+        "verified_hit_returns_the_cached_object_without_hashing",
+        "record_differing_in_one_nested_value_misses",
+        "tampered_code_with_the_original_hash_is_hash_mismatch",
+        "same_package_under_another_install_misses",
+        "runner_does_not_rehash_a_cached_package"
+      ],
+      "docs": [
+        "src/store/verified.ts :: sameJson"
+      ],
+      "bench": [
+        "| `bench/host.bench.ts` | pass |"
+      ]
+    },
+    "034.T2.Q1": {
+      "tests": [
+        "verified_hit_returns_the_cached_object_without_hashing",
+        "record_differing_in_one_nested_value_misses",
+        "tampered_code_with_the_original_hash_is_hash_mismatch",
+        "same_package_under_another_install_misses",
+        "runner_does_not_rehash_a_cached_package"
+      ],
+      "docs": [
+        "src/store/verified.ts :: sameJson"
+      ]
+    },
+    "034.T2.S1": {
+      "tests": [
+        "verified_hit_returns_the_cached_object_without_hashing",
+        "record_differing_in_one_nested_value_misses",
+        "tampered_code_with_the_original_hash_is_hash_mismatch",
+        "same_package_under_another_install_misses",
+        "runner_does_not_rehash_a_cached_package"
+      ],
+      "docs": [
+        "src/store/verified.ts :: sameJson"
+      ]
+    },
+    "034.T3.F1": {
+      "docs": [
+        "plans/evidence/034-scenarios-at-request-time.md :: Options Considered and Rationale for Outcome"
+      ]
+    },
+    "034.T3.F2": {
+      "docs": [
+        "plans/evidence/034-scenarios-at-request-time.md :: Options Considered and Rationale for Outcome"
+      ]
+    },
+    "034.T3.F3": {
+      "docs": [
+        "plans/evidence/034-scenarios-at-request-time.md :: Options Considered and Rationale for Outcome"
+      ],
+      "note": "Conditional branch. The measured cost was within budget, so Option C applied."
+    },
+    "034.T3.P1": {
+      "docs": [
+        "plans/evidence/034-scenarios-at-request-time.md :: Options Considered and Rationale for Outcome"
+      ]
+    },
+    "034.T3.Q1": {
+      "docs": [
+        "plans/evidence/034-scenarios-at-request-time.md :: Options Considered and Rationale for Outcome"
+      ]
+    },
+    "034.T3.S1": {
+      "docs": [
+        "plans/evidence/034-scenarios-at-request-time.md :: Options Considered and Rationale for Outcome"
+      ]
+    },
+    "034.T4.F1": {
+      "cmds": [
+        "034.T4"
+      ],
+      "docs": [
+        "bench/hash.bench.ts"
+      ]
+    },
+    "034.T4.F2": {
+      "cmds": [
+        "034.T4"
+      ],
+      "docs": [
+        "bench/hash.bench.ts"
+      ]
+    },
+    "034.T4.F3": {
+      "cmds": [
+        "034.T4"
+      ],
+      "docs": [
+        "bench/hash.bench.ts"
+      ]
+    },
+    "034.T4.P1": {
+      "cmds": [
+        "034.T4"
+      ],
+      "docs": [
+        "bench/hash.bench.ts"
+      ],
+      "bench": [
+        "| `bench/hash.bench.ts` | pass |"
+      ]
+    },
+    "034.T4.Q1": {
+      "cmds": [
+        "034.T4"
+      ],
+      "docs": [
+        "bench/hash.bench.ts"
+      ]
+    },
+    "034.T4.S1": {
+      "cmds": [
+        "034.T4"
+      ],
+      "docs": [
+        "bench/hash.bench.ts"
+      ]
+    },
+    "034.T5.F1": {
+      "cmds": [
+        "034.T5"
+      ],
+      "docs": [
+        "src/sdk/render.ts :: WeakSet",
+        "bench/render.bench.ts :: composed-6-layers"
+      ]
+    },
+    "034.T5.F2": {
+      "cmds": [
+        "034.T5"
+      ],
+      "docs": [
+        "src/sdk/render.ts :: WeakSet",
+        "bench/render.bench.ts :: composed-6-layers"
+      ]
+    },
+    "034.T5.F3": {
+      "cmds": [
+        "034.T5"
+      ],
+      "docs": [
+        "src/sdk/render.ts :: WeakSet",
+        "bench/render.bench.ts :: composed-6-layers"
+      ]
+    },
+    "034.T5.P1": {
+      "cmds": [
+        "034.T5"
+      ],
+      "docs": [
+        "src/sdk/render.ts :: WeakSet",
+        "bench/render.bench.ts :: composed-6-layers"
+      ],
+      "bench": [
+        "| `bench/render.bench.ts` | pass |"
+      ]
+    },
+    "034.T5.Q1": {
+      "cmds": [
+        "034.T5"
+      ],
+      "docs": [
+        "src/sdk/render.ts :: WeakSet",
+        "bench/render.bench.ts :: composed-6-layers"
+      ]
+    },
+    "034.T5.S1": {
+      "tests": [
+        "callers_frozen_object_is_not_trusted",
+        "composed_props_holding_owned_inputs_are_not_rewalked"
+      ]
+    },
+    "034.T6.F1": {
+      "cmds": [
+        "034.T6"
+      ],
+      "docs": [
+        "plans/evidence/034-quickjs-validator.md"
+      ]
+    },
+    "034.T6.F2": {
+      "cmds": [
+        "034.T6"
+      ],
+      "docs": [
+        "plans/evidence/034-quickjs-validator.md"
+      ]
+    },
+    "034.T6.F3": {
+      "cmds": [
+        "034.T6"
+      ],
+      "docs": [
+        "plans/evidence/034-quickjs-validator.md"
+      ]
+    },
+    "034.T6.F4": {
+      "cmds": [
+        "034.T6"
+      ],
+      "docs": [
+        "plans/evidence/034-quickjs-validator.md"
+      ]
+    },
+    "034.T6.P1": {
+      "cmds": [
+        "034.T6"
+      ],
+      "docs": [
+        "plans/evidence/034-quickjs-validator.md"
+      ],
+      "bench": [
+        "| `bench/runner.bench.ts` | pass |"
+      ]
+    },
+    "034.T6.Q1": {
+      "cmds": [
+        "034.T6"
+      ],
+      "docs": [
+        "plans/evidence/034-quickjs-validator.md"
+      ]
+    },
+    "034.T6.S1": {
+      "cmds": [
+        "034.T6"
+      ],
+      "docs": [
+        "plans/evidence/034-quickjs-validator.md"
+      ]
+    },
+    "034.T6a.F1": {
+      "tests": [
+        "quickjs_disposes_every_handle"
+      ]
+    },
+    "034.T6a.P1": {
+      "tests": [
+        "quickjs_disposes_every_handle"
+      ]
+    },
+    "034.T6a.Q1": {
+      "tests": [
+        "quickjs_disposes_every_handle"
+      ]
+    },
+    "034.T6a.S1": {
+      "tests": [
+        "quickjs_disposes_every_handle"
+      ]
+    },
+    "034.T7.F1": {
+      "docs": [
+        "plans/evidence/034-impact-analysis.md :: ## 2. Findings and Disposition"
+      ]
+    },
+    "034.T7.P1": {
+      "docs": [
+        "plans/evidence/034-impact-analysis.md :: ### 7. Performance"
+      ]
+    },
+    "034.T7.Q1": {
+      "docs": [
+        "plans/evidence/034-impact-analysis.md :: ## 2. Findings and Disposition"
+      ]
+    },
+    "034.T7.S1": {
+      "docs": [
+        "plans/evidence/034-impact-analysis.md :: ### 3. The Four Laws"
+      ]
+    },
+    "035.EO.1": {
+      "tests": [
+        "bench_json_reports_mount_and_focus_rows"
+      ],
+      "docs": [
+        "plans/evidence/035-browser-baseline.md",
+        "bench/streaming.bench.ts"
+      ]
+    },
+    "035.EO.2": {
+      "tests": [
+        "focus_snapshot_reads_no_style_while_focus_survives",
+        "removed_focused_row_moves_focus_to_the_next_row_in_the_surface",
+        "focus_outside_surface_is_left_alone",
+        "portal_focus_is_continued"
+      ],
+      "docs": [
+        "decision-logs/2026-11-17-0149-focus-continuity-candidates.md",
+        "src/dom/focus.ts :: querySelectorAll"
+      ]
+    },
+    "035.EO.3": {
+      "tests": [
+        "client_mount_renders_each_implementation_once",
+        "client_mount_passes_the_portal_on_the_first_draw",
+        "hydration_still_matches_and_supplies_the_portal_after_mount",
+        "nothing_paints_between_the_two_mount_commits",
+        "client_mount_of_an_invalid_tree_draws_only_the_fallback"
+      ]
+    },
+    "035.EO.4": {
+      "tests": [
+        "interrupted_transition_keeps_core_and_screen_in_step"
+      ]
+    },
+    "035.EO.5": {
+      "tests": [
+        "keep_last_keeps_nodes_focus_and_input_across_a_rejected_arrival",
+        "keep_last_raises_no_intent_while_stale",
+        "default_invalid_mode_shows_only_the_fallback_and_no_stale_mark"
+      ],
+      "docs": [
+        "decision-logs/2026-11-17-1255-keep-last-valid-tree.md",
+        "src/react/renderer.tsx :: keep-last"
+      ]
+    },
+    "035.T1.F1": {
+      "tests": [
+        "bench_json_reports_mount_and_focus_rows"
+      ],
+      "docs": [
+        "plans/evidence/035-browser-baseline.md",
+        "bench/streaming.bench.ts"
+      ]
+    },
+    "035.T1.F2": {
+      "tests": [
+        "bench_json_reports_mount_and_focus_rows"
+      ],
+      "docs": [
+        "plans/evidence/035-browser-baseline.md",
+        "bench/streaming.bench.ts"
+      ]
+    },
+    "035.T1.F3": {
+      "tests": [
+        "bench_json_reports_mount_and_focus_rows"
+      ],
+      "docs": [
+        "plans/evidence/035-browser-baseline.md",
+        "bench/streaming.bench.ts"
+      ]
+    },
+    "035.T1.P1": {
+      "tests": [
+        "bench_json_reports_mount_and_focus_rows"
+      ],
+      "docs": [
+        "plans/evidence/035-browser-baseline.md",
+        "bench/streaming.bench.ts"
+      ]
+    },
+    "035.T1.Q1": {
+      "tests": [
+        "bench_json_reports_mount_and_focus_rows"
+      ],
+      "docs": [
+        "plans/evidence/035-browser-baseline.md",
+        "bench/streaming.bench.ts"
+      ]
+    },
+    "035.T2.F1": {
+      "docs": [
+        "decision-logs/2026-11-17-0149-focus-continuity-candidates.md",
+        "plans/evidence/035-browser-baseline.md"
+      ],
+      "note": "Conditional branch. The threshold triggered the focus work."
+    },
+    "035.T2.F2": {
+      "tests": [
+        "focus_snapshot_reads_no_style_while_focus_survives",
+        "removed_focused_row_moves_focus_to_the_next_row_in_the_surface",
+        "focus_outside_surface_is_left_alone",
+        "portal_focus_is_continued"
+      ],
+      "docs": [
+        "decision-logs/2026-11-17-0149-focus-continuity-candidates.md",
+        "src/dom/focus.ts :: querySelectorAll"
+      ]
+    },
+    "035.T2.F3": {
+      "tests": [
+        "focus_snapshot_reads_no_style_while_focus_survives",
+        "removed_focused_row_moves_focus_to_the_next_row_in_the_surface",
+        "focus_outside_surface_is_left_alone",
+        "portal_focus_is_continued"
+      ],
+      "docs": [
+        "decision-logs/2026-11-17-0149-focus-continuity-candidates.md",
+        "src/dom/focus.ts :: querySelectorAll"
+      ]
+    },
+    "035.T2.F4": {
+      "tests": [
+        "focus_snapshot_reads_no_style_while_focus_survives",
+        "removed_focused_row_moves_focus_to_the_next_row_in_the_surface",
+        "focus_outside_surface_is_left_alone",
+        "portal_focus_is_continued"
+      ],
+      "docs": [
+        "decision-logs/2026-11-17-0149-focus-continuity-candidates.md",
+        "src/dom/focus.ts :: querySelectorAll",
+        "docs/renderer.md :: Keep focus in the surface"
+      ]
+    },
+    "035.T2.F5": {
+      "tests": [
+        "focus_snapshot_reads_no_style_while_focus_survives",
+        "removed_focused_row_moves_focus_to_the_next_row_in_the_surface",
+        "focus_outside_surface_is_left_alone",
+        "portal_focus_is_continued"
+      ],
+      "docs": [
+        "decision-logs/2026-11-17-0149-focus-continuity-candidates.md",
+        "src/dom/focus.ts :: querySelectorAll"
+      ]
+    },
+    "035.T2.P1": {
+      "tests": [
+        "focus_snapshot_reads_no_style_while_focus_survives",
+        "removed_focused_row_moves_focus_to_the_next_row_in_the_surface",
+        "focus_outside_surface_is_left_alone",
+        "portal_focus_is_continued"
+      ],
+      "docs": [
+        "decision-logs/2026-11-17-0149-focus-continuity-candidates.md",
+        "src/dom/focus.ts :: querySelectorAll"
+      ],
+      "bench": [
+        "| `bench/streaming.bench.ts` | pass |"
+      ]
+    },
+    "035.T2.Q1": {
+      "tests": [
+        "focus_snapshot_reads_no_style_while_focus_survives",
+        "removed_focused_row_moves_focus_to_the_next_row_in_the_surface",
+        "focus_outside_surface_is_left_alone",
+        "portal_focus_is_continued"
+      ],
+      "docs": [
+        "decision-logs/2026-11-17-0149-focus-continuity-candidates.md",
+        "src/dom/focus.ts :: querySelectorAll"
+      ]
+    },
+    "035.T3.F1": {
+      "docs": [
+        "plans/evidence/035-browser-baseline.md"
+      ],
+      "note": "Conditional branch. The threshold triggered the mount work."
+    },
+    "035.T3.F2": {
+      "tests": [
+        "client_mount_renders_each_implementation_once",
+        "client_mount_passes_the_portal_on_the_first_draw",
+        "hydration_still_matches_and_supplies_the_portal_after_mount",
+        "nothing_paints_between_the_two_mount_commits",
+        "client_mount_of_an_invalid_tree_draws_only_the_fallback"
+      ]
+    },
+    "035.T3.F3": {
+      "tests": [
+        "client_mount_renders_each_implementation_once",
+        "client_mount_passes_the_portal_on_the_first_draw",
+        "hydration_still_matches_and_supplies_the_portal_after_mount",
+        "nothing_paints_between_the_two_mount_commits",
+        "client_mount_of_an_invalid_tree_draws_only_the_fallback"
+      ]
+    },
+    "035.T3.F4": {
+      "tests": [
+        "client_mount_renders_each_implementation_once",
+        "client_mount_passes_the_portal_on_the_first_draw",
+        "hydration_still_matches_and_supplies_the_portal_after_mount",
+        "nothing_paints_between_the_two_mount_commits",
+        "client_mount_of_an_invalid_tree_draws_only_the_fallback"
+      ]
+    },
+    "035.T3.F5": {
+      "tests": [
+        "client_mount_renders_each_implementation_once",
+        "client_mount_passes_the_portal_on_the_first_draw",
+        "hydration_still_matches_and_supplies_the_portal_after_mount",
+        "nothing_paints_between_the_two_mount_commits",
+        "client_mount_of_an_invalid_tree_draws_only_the_fallback"
+      ],
+      "docs": [
+        "docs/spec.md :: each implementation renders once"
+      ]
+    },
+    "035.T3.P1": {
+      "tests": [
+        "client_mount_renders_each_implementation_once",
+        "client_mount_passes_the_portal_on_the_first_draw",
+        "hydration_still_matches_and_supplies_the_portal_after_mount",
+        "nothing_paints_between_the_two_mount_commits",
+        "client_mount_of_an_invalid_tree_draws_only_the_fallback"
+      ],
+      "bench": [
+        "| `bench/streaming.bench.ts` | pass |"
+      ]
+    },
+    "035.T3.Q1": {
+      "tests": [
+        "client_mount_renders_each_implementation_once",
+        "client_mount_passes_the_portal_on_the_first_draw",
+        "hydration_still_matches_and_supplies_the_portal_after_mount",
+        "nothing_paints_between_the_two_mount_commits",
+        "client_mount_of_an_invalid_tree_draws_only_the_fallback"
+      ]
+    },
+    "035.T3.S1": {
+      "tests": [
+        "client_mount_renders_each_implementation_once",
+        "client_mount_passes_the_portal_on_the_first_draw",
+        "hydration_still_matches_and_supplies_the_portal_after_mount",
+        "nothing_paints_between_the_two_mount_commits",
+        "client_mount_of_an_invalid_tree_draws_only_the_fallback"
+      ]
+    },
+    "035.T4.F1": {
+      "tests": [
+        "interrupted_transition_keeps_core_and_screen_in_step"
+      ]
+    },
+    "035.T4.F2": {
+      "tests": [
+        "interrupted_transition_keeps_core_and_screen_in_step"
+      ],
+      "note": "Conditional branch. The reproduced mismatch triggered the staged-core fix."
+    },
+    "035.T4.F3": {
+      "tests": [
+        "interrupted_transition_keeps_core_and_screen_in_step"
+      ]
+    },
+    "035.T4.F4": {
+      "tests": [
+        "interrupted_transition_keeps_core_and_screen_in_step"
+      ],
+      "docs": [
+        "docs/renderer.md :: transition"
+      ]
+    },
+    "035.T4.P1": {
+      "tests": [
+        "interrupted_transition_keeps_core_and_screen_in_step"
+      ],
+      "bench": [
+        "| `bench/streaming.bench.ts` | pass |"
+      ]
+    },
+    "035.T4.Q1": {
+      "tests": [
+        "interrupted_transition_keeps_core_and_screen_in_step"
+      ]
+    },
+    "035.T4.S1": {
+      "tests": [
+        "interrupted_transition_keeps_core_and_screen_in_step"
+      ]
+    },
+    "035.T5.F1": {
+      "tests": [
+        "keep_last_keeps_nodes_focus_and_input_across_a_rejected_arrival",
+        "keep_last_raises_no_intent_while_stale",
+        "default_invalid_mode_shows_only_the_fallback_and_no_stale_mark"
+      ],
+      "docs": [
+        "decision-logs/2026-11-17-1255-keep-last-valid-tree.md",
+        "src/react/renderer.tsx :: keep-last"
+      ]
+    },
+    "035.T5.F2": {
+      "tests": [
+        "keep_last_keeps_nodes_focus_and_input_across_a_rejected_arrival",
+        "keep_last_raises_no_intent_while_stale",
+        "default_invalid_mode_shows_only_the_fallback_and_no_stale_mark"
+      ],
+      "docs": [
+        "decision-logs/2026-11-17-1255-keep-last-valid-tree.md",
+        "src/react/renderer.tsx :: keep-last"
+      ]
+    },
+    "035.T5.F3": {
+      "tests": [
+        "keep_last_keeps_nodes_focus_and_input_across_a_rejected_arrival",
+        "keep_last_raises_no_intent_while_stale",
+        "default_invalid_mode_shows_only_the_fallback_and_no_stale_mark"
+      ],
+      "docs": [
+        "decision-logs/2026-11-17-1255-keep-last-valid-tree.md",
+        "src/react/renderer.tsx :: keep-last"
+      ]
+    },
+    "035.T5.F4": {
+      "tests": [
+        "keep_last_keeps_nodes_focus_and_input_across_a_rejected_arrival",
+        "keep_last_raises_no_intent_while_stale",
+        "default_invalid_mode_shows_only_the_fallback_and_no_stale_mark"
+      ],
+      "docs": [
+        "decision-logs/2026-11-17-1255-keep-last-valid-tree.md",
+        "src/react/renderer.tsx :: keep-last"
+      ]
+    },
+    "035.T5.F5": {
+      "docs": [
+        "decision-logs/2026-11-17-1255-keep-last-valid-tree.md"
+      ],
+      "note": "Conditional branch. The owner approved keep-last."
+    },
+    "035.T5.P1": {
+      "tests": [
+        "keep_last_keeps_nodes_focus_and_input_across_a_rejected_arrival",
+        "keep_last_raises_no_intent_while_stale",
+        "default_invalid_mode_shows_only_the_fallback_and_no_stale_mark"
+      ],
+      "docs": [
+        "decision-logs/2026-11-17-1255-keep-last-valid-tree.md",
+        "src/react/renderer.tsx :: keep-last"
+      ]
+    },
+    "035.T5.Q1": {
+      "tests": [
+        "keep_last_keeps_nodes_focus_and_input_across_a_rejected_arrival",
+        "keep_last_raises_no_intent_while_stale",
+        "default_invalid_mode_shows_only_the_fallback_and_no_stale_mark"
+      ],
+      "docs": [
+        "decision-logs/2026-11-17-1255-keep-last-valid-tree.md",
+        "src/react/renderer.tsx :: keep-last"
+      ]
+    },
+    "035.T5.S1": {
+      "tests": [
+        "keep_last_keeps_nodes_focus_and_input_across_a_rejected_arrival",
+        "keep_last_raises_no_intent_while_stale",
+        "default_invalid_mode_shows_only_the_fallback_and_no_stale_mark"
+      ],
+      "docs": [
+        "decision-logs/2026-11-17-1255-keep-last-valid-tree.md",
+        "src/react/renderer.tsx :: keep-last"
+      ]
+    },
+    "035.T6a.F1": {
+      "tests": [
+        "focus_placed_by_the_host_during_the_commit_is_kept",
+        "focus_placed_outside_the_surface_during_the_commit_is_kept",
+        "client_mount_of_an_invalid_tree_draws_only_the_fallback"
+      ]
+    },
+    "035.T6a.F2": {
+      "tests": [
+        "focus_placed_by_the_host_during_the_commit_is_kept",
+        "focus_placed_outside_the_surface_during_the_commit_is_kept",
+        "client_mount_of_an_invalid_tree_draws_only_the_fallback"
+      ],
+      "docs": [
+        "docs/spec.md :: applies it when React commits the frame"
+      ]
+    },
+    "035.T6a.F3": {
+      "tests": [
+        "focus_placed_by_the_host_during_the_commit_is_kept",
+        "focus_placed_outside_the_surface_during_the_commit_is_kept",
+        "client_mount_of_an_invalid_tree_draws_only_the_fallback"
+      ]
+    },
+    "035.T6a.Q1": {
+      "tests": [
+        "focus_placed_by_the_host_during_the_commit_is_kept",
+        "focus_placed_outside_the_surface_during_the_commit_is_kept",
+        "client_mount_of_an_invalid_tree_draws_only_the_fallback"
+      ]
+    },
+    "035.T6a.S1": {
+      "tests": [
+        "focus_placed_by_the_host_during_the_commit_is_kept",
+        "focus_placed_outside_the_surface_during_the_commit_is_kept",
+        "client_mount_of_an_invalid_tree_draws_only_the_fallback"
+      ]
+    },
+    "035.T6.F1": {
+      "docs": [
+        "plans/evidence/035-impact-analysis.md :: ## 2. Findings and Disposition"
+      ]
+    },
+    "035.T6.P1": {
+      "docs": [
+        "plans/evidence/035-impact-analysis.md :: ### 7. Performance"
+      ]
+    },
+    "035.T6.Q1": {
+      "docs": [
+        "plans/evidence/035-impact-analysis.md :: ## 2. Findings and Disposition"
+      ]
+    },
+    "035.T6.S1": {
+      "docs": [
+        "plans/evidence/035-impact-analysis.md :: ### 3. The four laws"
+      ]
+    },
+    "036.EO.1": {
+      "cmds": [
+        "036.T1"
+      ],
+      "docs": [
+        "src/validate/compile.ts :: WeakMap<CompiledValidator, ValidatorFacts>"
+      ]
+    },
+    "036.EO.2": {
+      "cmds": [
+        "036.T2"
+      ]
+    },
+    "036.EO.3": {
+      "cmds": [
+        "036.T3"
+      ],
+      "docs": [
+        "src/sdk/render.ts :: type Parent"
+      ]
+    },
+    "036.EO.4": {
+      "cmds": [
+        "036.T4"
+      ],
+      "docs": [
+        "src/surface/core.ts :: type CoreState"
+      ]
+    },
+    "036.EO.5": {
+      "cmds": [
+        "036.T5"
+      ],
+      "docs": [
+        "src/template/expr.ts :: export"
+      ]
+    },
+    "036.EO.6": {
+      "cmds": [
+        "036.T6"
+      ]
+    },
+    "036.T1.F1": {
+      "cmds": [
+        "036.T1"
+      ],
+      "docs": [
+        "src/validate/compile.ts :: WeakMap<CompiledValidator, ValidatorFacts>"
+      ]
+    },
+    "036.T1.F2": {
+      "cmds": [
+        "036.T1"
+      ],
+      "docs": [
+        "src/validate/compile.ts :: WeakMap<CompiledValidator, ValidatorFacts>"
+      ]
+    },
+    "036.T1.F3": {
+      "cmds": [
+        "036.T1"
+      ],
+      "docs": [
+        "src/validate/compile.ts :: WeakMap<CompiledValidator, ValidatorFacts>"
+      ]
+    },
+    "036.T1.F4": {
+      "cmds": [
+        "036.T1"
+      ],
+      "docs": [
+        "src/validate/compile.ts :: WeakMap<CompiledValidator, ValidatorFacts>",
+        "docs/sdk.md :: library copy"
+      ]
+    },
+    "036.T1.P1": {
+      "cmds": [
+        "036.T1"
+      ],
+      "docs": [
+        "src/validate/compile.ts :: WeakMap<CompiledValidator, ValidatorFacts>"
+      ],
+      "bench": [
+        "| `bench/render.bench.ts` | pass |",
+        "| `bench/validator.bench.ts` | pass |",
+        "| `bench/host.bench.ts` | pass |"
+      ]
+    },
+    "036.T1.Q1": {
+      "cmds": [
+        "036.T1"
+      ],
+      "docs": [
+        "src/validate/compile.ts :: WeakMap<CompiledValidator, ValidatorFacts>"
+      ]
+    },
+    "036.T1.S1": {
+      "cmds": [
+        "036.T1"
+      ],
+      "docs": [
+        "src/validate/compile.ts :: WeakMap<CompiledValidator, ValidatorFacts>"
+      ]
+    },
+    "036.T1a.F1": {
+      "cmds": [
+        "036.T1a"
+      ],
+      "docs": [
+        "bench/metrics.ts :: function timed",
+        "bench/ab.ts",
+        "bench/stats.ts"
+      ]
+    },
+    "036.T1a.F2": {
+      "cmds": [
+        "036.T1a"
+      ],
+      "docs": [
+        "bench/metrics.ts :: function timed",
+        "bench/ab.ts",
+        "bench/stats.ts"
+      ]
+    },
+    "036.T1a.F3": {
+      "cmds": [
+        "036.T1a"
+      ],
+      "docs": [
+        "bench/metrics.ts :: function timed",
+        "bench/ab.ts",
+        "bench/stats.ts"
+      ]
+    },
+    "036.T1a.F4": {
+      "cmds": [
+        "036.T1a"
+      ],
+      "docs": [
+        "bench/metrics.ts :: function timed",
+        "bench/ab.ts",
+        "bench/stats.ts"
+      ]
+    },
+    "036.T1a.Q1": {
+      "cmds": [
+        "036.T1a"
+      ],
+      "docs": [
+        "bench/metrics.ts :: function timed",
+        "bench/ab.ts",
+        "bench/stats.ts"
+      ]
+    },
+    "036.T2.F1": {
+      "cmds": [
+        "036.T2"
+      ]
+    },
+    "036.T2.F2": {
+      "cmds": [
+        "036.T2"
+      ],
+      "note": "Plan 040 Task 1a closes F1/F2. F3/F4 remain the recorded pointer exceptions."
+    },
+    "036.T2.F3": {
+      "cmds": [
+        "036.T2"
+      ]
+    },
+    "036.T2.F4": {
+      "cmds": [
+        "036.T2"
+      ],
+      "docs": [
+        "plans/evidence/036-impact-analysis.md",
+        "plans/backlog.md :: pointer",
+        "docs/migration-0.4.md :: Element JSON error kinds",
+        "scripts/release/api/register-0.4.0.json :: Malformed element JSON",
+        "CHANGELOG.md :: Element JSON error kinds match tree validation"
+      ],
+      "note": "Plan 040 Task 1a enabled the strict kind and children cases."
+    },
+    "036.T2.F5": {
+      "cmds": [
+        "036.T2"
+      ],
+      "docs": [
+        "docs/spec.md :: arrival walk"
+      ]
+    },
+    "036.T2.Q1": {
+      "cmds": [
+        "036.T2"
+      ]
+    },
+    "036.T2.S1": {
+      "cmds": [
+        "036.T2"
+      ],
+      "tests": [
+        "corpus_trees_get_one_verdict_from_all_three",
+        "render_elements_error_pointers_into_json"
+      ]
+    },
+    "036.T3.F1": {
+      "cmds": [
+        "036.T3"
+      ],
+      "docs": [
+        "src/sdk/render.ts :: type Parent"
+      ]
+    },
+    "036.T3.F2": {
+      "cmds": [
+        "036.T3"
+      ],
+      "docs": [
+        "src/sdk/render.ts :: type Parent"
+      ]
+    },
+    "036.T3.F3": {
+      "cmds": [
+        "036.T3"
+      ],
+      "docs": [
+        "src/sdk/render.ts :: type Parent"
+      ]
+    },
+    "036.T3.F4": {
+      "cmds": [
+        "036.T3"
+      ],
+      "docs": [
+        "src/sdk/render.ts :: type Parent"
+      ]
+    },
+    "036.T3.P1": {
+      "cmds": [
+        "036.T3"
+      ],
+      "docs": [
+        "src/sdk/render.ts :: type Parent"
+      ],
+      "bench": [
+        "| `bench/render.bench.ts` | pass |",
+        "| `bench/template.bench.ts` | pass |",
+        "| `bench/stream-elements.bench.ts` | pass |"
+      ]
+    },
+    "036.T3.Q1": {
+      "cmds": [
+        "036.T3"
+      ],
+      "docs": [
+        "src/sdk/render.ts :: type Parent"
+      ]
+    },
+    "036.T3.S1": {
+      "cmds": [
+        "036.T3"
+      ],
+      "docs": [
+        "src/sdk/render.ts :: type Parent"
+      ]
+    },
+    "036.T4.F1": {
+      "cmds": [
+        "036.T4"
+      ],
+      "docs": [
+        "src/surface/core.ts :: type CoreState"
+      ]
+    },
+    "036.T4.F2": {
+      "cmds": [
+        "036.T4"
+      ],
+      "docs": [
+        "src/surface/core.ts :: type CoreState"
+      ]
+    },
+    "036.T4.P1": {
+      "cmds": [
+        "036.T4"
+      ],
+      "docs": [
+        "src/surface/core.ts :: type CoreState"
+      ],
+      "bench": [
+        "| `bench/selection.bench.ts` | pass |",
+        "| `bench/streaming.bench.ts` | pass |"
+      ]
+    },
+    "036.T4.Q1": {
+      "cmds": [
+        "036.T4"
+      ],
+      "docs": [
+        "src/surface/core.ts :: type CoreState"
+      ]
+    },
+    "036.T4.S1": {
+      "tests": [
+        "set_local_never_calls_onIntent",
+        "confirmation_is_single_flight_and_drops_after_unmount"
+      ]
+    },
+    "036.T5.F1": {
+      "cmds": [
+        "036.T5"
+      ],
+      "docs": [
+        "src/template/expr.ts :: export"
+      ]
+    },
+    "036.T5.F2": {
+      "cmds": [
+        "036.T5"
+      ],
+      "docs": [
+        "src/template/expr.ts :: export"
+      ]
+    },
+    "036.T5.F3": {
+      "cmds": [
+        "036.T5"
+      ],
+      "docs": [
+        "src/template/expr.ts :: export"
+      ]
+    },
+    "036.T5.P1": {
+      "cmds": [
+        "036.T5"
+      ],
+      "docs": [
+        "src/template/expr.ts :: export"
+      ],
+      "bench": [
+        "| `bench/template.bench.ts` | pass |",
+        "| `bench/selection.bench.ts` | pass |"
+      ]
+    },
+    "036.T5.Q1": {
+      "cmds": [
+        "036.T5"
+      ],
+      "docs": [
+        "src/template/expr.ts :: export"
+      ]
+    },
+    "036.T5.S1": {
+      "cmds": [
+        "036.T5"
+      ],
+      "docs": [
+        "src/template/expr.ts :: export"
+      ]
+    },
+    "036.T6.F1": {
+      "cmds": [
+        "036.T6"
+      ]
+    },
+    "036.T6.F2": {
+      "cmds": [
+        "036.T6"
+      ]
+    },
+    "036.T6.F3": {
+      "cmds": [
+        "036.T6"
+      ]
+    },
+    "036.T6.Q1": {
+      "cmds": [
+        "036.T6"
+      ]
+    },
+    "036.T7.F1": {
+      "docs": [
+        "plans/evidence/036-impact-analysis.md :: ## 2. Findings and Disposition"
+      ]
+    },
+    "036.T7.P1": {
+      "docs": [
+        "plans/evidence/036-impact-analysis.md :: ### 7. Performance"
+      ]
+    },
+    "036.T7.Q1": {
+      "docs": [
+        "plans/evidence/036-impact-analysis.md :: ## 2. Findings and Disposition"
+      ]
+    },
+    "036.T7.S1": {
+      "docs": [
+        "plans/evidence/036-impact-analysis.md :: ### 3. The four laws"
+      ]
+    },
+    "037.EO.1": {
+      "docs": [
+        "plans/evidence/037-interaction-design.md",
+        "decision-logs/2026-11-19-0154-interaction-additions-for-0-4-0.md",
+        "scripts/release/api/register-0.4.0.json"
+      ]
+    },
+    "037.EO.2": {
+      "cmds": [
+        "037.T2"
+      ],
+      "docs": [
+        "src/surface/core.ts :: pendingRevert"
+      ]
+    },
+    "037.EO.3": {
+      "cmds": [
+        "037.T3"
+      ],
+      "docs": [
+        "src/validate/complete.ts :: fromLocal"
+      ]
+    },
+    "037.EO.4": {
+      "cmds": [
+        "037.T4"
+      ],
+      "docs": [
+        "src/__tests__/fixtures/widgets/carries.json",
+        "src/__tests__/fixtures/widgets/carries.definitions.gen.ts"
+      ]
+    },
+    "037.EO.5": {
+      "cmds": [
+        "037.T5"
+      ],
+      "docs": [
+        "src/dom/focus.ts :: getElementById"
+      ]
+    },
+    "037.EO.6": {
+      "cmds": [
+        "037.T6"
+      ],
+      "docs": [
+        "docs/host.md :: putStateIf"
+      ]
+    },
+    "037.EO.7": {
+      "cmds": [
+        "037.T8"
+      ],
+      "docs": [
+        "docs/conformance.md :: no intent reached the host",
+        "plans/evidence/037-impact-analysis.md"
+      ]
+    },
+    "037.T1.F1": {
+      "docs": [
+        "plans/evidence/037-interaction-design.md",
+        "decision-logs/2026-11-19-0154-interaction-additions-for-0-4-0.md",
+        "scripts/release/api/register-0.4.0.json"
+      ]
+    },
+    "037.T1.F2": {
+      "docs": [
+        "plans/evidence/037-interaction-design.md",
+        "decision-logs/2026-11-19-0154-interaction-additions-for-0-4-0.md",
+        "scripts/release/api/register-0.4.0.json"
+      ]
+    },
+    "037.T1.F3": {
+      "docs": [
+        "plans/evidence/037-interaction-design.md",
+        "decision-logs/2026-11-19-0154-interaction-additions-for-0-4-0.md",
+        "scripts/release/api/register-0.4.0.json"
+      ]
+    },
+    "037.T1.F4": {
+      "docs": [
+        "plans/evidence/037-interaction-design.md",
+        "decision-logs/2026-11-19-0154-interaction-additions-for-0-4-0.md",
+        "scripts/release/api/register-0.4.0.json"
+      ]
+    },
+    "037.T1.P1": {
+      "docs": [
+        "plans/evidence/037-interaction-design.md",
+        "decision-logs/2026-11-19-0154-interaction-additions-for-0-4-0.md",
+        "scripts/release/api/register-0.4.0.json"
+      ]
+    },
+    "037.T1.Q1": {
+      "docs": [
+        "plans/evidence/037-interaction-design.md",
+        "decision-logs/2026-11-19-0154-interaction-additions-for-0-4-0.md",
+        "scripts/release/api/register-0.4.0.json"
+      ]
+    },
+    "037.T1.S1": {
+      "docs": [
+        "plans/evidence/037-interaction-design.md",
+        "decision-logs/2026-11-19-0154-interaction-additions-for-0-4-0.md",
+        "scripts/release/api/register-0.4.0.json"
+      ]
+    },
+    "037.T2.F1": {
+      "cmds": [
+        "037.T2"
+      ],
+      "docs": [
+        "src/surface/core.ts :: pendingRevert"
+      ]
+    },
+    "037.T2.F2": {
+      "cmds": [
+        "037.T2"
+      ],
+      "docs": [
+        "src/surface/core.ts :: pendingRevert"
+      ]
+    },
+    "037.T2.F3": {
+      "cmds": [
+        "037.T2"
+      ],
+      "docs": [
+        "src/surface/core.ts :: pendingRevert"
+      ]
+    },
+    "037.T2.F4": {
+      "cmds": [
+        "037.T2"
+      ],
+      "docs": [
+        "src/surface/core.ts :: pendingRevert"
+      ]
+    },
+    "037.T2.F5": {
+      "cmds": [
+        "037.T2"
+      ],
+      "docs": [
+        "src/surface/core.ts :: pendingRevert"
+      ]
+    },
+    "037.T2.F6": {
+      "cmds": [
+        "037.T2"
+      ],
+      "docs": [
+        "src/surface/core.ts :: pendingRevert"
+      ]
+    },
+    "037.T2.P1": {
+      "cmds": [
+        "037.T2"
+      ],
+      "docs": [
+        "src/surface/core.ts :: pendingRevert"
+      ],
+      "bench": [
+        "| `bench/selection.bench.ts` | pass |"
+      ]
+    },
+    "037.T2.Q1": {
+      "cmds": [
+        "037.T2"
+      ],
+      "docs": [
+        "src/surface/core.ts :: pendingRevert"
+      ]
+    },
+    "037.T2.S1": {
+      "tests": [
+        "event_applies_local_writes_then_raises_one_intent",
+        "unconfirmed_intent_writes_nothing",
+        "failed_local_write_on_intent_throws_mutates_nothing_and_raises_nothing"
+      ]
+    },
+    "037.T3.F1": {
+      "cmds": [
+        "037.T3"
+      ],
+      "docs": [
+        "src/validate/complete.ts :: fromLocal"
+      ]
+    },
+    "037.T3.F2": {
+      "cmds": [
+        "037.T3"
+      ],
+      "docs": [
+        "src/validate/complete.ts :: fromLocal"
+      ]
+    },
+    "037.T3.F3": {
+      "cmds": [
+        "037.T3"
+      ],
+      "docs": [
+        "src/validate/complete.ts :: fromLocal"
+      ]
+    },
+    "037.T3.F4": {
+      "cmds": [
+        "037.T3"
+      ],
+      "docs": [
+        "src/validate/complete.ts :: fromLocal"
+      ]
+    },
+    "037.T3.P1": {
+      "cmds": [
+        "037.T3"
+      ],
+      "docs": [
+        "src/validate/complete.ts :: fromLocal"
+      ],
+      "bench": [
+        "| `bench/host.bench.ts` | pass |"
+      ]
+    },
+    "037.T3.Q1": {
+      "cmds": [
+        "037.T3"
+      ],
+      "docs": [
+        "src/validate/complete.ts :: fromLocal"
+      ]
+    },
+    "037.T3.S1": {
+      "tests": [
+        "from_local_values_are_checked_against_the_capability_schema_and_refused_when_they_do_not_fit"
+      ]
+    },
+    "037.T4.F1": {
+      "cmds": [
+        "037.T4"
+      ],
+      "docs": [
+        "src/__tests__/fixtures/widgets/carries.json",
+        "src/__tests__/fixtures/widgets/carries.definitions.gen.ts"
+      ]
+    },
+    "037.T4.F2": {
+      "cmds": [
+        "037.T4"
+      ],
+      "docs": [
+        "src/__tests__/fixtures/widgets/carries.json",
+        "src/__tests__/fixtures/widgets/carries.definitions.gen.ts"
+      ]
+    },
+    "037.T4.F3": {
+      "cmds": [
+        "037.T4"
+      ],
+      "docs": [
+        "src/__tests__/fixtures/widgets/carries.json",
+        "src/__tests__/fixtures/widgets/carries.definitions.gen.ts"
+      ]
+    },
+    "037.T4.F4": {
+      "cmds": [
+        "037.T4"
+      ],
+      "docs": [
+        "src/__tests__/fixtures/widgets/carries.json",
+        "src/__tests__/fixtures/widgets/carries.definitions.gen.ts"
+      ]
+    },
+    "037.T4.F5": {
+      "cmds": [
+        "037.T4"
+      ],
+      "docs": [
+        "src/__tests__/fixtures/widgets/carries.json",
+        "src/__tests__/fixtures/widgets/carries.definitions.gen.ts"
+      ]
+    },
+    "037.T4.P1": {
+      "cmds": [
+        "037.T4"
+      ],
+      "docs": [
+        "src/__tests__/fixtures/widgets/carries.json",
+        "src/__tests__/fixtures/widgets/carries.definitions.gen.ts"
+      ],
+      "bench": [
+        "| `bench/validator.bench.ts` | pass |"
+      ]
+    },
+    "037.T4.Q1": {
+      "cmds": [
+        "037.T4"
+      ],
+      "docs": [
+        "src/__tests__/fixtures/widgets/carries.json",
+        "src/__tests__/fixtures/widgets/carries.definitions.gen.ts"
+      ]
+    },
+    "037.T4.S1": {
+      "tests": [
+        "emit_rejects_an_array_outside_its_carry",
+        "host_rechecks_an_array_against_the_carry_and_the_capability"
+      ]
+    },
+    "037.T5.F1": {
+      "cmds": [
+        "037.T5"
+      ],
+      "docs": [
+        "src/dom/focus.ts :: getElementById"
+      ]
+    },
+    "037.T5.F2": {
+      "cmds": [
+        "037.T5"
+      ],
+      "docs": [
+        "src/dom/focus.ts :: getElementById"
+      ]
+    },
+    "037.T5.F3": {
+      "tests": [
+        "changed_focus_mark_moves_focus_once",
+        "focus_mark_on_the_first_tree_follows_the_decided_rule"
+      ]
+    },
+    "037.T5.F4": {
+      "tests": [
+        "focus_mark_without_a_focusable_element_is_reported"
+      ]
+    },
+    "037.T5.F5": {
+      "tests": [
+        "focus_continuity_on_by_default",
+        "portal_focus_is_continued"
+      ]
+    },
+    "037.T5.P1": {
+      "cmds": [
+        "037.T5"
+      ],
+      "docs": [
+        "src/dom/focus.ts :: getElementById"
+      ]
+    },
+    "037.T5.Q1": {
+      "cmds": [
+        "037.T5"
+      ],
+      "docs": [
+        "src/dom/focus.ts :: getElementById"
+      ]
+    },
+    "037.T5.S1": {
+      "tests": [
+        "focus_mark_cannot_reach_another_surface"
+      ]
+    },
+    "037.T6.F1": {
+      "cmds": [
+        "037.T6"
+      ],
+      "docs": [
+        "docs/host.md :: putStateIf"
+      ]
+    },
+    "037.T6.F2": {
+      "cmds": [
+        "037.T6"
+      ],
+      "docs": [
+        "docs/host.md :: putStateIf"
+      ]
+    },
+    "037.T6.F3": {
+      "cmds": [
+        "037.T6"
+      ],
+      "docs": [
+        "docs/host.md :: putStateIf"
+      ]
+    },
+    "037.T6.F4": {
+      "cmds": [
+        "037.T6"
+      ],
+      "docs": [
+        "docs/host.md :: putStateIf"
+      ]
+    },
+    "037.T6.F5": {
+      "cmds": [
+        "037.T6"
+      ],
+      "docs": [
+        "docs/host.md :: putStateIf"
+      ]
+    },
+    "037.T6.P1": {
+      "cmds": [
+        "037.T6"
+      ],
+      "docs": [
+        "docs/host.md :: putStateIf"
+      ],
+      "bench": [
+        "| `bench/host.bench.ts` | pass |"
+      ]
+    },
+    "037.T6.Q1": {
+      "cmds": [
+        "037.T6"
+      ],
+      "docs": [
+        "docs/host.md :: putStateIf"
+      ]
+    },
+    "037.T6.S1": {
+      "tests": [
+        "no_effect_before_check_offered_and_authorize",
+        "set_state_unauthorized_writes_nothing"
+      ],
+      "cmds": [
+        "037.T6"
+      ]
+    },
+    "037.T7.F1": {
+      "cmds": [
+        "037.T7"
+      ],
+      "docs": [
+        "decision-logs/2026-11-19-0154-interaction-additions-for-0-4-0.md",
+        "src/validate/bindings.ts :: SHOWN"
+      ]
+    },
+    "037.T7.F2": {
+      "cmds": [
+        "037.T7"
+      ],
+      "docs": [
+        "decision-logs/2026-11-19-0154-interaction-additions-for-0-4-0.md",
+        "src/validate/bindings.ts :: SHOWN"
+      ]
+    },
+    "037.T7.F3": {
+      "cmds": [
+        "037.T7"
+      ],
+      "docs": [
+        "decision-logs/2026-11-19-0154-interaction-additions-for-0-4-0.md",
+        "src/validate/bindings.ts :: SHOWN"
+      ]
+    },
+    "037.T7.F4": {
+      "cmds": [
+        "037.T7"
+      ],
+      "docs": [
+        "decision-logs/2026-11-19-0154-interaction-additions-for-0-4-0.md",
+        "src/validate/bindings.ts :: SHOWN"
+      ]
+    },
+    "037.T7.P1": {
+      "cmds": [
+        "037.T7"
+      ],
+      "docs": [
+        "decision-logs/2026-11-19-0154-interaction-additions-for-0-4-0.md",
+        "src/validate/bindings.ts :: SHOWN"
+      ],
+      "bench": [
+        "| `bench/selection.bench.ts` | pass |"
+      ]
+    },
+    "037.T7.Q1": {
+      "cmds": [
+        "037.T7"
+      ],
+      "docs": [
+        "decision-logs/2026-11-19-0154-interaction-additions-for-0-4-0.md",
+        "src/validate/bindings.ts :: SHOWN"
+      ]
+    },
+    "037.T7.S1": {
+      "cmds": [
+        "037.T7"
+      ],
+      "docs": [
+        "decision-logs/2026-11-19-0154-interaction-additions-for-0-4-0.md",
+        "src/validate/bindings.ts :: SHOWN"
+      ]
+    },
+    "037.T8.F1": {
+      "cmds": [
+        "037.T8"
+      ],
+      "docs": [
+        "docs/conformance.md :: no intent reached the host",
+        "plans/evidence/037-impact-analysis.md"
+      ]
+    },
+    "037.T8.F2": {
+      "cmds": [
+        "037.T8"
+      ],
+      "docs": [
+        "docs/conformance.md :: no intent reached the host",
+        "plans/evidence/037-impact-analysis.md"
+      ]
+    },
+    "037.T8.F3": {
+      "cmds": [
+        "037.T8"
+      ],
+      "docs": [
+        "docs/conformance.md :: no intent reached the host",
+        "plans/evidence/037-impact-analysis.md"
+      ]
+    },
+    "037.T8.P1": {
+      "cmds": [
+        "037.T8"
+      ],
+      "docs": [
+        "docs/conformance.md :: no intent reached the host",
+        "plans/evidence/037-impact-analysis.md"
+      ]
+    },
+    "037.T8.Q1": {
+      "cmds": [
+        "037.T8"
+      ],
+      "docs": [
+        "docs/conformance.md :: no intent reached the host",
+        "plans/evidence/037-impact-analysis.md"
+      ]
+    },
+    "037.T8.S1": {
+      "tests": [
+        "renderer_that_forwards_set_local_fails_its_rule"
+      ]
+    },
+    "037.T8a.F1": {
+      "tests": [
+        "set_state_applies_a_from_local_event_with_value_as_the_local_read"
+      ]
+    },
+    "037.T8a.Q1": {
+      "tests": [
+        "set_state_applies_a_from_local_event_with_value_as_the_local_read"
+      ]
+    },
+    "037.T8a.S1": {
+      "tests": [
+        "set_state_applies_a_from_local_event_with_value_as_the_local_read"
+      ]
+    },
+    "037.T8b.F1": {
+      "cmds": [
+        "demo"
+      ]
+    },
+    "037.T8b.Q1": {
+      "cmds": [
+        "demo"
+      ]
+    },
+    "037.T8b.S1": {
+      "cmds": [
+        "demo"
+      ]
+    },
+    "037.T9.F1": {
+      "docs": [
+        "plans/evidence/037-impact-analysis.md :: ## 2. Findings and Disposition"
+      ]
+    },
+    "037.T9.P1": {
+      "docs": [
+        "plans/evidence/037-impact-analysis.md :: ### 7. Performance"
+      ]
+    },
+    "037.T9.Q1": {
+      "docs": [
+        "plans/evidence/037-impact-analysis.md :: ## 2. Findings and Disposition"
+      ]
+    },
+    "037.T9.S1": {
+      "docs": [
+        "plans/evidence/037-impact-analysis.md :: ### 3. The four laws"
+      ]
+    },
+    "038.EO.1": {
+      "docs": [
+        "plans/evidence/038-rendering-design.md",
+        "decision-logs/2026-11-19-1143-rendering-additions-for-0-4-0.md"
+      ]
+    },
+    "038.EO.2": {
+      "cmds": [
+        "038.T2"
+      ],
+      "docs": [
+        "docs/host.md :: source-pending",
+        "src/host/render.ts :: pending"
+      ]
+    },
+    "038.EO.3": {
+      "cmds": [
+        "038.T3"
+      ],
+      "docs": [
+        "plans/evidence/038-rendering-design.md",
+        "docs/spec.md :: fade-move"
+      ]
+    },
+    "038.EO.4": {
+      "cmds": [
+        "038.T4"
+      ],
+      "docs": [
+        "docs/sdk.md :: Lists longer than the node limit",
+        "docs/model.md :: lists-longer-than-the-node-limit"
+      ]
+    },
+    "038.EO.5": {
+      "cmds": [
+        "038.T6"
+      ],
+      "docs": [
+        "src/dom/switching.ts",
+        "src/dom/focus.ts",
+        "docs/renderer.md :: Writing another renderer"
+      ]
+    },
+    "038.T1.F1": {
+      "docs": [
+        "plans/evidence/038-rendering-design.md",
+        "decision-logs/2026-11-19-1143-rendering-additions-for-0-4-0.md"
+      ]
+    },
+    "038.T1.F2": {
+      "docs": [
+        "plans/evidence/038-rendering-design.md",
+        "decision-logs/2026-11-19-1143-rendering-additions-for-0-4-0.md"
+      ]
+    },
+    "038.T1.F3": {
+      "docs": [
+        "plans/evidence/038-rendering-design.md",
+        "decision-logs/2026-11-19-1143-rendering-additions-for-0-4-0.md"
+      ]
+    },
+    "038.T1.P1": {
+      "docs": [
+        "plans/evidence/038-rendering-design.md",
+        "decision-logs/2026-11-19-1143-rendering-additions-for-0-4-0.md"
+      ]
+    },
+    "038.T1.Q1": {
+      "docs": [
+        "plans/evidence/038-rendering-design.md",
+        "decision-logs/2026-11-19-1143-rendering-additions-for-0-4-0.md"
+      ]
+    },
+    "038.T1.S1": {
+      "docs": [
+        "plans/evidence/038-rendering-design.md",
+        "decision-logs/2026-11-19-1143-rendering-additions-for-0-4-0.md"
+      ]
+    },
+    "038.T2.F1": {
+      "cmds": [
+        "038.T2"
+      ],
+      "docs": [
+        "docs/host.md :: source-pending",
+        "src/host/render.ts :: pending"
+      ]
+    },
+    "038.T2.F2": {
+      "cmds": [
+        "038.T2"
+      ],
+      "docs": [
+        "docs/host.md :: source-pending",
+        "src/host/render.ts :: pending"
+      ]
+    },
+    "038.T2.F3": {
+      "cmds": [
+        "038.T2"
+      ],
+      "docs": [
+        "docs/host.md :: source-pending",
+        "src/host/render.ts :: pending"
+      ]
+    },
+    "038.T2.F4": {
+      "cmds": [
+        "038.T2"
+      ],
+      "docs": [
+        "docs/host.md :: source-pending",
+        "src/host/render.ts :: pending"
+      ]
+    },
+    "038.T2.F5": {
+      "cmds": [
+        "038.T2"
+      ],
+      "docs": [
+        "docs/host.md :: source-pending",
+        "src/host/render.ts :: pending"
+      ]
+    },
+    "038.T2.F6": {
+      "cmds": [
+        "038.T2"
+      ],
+      "docs": [
+        "docs/host.md :: source-pending",
+        "src/host/render.ts :: pending"
+      ]
+    },
+    "038.T2.P1": {
+      "cmds": [
+        "038.T2"
+      ],
+      "docs": [
+        "docs/host.md :: source-pending",
+        "src/host/render.ts :: pending"
+      ],
+      "bench": [
+        "| `bench/host.bench.ts` | pass |"
+      ]
+    },
+    "038.T2.Q1": {
+      "cmds": [
+        "038.T2"
+      ],
+      "docs": [
+        "docs/host.md :: source-pending",
+        "src/host/render.ts :: pending"
+      ]
+    },
+    "038.T2.S1": {
+      "tests": [
+        "pending_answer_raises_source_pending_not_source_failed",
+        "pending_answer_with_a_value_is_treated_as_failed"
+      ]
+    },
+    "038.T3.F1": {
+      "cmds": [
+        "038.T3"
+      ],
+      "docs": [
+        "plans/evidence/038-rendering-design.md",
+        "docs/spec.md :: fade-move"
+      ]
+    },
+    "038.T3.F2": {
+      "cmds": [
+        "038.T3"
+      ],
+      "docs": [
+        "plans/evidence/038-rendering-design.md",
+        "docs/spec.md :: fade-move"
+      ]
+    },
+    "038.T3.F3": {
+      "cmds": [
+        "038.T3"
+      ],
+      "docs": [
+        "plans/evidence/038-rendering-design.md",
+        "docs/spec.md :: fade-move"
+      ]
+    },
+    "038.T3.F4": {
+      "cmds": [
+        "038.T3"
+      ],
+      "docs": [
+        "plans/evidence/038-rendering-design.md",
+        "docs/spec.md :: fade-move"
+      ]
+    },
+    "038.T3.F5": {
+      "cmds": [
+        "038.T3"
+      ],
+      "docs": [
+        "plans/evidence/038-rendering-design.md",
+        "docs/spec.md :: fade-move"
+      ]
+    },
+    "038.T3.F6": {
+      "cmds": [
+        "038.T3"
+      ],
+      "docs": [
+        "plans/evidence/038-rendering-design.md",
+        "docs/spec.md :: fade-move"
+      ]
+    },
+    "038.T3.F7": {
+      "cmds": [
+        "038.T3"
+      ],
+      "docs": [
+        "plans/evidence/038-rendering-design.md",
+        "docs/spec.md :: fade-move"
+      ]
+    },
+    "038.T3.P1": {
+      "cmds": [
+        "038.T3"
+      ],
+      "docs": [
+        "plans/evidence/038-rendering-design.md",
+        "docs/spec.md :: fade-move"
+      ],
+      "bench": [
+        "| `bench/motion.bench.ts` | pass |"
+      ]
+    },
+    "038.T3.Q1": {
+      "cmds": [
+        "038.T3"
+      ],
+      "docs": [
+        "plans/evidence/038-rendering-design.md",
+        "docs/spec.md :: fade-move"
+      ]
+    },
+    "038.T3.S1": {
+      "cmds": [
+        "038.T3"
+      ],
+      "docs": [
+        "plans/evidence/038-rendering-design.md",
+        "docs/spec.md :: fade-move"
+      ]
+    },
+    "038.T4.F1": {
+      "cmds": [
+        "038.T4"
+      ],
+      "docs": [
+        "docs/sdk.md :: Lists longer than the node limit",
+        "docs/model.md :: lists-longer-than-the-node-limit"
+      ]
+    },
+    "038.T4.F2": {
+      "cmds": [
+        "038.T4"
+      ],
+      "docs": [
+        "docs/sdk.md :: Lists longer than the node limit",
+        "docs/model.md :: lists-longer-than-the-node-limit"
+      ]
+    },
+    "038.T4.F3": {
+      "cmds": [
+        "038.T4"
+      ],
+      "docs": [
+        "docs/sdk.md :: Lists longer than the node limit",
+        "docs/model.md :: lists-longer-than-the-node-limit"
+      ]
+    },
+    "038.T4.F4": {
+      "cmds": [
+        "038.T4"
+      ],
+      "docs": [
+        "docs/sdk.md :: Lists longer than the node limit",
+        "docs/model.md :: lists-longer-than-the-node-limit"
+      ]
+    },
+    "038.T4.F5": {
+      "cmds": [
+        "038.T4"
+      ],
+      "docs": [
+        "docs/sdk.md :: Lists longer than the node limit",
+        "docs/model.md :: lists-longer-than-the-node-limit"
+      ]
+    },
+    "038.T4.F6": {
+      "cmds": [
+        "038.T4"
+      ],
+      "docs": [
+        "docs/sdk.md :: Lists longer than the node limit",
+        "docs/model.md :: lists-longer-than-the-node-limit"
+      ]
+    },
+    "038.T4.P1": {
+      "cmds": [
+        "038.T4"
+      ],
+      "docs": [
+        "docs/sdk.md :: Lists longer than the node limit",
+        "docs/model.md :: lists-longer-than-the-node-limit"
+      ],
+      "bench": [
+        "| `bench/streaming.bench.ts` | pass |"
+      ]
+    },
+    "038.T4.Q1": {
+      "cmds": [
+        "038.T4"
+      ],
+      "docs": [
+        "docs/sdk.md :: Lists longer than the node limit",
+        "docs/model.md :: lists-longer-than-the-node-limit"
+      ]
+    },
+    "038.T4.S1": {
+      "cmds": [
+        "038.T4"
+      ],
+      "docs": [
+        "docs/sdk.md :: Lists longer than the node limit",
+        "docs/model.md :: lists-longer-than-the-node-limit"
+      ]
+    },
+    "038.T5.F1": {
+      "cmds": [
+        "038.T5"
+      ],
+      "docs": [
+        "src/dom/index.ts :: createDomRenderer",
+        "docs/spec.md :: /dom"
+      ]
+    },
+    "038.T5.F2": {
+      "cmds": [
+        "038.T5"
+      ],
+      "docs": [
+        "src/dom/index.ts :: createDomRenderer",
+        "docs/spec.md :: /dom"
+      ]
+    },
+    "038.T5.F3": {
+      "cmds": [
+        "038.T5"
+      ],
+      "docs": [
+        "src/dom/index.ts :: createDomRenderer",
+        "docs/spec.md :: /dom"
+      ]
+    },
+    "038.T5.F4": {
+      "cmds": [
+        "038.T5"
+      ],
+      "docs": [
+        "src/dom/index.ts :: createDomRenderer",
+        "docs/spec.md :: /dom"
+      ]
+    },
+    "038.T5.P1": {
+      "cmds": [
+        "038.T5"
+      ],
+      "docs": [
+        "src/dom/index.ts :: createDomRenderer",
+        "docs/spec.md :: /dom"
+      ],
+      "bench": [
+        "| `bench/dom.bench.ts` | pass |"
+      ]
+    },
+    "038.T5.Q1": {
+      "cmds": [
+        "038.T5"
+      ],
+      "docs": [
+        "src/dom/index.ts :: createDomRenderer",
+        "docs/spec.md :: /dom"
+      ]
+    },
+    "038.T5.S1": {
+      "tests": [
+        "dom_invalid_arrival_draws_only_the_fallback"
+      ],
+      "cmds": [
+        "038.T5"
+      ]
+    },
+    "038.T6.F1": {
+      "cmds": [
+        "038.T6"
+      ],
+      "docs": [
+        "src/dom/switching.ts",
+        "src/dom/focus.ts",
+        "docs/renderer.md :: Writing another renderer"
+      ]
+    },
+    "038.T6.F2": {
+      "cmds": [
+        "038.T6"
+      ],
+      "docs": [
+        "src/dom/switching.ts",
+        "src/dom/focus.ts",
+        "docs/renderer.md :: Writing another renderer"
+      ]
+    },
+    "038.T6.F3": {
+      "cmds": [
+        "038.T6"
+      ],
+      "docs": [
+        "src/dom/switching.ts",
+        "src/dom/focus.ts",
+        "docs/renderer.md :: Writing another renderer"
+      ]
+    },
+    "038.T6.F4": {
+      "cmds": [
+        "038.T6"
+      ],
+      "docs": [
+        "src/dom/switching.ts",
+        "src/dom/focus.ts",
+        "docs/renderer.md :: Writing another renderer"
+      ]
+    },
+    "038.T6.F5": {
+      "cmds": [
+        "038.T6"
+      ],
+      "docs": [
+        "src/dom/switching.ts",
+        "src/dom/focus.ts",
+        "docs/renderer.md :: Writing another renderer"
+      ]
+    },
+    "038.T6.F6": {
+      "cmds": [
+        "038.T6"
+      ],
+      "docs": [
+        "src/dom/switching.ts",
+        "src/dom/focus.ts",
+        "docs/renderer.md :: Writing another renderer"
+      ]
+    },
+    "038.T6.F7": {
+      "cmds": [
+        "038.T6"
+      ],
+      "docs": [
+        "src/dom/switching.ts",
+        "src/dom/focus.ts",
+        "docs/renderer.md :: Writing another renderer"
+      ]
+    },
+    "038.T6.P1": {
+      "cmds": [
+        "038.T6"
+      ],
+      "docs": [
+        "src/dom/switching.ts",
+        "src/dom/focus.ts",
+        "docs/renderer.md :: Writing another renderer"
+      ]
+    },
+    "038.T6.Q1": {
+      "cmds": [
+        "038.T6"
+      ],
+      "docs": [
+        "src/dom/switching.ts",
+        "src/dom/focus.ts",
+        "docs/renderer.md :: Writing another renderer"
+      ]
+    },
+    "038.T6.S1": {
+      "cmds": [
+        "038.T6"
+      ],
+      "tests": [
+        "dom_law_4_a_renderer_that_forwards_set_local_fails_only_its_rule"
+      ]
+    },
+    "038.T6a.F1": {
+      "cmds": [
+        "038.T6a"
+      ],
+      "docs": [
+        "docs/migration-0.4.md :: size.row",
+        "packages/starter/README.md :: migration-0.4",
+        "CHANGELOG.md :: size.row"
+      ]
+    },
+    "038.T6a.F2": {
+      "cmds": [
+        "038.T6a"
+      ],
+      "docs": [
+        "docs/migration-0.4.md :: size.row",
+        "packages/starter/README.md :: migration-0.4",
+        "CHANGELOG.md :: size.row"
+      ]
+    },
+    "038.T6a.F3": {
+      "cmds": [
+        "038.T6a"
+      ],
+      "docs": [
+        "docs/migration-0.4.md :: size.row",
+        "packages/starter/README.md :: migration-0.4",
+        "CHANGELOG.md :: size.row"
+      ]
+    },
+    "038.T6a.F4": {
+      "cmds": [
+        "038.T6a"
+      ],
+      "docs": [
+        "docs/migration-0.4.md :: size.row",
+        "packages/starter/README.md :: migration-0.4",
+        "CHANGELOG.md :: size.row"
+      ]
+    },
+    "038.T6a.F5": {
+      "cmds": [
+        "038.T6a"
+      ],
+      "docs": [
+        "docs/migration-0.4.md :: size.row",
+        "packages/starter/README.md :: migration-0.4",
+        "CHANGELOG.md :: size.row"
+      ]
+    },
+    "038.T6a.Q1": {
+      "cmds": [
+        "038.T6a"
+      ],
+      "docs": [
+        "docs/migration-0.4.md :: size.row",
+        "packages/starter/README.md :: migration-0.4",
+        "CHANGELOG.md :: size.row"
+      ]
+    },
+    "038.T7.F1": {
+      "docs": [
+        "plans/evidence/038-impact-analysis.md :: ## 2. Findings and Disposition"
+      ]
+    },
+    "038.T7.P1": {
+      "docs": [
+        "plans/evidence/038-impact-analysis.md :: ### 7. Performance"
+      ]
+    },
+    "038.T7.Q1": {
+      "docs": [
+        "plans/evidence/038-impact-analysis.md :: ## 2. Findings and Disposition"
+      ]
+    },
+    "038.T7.S1": {
+      "docs": [
+        "plans/evidence/038-impact-analysis.md :: ### 3. The four laws"
+      ]
+    },
+    "039.EO.1": {
+      "docs": [
+        "plans/evidence/039-agent-ui-design.md",
+        "decision-logs/2026-11-19-2034-agent-ui-additions-for-0-4-0.md"
+      ]
+    },
+    "039.EO.2": {
+      "cmds": [
+        "039.T2"
+      ],
+      "docs": [
+        "src/sdk/render.ts :: attachExpressions",
+        "src/sdk/gen.ts :: generateElementsSchema"
+      ]
+    },
+    "039.EO.3": {
+      "cmds": [
+        "039.T3"
+      ],
+      "docs": [
+        "plans/evidence/039-agent-acceptance.md",
+        "package.json :: --budget 24000",
+        "package.json :: --budget 20000"
+      ]
+    },
+    "039.EO.4": {
+      "cmds": [
+        "039.T4"
+      ],
+      "docs": [
+        "packages/a2ui/README.md",
+        "packages/a2ui/package.json :: peerDependencies"
+      ]
+    },
+    "039.EO.5": {
+      "cmds": [
+        "039.T5",
+        "039.T6"
+      ]
+    },
+    "039.T1.F1": {
+      "docs": [
+        "plans/evidence/039-agent-ui-design.md",
+        "decision-logs/2026-11-19-2034-agent-ui-additions-for-0-4-0.md"
+      ]
+    },
+    "039.T1.F2": {
+      "docs": [
+        "plans/evidence/039-agent-ui-design.md",
+        "decision-logs/2026-11-19-2034-agent-ui-additions-for-0-4-0.md"
+      ]
+    },
+    "039.T1.F3": {
+      "docs": [
+        "plans/evidence/039-agent-ui-design.md",
+        "decision-logs/2026-11-19-2034-agent-ui-additions-for-0-4-0.md"
+      ]
+    },
+    "039.T1.P1": {
+      "docs": [
+        "plans/evidence/039-agent-ui-design.md",
+        "decision-logs/2026-11-19-2034-agent-ui-additions-for-0-4-0.md"
+      ]
+    },
+    "039.T1.Q1": {
+      "docs": [
+        "plans/evidence/039-agent-ui-design.md",
+        "decision-logs/2026-11-19-2034-agent-ui-additions-for-0-4-0.md"
+      ]
+    },
+    "039.T1.S1": {
+      "docs": [
+        "plans/evidence/039-agent-ui-design.md",
+        "decision-logs/2026-11-19-2034-agent-ui-additions-for-0-4-0.md"
+      ]
+    },
+    "039.T2.F1": {
+      "cmds": [
+        "039.T2"
+      ],
+      "docs": [
+        "src/sdk/render.ts :: attachExpressions",
+        "src/sdk/gen.ts :: generateElementsSchema"
+      ]
+    },
+    "039.T2.F2": {
+      "cmds": [
+        "039.T2"
+      ],
+      "docs": [
+        "src/sdk/render.ts :: attachExpressions",
+        "src/sdk/gen.ts :: generateElementsSchema"
+      ]
+    },
+    "039.T2.F3": {
+      "cmds": [
+        "039.T2"
+      ],
+      "docs": [
+        "src/sdk/render.ts :: attachExpressions",
+        "src/sdk/gen.ts :: generateElementsSchema"
+      ]
+    },
+    "039.T2.F4": {
+      "cmds": [
+        "039.T2"
+      ],
+      "docs": [
+        "src/sdk/render.ts :: attachExpressions",
+        "src/sdk/gen.ts :: generateElementsSchema"
+      ]
+    },
+    "039.T2.F5": {
+      "cmds": [
+        "039.T2"
+      ],
+      "docs": [
+        "src/sdk/render.ts :: attachExpressions",
+        "src/sdk/gen.ts :: generateElementsSchema"
+      ]
+    },
+    "039.T2.F6": {
+      "cmds": [
+        "039.T2"
+      ],
+      "docs": [
+        "src/sdk/render.ts :: attachExpressions",
+        "src/sdk/gen.ts :: generateElementsSchema"
+      ]
+    },
+    "039.T2.P1": {
+      "cmds": [
+        "039.T2"
+      ],
+      "docs": [
+        "plans/evidence/039-impact-analysis.md :: control was unusable"
+      ],
+      "note": "The absolute budget is due in Task 5. The owner accepted F4, which leaves the historical 2% A/B unresolved.",
+      "bench": [
+        "| `bench/stream-elements.bench.ts` | pass |"
+      ]
+    },
+    "039.T2.Q1": {
+      "cmds": [
+        "039.T2"
+      ],
+      "docs": [
+        "src/sdk/render.ts :: attachExpressions",
+        "src/sdk/gen.ts :: generateElementsSchema"
+      ]
+    },
+    "039.T2.S1": {
+      "tests": [
+        "element_json_cannot_declare_local",
+        "expression_reading_an_undeclared_local_key_is_unknown_name",
+        "stream_enforces_the_tree_expression_bound"
+      ]
+    },
+    "039.T3.F1": {
+      "cmds": [
+        "039.T3"
+      ],
+      "docs": [
+        "plans/evidence/039-agent-acceptance.md",
+        "package.json :: --budget 24000",
+        "package.json :: --budget 20000"
+      ]
+    },
+    "039.T3.F2": {
+      "cmds": [
+        "039.T3"
+      ],
+      "docs": [
+        "plans/evidence/039-agent-acceptance.md",
+        "package.json :: --budget 24000",
+        "package.json :: --budget 20000"
+      ]
+    },
+    "039.T3.F3": {
+      "cmds": [
+        "039.T3"
+      ],
+      "docs": [
+        "plans/evidence/039-agent-acceptance.md",
+        "package.json :: --budget 24000",
+        "package.json :: --budget 20000"
+      ]
+    },
+    "039.T3.F4": {
+      "tests": [
+        "mcp_generated_types_returns_the_digest"
+      ]
+    },
+    "039.T3.F5": {
+      "cmds": [
+        "039.T3"
+      ],
+      "docs": [
+        "plans/evidence/039-agent-acceptance.md",
+        "package.json :: --budget 24000",
+        "package.json :: --budget 20000"
+      ]
+    },
+    "039.T3.F6": {
+      "docs": [
+        "plans/evidence/039-agent-acceptance.md"
+      ]
+    },
+    "039.T3.F7": {
+      "cmds": [
+        "039.T3"
+      ],
+      "docs": [
+        "plans/evidence/039-agent-acceptance.md",
+        "package.json :: --budget 24000",
+        "package.json :: --budget 20000"
+      ]
+    },
+    "039.T3.P1": {
+      "cmds": [
+        "039.T3"
+      ],
+      "docs": [
+        "plans/evidence/039-agent-acceptance.md",
+        "package.json :: --budget 24000",
+        "package.json :: --budget 20000"
+      ]
+    },
+    "039.T3.Q1": {
+      "cmds": [
+        "039.T3"
+      ],
+      "docs": [
+        "plans/evidence/039-agent-acceptance.md",
+        "package.json :: --budget 24000",
+        "package.json :: --budget 20000"
+      ]
+    },
+    "039.T3.S1": {
+      "tests": [
+        "digest_holds_no_paths_and_no_design_values"
+      ]
+    },
+    "039.T4.F1": {
+      "cmds": [
+        "039.T4"
+      ],
+      "docs": [
+        "packages/a2ui/README.md",
+        "packages/a2ui/package.json :: peerDependencies"
+      ]
+    },
+    "039.T4.F2": {
+      "cmds": [
+        "039.T4"
+      ],
+      "docs": [
+        "packages/a2ui/README.md",
+        "packages/a2ui/package.json :: peerDependencies"
+      ]
+    },
+    "039.T4.F3": {
+      "cmds": [
+        "039.T4"
+      ],
+      "docs": [
+        "packages/a2ui/README.md",
+        "packages/a2ui/package.json :: peerDependencies"
+      ]
+    },
+    "039.T4.F4": {
+      "cmds": [
+        "039.T4"
+      ],
+      "docs": [
+        "packages/a2ui/package.json :: peerDependencies"
+      ]
+    },
+    "039.T4.P1": {
+      "cmds": [
+        "039.T4"
+      ],
+      "docs": [
+        "packages/a2ui/README.md",
+        "packages/a2ui/package.json :: peerDependencies"
+      ]
+    },
+    "039.T4.Q1": {
+      "cmds": [
+        "039.T4"
+      ],
+      "docs": [
+        "packages/a2ui/README.md",
+        "packages/a2ui/package.json :: peerDependencies"
+      ]
+    },
+    "039.T4.S1": {
+      "tests": [
+        "a2ui_document_converts_and_renders_through_the_starter_catalog",
+        "converted_action_must_be_declared_by_the_manifest",
+        "hostile_document_is_bounded_and_yields_no_tree"
+      ],
+      "cmds": [
+        "039.T4"
+      ]
+    },
+    "039.T5.F1": {
+      "cmds": [
+        "039.T5"
+      ],
+      "docs": [
+        "packages/starter/README.md :: dateField",
+        "docs/getting-started.md :: internationalized/date"
+      ]
+    },
+    "039.T5.F2": {
+      "cmds": [
+        "039.T5"
+      ],
+      "docs": [
+        "plans/evidence/039-impact-analysis.md :: backlog** P4",
+        "plans/backlog.md :: Let a scalar carry be nullable or bounded"
+      ],
+      "note": "Proof covers the implemented contract. F6 records the carry deviation and its accepted backlog disposition."
+    },
+    "039.T5.F3": {
+      "cmds": [
+        "039.T5"
+      ],
+      "docs": [
+        "packages/starter/README.md :: dateField",
+        "docs/getting-started.md :: internationalized/date"
+      ]
+    },
+    "039.T5.F4": {
+      "cmds": [
+        "039.T5"
+      ],
+      "docs": [
+        "packages/starter/README.md :: dateField",
+        "docs/getting-started.md :: internationalized/date"
+      ]
+    },
+    "039.T5.F5": {
+      "cmds": [
+        "039.T5"
+      ],
+      "docs": [
+        "packages/starter/README.md :: dateField",
+        "docs/getting-started.md :: internationalized/date"
+      ]
+    },
+    "039.T5.P1": {
+      "docs": [
+        "plans/evidence/039-impact-analysis.md :: starter_switch_within_budget",
+        "bench/css.bench.ts :: browserSwitch.starter.maxMs"
+      ],
+      "bench": [
+        "| `bench/css.bench.ts` | pass |"
+      ]
+    },
+    "039.T5.Q1": {
+      "cmds": [
+        "039.T5"
+      ],
+      "docs": [
+        "packages/starter/README.md :: dateField",
+        "docs/getting-started.md :: internationalized/date"
+      ]
+    },
+    "039.T5.S1": {
+      "cmds": [
+        "039.T5"
+      ],
+      "docs": [
+        "packages/starter/README.md :: dateField",
+        "docs/getting-started.md :: internationalized/date"
+      ]
+    },
+    "039.T6.F1": {
+      "cmds": [
+        "039.T6"
+      ],
+      "docs": [
+        "packages/starter/src/content.tsx :: currentColor",
+        "docs/security.md :: agent-written UI"
+      ]
+    },
+    "039.T6.F2": {
+      "cmds": [
+        "039.T6"
+      ],
+      "docs": [
+        "packages/starter/src/content.tsx :: currentColor",
+        "docs/security.md :: agent-written UI"
+      ]
+    },
+    "039.T6.F3": {
+      "cmds": [
+        "039.T6"
+      ],
+      "docs": [
+        "packages/starter/src/content.tsx :: currentColor",
+        "docs/security.md :: agent-written UI"
+      ]
+    },
+    "039.T6.F4": {
+      "cmds": [
+        "039.T6"
+      ],
+      "docs": [
+        "packages/starter/src/content.tsx :: currentColor",
+        "docs/security.md :: agent-written UI"
+      ]
+    },
+    "039.T6.F5": {
+      "cmds": [
+        "039.T6"
+      ],
+      "docs": [
+        "packages/starter/src/content.tsx :: currentColor",
+        "docs/security.md :: agent-written UI"
+      ]
+    },
+    "039.T6.F6": {
+      "cmds": [
+        "039.T6"
+      ],
+      "docs": [
+        "packages/starter/src/content.tsx :: currentColor",
+        "docs/security.md :: agent-written UI"
+      ]
+    },
+    "039.T6.P1": {
+      "cmds": [
+        "039.T6"
+      ],
+      "docs": [
+        "packages/starter/src/content.tsx :: currentColor",
+        "docs/security.md :: agent-written UI"
+      ],
+      "bench": [
+        "| `bench/starter-content.bench.ts` | pass |"
+      ]
+    },
+    "039.T6.Q1": {
+      "cmds": [
+        "039.T6"
+      ],
+      "docs": [
+        "packages/starter/src/content.tsx :: currentColor",
+        "docs/security.md :: agent-written UI"
+      ]
+    },
+    "039.T6.S1": {
+      "cmds": [
+        "039.T6"
+      ],
+      "docs": [
+        "packages/starter/src/content.tsx :: currentColor"
+      ]
+    },
+    "039.T7.F1": {
+      "docs": [
+        "plans/evidence/039-impact-analysis.md :: ## 2. Findings and Disposition"
+      ]
+    },
+    "039.T7.P1": {
+      "docs": [
+        "plans/evidence/039-impact-analysis.md :: ### 7. Performance"
+      ]
+    },
+    "039.T7.Q1": {
+      "docs": [
+        "plans/evidence/039-impact-analysis.md :: ## 2. Findings and Disposition"
+      ]
+    },
+    "039.T7.S1": {
+      "docs": [
+        "plans/evidence/039-impact-analysis.md :: ### 3. The four laws"
+      ]
+    }
+  }
+}

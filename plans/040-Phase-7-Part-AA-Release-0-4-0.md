@@ -205,7 +205,7 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
     - Added adopter notes covering the interaction, rendering and agent UI scope, the review fixes, request status and the two 0.5.0 deferrals. Reviewed the new interaction and rendering paths against all four laws.
     - Added documentation checks for stale 0.3.1 release references, workspace package coverage and 0.4 migration samples. Corrected three sample snippets so they parse. The focused checks passed, and host `bun run check` passed with 2,127 tests and six skips.
 
-- [ ] Task 4: Prove every acceptance criterion of plans 033–039 against the checkout
+- [x] Task 4: Prove every acceptance criterion of plans 033–039 against the checkout
   - Acceptance Criteria:
     - Functional:
       - `plans/evidence/040-acceptance.md` is generated with one row per acceptance bullet of plans 033–039, joined through `plans/evidence/040-acceptance-map.json`.
@@ -238,6 +238,10 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
   - Test Cases to Write:
     - `acceptance_map_covers_every_bullet_of_plans_033_to_039`: the real plans against the real map, without running the proofs. Fails on an unmapped bullet or a stale key.
     - `acceptance_log_header_names_the_given_map`: breaks if the path is hard-coded again.
+  - Notes (executed 2026-11-21):
+    - Generated the [acceptance log](evidence/040-acceptance.md) from the [proof map](evidence/040-acceptance-map.json) against checkout `d41c8e5` with the Task 4 edits. All 440 rows are accounted for, with 394 passing, 18 inapplicable and 28 awaiting the [Task 5 quiet-host record](#tasks). No rows failed or were unmapped. All 80 named tests and all mapped commands passed, including the packed demo suite.
+    - Rows `036.T2.F2`, `036.T2.F4` and `036.T2.S1` cover Task 1a's strict element-shape checks, exact error pointers and release documentation. The two previously recorded pointer exceptions remain in the backlog. Row `039.T5.F2` records the owner's accepted carry deviation, and row `039.T2.P1` records the accepted backlog disposition for the inconclusive historical 2% A/B.
+    - The shared generator reports the supplied map and benchmark paths. Both acceptance-map coverage tests and the header regression test passed. Host `bun run check` passed with 2,129 tests passing and six skipped.
 
 - [ ] Task 5: Run the full benchmark suite on a quiet host (carries the open quiet-host proof)
   - Acceptance Criteria:
