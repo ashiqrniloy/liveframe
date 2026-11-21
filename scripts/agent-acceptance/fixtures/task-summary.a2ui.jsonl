@@ -1,0 +1,3 @@
+{"version":"v0.9.1","createSurface":{"surfaceId":"main","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}}
+{"version":"v0.9.1","updateComponents":{"surfaceId":"main","components":[{"id":"root","component":"Column","children":["title","claim"]},{"id":"title","component":"Summary","text":{"path":"/title"}},{"id":"claim","component":"Button","child":"label","action":{"event":{"name":"claim","context":{"id":"t1"}}}},{"id":"label","component":"Text","text":"Claim"}]}}
+{"version":"v0.9.1","updateDataModel":{"surfaceId":"main","value":{"title":"Write the report"}}}

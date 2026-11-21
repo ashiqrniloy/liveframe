@@ -1,12 +1,12 @@
 #!/usr/bin/env bun
 /**
  * Plan 032 Task 4, operator side: build the host an agent works against, outside the repository, from the packed
- * archives of all three packages (what a registry install gives it), and leave the agent nothing but the installed
+ * archives of all four packages (what a registry install gives it), and leave the agent nothing but the installed
  * README and docs, the running host and the `liveframe mcp` tools.
  *
  * The host is the demo host (`examples/demo-host`, the `/host` pipeline, the `tasks.*` and `selection.*`
- * capabilities) with three changes, all in the copy: its catalog, themes, design system and primitives are the
- * starter's; it renders with `quickjsRunner()`; and its preview draft is the getting-started guide's template widget.
+ * capabilities). The copy uses the starter plus an app-owned multi-select, renders with `quickjsRunner()`,
+ * and previews the getting-started guide's template widget.
  *
  *   timeout 900s bun scripts/agent-acceptance/prepare.ts --out <empty dir outside the repo>
  */
@@ -29,7 +29,7 @@ await rm(out, { recursive: true, force: true });
 const host = join(out, "host");
 await mkdir(join(host, "widgets"), { recursive: true });
 
-// 1. The three archives, exactly as published.
+// 1. The four archives, exactly as published.
 run(["bun", "run", "build"], root);
 const archives: Record<string, string> = {};
 for (const dir of await packageDirs()) {
@@ -61,6 +61,10 @@ for (const name of [
   await cp(join(demo, name), join(host, name));
 }
 await cp(new URL("./mcp-session.ts", import.meta.url).pathname, join(host, "mcp-session.ts"));
+await cp(
+  new URL("./fixtures/task-summary.a2ui.jsonl", import.meta.url).pathname,
+  join(host, "task-summary.a2ui.jsonl"),
+);
 await cp(join(demo, "install-widget.ts"), join(host, "install-widget.ts"));
 await cp(join(demo, "widgets/draft.ts"), join(host, "widgets/draft.ts"));
 await cp(join(demo, "widgets/libraries.d.ts"), join(host, "widgets/libraries.d.ts"));
@@ -68,16 +72,21 @@ await cp(join(demo, "widgets/libraries.d.ts"), join(host, "widgets/libraries.d.t
 // 3. The starter replaces the demo's catalog, themes, design system and primitives.
 await Bun.write(
   join(host, "app.ts"),
-  `import { type Result, validateCapabilities } from "@arnilo/liveframe";
-import { catalog, designSystem, themes } from "@arnilo/liveframe-starter";
+  `import { type Result, validateCapabilities, validateCatalog } from "@arnilo/liveframe";
+import { catalog as starterCatalog, designSystem, themes } from "@arnilo/liveframe-starter";
 import capabilitiesDocument from "./capabilities.json" with { type: "json" };
+import { multiSelect } from "./primitives/multi-select.tsx";
 
 function valid<T>(result: Result<T>): T {
   if (!result.ok) throw new Error(JSON.stringify(result.errors));
   return result.value;
 }
 
-export { catalog, designSystem, themes };
+export { designSystem, themes };
+export const catalog = valid(validateCatalog({
+  ...starterCatalog,
+  definitions: [...starterCatalog.definitions, multiSelect],
+}));
 export const capabilities = valid(validateCapabilities(capabilitiesDocument));
 export const theme = themes[0];
 export const designSystems = [designSystem] as const;
@@ -98,7 +107,15 @@ export const sheets: Record<string, string> = {
 `,
 );
 await mkdir(join(host, "primitives"), { recursive: true });
-await Bun.write(join(host, "primitives/index.tsx"), `export { implementations } from "@arnilo/liveframe-starter";\n`);
+await cp(new URL("./fixtures/multi-select.tsx", import.meta.url).pathname, join(host, "primitives/multi-select.tsx"));
+await Bun.write(
+  join(host, "primitives/index.tsx"),
+  `import { implementations as starterImplementations } from "@arnilo/liveframe-starter";
+import { multiSelectImplementation } from "./multi-select.tsx";
+
+export const implementations = [...starterImplementations, multiSelectImplementation];
+`,
+);
 
 // 4. Render with the isolated runner, and preview a template widget the starter catalog accepts.
 let server = await read(join(host, "server.ts"));

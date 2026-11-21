@@ -286,7 +286,7 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
     - Fourteen stages exited 0. The validator exceeded its 1.5 µs/node limit for `core-queue.large` (1.520) and `core-queue.full` (1.751) while the stage averaged 13.1% host CPU and peaked at 17.9%.
     - `bun run check` passed with 2,129 tests, six skips and zero failures. The quiet-host proof remains open for the Task 8 readiness review under the [approved scope](../decision-logs/2026-11-20-2319-release-0-4-0-scope.md). The 28 benchmark rows in the [acceptance log](evidence/040-acceptance.md) remain pending. Both backlog entries, plan 025 Task 8, plan 036 F12 and plan 037 F5 remain open.
 
-- [ ] Task 6: Run the agent acceptance test on the 0.4.0 paths
+- [x] Task 6: Run the agent acceptance test on the 0.4.0 paths
   - Acceptance Criteria:
     - Functional:
       - A fresh agent works from only the packed archives' READMEs and docs, the `liveframe mcp` tools (starter catalog, `quickjsRunner`) and a running demo-shaped host built by `scripts/agent-acceptance/prepare.ts`. It:
@@ -308,14 +308,20 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
     - Options Considered:
       - Rely on 039's partial run — rejected: it covered the agent-UI paths only, not 037/038 or the host.
     - Chosen Approach:
-      - The established fresh-agent pattern on the 0.4.0 paths.
+      - The established fresh-agent pattern on the 0.4.0 paths. Extend the acceptance host's starter catalog with an app-owned multi-select so the same widget can exercise the array event in preview and on the host. Run the digest-only step with an isolated brief and the unextended starter digest.
     - API Notes and Examples: n/a.
     - Files to Create/Edit:
       - `plans/evidence/040-agent-acceptance.md`.
-      - `scripts/agent-acceptance/prepare.ts`: pack all four archives and supply an A2UI fixture.
-      - `scripts/agent-acceptance/*`: as needed.
+      - `scripts/agent-acceptance/prepare.ts`: prepare all four archives and wire the acceptance fixtures into the host.
+      - `scripts/agent-acceptance/fixtures/multi-select.tsx` and `task-summary.a2ui.jsonl`: the host's array-carry primitive and the supplied A2UI input.
   - Test Cases to Write:
     - n/a — acceptance run. Any capability gap becomes a finding, and the owner decides whether it is fixed before the candidate (as plan 032 Task 4a).
+
+  - Notes (executed 2026-11-21):
+    - The [acceptance transcript](evidence/040-agent-acceptance.md) records all four paths against the locally packed release checkout. The archive manifests still read `0.3.0` pending Task 7.
+    - The TSX draft passed both QuickJS scenarios and all six MCP captures. MCP accepted the two-item multi-select event and dispatched zero actions. The host installed the same draft hash and streamed both the source and action transitions. Chromium confirmed array selection, `fromLocal`, the revision-scoped write, and the empty state.
+    - The isolated digest-only agent's JSON rendered with caller-owned local state and zero intents while filtering. The A2UI agent repaired the missing component mapping, traced the result to its input through `origins`, and verified that the converter offered only the mapped action.
+    - The transcript records two host-guide discrepancies for owner review before the candidate: the surface GET streams NDJSON, and frame `actions` is a dispatch log. `bun run check` finished with 2,129 passed, six skipped, and zero failures.
 
 - [ ] Task 7: Bump to `0.4.0-rc.1`, set the 0.4.0 API baselines, publish under `next` and verify from the registry
   - Acceptance Criteria:
