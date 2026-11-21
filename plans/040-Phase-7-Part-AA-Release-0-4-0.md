@@ -323,7 +323,7 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
     - The isolated digest-only agent's JSON rendered with caller-owned local state and zero intents while filtering. The A2UI agent repaired the missing component mapping, traced the result to its input through `origins`, and verified that the converter offered only the mapped action.
     - The transcript records two host-guide discrepancies for owner review before the candidate: the surface GET streams NDJSON, and frame `actions` is a dispatch log. `bun run check` finished with 2,129 passed, six skipped, and zero failures.
 
-- [ ] Task 7: Bump to `0.4.0-rc.1`, set the 0.4.0 API baselines, publish under `next` and verify from the registry
+- [x] Task 7: Bump to `0.4.0-rc.1`, set the 0.4.0 API baselines, publish under `next` and verify from the registry
   - Acceptance Criteria:
     - Functional:
       - Prerequisites, before the tag: Task 1's A2UI step is done (`@arnilo/liveframe-a2ui` has `0.0.0-stage` and a trusted publisher no more than 2 days old), and the other three packages' trusted publishers still allow `npm publish` and `npm dist-tag`.
@@ -372,9 +372,10 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
 
     Each breaks on an unregistered declaration change.
 
-  - Notes (local preparation 2026-11-21):
+  - Notes (executed 2026-11-21–22):
     - Bumped all four packages to `0.4.0-rc.1` with companion peers at `~0.4.0-0`. Generated all four baselines and switched the checkout API gate to them. The historical core comparison still checks the recorded changes between the 0.3.0 and 0.4.0 baselines for the acceptance maps.
-    - The [release candidate record](evidence/040-release-candidate.md) shows the local gate results and the registry preflight. npm returned HTTP 404 for the A2UI staging version. The tag push, protected publication and registry verification wait on the owner's Task 1 staging claim and trusted publisher setup.
+    - The [release candidate record](evidence/040-release-candidate.md) shows the local gate results and the registry preflight. npm initially returned HTTP 404 for A2UI. The authenticated staged publish created the public `0.0.0-stage` placeholder, which the exact-version registry endpoint confirmed. The owner confirmed trusted publisher setup for all four packages. CI run `44929075938` passed on candidate commit `f71f90d`. The tag `v0.4.0-rc.1` points to that commit. The owner approved protected Publish run `44933932159`, which published all four packages under `next`.
+    - Registry verification passed for all four archives, installed APIs, dist-tags and provenance. The registry guide passed and the demo passed all 78 tests. A2UI also reports the candidate under `latest` because it has no previous release.
 
 - [ ] Task 8: Review readiness with the owner, then publish `0.4.0` and verify it from the registry
   - Acceptance Criteria:
