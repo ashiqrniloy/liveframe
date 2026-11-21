@@ -116,8 +116,9 @@ timeout 10s curl --fail-with-body -sS -X PUT http://127.0.0.1:3300/placements/my
 timeout 10s curl --fail-with-body -sS http://127.0.0.1:3300/surfaces/my-placement
 ```
 
-Both return HTTP 200. Placement initializes state from the manifest; the surface
-response contains `tree`, `manifest` and `actions`. Open
+Both return HTTP 200. Placement initializes state from the manifest. The surface
+GET streams JSON lines (`application/x-ndjson`). Read one frame per line and apply
+subsequent patches to the initial tree. Open
 `http://127.0.0.1:3300/?placement=my-placement` to inspect the rendered surface.
 A widget that imports a library needs that library installed first: post the library's
 draft the same way (`bun install-widget.ts widgets/cards` posts the demo's own), then the
@@ -129,8 +130,8 @@ if you want to see them.
 Do not send intents during this exercise unless the operator asks you to; they dispatch actions.
 `POST /placements/<id>/intents` takes `{ "intent": …, "origin": { surfaceId, revision, nodeId, event } }`
 copied from the tree you just read and answers with a stream of JSON lines (`application/x-ndjson`),
-one frame per line: an action first answers with a frame whose `actions` entry for it is `pending`,
-then, when the operation finishes, a frame with `ok` (or the failure status), then a frame for each
-other placement that reads a source the action changed. A stale origin is HTTP 409; a forged or
+one frame per line. Read the widget's pending and final action states from the
+rendered tree updates. The frame's `actions` field records dispatches. The stream
+can also update other placements that read a source the action changed. A stale origin is HTTP 409; a forged or
 unoffered intent is 400. The demo stores the package,
 placement and state in its local `fileStore`; restarting the host preserves them.
