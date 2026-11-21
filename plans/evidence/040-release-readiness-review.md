@@ -6,7 +6,7 @@ The review uses candidate commit `f71f90d`, green CI run `44929075938` and prote
 
 > Task 8 can be closed and I consider this enough for release
 
-The owner gave the release go and approved the outstanding deferrals. [Decision log](../../decision-logs/2026-11-22-0347-go-on-0-4-0.md). Stable registry verification is required to close Task 8.
+The owner gave the release go and approved the outstanding deferrals. [Decision log](../../decision-logs/2026-11-22-0347-go-on-0-4-0.md). The [stable registry verification](040-release.md) completed Task 8.
 
 ## Release scope
 
@@ -64,7 +64,7 @@ The [November 15 package review disposition](../../decision-logs/2026-11-15-1251
 
 ## Impact findings for plans 033–039
 
-Each row links to its original disposition and evidence. Deferred with owner approvals retain the existing backlog priorities.
+Each row links to its original disposition and evidence. The approved deferrals retain the existing backlog priorities.
 
 | Finding | Finding reviewed | Status |
 | --- | --- | --- |

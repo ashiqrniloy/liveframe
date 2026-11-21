@@ -377,7 +377,7 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
     - The [release candidate record](evidence/040-release-candidate.md) shows the local gate results and the registry preflight. npm initially returned HTTP 404 for A2UI. The authenticated staged publish created the public `0.0.0-stage` placeholder, which the exact-version registry endpoint confirmed. The owner confirmed trusted publisher setup for all four packages. CI run `44929075938` passed on candidate commit `f71f90d`. The tag `v0.4.0-rc.1` points to that commit. The owner approved protected Publish run `44933932159`, which published all four packages under `next`.
     - Registry verification passed for all four archives, installed APIs, dist-tags and provenance. The registry guide passed and the demo passed all 78 tests. A2UI also reports the candidate under `latest` because it has no previous release.
 
-- [ ] Task 8: Review readiness with the owner, then publish `0.4.0` and verify it from the registry
+- [x] Task 8: Review readiness with the owner, then publish `0.4.0` and verify it from the registry
   - Acceptance Criteria:
     - Functional:
       - `plans/evidence/040-release-readiness-review.md` lists every item as `fixed` with evidence, or `deferred` with the owner's approval:
@@ -418,6 +418,11 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
       - `scripts/release/api/0.4.0*.json` (only if changed); `roadmap.md`; `decision-logs/<date>-go-on-0-4-0*.md`.
   - Test Cases to Write:
     - n/a — release verification. Task 7's API tests re-run on the final commit.
+
+  - Notes (executed 2026-11-22):
+    - The [readiness review](evidence/040-release-readiness-review.md) records the owner's go verbatim and the approved deferrals. The quiet-host rerun completed all 15 stages but peaked at 29.3% CPU. The quiet-host proof and its 28 acceptance rows remain open.
+    - All four packages moved to `0.4.0` and companion peers to `~0.4.0` in `339f023`. The candidate API baselines matched the stable checkout. The version check, full check, archive gates, peer floors and demo passed on that commit.
+    - Protected Publish run `44954949161` published the tag `v0.4.0`. The [stable registry record](evidence/040-release.md) confirms all four archives, installed APIs, getting-started guide, 78 demo tests and provenance. All four packages report `latest` and `next` at `0.4.0`.
 
 - [ ] Task 9: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
