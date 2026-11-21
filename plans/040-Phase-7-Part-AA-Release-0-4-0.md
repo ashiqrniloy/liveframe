@@ -96,7 +96,7 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
     - Spec §7.2, migration guidance, changelog and both SDK register entries document the change. The layered API gate reads the 0.3 and 0.4 migration guides.
     - Focused SDK, parity and API tests passed. `bun run check` passed with 2,124 tests and six skips.
 
-- [ ] Task 2: Make the release gates green and trustworthy
+- [x] Task 2: Make the release gates green and trustworthy
   - Acceptance Criteria:
     - Functional:
       - `src/__tests__/conformance-renderer-browser.test.tsx:158` (`missing_local_fixtures_fail_with_the_named_rule`) gets the 240 000 ms timeout its sibling tests use. On 2026-11-20 it was the one WebKit failure (60 s timeout) and passed alone.
@@ -146,7 +146,7 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
     - `version_problems_reject_a_peer_range_for_another_minor`: `0.4.0` with `~0.3.0` fails; breaks if the rule is removed.
     - `version_problems_require_the_prerelease_floor_on_an_rc`: `0.4.0-rc.1` with `~0.4.0` fails and `~0.4.0-0` passes; breaks if prereleases are not handled.
     - Existing `missing_local_fixtures_fail_with_the_named_rule` passes three times under `LIVEFRAME_BROWSER=webkit`.
-  - Notes (local verification 2026-11-21):
+  - Notes (executed 2026-11-21):
     - On a 16-CPU host, isolated Firefox reruns used one-minute load averages of 5.74 and 4.23 for starter conformance (16 passed each), 4.25 and 5.57 for the windowed suite (3 passed each), and 4.23 and 5.52 for switch setup (no failure, with its existing Chromium-only timing test skipped). Starter conformance and the windowed failures did not recur. The 2026-11-20 report does not record the original numeric load.
     - The MCP byte-cap test passed twice at one-minute loads of 4.23 and 5.52. Its default in-process runner can return `limit-exceeded` with pointer `""` when its 100 ms module evaluation or render deadline wins. The original error message is unavailable, so the pointer alone cannot distinguish the two stages. The test-only render deadline is 10 s and the assertion still requires the 262,144-byte cap at `/scenario`.
     - The version gate checks the exact companion peer range for the lockstep version. The workspace tests cover stable, patch and prerelease versions. In a temporary CLI check, `0.4.0` with peer `~0.3.0` exited 1 and `~0.4.0` exited 0.
@@ -157,6 +157,8 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
     - With the owner's approval, pushed `main`. [CI run 44817568825](https://github.com/ashiqrniloy/liveframe/actions/runs/44817568825) exposed an order-dependent tree-patch test. The test now uses the named `valid.json` fixture for its empty-children case and still checks all eligible corpus pairs. The CI job limit is 60 minutes to allow for three sequential browser suites and the release gates. The first Chromium check alone took over 11 minutes.
     - [CI run 44819635854](https://github.com/ashiqrniloy/liveframe/actions/runs/44819635854) passed Chromium. In WebKit, the offscreen control had focus but the scroll position was still zero on the immediate read. The test now waits up to five seconds for the same positive scroll position and still checks focus, tab order and CSS visibility.
     - [CI run 44824240370](https://github.com/ashiqrniloy/liveframe/actions/runs/44824240370) passed Chromium, WebKit, Firefox and the archive gate. The Playwright 1.49 browser installer stalled during extraction under Node 26 until the job timed out. A fresh-cache install reproduced the stall locally and succeeded when forced to use Bun. CI now installs only the pinned headless shell with Bun, which matches the peer-floor tests, and allows 75 minutes for the sequential gates.
+    - [CI run 44876354038](https://github.com/ashiqrniloy/liveframe/actions/runs/44876354038) passed on `main` at `7893b28`: Chromium, WebKit, Firefox, the archive gate for all four packages, all three peer floors, the demo, the getting-started guide, and the informational benchmark.
+    - Task 7 should use the verified Bun headless-shell install in `publish.yml` before the candidate tag. The publish workflow still uses the legacy installer.
 
 - [ ] Task 3: Write the release documentation
   - Acceptance Criteria:
