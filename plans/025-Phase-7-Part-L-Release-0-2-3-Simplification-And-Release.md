@@ -471,6 +471,8 @@ This plan completes the 0.2.3 review-fix release in roadmap Phase 7. It follows 
     - Remeasured the 024 targets: nine paired runs each for hashing, validator, render and production streaming (whole-tree and patches), plus 31 paired rounds for all hot spots. SHA-256 0.700, packageHash 0.702 and renderKey 0.684 reproduce the achieved gains; original missed targets stay missed/backlogged. Inline-fallback streaming validation + React is 0.371 whole-tree / 0.357 patch; reuse is 1.000 in both. The direct checkout stable/inline comparison (three alternating pairs) is 1.0476 ≤1.10. Bundle 0.790, theme cache hit 0.574, shuffled diff 0.557; deleting the identity cache still loses (1.230). Standalone CSS benchmark passes at its default 1,000 runs.
     - Remaining timing evidence is explicitly open: all 18 validator A/B children fail absolute gates under load, and cumulative relative ratios reach 1.064 for validator/core-queue.medium and 1.096 for render/git-status. These figures do not prove a tight non-regression gate; do not replace the earlier task-boundary evidence or close the quiet-host backlog on them. Raw output is local-only under `/evidence/025-task-8/`, with commands, loads, child exits and metrics recorded durably in the acceptance file. No runtime, public API, normative spec meaning or dependency change.
 
+  - Update (2026-11-21, plan 040 Task 5): The [0.4.0 benchmark attempt](evidence/040-bench-attempt-best.md) ran all stages, but every stage exceeded the approved quiet-host limit. This task's quiet-host proof remains open for the plan 040 Task 8 readiness review.
+
 - [x] Task 9: Publish 0.2.3-rc.1 under `next` and verify it from the registry
   - Acceptance Criteria:
     - Functional:

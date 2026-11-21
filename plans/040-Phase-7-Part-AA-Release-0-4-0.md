@@ -243,7 +243,7 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
     - Rows `036.T2.F2`, `036.T2.F4` and `036.T2.S1` cover Task 1a's strict element-shape checks, exact error pointers and release documentation. The two previously recorded pointer exceptions remain in the backlog. Row `039.T5.F2` records the owner's accepted carry deviation, and row `039.T2.P1` records the accepted backlog disposition for the inconclusive historical 2% A/B.
     - The shared generator reports the supplied map and benchmark paths. Both acceptance-map coverage tests and the header regression test passed. Host `bun run check` passed with 2,129 tests passing and six skipped.
 
-- [ ] Task 5: Run the full benchmark suite on a quiet host (carries the open quiet-host proof)
+- [x] Task 5: Run the full benchmark suite on a quiet host (carries the open quiet-host proof)
   - Acceptance Criteria:
     - Functional:
       - `bun scripts/bench-quiet.ts --out plans/evidence/040-bench.md` runs every stage of `bun run bench`. That includes the stages added since 0.3.0: `dom`, `motion`, `hash`, `selection`, `a2ui` and `starter-content`. The run must be quiet under Task 1's rule, and every gated budget must pass.
@@ -279,6 +279,12 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
       - `scripts/bench-quiet.ts` (tentative — only if it reads stages in a way that misses a new bench file).
   - Test Cases to Write:
     - n/a — measurement task.
+
+  - Notes (executed 2026-11-21):
+    - The owner [approved closing Task 5 on partial evidence](../decision-logs/2026-11-21-2218-close-plan-040-task-5-on-partial-benchmark-evidence.md). Task 8 retains the quiet-host proof for its readiness review.
+    - All three attempts are recorded in the [best-attempt evidence](evidence/040-bench-attempt-best.md). Attempts 1 and 2 ended before the first stage, with final CPU samples of 21.1% and 33.1%. Attempt 3 ran all 15 stages on `f67cafd`, including all six additions, and exited 3. Every stage exceeded the quiet-host limit in its average or a periodic sample. Peak whole-host CPU was 53.6%.
+    - Fourteen stages exited 0. The validator exceeded its 1.5 µs/node limit for `core-queue.large` (1.520) and `core-queue.full` (1.751) while the stage averaged 13.1% host CPU and peaked at 17.9%.
+    - `bun run check` passed with 2,129 tests, six skips and zero failures. The quiet-host proof remains open for the Task 8 readiness review under the [approved scope](../decision-logs/2026-11-20-2319-release-0-4-0-scope.md). The 28 benchmark rows in the [acceptance log](evidence/040-acceptance.md) remain pending. Both backlog entries, plan 025 Task 8, plan 036 F12 and plan 037 F5 remain open.
 
 - [ ] Task 6: Run the agent acceptance test on the 0.4.0 paths
   - Acceptance Criteria:
