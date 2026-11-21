@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { readdir } from "node:fs/promises";
 import manifest from "../../package.json" with { type: "json" };
+import { packageDirs, readManifest } from "../../scripts/release/packages.ts";
 
 const root = new URL("../../", import.meta.url);
 
@@ -44,4 +45,33 @@ test("shipped_docs_never_call_exports_planned", async () => {
     for (const sentence of plannedExports(markdown, exported)) stale.push(`${file}: ${sentence.trim()}`);
   }
   expect(stale).toEqual([]);
+});
+
+test("no_doc_cites_the_unreleased_0_3_1", async () => {
+  const files = ["README.md", "SECURITY.md", "CHANGELOG.md"];
+  for await (const file of new Bun.Glob("docs/**/*.md").scan(root.pathname)) files.push(file);
+  for (const dir of await packageDirs()) {
+    if (dir !== ".") files.push(`${dir}/README.md`);
+  }
+
+  const stale: string[] = [];
+  for (const file of files) {
+    const markdown = await Bun.file(new URL(file, root)).text();
+    for (const paragraph of markdown.split(/\n\s*\n/)) {
+      if (file === "docs/compatibility.md" && paragraph.startsWith("**The 0.3.x promise.**")) continue;
+      if (/\b(?:from|in)\s+`?v?0\.3\.1\b/i.test(paragraph)) stale.push(`${file}: ${paragraph}`);
+    }
+  }
+  expect(stale).toEqual([]);
+});
+
+test("security_policy_and_release_checklist_name_every_package", async () => {
+  const security = await Bun.file(new URL("SECURITY.md", root)).text();
+  const compatibility = await Bun.file(new URL("docs/compatibility.md", root)).text();
+  const release = compatibility.split("\n## Release process\n")[1]?.split("\n## ")[0] ?? "";
+  for (const dir of await packageDirs()) {
+    const { name } = await readManifest(dir);
+    expect(security).toContain(`\`${name}\``);
+    expect(release).toContain(`\`${name}\``);
+  }
 });

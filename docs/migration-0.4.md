@@ -45,7 +45,7 @@ const resolve = async (calls) =>
 
 `scroll` gains the optional props `itemCount`, `itemStart`, `itemSize` and `step`, and the event `onRange`, so a widget can draw a 50,000-row list within the node limit ([SDK guide](sdk.md#lists-longer-than-the-node-limit)). Existing `scroll` nodes are unchanged.
 
-- **Your own design system:** see [Action needed](#action-needed-your-own-design-system-for-starteruil1) above.
+- **Your own design system:** see [Action needed](#action-needed-your-own-design-system-for-starterui1) above.
 - **Fail-closed on 0.3.x:** a 0.3.x validator rejects a tree that uses the new props.
 
 ### A plain DOM adapter (`@arnilo/liveframe/dom`) and its suite (`/conformance/dom`)
@@ -60,7 +60,13 @@ A new subpath draws a surface with no framework, over the same surface core as `
 A design system may give a kind enter, exit and reorder motion on its root slot's rest recipe, timed by the recipe's own transition:
 
 ```ts
-"box.plate.root.rest": { /* … */ transitionDuration: "motion.fast", transitionTiming: "ease-out", motion: "fade-move" }
+const recipes = {
+  "box.plate.root.rest": {
+    transitionDuration: "motion.fast",
+    transitionTiming: "ease-out",
+    motion: "fade-move",
+  },
+};
 ```
 
 - **Fail-closed on 0.3.x:** a `0.3.x` validator rejects `motion` as `invalid-document`; install such a design system only where every validator is 0.4.0. A 0.3.x `<Surface>` given a 0.4.0 sheet never sets `data-lf-motion`, so it draws as before.
@@ -129,7 +135,12 @@ A `setState` or `action` intent may now carry `local` (1 to 4 `{ key, value?, un
 A definition's event may now carry a bounded array of one scalar type, so a multi-select reports its selection as typed values instead of a comma-joined string:
 
 ```ts
-events: { onChange: { carries: { array: { items: str({ maxLength: 64 }), maxItems: 50 } }, description: "The selected ids." } }
+const events = {
+  onChange: {
+    carries: { array: { items: str({ maxLength: 64 }), maxItems: 50 } },
+    description: "The selected ids.",
+  },
+};
 ```
 
 - **Fail-closed on 0.3.x:** `0.3.x` `validateCatalog` and `catalog.json` reject an array carry (`invalid-document` at `carries`); upgrade every consumer of the catalog before adding one.
@@ -141,8 +152,10 @@ events: { onChange: { carries: { array: { items: str({ maxLength: 64 }), maxItem
 An `action` intent may now carry `fromLocal` (1 to 16 `{ [arg]: localKey }` entries), and a `setState` intent without `value` may carry `fromLocal: "<localKey>"`, so multi-field forms can collect inputs in `local` state and submit them together on one event:
 
 ```tsx
-<TextField label="Reason" onChange={local.set("reason")} />
-<Button label="Escalate" onPress={action("tasks.escalate", { id }, { fromLocal: { reason: "reason" } })} />
+<>
+  <TextField label="Reason" onChange={local.set("reason")} />
+  <Button label="Escalate" onPress={action("tasks.escalate", { id }, { fromLocal: { reason: "reason" } })} />
+</>
 ```
 
 - **Fail-closed on 0.3.x:** `0.3.x` tree validators and `ui-tree.json` reject `/fromLocal` on intents (`invalid-prop`); upgrade the validator and renderer before emitting `fromLocal`.

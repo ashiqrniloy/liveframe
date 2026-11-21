@@ -104,6 +104,13 @@ Each new surface was reviewed against the four laws ([spec §2](spec.md#2-the-mo
 
 The remaining exposures are the ones named above: a hash is not authorship; the reference runners, the runner kit and `liveframe mcp`'s default runner are not isolation boundaries; the QuickJS runner has the limits listed for it; and a prop that does not declare `url` is a string you constrain yourself.
 
+## 0.4.0 audit: interaction and rendering
+
+- **Law 1.** `/dom` and `/react` draw validated trees using trusted host implementations. The DOM adapter runs the app's registered drawing functions. Widget modules run behind the existing runner boundary.
+- **Law 2.** The compiled validator checks local write keys, expression reads, array carries and focus marks. Both adapters use the same surface core for arrival and event checks. Focus stays within the surface and its portal. A pending source is a closed, opt-in outcome checked against the resolver's declared result schema.
+- **Law 3.** Motion is a closed recipe value on the root rest slot. Design-system transitions control its timing, reduced-motion preferences still apply, and an exiting element retained for animation is inert.
+- **Law 4.** One event can offer one host intent plus local writes. The renderer applies those writes locally, fills `fromLocal` values and strips both directives before calling `onIntent`. The host rechecks the offered intent and completed values against its accepted tree and schemas. `putStateIf` makes a state write conditional on the previously read value when the store implements it. It leaves authorization with the host and bounds retries at four.
+
 ## 0.4.0 audit: agent-written UI
 
 Each addition for agents was reviewed against the four laws ([spec §2](spec.md#2-the-model)); none moves a boundary:

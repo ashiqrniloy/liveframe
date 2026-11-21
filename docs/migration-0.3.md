@@ -158,7 +158,7 @@ Adopter checklist: Profile repeated loads before opting in. Keep the cache in th
 host and share it across stores of one installation. Only insert verified frozen
 packages through its trusted `set` method. Every hit confirms deep equality
 against the cached frozen package (in 0.3.0, structure and hashes were re-checked
-every time; from 0.3.1, only misses run full verification); changed content or
+every time; from 0.4.0, only misses run full verification); changed content or
 installation documents miss automatically. Params still reject and invalid state
 still resets. This addition requires no migration.
 

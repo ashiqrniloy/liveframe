@@ -160,7 +160,7 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
     - [CI run 44876354038](https://github.com/ashiqrniloy/liveframe/actions/runs/44876354038) passed on `main` at `7893b28`: Chromium, WebKit, Firefox, the archive gate for all four packages, all three peer floors, the demo, the getting-started guide, and the informational benchmark.
     - Task 7 should use the verified Bun headless-shell install in `publish.yml` before the candidate tag. The publish workflow still uses the legacy installer.
 
-- [ ] Task 3: Write the release documentation
+- [x] Task 3: Write the release documentation
   - Acceptance Criteria:
     - Functional:
       - `CHANGELOG.md`:
@@ -199,6 +199,11 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
     - `every_0_4_migration_sample_compiles`: `migration-guide.test.ts`'s sample check also covers `docs/migration-0.4.md`. Breaks on a sample that imports a name the checkout does not export.
     - `no_doc_cites_the_unreleased_0_3_1`: fails when an outsider doc (README, SECURITY, CHANGELOG, `docs/`, package READMEs) says "from 0.3.1" or "in 0.3.1" outside the 0.3.x-promise paragraph.
     - `security_policy_and_release_checklist_name_every_package`: `SECURITY.md` and the compatibility release section name every workspace package from `packageDirs()`. Breaks when a package is added and these docs are not updated.
+
+  - Notes (executed 2026-11-21):
+    - Prepared the undated 0.4.0 changelog, including all 117 API register entries and the custom starter design-system checklist. Updated compatibility, migration, README and security guidance for the four-package release.
+    - Added adopter notes covering the interaction, rendering and agent UI scope, the review fixes, request status and the two 0.5.0 deferrals. Reviewed the new interaction and rendering paths against all four laws.
+    - Added documentation checks for stale 0.3.1 release references, workspace package coverage and 0.4 migration samples. Corrected three sample snippets so they parse. The focused checks passed, and host `bun run check` passed with 2,127 tests and six skips.
 
 - [ ] Task 4: Prove every acceptance criterion of plans 033–039 against the checkout
   - Acceptance Criteria:

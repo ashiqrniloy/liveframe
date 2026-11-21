@@ -2,7 +2,9 @@
 
 All notable changes to `@arnilo/liveframe` are recorded here. The project follows the compatibility policy in [`docs/compatibility.md`](docs/compatibility.md).
 
-## Unreleased
+## 0.4.0 — unreleased
+
+0.4.0 includes the fixes originally prepared for the unpublished 0.3.1 patch. The release adds interaction, rendering and agent authoring capabilities, including the first release of `@arnilo/liveframe-a2ui`. See the [migration guide](docs/migration-0.4.md), [adopter notes](docs/adopters-0.4.md) and [compatibility policy](docs/compatibility.md#040).
 
 Added:
 
@@ -27,6 +29,8 @@ Added:
 - **`<Surface invalid="keep-last">` keeps the last accepted tree on screen after a rejected arrival:** with the new opt-in prop (`invalid?: "fallback" | "keep-last"`, default `"fallback"`, unchanged), a rejected tree no longer blanks the surface. The last accepted tree stays mounted, keeping focus, scroll and uncontrolled input, and raises no intent or local write. The wrapper carries `data-lf-stale` and `aria-busy="true"` until the next accepted arrival. `arrival-rejected` is still reported, no node of the rejected tree is drawn, and with no accepted tree the fallback is drawn. `rendererBrowserSuite` gains `keep_last_invalid_arrival_keeps_the_last_tree_marked` ([decision](decision-logs/2026-11-17-1255-keep-last-valid-tree.md), [guide](docs/renderer.md#keep-the-last-tree-on-screen-when-an-arrival-is-rejected)).
 
 Changed:
+
+- **Action needed for custom `starter.ui@1` design systems.** Declare `size.row`, add a `scroll` focus recipe, and cover the slots and focus states of the ten new kinds. See the [migration checklist](docs/migration-0.4.md#action-needed-your-own-design-system-for-starterui1).
 
 - **Element JSON error kinds match tree validation:** `renderElements` and `streamElements` report `unknown-component` at the element for a missing, empty or non-string `kind`, and `invalid-children` at `children` for a non-array value. See the [migration guide](docs/migration-0.4.md#element-json-error-kinds).
 
@@ -53,6 +57,134 @@ Performance:
 - **Single-pass streaming canonical JSON hashing for `renderKey` and `packageHash`:** `digest()` (`src/pack/hash.ts`) now streams RFC 8785 canonical JSON UTF-8 bytes directly into the SHA-256 block buffer without allocating the canonical string or UTF-8 byte copy first; every vector in `conformance/hash/` and non-JSON `TypeError` behaviour is unchanged. Across 9 interleaved runs (`bench/hash.bench.ts`), `packageHash` on the 199 KiB `agent-home` code package drops from 5.51 ms to 2.37 ms CPU (2.68×), and `renderKey` over 109 KiB (1,000 rows) drops from 3.44 ms to 1.12 ms CPU (3.14×).
 - **Composed components skip re-walking SDK-owned inputs:** `render()` (`src/sdk/render.ts`) tracks the deeply frozen containers it creates in `checkInputs` (and reuses via `inputCopies`) in a module-private `WeakSet`, so `isJson` returns immediately when a composed component receives them instead of re-walking them at every layer; widget-built wrapper objects and caller-frozen inputs are still walked as before. On a 51-node page fed 1,000 rows through six composed layers (`bench/render.bench.ts`), `render()` drops from 2.48 ms (`18.1×` direct) to 0.076 ms (`1.015×` direct, 18.5× faster).
 - **`quickjsRunner({ reuse: "package" })` keeps configuration stable across renders:** `@arnilo/liveframe-runner-quickjs` sends `{ catalog, capabilities }` separately from the per-render request and re-parses it in the sandbox only when its text changes, so `runner-kit`'s identity-keyed validator cache hits on subsequent renders in a kept runtime (`reuse: "none"` is unchanged). Inside QuickJS, `compileValidator` accounted for 87.5% (`smallest`) and 15.0% (`agent-home`) of a `reuse: "package"` render; `smallest` drops to 1.31 ms median in `bench/runner.bench.ts` (budget tightened from 8 ms to 4 ms; `agent-home` tightened from 60 ms to 50 ms).
+
+### API register entries
+
+**Core fixes**
+
+- `./host` · `HandleResult` (added). Names the widened return type of handleIntent so failures after a recorded action outcome or refusal carry optional actions (D3).
+- `./host` · `handleIntent` (widened). Widens the failure branch to HandleResult with optional actions when a render fails after recording an action outcome or refusal (D3).
+- `./surface` · `SurfaceCoreOptions` (widened). Adds optional `limits` (`ValidateTreeOptions["limits"]`) so a surface core passes host validation bounds to `validator.validateTree` (D5).
+- `./react` · `createRenderer` (widened). Adds optional `limits` (`ValidateTreeOptions["limits"]`) on `SurfaceProps`, forwarded to the surface core on each arrival (D5). Adds optional `invalid` (`"fallback" | "keep-last"`, default `"fallback"`): `keep-last` keeps the last accepted tree drawn, silent and marked `data-lf-stale`, after a rejected arrival (035 T5, A4).
+- `./preview/worker` · `workerRunner` (widened). Adds optional `startTimeoutMs` (default 5,000) to `workerRunner` defaults while moving the per-render `timeoutMs` timer to start when the worker reports `ready` (D6).
+- `./preview/react` · `PreviewProps` (widened). Adds optional `limits` (`ValidateTreeOptions["limits"]`) on `PreviewProps`, forwarded to each cell's `<Surface>` (F4 / D5).
+- `./preview/react` · `Preview` (widened). Accepts optional `limits` on `<Preview>` and forwards it to each cell's `<Surface>` (F4 / D5).
+- `./conformance/react` · `conformancePage` (widened). The page's `mount(tree, styles, invalid?)` takes an optional `"fallback" | "keep-last"` mode so `rendererBrowserSuite` can prove keep-last (035 T5, A4).
+
+**Core additions and behavior changes**
+
+- `./schemas/*` · `ui-tree.json` (widened). Adds optional `localWrite` entries (`local?: LocalWrite[]`, 1 to 4 writes) and `fromLocal` reads on `setState` and `action` intents in `liveframe/1` (F1, F2); adds the optional tree `focus` mark (F4).
+- `./schemas/*` · `tree-patch.json` (widened). Inherits optional `localWrite` entries (`local?: LocalWrite[]`) and `fromLocal` reads on `setState` and `action` intents in patch `set` and `insert` nodes (F1, F2); adds optional `focus` (node id or `null`) to the patch (F4).
+- `./schemas/*` · `template.json` (widened). Adds `$defs.localWrite` and optional `local` writes and `fromLocal` reads on `setState` and `action` intents in `liveframe-template/1` (F1, F2); adds the optional node `focus` template value (F4).
+- `.` · `LocalWrite` (added). Names one renderer-applied local write (`{ key, value?, until? }`) attached to a host intent (F1).
+- `.` · `Intent` (widened). Adds optional `local?: readonly LocalWrite[]` and `fromLocal` on `setState` and `action` intents (F1, F2).
+- `./sdk` · `shown` (added). Adds `shown()`, the read-only `shown` expression root: how many `when`-gated siblings are drawn, for an empty state without a round trip.
+- `./sdk` · `LocalWrite` (added). Re-exports `LocalWrite` from `@arnilo/liveframe/sdk` (F1).
+- `./sdk` · `Intent` (widened). Widens `Intent` with optional `local?: readonly LocalWrite[]` and `fromLocal` on `setState` and `action` (F1, F2).
+- `./sdk` · `action` (widened). Adds optional `local` write list, `fromLocal` argument map and manifest-local type parameter `<L>` to `action()` options (F1, F2).
+- `./sdk` · `state` (widened). Adds optional `{ local, fromLocal }` options argument and manifest-local type parameter `<L>` to `state.set()` (F1, F2).
+- `./sdk` · `local` (widened). Widens `local.set(key, value?, options?)` with `{ until?: "revision" }` returning a `LocalWrite` when `until` is set (F1).
+- `./sdk/gen` · `generate` (widened). Adds optional `{ manifest? }` second parameter so generated modules can type `action` and `state.set` `local` writes and `fromLocal` reads against `manifest.local` (F1, F2).
+- `./template` · `TemplateLocalWrite` (added). Names one expression-valued local write attached to a template intent (F1).
+- `./template` · `TemplateIntent` (widened). Adds optional `local?: readonly TemplateLocalWrite[]` and `fromLocal` on template `setState` and `action` intents (F1, F2).
+- `./schemas/*` · `catalog.json` (widened). Adds a third event carry form, `{ array: { items, maxItems } }`: one scalar item schema and 1 to 256 items (F3).
+- `.` · `Definition` (widened). An event's `carries` may be `{ array: { items, maxItems } }`, a bounded array of one scalar type (F3).
+- `./react` · `ImplementationProps` (widened). `emit` on an array-carrying event takes `readonly Infer<items>[]` (F3).
+- `.` · `UiTree` (widened). Adds the optional tree-level `focus?: string` mark: the id of one always-rendered node that takes focus when a later revision first carries the mark (F4).
+- `.` · `TreePatch` (widened). Adds optional `focus?: string | null`: omitted keeps the base's mark, a node id sets it, `null` clears it (F4).
+- `./sdk` · `Elements` (widened). Element JSON gains the optional `focus?: boolean` field (F4). Element JSON gains optional `when` and `bind` (bindable props only) and `TreeIntent` events (F9).
+- `./surface` · `SurfaceEvent` (widened). Adds `focus-missed` (`no-element` or `not-focusable`), reported when a changed focus mark cannot move focus (F4).
+- `./surface` · `SurfaceSnapshot` (widened). Adds optional `focus?: string`, the accepted tree's focus mark while the surface is valid (F4).
+- `./template` · `TemplateNode` (widened). Adds the optional `focus` boolean template value (F4).
+- `./store` · `Store` (widened). Adds the optional `putStateIf(placementId, scope, expected, next): Promise<boolean>` compare-and-set by canonical JSON, implemented by `memoryStore()` and `fileStore()` (G2).
+- `./host` · `HostEvent` (widened). Adds the `conflict` reason to `intent-refused`, raised when `handleIntent`'s compare-and-set loses four times in a row (G2); adds the `source-pending` event, raised when a resolver answers `pending` (F5).
+- `./conformance/react` · `BrowserFixtures` (widened). Adds optional `local`, `compound`, `fromLocal` and `focus` fixtures for the new `rendererBrowserSuite` cases covering local state, compound local writes, `fromLocal` and focus marks; `conformancePage()` also exposes `events()`.
+- `.` · `sourceOutcome` (widened). Adds an optional second argument, `{ pending?: boolean }`; with `pending: true` the envelope gains a closed `pending` variant (`{ status: "pending" }`). Without it the returned schema is the 0.3.0 one byte for byte (F5).
+- `./host` · `SourceResult` (widened). Adds `{ ok: false, reason: "pending" }` for a source the host has not read yet; `renderPlacement` shows it as `{ status: "pending" }` to a source that declares the variant and fails the render otherwise (F5).
+- `./schemas/*` · `design-system.json` (widened). Adds the optional recipe property `motion` (`none`, `fade`, `move`, `fade-move`): enter, exit and reorder motion of a node's root. Valid only on a root slot's `rest` recipe and requires a `transitionDuration` (F6).
+- `.` · `Recipe` (widened). Adds optional `motion?: "none" | "fade" | "move" | "fade-move"`. Valid only on a root slot's `rest` recipe and requires a `transitionDuration` (F6).
+- `.` · `ResolvedRecipe` (widened). Adds optional `motion`, resolved through the cascade like any scalar recipe property (F6).
+- `.` · `recipeProperties` (widened). Appends `motion` to the closed recipe-property list (F6).
+- `./dom` · `createDomRenderer` (added). The plain DOM adapter's factory (F8): runs `/react`'s registry check through one shared function and returns `{ mount }`; `mount(container, options)` draws a surface over the surface core with no framework.
+- `./dom` · `implement` (added). Binds a primitive's definition to `draw(node, element?)`, which creates or updates the node's element; typed from the definition as `/react`'s `implement` is (F8).
+- `./dom` · `place` (added). Sets a parent's child nodes to a list with the fewest moves, using `moveBefore` where the engine has it (F8).
+- `./dom` · `RendererError` (added). Re-exports `/react`'s `RendererError` class (the same class), so a DOM host catches registry failures without importing React (F8).
+- `./dom` · `DomImplementation` (added). The opaque binding `implement` returns (F8).
+- `./dom` · `DomNode` (added). What `draw` receives for one node: the core context's fields, drawn children, child items and the portal (F8).
+- `./dom` · `DomItem` (added). A child node with `render()` for its drawn element (F8).
+- `./dom` · `Draw` (added). The `draw(node, element?)` function type (F8).
+- `./dom` · `DrawHooks` (added). Optional `dispose(element)`, called when a node leaves the tree or its element is replaced (F8).
+- `./dom` · `MountOptions` (added). `mount`'s options: validator, theme, design system, transparency, callbacks, limits, fallback and host classes (F8).
+- `./dom` · `DomSurface` (added). What `mount` returns: `update(tree)`, `set(partial)` and `dispose()` (F8).
+- `./react` · `implement` (widened). No type change: the internal `Props` helper the declaration names moved to a module shared with `/dom` (`src/surface/implementation.ts`), so the printed declaration no longer inlines it.
+- `./conformance/dom` · `domRendererBrowserSuite` (added). The renderer conformance cases run against an app's `/dom` implementations (F8): `rendererSuite()`'s structural cases on the app's page, then `rendererBrowserSuite()`'s cases without hydration. The cases are defined once for both adapters.
+- `./conformance/dom` · `domConformancePage` (added). The app-owned page host for `/dom`: mounts one surface with the app's DOM implementations and exposes the `window.liveframeConformance` API the suite drives (F8).
+- `./conformance/dom` · `DomSuiteOptions` (added). `domRendererBrowserSuite()`'s options: catalog, validator inputs, DOM implementations, themes, design systems, examples, fixtures, `page()` and `url` (F8).
+- `./conformance/dom` · `DomPageOptions` (added). `domConformancePage()`'s options, with `fallback: () => Element` (F8).
+- `./conformance/dom` · `BrowserFixtures` (added). Re-exports `/conformance/react`'s fixture type, shared by both suites (F8).
+- `./conformance/dom` · `Styles` (added). Re-exports `/conformance/react`'s style-identity type, shared by both pages (F8).
+- `./conformance/react` · `PageOptions` (widened). No type change: its theme, design-system and validator fields come from a type shared with `/conformance/dom` (`src/conformance/renderer/page.ts`), so the printed declaration names it.
+- `./conformance/react` · `rendererSuite` (widened). No type change: the cases moved to a module shared with `/conformance/dom`, and the options parameter is no longer destructured in the printed declaration. Case names, order and outcomes are unchanged.
+- `./sdk` · `ephemeralManifest` (widened). Adds optional `local` and `initialLocal` (both or neither) so element JSON may carry `when`, `bind` and local intents against the caller's local schema (F9).
+- `./sdk/gen` · `generateElementsSchema` (widened). Adds optional `{ local? }`: with it, the schema describes `when`, `bind`, the tree expression grammar and local intents; without it the output is byte-identical (F9).
+- `./sdk/gen` · `ElementsSchemaOptions` (added). The options type of `generateElementsSchema` (F9).
+- `./authoring` · `createAuthoring` (widened). `generatedTypes` takes an optional `local` object schema with `module: "elementsSchema"` or `"digest"`, giving `liveframe gen --elements-schema --local` (F9), and accepts `module: "digest"`, giving `liveframe gen --digest` from the server's catalog and capabilities (F10).
+- `./sdk/gen` · `generateDigest` (added). A deterministic Markdown description of a catalog, and optionally its capabilities and `local` schema, for an agent that writes element JSON without MCP; over `budget` it throws `LiveframeFailure` (F10).
+- `./sdk/gen` · `DigestOptions` (added). The options type of `generateDigest` (F10).
+- `.` · `checkUrl` (added). Exposes the `url` keyword's check (spec §5) to trusted implementations that draw a link from text, such as the starter's `richText` (F12).
+- `.` · `UrlRule` (added). Names the rule `checkUrl` takes: the allowed schemes and whether a relative reference passes (F12).
+- `./sdk` · `renderElements` (changed). Malformed element JSON reports unknown-component for a missing, empty or non-string kind and invalid-children for non-array children.
+- `./sdk` · `streamElements` (changed). Malformed element JSON reports unknown-component for a missing, empty or non-string kind and invalid-children for non-array children.
+
+**Starter**
+
+- `./ui` · `Box` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./ui` · `Button` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./definitions` · `Chart` (added). Adds the `chart` definition, one of the five 0.4.0 content kinds (`richText`, `chart`, `table` with `tableRow` and `tableCell`) the agent-UI design approves (F12).
+- `./ui` · `Chart` (added). Adds the `chart` generated primitive, one of the five 0.4.0 content kinds (`richText`, `chart`, `table` with `tableRow` and `tableCell`) the agent-UI design approves (F12).
+- `./ui` · `Checkbox` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./definitions` · `DateField` (added). Adds the `dateField` definition, one of the four 0.4.0 form controls (`radioGroup` with `radio`, `slider`, `progress`, `dateField`) the agent-UI design approves (F12).
+- `./ui` · `DateField` (added). Adds the `dateField` generated primitive, one of the four 0.4.0 form controls (`radioGroup` with `radio`, `slider`, `progress`, `dateField`) the agent-UI design approves (F12).
+- `./ui` · `Dialog` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./ui` · `Disclosure` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./ui` · `Grid` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./ui` · `Heading` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./ui` · `Hint` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./ui` · `Icon` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./ui` · `Image` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./ui` · `Inline` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./ui` · `Link` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./ui` · `Menu` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./ui` · `MenuItem` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./ui` · `Popover` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./definitions` · `Progress` (added). Adds the `progress` definition, one of the four 0.4.0 form controls (`radioGroup` with `radio`, `slider`, `progress`, `dateField`) the agent-UI design approves (F12).
+- `./ui` · `Progress` (added). Adds the `progress` generated primitive, one of the four 0.4.0 form controls (`radioGroup` with `radio`, `slider`, `progress`, `dateField`) the agent-UI design approves (F12).
+- `./definitions` · `Radio` (added). Adds the `radio` definition, one of the four 0.4.0 form controls (`radioGroup` with `radio`, `slider`, `progress`, `dateField`) the agent-UI design approves (F12).
+- `./ui` · `Radio` (added). Adds the `radio` generated primitive, one of the four 0.4.0 form controls (`radioGroup` with `radio`, `slider`, `progress`, `dateField`) the agent-UI design approves (F12).
+- `./definitions` · `RadioGroup` (added). Adds the `radioGroup` definition, one of the four 0.4.0 form controls (`radioGroup` with `radio`, `slider`, `progress`, `dateField`) the agent-UI design approves (F12).
+- `./ui` · `RadioGroup` (added). Adds the `radioGroup` generated primitive, one of the four 0.4.0 form controls (`radioGroup` with `radio`, `slider`, `progress`, `dateField`) the agent-UI design approves (F12).
+- `./definitions` · `RichText` (added). Adds the `richText` definition, one of the five 0.4.0 content kinds (`richText`, `chart`, `table` with `tableRow` and `tableCell`) the agent-UI design approves (F12).
+- `./ui` · `RichText` (added). Adds the `richText` generated primitive, one of the five 0.4.0 content kinds (`richText`, `chart`, `table` with `tableRow` and `tableCell`) the agent-UI design approves (F12).
+- `./definitions` · `Scroll` (widened). The `scroll` definition gains the optional props `itemCount`, `itemStart`, `itemSize` and `step` and the event `onRange`, which carries the visible range `{ start, end }`, for windowing long collections (F7).
+- `./ui` · `Scroll` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4). It also gains the optional windowing props `itemCount`, `itemStart`, `itemSize` and `step` and the event `onRange` (F7).
+- `./ui` · `Select` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./ui` · `Separator` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./definitions` · `Slider` (added). Adds the `slider` definition, one of the four 0.4.0 form controls (`radioGroup` with `radio`, `slider`, `progress`, `dateField`) the agent-UI design approves (F12).
+- `./ui` · `Slider` (added). Adds the `slider` generated primitive, one of the four 0.4.0 form controls (`radioGroup` with `radio`, `slider`, `progress`, `dateField`) the agent-UI design approves (F12).
+- `./ui` · `Stack` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./ui` · `Switch` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./ui` · `Tab` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./definitions` · `Table` (added). Adds the `table` definition, one of the five 0.4.0 content kinds (`richText`, `chart`, `table` with `tableRow` and `tableCell`) the agent-UI design approves (F12).
+- `./ui` · `Table` (added). Adds the `table` generated primitive, one of the five 0.4.0 content kinds (`richText`, `chart`, `table` with `tableRow` and `tableCell`) the agent-UI design approves (F12).
+- `./definitions` · `TableCell` (added). Adds the `tableCell` definition, one of the five 0.4.0 content kinds (`richText`, `chart`, `table` with `tableRow` and `tableCell`) the agent-UI design approves (F12).
+- `./ui` · `TableCell` (added). Adds the `tableCell` generated primitive, one of the five 0.4.0 content kinds (`richText`, `chart`, `table` with `tableRow` and `tableCell`) the agent-UI design approves (F12).
+- `./definitions` · `TableRow` (added). Adds the `tableRow` definition, one of the five 0.4.0 content kinds (`richText`, `chart`, `table` with `tableRow` and `tableCell`) the agent-UI design approves (F12).
+- `./ui` · `TableRow` (added). Adds the `tableRow` generated primitive, one of the five 0.4.0 content kinds (`richText`, `chart`, `table` with `tableRow` and `tableCell`) the agent-UI design approves (F12).
+- `./ui` · `Tabs` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./ui` · `Text` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./ui` · `TextField` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `./ui` · `Tooltip` (widened). The generated primitive gains the optional `focus?: boolean` attribute, which marks the node a later revision moves focus to (F4).
+- `.` · `primitiveCss` (widened). The trusted structural CSS gains rules for the five 0.4.0 controls (`radioGroup`, `radio`, `slider`, `progress`, `dateField`): layout, track and fill positioning, and the indeterminate fill; and for the five content kinds (`richText`, `chart`, `table`, `tableRow`, `tableCell`): text-flow margins, the chart's plot, axis and legend layout, and table collapse. Existing rules are unchanged (F12).
 
 ## 0.3.0 — 2026-11-10
 

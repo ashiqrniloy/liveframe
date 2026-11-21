@@ -9,6 +9,7 @@ const guide = new URL("../../docs/migration-0.2.md", import.meta.url);
 const fixture = new URL("./fixtures/migration-0.2.ts", import.meta.url);
 
 const guide03 = new URL("../../docs/migration-0.3.md", import.meta.url);
+const guide04 = new URL("../../docs/migration-0.4.md", import.meta.url);
 const root = new URL("../../", import.meta.url).pathname;
 
 type Entry = { change: string; migration?: string };
@@ -57,10 +58,9 @@ function samples(markdown: string): { heading: string; lang: string; code: strin
   return found;
 }
 
-test("every_migration_sample_compiles", async () => {
-  const markdown = await Bun.file(guide03).text();
-  const found = samples(markdown);
-  expect(found.length).toBeGreaterThan(10);
+async function checkSamples(guide: URL, minimum: number): Promise<void> {
+  const found = samples(await Bun.file(guide).text());
+  expect(found.length).toBeGreaterThanOrEqual(minimum);
 
   // A sample must parse as TypeScript or TSX, and every name it imports from a package subpath must be an
   // export of the checkout. Free names stand for the reader's own variables.
@@ -87,7 +87,10 @@ test("every_migration_sample_compiles", async () => {
     }
   }
   expect(failures).toEqual([]);
-});
+}
+
+test("every_migration_sample_compiles", () => checkSamples(guide03, 11));
+test("every_0_4_migration_sample_compiles", () => checkSamples(guide04, 1));
 
 /** One exported function of the fixture, exactly as the guide prints it. */
 async function sample(name: string): Promise<string> {
