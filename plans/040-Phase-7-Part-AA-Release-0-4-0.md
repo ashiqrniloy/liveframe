@@ -372,6 +372,10 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
 
     Each breaks on an unregistered declaration change.
 
+  - Notes (local preparation 2026-11-21):
+    - Bumped all four packages to `0.4.0-rc.1` with companion peers at `~0.4.0-0`. Generated all four baselines and switched the checkout API gate to them. The historical core comparison still checks the recorded changes between the 0.3.0 and 0.4.0 baselines for the acceptance maps.
+    - The [release candidate record](evidence/040-release-candidate.md) shows the local gate results and the registry preflight. npm returned HTTP 404 for the A2UI staging version. The tag push, protected publication and registry verification wait on the owner's Task 1 staging claim and trusted publisher setup.
+
 - [ ] Task 8: Review readiness with the owner, then publish `0.4.0` and verify it from the registry
   - Acceptance Criteria:
     - Functional:

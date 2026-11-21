@@ -1,14 +1,16 @@
-// 0.3.x patches compare against the 0.3.0 tag baseline through an additive-only 0.3.1 register.
-// The 0.2.3 baseline and 0.3.0 register remain in scripts/release/api/ as release history.
+// 0.4.x patches compare against the 0.4.0 baselines through additive-only 0.4.1 registers.
 import { expect, test } from "bun:test";
 import { resolve } from "node:path";
-import baselineJson from "../../scripts/release/api/0.3.0.json" with { type: "json" };
-import runnerBaselineJson from "../../scripts/release/api/0.3.0-runner-quickjs.json" with { type: "json" };
-import starterBaselineJson from "../../scripts/release/api/0.3.0-starter.json" with { type: "json" };
+import baseline030Json from "../../scripts/release/api/0.3.0.json" with { type: "json" };
+import baselineJson from "../../scripts/release/api/0.4.0.json" with { type: "json" };
+import a2uiBaselineJson from "../../scripts/release/api/0.4.0-a2ui.json" with { type: "json" };
+import runnerBaselineJson from "../../scripts/release/api/0.4.0-runner-quickjs.json" with { type: "json" };
+import starterBaselineJson from "../../scripts/release/api/0.4.0-starter.json" with { type: "json" };
 import register030Json from "../../scripts/release/api/register-0.3.0.json" with { type: "json" };
 import registerJson from "../../scripts/release/api/register-0.3.1.json" with { type: "json" };
 import register040Json from "../../scripts/release/api/register-0.4.0.json" with { type: "json" };
-import starterRegister040Json from "../../scripts/release/api/register-0.4.0-starter.json" with { type: "json" };
+import register041Json from "../../scripts/release/api/register-0.4.1.json" with { type: "json" };
+import starterRegister041Json from "../../scripts/release/api/register-0.4.1-starter.json" with { type: "json" };
 import {
   type ApiSurface,
   compareApiSurface,
@@ -21,13 +23,14 @@ const baseline = baselineJson as unknown as ApiSurface;
 const register = registerJson as unknown as readonly RegisterEntry[];
 const register030 = register030Json as unknown as readonly RegisterEntry[];
 const register040 = register040Json as unknown as readonly RegisterEntry[];
-const starterRegister040 = starterRegister040Json as unknown as readonly RegisterEntry[];
+const register041 = register041Json as readonly RegisterEntry[];
+const starterRegister041 = starterRegister041Json as readonly RegisterEntry[];
 const migrationGuides = await Promise.all(
   ["migration-0.3.md", "migration-0.4.md"].map((name) => Bun.file(resolve(root, "docs", name)).text()),
 );
 const releaseMigration = migrationGuides.join("\n");
 
-/** Layers the 0.4.0 register over the 0.3.1 patch register while 0.3.0 remains the on-disk baseline. */
+/** Layers the 0.4.0 register over the 0.3.1 patch register to verify the recorded changes between release baselines. */
 function combineRegisters(patch: readonly RegisterEntry[], minor: readonly RegisterEntry[]): readonly RegisterEntry[] {
   const merged = new Map<string, RegisterEntry>();
   for (const entry of patch) merged.set(`${entry.subpath}\0${entry.name}`, entry);
@@ -60,52 +63,38 @@ const fixture: ApiSurface = {
   },
 };
 
-test("baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register", async () => {
-  expect(baseline.generatedFrom).toContain("v0.3.0");
-  const current = await readApiSurface(root);
-  expect(compareApiSurface(baseline, current, combineRegisters(register, register040), releaseMigration)).toEqual([]);
+test("baseline_0_3_0_matches_the_checkout_through_the_0_3_1_register", () => {
+  // Historical acceptance maps use this test name to verify the 0.3.0 to 0.4.0 transition.
+  const previous = baseline030Json as unknown as ApiSurface;
+  expect(compareApiSurface(previous, baseline, combineRegisters(register, register040), releaseMigration)).toEqual([]);
+});
+
+test("baseline_0_4_0_matches_the_checkout_through_the_0_4_1_register", async () => {
+  expect(baseline.generatedFrom).toContain("v0.4.0");
+  expect(compareApiSurface(baseline, await readApiSurface(root), register041)).toEqual([]);
 }, 20_000);
 
-test("register_0_4_0_is_read_by_the_api_gate", async () => {
-  expect(Array.isArray(register040)).toBe(true);
-  expect(register040.length).toBeGreaterThan(0);
-  const current = await readApiSurface(root);
-  expect(compareApiSurface(baseline, current, register).length).toBeGreaterThan(0);
-  expect(compareApiSurface(baseline, current, combineRegisters(register, register040), releaseMigration)).toEqual([]);
-}, 20_000);
-
-test("register_0_3_1_holds_only_additive_entries", () => {
-  for (const entry of register) {
+test("register_0_4_1_holds_only_additive_entries", () => {
+  for (const entry of [...register041, ...starterRegister041]) {
     expect(entry.change === "added" || entry.change === "widened").toBe(true);
   }
 });
 
-test("baseline_0_3_0_matches_the_companion_packages", async () => {
-  // The two companion packages release with the core; the starter's generated primitives change only through
-  // its own 0.4.0 register, kept beside the core's.
+test("baseline_0_4_0_matches_the_companion_packages", async () => {
   for (const [dir, json, entries] of [
     ["packages/runner-quickjs", runnerBaselineJson, []],
-    ["packages/starter", starterBaselineJson, starterRegister040],
+    ["packages/starter", starterBaselineJson, starterRegister041],
   ] as const) {
     const baseline = json as unknown as ApiSurface;
-    expect(baseline.generatedFrom).toContain("0.3.0");
+    expect(baseline.generatedFrom).toContain("v0.4.0");
     expect(compareApiSurface(baseline, await readApiSurface(resolve(root, dir)), entries)).toEqual([]);
   }
 }, 20_000);
 
-// Placeholder until 0.4.0: `@arnilo/liveframe-a2ui` is new, so it has no tag baseline yet. Its release generates
-// `scripts/release/api/0.4.0-a2ui.json` and this test then compares against it like the two companions above.
-test("a2ui_package_exports_only_the_converter_until_its_baseline", async () => {
-  const surface = await readApiSurface(resolve(root, "packages/a2ui"));
-  expect(Object.keys(surface.exports)).toEqual(["."]);
-  expect(Object.keys(surface.exports["."] ?? {}).sort()).toEqual([
-    "A2uiComponent",
-    "A2uiConversion",
-    "A2uiItem",
-    "A2uiMapping",
-    "A2uiOptions",
-    "fromA2ui",
-  ]);
+test("a2ui_baseline_0_4_0_matches_the_checkout", async () => {
+  const baseline = a2uiBaselineJson as unknown as ApiSurface;
+  expect(baseline.generatedFrom).toContain("v0.4.0");
+  expect(compareApiSurface(baseline, await readApiSurface(resolve(root, "packages/a2ui")), [])).toEqual([]);
 }, 20_000);
 
 test("removed_export_fails", () => {

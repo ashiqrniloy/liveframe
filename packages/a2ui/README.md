@@ -2,7 +2,7 @@
 
 Convert an [A2UI](https://a2ui.org) v0.9 or v0.9.1 surface to [Liveframe](https://github.com/ashiqrniloy/liveframe) element JSON through a mapping you write. An agent that speaks A2UI can then draw with your catalog, your design system and your validator.
 
-Requires Bun ≥ 1.4.2 and `@arnilo/liveframe` `~0.3.0`. It has no other dependency.
+Requires Bun ≥ 1.4.2 and `@arnilo/liveframe` `~0.4.0-0`. It has no other dependency.
 
 ```sh
 bun add @arnilo/liveframe @arnilo/liveframe-a2ui

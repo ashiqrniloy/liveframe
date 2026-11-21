@@ -1,0 +1,18 @@
+{
+  "generatedFrom": "v0.4.0-rc.1 checkout",
+  "exports": {
+    ".": {
+      "A2uiComponent": "export type A2uiComponent = { readonly kind: string; readonly props?: Readonly<Record<string, string>>; readonly variants?: Readonly<Record<string, string>>; readonly children?: readonly string[]; readonly lift?: Readonly<Record<string, string>>; readonly items?: Readonly<Record<string, A2uiItem>>; readonly event?: string; readonly input?: { readonly prop: string; readonly event: string; }; };",
+      "A2uiConversion": "export type A2uiConversion = { readonly elements: Json; readonly initialLocal: Readonly<Record<string, Json>>; readonly origins: Readonly<Record<string, string>>; };",
+      "A2uiItem": "export type A2uiItem = { readonly kind: string; readonly props?: Readonly<Record<string, string>>; readonly child?: string; readonly index?: string; };",
+      "A2uiMapping": "export type A2uiMapping = { readonly catalogId: string; readonly components: Readonly<Record<string, A2uiComponent>>; readonly actions?: Readonly<Record<string, string>>; readonly local?: Readonly<Record<string, string>>; readonly drop?: readonly (\"theme\" | \"weight\" | \"checks\")[]; };",
+      "A2uiOptions": "export type A2uiOptions = { readonly limits?: RenderLimits; readonly maxErrors?: number; };",
+      "fromA2ui": "export declare function fromA2ui(messages: string | readonly unknown[], mapping: A2uiMapping, options?: A2uiOptions): Result<A2uiConversion>;"
+    }
+  },
+  "schemas": {},
+  "corpus": {},
+  "hash": {},
+  "patch": {},
+  "runner": {}
+}

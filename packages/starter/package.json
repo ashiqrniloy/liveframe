@@ -1,6 +1,6 @@
 {
   "name": "@arnilo/liveframe-starter",
-  "version": "0.3.0",
+  "version": "0.4.0-rc.1",
   "description": "A starting point for a Liveframe host: a reference catalog, React implementations, themes and a design system that pass every conformance suite. Copy it or extend it.",
   "type": "module",
   "license": "MIT",
@@ -52,7 +52,7 @@
     "dist"
   ],
   "peerDependencies": {
-    "@arnilo/liveframe": "~0.3.0",
+    "@arnilo/liveframe": "~0.4.0-0",
     "@internationalized/date": "^3.12.4",
     "react": "^19.0.0",
     "react-aria-components": "^1.22.0",

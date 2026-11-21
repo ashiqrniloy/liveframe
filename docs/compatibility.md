@@ -10,7 +10,7 @@ What a version bump of `@arnilo/liveframe` may change. The policy is [decision R
 
 ## The 0.3.0 gate
 
-The [approved scope](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-11-05-0238-release-0-3-0-scope.md) permits documented breaks in this minor release. `scripts/release/api/0.2.3.json`, generated from `v0.2.3`, is now the single checkout baseline in `api-stability.test.ts`. The 0.2.1 and 0.2.2 comparisons are retired because 0.3.0 may break them by design; their baseline and register files remain as release history.
+The [approved scope](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-11-05-0238-release-0-3-0-scope.md) permitted documented breaks in this minor release. The 0.3.0 release gate used `scripts/release/api/0.2.3.json`, generated from `v0.2.3`, as its checkout baseline. The earlier baselines and registers remain as release history.
 
 Every declaration or schema change needs an entry in `scripts/release/api/register-0.3.0.json`. Additions use `added`, compatible changes use `widened`, and breaks use `removed` or `changed` with a non-empty `migration` naming an exact heading in [the migration guide](migration-0.3.md). A removed target must disappear; a changed target must differ. Stale entries and shipped deferrals fail the gate. Existing corpus, hash and patch files may change only with a documented break entry naming the full file path under `./conformance/corpus/*`, `./conformance/hash/*` or `./conformance/patch/*`. Each break also needs its spec update, CHANGELOG line and adopter checklist in the same task. Behaviour-only changes need regression evidence as well: declaration comparison cannot detect them.
 
