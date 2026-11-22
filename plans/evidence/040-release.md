@@ -12,7 +12,7 @@ Tag `v0.4.0` points to `339f0239f16c458e2516360a2b62f2069169909d`. The [readines
 | `bun scripts/release/peer-floors.ts` | React and React DOM 19.0.0 passed 163 tests, Playwright 1.49.0 passed 23 and MCP server 2.0.0 passed 89. |
 | `bun run demo:test` | 78 passed and zero failed. |
 
-GitHub [Publish run 44954949161](https://github.com/ashiqrniloy/liveframe/actions/runs/44954949161) succeeded on the stable tag after approval of the protected `release` environment. The workflow published all four packages through npm trusted publishing and moved each `next` tag. [CI run 44954949057](https://github.com/ashiqrniloy/liveframe/actions/runs/44954949057) covers the same commit on main.
+GitHub [Publish run 44954949161](https://github.com/ashiqrniloy/liveframe/actions/runs/44954949161) succeeded on the stable tag after approval of the protected `release` environment. The workflow published all four packages through npm trusted publishing and moved each `next` tag. [CI run 44954949057](https://github.com/ashiqrniloy/liveframe/actions/runs/44954949057) ran on the same commit on main. Chromium passed, then WebKit failed in `overlay_content_receives_pointer_events` while waiting for the overlay button to become actionable. The Firefox and later steps in that CI run were skipped. The protected publish job passed its own Chromium check, archive gate, peer floors and demo. See [Task 9 finding F6](040-impact-analysis.md#findings-and-dispositions) for the isolated WebKit reruns and backlog disposition.
 
 ## Registry verification
 

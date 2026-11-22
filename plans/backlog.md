@@ -537,6 +537,7 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Update (2026-11-09, plan 032 Task 3): closed on partial proof by [owner decision](../decision-logs/2026-11-09-2106-close-plan-032-task-3-on-partial-quiet-host-proof.md); **this entry stays open**. `scripts/bench-quiet.ts` now runs every stage independently and records whole-host CPU (quiet = below 10%, benchmark included). No run was clean; the best attempt ([record](evidence/032-bench-attempt-best.md)) had `validator` and `streaming` quiet and passing and the other seven stages not quiet. The plan 030 `pack-libraries` 5% gate failed on a quiet host, was reworked (seven processes, A-B-B-A blocks, median ratio) and the cause fixed in `src/preview/in-process.ts` (`collectLibraries` ran twice per render): 30 of 30 runs pass, ratio 0.994–1.048. Still unconfirmed on a quiet host: `templateRunner` within 5% of `renderTemplate` (5.44% once at 14% host CPU) and every stage other than validator and streaming. The streaming bench also rewrites `plans/evidence/019-streaming-bench.md` on every run; restore it after a bench.
 
 - Update (2026-11-21, plan 040 Task 5): [best attempt](evidence/040-bench-attempt-best.md). Two attempts timed out waiting for quiet. The third ran all 15 stages, with peak whole-host CPU of 53.6%. Every stage exceeded the 10% limit in its average or a periodic sample. The proof remains open for the plan 040 Task 8 readiness review.
+- Update (2026-11-22, plan 040 Tasks 8–9): the [rerun](evidence/040-bench-task-8-rerun.md) completed all 15 stages with exit 0 per stage, but peaked at 29.3% CPU. The owner [deferred the proof](../decision-logs/2026-11-22-0347-go-on-0-4-0.md). Run the whole suite below 10% whole-host CPU and regenerate the ledger to resolve its 28 pending rows. [Impact analysis F4](evidence/040-impact-analysis.md#findings-and-dispositions).
 
 ## Name the realm mismatch in a compiled validator's `validateTree`
 
@@ -883,6 +884,15 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Source: plans/032-Phase-7-Part-S-Release-0-3-0.md Task 8, plans/evidence/032-impact-analysis.md F3
 - What: `scripts/demo-test.ts:44` deletes the demo's lockfile and `:51` runs a plain `bun install`, while `examples/demo-host/package.json` declares React, React Aria Components, the MCP packages and the type packages with `^` ranges; the getting-started guide (`docs/getting-started.md:21`) installs React and React Aria Components the same way. Only `playwright` is pinned, after a floated 1.65.0 failed publish attempt 1 (run 42776596232). Pin every dependency exactly (the smallest fix, since the demo's `@arnilo/liveframe` line is rewritten per run anyway), or commit a lockfile and install with `--frozen-lockfile`, and do the same for the guide's install line.
 - Why: a release gate that resolves new versions on every run can fail a publish for a reason unrelated to the tagged code; pinning makes the gate reproducible without changing what it tests.
+- Update (2026-11-22, plan 040 Task 9): the stable installed guide and demo passed. Floating resolution remains open at P3. [Impact analysis F5](evidence/040-impact-analysis.md#findings-and-dispositions).
+
+## Investigate the WebKit overlay click timeout in stable CI
+
+- Section: Renderer CI (Phase 7)
+- Priority: P3
+- Source: [Plan 040 Task 9 finding F6](evidence/040-impact-analysis.md#findings-and-dispositions).
+- What: [CI run 44954949057](https://github.com/ashiqrniloy/liveframe/actions/runs/44954949057) on `339f023` timed out at the first click in `overlay_content_receives_pointer_events` (`src/__tests__/react-browser.test.tsx:614–621`). The CI locator found the button and was waiting for visibility, enablement and stability. Two isolated WebKit reruns passed. Reproduce under the full WebKit suite and diagnose the actionability failure. Keep both real pointer-click assertions.
+- Why: the failure stopped stable CI before Firefox and the later release gates. The separate protected publish passed its own checks.
 
 ## Generate the core 0.3.0 API baseline before 0.3.1
 

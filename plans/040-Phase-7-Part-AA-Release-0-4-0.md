@@ -434,7 +434,7 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
   - Files to Edit: `README.md`, `CHANGELOG.md`, `packages/starter/README.md` and `docs/compatibility.md`.
   - Test Cases to Write: n/a — verify the documentation links, recorded release date and publish workflow against the existing evidence.
 
-- [ ] Task 9: Analyze architectural impact and dispose of every finding
+- [x] Task 9: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional:
       - The twelve impact areas are swept against the whole 0.4.0 release (plans 033–040, the four published packages, the registry archives and the outsider docs) and recorded in `plans/evidence/040-impact-analysis.md`.
@@ -460,6 +460,11 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
   - Test Cases to Write:
     - n/a.
 
+  - Notes (executed 2026-11-22):
+    - The [twelve-area impact analysis](evidence/040-impact-analysis.md) reviews plans 033–040, the four laws and the four stable registry archives. Fresh registry responses confirmed both dist-tags and all four downloaded tarball hashes.
+    - The owner approved all six dispositions. Task 8a resolves F1–F3. F4–F6 are in the backlog and the stable release record now identifies the separate WebKit CI failure and the protected publish result.
+    - `bun run check` passed with 2,129 tests, six skips and zero failures. The focused WebKit regression passed twice. No spec changes were needed.
+
 ## Verification (whole plan)
 
 - `timeout 1500 bun run check`
@@ -474,8 +479,12 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- The owner approved shipping on partial benchmark evidence. The existing CPU and performance limits still apply, and 28 acceptance rows await a qualifying quiet-host run.
+- The stable protected publish and registry checks passed. Separate stable CI stopped on a WebKit overlay click timeout. Both isolated reruns passed and the failure remains under investigation.
 
 ## Further Actions
 
-- To be filled after task completion with improvements, rationale, and priority.
+- Complete the [quiet-host benchmark proof](backlog.md#re-run-the-full-benchmark-suite-on-a-quiet-host) (P3), including the existing [validator performance](backlog.md#phase-1-performance-gate-3-µs-per-node) (P1) and [browser timing](backlog.md#re-measure-the-browser-renderers-wall-times-on-a-quiet-host-and-make-the-focus-gate-load-resistant) (P3) work, and regenerate the 28 pending acceptance rows once the clean evidence exists (F4).
+- [Pin the demo and guide gates' dependencies](backlog.md#pin-the-demo-and-guide-gates-dependencies) (P3) so new dependency versions cannot unexpectedly change what the release gate runs (F5).
+- [Investigate the stable WebKit overlay click timeout](backlog.md#investigate-the-webkit-overlay-click-timeout-in-stable-ci) (P3) while preserving both pointer-click checks (F6).
+- Retain the approved [release deferrals](evidence/040-release-readiness-review.md), including the two 0.5.0 items and the existing P1 dialog report. Synapta and Clay still own production adoption.
