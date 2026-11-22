@@ -173,8 +173,10 @@ cleaning belongs in the source (or in a TSX widget).
 Limits (all checked at install): 1 MiB of JSON, 10,000 nodes, 20,000 expression
 nodes, expression depth 32, 64 components, component nesting 16. At render,
 each expression node, emitted element or fragment, and entered `$use` spends
-one step of `limits.steps` (default 1,000,000). Operators that walk long strings
-or arrays spend additional steps. During expansion, elements and fragments
+one step of `limits.steps` (default 1,000,000). Operators also spend steps for
+the string units and collection entries they may read or write. Rates vary by
+operator. String `$slice` walks code points up to its end index, or to the end
+of the string if the index is omitted. During expansion, elements and fragments
 also count toward `limits.nodes` (default 5,000). Exceeding either budget
 stops expansion with `limit-exceeded` at the template pointer.
 For limits on untrusted templates, see the

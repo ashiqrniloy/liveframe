@@ -26,6 +26,7 @@ import {
   arrayOf,
   BAD,
   BOOL,
+  charge,
   type Checks,
   EXPR_LIMITS,
   type Fn,
@@ -37,6 +38,7 @@ import {
   kindProblem,
   lang,
   type Plain,
+  RATE,
   type Typed,
   tick,
 } from "./types.ts";
@@ -430,6 +432,7 @@ function iterate(
         tick(f, p);
         const items = list(f) as readonly unknown[];
         for (let i = 0; i < items.length; i++) {
+          charge(f, p, 1, RATE.collectionItem);
           bind(f, items[i], i);
           if (test(f) === true) return i;
         }
@@ -442,10 +445,15 @@ function iterate(
       run: (f) => {
         tick(f, p);
         const items = list(f) as readonly unknown[];
+        charge(f, p, items.length, RATE.collectionItem);
         const out: unknown[] = [];
         for (let i = 0; i < items.length; i++) {
-          bind(f, items[i], i);
-          if (test(f) === true) out.push(items[i]);
+          const item = items[i];
+          bind(f, item, i);
+          if (test(f) === true) {
+            charge(f, p, 1, RATE.collectionItem);
+            out.push(item);
+          }
         }
         return out;
       },
@@ -457,6 +465,7 @@ function iterate(
     run: (f) => {
       tick(f, p);
       const items = list(f) as readonly unknown[];
+      charge(f, p, items.length * 2, RATE.collectionItem);
       const out = new Array<unknown>(items.length);
       for (let i = 0; i < items.length; i++) {
         bind(f, items[i], i);

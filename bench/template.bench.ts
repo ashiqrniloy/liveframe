@@ -11,7 +11,7 @@ import { templateRunner } from "../src/preview/template.ts";
 import { compileExpression, type Frame } from "../src/template/expr.ts";
 import { validateTemplate } from "../src/template/index.ts";
 import { renderTemplate } from "../src/template/render.ts";
-import { rootScope } from "../src/template/scope.ts";
+import { dynamicScope, rootScope } from "../src/template/scope.ts";
 import { budget, metric, timed } from "./metrics.ts";
 
 // Evaluation cost per expression node (plan 028 Task 2). The target is 50 ns per node on the reference
@@ -109,9 +109,77 @@ function batch(run: (i: number) => void): { wallMs: number; cpuMs: number } {
     iterations *= 2;
   }
 }
+const middle = (values: number[]) => values.sort((a, b) => a - b)[values.length >> 1] as number;
+
+// Compile once per operator so the gate measures evaluation, including dynamic operand checks.
+{
+  const x = { $path: "x" };
+  const y = { $path: "y" };
+  const cases: [string, unknown, (size: number, items: number) => unknown[]][] = [
+    ["len", { $len: x }, (n) => ["😀".repeat(n / 2)]],
+    ["lenAscii", { $len: x }, (n) => ["a".repeat(n)]],
+    ["lenMixed", { $len: x }, (n) => [`😀${"Ā".repeat(n - 2)}`]],
+    ["concat", { $concat: [x, x] }, (n) => ["é".repeat(n / 2)]],
+    ["join", { $join: [x, y] }, (n, items) => [Array(items).fill("é".repeat(n / items - 1)), ","]],
+    ["joinEmptyParts", { $join: [x, ""] }, (_, items) => [Array(items).fill("")]],
+    ["containsString", { $contains: [x, y] }, (n) => ["a".repeat(n), `${"a".repeat(n / 4)}b`]],
+    ["containsArray", { $contains: [x, 0] }, (_, items) => [Array(items).fill(1)]],
+    [
+      "containsStringItems",
+      { $contains: [x, y] },
+      (n, items) => [Array(items).fill("a".repeat(n / items)), "b".repeat(n / items)],
+    ],
+    ["equalStrings", { $eq: [x, y] }, (n) => ["Ā".repeat(n), `${"Ā".repeat(n - 1)}b`]],
+    ["split", { $split: [x, ","] }, (n, items) => [`${",".repeat(items - 1)}${"a".repeat(n - items + 1)}`]],
+    ["sliceString", { $slice: [x, 0, y] }, (n) => ["😀".repeat(n / 2), n]],
+    ["sliceAscii", { $slice: [x, 0, y] }, (n) => ["a".repeat(n), n]],
+    ["sliceArray", { $slice: [x, 0] }, (_, items) => [Array(items).fill(true)]],
+    ["sum", { $sum: x }, (_, items) => [Array(items).fill(1.5)]],
+    ["flat", { $flat: x }, (_, items) => [Array.from({ length: items }, () => [1])]],
+    ["flatEmptyParts", { $flat: x }, (_, items) => [Array.from({ length: items }, () => [])]],
+    [
+      "merge",
+      { $merge: [x, y] },
+      (_, items) => [Object.fromEntries(Array.from({ length: items }, (_, i) => [`k${i}`, i])), {}],
+    ],
+    ["fromEntries", { $fromEntries: x }, (_, items) => [Array.from({ length: items }, (_, i) => [`k${i}`, i])]],
+    ["map", { $map: { in: x, as: "item", value: { $path: "item" } } }, (_, items) => [Array(items).fill(1)]],
+    ["filter", { $filter: { in: x, as: "item", where: true } }, (_, items) => [Array(items).fill(1)]],
+    ["findIndex", { $findIndex: { in: x, as: "item", where: false } }, (_, items) => [Array(items).fill(1)]],
+  ];
+  let worst = 0;
+  for (const [name, expr, input] of cases) {
+    const scope = dynamicScope(["x", "y"]);
+    const compiled = compileExpression(expr, scope);
+    assert(compiled.ok, `${name}: ${JSON.stringify(!compiled.ok && compiled.errors)}`);
+    const measurements: number[] = [];
+    for (const size of [1024, 65_536, 1_048_576]) {
+      const slots = input(size, size / 16);
+      slots.length = scope.budget.slots;
+      const f = { slots, steps: 100_000_000 };
+      const run = () => {
+        f.steps = 100_000_000;
+        return compiled.value(f);
+      };
+      run();
+      const steps = 100_000_000 - f.steps;
+      const cpuMs = middle(Array.from({ length: 3 }, () => batch(run).cpuMs));
+      const ns = (cpuMs * 1e6) / steps;
+      metric(`template.operator.${name}.${size}.nsPerStep`, ns);
+      measurements.push(ns);
+      worst = Math.max(worst, ns);
+    }
+    console.log(
+      `template ${name}: ${measurements.map((ns) => ns.toFixed(2)).join(", ")} ns/step (1 KiB, 64 KiB, 1 MiB inputs)`,
+    );
+  }
+  metric("template.operator.worstNsPerStep", worst);
+  console.log(`template worst operator per step: ${worst.toFixed(2)} ns/step (budget 25)`);
+  budget(worst <= 25, `template worst operator per step: ${worst.toFixed(2)} ns/step exceeds the 25 ns budget`);
+}
+
 for (let i = 0; i < 200; i++) treeAt(i);
 const samples = Array.from({ length: BATCHES }, () => batch(treeAt));
-const middle = (values: number[]) => values.sort((a, b) => a - b)[values.length >> 1] as number;
 const renderMs = middle(samples.map((sample) => sample.wallMs));
 const renderCpuMs = middle(samples.map((sample) => sample.cpuMs));
 const outputNodes = Array.from({ length: 50 }, (_, i) => countNodes(treeAt(i).root)).reduce((a, b) => a + b) / 50;

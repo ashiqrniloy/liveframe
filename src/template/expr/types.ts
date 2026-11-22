@@ -15,6 +15,28 @@ export const EXPR_LIMITS = {
   arrayItems: MAX_ITEMS,
 } as const;
 
+/** Steps per unit of work, calibrated by bench/template.bench.ts. */
+export const RATE = {
+  length: 1 / 12,
+  lengthSurrogates: 1 / 6,
+  stringCopy: 1 / 32,
+  stringSearch: 1 / 16,
+  stringSlice: 1 / 6,
+  split: 1 / 8,
+  splitPart: 1,
+  joinPart: 1,
+  arraySearch: 1 / 4,
+  arrayCopy: 1 / 4,
+  arrayGuard: 1 / 4,
+  sum: 1 / 4,
+  flatPart: 1,
+  flatItem: 1 / 2,
+  mergeEntry: 24,
+  fromEntry: 16,
+  objectKey: 1 / 16,
+  collectionItem: 1,
+} as const;
+
 /** What a compiled expression reads and spends: one value per slot, and the steps left. */
 export type Frame = { slots: unknown[]; steps: number };
 export type Fn = (frame: Frame) => unknown;
@@ -46,10 +68,9 @@ export const tick = (f: Frame, p: string) => {
   if (--f.steps < 0) outOfFuel(p);
 };
 
-/** Linear-time operations pay one step per 64 units of input, so loops over big values stay bounded. */
-export const charge = (f: Frame, p: string, units: number) => {
-  if (units < 64) return;
-  f.steps -= units >> 6;
+/** Pay for sized work from the same budget as expression nodes. */
+export const charge = (f: Frame, p: string, units: number, rate: number) => {
+  f.steps -= Math.ceil(units * rate);
   if (f.steps < 0) outOfFuel(p);
 };
 
@@ -161,6 +182,8 @@ export function guard(fn: Fn, kind: Kind, p: string): Fn {
   const test = VALUE_KIND[base];
   return (f) => {
     const v = fn(f);
+    if ((base === "strArr" || base === "numArr" || base === "arrArr") && Array.isArray(v))
+      charge(f, p, v.length, RATE.arrayGuard);
     if (v === absent ? !optional : !test(v)) fail(p, `Expected ${EXPECT[base]}`, "invalid-prop", EXPECT[base]);
     return v;
   };

@@ -9,7 +9,7 @@ import {
   evaluate,
   OPERATORS,
 } from "../template/expr.ts";
-import { assume, binds, componentScope, narrowedBy, rootScope, type Scope } from "../template/scope.ts";
+import { assume, binds, componentScope, dynamicScope, narrowedBy, rootScope, type Scope } from "../template/scope.ts";
 
 type Values = Record<string, unknown>;
 
@@ -463,10 +463,78 @@ describe("bounds", () => {
 
   test("long_inputs_cost_fuel_in_proportion", () => {
     const text = "x".repeat(MAX);
-    // Each `$len` of a 1 MiB string is 16,384 extra steps; 100 of them cannot fit in 1,000,000.
     const hundred = { $sum: { $map: { in: path("xs"), as: "x", value: { $len: path("text") } } } };
     expect(run(hundred, { xs: Array.from({ length: 100 }, () => 0), text })).toMatch(/^limit-exceeded@/);
     expect(run(hundred, { xs: Array.from({ length: 10 }, () => 0), text })).toBe(10 * MAX);
+  });
+
+  test("sized_operators_spend_steps_in_proportion", () => {
+    const x = path("x");
+    const y = path("y");
+    const cases: [unknown, (size: number) => unknown[]][] = [
+      [{ $len: x }, (n) => ["a".repeat(n)]],
+      [{ $concat: [x, x] }, (n) => ["a".repeat(n)]],
+      [{ $join: [x, ""] }, (n) => [Array(n).fill("")]],
+      [{ $contains: [x, "b"] }, (n) => ["a".repeat(n)]],
+      [{ $contains: [x, y] }, (n) => [Array(8).fill("a".repeat(n)), `b${"a".repeat(n - 1)}`]],
+      [{ $split: [x, ","] }, (n) => ["a,".repeat(n)]],
+      [{ $slice: [x, 0] }, (n) => ["😀".repeat(n)]],
+      [{ $slice: [x, 0] }, (n) => [Array(n).fill(0)]],
+      [{ $sum: x }, (n) => [Array(n).fill(1)]],
+      [{ $flat: x }, (n) => [Array(n).fill([])]],
+      [{ $flat: x }, (n) => [[Array(n).fill(1)]]],
+      [{ $merge: [x, y] }, (n) => [Object.fromEntries(Array.from({ length: n }, (_, i) => [i, i])), {}]],
+      [{ $fromEntries: x }, (n) => [Array(n).fill(["k", 1])]],
+      [{ $map: { in: x, as: "item", value: path("item") } }, (n) => [Array(n).fill(1)]],
+      [{ $filter: { in: x, as: "item", where: true } }, (n) => [Array(n).fill(1)]],
+      [{ $findIndex: { in: x, as: "item", where: false } }, (n) => [Array(n).fill(1)]],
+    ];
+    for (const [expr, input] of cases) {
+      const compiled = compileExpression(expr, dynamicScope(["x", "y"]));
+      if (!compiled.ok) throw new Error(JSON.stringify(compiled.errors));
+      const cost = (n: number) => {
+        const frame = { slots: input(n), steps: EXPR_LIMITS.steps };
+        compiled.value(frame);
+        return EXPR_LIMITS.steps - frame.steps;
+      };
+      const small = cost(1024);
+      const large = cost(2048);
+      expect(small, JSON.stringify(expr)).toBeGreaterThan(cost(1));
+      expect(large - small, JSON.stringify(expr)).toBeGreaterThanOrEqual(small - cost(1));
+    }
+  });
+
+  test("array_guards_spend_fuel_before_reading_members", () => {
+    const items = new Proxy(Array(1024).fill(1), {
+      get(target, key, receiver) {
+        if (key === "0") throw new Error("The guard read an item before charging for the scan");
+        return Reflect.get(target, key, receiver);
+      },
+    });
+    expect(run({ $sum: path("items") }, { items }, 2)).toBe("limit-exceeded@/$sum");
+  });
+
+  test("find_index_charges_only_visited_members", () => {
+    const find = { $findIndex: { in: path("items"), as: "item", where: true } };
+    expect(run(find, { items: Array(65_536).fill(1) }, 4)).toBe(0);
+  });
+
+  test("slice_of_a_long_string_reads_only_to_its_end", () => {
+    const text = "a😀b\ud800".repeat(MAX / 5).padEnd(MAX, "a");
+    const slice = (start: number, end: number) => ({ $slice: [path("text"), start, end] });
+    expect(run(slice(0, 8), { text }, 16)).toBe("a😀b\ud800a😀b\ud800");
+    expect(run(slice(1, 5), { text }, 16)).toBe("😀b\ud800a");
+    expect(run(slice(0, MAX), { text }, 16)).toBe("limit-exceeded@/$slice");
+    expect(run(slice(MAX, 0), { text }, 4)).toBe("");
+    expect(run(slice(1, MAX), { text: "a😀b\udc00" })).toBe("😀b\udc00");
+  });
+
+  test("many_slices_of_a_large_string_exhaust_the_default_budget", () => {
+    const text = "a".repeat(MAX);
+    const slice = { $slice: [path("text"), 0, MAX] };
+    expect(run(slice, { text })).toBe(text);
+    const slices = Array(58).fill(slice);
+    expect(run(slices, { text })).toMatch(/^limit-exceeded@\/\d+\/\$slice$/);
   });
 
   const MAX = 1_048_576;

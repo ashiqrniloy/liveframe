@@ -26,16 +26,30 @@ import {
   NUM,
   type Plain,
   plain,
+  RATE,
   STR,
 } from "./types.ts";
 
-function codePoints(text: string): number {
-  let count = 0;
-  for (let i = 0; i < text.length; i++, count++) {
-    const unit = text.charCodeAt(i);
-    if (unit >= 0xd800 && unit <= 0xdbff && (text.charCodeAt(i + 1) & 0xfc00) === 0xdc00) i++;
+function pointWidth(text: string, i: number): number {
+  return (text.charCodeAt(i) & 0xfc00) === 0xd800 && (text.charCodeAt(i + 1) & 0xfc00) === 0xdc00 ? 2 : 1;
+}
+
+function codePoints(text: string, f: Frame, p: string): number {
+  charge(f, p, text.length, RATE.length);
+  const start = text.search(/[\ud800-\udbff]/);
+  if (start < 0) return text.length;
+  charge(f, p, text.length - start, RATE.lengthSurrogates);
+  let count = start;
+  for (let i = start; i < text.length; i++, count++) {
+    if ((text.charCodeAt(i) & 0xfc00) === 0xd800 && (text.charCodeAt(i + 1) & 0xfc00) === 0xdc00) i++;
   }
   return count;
+}
+
+function equal(a: unknown, b: unknown, f: Frame, p: string): boolean {
+  if (typeof a === "string" && typeof b === "string" && a.length === b.length)
+    charge(f, p, a.length + b.length, RATE.stringSearch);
+  return a === b;
 }
 
 function finite(x: number, p: string): number {
@@ -70,8 +84,8 @@ const compare = (test: (a: number, b: number) => boolean): Eager => ({
 const nonNegative = (t: ExprType) => typeof t.literal !== "number" || (Number.isInteger(t.literal) && t.literal >= 0);
 
 export const EAGER: Readonly<Record<string, Eager>> = {
-  $eq: { args: ["scalar?", "scalar?"], type: () => BOOL, run: ([a, b]) => a === b },
-  $ne: { args: ["scalar?", "scalar?"], type: () => BOOL, run: ([a, b]) => a !== b },
+  $eq: { args: ["scalar?", "scalar?"], type: () => BOOL, run: ([a, b], f, p) => equal(a, b, f, p) },
+  $ne: { args: ["scalar?", "scalar?"], type: () => BOOL, run: ([a, b], f, p) => !equal(a, b, f, p) },
   $lt: compare((a, b) => a < b),
   $lte: compare((a, b) => a <= b),
   $gt: compare((a, b) => a > b),
@@ -84,8 +98,7 @@ export const EAGER: Readonly<Record<string, Eager>> = {
     type: () => INT,
     run: ([a], f, p) => {
       if (typeof a !== "string") return (a as unknown[]).length;
-      charge(f, p, a.length);
-      return codePoints(a);
+      return codePoints(a, f, p);
     },
   },
   $concat: {
@@ -93,10 +106,11 @@ export const EAGER: Readonly<Record<string, Eager>> = {
     min: 2,
     type: () => STR,
     run: (v, f, p) => {
+      charge(f, p, v.length, RATE.joinPart);
       let total = 0;
       for (const part of v) total += (part as string).length;
       cap(total, MAX_STRING, p, "A string");
-      charge(f, p, total);
+      charge(f, p, total * 2, RATE.stringCopy);
       return (v as readonly string[]).join("");
     },
   },
@@ -105,10 +119,11 @@ export const EAGER: Readonly<Record<string, Eager>> = {
     type: () => STR,
     run: ([list, separator], f, p) => {
       const parts = list as readonly string[];
+      charge(f, p, parts.length, RATE.joinPart);
       let total = (separator as string).length * Math.max(parts.length - 1, 0);
       for (const part of parts) total += part.length;
       cap(total, MAX_STRING, p, "A string");
-      charge(f, p, total);
+      charge(f, p, total * 2, RATE.stringCopy);
       return parts.join(separator as string);
     },
   },
@@ -124,11 +139,16 @@ export const EAGER: Readonly<Record<string, Eager>> = {
     run: ([a, b], f, p) => {
       if (typeof a === "string") {
         if (typeof b !== "string") fail(p, "Expected a string to search for", "invalid-prop", "a string");
-        charge(f, p, a.length);
+        charge(f, p, a.length + b.length, RATE.stringSearch);
         return a.includes(b);
       }
-      charge(f, p, (a as unknown[]).length);
-      return (a as unknown[]).includes(b);
+      const items = a as readonly unknown[];
+      charge(f, p, items.length, RATE.arraySearch);
+      if (typeof b !== "string") return items.includes(b);
+      for (const item of items) {
+        if (equal(item, b, f, p)) return true;
+      }
+      return false;
     },
   },
   $split: {
@@ -137,9 +157,13 @@ export const EAGER: Readonly<Record<string, Eager>> = {
       if (typeof separator?.literal !== "string" || separator.literal === "") bad(1, "a non-empty literal string");
     },
     type: () => arrayOf({ type: "string", maxLength: MAX_STRING }, MAX_ITEMS),
-    run: ([text, separator], f, p) => {
-      charge(f, p, (text as string).length);
-      const parts = (text as string).split(separator as string);
+    run: ([source, separator], f, p) => {
+      const text = source as string;
+      const delimiter = separator as string;
+      charge(f, p, text.length * 2 + delimiter.length, RATE.split);
+      // Reserve the largest result the native split can allocate.
+      charge(f, p, Math.min(MAX_ITEMS + 1, Math.floor(text.length / delimiter.length) + 1), RATE.splitPart);
+      const parts = text.split(delimiter, MAX_ITEMS + 1);
       cap(parts.length, MAX_ITEMS, p, "An array");
       return parts;
     },
@@ -159,16 +183,25 @@ export const EAGER: Readonly<Record<string, Eager>> = {
       return plain(s, (p) => p.type === "string") ? STR : typeOf(s);
     },
     run: ([source, start, end], f, p) => {
-      const to = end === undefined || end === absent ? undefined : (end as number);
-      if ((start as number) < 0 || (to !== undefined && to < 0)) fail(p, "Expected non-negative slice indexes");
+      const from = start as number;
+      const to = end === undefined || end === absent ? Infinity : (end as number);
+      if (from < 0 || to < 0) fail(p, "Expected non-negative slice indexes");
       if (typeof source !== "string") {
-        charge(f, p, (source as unknown[]).length);
-        return (source as unknown[]).slice(start as number, to);
+        const items = source as readonly unknown[];
+        const taken = Math.max(0, Math.min(items.length, to) - from);
+        charge(f, p, taken * 2, RATE.arrayCopy);
+        return items.slice(from, to);
       }
-      charge(f, p, source.length);
-      return Array.from(source)
-        .slice(start as number, to)
-        .join("");
+      if (from >= to || from >= source.length) return "";
+      const scanned = Math.min(source.length, to * 2);
+      const taken = Math.min(source.length - from, (to - from) * 2);
+      charge(f, p, scanned + taken, RATE.stringSlice);
+      let i = 0;
+      let last = 0;
+      for (; i < from && last < source.length; i++) last += pointWidth(source, last);
+      const first = last;
+      for (; i < to && last < source.length; i++) last += pointWidth(source, last);
+      return source.slice(first, last);
     },
   },
 
@@ -229,7 +262,7 @@ export const EAGER: Readonly<Record<string, Eager>> = {
       return items && plain(items, (p) => p.type === "integer") ? INT : NUM;
     },
     run: ([list], f, p) => {
-      charge(f, p, (list as unknown[]).length);
+      charge(f, p, (list as unknown[]).length, RATE.sum);
       return finite(
         (list as readonly number[]).reduce((sum, x) => sum + x, 0),
         p,
@@ -249,12 +282,14 @@ export const EAGER: Readonly<Record<string, Eager>> = {
       return items ? arrayOf(items, MAX_ITEMS) : DYNAMIC;
     },
     run: ([list], f, p) => {
+      const parts = list as readonly unknown[][];
+      charge(f, p, parts.length, RATE.flatPart);
       let total = 0;
-      for (const part of list as readonly unknown[][]) total += part.length;
+      for (const part of parts) total += part.length;
       cap(total, MAX_ITEMS, p, "An array");
-      charge(f, p, total);
+      charge(f, p, total * 2, RATE.flatItem);
       const out: unknown[] = [];
-      for (const part of list as readonly unknown[][]) for (const item of part) out.push(item);
+      for (const part of parts) for (const item of part) out.push(item);
       return out;
     },
   },
@@ -324,8 +359,17 @@ export const EAGER: Readonly<Record<string, Eager>> = {
       });
     },
     run: (v, f, p) => {
-      const entries = (v as readonly object[]).flatMap((o) => Object.entries(o));
-      charge(f, p, entries.length);
+      charge(f, p, v.length, RATE.joinPart);
+      const entries: [string, unknown][] = [];
+      for (const value of v) {
+        const object = value as Record<string, unknown>;
+        const keys = Object.keys(object);
+        charge(f, p, keys.length, RATE.mergeEntry);
+        for (const key of keys) {
+          charge(f, p, key.length, RATE.objectKey);
+          entries.push([key, object[key]]);
+        }
+      }
       return Object.fromEntries(entries);
     },
   },
@@ -334,9 +378,10 @@ export const EAGER: Readonly<Record<string, Eager>> = {
     args: ["arr"],
     type: () => DYNAMIC,
     run: ([list], f, p) => {
-      charge(f, p, (list as unknown[]).length);
+      const items = list as readonly unknown[];
+      charge(f, p, items.length, RATE.fromEntry);
       const entries: [string, unknown][] = [];
-      for (const entry of list as readonly unknown[]) {
+      for (const entry of items) {
         const [key, value] = Array.isArray(entry) && entry.length >= 1 && entry.length <= 2 ? entry : [];
         if (typeof key !== "string" || key === "__proto__")
           fail(
@@ -345,7 +390,10 @@ export const EAGER: Readonly<Record<string, Eager>> = {
             "invalid-prop",
             "[string, value] entries",
           );
-        if ((entry as unknown[]).length === 2) entries.push([key, value]);
+        if ((entry as unknown[]).length === 2) {
+          charge(f, p, key.length, RATE.objectKey);
+          entries.push([key, value]);
+        }
       }
       return Object.fromEntries(entries);
     },

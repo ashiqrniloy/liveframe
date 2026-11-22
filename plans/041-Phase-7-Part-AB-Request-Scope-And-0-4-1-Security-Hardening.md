@@ -246,7 +246,7 @@ The sixteen plans of this family were drafted in parallel from one request docum
     - The first `agent-home` selection used 5,403 steps before the fix and 6,135 after it. The post-check run met both Task 2 targets at 2.506 µs per node and 2.10% runner overhead. Timings varied across runs on this host. The separate install-validation row reported 5.007 ms against its 5 ms target on that run, and some reruns exceeded the render timing target.
     - The 50 focused template tests and `timeout 900s bun run check` passed. The full check reported 2,133 passed, 6 skipped and 0 failed.
 
-- [ ] Task 3: Price string and array operators by the work they do (LF-18)
+- [x] Task 3: Price string and array operators by the work they do (LF-18)
   - Acceptance Criteria:
     - Functional:
       - Finding to settle first: the request says string operators are "priced per call, not by size". The code charges by size at one step per 64 units (`charge`, `src/template/expr/types.ts:50-54`), and nothing below 64 units. The request's measurement still holds, because the price is too low: 58 `$slice` calls on a 1 MiB string cost about 950,000 steps and 0.5 s. The task corrects the price, not a missing charge.
@@ -274,8 +274,8 @@ The sixteen plans of this family were drafted in parallel from one request docum
       - Measure nanoseconds per unit for each sized operator at 1 KiB, 64 KiB and 1 MiB. Set each operator's rate so its cost per step is at or under the reference. Rewrite `$slice` to stop at `end`.
     - API Notes and Examples:
       ```ts
-      // units read plus units written, at the operator's measured rate
-      charge(f, p, source.length + taken, RATE.slice);
+      // UTF-16 units scanned plus units taken, at the operator's measured rate
+      charge(f, p, scanned + taken, RATE.stringSlice);
       ```
     - Files to Create/Edit:
       - `src/template/expr/types.ts`: `charge` and the rates.
@@ -288,6 +288,13 @@ The sixteen plans of this family were drafted in parallel from one request docum
     - `slice_of_a_long_string_reads_only_to_its_end`: a `$slice` of the first 8 units of a 1 MiB string spends fewer steps than one of the whole string.
     - `many_slices_of_a_large_string_exhaust_the_default_budget`: the request's 58 calls return `limit-exceeded` with default limits.
     - `expression_results_are_unchanged`: the existing expression table still passes.
+
+  - Notes (executed 2026-11-22):
+    - Operator-specific rates now charge the existing step counter for string units and collection entries read and written. Dynamic array guards charge before scanning, and `$findIndex` charges only visited entries. String `$slice` scans code points through the requested end. Native `$split` reserves fuel for its upper bound on output entries and caps its allocation at the first disallowed entry.
+    - The scaling, short Unicode slice and 58-slice regressions failed on the baseline and pass with the new pricing. The expression suite also checks guard fuel before array reads and early exit in `$findIndex`. Spec §7.6, the template guide and the changelog describe the pricing rule.
+    - At the three benchmark input sizes, the worst operator cost 15.00 ns per step against a 25 ns budget. The old 1 MiB Unicode slice measured 1,897.37 ns per step. The first `agent-home` selection used 6,135 steps before and 6,964 after, and the measured render cost was 2.650 µs per node against a 3 µs budget.
+    - The separate install-validation benchmark measured 5.768 ms CPU on the baseline and 6.423 ms after the change against its 5 ms budget. Task 4 owns that gate. Task 5 owns the whole-render bound under the default step budget.
+    - The focused expression suite passed all 176 tests. The full check passed with 2,138 tests and 6 skips using `timeout 1500s bun run check --timeout=15000 --retry=3 --bail=1`. Earlier runs hit MCP and browser timeouts under load. The affected MCP cases and browser scenario also passed in isolation.
 
 - [ ] Task 4: Reject at install a template whose data-free expansion exceeds the node limit (LF-18)
   - Acceptance Criteria:
