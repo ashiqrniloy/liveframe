@@ -2,6 +2,12 @@
 
 All notable changes to `@arnilo/liveframe` are recorded here. The project follows the compatibility policy in [`docs/compatibility.md`](docs/compatibility.md).
 
+## Unreleased
+
+Fixed:
+
+- **Template expansion stops at its budgets (LF-18).** Each emitted element or fragment and each entered `$use` spends a step. Expansion stops at the first element or fragment beyond the node limit and reports its template pointer.
+
 ## 0.4.0 — 2026-11-22
 
 0.4.0 includes the fixes originally prepared for the unpublished 0.3.1 patch. The release adds interaction, rendering and agent authoring capabilities, including the first release of `@arnilo/liveframe-a2ui`. See the [migration guide](docs/migration-0.4.md), [adopter notes](docs/adopters-0.4.md) and [compatibility policy](docs/compatibility.md#040).

@@ -13,7 +13,9 @@ import type { WidgetInputs } from "../sdk/types.ts";
 import { EMBED } from "../validate/bindings.ts";
 import { buildFacts, type CompiledValidator, type InputSchemas } from "../validate/compile.ts";
 import { encodeSegment } from "../validate/structure.ts";
+import { DEFAULT_LIMITS } from "../validate/tree.ts";
 import { TEMPLATE_LIMITS, type Template, validateTemplateShape } from "./document.ts";
+import { fail, tick } from "./expr/types.ts";
 import {
   absent,
   analyzeExpression,
@@ -48,6 +50,8 @@ type Run = {
   readonly pointers: WeakMap<Element, string>;
   readonly errors: LiveframeError[];
   readonly maxErrors: number;
+  readonly maxNodes: number;
+  nodes: number;
   /** Id segments of the enclosing elements, root first. */
   readonly path: string[];
   stopped: boolean;
@@ -279,11 +283,12 @@ class Compiler {
       values.push(Object.hasOwn(given, param) ? this.expr(given[param], scope, where) : () => absent);
     }
     return (run, frame, out, over) => {
+      tick(frame, pointer);
       const inner: Frame = { slots: new Array<unknown>(component.size), steps: frame.steps };
+      for (let i = 0; i < values.length; i++) inner.slots[i] = (values[i] as Fn)(frame);
+      const key = over ?? (ownKey ? ownKey(frame) : undefined);
+      inner.steps = frame.steps;
       try {
-        for (let i = 0; i < values.length; i++) inner.slots[i] = (values[i] as Fn)(frame);
-        inner.steps = frame.steps;
-        const key = over ?? (ownKey ? ownKey(frame) : undefined);
         component.emit(run, inner, out, key === absent ? undefined : key);
       } finally {
         frame.steps = inner.steps;
@@ -294,6 +299,13 @@ class Compiler {
   element(node: Raw, pointer: string, scope: Scope, depth: number, ownKey: Fn | undefined): Emitter {
     const kind = node.kind as string;
     const kids = this.children(node, pointer, scope, depth);
+    const enter = (run: Run, frame: Frame) => {
+      tick(frame, pointer);
+      if (++run.nodes > run.maxNodes) {
+        const expected = `at most ${run.maxNodes} nodes`;
+        fail(pointer, `Expected ${expected}`, "limit-exceeded", expected);
+      }
+    };
     const keyOf = (frame: Frame, over: unknown): unknown => {
       if (over !== undefined) return over;
       const key = ownKey?.(frame);
@@ -301,13 +313,18 @@ class Compiler {
     };
     if (kind === "fragment")
       return (run, frame, out, over) => {
+        enter(run, frame);
         const key = keyOf(frame, over);
         if (key !== undefined) run.path.push(String(key));
         const children: Element[] = [];
-        for (const child of kids) child(run, frame, children);
+        for (const child of kids) {
+          child(run, frame, children);
+          if (run.stopped) break;
+        }
+        if (key !== undefined) run.path.pop();
+        if (run.stopped) return;
         const element = new Element(Fragment, { children }, key, true);
         run.pointers.set(element, pointer);
-        if (key !== undefined) run.path.pop();
         out.push(element);
       };
 
@@ -333,6 +350,7 @@ class Compiler {
         expressions.push([field, this.embedded(node[field], scope, at(pointer, field), 0)]);
 
     return (run, frame, out, over) => {
+      enter(run, frame);
       const key = keyOf(frame, over);
       const record: Record<string, unknown> = {};
       for (const [name, value] of fixed) record[name] = value;
@@ -343,11 +361,15 @@ class Compiler {
       for (const [name, fn] of expressions) record[name] = fn(frame);
       run.path.push(key === undefined ? kind : String(key));
       const children: Element[] = [];
-      for (const child of kids) child(run, frame, children);
+      for (const child of kids) {
+        child(run, frame, children);
+        if (run.stopped) break;
+      }
+      run.path.pop();
+      if (run.stopped) return;
       if (children.length) record.children = children;
       const element = new Element(tag, record, key, true);
       run.pointers.set(element, pointer);
-      run.path.pop();
       out.push(element);
     };
   }
@@ -471,10 +493,11 @@ function expand(
   compiled: Compiled,
   owned: Readonly<Record<string, unknown>>,
   steps: number,
+  maxNodes: number,
   pointers: WeakMap<Element, string>,
   maxErrors: number,
 ): Element | readonly LiveframeError[] {
-  const run: Run = { pointers, errors: [], maxErrors, path: [], stopped: false, bounded: false };
+  const run: Run = { pointers, errors: [], maxErrors, maxNodes, nodes: 0, path: [], stopped: false, bounded: false };
   const frame: Frame = { slots: new Array<unknown>(compiled.size), steps };
   ROOTS.forEach((name, slot) => {
     frame.slots[slot] = owned[name];
@@ -525,7 +548,7 @@ export function renderTemplate(
   const { limits: given, ...rest } = options;
   const render: RenderOptions = given ? { ...rest, limits } : rest;
   return renderExpansion(
-    (owned) => expand(compiled.value, owned, steps, pointers, maxErrors),
+    (owned) => expand(compiled.value, owned, steps, limits.nodes ?? DEFAULT_LIMITS.nodes, pointers, maxErrors),
     inputs as Readonly<Record<string, unknown>>,
     render,
     pointers,

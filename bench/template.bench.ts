@@ -8,14 +8,14 @@ import { proofWidgets } from "../src/__tests__/fixtures/widgets/index.ts";
 import { freezeCopy } from "../src/internal.ts";
 import { pack } from "../src/pack/index.ts";
 import { templateRunner } from "../src/preview/template.ts";
-import { validateTemplate } from "../src/template/index.ts";
 import { compileExpression, type Frame } from "../src/template/expr.ts";
+import { validateTemplate } from "../src/template/index.ts";
 import { renderTemplate } from "../src/template/render.ts";
 import { rootScope } from "../src/template/scope.ts";
 import { budget, metric, timed } from "./metrics.ts";
 
 // Evaluation cost per expression node (plan 028 Task 2). The target is 50 ns per node on the reference
-// machine: recorded, not gated. One step is one node evaluated, so `steps spent` is the node count.
+// machine: recorded, not gated. This expression's step count measures expression evaluation only.
 const row = obj({ id: str({ maxLength: 32 }), n: int(), title: str({ maxLength: 64 }) });
 const scope = rootScope({ data: obj({ rows: arr(row, { maxItems: 1000 }) }), params: obj({ k: int() }) });
 const expr = {
@@ -78,6 +78,21 @@ const inputsAt = (i: number) => ({
   context: ready.context,
   state: { ...(ready.state as object), selected: `task-${i % 50}` },
 });
+// Count the steps for the first selection without instrumenting the timed renders.
+let low = 1;
+let high = 1_000_000;
+while (low < high) {
+  const steps = Math.floor((low + high) / 2);
+  const result = renderTemplate(frozen, inputsAt(0), { validator, surfaceId: "proof", revision: 0, limits: { steps } });
+  if (result.ok) high = steps;
+  else {
+    assert.equal(result.errors[0]?.expected, "a template that fits limits.steps");
+    low = steps + 1;
+  }
+}
+metric("template.agentHome.steps", low);
+console.log(`agent-home template: ${low} steps for the first selection`);
+
 const treeAt = (i: number) => {
   const result = renderTemplate(frozen, inputsAt(i), { validator, surfaceId: "proof", revision: 0 });
   assert(result.ok, `agent-home template: ${JSON.stringify(!result.ok && result.errors)}`);

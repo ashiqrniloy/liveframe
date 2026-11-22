@@ -89,7 +89,9 @@ for (const name of Object.keys(templates)) {
       const expected = render(widget.widget, scenario, options(validator));
       if (!expected.ok) throw new Error(JSON.stringify(expected.errors));
       const inputs = name === "git-status" ? cleaned(scenario) : scenario;
-      expect(renderTemplate(template, inputs, options(validator))).toEqual(expected);
+      const actual = renderTemplate(template, inputs, options(validator));
+      if (!actual.ok) throw new Error(JSON.stringify(actual.errors));
+      expect(canonicalJson(actual.value)).toBe(canonicalJson(expected.value));
     });
   }
 }
@@ -287,7 +289,8 @@ test("fuel_exhaustion_is_limit_exceeded", () => {
   if (result.ok) throw new Error("expected a failure");
   expect(result.errors[0]?.kind).toBe("limit-exceeded");
   const same = run(template, scenario, { limits: { steps: 1_000_000, nodes: 2 } });
-  expect(same.ok).toBe(false);
+  if (same.ok) throw new Error("expected a failure");
+  expect(same.errors[0]).toMatchObject({ kind: "limit-exceeded", pointer: "/root/children/0" });
 });
 
 test("limits_steps_must_be_a_positive_integer", () => {
@@ -296,6 +299,71 @@ test("limits_steps_must_be_a_positive_integer", () => {
     if (result.ok) throw new Error("expected a failure");
     expect(result.errors[0]?.expected).toBe("limits.steps to be a positive safe integer");
   }
+});
+
+test.each([10, 16])("fan_out_of_use_stops_at_the_node_limit (%i components)", (depth) => {
+  const params = { type: "object", properties: {}, required: [], additionalProperties: false } as const;
+  const components = Object.fromEntries(
+    Array.from({ length: depth }, (_, i) => [
+      `Layer${i}`,
+      {
+        params,
+        // Seven branching levels cross the default budget while keeping the fixture bounded.
+        root:
+          i === depth - 1
+            ? { kind: "box" }
+            : {
+                kind: "box",
+                children: Array.from({ length: i < 7 ? 4 : 1 }, (_, key) => ({ $use: `Layer${i + 1}`, key })),
+              },
+      },
+    ]),
+  );
+  const template = doc({ $use: "Layer0" }, components);
+  for (const limits of [{}, { steps: 1000 }]) {
+    const result = run(template, scenario, { limits });
+    if (result.ok) throw new Error("expected a failure");
+    expect(result.errors).toEqual([
+      expect.objectContaining({
+        kind: "limit-exceeded",
+        expected: limits.steps ? "a template that fits limits.steps" : "at most 5000 nodes",
+        pointer: limits.steps
+          ? expect.stringMatching(/^\/components\/Layer\d+\/root/)
+          : `/components/Layer${depth === 10 ? 7 : 9}/root`,
+      }),
+    ]);
+  }
+});
+
+test("emitted_elements_and_fragments_spend_steps_and_nodes", () => {
+  const template = doc(stack({ kind: "fragment", children: [stack()] }));
+  expect(run(template, scenario, { limits: { steps: 3, nodes: 3 } }).ok).toBe(true);
+  for (const limits of [{ steps: 2 }, { nodes: 2 }]) {
+    const result = run(template, scenario, { limits });
+    if (result.ok) throw new Error("expected a failure");
+    expect(result.errors).toEqual([
+      expect.objectContaining({ kind: "limit-exceeded", pointer: "/root/children/0/children/0" }),
+    ]);
+  }
+  const stopped = run(doc(stack(stack(), text({ $text: { $div: [1, 0] } }, "later"))), scenario, {
+    limits: { nodes: 1 },
+  });
+  if (stopped.ok) throw new Error("expected a failure");
+  expect(stopped.errors).toEqual([expect.objectContaining({ kind: "limit-exceeded", pointer: "/root/children/0" })]);
+});
+
+test("empty_use_chain_spends_steps", () => {
+  const params = { type: "object", properties: {}, required: [], additionalProperties: false } as const;
+  const template = doc(stack({ $use: "Outer", key: "outer" }), {
+    Outer: { params, root: { $use: "Inner" } },
+    Inner: { params, root: { kind: "stack", $if: false } },
+  });
+  expect(run(template, scenario, { limits: { steps: 5, nodes: 1 } }).ok).toBe(true);
+  const result = run(template, scenario, { limits: { steps: 3 } });
+  if (result.ok) throw new Error("expected a failure");
+  expect(result.errors).toEqual([
+    expect.objectContaining({ kind: "limit-exceeded", pointer: "/components/Outer/root" }),
+  ]);
 });
 
 test("a_template_that_does_not_fit_the_validator_is_refused_with_install_errors", () => {

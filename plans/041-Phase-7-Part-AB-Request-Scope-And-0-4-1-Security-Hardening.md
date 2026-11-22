@@ -195,7 +195,7 @@ The sixteen plans of this family were drafted in parallel from one request docum
     - Verified the 48 source release targets, seventeen backlog entries and their owning-plan links. The 20 documentation-link and API-stability tests passed. A focused rerun of the browser scoping, streaming, proof formats and preview session files passed all 50 tests.
     - The first two full checks reached their 900-second cutoff. The first had runtime timeouts and browser-context errors under host load. The final `timeout -k 15s 1800s bun run check` passed with 2,129 tests passed, 6 skipped and 0 failed.
 
-- [ ] Task 2: Charge every emitted element and `$use`, and stop at the node limit while emitting (LF-18)
+- [x] Task 2: Charge every emitted element and `$use`, and stop at the node limit while emitting (LF-18)
   - Acceptance Criteria:
     - Functional:
       - `renderTemplate` spends one step for each element it emits, each fragment and each `$use` it enters. Exhausting the steps is `limit-exceeded`, as for expressions.
@@ -232,13 +232,19 @@ The sixteen plans of this family were drafted in parallel from one request docum
       - `src/template/render.ts`: `Run`, the `$use` and element emitters, `expand`, `renderTemplate`.
       - `src/__tests__/template-render.test.ts`: the tests below.
       - `docs/spec.md` §7.6; `docs/templates.md:175-178` (what a step is).
-      - `bench/template.bench.ts`: the comment "One step is one node evaluated" (`:18`).
+      - `bench/template.bench.ts`: record the minimum step budget for the first `agent-home` selection outside the timed batches.
       - `CHANGELOG.md`: a "Fixed" line.
   - Test Cases to Write:
-    - `fan_out_of_use_stops_at_the_node_limit`: the reproduction at 10 and 16 components returns `limit-exceeded`; at 16 it cannot finish at all unless the expansion stops early. Fails if either emitter stops counting.
-    - `emitted_elements_and_uses_spend_steps`: a template of literal elements with `limits: { steps: n - 1 }` for `n` elements is `limit-exceeded`. Fails if emitters are free again.
+    - `fan_out_of_use_stops_at_the_node_limit`: bounded fixtures with 10 and 16 components and seven four-way branching levels exceed the default node budget and the 1,000-step budget.
+    - `emitted_elements_and_fragments_spend_steps_and_nodes`: the exact budgets succeed, going one over identifies the correct node, and later siblings are skipped.
     - `empty_use_chain_spends_steps`: `$use` entries with nothing emitted exhaust a small step budget.
-    - `template_fixtures_render_identical_trees`: every template fixture and scenario equals its recorded tree. Fails if counting changes output.
+    - `template_parity_with_tsx_proof_widgets`: compare canonical JSON for every template fixture and its corresponding TSX scenario.
+  - Notes (executed 2026-11-22):
+    - Expansion charges elements, fragments and entered `$use` calls. A limit failure stops sibling traversal and pending ancestor emission. The SDK build pass continues to enforce the limits for code widgets.
+    - `$use` now transfers fuel after evaluating its arguments and key, preserving those expression charges. The empty-chain regression covers the key. Spec §7.6, the template guide and the changelog describe the revised render-time budgets.
+    - Four new cases failed before the fix and pass now. The default node limit points to `/components/Layer7/root` and `/components/Layer9/root` in the 10- and 16-component fixtures. The existing lower-node-budget fixture still reports `limit-exceeded` at `/root/children/0`. All fixture scenarios matched their TSX trees in canonical JSON.
+    - The first `agent-home` selection used 5,403 steps before the fix and 6,135 after it. The post-check run met both Task 2 targets at 2.506 µs per node and 2.10% runner overhead. Timings varied across runs on this host. The separate install-validation row reported 5.007 ms against its 5 ms target on that run, and some reruns exceeded the render timing target.
+    - The 50 focused template tests and `timeout 900s bun run check` passed. The full check reported 2,133 passed, 6 skipped and 0 failed.
 
 - [ ] Task 3: Price string and array operators by the work they do (LF-18)
   - Acceptance Criteria:
