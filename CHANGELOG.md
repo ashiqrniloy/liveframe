@@ -12,6 +12,10 @@ Fixed:
 
 - **Install validation rejects oversized unconditional template expansions (LF-18).** A template whose minimum expansion exceeds the install node limit returns `limit-exceeded` at the element, fragment or component use that crosses the limit.
 
+Added:
+
+- **Template budget conformance cases (LF-18).** The corpus covers static fan-out, the component depth boundary, and a template that installs successfully but exhausts the render step budget during a string slice. See the [corpus guide](docs/conformance.md#language-neutral-corpus).
+
 ## 0.4.0 — 2026-11-22
 
 0.4.0 includes the fixes originally prepared for the unpublished 0.3.1 patch. The release adds interaction, rendering and agent authoring capabilities, including the first release of `@arnilo/liveframe-a2ui`. See the [migration guide](docs/migration-0.4.md), [adopter notes](docs/adopters-0.4.md) and [compatibility policy](docs/compatibility.md#040).

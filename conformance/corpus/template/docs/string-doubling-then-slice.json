@@ -1,0 +1,312 @@
+{
+  "format": "liveframe-template/1",
+  "root": {
+    "kind": "box",
+    "children": [
+      {
+        "kind": "separator",
+        "$if": {
+          "$let": {
+            "bind": [
+              {
+                "as": "s0",
+                "value": "a"
+              },
+              {
+                "as": "s1",
+                "value": {
+                  "$concat": [
+                    {
+                      "$path": "s0"
+                    },
+                    {
+                      "$path": "s0"
+                    }
+                  ]
+                }
+              },
+              {
+                "as": "s2",
+                "value": {
+                  "$concat": [
+                    {
+                      "$path": "s1"
+                    },
+                    {
+                      "$path": "s1"
+                    }
+                  ]
+                }
+              },
+              {
+                "as": "s3",
+                "value": {
+                  "$concat": [
+                    {
+                      "$path": "s2"
+                    },
+                    {
+                      "$path": "s2"
+                    }
+                  ]
+                }
+              },
+              {
+                "as": "s4",
+                "value": {
+                  "$concat": [
+                    {
+                      "$path": "s3"
+                    },
+                    {
+                      "$path": "s3"
+                    }
+                  ]
+                }
+              },
+              {
+                "as": "s5",
+                "value": {
+                  "$concat": [
+                    {
+                      "$path": "s4"
+                    },
+                    {
+                      "$path": "s4"
+                    }
+                  ]
+                }
+              },
+              {
+                "as": "s6",
+                "value": {
+                  "$concat": [
+                    {
+                      "$path": "s5"
+                    },
+                    {
+                      "$path": "s5"
+                    }
+                  ]
+                }
+              },
+              {
+                "as": "s7",
+                "value": {
+                  "$concat": [
+                    {
+                      "$path": "s6"
+                    },
+                    {
+                      "$path": "s6"
+                    }
+                  ]
+                }
+              },
+              {
+                "as": "s8",
+                "value": {
+                  "$concat": [
+                    {
+                      "$path": "s7"
+                    },
+                    {
+                      "$path": "s7"
+                    }
+                  ]
+                }
+              },
+              {
+                "as": "s9",
+                "value": {
+                  "$concat": [
+                    {
+                      "$path": "s8"
+                    },
+                    {
+                      "$path": "s8"
+                    }
+                  ]
+                }
+              },
+              {
+                "as": "s10",
+                "value": {
+                  "$concat": [
+                    {
+                      "$path": "s9"
+                    },
+                    {
+                      "$path": "s9"
+                    }
+                  ]
+                }
+              },
+              {
+                "as": "s11",
+                "value": {
+                  "$concat": [
+                    {
+                      "$path": "s10"
+                    },
+                    {
+                      "$path": "s10"
+                    }
+                  ]
+                }
+              },
+              {
+                "as": "s12",
+                "value": {
+                  "$concat": [
+                    {
+                      "$path": "s11"
+                    },
+                    {
+                      "$path": "s11"
+                    }
+                  ]
+                }
+              },
+              {
+                "as": "s13",
+                "value": {
+                  "$concat": [
+                    {
+                      "$path": "s12"
+                    },
+                    {
+                      "$path": "s12"
+                    }
+                  ]
+                }
+              },
+              {
+                "as": "s14",
+                "value": {
+                  "$concat": [
+                    {
+                      "$path": "s13"
+                    },
+                    {
+                      "$path": "s13"
+                    }
+                  ]
+                }
+              },
+              {
+                "as": "s15",
+                "value": {
+                  "$concat": [
+                    {
+                      "$path": "s14"
+                    },
+                    {
+                      "$path": "s14"
+                    }
+                  ]
+                }
+              },
+              {
+                "as": "s16",
+                "value": {
+                  "$concat": [
+                    {
+                      "$path": "s15"
+                    },
+                    {
+                      "$path": "s15"
+                    }
+                  ]
+                }
+              },
+              {
+                "as": "s17",
+                "value": {
+                  "$concat": [
+                    {
+                      "$path": "s16"
+                    },
+                    {
+                      "$path": "s16"
+                    }
+                  ]
+                }
+              },
+              {
+                "as": "s18",
+                "value": {
+                  "$concat": [
+                    {
+                      "$path": "s17"
+                    },
+                    {
+                      "$path": "s17"
+                    }
+                  ]
+                }
+              },
+              {
+                "as": "s19",
+                "value": {
+                  "$concat": [
+                    {
+                      "$path": "s18"
+                    },
+                    {
+                      "$path": "s18"
+                    }
+                  ]
+                }
+              },
+              {
+                "as": "s20",
+                "value": {
+                  "$concat": [
+                    {
+                      "$path": "s19"
+                    },
+                    {
+                      "$path": "s19"
+                    }
+                  ]
+                }
+              }
+            ],
+            "in": {
+              "$gt": [
+                {
+                  "$len": {
+                    "$map": {
+                      "in": [
+                        0,
+                        1,
+                        2,
+                        3,
+                        4,
+                        5,
+                        6,
+                        7
+                      ],
+                      "as": "i",
+                      "value": {
+                        "$slice": [
+                          {
+                            "$path": "s20"
+                          },
+                          0,
+                          1048576
+                        ]
+                      }
+                    }
+                  }
+                },
+                0
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+}

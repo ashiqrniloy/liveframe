@@ -22,5 +22,69 @@
     "reason": "Accepts optional install limits.nodes for verifying and loading template packages (LF-18).",
     "hostAction": "Pass the matching node budget when verifying or loading packages above the 5,000-node default.",
     "task": "041 T4"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/expansion-over-node-limit.json",
+    "change": "added",
+    "reason": "Adds template budget coverage for LF-18.",
+    "hostAction": "None.",
+    "task": "041 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/docs/expansion-over-node-limit.json",
+    "change": "added",
+    "reason": "Adds template budget coverage for LF-18.",
+    "hostAction": "None.",
+    "task": "041 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/use-chain-at-depth-limit.json",
+    "change": "added",
+    "reason": "Adds template budget coverage for LF-18.",
+    "hostAction": "None.",
+    "task": "041 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/docs/use-chain-at-depth-limit.json",
+    "change": "added",
+    "reason": "Adds template budget coverage for LF-18.",
+    "hostAction": "None.",
+    "task": "041 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/use-chain-over-depth-limit.json",
+    "change": "added",
+    "reason": "Adds template budget coverage for LF-18.",
+    "hostAction": "None.",
+    "task": "041 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/docs/use-chain-over-depth-limit.json",
+    "change": "added",
+    "reason": "Adds template budget coverage for LF-18.",
+    "hostAction": "None.",
+    "task": "041 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/string-doubling-then-slice.json",
+    "change": "added",
+    "reason": "Adds template budget coverage for LF-18.",
+    "hostAction": "None.",
+    "task": "041 T5"
+  },
+  {
+    "subpath": "./conformance/corpus/*",
+    "name": "conformance/corpus/template/docs/string-doubling-then-slice.json",
+    "change": "added",
+    "reason": "Adds template budget coverage for LF-18.",
+    "hostAction": "None.",
+    "task": "041 T5"
   }
 ]

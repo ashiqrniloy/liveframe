@@ -1,0 +1,302 @@
+{
+  "format": "liveframe-template/1",
+  "components": {
+    "C0": {
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "root": {
+        "kind": "box",
+        "children": [
+          {
+            "$use": "C1",
+            "key": 0
+          }
+        ]
+      }
+    },
+    "C1": {
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "root": {
+        "kind": "box",
+        "children": [
+          {
+            "$use": "C2",
+            "key": 0
+          }
+        ]
+      }
+    },
+    "C2": {
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "root": {
+        "kind": "box",
+        "children": [
+          {
+            "$use": "C3",
+            "key": 0
+          }
+        ]
+      }
+    },
+    "C3": {
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "root": {
+        "kind": "box",
+        "children": [
+          {
+            "$use": "C4",
+            "key": 0
+          }
+        ]
+      }
+    },
+    "C4": {
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "root": {
+        "kind": "box",
+        "children": [
+          {
+            "$use": "C5",
+            "key": 0
+          }
+        ]
+      }
+    },
+    "C5": {
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "root": {
+        "kind": "box",
+        "children": [
+          {
+            "$use": "C6",
+            "key": 0
+          }
+        ]
+      }
+    },
+    "C6": {
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "root": {
+        "kind": "box",
+        "children": [
+          {
+            "$use": "C7",
+            "key": 0
+          }
+        ]
+      }
+    },
+    "C7": {
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "root": {
+        "kind": "box",
+        "children": [
+          {
+            "$use": "C8",
+            "key": 0
+          }
+        ]
+      }
+    },
+    "C8": {
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "root": {
+        "kind": "box",
+        "children": [
+          {
+            "$use": "C9",
+            "key": 0
+          }
+        ]
+      }
+    },
+    "C9": {
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "root": {
+        "kind": "box",
+        "children": [
+          {
+            "$use": "C10",
+            "key": 0
+          }
+        ]
+      }
+    },
+    "C10": {
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "root": {
+        "kind": "box",
+        "children": [
+          {
+            "$use": "C11",
+            "key": 0
+          }
+        ]
+      }
+    },
+    "C11": {
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "root": {
+        "kind": "box",
+        "children": [
+          {
+            "$use": "C12",
+            "key": 0
+          }
+        ]
+      }
+    },
+    "C12": {
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "root": {
+        "kind": "box",
+        "children": [
+          {
+            "$use": "C13",
+            "key": 0
+          }
+        ]
+      }
+    },
+    "C13": {
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "root": {
+        "kind": "box",
+        "children": [
+          {
+            "$use": "C14",
+            "key": 0
+          }
+        ]
+      }
+    },
+    "C14": {
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "root": {
+        "kind": "box",
+        "children": [
+          {
+            "$use": "C15",
+            "key": 0
+          }
+        ]
+      }
+    },
+    "C15": {
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "root": {
+        "kind": "box",
+        "children": [
+          {
+            "$use": "C16",
+            "key": 0
+          }
+        ]
+      }
+    },
+    "C16": {
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "root": {
+        "kind": "box",
+        "children": [
+          {
+            "kind": "separator",
+            "key": 0
+          }
+        ]
+      }
+    }
+  },
+  "root": {
+    "kind": "box",
+    "children": [
+      {
+        "$use": "C0"
+      }
+    ]
+  }
+}

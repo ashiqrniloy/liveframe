@@ -350,13 +350,13 @@ The sixteen plans of this family were drafted in parallel from one request docum
     - The install benchmark now takes 200 warmup calls, matching the render benchmark and moving runtime warmup outside the timed samples. The final template benchmark measured 2.034 ms CPU against the 5 ms install target and met its other thresholds.
     - All 224 focused tests passed. `bun run check` passed with 2,151 tests passed, 6 skipped and 0 failed.
 
-- [ ] Task 5: Add hostile-template corpus cases and gate the worst render the default budget allows (LF-18)
+- [x] Task 5: Add hostile-template corpus cases and gate the worst render the default budget allows (LF-18)
   - Acceptance Criteria:
     - Functional:
       - `conformance/corpus/template/` gains: a static fan-out (rejected at install by Task 4), a `$use` chain at the depth limit (valid) and one past it (`limit-exceeded`), and string doubling followed by `$slice`.
-      - Finding to settle first: template corpus cases are install-time only (`src/__tests__/corpus.test.ts:271` calls `validateTemplate`). String doubling followed by `$slice` is valid at install and fails at render. The proposal is an optional `render` member on a template case (inputs, limits and the expected errors) that the corpus test runs through `renderTemplate`; `docs/conformance.md` describes it. If the owner wants no corpus shape addition in a patch, that case is a unit test only, and the record says so.
-      - `bench/template.bench.ts` gates the request's reproduction at 10 and 16 components: `limit-exceeded` in under 5 ms with under 1 MiB of resident growth, with default limits.
-      - The bench records and gates the worst render the default budget allows across the hostile set (fan-out, nested `$map`s over 1,000 items, the `$slice` case). The gate is the measured value with stated headroom; the proposal is 50 ms.
+      - The string case installs successfully and fails at render. Its optional `render` member supplies widget inputs, optional limits and the expected outcome. The corpus test runs it through `renderTemplate` after install validation, as documented in `docs/conformance.md`.
+      - `bench/template.bench.ts` gates the request's reproduction at 10 and 16 components: `limit-exceeded` with default limits, a warm median under 5 ms and median resident growth under 1 MiB per call. The maximum sampled resident growth is also recorded.
+      - The bench records the slowest warm median across the hostile set (fan-out, nested `$map`s over 1,000 items, the `$slice` case) under the default budget and gates it at 50 ms. The evidence records the measured headroom.
     - Performance: this task is the gate. `plans/evidence/041-template-cost.md` holds the before and after tables in the request's format.
     - Code Quality: the hostile templates are built by one helper shared by the test and the bench; the reproduction script from the request is kept as that helper's source.
     - Security: the gate keeps the claim plan 042 writes into `docs/security.md`: a bound on one render's cost under the default budget.
@@ -372,21 +372,25 @@ The sixteen plans of this family were drafted in parallel from one request docum
       - Assert the 5 ms and 1 MiB figures in `bun run check` — rejected: plan 033 moved wall-clock assertions out of the check.
       - Keep the hostile cases as unit tests only — rejected for the install-time cases: ports of the validator need them, which is what the corpus is for.
     - Chosen Approach:
-      - Corpus cases for what an install rejects, a `render` member or a unit test for the render-time case, and bench gates for time and memory.
+      - Corpus cases for the install boundaries and an optional `render` member for the string case. Deterministic tests assert budget failures, and the bench gates time and memory.
     - API Notes and Examples:
       ```bash
       timeout 300 bun --conditions liveframe:source bench/template.bench.ts
       ```
     - Files to Create/Edit:
-      - `conformance/corpus/template/*.json` and `docs/*.json`: the new cases.
-      - `src/__tests__/corpus.test.ts`: the `render` member (tentative — see the finding).
+      - `conformance/corpus/template/*.json` and `conformance/corpus/template/docs/*.json`: the new cases and their documents.
+      - `src/__tests__/corpus.test.ts`: run the optional render expectation and assert which default budget each workload exhausts.
       - `src/__tests__/fixtures/hostile-templates.ts`: the shared builder.
       - `bench/template.bench.ts`: the gates.
       - `scripts/release/api/register-0.4.1.json`: `added` entries for the corpus files.
-      - `docs/conformance.md` (tentative); `plans/evidence/041-template-cost.md`.
+      - `docs/conformance.md`, `CHANGELOG.md` and `plans/evidence/041-template-cost.md`.
   - Test Cases to Write:
     - Corpus cases `expansion-over-node-limit`, `use-chain-at-depth-limit`, `use-chain-over-depth-limit`, `string-doubling-then-slice`: each fails if its bound is removed.
-    - `hostile_template_set_is_bounded`: every template of the shared set returns `limit-exceeded` or a tree under the limits. Fails if a new unbounded path appears.
+    - `hostile_template_set_is_bounded`: the shared render workloads return `limit-exceeded` for the intended node or step budget.
+  - Notes (executed 2026-11-23):
+    - Added four corpus cases and registered their eight new files as additive. The string case uses the optional render expectation to pin the `$slice` error pointer after a successful install. The shared fixtures drive the deterministic render test and the bench.
+    - With default limits, the 10- and 16-component fan-out cases took 1.295 ms and 0.799 ms respectively, with median resident growth of 0.375 MiB and 0.000 MiB. The slowest workload was nested maps at 5.157 ms against the 50 ms gate. Plan 042 can cite the [measurement and its scope](evidence/041-template-cost.md) for LF-65.
+    - The 317 focused tests, the template benchmark with gates enabled and `bun run check` passed. The full check reported 2,152 passed, 6 skipped and 0 failed.
 
 - [ ] Task 6: Keep text a widget throws out of host errors and events (LF-21)
   - Acceptance Criteria:

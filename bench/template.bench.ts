@@ -1,5 +1,9 @@
 import { strict as assert } from "node:assert";
 import { arr, compileValidator, int, obj, str, validateCapabilities, validateCatalog } from "@arnilo/liveframe";
+import corpusCatalog from "../conformance/corpus/common/proof-catalog.json" with { type: "json" };
+import corpusCapabilities from "../conformance/corpus/common/template-capabilities.json" with { type: "json" };
+import corpusManifest from "../conformance/corpus/common/template-manifest.json" with { type: "json" };
+import { hostileTemplateInputs, hostileTemplates } from "../src/__tests__/fixtures/hostile-templates.ts";
 import catalog from "../src/__tests__/fixtures/proof/catalog.json" with { type: "json" };
 import { countNodes } from "../src/__tests__/fixtures/render-workloads.ts";
 import { agentHomeTemplate } from "../src/__tests__/fixtures/templates/agent-home.ts";
@@ -251,4 +255,51 @@ budget(overhead <= 0.05, `templateRunner adds ${(overhead * 100).toFixed(2)}% ov
   metric("validateTemplate.agentHome.cpuMs", validateCpuMs);
   console.log(`validateTemplate (agent-home, warm): ${validateCpuMs.toFixed(3)} ms CPU (<= 5 ms)`);
   budget(validateCpuMs <= 5, `validateTemplate agent-home CPU time ${validateCpuMs.toFixed(3)} ms exceeds 5 ms`);
+}
+
+// Plan 041 T5: run the same inputs and templates as the corpus and bounded-render test.
+{
+  const options = {
+    validator: compileValidator({
+      catalog: corpusCatalog as never,
+      capabilities: corpusCapabilities as never,
+      manifest: corpusManifest as never,
+    }),
+    surfaceId: "corpus",
+    revision: 1,
+  };
+  const mib = 1024 ** 2;
+  let worstMs = 0;
+  for (const [name, doc] of Object.entries(hostileTemplates)) {
+    const fanOut = name.startsWith("fanOut");
+    const render = () => renderTemplate(doc, hostileTemplateInputs, options);
+    const expected = fanOut ? "at most 5000 nodes" : "a template that fits limits.steps";
+    for (let i = 0; i < 30; i++) render();
+    const wallMs: number[] = [];
+    const rssGrowth: number[] = [];
+    for (let i = 0; i < 9; i++) {
+      const before = process.memoryUsage.rss();
+      const start = performance.now();
+      const result = render();
+      wallMs.push(performance.now() - start);
+      rssGrowth.push(Math.max(0, process.memoryUsage.rss() - before));
+      assert(!result.ok && result.errors.length === 1, `${name}: expected one limit error`);
+      assert.equal(result.errors[0]?.kind, "limit-exceeded", name);
+      assert.equal(result.errors[0]?.expected, expected, name);
+    }
+    const ms = middle(wallMs);
+    const rssBytes = middle(rssGrowth);
+    worstMs = Math.max(worstMs, ms);
+    metric(`template.hostile.${name}.wallMs`, ms);
+    metric(`template.hostile.${name}.rssGrowthBytes`, rssBytes);
+    metric(`template.hostile.${name}.maxRssGrowthBytes`, Math.max(...rssGrowth));
+    console.log(`template hostile ${name}: median ${ms.toFixed(3)} ms, ${(rssBytes / mib).toFixed(3)} MiB RSS growth`);
+    if (fanOut) {
+      budget(ms < 5, `${name}: ${ms.toFixed(3)} ms exceeds the 5 ms budget`);
+      budget(rssBytes < mib, `${name}: ${rssBytes} bytes of RSS growth exceeds the 1 MiB budget`);
+    }
+  }
+  metric("template.hostile.worstWallMs", worstMs);
+  console.log(`template hostile worst median: ${worstMs.toFixed(3)} ms (budget 50 ms)`);
+  budget(worstMs <= 50, `template hostile worst: ${worstMs.toFixed(3)} ms exceeds the 50 ms budget`);
 }

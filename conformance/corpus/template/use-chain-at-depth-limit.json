@@ -1,0 +1,12 @@
+{
+  "inputs": {
+    "doc": "docs/use-chain-at-depth-limit.json",
+    "catalog": "../common/proof-catalog.json",
+    "capabilities": "../common/template-capabilities.json",
+    "manifest": "../common/template-manifest.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": true
+  }
+}

@@ -16,7 +16,9 @@ import {
 } from "../index.ts";
 import { verifyPackage } from "../pack/verify.ts";
 import { renderElements } from "../sdk/elements.ts";
-import { validateTemplate } from "../template/index.ts";
+import type { WidgetInputs } from "../sdk/types.ts";
+import { renderTemplate, type TemplateLimits, validateTemplate } from "../template/index.ts";
+import { componentExpansion, hostileTemplateInputs, hostileTemplates } from "./fixtures/hostile-templates.ts";
 
 const FORMATS = [
   "catalog",
@@ -103,6 +105,7 @@ const SUPPORT_ROLES = new Set(["base", "catalog", "capabilities", "manifest", "t
 const corpusRoot = fileURLToPath(new URL("../../conformance/corpus/", import.meta.url));
 
 type ExpectedError = { readonly kind: LiveframeError["kind"]; readonly pointer: string };
+type Expectation = { readonly ok: true } | { readonly ok: false; readonly errors: readonly ExpectedError[] };
 type CorpusCase = {
   readonly label: string;
   readonly format: Format;
@@ -111,7 +114,12 @@ type CorpusCase = {
   readonly doc: unknown;
   readonly support: Readonly<Record<string, unknown>>;
   readonly options: Readonly<{ maxErrors?: number; limits?: { nodes?: number; depth?: number; bytes?: number } }>;
-  readonly expect: { readonly ok: true } | { readonly ok: false; readonly errors: readonly ExpectedError[] };
+  readonly expect: Expectation;
+  readonly render?: {
+    readonly inputs: WidgetInputs;
+    readonly limits?: TemplateLimits;
+    readonly expect: Expectation;
+  };
 };
 
 function fail(label: string, message: string): never {
@@ -139,6 +147,18 @@ async function readJson(path: string): Promise<unknown> {
   }
 }
 
+function parseExpectation(label: string, value: unknown): Expectation {
+  if (!record(value) || typeof value.ok !== "boolean") fail(label, "expect must carry an ok boolean");
+  if (value.ok) return { ok: true };
+  if (!Array.isArray(value.errors)) fail(label, "a failing case lists its errors");
+  const errors = value.errors.map((entry) => {
+    if (!record(entry) || typeof entry.kind !== "string" || typeof entry.pointer !== "string")
+      fail(label, "each expected error needs kind and pointer strings");
+    return { kind: entry.kind as LiveframeError["kind"], pointer: entry.pointer };
+  });
+  return { ok: false, errors };
+}
+
 function parseCase(file: string, raw: unknown): CorpusCase {
   if (!record(raw) || !record(raw.inputs)) fail(file, "expected { inputs, options, expect }");
   const format = file.slice(corpusRoot.length).split("/")[0] as Format;
@@ -155,17 +175,21 @@ function parseCase(file: string, raw: unknown): CorpusCase {
     if (key !== "maxErrors" && key !== "limits") fail(file, `unknown option ${key}`);
     if (format !== "ui-tree" && format !== "elements") fail(file, `${key} is only valid on ui-tree/elements`);
   }
-  if (!record(raw.expect) || typeof raw.expect.ok !== "boolean") fail(file, "expect must carry an ok boolean");
-  let expected: CorpusCase["expect"];
-  if (raw.expect.ok) expected = { ok: true };
-  else {
-    if (!Array.isArray(raw.expect.errors)) fail(file, "a failing case lists its errors");
-    const errors = raw.expect.errors.map((entry) => {
-      if (!record(entry) || typeof entry.kind !== "string" || typeof entry.pointer !== "string")
-        fail(file, "each expected error needs kind and pointer strings");
-      return { kind: entry.kind as LiveframeError["kind"], pointer: entry.pointer };
-    });
-    expected = { ok: false, errors };
+  const expect = parseExpectation(file, raw.expect);
+  let render: CorpusCase["render"];
+  if (raw.render !== undefined) {
+    if (format !== "template" || !expect.ok) fail(file, "render requires a successful template install expectation");
+    if (!record(raw.render) || !record(raw.render.inputs)) fail(file, "render must carry an inputs object");
+    const { params, state, data, context } = raw.render.inputs;
+    if ([params, state, data, context].includes(undefined))
+      fail(file, "render inputs need params, state, data and context");
+    const { limits } = raw.render;
+    if (limits !== undefined && !record(limits)) fail(file, "render limits must be an object");
+    render = {
+      inputs: raw.render.inputs as WidgetInputs,
+      ...(limits && { limits }),
+      expect: parseExpectation(`${file} render`, raw.render.expect),
+    };
   }
   return {
     label: relative(corpusRoot, file),
@@ -175,7 +199,8 @@ function parseCase(file: string, raw: unknown): CorpusCase {
     doc: undefined,
     support: {},
     options: options as CorpusCase["options"],
-    expect: expected,
+    expect,
+    ...(render && { render }),
   };
 }
 
@@ -268,11 +293,24 @@ function runner(corpusCase: CorpusCase): Result<unknown> {
         capabilities: capabilities.value,
       });
       if (!manifest.ok) return manifest;
-      return validateTemplate(corpusCase.doc, {
+      const context = {
         catalog: catalog.value,
         capabilities: capabilities.value,
         manifest: manifest.value,
-      });
+      };
+      const installed = validateTemplate(corpusCase.doc, context);
+      if (installed.ok && corpusCase.render) {
+        const { inputs, limits, expect } = corpusCase.render;
+        const rendered = renderTemplate(installed.value, inputs, {
+          validator: compileValidator(context),
+          surfaceId: "corpus",
+          revision: 1,
+          maxErrors: 20,
+          ...(limits && { limits }),
+        });
+        checkResult(`${corpusCase.label} render`, rendered, expect);
+      }
+      return installed;
     }
     case "elements": {
       const validator = compileValidator({
@@ -294,30 +332,54 @@ function pair(error: ExpectedError): string {
   return `${error.kind}\u0000${error.pointer}`;
 }
 
-function checkCase(corpusCase: CorpusCase): void {
-  const result = runner(corpusCase);
-  if (corpusCase.expect.ok) {
+function checkResult(label: string, result: Result<unknown>, expectation: Expectation): void {
+  if (expectation.ok) {
     if (!result.ok)
-      fail(
-        corpusCase.label,
-        `expected ok, got ${result.errors.map((error) => `${error.kind} ${error.pointer}`).join("; ")}`,
-      );
+      fail(label, `expected ok, got ${result.errors.map((error) => `${error.kind} ${error.pointer}`).join("; ")}`);
     return;
   }
-  if (result.ok) fail(corpusCase.label, "expected failure, got ok");
-  if (result.errors.length > 20) fail(corpusCase.label, `returned ${result.errors.length} errors; the bound is 20`);
+  if (result.ok) fail(label, "expected failure, got ok");
+  if (result.errors.length > 20) fail(label, `returned ${result.errors.length} errors; the bound is 20`);
   const actual = new Set(result.errors.map(pair));
-  const expected = new Set(corpusCase.expect.errors.map(pair));
+  const expected = new Set(expectation.errors.map(pair));
   if (actual.size !== expected.size || [...expected].some((entry) => !actual.has(entry)))
-    fail(
-      corpusCase.label,
-      `expected ${[...expected].join(" | ") || "no errors"}, got ${[...actual].join(" | ") || "no errors"}`,
-    );
+    fail(label, `expected ${[...expected].join(" | ") || "no errors"}, got ${[...actual].join(" | ") || "no errors"}`);
 }
 
 test("corpus_cases_match_validators", () => {
   expect(new Set(cases.map((corpusCase) => corpusCase.format))).toEqual(new Set(FORMATS));
-  for (const corpusCase of cases) checkCase(corpusCase);
+  for (const corpusCase of cases) checkResult(corpusCase.label, runner(corpusCase), corpusCase.expect);
+});
+
+test("hostile_template_set_is_bounded", () => {
+  const fixtures = {
+    "expansion-over-node-limit": hostileTemplates.fanOut16,
+    "use-chain-at-depth-limit": componentExpansion(16, 1),
+    "use-chain-over-depth-limit": componentExpansion(17, 1),
+    "string-doubling-then-slice": hostileTemplates.stringDoublingThenSlice,
+  };
+  for (const [name, doc] of Object.entries(fixtures)) {
+    expect(cases.find((entry) => entry.label === `template/${name}.json`)?.doc).toEqual(doc);
+  }
+  const stringCase = cases.find((entry) => entry.label === "template/string-doubling-then-slice.json");
+  if (!stringCase) fail("hostile template fixtures", "missing string-doubling-then-slice");
+  expect(stringCase.render?.inputs).toEqual(hostileTemplateInputs);
+  const { catalog, capabilities, manifest } = stringCase.support;
+  const validator = compileValidator({
+    catalog: catalog as never,
+    capabilities: capabilities as never,
+    manifest: manifest as never,
+  });
+  for (const [name, doc] of Object.entries(hostileTemplates)) {
+    const result = renderTemplate(doc, hostileTemplateInputs, { validator, surfaceId: "corpus", revision: 1 });
+    if (result.ok) fail(name, "expected to exhaust a default render budget");
+    expect(result.errors).toEqual([
+      expect.objectContaining({
+        kind: "limit-exceeded",
+        expected: name.startsWith("fanOut") ? "at most 5000 nodes" : "a template that fits limits.steps",
+      }),
+    ]);
+  }
 });
 
 test("corpus_covers_every_validator_error_kind", async () => {

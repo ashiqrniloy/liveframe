@@ -1,0 +1,39 @@
+{
+  "inputs": {
+    "doc": "docs/string-doubling-then-slice.json",
+    "catalog": "../common/proof-catalog.json",
+    "capabilities": "../common/template-capabilities.json",
+    "manifest": "../common/template-manifest.json"
+  },
+  "options": {},
+  "expect": {
+    "ok": true
+  },
+  "render": {
+    "inputs": {
+      "params": {
+        "canEdit": false
+      },
+      "context": {
+        "size": "small"
+      },
+      "state": {
+        "filter": "all",
+        "selected": "",
+        "title": ""
+      },
+      "data": {
+        "rows": []
+      }
+    },
+    "expect": {
+      "ok": false,
+      "errors": [
+        {
+          "kind": "limit-exceeded",
+          "pointer": "/root/children/0/$if/$let/in/$gt/0/$len/$map/value/$slice"
+        }
+      ]
+    }
+  }
+}
