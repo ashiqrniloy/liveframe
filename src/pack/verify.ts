@@ -21,7 +21,10 @@ import {
 } from "./libraries.ts";
 import { linkScan } from "./links.ts";
 
-export type PackageContext = { catalog: Catalog; capabilities: Capabilities };
+export type PackageContext = { catalog: Catalog; capabilities: Capabilities } & Pick<
+  Parameters<typeof validateTemplate>[1],
+  "limits"
+>;
 
 /** Called only after transport validation, with installed host documents. */
 export function validatePackageInputs(pkg: WidgetPackage, options: PackageContext): Result<WidgetPackage> {
@@ -179,6 +182,7 @@ function verifyWith(
 
 /**
  * Re-check an untrusted package's structure, inputs, import rule and integrity without executing code.
+ * A template's minimum expansion must fit `options.limits.nodes` (default 5,000).
  * A package that imports libraries must also have a header matching its pins; with `libraries`
  * supplied, the pins, the imported names and the graph bounds are checked against them too.
  */

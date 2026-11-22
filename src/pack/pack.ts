@@ -71,7 +71,8 @@ function pinsFor(
 /**
  * Validate fixtures and hash one package without executing widget code. A code draft links source
  * files into one module; a template draft is validated against the install documents and never
- * transpiled. The package holds exactly one of `code` and `template`.
+ * transpiled. Its minimum expansion must fit `options.limits.nodes` (default 5,000).
+ * The package holds exactly one of `code` and `template`.
  */
 export function pack(input: CodeDraft | TemplateDraft, options: Install): Result<WidgetPackage> {
   const body = "template" in input ? { template: input.template } : { code: "" };

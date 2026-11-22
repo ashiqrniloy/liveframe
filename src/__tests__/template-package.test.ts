@@ -4,10 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pack, verifyPackage, type WidgetPackage } from "@arnilo/liveframe/pack";
 import type { WidgetProps } from "@arnilo/liveframe/sdk";
-import { loadPlacement, memoryStore } from "@arnilo/liveframe/store";
+import { loadPlacement, memoryStore, verifiedPackages } from "@arnilo/liveframe/store";
 import { type Json, type Result, validateCapabilities, validateCatalog } from "../index.ts";
 import { canonicalJson, packageHash, renderKey } from "../pack/hash.ts";
-import { inProcessRunner, templateRunner } from "../preview/index.ts";
+import { createPreview, inProcessRunner, templateRunner } from "../preview/index.ts";
 import type { RunnerOptions } from "../preview/runner.ts";
 import { workerRunner } from "../preview/worker/index.ts";
 import { cachedValidatorCount } from "../runner-kit/cache.ts";
@@ -94,6 +94,41 @@ test("pack_template_reports_template_errors_under_template", () => {
     for (const error of result.errors) expect(error.pointer.startsWith("/template")).toBe(true);
     expect(result.errors.map((error) => error.kind)).toContain("unknown-name");
   }
+});
+
+const oversizedTemplate: Template = {
+  format: "liveframe-template/1",
+  root: { kind: "stack", children: Array.from({ length: 5000 }, () => ({ kind: "stack" })) },
+};
+const raisedLimit = { ...install, limits: { nodes: 5001 } };
+const crossing = "/template/root/children/4999";
+
+test("pack_refuses_a_template_over_the_limit", () => {
+  rejects(pack({ ...draft, template: oversizedTemplate }, install), "limit-exceeded", crossing);
+  expect(pack({ ...draft, template: oversizedTemplate }, raisedLimit).ok).toBe(true);
+});
+
+test("verify_and_load_use_the_install_node_limit_even_with_a_warm_cache", async () => {
+  const pkg = handBuilt(oversizedTemplate);
+  rejects(verifyPackage(pkg, install), "limit-exceeded", crossing);
+  expect(verifyPackage(pkg, raisedLimit).ok).toBe(true);
+
+  const store = memoryStore();
+  await store.putPackage(pkg);
+  await store.putPlacement({
+    id: "large",
+    slot: "main",
+    widget: { id: pkg.manifest.id, version: pkg.manifest.version },
+    params: first.params as Json,
+  });
+  const cache = { verified: verifiedPackages() };
+  expect((await loadPlacement(store, "large", raisedLimit, cache)).ok).toBe(true);
+  rejects(await loadPlacement(store, "large", install, cache), "limit-exceeded", crossing);
+});
+
+test("preview_packing_uses_its_node_limit", () => {
+  const preview = createPreview({ ...raisedLimit, runner: templateRunner() });
+  expect(preview.update({ ...draft, template: oversizedTemplate }).ok).toBe(true);
 });
 
 test("pack_template_checks_scenarios_and_shape", () => {

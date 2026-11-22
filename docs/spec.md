@@ -1111,6 +1111,7 @@ Nobody publishes a widget blind. A person or an agent writes it, looks at it, ch
 - A node may carry `focus`, a template expression that must be a boolean: `true` marks the node the tree's focus moves to (§9, §11). A `$use` node and a fragment take no `focus`; two marked nodes in one expansion fail at render with `duplicate-key`.
 - The widget root renders exactly one element: it takes no `$if` or `$each`, and is not a fragment. A component root takes no `$each` and may be a fragment; use `$if` for an optional component.
 - A cyclic component graph is `invalid-document`; deeper than 16 or past any bound above is `limit-exceeded`.
+- The widget root's minimum expansion must fit `limits.nodes` (default 5,000). The install check counts one for each unconditional element or fragment, adds the callee's minimum for each `$use`, and counts zero for any body under `$if` or `$each`. It reports `limit-exceeded` at the element, fragment or `$use` that crosses the limit. `validateTemplate`, `pack` and `verifyPackage` accept the node limit in their install options. `loadPlacement` uses those options for verification.
 
 ```jsonc
 { "format": "liveframe-template/1",

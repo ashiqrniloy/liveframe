@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "subpath": "./template",
+    "name": "validateTemplate",
+    "change": "widened",
+    "reason": "Accepts optional limits.nodes for the minimum expansion check (LF-18).",
+    "hostAction": "Pass the host's node budget when it differs from the 5,000-node default.",
+    "task": "041 T4"
+  },
+  {
+    "subpath": "./pack",
+    "name": "pack",
+    "change": "widened",
+    "reason": "Accepts optional install limits.nodes for template drafts (LF-18).",
+    "hostAction": "Use the same node budget for packing and subsequent verification.",
+    "task": "041 T4"
+  },
+  {
+    "subpath": "./pack",
+    "name": "VerifyOptions",
+    "change": "widened",
+    "reason": "Accepts optional install limits.nodes for verifying and loading template packages (LF-18).",
+    "hostAction": "Pass the matching node budget when verifying or loading packages above the 5,000-node default.",
+    "task": "041 T4"
+  }
+]

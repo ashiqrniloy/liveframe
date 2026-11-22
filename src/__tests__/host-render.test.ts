@@ -13,6 +13,7 @@ import { renderPlacement } from "@arnilo/liveframe/host";
 import { pack, type Scenario } from "@arnilo/liveframe/pack";
 import { type Runner, templateRunner } from "@arnilo/liveframe/preview";
 import { memoryStore } from "@arnilo/liveframe/store";
+import type { Template } from "@arnilo/liveframe/template";
 import type { HostEvent, Served, SourceResult } from "../host/index.ts";
 import catalogDoc from "./fixtures/proof/catalog.json" with { type: "json" };
 
@@ -58,15 +59,15 @@ const manifest = (sources: Record<string, string>) => ({
   sources: Object.fromEntries(Object.entries(sources).map(([alias, source]) => [alias, { source, params: {} }])),
   actions: [],
 });
-const template = {
+const template: Template = {
   format: "liveframe-template/1",
   root: { kind: "text", props: { text: { $path: "state.label" } } },
 };
 
 /** A store holding one placement of a template widget that declares the given sources. */
-async function installed(sources: Record<string, string>, data: Record<string, Json>) {
+async function installed(sources: Record<string, string>, data: Record<string, Json>, doc: Template = template) {
   const scenario: Scenario = { name: "default", params: {}, state: { label: "first" }, context: {}, data };
-  const pkg = value(pack({ template, manifest: manifest(sources), scenarios: [scenario] } as never, install));
+  const pkg = value(pack({ template: doc, manifest: manifest(sources), scenarios: [scenario] }, install));
   const store = memoryStore();
   await store.putPackage(pkg);
   await store.putPlacement({ id: "p1", slot: "main", widget: { id: "notes", version: "1.0.0" }, params: {} });
@@ -116,6 +117,15 @@ test("skips_render_when_key_unchanged", async () => {
   expect(second).toBe(first);
   expect(runner.calls).toHaveLength(1);
   expect(events).toEqual([{ type: "render-skipped", placementId: "p1", revision: 1 }]);
+});
+
+test("host_applies_its_node_limit_before_invoking_the_runner", async () => {
+  const doc: Template = { ...template, root: { kind: "stack", children: [template.root] } };
+  const store = await installed({}, {}, doc);
+  const runner = spyRunner();
+  const result = await renderPlacement(base(store, runner, { runOptions: { limits: { nodes: 1 } } }));
+  expect(errorsOf(result)[0]).toMatchObject({ kind: "limit-exceeded", pointer: "/template/root/children/0" });
+  expect(runner.calls).toHaveLength(0);
 });
 
 test("no_skip_for_other_surface_or_scope", async () => {

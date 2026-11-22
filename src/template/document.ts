@@ -19,6 +19,7 @@ import { dataSchema, type KindFacts, kindFacts, propTarget } from "../validate/c
 import { type Carries, carriesFits, describeCarries, eventFits, localFits, objectFits } from "../validate/intent.ts";
 import { type CompiledStructure, compileStructure } from "../validate/structure.ts";
 import { compileStyles } from "../validate/style.ts";
+import { DEFAULT_LIMITS } from "../validate/tree.ts";
 import { analyzeExpression, analyzeOperand, EXPR_LIMITS, itemsOf } from "./expr.ts";
 import { TEMPLATE_BYTES, templateSchema } from "./schema.ts";
 import {
@@ -109,6 +110,7 @@ type Context = {
   readonly catalog: Catalog;
   readonly capabilities: Capabilities;
   readonly manifest: Manifest;
+  readonly limits?: { readonly nodes?: number } | undefined;
 };
 
 type Kind = { readonly definition: Definition; readonly facts: KindFacts };
@@ -151,7 +153,10 @@ type Place = {
   /** The component whose body this is, or "" for the widget root. */
   readonly owner: string;
   readonly role: "root" | "component" | "child";
+  readonly emissions: Emission[] | undefined;
 };
+
+type Emission = { readonly pointer: string; readonly callee?: string };
 
 const expected = (list: Iterable<string>) => [...list].join(", ") || "none";
 
@@ -163,10 +168,12 @@ class Walk {
   readonly anchors = new Map<string, string>();
   /** For each component (and "" for the widget), the components it uses and where. */
   readonly uses = new Map<string, Map<string, string>>();
+  readonly emissions = new Map<string, Emission[]>();
   readonly rejector: ElementReject;
   readonly facts: CatalogFacts;
   readonly capabilities: Capabilities;
   readonly manifest: Manifest;
+  readonly maxNodes: number;
   nodes = 0;
   readonly bindingChecks = new Map<string, BindingCheck>();
 
@@ -178,6 +185,8 @@ class Walk {
     this.facts = factsFor(context.catalog);
     this.capabilities = context.capabilities;
     this.manifest = context.manifest;
+    const { nodes = DEFAULT_LIMITS.nodes } = context.limits ?? {};
+    this.maxNodes = nodes;
     const c = this.c;
     this.rejector = {
       at: (pointer, wanted) => this.reject(pointer, wanted),
@@ -188,6 +197,10 @@ class Walk {
   }
 
   run(): Result<Template> {
+    if (!Number.isSafeInteger(this.maxNodes) || this.maxNodes < 1) {
+      this.reject("/limits/nodes", "limits.nodes to be a positive safe integer");
+      return { ok: false, errors: this.c.errors };
+    }
     this.checkComponents();
     this.checkWidget();
     this.checkGraph();
@@ -233,7 +246,7 @@ class Walk {
       }
       if (this.c.errors.length) continue;
       const scope = componentScope(component.params, this.budget);
-      this.walk(component.root as Raw, at(pointer, "root"), scope, { depth: 1, owner: name, role: "component" });
+      this.walkRoot(component.root, at(pointer, "root"), scope, name);
     }
   }
 
@@ -249,18 +262,26 @@ class Walk {
       },
       this.budget,
     );
-    this.walk(this.template.root as Raw, "/root", scope, { depth: 1, owner: "", role: "root" });
+    this.walkRoot(this.template.root, "/root", scope, "");
   }
 
-  // The component graph is acyclic and shallow enough.
+  walkRoot(root: TemplateNode, pointer: string, scope: Scope, owner: string): void {
+    const emissions: Emission[] = [];
+    this.emissions.set(owner, emissions);
+    this.walk(root as Raw, pointer, scope, { depth: 1, owner, role: owner ? "component" : "root", emissions });
+  }
+
+  // Check every edge, and count only the emissions guaranteed by each body.
   checkGraph(): void {
-    const heights = new Map<string, number>();
-    const height = (owner: string): number => {
-      heights.set(owner, VISITING);
+    const memo = new Map<string, { height: number; nodes: number }>();
+    let crossing: string | undefined;
+    const visit = (owner: string) => {
+      const result = { height: VISITING, nodes: 0 };
+      memo.set(owner, result);
       let tallest = 0;
       for (const [callee, pointer] of this.uses.get(owner) ?? []) {
-        const known = heights.get(callee);
-        if (known === VISITING) {
+        const known = memo.get(callee);
+        if (known?.height === VISITING) {
           this.c.reject(
             pointer,
             "A component cannot use itself, directly or through others",
@@ -269,15 +290,25 @@ class Walk {
           );
           continue;
         }
-        const below = known ?? height(callee);
+        const below = (known ?? visit(callee)).height;
         if (below + 1 > TEMPLATE_LIMITS.useDepth)
           this.reject(pointer, `components used at most ${TEMPLATE_LIMITS.useDepth} deep`, "limit-exceeded");
         tallest = Math.max(tallest, below + 1);
       }
-      heights.set(owner, tallest);
-      return tallest;
+      result.height = tallest;
+      for (const { pointer, callee } of this.emissions.get(owner) ?? []) {
+        result.nodes += callee === undefined ? 1 : (memo.get(callee)?.nodes ?? 0);
+        if (result.nodes > this.maxNodes) {
+          result.nodes = this.maxNodes + 1;
+          if (owner === "") crossing = pointer;
+          break;
+        }
+      }
+      return result;
     };
-    for (const owner of ["", ...Object.keys(this.components)]) if (!heights.has(owner)) height(owner);
+    for (const owner of ["", ...Object.keys(this.components)]) if (!memo.has(owner)) visit(owner);
+    if (crossing !== undefined && !this.c.errors.length)
+      this.reject(crossing, `at most ${this.maxNodes} nodes`, "limit-exceeded");
   }
 
   /** The kind a component's root produces, following a root that is itself a `$use`; undefined when not one element. */
@@ -297,6 +328,11 @@ class Walk {
     if (here.depth > TEMPLATE_LIMITS.nesting) {
       this.reject(pointer, `nodes nested at most ${TEMPLATE_LIMITS.nesting} deep`, "limit-exceeded");
       return;
+    }
+    if (here.emissions) {
+      if (Object.hasOwn(node, "$if") || Object.hasOwn(node, "$each")) here = { ...here, emissions: undefined };
+      else if (typeof node.$use === "string") here.emissions.push({ pointer: at(pointer, "$use"), callee: node.$use });
+      else here.emissions.push({ pointer });
     }
     const scope = this.directives(node, pointer, outer, here.role);
     if (Object.hasOwn(node, "key")) this.keyValue(node.key, scope, at(pointer, "key"));
@@ -440,7 +476,7 @@ class Walk {
 
   children(node: Raw, pointer: string, scope: Scope, here: Place, parentKind: string | undefined): void {
     const list = Array.isArray(node.children) ? node.children : [];
-    const below: Place = { parentKind, depth: here.depth + 1, owner: here.owner, role: "child" };
+    const below: Place = { ...here, parentKind, depth: here.depth + 1, role: "child" };
     for (const [i, entry] of list.entries())
       if (isRecord(entry)) this.walk(entry, at(at(pointer, "children"), i), scope, below);
   }

@@ -40,6 +40,76 @@ test("agent_home_template_validates", () => {
   expect(result.ok && result.value).toBe(agentHomeTemplate);
 });
 
+function componentLayers(depth: number, width: number): Doc {
+  return Object.fromEntries(
+    Array.from({ length: depth }, (_, i) => [
+      `Layer${i}`,
+      {
+        params: empty,
+        root: stack(
+          ...Array.from({ length: i === depth - 1 ? 0 : width }, (_, key) => ({ $use: `Layer${i + 1}`, key })),
+        ),
+      },
+    ]),
+  );
+}
+
+test.each([10, 16])("static_fan_out_over_the_node_limit_is_rejected_at_install (%i components)", (depth) => {
+  expect(problems(template({ $use: "Layer0" }, componentLayers(depth, 4)))).toEqual(["limit-exceeded /root/$use"]);
+});
+
+test("conditional_and_repeated_bodies_count_zero", () => {
+  const components = componentLayers(10, 4);
+  expect(
+    problems(
+      template(
+        stack(
+          { ...stack({ $use: "Layer0" }), $if: p("params.canAct") },
+          { $use: "Layer0", $each: { in: p("data.groups"), as: "g", key: p("g.id") } },
+        ),
+        components,
+      ),
+    ),
+  ).toEqual([]);
+  expect(
+    problems(
+      template(
+        { $use: "Wrapper" },
+        {
+          ...components,
+          Wrapper: { params: empty, root: stack({ ...stack({ $use: "Layer0" }), $if: false }) },
+        },
+      ),
+    ),
+  ).toEqual([]);
+});
+
+test("a_raised_node_limit_admits_a_larger_template", () => {
+  const components = { Leaf: { params: empty, root: stack() } };
+  const doc = template(
+    stack({ kind: "fragment", children: Array.from({ length: 5998 }, (_, key) => ({ $use: "Leaf", key })) }),
+    components,
+  );
+  expect(problems(doc)).toEqual(["limit-exceeded /root/children/0/children/4998/$use"]);
+  expect(validateTemplate(doc, { ...context, limits: { nodes: 8000 } }).ok).toBe(true);
+  expect(validateTemplate(doc, { ...context, limits: { nodes: 6000 } }).ok).toBe(true);
+});
+
+test("static_node_limit_points_to_the_first_crossing_element", () => {
+  const result = validateTemplate(template(stack(stack(), stack())), { ...context, limits: { nodes: 2 } });
+  expect(result).toEqual({
+    ok: false,
+    errors: [expect.objectContaining({ kind: "limit-exceeded", pointer: "/root/children/1" })],
+  });
+});
+
+test.each([0, Infinity, Number.NaN, 1.5])("invalid_install_node_limit_is_rejected (%p)", (nodes) => {
+  expect(validateTemplate(template(stack()), { ...context, limits: { nodes } })).toEqual({
+    ok: false,
+    errors: [expect.objectContaining({ kind: "invalid-prop" })],
+  });
+});
+
 test("install_validation_of_agent_home_within_budget", () => {
   expect(validateTemplate(agentHomeTemplate, context).ok).toBe(true);
   const countReads = (count: number) => {
@@ -559,7 +629,7 @@ test("references_name_anchors_in_the_same_template", () => {
 
 test("bounds_on_template_nodes_and_nesting", () => {
   const texts = (count: number) => Array.from({ length: count }, () => ({ kind: "text", props: { text: "x" } }));
-  expect(problems(template(stack(...texts(9_999))))).toEqual([]);
+  expect(validateTemplate(template(stack(...texts(9_999))), { ...context, limits: { nodes: 10_000 } }).ok).toBe(true);
   expect(problems(template(stack(...texts(10_000))))).toEqual(["limit-exceeded /root/children/9999"]);
   let deep: Doc = { kind: "text", props: { text: "x" } };
   for (let i = 0; i < 128; i++) deep = stack(deep);

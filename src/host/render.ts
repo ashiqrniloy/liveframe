@@ -198,7 +198,8 @@ export async function renderPlacement<V>(args: RenderArgs<V>): Promise<Result<Se
   const install = installs[catalogId] as Installs[string];
 
   // R2. Load and verify the stored records.
-  const loaded = await loadPlacement(args.store, placementId, install, {
+  const limits = args.runOptions?.limits;
+  const loaded = await loadPlacement(args.store, placementId, limits ? { ...install, limits } : install, {
     scope: args.scope ?? "",
     ...(args.verified ? { verified: args.verified } : {}),
     ...(args.state === undefined ? {} : { state: args.state }),

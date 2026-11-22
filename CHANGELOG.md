@@ -10,6 +10,8 @@ Fixed:
 
 - **Sized template operators spend steps in proportion to their work (LF-18).** The evaluator charges for string units and collection entries read or written. String `$slice` stops scanning at its end index. Fifty-eight full slices of a 1 MiB string exceed the default step budget.
 
+- **Install validation rejects oversized unconditional template expansions (LF-18).** A template whose minimum expansion exceeds the install node limit returns `limit-exceeded` at the element, fragment or component use that crosses the limit.
+
 ## 0.4.0 — 2026-11-22
 
 0.4.0 includes the fixes originally prepared for the unpublished 0.3.1 patch. The release adds interaction, rendering and agent authoring capabilities, including the first release of `@arnilo/liveframe-a2ui`. See the [migration guide](docs/migration-0.4.md), [adopter notes](docs/adopters-0.4.md) and [compatibility policy](docs/compatibility.md#040).

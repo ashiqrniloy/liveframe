@@ -204,9 +204,10 @@ async function applyState<V>(run: Run<V>, intent: Extract<Intent, { type: "setSt
   // H3a. The stored state, not the served one, is the base: another tab's committed write is kept. With
   // `putStateIf`, the raw stored value is read once here so the compare-and-set can expect exactly it.
   const { store } = args;
+  const limits = args.runOptions?.limits;
   const cas = typeof store.putStateIf === "function";
   let expected = cas ? await store.getState(placementId, scope) : undefined;
-  const loaded = await loadPlacement(store, placementId, install, {
+  const loaded = await loadPlacement(store, placementId, limits ? { ...install, limits } : install, {
     scope,
     ...(cas ? { state: expected } : {}),
     ...(args.verified ? { verified: args.verified } : {}),

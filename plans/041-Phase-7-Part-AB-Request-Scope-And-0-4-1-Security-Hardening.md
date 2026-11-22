@@ -296,7 +296,7 @@ The sixteen plans of this family were drafted in parallel from one request docum
     - The separate install-validation benchmark measured 5.768 ms CPU on the baseline and 6.423 ms after the change against its 5 ms budget. Task 4 owns that gate. Task 5 owns the whole-render bound under the default step budget.
     - The focused expression suite passed all 176 tests. The full check passed with 2,138 tests and 6 skips using `timeout 1500s bun run check --timeout=15000 --retry=3 --bail=1`. Earlier runs hit MCP and browser timeouts under load. The affected MCP cases and browser scenario also passed in isolation.
 
-- [ ] Task 4: Reject at install a template whose data-free expansion exceeds the node limit (LF-18)
+- [x] Task 4: Reject at install a template whose data-free expansion exceeds the node limit (LF-18)
   - Acceptance Criteria:
     - Functional:
       - `validateTemplate` computes, per component, the fewest elements it always emits: an element counts one plus its unconditional children, a `$use` adds its callee's count, and anything under `$if` or `$each` counts zero. Arithmetic saturates at the limit plus one.
@@ -304,7 +304,7 @@ The sixteen plans of this family were drafted in parallel from one request docum
       - `pack()` and `verifyPackage()` apply it, so the request's reproduction is refused at install and on load.
       - Finding to settle first: `verifyPackage` runs on every load. A host that renders with a raised `limits.nodes` and already stores a template between 5,000 and its limit would see that package refused on load. The executor confirms with the owner that `pack` and `verifyPackage` take the host's limit from their install argument, and documents it. If that needs a `changed` entry, the load-time half moves to 0.5.0 and only `validateTemplate` and `pack` ship here.
       - Spec §7.6 lists the check with the other install-time bounds.
-    - Performance: `validateTemplate` on `agent-home` stays within its 5 ms CPU budget (`bench/template.bench.ts:154-169`). The count reuses the memo of `checkGraph`.
+    - Performance: warm `validateTemplate` on `agent-home` stays within its 5 ms CPU budget (`validateTemplate.agentHome.cpuMs` in `bench/template.bench.ts`). The count reuses the memo of `checkGraph`.
     - Code Quality: one more value in the per-component record `checkGraph` already builds (`src/template/document.ts:256-281`); no second traversal of the template.
     - Security: law 2 at install: a document that cannot render inside the limits is rejected before it is stored.
   - Approach:
@@ -319,23 +319,36 @@ The sixteen plans of this family were drafted in parallel from one request docum
       - Count the maximum expansion — rejected: it depends on data, and `$each` makes it unbounded.
       - Run `renderTemplate` with empty inputs at install — rejected: inputs must fit the manifest's schemas, so there is no "no data" render in general.
     - Chosen Approach:
-      - A static minimum, memoised over the acyclic component graph, checked against the node limit.
+      - Record unconditional emissions during the existing walk and sum them in the component graph memo. A component use contributes its minimum at the call site.
+      - Use one optional install option for direct validation, packing and verification. Forward existing host and preview node limits and include the effective limit in the stored-package verification cache key.
     - API Notes and Examples:
       ```ts
       validateTemplate(template, { catalog, capabilities, manifest, limits: { nodes: 5000 } });
-      // → { ok: false, errors: [{ kind: "limit-exceeded", pointer: "/components/C3/root/children/0/$use", … }] }
+      // For an oversized component used at the widget root, the error points to "/root/$use".
       ```
     - Files to Create/Edit:
       - `src/template/document.ts`: the count and its rejection; the optional `limits` on `Context`.
-      - `src/pack/verify.ts`, `src/pack/pack.ts`: pass the limit through (tentative — depends on the finding above).
-      - `src/__tests__/template-document.test.ts`: the tests below.
-      - `scripts/release/api/register-0.4.1.json`: a `widened` entry for the context type.
+      - `src/pack/verify.ts`, `src/pack/pack.ts`: share and document the optional install limit.
+      - `src/host/render.ts`, `src/host/intent.ts`, `src/preview/session.ts`: forward the existing host or preview limit.
+      - `src/store/verified.ts`: key verification results by the effective node limit.
+      - `bench/template.bench.ts`: align install validation's runtime warmup with the render benchmark.
+      - `src/__tests__/template-document.test.ts`, `src/__tests__/template-package.test.ts`, `src/__tests__/host-render.test.ts`: the tests below.
+      - `scripts/release/api/register-0.4.1.json`: `widened` entries for `validateTemplate`, `pack` and `VerifyOptions`.
       - `docs/spec.md` §7.6; `docs/templates.md`; `CHANGELOG.md`.
   - Test Cases to Write:
     - `static_fan_out_over_the_node_limit_is_rejected_at_install`: the reproduction at 10 and 16 components fails `validateTemplate` with `limit-exceeded`. Fails if the count ignores `$use`.
     - `conditional_and_repeated_bodies_count_zero`: the same shape under `$if` or `$each` installs.
     - `a_raised_node_limit_admits_a_larger_template`: a 6,000-element static template fails by default and passes with `limits.nodes: 8000`.
     - `pack_refuses_a_template_over_the_limit`: `pack()` returns the same error.
+    - `verify_and_load_use_the_install_node_limit_even_with_a_warm_cache`: verification accepts a raised limit and a cache entry from that limit cannot satisfy a lower one.
+    - `preview_packing_uses_its_node_limit` and `host_applies_its_node_limit_before_invoking_the_runner`: the existing host and preview options apply before rendering.
+    - `static_node_limit_points_to_the_first_crossing_element` and `invalid_install_node_limit_is_rejected`: report the crossing and reject malformed limits.
+
+  - Notes (executed 2026-11-23):
+    - The existing install walk records unconditional elements, fragments and component uses. The graph check memoizes each component's minimum and saturates the count at the node limit plus one. A component use reports its call-site pointer when its contribution crosses the limit.
+    - Packing and verification share the optional install limit. The host pipeline and preview forward their configured limits, and stored-package verification keys include the effective budget. The API gate accepted the three widenings.
+    - The install benchmark now takes 200 warmup calls, matching the render benchmark and moving runtime warmup outside the timed samples. The final template benchmark measured 2.034 ms CPU against the 5 ms install target and met its other thresholds.
+    - All 224 focused tests passed. `bun run check` passed with 2,151 tests passed, 6 skipped and 0 failed.
 
 - [ ] Task 5: Add hostile-template corpus cases and gate the worst render the default budget allows (LF-18)
   - Acceptance Criteria:

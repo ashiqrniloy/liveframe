@@ -3,6 +3,7 @@ import { sameJson } from "../formats/json.ts";
 import type { WidgetPackage } from "../formats/package.ts";
 import { canonicalJson } from "../pack/hash.ts";
 import { verifyPackage } from "../pack/verify.ts";
+import { DEFAULT_LIMITS } from "../validate/tree.ts";
 
 /** Host-owned LRU of verified frozen packages; keys include package identity and installation documents. */
 export function verifiedPackages({ max = 256 }: { max?: number } = {}) {
@@ -75,7 +76,8 @@ export function verifyStoredPackage(
   if (!cache) return verifyPackage(doc, install);
   let installPart: string;
   try {
-    installPart = installKey(install);
+    const { nodes = DEFAULT_LIMITS.nodes } = install.limits ?? {};
+    installPart = `${Number.isSafeInteger(nodes) ? nodes : "invalid"}:${installKey(install)}`;
   } catch (error) {
     if (!(error instanceof TypeError)) throw error;
     return { ok: false, errors: [{ kind: "invalid-document", pointer: "", message: error.message }] };

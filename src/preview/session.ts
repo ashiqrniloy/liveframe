@@ -155,7 +155,7 @@ export function createPreview({
 
   return {
     update(draft: Parameters<typeof pack>[0]): Result<WidgetPackage> {
-      const packed = pack(draft, { catalog, capabilities, ...(libraries ? { libraries } : {}) });
+      const packed = pack(draft, { catalog, capabilities, limits, ...(libraries ? { libraries } : {}) });
       // `pack()` reports a missing library as not supplied; in a session the host is the supplier, not the agent.
       const result: Result<WidgetPackage> = packed.ok
         ? packed

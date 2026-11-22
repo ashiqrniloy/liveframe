@@ -170,9 +170,19 @@ There is no regular expression, no locale formatting, no time and no randomness:
 the same template and inputs give the same tree in every runtime. Text that needs
 cleaning belongs in the source (or in a TSX widget).
 
-Limits (all checked at install): 1 MiB of JSON, 10,000 nodes, 20,000 expression
-nodes, expression depth 32, 64 components, component nesting 16. At render,
-each expression node, emitted element or fragment, and entered `$use` spends
+Install checks bound the document to 1 MiB of JSON, 10,000 template nodes,
+20,000 expression nodes, expression depth 32, 64 components and component nesting 16.
+The root's minimum expansion must also fit the install limit of 5,000 emitted
+elements and fragments. `validateTemplate` accepts an optional `limits.nodes`
+to set this bound. A `$use` contributes its component's minimum, and bodies
+under `$if` or `$each` contribute zero.
+
+Pass the same node budget when packing, verifying or loading a package as
+`limits.nodes` in the install options. The host pipeline forwards
+`runOptions.limits.nodes` on load, and preview sessions use their configured
+`limits.nodes` when packing a draft.
+
+At render, each expression node, emitted element or fragment, and entered `$use` spends
 one step of `limits.steps` (default 1,000,000). Operators also spend steps for
 the string units and collection entries they may read or write. Rates vary by
 operator. String `$slice` walks code points up to its end index, or to the end

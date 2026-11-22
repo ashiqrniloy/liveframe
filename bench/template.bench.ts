@@ -237,7 +237,8 @@ budget(overhead <= 0.05, `templateRunner adds ${(overhead * 100).toFixed(2)}% ov
 // Plan 033 T9: validateTemplate CPU-time budget moved from template-document.test.ts (<= 5 ms).
 {
   const context = { catalog: catalog as never, capabilities: capabilities as never, manifest: home.manifest };
-  for (let i = 0; i < 5; i++) assert(validateTemplate(agentHomeTemplate, context).ok, "agentHomeTemplate warmup");
+  // Give the install checker the same runtime warmup as the render measurements above.
+  for (let i = 0; i < 200; i++) assert(validateTemplate(agentHomeTemplate, context).ok, "agentHomeTemplate warmup");
   const samples: number[] = [];
   for (let r = 0; r < 9; r++) {
     const start = process.cpuUsage();
@@ -248,6 +249,6 @@ budget(overhead <= 0.05, `templateRunner adds ${(overhead * 100).toFixed(2)}% ov
   samples.sort((a, b) => a - b);
   const validateCpuMs = samples[Math.floor(samples.length / 2)] as number;
   metric("validateTemplate.agentHome.cpuMs", validateCpuMs);
-  console.log(`validateTemplate (agent-home): ${validateCpuMs.toFixed(3)} ms CPU (<= 5 ms)`);
+  console.log(`validateTemplate (agent-home, warm): ${validateCpuMs.toFixed(3)} ms CPU (<= 5 ms)`);
   budget(validateCpuMs <= 5, `validateTemplate agent-home CPU time ${validateCpuMs.toFixed(3)} ms exceeds 5 ms`);
 }
