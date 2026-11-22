@@ -55,7 +55,7 @@ It uses the 0.3.0 features worth copying: node references (`textField.describedB
 ## Extending it
 
 - **A new kind:** add it to `catalog.json`, run `liveframe gen` (twice: components and `--implementations`), add recipes for it and an `implement(…)` binding. The suites tell you what is missing.
-- **Your own look:** keep the catalog and replace `themes` and `designSystem`; the recipes name roles, so a theme swaps colours without touching them. Since 0.4.0 your design system must also declare `size.row` and give `scroll` a focus overlay; one written for 0.3.x fails without them ([migration](../../docs/migration-0.4.md#action-needed-your-own-design-system-for-starteruil1)).
+- **Your own look:** keep the catalog and replace `themes` and `designSystem`; the recipes name roles, so a theme swaps colours without touching them. Since 0.4.0 your design system must also declare `size.row` and give `scroll` a focus overlay; one written for 0.3.x fails without them ([migration](https://github.com/ashiqrniloy/liveframe/blob/v0.4.0/docs/migration-0.4.md#action-needed-your-own-design-system-for-starterui1)).
 - **Your own icons:** `implementations` draws a small generic glyph set. Replace the `icon` binding with your registry.
 
 The starter ships no capabilities: actions and sources are your app's.

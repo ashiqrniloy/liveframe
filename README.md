@@ -21,7 +21,7 @@ Four rules, none of them optional:
 bun add @arnilo/liveframe
 ```
 
-The workspace has four packages. The three optional companions share the core version and peer on `@arnilo/liveframe`. The A2UI converter is new in the upcoming 0.4.0 release.
+The workspace has four packages. The three optional companions share the core version and peer on `@arnilo/liveframe`. The A2UI converter joined the workspace in 0.4.0.
 
 ```bash
 bun add @arnilo/liveframe-runner-quickjs   # an isolated runner for widget code you do not trust
@@ -237,7 +237,7 @@ The client starts the server itself. The [MCP guide](docs/mcp.md) covers the nin
 
 ## Status
 
-Liveframe is pre-1.0. The latest published release is `0.3.0` (2026-11-10). For the upcoming `0.4.0`, see the [release notes](CHANGELOG.md), [migration guide](docs/migration-0.4.md) and [adopter notes](docs/adopters-0.4.md). The [compatibility policy](docs/compatibility.md) covers the public API, formats and on-disk `fileStore` layout.
+Liveframe is pre-1.0. The latest published release is `0.4.0` (2026-11-22). See the [release notes](CHANGELOG.md), [migration guide](docs/migration-0.4.md) and [adopter notes](docs/adopters-0.4.md). The [compatibility policy](docs/compatibility.md) covers the public API, formats and on-disk `fileStore` layout.
 
 ## Development
 

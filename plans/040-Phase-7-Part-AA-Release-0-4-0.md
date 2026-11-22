@@ -424,6 +424,16 @@ This plan implements the release step of roadmap Phase 7's 0.4.0, under the [202
     - All four packages moved to `0.4.0` and companion peers to `~0.4.0` in `339f023`. The candidate API baselines matched the stable checkout. The version check, full check, archive gates, peer floors and demo passed on that commit.
     - Protected Publish run `44954949161` published the tag `v0.4.0`. The [stable registry record](evidence/040-release.md) confirms all four archives, installed APIs, getting-started guide, 78 demo tests and provenance. All four packages report `latest` and `next` at `0.4.0`.
 
+- [x] Task 8a: Correct the release status, migration links and publish runbook
+  - Acceptance Criteria:
+    - Functional: README identifies the stable release and date; both starter migration links reach the custom design-system checklist; the release runbook describes the package claim, trusted publisher setup and per-package `next` promotion.
+    - Performance: n/a — documentation only.
+    - Code Quality: the status, anchor and runbook match the migration guide and recorded release evidence.
+    - Security: the runbook retains the protected environment and the two trusted-publisher permissions.
+  - Approach: correct the three documentation findings in [the impact analysis](evidence/040-impact-analysis.md).
+  - Files to Edit: `README.md`, `CHANGELOG.md`, `packages/starter/README.md` and `docs/compatibility.md`.
+  - Test Cases to Write: n/a — verify the documentation links, recorded release date and publish workflow against the existing evidence.
+
 - [ ] Task 9: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional:
