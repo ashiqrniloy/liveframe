@@ -46,6 +46,7 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Disposition: existing P3 retained by the owner on 2026-10-25 (plan 002 Task 9 carry-over F1; plans/evidence/002-impact-analysis.md).
 - Section: Phase 2 (spec §5, §6.3)
 - Priority: P3
+- Status: scheduled in [plan 048](048-Phase-7-Part-AI-Layout-Recipes-Icons-And-Overlays.md) with LF-45 for the two open gaps, `position: relative` and `basis` units.
 - Source: plans/002-Phase-0-Parity-Re-Proof.md (G30, G31); G30 and G31 closed by plans/016-Phase-7-Part-C-Styling-Paint-Alpha-Contrast-And-Native-Parts.md Task 6. Open: `position: relative` and `basis`, which neither adopter raised.
 - What:
   - ~~Give `icon` a way to take a tone (G30).~~ Resolved by plan 016 Task 6: the proof catalog's `icon` lists the existing `tone` style prop, and the row markers and kicker pass it. No library change.
@@ -58,6 +59,7 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Disposition: G29's existing P2 retained by the owner on 2026-10-25 (plan 002 Task 9 carry-over F3; plans/evidence/002-impact-analysis.md). R20's post-0.1.0 deferral remains in force; G19/G20/G27/G28 are closed as recorded below.
 - Section: Phases 1, 3, 4, 6 and 7 (spec §6.4, §8, §10, §11)
 - Priority: P2
+- Status: scheduled in [plan 049](049-Phase-7-Part-AJ-Release-0-5-0.md) to run the required native forced-colours and assistive-technology audit (G29).
 - Source: plans/001-Phase-0-Primitive-Set-Proof.md, plans/002-Phase-0-Parity-Re-Proof.md, plans/003-Phase-1-Part-A-Formats.md, plans/004-Phase-1-Part-B-Compiled-Validator.md, plans/007-Phase-3-CSS-Projection.md (F1, F6)
 - What:
   - Closed in plan 003: G19's new-format catalog and tree fixtures use `textField.onCommit`; the historical proof keeps its event names. G28's reusable install validators for untrusted themes and design systems ship as `validateTheme` and `validateDesignSystem`, with bounded errors, role checks, literal checks and inheritance/completeness tests. Replacing the proof projector is Phase 3, not an outstanding install validator.
@@ -146,7 +148,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 ## Evaluate an atomic-class route for strict style CSP
 
 - Section: Optional projection extension (spec §6.4)
-- Priority: P3
+- Priority: P2
+- Status: scheduled in [plan 048](048-Phase-7-Part-AI-Layout-Recipes-Icons-And-Overlays.md).
 - Source: plans/007-Phase-3-CSS-Projection.md (F4)
 - What: if an adopter requires a policy forbidding inline style attributes, design a validated class/sheet route for scalar and responsive layouts, including bounded dynamic values. Compare output size, determinism, caching and runtime cost before proposing a public API/spec change; retain colour-authority and injection tests.
 - Why: `docs/styling.md` explicitly requires `style-src-attr 'unsafe-inline'` for current layout output. A nonce authorizes a sheet, not node style attributes. No alternate API is promised or implemented.
@@ -162,7 +165,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 ## Revisit scoping only if nested surfaces become required
 
 - Section: Conditional projection extension (spec §6.4, §11)
-- Priority: P4
+- Priority: P1
+- Status: scheduled in [plan 053](053-Phase-7-Part-AN-Layouts-As-Widgets-And-Customization-Records.md).
 - Source: plans/007-Phase-3-CSS-Projection.md (F7)
 - What: if host composition needs nested surfaces, evaluate `@scope` boundaries and the platform floor, including resets, custom-property inheritance, state propagation, containers and portals. Replace the documented negative nesting test with positive isolation tests only after approving and specifying a new contract.
 - Why: current attribute selectors support sibling surfaces; nesting leaks unset properties by design. `src/__tests__/css-scope-browser.test.ts` pins this unsupported case. `@scope` is a candidate, not an existing capability.
@@ -247,7 +251,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 ## Capture overlays that are open inside a preview cell
 
 - Section: Conditional capture feature (spec §7.5)
-- Priority: P4
+- Priority: P3
+- Status: scheduled in [plan 055](055-Phase-7-Part-AP-Agent-Editing-Context-And-Evaluation.md).
 - Source: plans/009-Phase-4-Part-B-Preview.md Task 8 (F6)
 - What: if an agent needs to review a menu, dialog or popover, design a way to open an overlay in a cell before capture, for example a URL parameter or a scripted step, without drafts gaining authority. Do nothing until an adopter asks.
 - Why: capture screenshots each cell element after `data-lf-ready`, so overlays render closed. Portals sit outside the cell element.
@@ -516,7 +521,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 ## Re-run the full benchmark suite on a quiet host
 
 - Section: Release automation (spec §13)
-- Priority: P3
+- Priority: P1
+- Status: scheduled in [plan 049](049-Phase-7-Part-AJ-Release-0-5-0.md) as part of LF-41.
 - Source: plans/022-Phase-7-Part-I-Release-0-2-2-Performance-And-Accessibility.md Task 16, plans/evidence/022-release-readiness-review.md (Bench gates)
 - What: After the 0.2.2 first-compile fix and the cache guard, `bun run bench` failed its micro-timing gates (validator ≤ 1.5 µs/node, `applyPatch` ≤ 0.5 ms, and once the 0.25 ms reuse figure) in eight attempts at host load 6–20 from unrelated work. The `0.2.2-rc.1` code failed the same gate under the same load, and the generic baseline slowed by the same factor. The impact analysis (plan 022 Task 18, area 7) tried once more on 2026-11-03 at load 35–39 and failed every validator gate with the generic baseline 5× slow (5.756 µs/node on `agent-home`), so that run measures the machine. Re-run `timeout 600 bun run bench` when the host is idle (1-minute load average below 2, with `uptime` recorded) and add the figures to `plans/evidence/022-impact-analysis.md` area 7. Plan 023 (2026-11-03) adds two more figures to take on the same idle host: a full `bun run check` (tests that failed at load 16–27 there: `verify_agent_home_under_20_ms`, `in_process_warm_overhead_under_point_one_ms`, `validator_smoke_under_5us_per_node`, `every_proof_scenario_passes_check`, the `switch_*` browser cases) and the `pack()` median-of-20 comparison from plan 023 Task 9. Plan 024 Task 1 (2026-11-03) tried at load 13–14 and did not run it: a long-lived QEMU VM holds about 400% CPU, so the host will not go below 2 by itself (`plans/evidence/024-baseline.md`; append the idle-host run there). It added `bench/ab.ts` and `--json` on the benches, so every later perf claim is an interleaved paired ratio. Plan 025 Task 8 owns it.
 - Why: the release shipped on interleaved A/B evidence and an unchanged hot path, not on a clean full-suite run. The gate is load-sensitive and CI does not run it, so a quiet-host run is the only way to close it.
@@ -686,7 +692,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 ## Draw `$ref` and fragment documents progressively in `streamElements`
 
 - Section: SDK rendering (spec §7.2)
-- Priority: P4
+- Priority: P3
+- Status: scheduled in [plan 054](054-Phase-7-Part-AO-Template-Language-Data-Bound-Surfaces-And-Stream-Repair.md).
 - Source: plans/028-Phase-7-Part-O-Release-0-3-0-Template-Widgets-And-Streaming.md Task 7
 - What: `streamElements` holds back a node that holds an unresolved `$ref` (and any shell around it) and a fragment until the text ends, and a member after `children` stops progressive drawing. Resolve references and draw fragments as they close. Separately, find element objects by bracket matching too (the reader needs only the members before `children`), which would take the 2.4–2.9× margin against the 3× gate (`bench/stream-elements.bench.ts`) to about 2×.
 - Why: an agent that writes a reference-heavy or fragment-heavy document sees nothing until the end, and the bench margin is thin.
@@ -694,7 +701,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 ## Make the template structured-output schema usable in strict modes
 
 - Section: Agent authoring (spec §13)
-- Priority: P3
+- Priority: P2
+- Status: scheduled in [plan 055](055-Phase-7-Part-AP-Agent-Editing-Context-And-Evaluation.md).
 - Source: plans/028-Phase-7-Part-O-Release-0-3-0-Template-Widgets-And-Streaming.md Task 6
 - What: `liveframe gen --template-schema --structured-subset` drops constraint keywords but is not accepted by strict structured-output modes (recursive schema, optional fields, `oneOf` unions); Gemini's subset was never checked. Decide whether to emit a depth-limited, all-required form for one provider, with a measured agent success rate, or to keep telling hosts to use the full schema as a non-strict tool schema and rely on install errors.
 - Why: an agent constrained by the schema cannot emit a wrong operator; today the install errors are the only guard.
@@ -782,6 +790,7 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 
 - Section: Host pipeline (spec §7.7)
 - Priority: P3
+- Status: scheduled in [plan 045](045-Phase-7-Part-AF-Host-Session-Store-And-Transport.md) with LF-28.
 - Source: plans/030-Phase-7-Part-Q-Release-0-3-0-Host-Pipeline-Evolution-And-Dependencies.md Task 5 notes, plans/evidence/030-impact-analysis.md F9
 - What: a browser that compiles its own validator needs the manifest, which `Served` does not carry (only `package: { id, version, hash }`). The demo keeps a `hash → manifest` map filled from `store.getPackage`. Either add an optional `manifest` to `Served` (frozen, shared with the verified package) or document the lookup and the caching rule in `docs/host.md`.
 - Why: every host that ships a client validator rewrites the same map.
@@ -805,7 +814,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 ## Render concurrently in the QuickJS runner
 
 - Section: Isolated runner (spec §7.5)
-- Priority: P3
+- Priority: P2
+- Status: scheduled in [plan 050](050-Phase-7-Part-AK-Release-0-6-0-Scope-And-Host-Throughput.md).
 - Source: plans/031-Phase-7-Part-R-Release-0-3-0-Isolated-Runner-Conformance-And-Starter.md Task 8, plans/evidence/031-impact-analysis.md F2
 - What: `quickjsRunner()` owns one child and renders one widget at a time, so a hold stalls every render queued behind it by up to `timeoutMs` + 100 ms plus about 250 ms for the replacement child. Add a `concurrency` option (a small pool of children, each killed and replaced on its own) and have `runnerSuite` hold a render while another is asked for.
 - Why: one hostile or slow widget should not delay the rest of a multi-user host. The docs now say to give untrusted authors their own runner.
@@ -822,6 +832,7 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 
 - Section: Release automation (spec §13)
 - Priority: P3
+- Status: scheduled in [plan 049](049-Phase-7-Part-AJ-Release-0-5-0.md).
 - Source: plans/031-Phase-7-Part-R-Release-0-3-0-Isolated-Runner-Conformance-And-Starter.md Tasks 1, 4, 6 and 8, plans/evidence/031-impact-analysis.md F6
 - What: the runner (`Bun.spawn` with `process.execPath`, IPC, `SIGKILL`, the wasm path through `import.meta.resolve`) and the starter were run on Linux only, and CI is Linux. Add a macOS and a Windows job that run the two packages' tests and archive gates, then either claim the platforms in the docs or document what fails.
 - Why: the READMEs say only Linux has been measured; an adopter on another OS finds out by installing.
@@ -906,7 +917,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 ## Do not carry a prior render's `patch`, `reset` or `migrated` on a skipped `renderPlacement`
 
 - Section: Host pipeline (spec §7.7 R6)
-- Priority: P4
+- Priority: P2
+- Status: scheduled in [plan 045](045-Phase-7-Part-AF-Host-Session-Store-And-Transport.md).
 - Source: plans/033-Phase-7-Part-T-Review-Defects-And-Release-Scope.md Task 3 and Task 10, plans/evidence/033-impact-analysis.md F5
 - What: When `renderPlacement` skips a render at step R6, it returns `previous` by identity (`result.value === previous`), so `previous.patch`, `previous.reset` and `previous.migrated` from the render that produced `previous` remain on the returned object. In `0.3.x`, Task 3 documented the `result.value !== previous` check in `docs/host.md` and `docs/spec.md` §7.7 R6 to preserve patch compatibility; in `0.4.0`, consider stripping per-render fields (`patch`, `reset`, `migrated`) or returning a distinct skipped shape so a host that forgets the identity check cannot resend an already-applied patch.
 - Why: Relying on reference equality (`result.value !== previous`) to avoid resending `patch` works for hosts that follow `docs/host.md`, but removing the stale `patch` from the skipped return value eliminates the footgun at the value level.
@@ -916,7 +928,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 ## Report a thrown or rejected `onIntent` through `SurfaceEvent`
 
 - Section: Renderer observability (spec §11)
-- Priority: P4
+- Priority: P2
+- Status: scheduled in [plan 044](044-Phase-7-Part-AE-Intent-Boundary.md).
 - Source: plans/033-Phase-7-Part-T-Review-Defects-And-Release-Scope.md Task 8 and Task 10, plans/evidence/033-impact-analysis.md F6
 - What: Both the confirmed and unconfirmed (`emit`) paths in `createSurfaceCore` contain a synchronous throw or async rejection from the host's `onIntent` callback without raising a `SurfaceEvent`, because `SurfaceEvent` only grows in a minor release (`docs/spec.md` §11). In `0.4.0`, consider adding `{ type: "intent-failed"; nodeId: string; event: string }` to `SurfaceEvent` so `onEvent` can observe `onIntent` failures alongside `emit-rejected` and `confirm-dropped`.
 - Why: Containing `onIntent` throws prevents a broken host callback from crashing a primitive's event handler, and an observability event lets a host log the failure without carrying values.
@@ -926,7 +939,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 ## Gate the remaining request-time pipeline budgets in `bench/host.bench.ts`
 
 - Section: Host pipeline performance (spec §7.7)
-- Priority: P3
+- Priority: P2
+- Status: scheduled in [plan 049](049-Phase-7-Part-AJ-Release-0-5-0.md).
 - Source: plans/034-Phase-7-Part-U-Request-Time-Performance.md Task 1 and Task 7, plans/evidence/034-impact-analysis.md F5
 - What: `plans/evidence/034-baseline.md` confirmed 20 CPU budgets across `memoryStore`, `fileStore`, and the 10-row `split` on the `agent-home` code package. `bench/host.bench.ts:561-574` currently enforces `budget()` on 5 rows (`template load`, `homeLoadVerified`, `homeFileLoadVerified`, `homeVerifyVerified`, `homeEquality`), while `renderUncachedMs`, `renderVerifiedMs`, `skippedMs`, `loadUncachedMs`, `renderKeyMs`, `runnerMs`, `validateTreeMs`, `diffTreesMs`, and the read splits are emitted as metrics without `budget()` gates (`renderKey`, `composed-6-layers`, and `quickjsPackage` have their own gates in `hash.bench.ts`, `render.bench.ts`, and `runner.bench.ts`). Add `budget()` gates for the remaining `host.bench.ts` rows alongside the quiet-host benchmark verification so future regressions fail the bench gate.
 - Why: All 20 rows pass today; gating them in `bench/host.bench.ts` ensures end-to-end `renderPlacement` regressions are caught automatically when the full benchmark suite runs on a quiet host.
@@ -1076,7 +1090,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 ## Give live filters a case-insensitive match
 
 - Section: Element JSON and templates (spec §8)
-- Priority: P3
+- Priority: P2
+- Status: scheduled in [plan 054](054-Phase-7-Part-AO-Template-Language-Data-Bound-Surfaces-And-Stream-Repair.md).
 - Source: plans/039-Phase-7-Part-Z-Agent-Generated-UI.md Task 7, plans/evidence/039-impact-analysis.md
 - What: `$contains` is case-sensitive and the allowed tree operators have no case-folding form, so a filter that ignores case needs the app to hold a lowered copy of each row's text. Add a case-folding operator (or a `$lower`) to the shared operator table and the digest, or record in the digest that none exists.
 - Why: a fresh agent asked whether `$contains` folds case in both acceptance runs (plan 039 Task 3 guess 2, Task 7 guess 2), and a filter box that misses "ship" for "Ship the importer" is the usual complaint. (F7)
@@ -1092,7 +1107,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 ## Add a `meter` kind and an interactive table to the starter
 
 - Section: Starter (spec §13)
-- Priority: P4
+- Priority: P2
+- Status: scheduled in [plan 051](051-Phase-7-Part-AL-Resource-Handles-View-State-And-Upload.md).
 - Source: plans/039-Phase-7-Part-Z-Agent-Generated-UI.md Task 7, plans/evidence/039-impact-analysis.md
 - What: a `meter` kind (a value in a known range, distinct from `progress`) and an interactive `table` with sorting, row selection and grid focus (React Aria `Table`). `progress` and the static `table` triple cover the first 0.4.0 set.
 - Why: both were considered in plan 039's design (T.6) and left out by rule 2 (primitives only, no kind without a clear need); revisit when an adopter asks. (F8)
@@ -1100,7 +1116,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 ## Let definitions declare their parent kinds
 
 - Section: Catalog format (spec §5)
-- Priority: P3
+- Priority: P2
+- Status: scheduled in [plan 047](047-Phase-7-Part-AH-Carriers-Navigation-And-Catalog-Structure.md).
 - Source: plans/039-Phase-7-Part-Z-Agent-Generated-UI.md Task 7, plans/evidence/039-impact-analysis.md
 - What: a definition lists its child kinds but not its allowed parents, so a `radio` placed under a `stack` (children `any`) or a `tableCell` outside a `tableRow` is a valid tree. A stray `radio` is caught only at draw time by per-node error containment (`stray_radio_is_contained`). Add a parent rule to definitions.
 - Why: the starter's `radio`, `tableRow` and `tableCell` only make sense inside one parent, and the failure for a stray one is a fallback node, not a typed error at its own pointer. (F8)
