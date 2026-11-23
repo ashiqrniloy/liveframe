@@ -231,6 +231,7 @@ The client starts the server itself. The [MCP guide](docs/mcp.md) covers the nin
 - [Agent authoring over MCP](docs/mcp.md) — `liveframe mcp` and its nine tools
 - [Agent walkthrough for the demo](docs/demo-agent.md) — author, capture, install and place a draft
 - [Security model](docs/security.md) — what is validated where, and what is not a sandbox
+- [Security checklist](docs/security-checklist.md) — what the library checks and what your app must do, row by row
 - [Compatibility](docs/compatibility.md) — what a version bump may change
 - [Migrating to 0.3.0](docs/migration-0.3.md) — each break with before, after and a checklist
 - [What 0.3.0 gives adopters](docs/adopters-0.3.md) — each adopter request, its shipped API and its limit

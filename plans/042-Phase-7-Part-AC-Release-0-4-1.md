@@ -144,7 +144,7 @@ The sixteen plans of this family were drafted in parallel from one request docum
     - For Task 3: the citation test already reads `docs/security-checklist.md` once it exists. Spec: no change. §7.4 and §7.6 already state the load check and both budgets.
     - `security-guide`, `docs-links` and `docs-wording` passed 9 of 9. Two full checks ran at load 17–30, from unrelated processes on the host. The first failed 58 tests: a `react-browser.test.tsx` case hit the 5 s timeout, the browser closed, and the rest of that file failed, along with two `authoring.test.ts` MCP-parity cases. This is the plan 041 F7 pattern. Those files plus the new test passed 89 of 89 on their own. The second `timeout 1800 bun run check` passed with 2,185 tests passed, 6 skipped and 0 failed.
 
-- [ ] Task 3: Publish the adopter responsibility checklist (LF-65)
+- [x] Task 3: Publish the adopter responsibility checklist (LF-65)
   - Acceptance Criteria:
     - Functional:
       - `docs/security-checklist.md` is one page with one table: the concern, what the library checks, what the app must do, and the proof (a test citation in Task 2's form) or the request that tracks the gap (an absolute link to the LF heading in the request document).
@@ -189,6 +189,13 @@ The sixteen plans of this family were drafted in parallel from one request docum
     - `checklist_rows_each_link_a_test_or_a_request`: every table row's last cell holds a test citation or a link to the request document. Fails on a row with no proof.
     - `checklist_names_every_duty_the_request_lists`: the page contains the seven duty rows above, matched by a fixed list of phrases in the test. Fails when a row is dropped.
     - `checklist_is_linked_from_the_readme_and_the_host_guide`: both files link `security-checklist.md`. With `docs_links_resolve`, this also proves the page is shipped.
+  - Notes (executed 2026-11-23):
+    - `docs/security-checklist.md` is one table with 16 rows. Seven rows cover the duties the request lists. One row covers the two open channels from plan 041's survey: runner-returned error text, and author keys in ids and pointers. Eight rows cover the boundaries `docs/security.md` already states: runner isolation, template budgets, authorship and pinning, store tenancy and durability, `authorize`, serialisation, `liveframe mcp` drafts, and the inline-style CSP.
+    - Fifteen rows cite at least one existing test in Task 2's form. Ten of them also link the LF heading that tracks the remaining gap (LF-19, -20, -21, -22, -23, -28, -33, -65), by an absolute URL with a GitHub heading anchor. Only the CSRF row has no test: the library checks nothing there, so its library column says "Not checked by the library" and its proof is the LF-65 heading. No row names a future API.
+    - A source check changed one row. Action statuses are not stored by the library: `handleIntent` returns them, and the host stores them with `Served` (`src/host/intent.ts:329`). The row says so.
+    - Links were added from `README.md` (documentation list, after the security model), `docs/host.md` "What stays yours", and `docs/security.md` "What is not protected". `bun pm pack --dry-run` lists `docs/security-checklist.md`.
+    - `src/__tests__/security-guide.test.ts` gained the three tests. `checklist_rows_each_link_a_test_or_a_request` also requires a row with no test citation to say "Not checked by the library". Replacing the CSRF row's proof with `none` made it fail, naming the row. The citation test from Task 2 now checks the page's 18 test citations as well.
+    - `security-guide`, `docs-links` and `docs-wording` passed 12 of 12. `timeout 1800 bun run check` passed: 2,188 tests passed, 6 skipped, 0 failed (987 s).
 
 - [ ] Task 4: Coalesce the documented streaming loop and execute it in a test (LF-36, 0.4.1 half)
   - Acceptance Criteria:

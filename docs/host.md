@@ -253,7 +253,7 @@ if (handled.ok) {
 
 ## What stays yours
 
-The library never holds these, on purpose:
+The library never holds these, on purpose. The [security checklist](security-checklist.md) lists every duty, with what the library checks beside it.
 
 - **Concurrency.** Serialise calls per placement and scope. A stateless function
   cannot tell two callers holding the same stale `previous` apart. In a host with

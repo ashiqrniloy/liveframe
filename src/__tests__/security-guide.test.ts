@@ -108,3 +108,53 @@ test("hash_mismatch_detects_a_stale_hash_and_not_a_recomputed_one", async () => 
   const accepted = value(await loadPlacement(serving(substituted), "home", options, { verified }));
   expect(accepted.package.hash).toBe(substituted.hash);
 });
+
+const REQUEST = "https://github.com/ashiqrniloy/liveframe/blob/main/plans/requests/synapta-0.4.0-requests.md#lf-";
+
+function checklistRows(): string[][] {
+  return read("docs/security-checklist.md")
+    .split("\n")
+    .filter((line) => line.startsWith("|"))
+    .slice(2) // the header and the separator
+    .map((line) =>
+      line
+        .slice(1, -1)
+        .split(" | ")
+        .map((cell) => cell.trim()),
+    );
+}
+
+test("checklist_rows_each_link_a_test_or_a_request", () => {
+  const rows = checklistRows();
+  expect(rows.length).toBeGreaterThan(0);
+  for (const row of rows) {
+    expect(row, `a row does not have four cells: ${row.join(" | ")}`).toHaveLength(4);
+    const proof = row[3] as string;
+    expect(citations(proof).length > 0 || proof.includes(REQUEST), `${row[0]} links no test or request`).toBe(true);
+    // A row whose proof is only a request says the library does not check it.
+    if (citations(proof).length === 0) expect(row[1]).toContain("Not checked by the library");
+  }
+});
+
+test("checklist_names_every_duty_the_request_lists", () => {
+  const concerns = checklistRows().map((row) => row[0]);
+  for (const duty of [
+    "Server-side confirmation",
+    "double submits",
+    "Cross-site request forgery",
+    "Keying `Served` and action statuses per viewer session",
+    "literal action arguments",
+    "Image and link hosts",
+    "Personal data in trees, patches and events",
+  ])
+    expect(
+      concerns.some((concern) => concern?.includes(duty)),
+      `no row for ${duty}`,
+    ).toBe(true);
+});
+
+test("checklist_is_linked_from_the_readme_and_the_host_guide", () => {
+  expect(read("README.md")).toContain("](docs/security-checklist.md)");
+  expect(read("docs/host.md")).toContain("](security-checklist.md)");
+  expect(read("docs/security.md")).toContain("](security-checklist.md)");
+});
