@@ -612,6 +612,19 @@ test("pack_draft_returns_the_hash_session_update_returns", async () => {
   });
 }, 30000);
 
+test("pack_draft_refuses_oversized_inline_files_and_keeps_the_current_draft", async () => {
+  await withClient(async (client) => {
+    expect((await call(client, "pack_draft", agentHome)).isError).toBe(false);
+    const result = await call(client, "pack_draft", {
+      ...agentHome,
+      files: { [agentHome.entry]: " ".repeat(1048577) },
+    });
+    expect(result.isError).toBe(true);
+    expect(result.json()).toMatchObject([{ kind: "limit-exceeded", pointer: "/files" }]);
+    expect((await call(client, "render_scenarios", { scenario: agentScenario })).isError).toBe(false);
+  });
+}, 30000);
+
 test("pack_draft_shows_description_and_hides_meta_unless_exposed", async () => {
   const described = {
     ...agentHome,

@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, spyOn, test } from "bun:test";
 import {
   LiveframeFailure,
   obj,
@@ -14,12 +14,108 @@ import { inProcessRunner } from "@arnilo/liveframe/preview";
 import { generate, generateDefinitions, generateElementsSchema } from "@arnilo/liveframe/sdk/gen";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
+import * as sucrase from "sucrase";
+import * as manifests from "../formats/manifest.ts";
 import { validateManifestShape } from "../formats/manifest.ts";
 import { fakeCapture } from "./fixtures/capture-backend.ts";
 import { drafts, packageOptions, value } from "./fixtures/widgets/drafts.ts";
 
 const draft = { ...drafts[0]!, manifest: value(validateManifestShape(drafts[0]!.manifest)) };
 const options = () => ({ ...packageOptions, runner: inProcessRunner() });
+
+test("oversized_inline_draft_is_refused_before_transpile", async () => {
+  const a = createAuthoring(options());
+  const transform = spyOn(sucrase, "transform");
+  const shape = spyOn(manifests, "validateManifestShape");
+  const source = "export default () => null;";
+  try {
+    value(await a.packDraft({ ...draft, files: { [draft.entry]: source } }));
+    expect(transform).toHaveBeenCalled();
+    expect(shape).toHaveBeenCalled();
+    transform.mockClear();
+    transform.mockImplementation(() => {
+      throw new Error("An oversized draft reached the transpiler");
+    });
+    shape.mockClear();
+    const files = { [draft.entry]: source.padEnd(9 * 1024 * 1024) };
+    expect(await a.packDraft({ ...draft, files })).toMatchObject({
+      ok: false,
+      errors: [{ kind: "limit-exceeded", pointer: "/files" }],
+    });
+    expect(transform).not.toHaveBeenCalled();
+    expect(shape).not.toHaveBeenCalled();
+    expect((await a.renderScenarios()).ok).toBe(true);
+  } finally {
+    transform.mockRestore();
+    shape.mockRestore();
+    await a.close();
+  }
+});
+
+test("too_many_draft_files_is_limit_exceeded", async () => {
+  const a = createAuthoring(options());
+  const files = Object.fromEntries(Array.from({ length: 65 }, (_, i) => [`${i}.ts`, " "]));
+  try {
+    expect(await a.packDraft({ ...draft, files, entry: "0.ts" })).toMatchObject({
+      ok: false,
+      errors: [{ kind: "limit-exceeded", pointer: "/files" }],
+    });
+  } finally {
+    await a.close();
+  }
+});
+
+test("draft_at_the_bound_packs", async () => {
+  const a = createAuthoring(options());
+  const files = Object.fromEntries(Array.from({ length: 63 }, (_, i) => [`${i}.ts`, "// é"]));
+  const entrySource = "export default () => null;";
+  files[draft.entry] = entrySource;
+  files["0.ts"] = "// é".padEnd(1048576 - 62 * 5 - entrySource.length - 1);
+  try {
+    value(await a.packDraft({ ...draft, files }));
+    files["1.ts"] = "// é ";
+    expect(await a.packDraft({ ...draft, files })).toMatchObject({
+      ok: false,
+      errors: [{ kind: "limit-exceeded", pointer: "/files" }],
+    });
+  } finally {
+    await a.close();
+  }
+});
+
+test("oversized_manifest_scenarios_or_template_is_refused", async () => {
+  const a = createAuthoring(options());
+  const text = "\n".repeat(300000);
+  const manifest = { ...draft.manifest, description: text };
+  const scenarios = [{ ...draft.scenarios[0]!, context: { text } }];
+  try {
+    for (const [pointer, input] of [
+      ["/manifest", { ...draft, manifest: { ...manifest, description: text + text } }],
+      ["/scenarios", { ...draft, manifest, scenarios }],
+      ["/template", { manifest, scenarios: draft.scenarios, template: { text } }],
+    ] as const) {
+      expect(await a.packDraft(input)).toMatchObject({ ok: false, errors: [{ kind: "limit-exceeded", pointer }] });
+    }
+  } finally {
+    await a.close();
+  }
+});
+
+test("inline_draft_document_preflight_bounds_nesting", async () => {
+  const a = createAuthoring(options());
+  let nested: unknown = null;
+  for (let i = 0; i < 513; i++) nested = [nested];
+  try {
+    expect(await a.packDraft({ manifest: draft.manifest, scenarios: draft.scenarios, template: nested })).toMatchObject(
+      {
+        ok: false,
+        errors: [{ kind: "limit-exceeded", pointer: "/template" }],
+      },
+    );
+  } finally {
+    await a.close();
+  }
+});
 
 /** A tree the validator accepts that is still over the authoring tool's 256 KiB result bound. */
 const oversizedTree = (surfaceId: string, revision: number): UiTree => ({

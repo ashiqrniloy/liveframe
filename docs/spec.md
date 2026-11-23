@@ -1734,6 +1734,8 @@ Paths are relative to `@arnilo/liveframe`; `.` is the root export. The `sdk` row
 
   Their values, errors and bounds match the MCP tools below, except capture returns cells with coordinates, errors, `aria: string | null`, `png: Uint8Array` only when `layout: true` was asked, `layout: CellLayout | null`, and only when `media` was asked, `media: CaptureMedia`.
 
+  Inline drafts in `packDraft()` and `pack_draft` accept up to 64 source files and 1048576 aggregate bytes of UTF-8 source text. The manifest, scenarios and template share a separate 1048576-byte budget in compact UTF-8 JSON, with up to 512 nested containers per document. Exceeding a bound returns `limit-exceeded` at `/files`, `/manifest`, `/scenarios` or `/template` before manifest validation or transpilation.
+
   It writes no files and loads neither MCP nor Playwright.
 
   Missing capture configuration returns `not-found`.

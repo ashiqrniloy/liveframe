@@ -6,6 +6,8 @@ All notable changes to `@arnilo/liveframe` are recorded here. The project follow
 
 Fixed:
 
+- **Inline authoring drafts are bounded before transpilation (LF-26).** MCP `pack_draft` and `authoring.packDraft()` refuse oversized inline source sets and JSON documents with `limit-exceeded` at the relevant input pointer.
+
 - **A2UI conversion bounds data updates and formatted text (LF-25).** Sparse array writes, over-budget writes, deep data pointers and oversized formatted text return typed limit errors. Unexpected conversion failures return fixed diagnostics.
 
 - **Template expansion stops at its budgets (LF-18).** Each emitted element or fragment and each entered `$use` spends a step. Expansion stops at the first element or fragment beyond the node limit and reports its template pointer.

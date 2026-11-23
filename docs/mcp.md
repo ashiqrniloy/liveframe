@@ -272,6 +272,13 @@ For page snapshots, call `session.render({ scenario, preserveState: true })`
 so the same scenario retains changed state/context through reload and capture.
 Explicit overrides win; choosing a different scenario starts from its initial state.
 
+For inline drafts, `pack_draft` and `authoring.packDraft()` accept up to 64 source
+files and 1 MiB (1,048,576 bytes) of UTF-8 source text in total. The manifest,
+scenarios and template share a separate 1 MiB budget measured as compact UTF-8
+JSON, with up to 512 nested containers per document. A draft that exceeds a bound
+returns `limit-exceeded` before manifest validation or transpilation. The error
+points to `/files` or the document that crossed its bound.
+
 With `draftRoot: "./widgets"` in the CLI config, call:
 
 ```json
@@ -279,7 +286,7 @@ With `draftRoot: "./widgets"` in the CLI config, call:
 ```
 
 `entry` defaults to `entry.tsx`. The reader loads top-level `.ts`/`.tsx` sources,
-`manifest.json` and `scenarios.json`, then uses the same inline packer, with the
+`manifest.json` and `scenarios.json`, then uses the same packer, with the
 same hash for the same input. It ignores other files and does not recurse or run
 code. It accepts at most 128 source files and 1048576 aggregate bytes including
 the JSON documents; this read limit is separate from the packer's emitted-code

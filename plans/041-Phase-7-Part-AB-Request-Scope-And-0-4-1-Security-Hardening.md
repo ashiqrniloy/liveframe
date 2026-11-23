@@ -484,14 +484,14 @@ The sixteen plans of this family were drafted in parallel from one request docum
     - All 40 A2UI tests passed. The sparse-index, formatted-text and deep-pointer cases took median 0.019, 0.158 and 0.060 ms, with median RSS growth of 0, 256 and 0 KiB. The original audit inputs were unavailable. The benchmark uses representative fixtures and a 48 KiB byte setting. The 499-component row measured 2.533 ms at the baseline and 2.602 ms with the patch.
     - `bun run check` passed in an isolated checkout containing the Task 7 patch, with 2,158 passed, 6 skipped and 0 failed. The shared checkout's run had one mismatch in `text_results_match_expected_contract` from the Task 6 error-message changes. That test passed in the isolated checkout.
 
-- [ ] Task 8: Bound inline drafts by file count and bytes before any transpile (LF-26, bounds half)
+- [x] Task 8: Bound inline drafts by file count and bytes before any transpile (LF-26, bounds half)
   - Acceptance Criteria:
     - Functional:
-      - `pack_draft` and every `/authoring` operation that takes an inline draft refuse, with `limit-exceeded` at `/files`, a draft with more files than the count bound (proposal: 64) or more aggregate bytes than the bound draft directories already have (1,048,576, `src/cli/draft-dir.ts:6`). The manifest, scenarios and template together are bounded the same way, at their own pointers.
-      - The check runs before `validateManifestShape`, before `pack()` and before any transpile. It reads string lengths and stops at the bound; it never copies or stringifies the draft.
+      - `pack_draft` and every `/authoring` operation that takes an inline draft refuse, with `limit-exceeded` at `/files`, a draft with more than 64 source files or 1,048,576 aggregate bytes of UTF-8 source text. The manifest, scenarios and template share a separate 1,048,576-byte compact JSON budget, with up to 512 nested containers per document. The document that crosses a bound supplies the error pointer.
+      - The check runs before `validateManifestShape`, before `pack()` and before any transpile. It checks source string lengths before scanning UTF-8 bytes and stops on budget exhaustion. It counts document bytes with the shared validator walker, without copying or stringifying input.
       - The changed case: a 9 MiB inline draft. Today it is transpiled. It is now refused.
       - Not in this task: refusing to start without an explicit `runner` or `trustDrafts`. That changes a default and is plan [043](043-Phase-7-Part-AD-Release-0-5-0-Scope-Stored-Documents-And-Content-Integrity.md) (LF-26). Finding for that plan: `mcp()` supplies the `workerRunner()` default (`src/cli/mcp.ts:543`), while `createAuthoring` reads `runner` from its options (`src/authoring/index.ts:472`); plan 043 confirms which of the two the request's claim covers.
-    - Performance: the check is linear in the number of files and constant per file. A bench row records resident growth when a 9 MiB draft is refused; the proposal is under 1 MiB.
+    - Performance: source counting stops at the file or byte limit and rejects a source in constant time when its string length alone exceeds the remaining budget. The bench gates median resident growth below 1 MiB for a 9 MiB draft refusal.
     - Code Quality: one constant shared with `src/cli/draft-dir.ts`; the bounded byte counter the validator already uses, not a new walker.
     - Security: the authoring boundary (spec §13): draft text is untrusted input, bounded before the host spends memory on it.
   - Approach:
@@ -507,22 +507,29 @@ The sixteen plans of this family were drafted in parallel from one request docum
       - New `maxDraftBytes` and `maxDraftFiles` options — rejected: the directory path has a fixed bound and no host has asked to raise it; an option can be added later without a break.
       - Bound in the MCP transport — rejected: `/authoring` is also called directly.
     - Chosen Approach:
-      - Fixed bounds in `draftBodyErrors`' caller, shared with the directory reader, returned as typed errors.
+      - Preflight inline drafts in `packArguments` with the existing UTF-8 counter and the validator's JSON walker. Limit the recursive JSON walk to 512 levels so a small, deeply nested document returns a typed error. Share the byte constant with the directory reader, which marks inputs it has already bounded to preserve its existing 128-file and aggregate read limits.
     - API Notes and Examples:
       ```ts
       // → { ok: false, errors: [{ kind: "limit-exceeded", pointer: "/files", message: "Draft exceeds 1048576 aggregate bytes" }] }
       ```
     - Files to Create/Edit:
       - `src/authoring/index.ts`: the bound in `packArguments` and any sibling entry.
-      - `src/cli/draft-dir.ts`: export the shared constant.
-      - `src/__tests__/authoring.test.ts` and the MCP tool test that covers `pack_draft`.
-      - `bench/` (the memory row, in the file that already benches authoring, or a new `bench/authoring.bench.ts`).
+      - `src/authoring/draft-limits.ts` and `src/cli/draft-dir.ts`: the shared byte limit and internal directory marker.
+      - `src/validate/structure.ts`: an optional depth ceiling for the existing JSON byte walk.
+      - `src/__tests__/authoring.test.ts` and `src/__tests__/cli-mcp.test.ts`: inline limits and directory compatibility.
+      - `bench/authoring.bench.ts`: memory growth during refusal.
       - `docs/mcp.md`, `docs/preview.md` (the bounds); `docs/spec.md` §13 if it lists draft limits; `CHANGELOG.md`.
   - Test Cases to Write:
     - `oversized_inline_draft_is_refused_before_transpile`: a transpiler spy records no call. Fails if the check moves after `pack()`.
     - `too_many_draft_files_is_limit_exceeded`: 65 one-byte files.
     - `draft_at_the_bound_packs`: exactly 1,048,576 bytes in 64 files still packs.
-    - `oversized_manifest_or_scenarios_is_refused`: at `/manifest` and `/scenarios`.
+    - `oversized_manifest_scenarios_or_template_is_refused`: compact JSON escaping and the shared document budget report the field that crossed it.
+    - `inline_draft_document_preflight_bounds_nesting`: deeply nested input returns a typed limit error.
+    - `pack_draft_refuses_oversized_inline_files_and_keeps_the_current_draft` and the existing `pack_dir_accepts_exact_read_bounds`: tool propagation, draft retention and directory compatibility.
+  - Notes (executed 2026-11-23):
+    - Inline drafts now return typed limit errors before manifest validation and packing. The boundary counts 64 source files and 1 MiB of UTF-8 source, plus a separate 1 MiB of compact JSON across the draft documents. The JSON byte walk stops at 512 nested containers. Directory drafts retain their existing read limits.
+    - Seven focused regressions passed. The transpiler and manifest validation spies recorded zero calls for the oversized draft, and `bench/authoring.bench.ts` measured 0 bytes of median RSS growth for the 9 MiB refusal.
+    - `bun run check` passed on Task 8 in isolation with 2,164 passed, 6 skipped and 0 failed. The shared worktree's full run had one failure in `text_results_match_expected_contract` from the existing Task 6 diagnostics changes. The snapshot passed on the isolated Task 8 tree.
 
 - [ ] Task 9: Fix four core defects: lone surrogates, `pattern` after a failed length, `__proto__` sections, refusals over a recorded status (LF-27, items 1–4)
   - Acceptance Criteria:
@@ -672,6 +679,7 @@ The sixteen plans of this family were drafted in parallel from one request docum
 - `timeout 900 bun run check`
 - `timeout 600 bun run bench` (on a loaded host, the single stages: `bench/template.bench.ts`, `bench/validator.bench.ts`, `bench/host.bench.ts`, `bench/a2ui.bench.ts`, `bench/runner.bench.ts`)
 - `timeout 300 bun test --conditions liveframe:source ./src/__tests__/template-render.test.ts ./src/__tests__/template-document.test.ts ./src/__tests__/corpus.test.ts ./src/__tests__/api-stability.test.ts ./src/__tests__/host-render.test.ts ./src/__tests__/host-intent.test.ts`
+- `timeout 60 bun --conditions liveframe:source bench/authoring.bench.ts`
 - `timeout 300 bun test --conditions liveframe:source packages/a2ui packages/runner-quickjs`
 - `timeout 300 bun run demo:test` and `timeout 300 bun run guide:test`
 - `timeout 300 bun run release:gate`

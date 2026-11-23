@@ -146,6 +146,8 @@ export type JsonWalk = {
   /** Bytes counted so far in the whole tree, and the limit they may not pass. */
   bytes: number;
   readonly maximum: number;
+  /** Optional ceiling for untrusted documents without an enclosing depth check. */
+  readonly maximumDepth?: number;
   /** Set once the byte limit or an error bound ends the walk. */
   stopped: boolean;
   /** Cold: reports a broken value rule. */
@@ -172,6 +174,11 @@ export function walkJson(value: unknown, ctx: JsonWalk): void {
   }
   if (value === null || typeof value !== "object") {
     ctx.fail("a JSON value");
+    return;
+  }
+  if (ctx.maximumDepth !== undefined && ctx.path.length >= ctx.maximumDepth) {
+    ctx.limit();
+    ctx.stopped = true;
     return;
   }
   if (ctx.ancestors.has(value)) {

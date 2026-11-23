@@ -33,6 +33,10 @@ installed `catalog` and `capabilities` documents, and a `draft`
 
 `createPreview({ …, libraries })` takes the shared library packages (see [sharing components](packages.md#share-components-between-widgets)) that drafts may import as `liveframe:lib/<id>@<version>`. The host supplies them: `update(draft)` packs against them, so a draft's pins are those packages' hashes, and every render passes the same list to the runner, as `renderPlacement` passes a placement's libraries. A library that was not supplied is `not-found` ("the host did not supply this library to this session") and one whose content no longer matches its hash is `hash-mismatch`. An invalid list throws `LiveframeFailure` at `/libraries/<index>`. `liveframe mcp` and `createAuthoring()` take the same option ([the MCP guide](mcp.md#libraries)).
 
+Hosts that accept inline drafts through `createAuthoring()` or `liveframe mcp`
+get a preflight limit of 64 source files and 1 MiB of UTF-8 source text, plus a
+separate 1 MiB budget for the draft's JSON documents. See [draft limits](mcp.md#the-tools).
+
 Set `limits: { nodes: 20_000 }` to raise the node bound. The optional `nodes`, `depth` and `bytes` fields reuse `RenderLimits` from `/sdk`; omitted fields default to 5,000 nodes, depth 64 and 1 MiB. Each provided value must be a positive safe integer. Limits are copied at construction and applied to both the runner and host validation on every render, intent re-render and scenario check. Invalid limits throw `LiveframeFailure` with `invalid-document` at `/limits`.
 
 ```ts

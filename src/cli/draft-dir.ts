@@ -1,9 +1,9 @@
 import { lstat, readdir, realpath } from "node:fs/promises";
 import { isAbsolute, join, relative, sep } from "node:path";
+import { boundedDirectoryDraft, MAX_DRAFT_BYTES } from "../authoring/draft-limits.ts";
 import type { PackInput } from "../authoring/index.ts";
 import type { LiveframeError, Result } from "../errors.ts";
 
-const maxBytes = 1048576;
 const failure = (kind: LiveframeError["kind"], message: string): Result<never> => ({
   ok: false,
   errors: [{ kind, pointer: "/dir", message }],
@@ -71,7 +71,7 @@ export async function readDraftDirectory(
       const info = await lstat(path);
       if (!info.isFile()) return failure("invalid-document", `Draft file ${name} must be a regular file`);
       size += info.size;
-      if (size > maxBytes) return failure("limit-exceeded", "Draft exceeds 1048576 aggregate bytes");
+      if (size > MAX_DRAFT_BYTES) return failure("limit-exceeded", `Draft exceeds ${MAX_DRAFT_BYTES} aggregate bytes`);
       selected.push({ name, path });
     }
     const contents: Record<string, string> = {};
@@ -80,10 +80,11 @@ export async function readDraftDirectory(
       target = name;
       // Bound actual reads too, in case a file grew after the size check.
       const bytes = await Bun.file(path)
-        .slice(0, maxBytes - bytesRead + 1)
+        .slice(0, MAX_DRAFT_BYTES - bytesRead + 1)
         .bytes();
       bytesRead += bytes.length;
-      if (bytesRead > maxBytes) return failure("limit-exceeded", "Draft exceeds 1048576 aggregate bytes");
+      if (bytesRead > MAX_DRAFT_BYTES)
+        return failure("limit-exceeded", `Draft exceeds ${MAX_DRAFT_BYTES} aggregate bytes`);
       contents[name] = new TextDecoder().decode(bytes);
     }
     // Sources end in .ts or .tsx, so the rest is exactly the source files, in read order.
@@ -97,10 +98,11 @@ export async function readDraftDirectory(
       return failure("not-found", "Draft manifest.json or scenarios.json is missing");
     const manifest: unknown = JSON.parse(manifestText);
     const scenarios: unknown = JSON.parse(scenariosText);
+    const bounded = { [boundedDirectoryDraft]: true };
     if (templateText !== undefined)
-      return { ok: true, value: { template: JSON.parse(templateText), manifest, scenarios } };
+      return { ok: true, value: { ...bounded, template: JSON.parse(templateText), manifest, scenarios } };
     // `entry` was checked above for every draft that is not a template.
-    return { ok: true, value: { files, entry: entry as string, manifest, scenarios } };
+    return { ok: true, value: { ...bounded, files, entry: entry as string, manifest, scenarios } };
   } catch (error) {
     if (error instanceof SyntaxError) return failure("invalid-document", "Draft contains malformed JSON");
     return readFailure(error, dir, target);

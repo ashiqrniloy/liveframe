@@ -31,7 +31,9 @@ import {
 import type { RenderLimits } from "../sdk/render.ts";
 import { complete } from "../validate/complete.ts";
 import { findNode } from "../validate/patch.ts";
+import { type JsonWalk, walkJson } from "../validate/structure.ts";
 import { checkAll, type ScenarioStatus } from "./checks.ts";
+import { boundedDirectoryDraft, MAX_DRAFT_BYTES } from "./draft-limits.ts";
 
 export type AuthoringOptions = {
   readonly catalog: Catalog;
@@ -162,6 +164,44 @@ function draftBodyErrors(input: Record<string, unknown>): LiveframeError[] {
   return errors;
 }
 
+function inlineDraftLimit(input: Record<string, unknown>): Result<never> | undefined {
+  const maxFiles = 64;
+  const maxDocumentDepth = 512;
+  const { files } = input;
+  if (isRecord(files)) {
+    let count = 0;
+    let remaining = MAX_DRAFT_BYTES;
+    for (const path in files) {
+      if (!Object.hasOwn(files, path)) continue;
+      if (++count > maxFiles) return failure("limit-exceeded", "/files", `Draft exceeds ${maxFiles} source files`);
+      const source = files[path];
+      if (typeof source !== "string") continue;
+      // UTF-16 length is a lower bound on UTF-8 bytes, so large strings need no scan.
+      remaining -= source.length > remaining ? source.length : utf8Length(source, remaining);
+      if (remaining < 0) return failure("limit-exceeded", "/files", `Draft exceeds ${MAX_DRAFT_BYTES} aggregate bytes`);
+    }
+  }
+
+  const counter: JsonWalk = {
+    ancestors: new Set(),
+    path: [],
+    nodeId: "",
+    bytes: 0,
+    maximum: MAX_DRAFT_BYTES,
+    maximumDepth: maxDocumentDepth,
+    stopped: false,
+    fail() {}, // The format validators report shape errors with their document pointers.
+    limit() {},
+  };
+  for (const field of ["manifest", "scenarios", "template"]) {
+    walkJson(input[field], counter);
+    if (counter.bytes > MAX_DRAFT_BYTES)
+      return failure("limit-exceeded", `/${field}`, `Draft documents exceed ${MAX_DRAFT_BYTES} aggregate bytes`);
+    if (counter.stopped)
+      return failure("limit-exceeded", `/${field}`, `Draft document nesting exceeds ${maxDocumentDepth} levels`);
+  }
+}
+
 /** `pack_draft`'s arguments, checked before the packer so its error set is the whole answer. */
 function packArguments(input: unknown): Result<PackInput> {
   if (!isRecord(input))
@@ -174,6 +214,10 @@ function packArguments(input: unknown): Result<PackInput> {
         ),
       ],
     };
+  if (!Object.hasOwn(input, boundedDirectoryDraft)) {
+    const bound = inlineDraftLimit(input);
+    if (bound) return bound;
+  }
   const { manifest, scenarios } = input;
   const errors = draftBodyErrors(input);
   if (Object.hasOwn(input, "libraries"))
