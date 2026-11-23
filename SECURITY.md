@@ -1,5 +1,9 @@
 # Security policy
 
+## Supported versions
+
+Security fixes ship as patches of the latest minor release, currently 0.4.x. Upgrade to the newest 0.4.x patch to receive them; earlier minors receive no fixes.
+
 ## Reporting a vulnerability
 
 Report suspected vulnerabilities privately through GitHub's private vulnerability reporting on this repository: **Security → Report a vulnerability** (<https://github.com/ashiqrniloy/liveframe/security/advisories/new>). Do not open a public issue for a vulnerability, and do not include exploit details in a pull request.

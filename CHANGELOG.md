@@ -2,7 +2,9 @@
 
 All notable changes to `@arnilo/liveframe` are recorded here. The project follows the compatibility policy in [`docs/compatibility.md`](docs/compatibility.md).
 
-## Unreleased
+## 0.4.1 — unreleased
+
+0.4.1 is a security patch for 0.4.0. A host upgrading from 0.4.0 changes nothing: every addition is optional, and an outcome changes only where 0.4.0 accepted or leaked something it should have refused or kept back. See the [compatibility notes](docs/compatibility.md#041) and [adopter notes](docs/adopters-0.4.md#041--security-hardening).
 
 Fixed:
 
@@ -30,7 +32,13 @@ Added:
 
 - **An opt-in for thrown widget text (LF-21).** `debug?: boolean` on `render()`'s `RenderOptions` (`/sdk`), `renderModule`'s `RenderModuleOptions` (`/runner-kit`), `RunnerOptions` (`/preview`) and `HostWiring.runOptions` (`/host`) returns up to 1,000 characters of the exception text in `LiveframeError.debug`. The text is untrusted author text and may contain render inputs; use it only for trusted diagnostics ([SDK](docs/sdk.md)).
 
-- **Template budget conformance cases (LF-18).** The corpus covers static fan-out, the component depth boundary, and a template that installs successfully but exhausts the render step budget during a string slice. See the [corpus guide](docs/conformance.md#language-neutral-corpus).
+- **Template budget conformance cases (LF-18).** The corpus covers static fan-out, the component depth boundary, and a template that installs successfully but exhausts the render step budget during a string slice. See the [corpus guide](docs/conformance.md#language-neutral-corpus) Each case has its expectation and its document: `conformance/corpus/template/expansion-over-node-limit.json`, `conformance/corpus/template/docs/expansion-over-node-limit.json`, `conformance/corpus/template/use-chain-at-depth-limit.json`, `conformance/corpus/template/docs/use-chain-at-depth-limit.json`, `conformance/corpus/template/use-chain-over-depth-limit.json`, `conformance/corpus/template/docs/use-chain-over-depth-limit.json`, `conformance/corpus/template/string-doubling-then-slice.json` and `conformance/corpus/template/docs/string-doubling-then-slice.json`. No existing case changed.
+
+Documentation:
+
+- **The security guide says what is enforced, and cites the test that enforces it (LF-65).** The template section names both budgets and what each charges, and replaces the old timing with the measured worst render under the default budget. `hash-mismatch` is described as detecting a record whose content no longer matches its own `hash`, not a substituted record with a recomputed hash: a placement cannot pin content in 0.4.x, so the app controls who can write its store. The A2UI sentence lists the bounds `fromA2ui` enforces. A new `0.4.1 audit` section lists each fix with its law and tests ([security guide](docs/security.md#041-audit)).
+- **An adopter responsibility checklist (LF-65).** One table lists, per concern, what the library checks, what the app must do, and the test or request behind the row, including server-side confirmation, double submits, request forgery on the intent endpoint, per-viewer `Served` and action statuses, literal action arguments, image and link hosts, and personal data in trees and events ([checklist](docs/security-checklist.md)).
+- **The streaming guide sends at most one update per frame (LF-36).** The documented `streamElements` loop sent one patch per completed node, so its cost grew with the square of the document. It now pushes every chunk, keeps the newest tree, and diffs and sends at most once per frame interval and once after `end()`, using a clock the host passes. The guide's loop runs as written in the test suite ([SDK guide](docs/sdk.md#draw-agent-json-while-it-streams)).
 
 ## 0.4.0 — 2026-11-22
 

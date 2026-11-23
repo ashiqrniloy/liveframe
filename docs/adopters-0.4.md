@@ -67,10 +67,34 @@ Use the [migration guide](migration-0.4.md) for upgrade steps and the [compatibi
 - The renderer work addresses the focus scope and repeated mount costs on Clay’s browser path. The release gates exercise WebKit, including the new renderer cases. CL-16’s theme-switch fix shipped earlier. The new motion coverage concerns surface nodes. [Clay review](https://github.com/ashiqrniloy/liveframe/blob/main/plans/requests/clay-0.2.1-requests.md) · [Clay requests](https://github.com/ashiqrniloy/liveframe/blob/main/plans/requests/clay-adoption-requests.md)
 - The digest is available through `createAuthoring()` as well as MCP, extending the library path requested in LF-15. Element JSON improvements also cover Clay’s LF-16 dependency for agent results. Both base APIs shipped earlier. LF-17’s 1 KiB target still needs measurement on Clay’s own stream.
 
+## 0.4.1 — security hardening
+
+Upgrading a host from 0.4.0 needs no API or stored-data change. The 0.4.1 register holds only additions and optional widenings, and no existing corpus expectation, hash vector or schema changed. The [changelog](../CHANGELOG.md#041--unreleased) lists each fix, and the [compatibility notes](compatibility.md#041) list the inputs whose outcome changed. Each item comes from [Synapta's evaluation of 0.4.0](https://github.com/ashiqrniloy/liveframe/blob/main/plans/requests/synapta-0.4.0-requests.md).
+
+| Request | Problem | Shipped API or behavior | Spec | Limit |
+|---|---|---|---|---|
+| LF-18 | A template could spend host time far beyond `limits.steps`. | Every emitted element, fragment and `$use` spends a step, emission stops at `limits.nodes`, sized operators pay for the units they read or write, and install refuses a data-free expansion over the node limit. `validateTemplate`, `pack` and `VerifyOptions` accept an optional `limits.nodes`. | §7.6 | There is no wall-clock timeout. The worst measured render under the default budget is in the [security guide](security.md#template-packages-need-no-isolation-runner). Real widgets spend more steps than in 0.4.0. |
+| LF-21 | Text a widget threw reached host errors and `HostEvent`s. | A thrown non-library error becomes a fixed `Widget threw <name>` message. `debug` on `RenderOptions`, `RenderModuleOptions`, `RunnerOptions` and `HostWiring.runOptions` returns up to 1,000 characters in `LiveframeError.debug`. | §§7.5, 10 | Typed errors a runner returns still carry author text, and node ids and pointers carry author keys. |
+| LF-25 | A hostile A2UI document could make the converter allocate without bound. | `fromA2ui` refuses sparse indices, over-budget data-model writes, data pointers deeper than 128 segments and oversized formatted text, and returns every unexpected error as a typed failure. | §13 | The converter still accepts one bounded snapshot. |
+| LF-26 | An inline draft could be any size before it was transpiled. | `pack_draft` and `authoring.packDraft()` refuse more than 64 source files, 1 MiB of source or 1 MiB of document JSON. | §13 | Drafts run in the runner the host supplies, and neither reference runner is an isolation boundary. |
+| LF-27 | Six small defects in validation, the intent path and authoring. | Lone surrogates fail their source, `pattern` is skipped after a length failure, prototype names are refused as section keys, a refused intent keeps the recorded status, draft-directory files are read through a checked handle, and capture failures carry fixed messages. | §§7.7, 10, 13 | A directory swapped above a draft file is not covered; keep `draftRoot` writable only by trusted users. |
+| LF-34 | A host serving more than eight catalogs recompiled them in turn. | `compileValidator` keeps the 64 most recently used catalog and capabilities pairs. | §10 | A cache hit is slightly slower than the old scan because it hashes the document text. |
+| LF-36 | The documented streaming loop cost grew with the square of the document. | The [streaming guide](sdk.md#draw-agent-json-while-it-streams) sends at most one update per frame and once after `end()`. | §7.2 | Each update still diffs and validates the whole tree, and a source slower than one tree per frame still gets one update per tree. |
+| LF-65 | The security guide overstated three bounds, and the app's duties were spread across pages. | The [security guide](security.md#041-audit) cites a test for each corrected statement, and the [security checklist](security-checklist.md) lists what the library checks and what the app must do. | §2 | The checklist names duties the app holds today; it adds no check. |
+
+Host actions from the 0.4.1 register:
+
+- Pass the host's node budget when it differs from the 5,000-node default.
+- Use the same node budget for packing and subsequent verification.
+- Pass the matching node budget when verifying or loading packages above the 5,000-node default.
+- Use debug only for trusted diagnostic output.
+
 ## Not delivered
 
 | Item | Status |
 |---|---|
+| [Synapta's 0.4.0 requests](https://github.com/ashiqrniloy/liveframe/blob/main/plans/requests/synapta-0.4.0-requests.md) LF-19, LF-20, LF-22, LF-23, LF-24, LF-26 (the runner half), LF-28, LF-30, LF-33, LF-35, LF-36 (the stream's own update form), LF-39, LF-41, LF-42, LF-43, LF-45, LF-48, LF-50, LF-51, LF-62, LF-63 and LF-64 | Scheduled for 0.5.0. The [security checklist](security-checklist.md) names the app's duty for each security item today. |
+| [Synapta's 0.4.0 requests](https://github.com/ashiqrniloy/liveframe/blob/main/plans/requests/synapta-0.4.0-requests.md) LF-29, LF-31, LF-32, LF-37, LF-38, LF-40, LF-44, LF-46, LF-47, LF-49, LF-52 to LF-61 | Scheduled for 0.6.0. |
 | Report thrown or rejected `onIntent` callbacks through `SurfaceEvent` | Deferred to 0.5.0. |
 | Omit prior `patch`, `reset` and `migrated` on a skipped `renderPlacement` | Deferred to 0.5.0. |
 | Focus scroll directives | The tree mark requests focus only. |

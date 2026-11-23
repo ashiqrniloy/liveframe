@@ -20,6 +20,26 @@ Every declaration or schema change needs an entry in `scripts/release/api/regist
 - **Minor (`0.x`)** may break the public API. Every breaking change in `0.x` comes at a minor version, with a deprecation in an earlier release where that is feasible.
 - **`1.0.0`** changes the rule above: from then on a breaking change needs a major version.
 
+## 0.4.1
+
+A host upgrading from 0.4.0 changes nothing. Exports keep their declarations except for optional additions, and format meanings, published schemas, existing corpus expectations, hash and patch vectors, and the on-disk store layout stay the same. `scripts/release/api/register-0.4.1.json` holds only `added` and `widened` entries: optional `limits.nodes` on `validateTemplate`, `pack` and `VerifyOptions`, an optional `debug` opt-in on `RenderOptions`, `RenderModuleOptions`, `RunnerOptions` and `HostWiring.runOptions`, and eight new template corpus files. Valid trees, CSS, hashes, patches and intents keep their bytes. The companion packages peer on `~0.4.0`, with `~0.4.0-0` for the release candidate.
+
+Inputs that already broke the contract now give a different outcome. Each was accepted or leaked before and is refused or redacted now:
+
+- **Template budgets (LF-18).** A template whose expansion passes `limits.nodes` stops with `limit-exceeded` at the first element or fragment over the limit, and one whose data-free expansion already passes it is refused at install, `pack` and verification. Every emitted element, fragment and entered `$use` now spends a step, and string and array operators spend steps by the units and entries they read or write, so a template that ran out of steps only in 0.4.1 stops with `limit-exceeded`. A real widget spends more steps than before (the 680-node agent-home template's first selection rose from 5,403 to 6,964 steps). A host that lowered `limits.steps` close to a widget's need should render its scenarios again before upgrading.
+- **Thrown widget text (LF-21).** A widget that throws something other than a `LiveframeFailure` reaches host errors and `HostEvent`s as the fixed message `Widget threw <name>`, with an allowlisted error name. The thrown text is returned in `LiveframeError.debug` only to a caller that sets `debug`.
+- **A2UI conversion (LF-25).** A document that writes a sparse array index, allocates more data-model values than the budget, uses a data pointer deeper than 128 segments or formats oversized text returns `limit-exceeded`. Any other unexpected error is a typed failure with fixed text.
+- **Inline drafts (LF-26).** An inline `pack_draft` or `authoring.packDraft()` draft over 64 source files, 1 MiB of source or 1 MiB of document JSON is refused with `limit-exceeded` before anything is transpiled.
+- **Six hardening cases (LF-27).**
+  - A source value with a lone surrogate fails that source (a `failed` outcome where the source declares one) instead of the render.
+  - A string over its length bound is refused without running its `pattern`.
+  - Element JSON and templates refuse `__proto__`, `constructor` and `prototype` as names in `props`, `style` and `events`.
+  - A refused intent leaves the recorded action status for its key in place and skips the render.
+  - `liveframe mcp` refuses a draft-directory file that is hard-linked or swapped for a symlink after its containment check.
+  - Capture failures carry fixed messages, never a host path, URL or Playwright text.
+
+`compileValidator` keeps 64 catalog and capabilities pairs instead of eight (LF-34); a hit still requires the same document content. The streaming guide's loop now sends at most one update per frame (LF-36); `streamElements` itself is unchanged. See the [adopter notes](adopters-0.4.md#041--security-hardening) and the [security checklist](security-checklist.md).
+
 ## 0.4.0
 
 **Additions.** Optional interaction fields extend the existing format ids with compound local writes, `fromLocal`, bounded scalar array carries and a tree focus mark. `shown` supports local empty states, `Store.putStateIf` supports conditional state writes, and sources can opt in to `pending`. The release adds recipe motion, starter scroll windowing, `/dom` and `/conformance/dom`, local bindings for element JSON, the catalog digest, the A2UI snapshot converter and ten starter kinds. Older validators reject documents that use the new fields. See the [adopter notes](adopters-0.4.md).

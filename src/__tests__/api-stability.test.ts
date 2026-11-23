@@ -246,6 +246,10 @@ test("register_host_actions_appear_in_adopter_notes", async () => {
   for (const entry of register030) {
     expect(adopters).toContain(entry.hostAction);
   }
+  const adopters04 = await Bun.file(resolve(root, "docs/adopters-0.4.md")).text();
+  for (const entry of [...register041, ...starterRegister041]) {
+    if (entry.hostAction !== "None.") expect(adopters04).toContain(entry.hostAction);
+  }
 });
 
 const breaking: RegisterEntry = {

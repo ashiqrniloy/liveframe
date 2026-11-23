@@ -75,3 +75,49 @@ test("security_policy_and_release_checklist_name_every_package", async () => {
     expect(release).toContain(`\`${name}\``);
   }
 });
+
+test("changelog_0_4_1_has_a_line_for_every_register_entry", async () => {
+  const changelog = await Bun.file(new URL("CHANGELOG.md", root)).text();
+  const section = changelog.split("\n## 0.4.1 ")[1]?.split("\n## ")[0] ?? "";
+  expect(section).not.toBe("");
+  const missing: string[] = [];
+  for (const file of ["register-0.4.1.json", "register-0.4.1-starter.json"]) {
+    const entries: { name: string }[] = await Bun.file(new URL(`scripts/release/api/${file}`, root)).json();
+    // A member reference such as `HostWiring.runOptions` names its declaration too.
+    for (const { name } of entries)
+      if (![`\`${name}\``, `\`${name}.`].some((form) => section.includes(form))) missing.push(`${file}: ${name}`);
+  }
+  expect(missing).toEqual([]);
+});
+
+/** Drops the text where a later release may be named: the adopter notes' "Not delivered" table and the checklist's request column. */
+function shippedText(file: string, markdown: string): string {
+  if (file === "docs/adopters-0.4.md") return markdown.replace(/\n## Not delivered\n[\s\S]*?(?=\n## |$)/, "\n");
+  if (file === "docs/security-checklist.md") return markdown.replace(/^(\|.*\|)[^|\n]*\|[ \t]*$/gm, "$1");
+  return markdown;
+}
+
+test("no_doc_presents_a_later_release_item_as_shipped", async () => {
+  const files = ["README.md", "SECURITY.md", "CHANGELOG.md"];
+  for await (const file of new Bun.Glob("docs/**/*.md").scan(root.pathname)) files.push(file);
+  for (const dir of await packageDirs()) {
+    if (dir !== ".") files.push(`${dir}/README.md`);
+  }
+
+  const stale: string[] = [];
+  for (const file of files) {
+    const markdown = shippedText(file, await Bun.file(new URL(file, root)).text());
+    for (const paragraph of markdown.split(/\n\s*\n/)) {
+      if (/\b(?:from|in)\s+`?v?0\.(?:5|6)\.0\b/i.test(paragraph)) stale.push(`${file}: ${paragraph}`);
+    }
+  }
+  expect(stale).toEqual([]);
+});
+
+test("later_release_check_ignores_only_the_not_delivered_table_and_request_column", () => {
+  const notes = "## A\n\nShips in 0.5.0.\n\n## Not delivered\n\n| x | in 0.5.0 |\n";
+  expect(shippedText("docs/adopters-0.4.md", notes)).toContain("Ships in 0.5.0.");
+  expect(shippedText("docs/adopters-0.4.md", notes)).not.toContain("| x | in 0.5.0 |");
+  const checklist = "| a | in 0.5.0 | c | [LF-1](x) in 0.5.0 |\n";
+  expect(shippedText("docs/security-checklist.md", checklist)).toBe("| a | in 0.5.0 | c |\n");
+});
