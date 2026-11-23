@@ -284,27 +284,43 @@ An agent that writes element JSON token by token can be drawn before it finishes
 `streamElements({ validator, surfaceId })` returns `{ push, end }`. Feed it each
 chunk of the text; it returns a new tree whenever the nodes completed so far
 changed (and `undefined` when they did not), numbered `revision + 1`, `revision + 2`,
-and so on:
+and so on. That is about one tree per closed node, far more than a screen can show,
+so the loop below keeps only the newest tree and sends at most one update per frame,
+plus the final tree after `end()`. `now` is your clock (`() => performance.now()`
+on a server); the loop starts no timer:
 
 ```ts
-import { applyPatch, diffTrees, type UiTree } from "@arnilo/liveframe";
+import { diffTrees, type UiTree } from "@arnilo/liveframe";
 import { streamElements } from "@arnilo/liveframe/sdk";
 
+const FRAME_MS = 16; // at most one update per display frame
 const stream = streamElements({ validator, surfaceId: "chat-42" });
-let shown: UiTree | undefined;
+let latest: UiTree | undefined; // the newest tree; most are never sent
+let shown: UiTree | undefined; // the tree the client holds
+let sentAt = Number.NEGATIVE_INFINITY;
+const flush = () => {
+  if (!latest || latest === shown) return;
+  const patch = shown && diffTrees(shown, latest);
+  send(patch?.ok ? { patch: patch.value } : { tree: latest });
+  shown = latest;
+  sentAt = now();
+};
 for await (const chunk of llm) {
   const next = stream.push(chunk);
   if (!next) continue; // nothing new has completed
   if (!next.ok) break; // malformed JSON or a limit: `next.errors` says where
-  if (shown) {
-    const patch = diffTrees(shown, next.value);
-    if (patch.ok) send({ patch: patch.value });
-  } else send({ tree: next.value });
-  shown = next.value;
+  latest = next.value;
+  if (now() - sentAt >= FRAME_MS) flush();
 }
 const final = stream.end(); // the same result `renderElements` gives the whole text
 if (final.ok) send({ tree: final.value });
 ```
+
+Every tree `push` returns has passed the compiled validator, and the client still
+validates each update it receives, so dropping the trees between frames never
+sends an unvalidated one. A patch that `diffTrees` cannot make is sent as the whole
+tree, so the client never falls behind `shown`. After a failure the loop sends
+nothing more.
 
 A tree holds each node whose object has closed and passed every check
 `renderElements` makes, and the shells of the nodes still open (their own fields
@@ -313,7 +329,7 @@ it, are left out until it closes, and a shell that the catalog's child rules wou
 reject yet (a `list` that needs an item, before the first item closes) waits for its
 first valid child. Every tree is a validated tree, so `<Surface tree={shown}>` can
 draw each one, and successive trees are valid inputs to `diffTrees`, so the loop
-above sends patches.
+above can send a patch from any tree it sent to any later one.
 
 Things to know:
 
@@ -331,9 +347,13 @@ Things to know:
   `limits.depth` or 10,000 expression nodes, or a text longer than four times `limits.bytes` characters, is
   `limit-exceeded`. After a failure `push` and `end` keep returning it; the stream
   holds nothing more.
-- **Cost.** The work over a whole stream is linear in the text: about 2.8 times one
-  `renderElements` of the same 679-node document fed in 64-byte chunks (`bun run bench`
-  gates it at 3 times).
+- **Cost.** The work inside `streamElements` over a whole stream is linear in the
+  text: about 2.8 times one `renderElements` of the same 679-node document fed in
+  64-byte chunks (`bun run bench` gates it at 3 times). Each update the loop sends
+  costs more than that: one `diffTrees` of two whole trees on the host, then one
+  `applyPatch` and a validation of the whole tree in the client. Sending one per
+  closed node makes the whole loop grow with the square of the document, which is
+  why the loop sends per frame and not per tree.
 
 ## Sources that may be pending
 
