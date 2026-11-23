@@ -2,7 +2,8 @@ import { DEFAULT_MAX_ERRORS, type LiveframeError, LiveframeFailure, type Result 
 import { bindSources } from "../formats/manifest.ts";
 import type { WidgetPackage } from "../formats/package.ts";
 import type { Json, UiTree } from "../formats/tree.ts";
-import { renderKey } from "../pack/hash.ts";
+import { at } from "../internal.ts";
+import { digest, isLoneSurrogateError, renderKey } from "../pack/hash.ts";
 import type { RunnerOptions } from "../preview/runner.ts";
 import type { LanguageSchema } from "../schema.ts";
 import type { WidgetInputs } from "../sdk/types.ts";
@@ -114,6 +115,54 @@ function fitData(
     data[alias] = value;
   }
   return { ok: true, value: data };
+}
+
+const invalidUnicode = (pointer: string) =>
+  new LiveframeFailure(refuse("render-failed", pointer, "Input contains a lone surrogate"));
+
+function containsLoneSurrogate(value: Json): boolean {
+  try {
+    digest(value);
+    return false;
+  } catch (error) {
+    if (isLoneSurrogateError(error)) return true;
+    throw error;
+  }
+}
+
+/** Locate the invalid input only after canonical hashing reports a lone surrogate. */
+function placementKey(
+  inputs: Parameters<typeof renderKey>[0] & {
+    params: Json;
+    state: Json;
+    context: Json;
+    data: Record<string, Json>;
+  },
+  capabilities: Installs[string]["capabilities"],
+  calls: readonly SourceCall[],
+  report: (alias: string, source: string, reason: Reason) => void,
+): string {
+  try {
+    return renderKey(inputs);
+  } catch (error) {
+    if (!isLoneSurrogateError(error)) throw error;
+  }
+
+  for (const field of ["params", "state", "context"] as const)
+    if (containsLoneSurrogate(inputs[field])) throw invalidUnicode(`/${field}`);
+
+  for (const { alias, source } of calls) {
+    const value = inputs.data[alias];
+    if (value === undefined || !containsLoneSurrogate(value)) continue;
+    report(alias, source, "invalid-result");
+    const schema = capabilities.sources[source]?.result;
+    const outcome = schema && envelope(schema, { reason: "failed" });
+    const pointer = at("/data", alias);
+    if (!schema || outcome === undefined || !compileSchema(schema)(outcome, pointer, { errors: [], maxErrors: 0 }))
+      throw invalidUnicode(pointer);
+    inputs.data[alias] = outcome;
+  }
+  return renderKey(inputs);
 }
 
 /** R8. A runner that throws or answers with a non-`Result` is a failed render with a fixed message. */
@@ -236,19 +285,24 @@ export async function renderLoaded<V>(
 
     // R4–R5. Read as the viewer, then fit.
     const calls = Object.entries(bound.value).map(([alias, { source, params }]) => ({ alias, source, params }));
-    const fitted = fitData(install.capabilities, calls, await readSources(args, calls), (alias, source, reason) =>
+    const report = (alias: string, source: string, reason: Reason) =>
       notify?.(
         reason === "pending"
           ? { type: "source-pending", placementId, alias, source }
           : { type: "source-failed", placementId, alias, source, reason },
-      ),
-    );
+      );
+    const fitted = fitData(install.capabilities, calls, await readSources(args, calls), report);
     if (!fitted.ok) return failed("render-failed", fitted.errors);
     const data = fitted.value;
 
     // R6. Skip when nothing the tree depends on has changed.
     const surfaceId = args.surfaceId ?? placementId;
-    const key = renderKey({ hash: pkg.hash, catalogId, params, state, data, context, actions });
+    const key = placementKey(
+      { hash: pkg.hash, catalogId, params, state, data, context, actions },
+      install.capabilities,
+      calls,
+      report,
+    );
     if (previous && unchanged(previous, { key, surfaceId, placementId, scope, floor: args.revision })) {
       notify?.({ type: "render-skipped", placementId, revision: previous.revision });
       return { ok: true, value: previous };

@@ -276,7 +276,8 @@ export function checkValue<const S extends LanguageSchema>(
   const full = () => errors.length >= maxErrors;
   function checkString(s: StringSchema, input: unknown, pointer: string) {
     if (typeof input !== "string") return reject(pointer, "a string");
-    if (!codePointsWithin(input, s.maxLength, s.minLength))
+    const lengthFits = codePointsWithin(input, s.maxLength, s.minLength);
+    if (!lengthFits)
       reject(
         pointer,
         s.minLength === undefined
@@ -284,7 +285,8 @@ export function checkValue<const S extends LanguageSchema>(
           : `a string of ${s.minLength}–${s.maxLength} characters`,
       );
     if (s.enum && !s.enum.includes(input)) reject(pointer, `one of ${s.enum.join(", ")}`);
-    if (s.pattern && !new RegExp(s.pattern, "u").test(input)) reject(pointer, `a string matching ${s.pattern}`);
+    if (lengthFits && s.pattern && !new RegExp(s.pattern, "u").test(input))
+      reject(pointer, `a string matching ${s.pattern}`);
     if (s.url && !checkUrl(input, s.url)) reject(pointer, urlExpected(s.url));
   }
   function checkNumeric(s: NumericSchema, input: unknown, pointer: string) {

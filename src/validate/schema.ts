@@ -127,9 +127,10 @@ function compileForm(schema: LanguageSchema): SchemaCheck {
       return (value, at, sink) => {
         if (typeof value !== "string") return reject(at, sink, typeExpected);
         let valid = true;
-        if (!codePointsWithin(value, maxLength, minLength)) valid = reject(at, sink, lengthExpected);
+        const lengthFits = codePointsWithin(value, maxLength, minLength);
+        if (!lengthFits) valid = reject(at, sink, lengthExpected);
         if (choices && !choices.has(value)) valid = reject(at, sink, enumExpected);
-        if (pattern && !pattern.test(value)) valid = reject(at, sink, patternExpected);
+        if (lengthFits && pattern && !pattern.test(value)) valid = reject(at, sink, patternExpected);
         if (url && urlMessage && !checkUrl(value, url)) valid = reject(at, sink, urlMessage);
         return valid;
       };

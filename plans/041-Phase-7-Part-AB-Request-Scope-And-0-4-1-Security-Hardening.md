@@ -531,7 +531,7 @@ The sixteen plans of this family were drafted in parallel from one request docum
     - Seven focused regressions passed. The transpiler and manifest validation spies recorded zero calls for the oversized draft, and `bench/authoring.bench.ts` measured 0 bytes of median RSS growth for the 9 MiB refusal.
     - `bun run check` passed on Task 8 in isolation with 2,164 passed, 6 skipped and 0 failed. The shared worktree's full run had one failure in `text_results_match_expected_contract` from the existing Task 6 diagnostics changes. The snapshot passed on the isolated Task 8 tree.
 
-- [ ] Task 9: Fix four core defects: lone surrogates, `pattern` after a failed length, `__proto__` sections, refusals over a recorded status (LF-27, items 1–4)
+- [x] Task 9: Fix four core defects: lone surrogates, `pattern` after a failed length, `__proto__` sections, refusals over a recorded status (LF-27, items 1–4)
   - Acceptance Criteria:
     - Functional:
       1. A lone surrogate in one source's data no longer fails the placement. `renderPlacement` gives that alias the `failed` outcome, reports `source-failed` with reason `invalid-result`, and renders. One in `params`, `state` or `context` is a typed `render-failed` error with the pointer of the input that holds it. Today both end as `invalid-document` at `""` (`src/host/render.ts:301-305`).
@@ -559,17 +559,24 @@ The sixteen plans of this family were drafted in parallel from one request docum
       - Handle the hash failure where it is caught, skip `pattern` on an invalid length, refuse the three names, and check for an existing entry before `admit`.
     - API Notes and Examples:
       ```ts
-      if (valid && pattern && !pattern.test(value)) valid = reject(at, sink, patternExpected);
+      if (lengthFits && pattern && !pattern.test(value)) valid = reject(at, sink, patternExpected);
       ```
     - Files to Create/Edit:
-      - `src/host/render.ts`, `src/validate/schema.ts`, `src/sdk/element-node.ts`, `src/template/render.ts` (tentative — only if the test shows the template path is reachable), `src/host/intent.ts`.
+      - `src/host/render.ts` and `src/pack/hash.ts` for hash recovery and identifying lone-surrogate errors.
+      - `src/validate/schema.ts` and `src/schema.ts` for compiled validation and `checkValue`.
+      - `src/sdk/element-node.ts` and `src/template/render.ts` for element JSON, template install validation and direct template rendering.
+      - `src/host/intent.ts` for refusals of posted intents that fail the offered check.
       - `src/__tests__/host-render.test.ts`, `schema.test.ts`, `sdk-elements.test.ts`, `host-intent.test.ts`: one regression test each.
       - `docs/spec.md` §7.7 (R5 and H2 wording), §10 (reserved section names); `docs/host.md`; `CHANGELOG.md`.
   - Test Cases to Write:
     - `lone_surrogate_in_source_data_fails_that_source_only`: one bad row gives a rendered tree, a `failed` outcome for the alias and a `source-failed` event.
-    - `pattern_is_not_run_on_a_string_over_its_length`: a counting `RegExp` stub, or a pattern that would match, shows one length error and no pattern test; covers an intent argument.
+    - `pattern_is_not_run_on_a_string_over_its_length`: both schema checkers report only the length error for an out-of-bounds string that also fails the pattern. The host intent test exercises an out-of-bounds action argument.
     - `proto_section_names_are_refused`: an own `__proto__` key in `style` and in `events` is an error, and `Object.getPrototypeOf` of the merged record is unchanged.
     - `crafted_refusal_does_not_overwrite_a_recorded_action_status`: a pending status stays pending and a runner spy records no render.
+  - Notes (executed 2026-11-23):
+    - Canonical hashing recovers malformed source values with a schema-accepted `failed` outcome for each affected alias. Otherwise the host returns a typed error at the alias or affected render input. Both string validators skip `pattern` after a length failure. Element JSON and the template install and render paths reject the three prototype names. A failed offered check preserves the recorded action status and skips rendering.
+    - All four regressions failed before the fixes. The Task 9-only focused rerun passed 97 tests, including the regressions, corpus cases, hash vectors and API stability. The shared-checkout `bun run check` passed with 2,174 passed, six skipped and zero failed. Later aggregate reruns hit MCP failures under load. All affected MCP cases passed when rerun in both checkouts.
+    - The host benchmark passed at 0.111 ms of pipeline overhead against a 0.2 ms budget. Validator wall-clock misses occurred with the patch and at baseline `190e45d`. Validator CPU gates passed in the completed runs. Wall-clock confirmation remains open for the whole-plan verification.
 
 - [ ] Task 10: Fix two authoring defects: hard links under `draftRoot` and host text in capture errors (LF-27, items 5–6)
   - Acceptance Criteria:

@@ -34,7 +34,7 @@ const capabilities = value(
     actions: {
       "tasks.claim": {
         description: "Claim a task",
-        args: obj({ id: str({ maxLength: 20 }) }),
+        args: obj({ id: str({ maxLength: 20, pattern: "^[a-z0-9]+$" }) }),
         result: obj({ owner: str({ maxLength: 20 }) }),
       },
       "tasks.note": { description: "Note a task", args: obj({ id: str({ maxLength: 20 }) }) },
@@ -276,6 +276,20 @@ test("invalid_offered_action_recorded_refused_under_offered_key", async () => {
   expect(again.served).toBe(result.served);
   // And it costs no store read, source read or widget run: the recorded statuses did not change.
   expect(f.reads).toEqual(["p1"]);
+});
+
+test("crafted_refusal_does_not_overwrite_a_recorded_action_status", async () => {
+  const f = await fixture();
+  const claim = nodeOf(f.first.tree, "button", "tasks.claim");
+  const intent = { ...offered(claim, "onPress"), args: { id: "other" } } as Intent;
+  const actions = { "tasks.claim": { status: "pending", action: "tasks.claim" } } as const;
+  const handled = value(await handle(f, claim, "onPress", { intent, actions }));
+  expect(handled.actions).toBe(actions);
+  expect(handled.served).toBe(f.first);
+  expect(f.events).toEqual([expect.objectContaining({ type: "intent-refused", reason: "not-offered" })]);
+  expect(f.log).toEqual([]);
+  expect(f.reads).toEqual([]);
+  expect(f.rendered).toEqual([]);
 });
 
 test("repeated_refusals_cost_no_render", async () => {
@@ -708,7 +722,7 @@ test("from_local_values_are_checked_against_the_capability_schema_and_refused_wh
   });
   const long = value(
     await handle(g, nodeOf(g.first.tree, "textField"), "onCommit", {
-      intent: { type: "action", name: "tasks.claim", args: { id: "x".repeat(21) } },
+      intent: { type: "action", name: "tasks.claim", args: { id: "!".repeat(21) } },
     }),
   );
   expect(long.actions["tasks.claim"]).toEqual({ status: "refused", action: "tasks.claim", reason: "Not accepted" });

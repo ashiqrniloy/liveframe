@@ -74,7 +74,11 @@ A value must fit the source's `result` schema. A failure (`unauthorized`,
 as its `sourceOutcome` envelope, so it can draw "unavailable" instead of
 crashing; a source that does not declare the envelope fails the render at
 `/data/<alias>`. If `resolve` itself throws, every call counts as `failed` and
-the error text is never copied.
+the error text is never copied. A source value with a lone surrogate raises
+`source-failed` with reason `invalid-result` and uses the alias's `failed` envelope
+when its schema accepts it. Without an envelope, the render returns `render-failed`
+at `/data/<alias>`. A lone surrogate in the render's params, state or context
+returns `render-failed` at that input's pointer.
 
 ## Answer a slow source with `pending`
 
@@ -198,8 +202,8 @@ if (handled.ok) {
   could see one, so none is rendered. A request/response host uses the returned `served`; a push host uses
   `publish`. Use one or the other to avoid sending a frame twice.
 - **An offered action that fails the check** (changed arguments, a forged `resultKey`, or a `bind` / `fromLocal` value outside the capability's `args` schema) is recorded
-  `refused` under the key *your tree* offered, and the surface re-renders. Repeating it changes nothing, so the
-  render is skipped.
+  `refused` under the key *your tree* offered, and the surface re-renders. If that key already has a recorded
+  status, the call returns the supplied frame and actions without rendering.
 - **At most 64 results.** The oldest settled ones make room; if all 64 are `pending`, the call fails with
   `limit-exceeded` at `/actions` before `authorize` or `dispatch`. You decide when an entry expires by leaving
   it out of the next `actions`.

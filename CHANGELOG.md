@@ -6,6 +6,8 @@ All notable changes to `@arnilo/liveframe` are recorded here. The project follow
 
 Fixed:
 
+- **Core validation and host hardening (LF-27, items 1–4).** Lone surrogates in source data produce a failed source outcome where supported and a pointed render error otherwise. String schemas skip `pattern` after a length failure. Element and template sections reject prototype-related names. A rejected intent leaves any recorded status for the offered action key intact and skips the render.
+
 - **Inline authoring drafts are bounded before transpilation (LF-26).** MCP `pack_draft` and `authoring.packDraft()` refuse oversized inline source sets and JSON documents with `limit-exceeded` at the relevant input pointer.
 
 - **A2UI conversion bounds data updates and formatted text (LF-25).** Sparse array writes, over-budget writes, deep data pointers and oversized formatted text return typed limit errors. Unexpected conversion failures return fixed diagnostics.

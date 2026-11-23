@@ -61,7 +61,9 @@ export function rejectFragmentFields(value: Record<string, unknown>, pointer: st
 
 /** Node fields that no property section may carry: the SDK reads them off the node itself. */
 const RESERVED = ["key", "children", "variant", "$anchor", "when", "bind", "focus"] as const;
-const isReserved = (name: string): boolean => (RESERVED as readonly string[]).includes(name);
+const PROTOTYPE_NAMES: readonly string[] = ["__proto__", "constructor", "prototype"];
+export const isPrototypeName = (name: string): boolean => PROTOTYPE_NAMES.includes(name);
+const isReserved = (name: string): boolean => (RESERVED as readonly string[]).includes(name) || isPrototypeName(name);
 
 function section(value: unknown, pointer: string, reject: ElementReject): Record<string, unknown> | undefined {
   if (value === undefined) return undefined;
@@ -84,14 +86,20 @@ function merge(
     if (!Object.hasOwn(source, name)) continue;
     if (isReserved(name)) reject.at(at(pointer, name), `no ${name} in ${sectionName}`);
     else if (Object.hasOwn(target, name)) reject.at(at(pointer, name), "one property section per name");
-    else target[name] = source[name];
+    else
+      Object.defineProperty(target, name, {
+        value: source[name],
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
   }
 }
 
 /**
  * The node's `props`, `style` and `events` as one flat record, which is how the SDK sees them: a
  * name belongs to one section, and the reserved names `key`, `children`, `variant`, `$anchor`,
- * `when`, `bind` and `focus` belong to none.
+ * `when`, `bind`, `focus`, `__proto__`, `constructor` and `prototype` belong to none.
  */
 export function mergeSections(
   value: Record<string, unknown>,
@@ -105,6 +113,11 @@ export function mergeSections(
   const merged: Record<string, unknown> = { ...props };
   for (const reserved of RESERVED)
     if (Object.hasOwn(merged, reserved)) reject.at(at(at(pointer, "props"), reserved), `no ${reserved} in props`);
+  for (const name of PROTOTYPE_NAMES) {
+    if (!Object.hasOwn(merged, name)) continue;
+    reject.at(at(at(pointer, "props"), name), `no ${name} in props`);
+    delete merged[name];
+  }
   merge(merged, style, at(pointer, "style"), "style", reject);
   merge(merged, events, at(pointer, "events"), "events", reject);
   return reject.stopped ? undefined : merged;

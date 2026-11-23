@@ -7,6 +7,7 @@ import type { UiTree } from "../formats/tree.ts";
 import { at } from "../internal.ts";
 import { isRecord } from "../schema.ts";
 import { Element } from "../sdk/element.ts";
+import { isPrototypeName } from "../sdk/element-node.ts";
 import { Fragment } from "../sdk/jsx-runtime.ts";
 import { type RenderLimits, type RenderOptions, renderExpansion } from "../sdk/render.ts";
 import type { WidgetInputs } from "../sdk/types.ts";
@@ -333,14 +334,18 @@ class Compiler {
     const fixed: (readonly [string, unknown])[] = [];
     if (typeof node.variant === "string") fixed.push(["variant", node.variant]);
     if (typeof node.$anchor === "string") fixed.push(["$anchor", node.$anchor]);
-    for (const section of ["props", "style"] as const) {
+    for (const section of ["props", "style", "events"] as const) {
       const members = isRecord(node[section]) ? node[section] : {};
-      for (const [name, value] of Object.entries(members))
-        props.push([name, this.expr(value, scope, at(at(pointer, section), name))]);
+      for (const [name, value] of Object.entries(members)) {
+        const place = at(at(pointer, section), name);
+        if (isPrototypeName(name)) this.reject(place, `no ${name} in ${section}`, "invalid-prop");
+        else
+          props.push([
+            name,
+            section === "events" ? this.intent(value as Raw, scope, place) : this.expr(value, scope, place),
+          ]);
+      }
     }
-    const events = isRecord(node.events) ? node.events : {};
-    for (const [name, intent] of Object.entries(events))
-      props.push([name, this.intent(intent as Raw, scope, at(at(pointer, "events"), name))]);
     if (Object.hasOwn(node, "focus")) props.push(["focus", this.expr(node.focus, scope, at(pointer, "focus"))]);
 
     // `when` and `bind` are tree expressions, copied verbatim but for each `$embed`, which becomes a literal (spec §7.6).

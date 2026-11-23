@@ -8,10 +8,12 @@ import {
   int,
   isLanguageSchema,
   type LanguageSchema,
+  type LiveframeError,
   num,
   obj,
   str,
 } from "../index.ts";
+import { compileSchema } from "../validate/schema.ts";
 
 const ajv = new Ajv2020({ strict: true, unicodeRegExp: true, ownProperties: true });
 
@@ -95,6 +97,24 @@ test("max_length_counts_code_points", () => {
   expect(checkValue(str({ maxLength: 1 }), "👍👍").ok).toBe(false);
   expect(checkValue(str({ maxLength: 0 }), "").ok).toBe(true);
   expect(checkValue(str({ maxLength: 1, pattern: "^.$" }), "👍").ok).toBe(true);
+});
+
+test("pattern_is_not_run_on_a_string_over_its_length", () => {
+  const args = obj({ id: str({ minLength: 2, maxLength: 4, pattern: "^a+$" }) });
+  const compiled = compileSchema(args);
+  for (const [id, expected] of [
+    ["b", "a string of 2–4 characters"],
+    ["bbbbb", "a string of 2–4 characters"],
+    ["bb", "a string matching ^a+$"],
+  ]) {
+    const result = checkValue(args, { id });
+    if (result.ok) throw new Error("Expected an invalid argument");
+    expect(result.errors).toMatchObject([{ pointer: "/id", expected }]);
+
+    const errors: LiveframeError[] = [];
+    expect(compiled({ id }, "", { errors, maxErrors: 20 })).toBe(false);
+    expect(errors).toMatchObject([{ pointer: "/id", expected }]);
+  }
 });
 
 test("errors_are_bounded_and_pointed", () => {

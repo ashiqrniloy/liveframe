@@ -165,14 +165,18 @@ const tooManyPending = () => refuse("limit-exceeded", "/actions", "Too many pend
 
 /** H2, failure. A stale origin is refused as it is; an offered action is told to the widget as refused. */
 function refuseOffered<V>(run: Run<V>, errors: readonly LiveframeError[]): Promise<HandleResult> | HandleResult {
-  const { served, origin } = run.args;
+  const { served, origin, actions = {} } = run.args;
   if (errors.some((error) => error.kind === "version-conflict")) {
     run.refused("stale", errors);
     return { ok: false, errors };
   }
   // Under the key the tree offered, never the posted one.
   const action = offeredAction(served.tree, origin);
-  const recorded = action && admit(run.args.actions ?? {}, action.key, refusal(action.name, "Not accepted"));
+  if (action && Object.hasOwn(actions, action.key)) {
+    run.refused("not-offered", errors);
+    return { ok: true, value: { served, actions } };
+  }
+  const recorded = action && admit(actions, action.key, refusal(action.name, "Not accepted"));
   run.refused(action && !recorded ? "limit" : "not-offered", errors);
   if (!action) return { ok: false, errors };
   return recorded ? run.finishRefusal(recorded) : { ok: false, errors: tooManyPending() };

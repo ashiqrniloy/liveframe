@@ -4,6 +4,10 @@ const loneSurrogate = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\
 const notJson = "Expected a JSON value";
 const notUnicode = "Expected Unicode without lone surrogates";
 
+export function isLoneSurrogateError(error: unknown): boolean {
+  return error instanceof TypeError && error.message === notUnicode;
+}
+
 /** Marks where a container's members end, so it stops being an ancestor (cycle detection). */
 class Exit {
   constructor(readonly container: object) {}

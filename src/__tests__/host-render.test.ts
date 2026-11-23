@@ -52,7 +52,7 @@ const manifest = (sources: Record<string, string>) => ({
   id: "notes",
   version: "1.0.0",
   catalogId: "proof.ui@1",
-  params: schema({}),
+  params: { ...schema({ label: str({ maxLength: 40 }) }), required: [] },
   state: schema({ label: { type: "string", maxLength: 40 } }),
   context: schema({}),
   initialState: { label: "first" },
@@ -167,6 +167,49 @@ test("resolver_failure_becomes_outcome_envelope", async () => {
   const good = ok({ task: { ok: true, value: { status: "ok", value: "fine" } } });
   served(await renderPlacement(base(store, runner, { resolve: good })));
   expect(runner.calls[1]?.data).toEqual({ task: { status: "ok", value: "fine" } });
+});
+
+test("lone_surrogate_in_source_data_fails_that_source_only", async () => {
+  const runner = spyRunner();
+  const events: HostEvent[] = [];
+  const store = await installed(
+    { task: "tasks.read", row: "rows.read", note: "notes.read" },
+    { task: { status: "ok", value: "x" }, row: { status: "ok", value: "x" }, note: "x" },
+  );
+  const onEvent = (event: HostEvent) => events.push(event);
+  const resolve = ok({
+    task: { ok: true, value: { status: "ok", value: "\ud800" } },
+    row: { ok: true, value: { status: "ok", value: "\udfff" } },
+    note: { ok: true, value: "😀" },
+  });
+  const args = base(store, runner, { resolve, onEvent });
+  const rendered = served(await renderPlacement(args));
+  expect(runner.calls).toEqual([{ data: { task: { status: "failed" }, row: { status: "failed" }, note: "😀" } }]);
+  expect(events).toEqual([
+    { type: "source-failed", placementId: "p1", alias: "task", source: "tasks.read", reason: "invalid-result" },
+    { type: "source-failed", placementId: "p1", alias: "row", source: "rows.read", reason: "invalid-result" },
+  ]);
+  expect(served(await renderPlacement({ ...args, previous: rendered }))).toBe(rendered);
+
+  const plain = await installed({ note: "notes.read" }, { note: "x" });
+  const plainArgs = base(plain, runner, { resolve: ok({ note: { ok: true, value: "\ud800" } }) });
+  expect(errorsOf(await renderPlacement(plainArgs))).toMatchObject([{ kind: "render-failed", pointer: "/data/note" }]);
+
+  await plain.putPlacement({
+    id: "p1",
+    slot: "main",
+    widget: { id: "notes", version: "1.0.0" },
+    params: { label: "\ud800" },
+  });
+  expect(errorsOf(await renderPlacement(plainArgs))).toMatchObject([{ kind: "render-failed", pointer: "/params" }]);
+
+  expect(errorsOf(await renderPlacement({ ...args, state: { label: "\ud800" } }))).toMatchObject([
+    { kind: "render-failed", pointer: "/state" },
+  ]);
+  expect(errorsOf(await renderPlacement({ ...args, context: { label: "\ud800" } }))).toMatchObject([
+    { kind: "render-failed", pointer: "/context" },
+  ]);
+  expect(runner.calls).toHaveLength(1);
 });
 
 test("resolver_throw_without_envelope_render_failed_no_leak", async () => {

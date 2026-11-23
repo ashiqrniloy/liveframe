@@ -11,7 +11,9 @@ import { defineComponent, validateCatalog } from "../formats/catalog.ts";
 import { validateManifest } from "../formats/manifest.ts";
 import { compileValidator } from "../index.ts";
 import { obj, str } from "../schema.ts";
+import { mergeSections, Reject } from "../sdk/element-node.ts";
 import { generateElementsSchema } from "../sdk/gen.ts";
+import { renderTemplate } from "../template/render.ts";
 import cases from "./fixtures/elements.json" with { type: "json" };
 import manifest from "./fixtures/proof/agent-home.manifest.json" with { type: "json" };
 import capabilities from "./fixtures/proof/capabilities.json" with { type: "json" };
@@ -92,6 +94,35 @@ test("render_elements_error_pointers_into_json", () => {
     });
     if (result.ok) throw new Error(`Expected ${kind} at ${pointer}`);
     expect(result.errors).toContainEqual(expect.objectContaining({ kind, pointer }));
+  }
+});
+
+test("proto_section_names_are_refused", () => {
+  const options = { validator, surfaceId: "proof", revision: 0 };
+  const inputs = { params: {}, state: {}, context: {}, data: {} };
+  for (const section of ["props", "style", "events"]) {
+    for (const name of ["__proto__", "constructor", "prototype"]) {
+      const member = section === "events" ? { type: "setState", key: "selected", value: "task:0" } : "reserved";
+      const root = {
+        kind: "text",
+        props: { text: "x" },
+        [section]: { ...(section === "props" ? { text: "x" } : {}), [name]: member },
+      };
+      const pointer = `/${section}/${name}`;
+      const reject = new Reject(20);
+      const merged = mergeSections(root, "", reject);
+      expect(Object.getPrototypeOf(merged)).toBe(Object.prototype);
+      expect(Object.hasOwn(merged ?? {}, name)).toBe(false);
+      expect(reject.errors).toMatchObject([{ pointer }]);
+
+      const element = renderElements(root, options);
+      if (element.ok) throw new Error("Expected element rejection");
+      expect(element.errors).toMatchObject([{ pointer }]);
+
+      const template = renderTemplate({ format: "liveframe-template/1", root }, inputs, options);
+      if (template.ok) throw new Error("Expected template rejection");
+      expect(template.errors).toMatchObject([{ pointer: `/root${pointer}` }]);
+    }
   }
 });
 
