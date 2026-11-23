@@ -10,16 +10,16 @@ Statuses: **pass** (all mapped proofs passed); **pending** (the quiet-host bench
 
 | Command | Result | Seconds |
 | --- | --- | --- |
-| `timeout 300 bun test --conditions liveframe:source src/__tests__/corpus.test.ts src/__tests__/template-render.test.ts src/__tests__/template-document.test.ts src/__tests__/template-package.test.ts` | pass | 2.0 |
+| `timeout 300 bun test --conditions liveframe:source src/__tests__/corpus.test.ts src/__tests__/template-render.test.ts src/__tests__/template-document.test.ts src/__tests__/template-package.test.ts` | pass | 2.1 |
 | `timeout 300 bun test --conditions liveframe:source src/__tests__/template-expr.test.ts` | pass | 0.2 |
 | `timeout 300 bun test --conditions liveframe:source packages/a2ui` | pass | 0.3 |
 | `timeout 120 bun --conditions liveframe:source bench/authoring.bench.ts` | pass | 0.1 |
-| `timeout 300 bun test --conditions liveframe:source src/__tests__/draft-dir.test.ts src/__tests__/preview-capture.test.ts` | pass | 1.0 |
+| `timeout 300 bun test --conditions liveframe:source src/__tests__/draft-dir.test.ts src/__tests__/preview-capture.test.ts` | pass | 0.9 |
 | `test -z "$(timeout 60 git diff --diff-filter=MDR v0.4.0 -- conformance schemas)"` | pass | 0.0 |
 | `timeout 120 bun pm pack --dry-run | grep -q docs/security-checklist.md` | pass | 0.0 |
 | `timeout 300 bun test --conditions liveframe:source src/__tests__/sdk-guide.test.ts` | pass | 0.4 |
-| `timeout 600 bun --conditions liveframe:source bench/stream-loop.bench.ts` | pass | 16.3 |
-| `timeout 300 bun test --conditions liveframe:source src/__tests__/docs-wording.test.ts src/__tests__/docs-links.test.ts src/__tests__/docs-spec-structure.test.ts src/__tests__/migration-guide.test.ts` | pass | 1.5 |
+| `timeout 600 bun --conditions liveframe:source bench/stream-loop.bench.ts` | pass | 15.2 |
+| `timeout 300 bun test --conditions liveframe:source src/__tests__/docs-wording.test.ts src/__tests__/docs-links.test.ts src/__tests__/docs-spec-structure.test.ts src/__tests__/migration-guide.test.ts` | pass | 2.0 |
 | `test ! -e docs/migration-0.4.1.md` | pass | 0.0 |
 
 ## Summary

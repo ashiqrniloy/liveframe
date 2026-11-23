@@ -360,7 +360,7 @@ The sixteen plans of this family were drafted in parallel from one request docum
     - Plan 041's "`expression_results_are_unchanged`" test was never written under that name. Row `041.T3.F4` runs the whole `template-expr.test.ts` file instead.
     - Tests: `acceptance_map_covers_every_bullet_of_plans_041_to_042` and `acceptance_test_titles_match_their_parameterized_cases`. The first full check failed only the coverage test, because amending Task 11 had added an unmapped bullet (`042.T11.F4`). That is the failure the test exists for. With the row mapped, the file passed 6 of 6. The second `timeout 1800 bun run check` passed: 2,196 tests passed, 6 skipped and 0 failed (991 s).
 
-- [ ] Task 7: Run the benchmark suite under the quiet-host rule
+- [x] Task 7: Run the benchmark suite under the quiet-host rule
   - Acceptance Criteria:
     - Functional:
       - `bun scripts/bench-quiet.ts --out plans/evidence/042-bench.md` runs every stage of `bun run bench`, including the stages plans 041 and 042 added (the LF-18 worst-render gate, the LF-34 64-pair validator-cache gate and the informational stream-loop stage).
@@ -394,6 +394,14 @@ The sixteen plans of this family were drafted in parallel from one request docum
       - `decision-logs/<date>-close-plan-042-task-7-on-partial-benchmark-evidence.md` (tentative — only if the owner accepts partial evidence).
   - Test Cases to Write:
     - n/a — measurement task.
+  - Notes (executed 2026-11-24; closed on partial evidence by [owner decision](../decision-logs/2026-11-24-0103-close-plan-042-task-7-on-partial-benchmark-evidence.md)):
+    - [Loaded-host record](evidence/042-bench-attempt-loaded.md). Two default attempts (`bun scripts/bench-quiet.ts`, 10%) timed out after 602 s without a quiet start (final samples 28.3% and 25.9%). Unrelated `cargo test`, a Kubernetes cluster, openfga and temporal held the host. The owner stopped the third attempt: "You will not get a quiet host. Accept whatever the load is and do the test and see what happens".
+    - The suite then ran at `--max-cpu 100 --wait 60` at 34–99% host CPU (load 15–33). All 16 stages of `bun run bench` ran, including `stream-loop`. 11 exited 0 and 5 exited 1. The record's stage labels were rewritten to `exit 0/1 (loaded)`, and the file is not named `042-bench.md`, so it cannot satisfy a bench row.
+    - The two new gates held under that load. LF-18: the worst render the default budget allows was the hostile `nestedMaps` template, at a median of 5.192 ms against 50 ms. The worst operator cost 9.38 ns/step (≤ 25) and agent-home `renderTemplate` 2.874 µs/node (≤ 3). LF-34: all 64 pairs hit the cache, with a hit median of 0.4114 ms and a full-cache miss of 1.3741 ms.
+    - The five failing stages were `validator`, `render`, `css`, `pack-libraries` and `runner`. Their absolute wall-clock gates are the ones that have failed under load since 0.2.2, with QuickJS `none` at 374.7 ms against 110, three times the 124.9 ms of the 0.4.0 rerun. Two ratio gates also failed: composed-6-layers at 1.111× against 1.100×, and pack-libraries at 6.8% against 5% (process ratios 0.909–1.104). Each passed on a single rerun of its stage at load 15–19, at 1.029× and exit 0. No budget failed on a quiet host, so no plan 041 task is reopened, and no threshold changed.
+    - Backlog "Re-run the full benchmark suite on a quiet host" has a 2026-11-24 status line and stays open (LF-41, plan 049).
+    - Regenerated Task 6's [acceptance log](evidence/042-acceptance.md) with the same command: 194 rows, of which 125 pass, 57 pending, 12 n/a, 0 fail and 0 unmapped, and all 73 named tests were found. With no `042-bench.md`, the 17 bench rows stay `pending`. This is the outcome Task 11 allows when an owner decision log accepts partial evidence.
+    - The task changed only markdown. `timeout 2400 bun run check` reached the tests with build, gen, typecheck, lint and format green, then failed: 2,193 tests passed, 6 skipped and 3 failed (939 s, load 15–27). All three failures were timeouts: `mcp_capture_bound_defaults_and_configured_description` (5 s, the MCP connection closed), `quickjs_matches_render_for_every_proof_scenario` (20 s) and `quickjs_thrown_text_is_not_returned` (5 s, the QuickJS child exited before it was ready). Rerun by name with `bun test -t`, all three passed, 3 of 3 in 9.2 s at load 11.
 
 - [ ] Task 8: Run the agent acceptance test on the 0.4.1 paths
   - Acceptance Criteria:
