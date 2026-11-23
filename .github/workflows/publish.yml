@@ -52,7 +52,7 @@ jobs:
       - name: Archive gate (every package)
         run: bun run release:gate
       - name: Browsers for the playwright floor
-        run: bunx playwright@1.49.0 install --with-deps chromium chromium-headless-shell
+        run: bunx --bun playwright@1.49.0 install --with-deps --only-shell chromium
       - run: bun scripts/release/peer-floors.ts
       - run: bun run demo:test
       - run: bun run build
