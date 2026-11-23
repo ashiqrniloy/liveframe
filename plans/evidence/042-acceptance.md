@@ -10,16 +10,16 @@ Statuses: **pass** (all mapped proofs passed); **pending** (the quiet-host bench
 
 | Command | Result | Seconds |
 | --- | --- | --- |
-| `timeout 300 bun test --conditions liveframe:source src/__tests__/corpus.test.ts src/__tests__/template-render.test.ts src/__tests__/template-document.test.ts src/__tests__/template-package.test.ts` | pass | 2.0 |
+| `timeout 300 bun test --conditions liveframe:source src/__tests__/corpus.test.ts src/__tests__/template-render.test.ts src/__tests__/template-document.test.ts src/__tests__/template-package.test.ts` | pass | 1.9 |
 | `timeout 300 bun test --conditions liveframe:source src/__tests__/template-expr.test.ts` | pass | 0.2 |
 | `timeout 300 bun test --conditions liveframe:source packages/a2ui` | pass | 0.3 |
 | `timeout 120 bun --conditions liveframe:source bench/authoring.bench.ts` | pass | 0.1 |
-| `timeout 300 bun test --conditions liveframe:source src/__tests__/draft-dir.test.ts src/__tests__/preview-capture.test.ts` | pass | 0.8 |
+| `timeout 300 bun test --conditions liveframe:source src/__tests__/draft-dir.test.ts src/__tests__/preview-capture.test.ts` | pass | 1.0 |
 | `test -z "$(timeout 60 git diff --diff-filter=MDR v0.4.0 -- conformance schemas)"` | pass | 0.0 |
 | `timeout 120 bun pm pack --dry-run | grep -q docs/security-checklist.md` | pass | 0.0 |
 | `timeout 300 bun test --conditions liveframe:source src/__tests__/sdk-guide.test.ts` | pass | 0.4 |
-| `timeout 600 bun --conditions liveframe:source bench/stream-loop.bench.ts` | pass | 14.1 |
-| `timeout 300 bun test --conditions liveframe:source src/__tests__/docs-wording.test.ts src/__tests__/docs-links.test.ts src/__tests__/docs-spec-structure.test.ts src/__tests__/migration-guide.test.ts` | pass | 1.5 |
+| `timeout 600 bun --conditions liveframe:source bench/stream-loop.bench.ts` | pass | 15.5 |
+| `timeout 300 bun test --conditions liveframe:source src/__tests__/docs-wording.test.ts src/__tests__/docs-links.test.ts src/__tests__/docs-spec-structure.test.ts src/__tests__/migration-guide.test.ts` | pass | 1.6 |
 | `test ! -e docs/migration-0.4.1.md` | pass | 0.0 |
 
 ## Summary
@@ -27,8 +27,8 @@ Statuses: **pass** (all mapped proofs passed); **pending** (the quiet-host bench
 | Plan | pass | pending | n/a | fail | unmapped |
 | --- | --- | --- | --- | --- | --- |
 | 041 | 78 | 13 | 6 | 0 | 0 |
-| 042 | 58 | 33 | 6 | 0 | 0 |
-| **all** | 136 | 46 | 12 | 0 | 0 |
+| 042 | 59 | 32 | 6 | 0 | 0 |
+| **all** | 137 | 45 | 12 | 0 | 0 |
 
 ## Plan 041
 
@@ -229,7 +229,7 @@ Statuses: **pass** (all mapped proofs passed); **pending** (the quiet-host bench
 | 042.T1.F3 | `@arnilo/liveframe-runner-quickjs` and `@arnilo/liveframe-a2ui` are compared against their 0.4.0 baselines with no register… | `baseline_0_4_0_matches_the_companion_packages`<br>`a2ui_baseline_0_4_0_matches_the_checkout` | pass |
 | 042.T1.F4 | No existing file under `conformance/corpus/`, `conformance/hash/` or `conformance/patch/` differs from `v0.4.0` (`git diff --stat v0.4.0 --… | `test -z "$(timeout 60 git diff --diff-filter=MDR v0.4.0 -- conformance schemas)"` | pass |
 | 042.T1.F5 | `.github/workflows/publish.yml` installs browsers the way `ci.yml` does (plan 040 Task 2's notes left the publish workflow on the older install step;… | .github/workflows/publish.yml ("playwright@1.49.0 install --with-deps --only-shell chromium") | pass |
-| 042.T1.F6 | With the owner's go to push `main`, `ci.yml` is green on the pushed commit: Chromium, WebKit, Firefox, the archive gate for four packages, the three… | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 1: Check the patch gate")<br>due from 042 T1 | pending |
+| 042.T1.F6 | With the owner's go to push `main`, `ci.yml` is green on the pushed commit: Chromium, WebKit, Firefox, the archive gate for four packages, the three… | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 1: Check the patch gate") | pass |
 | 042.T1.P1 | n/a — gate checks. A raised test timeout is not a performance claim. | n/a | n/a |
 | 042.T1.Q1 | any new register file uses the existing entry shape (`subpath`, `name`, `change`, `reason`, `hostAction`, `task`); no second gate. | `register_0_4_1_holds_only_additive_entries` | pass |
 | 042.T1.S1 | no law-enforcing assertion is weakened to make a gate pass. The API gate protects every law's public contract from an unreviewed change. | `register_0_4_1_holds_only_additive_entries`<br>`baseline_0_4_0_matches_the_companion_packages` | pass |

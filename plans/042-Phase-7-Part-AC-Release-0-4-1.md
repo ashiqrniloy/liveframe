@@ -42,7 +42,7 @@ The sixteen plans of this family were drafted in parallel from one request docum
 
 ## Tasks
 
-- [ ] Task 1: Check the patch gate and get CI green before any release work
+- [x] Task 1: Check the patch gate and get CI green before any release work
   - Acceptance Criteria:
     - Functional:
       - Plan 041 is complete: every task ticked, its impact findings disposed, and `bun run check` green on `main`.
@@ -80,13 +80,15 @@ The sixteen plans of this family were drafted in parallel from one request docum
   - Test Cases to Write:
     - `register_0_4_1_holds_only_additive_entries` (existing): extended to any new companion register. Breaks when an entry is `removed` or `changed`.
     - `baseline_0_4_0_matches_the_companion_packages` and `a2ui_baseline_0_4_0_matches_the_checkout` (existing): read the new register if one is added. Break on an unregistered declaration change.
-  - Notes (executed 2026-11-23, open until the push):
+  - Notes (executed 2026-11-23; closed 2026-11-24):
     - Plan 041 is complete: Tasks 1–12 with 11a and 11b ticked, and the owner approved all seven impact findings (F1–F3 executed, F4–F7 in the backlog). `bun run check` on `main` at `3bf9918` passed with 2,182 tests passed, 6 skipped and 0 failed (893 s, load about 8–10). A stack trace for "Widget threw Error" from `proof/host/pages.ts` while building a session was logged during `proof/tests/host.test.ts`. That file did not fail.
     - `register-0.4.1.json` holds 16 entries, all `added` or `widened`, each naming its plan 041 task (T4, T5 or T6) and carrying a `hostAction`. `register-0.4.1-starter.json` is empty.
     - Plan 041 changed implementation only in `packages/runner-quickjs` and `packages/a2ui`. `api-stability.test.ts` passed 18 of 18, comparing both against their 0.4.0 baselines with no register. No companion register was added.
     - `git diff --diff-filter=MDR v0.4.0 -- conformance schemas` is empty. `git diff --stat` shows 8 added corpus files (1,463 insertions) only.
     - `publish.yml:55` now installs the Playwright 1.49 floor with `bunx --bun playwright@1.49.0 install --with-deps --only-shell chromium`, as `ci.yml:53` has since `7893b28`, when Node 26's installer stalled. The difference at `publish.yml:38` is deliberate. The publish job runs only the Chromium `bun run check`, so it installs only Chromium, where `ci.yml:32` also runs the WebKit and Firefox suites.
-    - Open: pushing `main` (17 commits ahead of `origin/main`) needs the owner's go, then a green `ci.yml` run to record here. The last `main` run, 44954949057, failed on the known WebKit flake `overlay_content_receives_pointer_events` (backlog).
+    - Before the push, the last `main` run (44954949057) had failed on the known WebKit flake `overlay_content_receives_pointer_events` (backlog).
+    - With the owner's go on 2026-11-24, `main` was pushed at `433625d` (25 commits). CI run 45257340739 failed one test, `acceptance_map_covers_every_bullet_of_plans_041_to_042`. Row `041.T8.F4` of `042-acceptance-map.json` cited the plan 043 draft, which is untracked and therefore absent on CI. Locally the test had passed. The row now cites the shipped `docs/adopters-0.4.md` ("LF-26 (the runner half)"), which records the same carry to 0.5.0. No other map row cites an untracked file except the Task 9–11 evidence its `due` rows await. The regenerated acceptance log has 136 pass, 46 pending, 12 n/a and 0 fail (`db99bf5`).
+    - `ci.yml` run [45262146078](https://github.com/ashiqrniloy/liveframe/actions/runs/45262146078) on `db99bf5` passed: package versions, audits, and `bun run check` on Chromium plus the WebKit and Firefox suites (2,202 tests each). It also passed the archive gate for four packages, the three peer floors (React 19.0.0, Playwright 1.49.0, MCP server 2.0.0), `demo:test` (78 of 78), the getting-started guide and the informational bench.
 
 - [x] Task 2: Correct the security guide and add the 0.4.1 audit (LF-65)
   - Acceptance Criteria:
