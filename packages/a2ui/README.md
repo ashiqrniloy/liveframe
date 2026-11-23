@@ -54,7 +54,7 @@ Every refusal is a typed error with a pointer into the input. Nothing is dropped
 
 `mapping.drop` may list `"theme"`, `"weight"` and `"checks"` to discard them knowingly.
 
-Input is bounded like `streamElements` text: at most 4 × `limits.bytes` characters, `limits.nodes` × 8 JSON values, depth 128. The output is bounded by `limits.nodes` and `limits.depth`. Over a bound is `limit-exceeded`.
+Input has limits of 4 × `limits.bytes` characters, 8 × `limits.nodes` JSON values, and JSON depth 128. Data paths have at most 128 segments. An array write can replace an existing index or append at its length. The converter rejects indices that would leave gaps and budgets 8 × `limits.nodes` value writes across all data updates, including copied members. Element output is bounded by `limits.nodes` and `limits.depth`. All `formatString` results together have a budget of 4 × `limits.bytes` characters. Exceeding a bound returns `limit-exceeded`.
 
 ## Origins
 

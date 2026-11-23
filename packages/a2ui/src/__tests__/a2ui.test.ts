@@ -432,6 +432,92 @@ describe("validation stays the core's", () => {
 });
 
 describe("bounds", () => {
+  test("sparse_array_index_is_refused", () => {
+    const messages = surface([{ id: "root", component: "Text", text: { path: "/items/1" } }], { items: ["first"] });
+    expect(convert([...messages, data("second", "/items/1")]).elements).toEqual({
+      kind: "text",
+      key: "root",
+      props: { text: "second" },
+    });
+    expect(failures([...messages, data("third", "/items/2")])).toEqual([["limit-exceeded", "/3/updateDataModel/path"]]);
+  });
+
+  test("data_writes_share_a_value_budget", () => {
+    const messages = surface([{ id: "root", component: "Divider" }]);
+    const path = "/item".repeat(40);
+    const result = fromA2ui([...messages, data(1, path), data(2, path)], mapping, { limits: { nodes: 8 } });
+    expect(result).toMatchObject({
+      ok: false,
+      errors: [{ kind: "limit-exceeded", pointer: "/3/updateDataModel/path" }],
+    });
+  });
+
+  test("formatted_output_is_bounded", () => {
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: A2UI interpolation syntax
+    const ref = "${/value}";
+    const format = (value: string) => ({ call: "formatString", args: { value } });
+    const model = { value: "x".repeat(160) };
+    const options = { limits: { bytes: 150 } };
+    const one = surface([{ id: "root", component: "Text", text: format(ref.repeat(4)) }], model);
+    const many = surface(
+      [
+        { id: "root", component: "Column", children: ["a", "b"] },
+        { id: "a", component: "Text", text: format(ref.repeat(3)) },
+        { id: "b", component: "Text", text: format(ref) },
+      ],
+      model,
+    );
+    for (const [messages, index] of [
+      [one, 0],
+      [many, 2],
+    ] as const) {
+      expect(fromA2ui(messages, mapping, options)).toMatchObject({
+        ok: false,
+        errors: [{ kind: "limit-exceeded", pointer: `/1/updateComponents/components/${index}/text/args/value` }],
+      });
+    }
+  });
+
+  test("formatted_json_charges_escaped_characters", () => {
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: A2UI interpolation syntax
+    const ref = "${/value}";
+    const messages = (value: Json) =>
+      surface([{ id: "root", component: "Text", text: { call: "formatString", args: { value: ref } } }], { value });
+    const value = { original: ["😀", "\n", "\ud800", "\u0000", null, 42] };
+    expect(convert(messages(value)).elements).toMatchObject({ props: { text: JSON.stringify(value) } });
+    expect(fromA2ui(messages(["\u0000".repeat(100)]), mapping, { limits: { bytes: 150 } })).toMatchObject({
+      ok: false,
+      errors: [{ kind: "limit-exceeded", pointer: "/1/updateComponents/components/0/text/args/value" }],
+    });
+  });
+
+  test("deep_pointer_returns_a_typed_error", () => {
+    const path = "/item".repeat(129);
+    expect(failures([...surface([{ id: "root", component: "Divider" }]), data(1, path)])).toEqual([
+      ["limit-exceeded", "/2/updateDataModel/path"],
+    ]);
+    expect(failures(surface([{ id: "root", component: "Text", text: { path } }]))).toEqual([
+      ["limit-exceeded", "/1/updateComponents/components/0/text/path"],
+    ]);
+  });
+
+  test("unexpected_conversion_errors_are_typed_and_hide_thrown_text", () => {
+    for (const [error, kind] of [
+      [new RangeError("private"), "limit-exceeded"],
+      [new Error("private"), "invalid-document"],
+    ]) {
+      const message = {
+        get version() {
+          throw error;
+        },
+      };
+      const result = fromA2ui([message], mapping);
+      expect(result).toMatchObject({ ok: false, errors: [{ kind, pointer: "/" }] });
+      expect(JSON.stringify(result)).not.toContain("private");
+    }
+    expect(() => fromA2ui([], { ...mapping, components: null as never })).toThrow(TypeError);
+  });
+
   test("hostile_document_is_bounded_and_yields_no_tree", () => {
     // Deep nesting in the input.
     let deep: unknown = "x";

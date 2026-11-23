@@ -110,63 +110,93 @@ export function fromA2ui(
 ): Result<A2uiConversion> {
   if (typeof mapping?.catalogId !== "string" || !isObj(mapping.components))
     throw new TypeError("Expected a mapping with a catalogId and components");
-  const limits: Limits = { ...DEFAULTS, ...options.limits };
-  const errors = new Errors(options.maxErrors ?? DEFAULT_MAX_ERRORS);
+  let errors: Errors | undefined;
   try {
+    const limits: Limits = { ...DEFAULTS, ...options.limits };
+    errors = new Errors(options.maxErrors ?? DEFAULT_MAX_ERRORS);
     const list = readInput(messages, limits, errors);
-    const surface = list && readMessages(list, mapping, errors);
+    const surface = list && readMessages(list, mapping, limits, errors);
     if (!surface || errors.list.length > 0) return { ok: false, errors: errors.list };
     checkGraph(surface.components, mapping, errors);
     if (errors.list.length > 0) return { ok: false, errors: errors.list };
     const value = convert(surface, mapping, limits, errors);
     return errors.list.length > 0 ? { ok: false, errors: errors.list } : { ok: true, value };
   } catch (error) {
-    if (error instanceof Stop) return { ok: false, errors: errors.list };
-    throw error;
+    let range = false;
+    try {
+      if (error instanceof Stop && errors) return { ok: false, errors: errors.list };
+      range = error instanceof RangeError;
+    } catch {
+      // A thrown proxy can also throw when its prototype is inspected.
+    }
+    return {
+      ok: false,
+      errors: [
+        range
+          ? { kind: "limit-exceeded", pointer: "/", message: "A2UI conversion exceeded a runtime limit" }
+          : { kind: "invalid-document", pointer: "/", message: "A2UI conversion failed" },
+      ],
+    };
   }
 }
 
 // ---- A.1 Input and bounds ----
 
-function readInput(messages: string | readonly unknown[], limits: Limits, errors: Errors): unknown[] | undefined {
-  let list: unknown[];
+function readInput(
+  messages: string | readonly unknown[],
+  limits: Limits,
+  errors: Errors,
+): readonly unknown[] | undefined {
+  let list: readonly unknown[];
   if (typeof messages === "string") {
     if (messages.length > 4 * limits.bytes)
       errors.fatal("limit-exceeded", "/", `at most ${4 * limits.bytes} characters`);
-    list = [];
-    for (const line of messages.split("\n")) {
+    const parsed: unknown[] = [];
+    for (let start = 0, end = 0; start < messages.length; start = end + 1) {
+      end = messages.indexOf("\n", start);
+      if (end < 0) end = messages.length;
+      const line = messages.slice(start, end);
       if (line.trim() === "") continue;
+      if (parsed.length >= limits.nodes * 8)
+        errors.fatal("limit-exceeded", "/", `at most ${limits.nodes * 8} JSON values`);
       try {
-        list.push(JSON.parse(line));
+        parsed.push(JSON.parse(line));
       } catch {
-        errors.add("invalid-document", `/${list.length}`, "one JSON message per line");
-        list.push(undefined);
+        errors.add("invalid-document", `/${parsed.length}`, "one JSON message per line");
+        parsed.push(undefined);
       }
     }
-  } else if (Array.isArray(messages)) list = [...messages];
+    list = parsed;
+  } else if (Array.isArray(messages)) list = messages;
   else return void errors.add("invalid-document", "/", "JSONL text or an array of messages");
   bound(list, limits, errors);
   return list;
 }
 
 /** One pass with a stack: at most `nodes × 8` values, `4 × bytes` string characters and depth 128. */
-function bound(list: unknown[], limits: Limits, errors: Errors): void {
+function bound(list: readonly unknown[], limits: Limits, errors: Errors): void {
   const maxValues = limits.nodes * 8;
   const maxChars = 4 * limits.bytes;
   const stack: [unknown, number][] = [[list, 0]];
-  let values = 0;
+  let values = 1;
   let chars = 0;
+  const push = (value: unknown, depth: number) => {
+    if (++values > maxValues) errors.fatal("limit-exceeded", "/", `at most ${maxValues} JSON values`);
+    stack.push([value, depth]);
+  };
+  if (values > maxValues) errors.fatal("limit-exceeded", "/", `at most ${maxValues} JSON values`);
   while (stack.length > 0) {
     const [value, depth] = stack.pop() as [unknown, number];
-    if (++values > maxValues) errors.fatal("limit-exceeded", "/", `at most ${maxValues} JSON values`);
     if (depth > INPUT_DEPTH) errors.fatal("limit-exceeded", "/", `JSON nested at most ${INPUT_DEPTH} deep`);
     if (typeof value === "string") chars += value.length;
-    else if (Array.isArray(value)) for (const item of value) stack.push([item, depth + 1]);
-    else if (isObj(value))
+    else if (Array.isArray(value)) {
+      if (value.length > maxValues - values) errors.fatal("limit-exceeded", "/", `at most ${maxValues} JSON values`);
+      for (const item of value) push(item, depth + 1);
+    } else if (isObj(value))
       for (const key in value) {
         if (!Object.hasOwn(value, key)) continue;
         chars += key.length;
-        stack.push([value[key], depth + 1]);
+        push(value[key], depth + 1);
       }
     if (chars > maxChars) errors.fatal("limit-exceeded", "/", `at most ${maxChars} string characters`);
   }
@@ -181,8 +211,15 @@ type Surface = {
   data: Json;
 };
 
-function readMessages(list: readonly unknown[], mapping: A2uiMapping, errors: Errors): Surface | undefined {
+function readMessages(
+  list: readonly unknown[],
+  mapping: A2uiMapping,
+  limits: Limits,
+  errors: Errors,
+): Surface | undefined {
   const surface: Surface = { created: false, components: new Map(), data: {} };
+  const maxWrites = limits.nodes * 8;
+  let remainingWrites = maxWrites;
   list.forEach((message, i) => {
     const pointer = `/${i}`;
     if (!isObj(message)) {
@@ -212,7 +249,13 @@ function readMessages(list: readonly unknown[], mapping: A2uiMapping, errors: Er
     if (!sameSurface(surface, body, bodyPointer, errors)) return;
     if (type === "createSurface") createSurface(surface, body, bodyPointer, mapping, errors);
     else if (type === "updateComponents") updateComponents(surface, body, bodyPointer, errors);
-    else updateDataModel(surface, body, bodyPointer, errors);
+    else {
+      const source = at(bodyPointer, "path");
+      updateDataModel(surface, body, source, errors, (count) => {
+        remainingWrites -= count;
+        if (remainingWrites < 0) errors.fatal("limit-exceeded", source, `at most ${maxWrites} data model value writes`);
+      });
+    }
   });
   if (!surface.created) errors.add("invalid-document", "/", "one createSurface message");
   return surface;
@@ -273,48 +316,78 @@ function updateComponents(surface: Surface, body: Obj, pointer: string, errors: 
   });
 }
 
-function updateDataModel(surface: Surface, body: Obj, pointer: string, errors: Errors): void {
+function updateDataModel(
+  surface: Surface,
+  body: Obj,
+  source: string,
+  errors: Errors,
+  charge: (count: number) => void,
+): void {
   const path = body.path ?? "/";
   if (typeof path !== "string" || !path.startsWith("/")) {
-    errors.add("invalid-document", at(pointer, "path"), "an absolute JSON Pointer");
+    errors.add("invalid-document", source, "an absolute JSON Pointer");
     return;
   }
   const removing = !Object.hasOwn(body, "value");
-  surface.data = setIn(surface.data, segments(path), removing ? undefined : (body.value as Json), removing);
-}
+  const parts = segments(path, source, errors);
+  charge(1);
+  surface.data = setIn(surface.data, 0);
 
-// ---- The data model: copy-on-write JSON Pointer writes, own-property reads ----
-
-function segments(path: string): string[] {
-  if (path === "/") return [];
-  return path
-    .slice(1)
-    .split("/")
-    .map((s) => s.replaceAll("~1", "/").replaceAll("~0", "~"));
-}
-
-function setIn(container: Json | undefined, path: readonly string[], value: Json | undefined, removing: boolean): Json {
-  const [head, ...rest] = path;
-  if (head === undefined) return removing ? {} : (value as Json);
-  if (Array.isArray(container) && /^(0|[1-9]\d*)$/.test(head)) {
-    const copy = [...container];
-    const index = Number(head);
-    if (rest.length === 0 && removing) copy.splice(index, 1);
-    else copy[index] = setIn(copy[index], rest, value, removing);
+  function setIn(container: Json | undefined, offset: number): Json {
+    const head = parts[offset];
+    if (head === undefined) return removing ? {} : (body.value as Json);
+    const leaf = offset + 1 === parts.length;
+    if (Array.isArray(container) && /^(0|[1-9]\d*)$/.test(head)) {
+      const index = Number(head);
+      if (index > container.length) errors.fatal("limit-exceeded", source, "an array index that does not leave gaps");
+      if (leaf && removing && index === container.length) return container;
+      charge(container.length + Number(index === container.length));
+      const copy = [...container];
+      if (leaf && removing) copy.splice(index, 1);
+      else copy[index] = setIn(copy[index], offset + 1);
+      return copy;
+    }
+    charge(1);
+    if (isObj(container)) {
+      for (const key in container) {
+        if (!Object.hasOwn(container, key) || key === head) continue;
+        charge(1);
+      }
+    }
+    const copy = isObj(container) ? { ...(container as Record<string, Json>) } : {};
+    if (leaf && removing) delete copy[head];
+    else {
+      const next = setIn(own(copy, head), offset + 1);
+      Object.defineProperty(copy, head, { value: next, enumerable: true, writable: true, configurable: true });
+    }
     return copy;
   }
-  const copy: Record<string, Json> = isObj(container) ? { ...(container as Record<string, Json>) } : {};
-  if (rest.length === 0 && removing) delete copy[head];
-  else {
-    const next = setIn(Object.hasOwn(copy, head) ? copy[head] : undefined, rest, value, removing);
-    Object.defineProperty(copy, head, { value: next, enumerable: true, writable: true, configurable: true });
-  }
-  return copy;
 }
 
-function getIn(data: Json, path: string): { found: true; value: Json } | { found: false } {
+// ---- The data model: bounded JSON Pointer paths and own-property reads ----
+
+function segments(path: string, source: string, errors: Errors): string[] {
+  const parts: string[] = [];
+  if (path === "/") return parts;
+  let start = 1;
+  while (true) {
+    if (parts.length === INPUT_DEPTH)
+      errors.fatal("limit-exceeded", source, `a data path with at most ${INPUT_DEPTH} segments`);
+    const end = path.indexOf("/", start);
+    parts.push(
+      path
+        .slice(start, end < 0 ? path.length : end)
+        .replaceAll("~1", "/")
+        .replaceAll("~0", "~"),
+    );
+    if (end < 0) return parts;
+    start = end + 1;
+  }
+}
+
+function getIn(data: Json, path: readonly string[]): { found: true; value: Json } | { found: false } {
   let value: Json = data;
-  for (const segment of segments(path)) {
+  for (const segment of path) {
     if (Array.isArray(value)) {
       if (!/^(0|[1-9]\d*)$/.test(segment) || Number(segment) >= value.length) return { found: false };
       value = value[Number(segment)] as Json;
@@ -424,6 +497,7 @@ type Context = {
   readonly initialLocal: Record<string, Json>;
   readonly origins: Record<string, string>;
   nodes: number;
+  formattedChars: number;
 };
 
 type Element = {
@@ -451,6 +525,7 @@ function convert(surface: Surface, mapping: A2uiMapping, limits: Limits, errors:
     initialLocal: {},
     origins: {},
     nodes: 0,
+    formattedChars: 0,
   };
   const elements = element(ctx, "root", "", "", 1, "root") as Json;
   return { elements, initialLocal: ctx.initialLocal, origins: ctx.origins };
@@ -669,7 +744,7 @@ function children(
     // A.4: one instance per item of the data array, keyed by template and index, relative paths against the item.
     const source = at(at(entry.pointer, prop), "path");
     const path = absolute(value.path, scope);
-    const list = getIn(ctx.data, path);
+    const list = getIn(ctx.data, segments(path, source, ctx.errors));
     if (!list.found) {
       ctx.errors.add("not-found", source, `a value in the data model at ${path}`);
       return;
@@ -756,9 +831,10 @@ function resolve(ctx: Context, value: unknown, scope: string, source: string): R
 }
 
 function read(ctx: Context, path: string, scope: string, source: string): Resolved {
-  const found = getIn(ctx.data, absolute(path, scope));
+  const target = absolute(path, scope);
+  const found = getIn(ctx.data, segments(target, source, ctx.errors));
   if (found.found) return found.value;
-  ctx.errors.add("not-found", source, `a value in the data model at ${absolute(path, scope)}`);
+  ctx.errors.add("not-found", source, `a value in the data model at ${target}`);
   return FAILED;
 }
 
@@ -779,15 +855,26 @@ function call(ctx: Context, record: Obj, scope: string, source: string): Resolve
 /** `${path}` → the value as text (null → "", objects as JSON); `\${` is a literal `${`. One pass over the text. */
 function format(ctx: Context, text: string, scope: string, source: string): Resolved {
   const parts: string[] = [];
+  const maxChars = 4 * ctx.limits.bytes;
+  const charge = (count: number) => {
+    ctx.formattedChars += count;
+    if (ctx.formattedChars > maxChars)
+      ctx.errors.fatal("limit-exceeded", source, `at most ${maxChars} formatted characters per conversion`);
+  };
+  const append = (part: string) => {
+    charge(part.length);
+    if (part !== "") parts.push(part);
+  };
   let i = 0;
   while (i < text.length) {
     const open = text.indexOf("${", i);
     if (open < 0) {
-      parts.push(text.slice(i));
+      append(text.slice(i));
       break;
     }
     if (open > 0 && text[open - 1] === "\\") {
-      parts.push(text.slice(i, open - 1), "${");
+      append(text.slice(i, open - 1));
+      append("${");
       i = open + 2;
       continue;
     }
@@ -800,8 +887,34 @@ function format(ctx: Context, text: string, scope: string, source: string): Reso
     }
     const value = read(ctx, inner, scope, source);
     if (value === FAILED) return FAILED;
-    parts.push(text.slice(i, open), value === null ? "" : typeof value === "string" ? value : JSON.stringify(value));
+    append(text.slice(i, open));
+    if (typeof value === "string") append(value);
+    else if (value !== null) {
+      chargeJson(value, charge);
+      parts.push(JSON.stringify(value));
+    }
     i = close + 1;
   }
   return parts.join("");
+}
+
+/** Account for JSON escaping before stringify can allocate the interpolation. */
+function chargeJson(value: Json, charge: (count: number) => void): void {
+  if (typeof value === "string") {
+    charge(value.length + 2);
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: JSON escapes control characters and unpaired surrogates.
+    for (const match of value.matchAll(/["\\\u0000-\u001f\ud800-\udfff]/gu)) {
+      charge(/["\\\b\t\n\f\r]/.test(match[0]) ? 1 : 5);
+    }
+  } else if (Array.isArray(value)) {
+    charge(2 + Math.max(0, value.length - 1));
+    for (const item of value) chargeJson(item, charge);
+  } else if (isObj(value)) {
+    const keys = Object.keys(value);
+    charge(2 + keys.length + Math.max(0, keys.length - 1));
+    for (const key of keys) {
+      chargeJson(key, charge);
+      chargeJson(value[key] as Json, charge);
+    }
+  } else charge(JSON.stringify(value).length);
 }

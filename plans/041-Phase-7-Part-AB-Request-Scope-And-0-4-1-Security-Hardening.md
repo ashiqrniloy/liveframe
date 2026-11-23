@@ -439,14 +439,14 @@ The sixteen plans of this family were drafted in parallel from one request docum
     - `thrown_name_outside_the_closed_list_is_Error`: a widget-set `name` is not echoed.
     - `preview_and_authoring_return_the_thrown_text_in_debug`: an agent still reads why its draft threw.
 
-- [ ] Task 7: Bound the A2UI converter's allocations (LF-25)
+- [x] Task 7: Bound the A2UI converter's allocations (LF-25)
   - Acceptance Criteria:
     - Functional:
       - `updateDataModel` refuses a numeric path segment beyond the end of the array it writes into, with a typed error at the message's pointer, and counts every written value against the existing value bound (`limits.nodes * 8`, `packages/a2ui/src/index.ts:154`).
       - `format` bounds its output: one formatted string and the conversion's total formatted text stay under the character bound the input already has (`4 * limits.bytes`, `:134-135`). Over it is `limit-exceeded`.
       - A pointer has a bounded number of segments, and any error thrown inside the conversion that is not the converter's own `Stop` becomes a typed error with a fixed message. `fromA2ui` throws only for a malformed `mapping` argument, as today.
-      - The three inputs from the request (a 517-character sparse write, 171 KB of input that formats to 67 MB, a deep pointer) return errors.
-    - Performance: `bench/a2ui.bench.ts` gates the three inputs at under 10 ms and under 1 MiB of resident growth, and holds its existing rows.
+      - Regression fixtures for the request's three failure modes return errors at the offending A2UI pointer.
+    - Performance: `bench/a2ui.bench.ts` gates representative sparse-index, formatted-text and deep-pointer cases at median under 10 ms and under 1 MiB of resident growth, and retains the existing valid-surface row.
     - Code Quality: the bounds use the `Limits` the converter already resolves (`:113`); no new option.
     - Security: law 2 for the converter's input: a hostile document yields errors, not a tree and not an uncaught `RangeError`. This is the bound `docs/security.md:119` already promises.
   - Approach:
@@ -454,29 +454,35 @@ The sixteen plans of this family were drafted in parallel from one request docum
       - `liveframe-execution` — package rules for companions.
       - `surgical-patch`.
     - Library Documentation to Check Before Implementation:
-      - A2UI v0.9 and v0.9.1, `updateDataModel` path semantics for array indices (the specification the package's README cites). Not looked up while drafting: the executor's first step is to confirm that a write past an array's end is not required behaviour.
+      - [A2UI v0.9](https://github.com/a2ui-project/a2ui/blob/v0.9/specification/v0_9/docs/a2ui_protocol.md#server-to-client-updates) and [v0.9.1](https://a2ui.org/specification/v0.9.1-a2ui/#server-to-client-updates) describe JSON Pointer upserts and give no rule requiring gaps in an array.
     - Documentation Reviewed:
       - Confirmed: `setIn` writes `copy[index]` for any numeric segment (`packages/a2ui/src/index.ts:296-313`); `format` joins unbounded parts (`:780-807`); `fromA2ui` rethrows anything but `Stop` (`:115-126`).
     - Options Considered:
       - Allow sparse writes up to the value bound and fill with `null` — rejected unless the A2UI text requires it: a hole is not JSON, and filling allocates what the bound exists to prevent.
       - Catch every error silently — rejected: the catch maps `RangeError` to `limit-exceeded` and anything else to one fixed `invalid-document`, so a converter bug is still visible as a failure.
     - Chosen Approach:
-      - Dense arrays only, an output counter in the conversion context, a segment bound, and a typed catch.
+      - Allow replacement and dense append. Charge copied and inserted values as updates run. Bound read and write pointers before splitting them in full, and charge literal text and interpolated JSON before joining. Return typed failures for unexpected conversion errors.
     - API Notes and Examples:
       ```ts
       fromA2ui('{"updateDataModel":{"path":"/a/99999999","value":1}}', mapping);
       // → { ok: false, errors: [{ kind: "limit-exceeded", pointer: "/0/updateDataModel/path", … }] }
       ```
     - Files to Create/Edit:
-      - `packages/a2ui/src/index.ts`: `setIn`, `segments`, `format`, the `fromA2ui` catch.
+      - `packages/a2ui/src/index.ts`: input collection, data-model writes and pointer reads, formatting, and the `fromA2ui` catch.
       - `packages/a2ui/src/__tests__/a2ui.test.ts`: the tests below.
       - `bench/a2ui.bench.ts`: the three gated rows.
       - `packages/a2ui/README.md` (the bounds); `CHANGELOG.md`.
   - Test Cases to Write:
     - `sparse_array_index_is_refused`: fails if `setIn` writes past the end.
-    - `formatted_output_is_bounded`: a small document that repeats a long value is `limit-exceeded`. Fails if only the input is bounded.
+    - `data_writes_share_a_value_budget`: successive updates exhaust one shared allowance.
+    - `formatted_output_is_bounded` and `formatted_json_charges_escaped_characters`: enforce the character budget for one result and for aggregate output, including JSON escaping.
     - `deep_pointer_returns_a_typed_error`: no `RangeError` escapes.
-    - `valid_snapshots_convert_unchanged`: the existing fixtures give the same element JSON.
+    - `unexpected_conversion_errors_are_typed_and_hide_thrown_text`: failures return fixed messages and malformed mappings still throw.
+    - The existing conversion fixtures give the same element JSON.
+  - Notes (executed 2026-11-23):
+    - Dense replacement and append still convert. The converter rejects sparse indices, counts allocated data-model values across updates, and limits data-model reads and writes to 128 pointer segments. A shared budget charges formatted output before joining it, including JSON escaping. Unexpected errors produce fixed typed diagnostics.
+    - All 40 A2UI tests passed. The sparse-index, formatted-text and deep-pointer cases took median 0.019, 0.158 and 0.060 ms, with median RSS growth of 0, 256 and 0 KiB. The original audit inputs were unavailable. The benchmark uses representative fixtures and a 48 KiB byte setting. The 499-component row measured 2.533 ms at the baseline and 2.602 ms with the patch.
+    - `bun run check` passed in an isolated checkout containing the Task 7 patch, with 2,158 passed, 6 skipped and 0 failed. The shared checkout's run had one mismatch in `text_results_match_expected_contract` from the Task 6 error-message changes. That test passed in the isolated checkout.
 
 - [ ] Task 8: Bound inline drafts by file count and bytes before any transpile (LF-26, bounds half)
   - Acceptance Criteria:
