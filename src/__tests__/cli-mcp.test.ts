@@ -1128,7 +1128,9 @@ test("mcp_capture_maps_backend_errors", async () => {
       await call(client, "pack_draft", drafts[0] as unknown as Record<string, unknown>);
       const result = await call(client, "capture_preview");
       expect(result.isError).toBe(true);
-      expect(result.json()).toEqual([expect.objectContaining({ kind: "render-failed", message: "backend failed" })]);
+      expect(result.json()).toEqual([
+        expect.objectContaining({ kind: "render-failed", message: "The capture backend failed" }),
+      ]);
     },
     { config: `${fixtures}/mcp-capture.config.ts`, env: { LF_CAPTURE_FAILURE: "1" } },
   );

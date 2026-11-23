@@ -696,6 +696,27 @@ The sixteen plans of this family were drafted in parallel from one request docum
     - `CHANGELOG.md` gains two `Added` entries. "Install-time node limits for templates" names `validateTemplate`, `pack` and `VerifyOptions`. "An opt-in for thrown widget text" names `RenderOptions`, `RenderModuleOptions`, `RunnerOptions` and `HostWiring.runOptions`. The three register reasons now read "Adds the optional debug opt-in for LF-21."
     - `api-stability.test.ts` and `docs-links.test.ts` passed 20 of 20. Full checks for Tasks 11a and 11b together: the first failed format on two lines, which were then formatted. The second, at load ~16, failed only `capture_returns_png_snapshot_and_errors_per_cell`, the load-sensitive case with its own backlog entry; it passed 10 of 10 on its own. The final `timeout 1800 bun run check` passed with 2,182 tests passed, 6 skipped and 0 failed.
 
+- [x] Task 11b: Keep host text out of capture failures (impact finding F3)
+  - Acceptance Criteria:
+    - Functional: `captureFailure` (`src/authoring/index.ts`) returns `render-failed` with the fixed message `The capture backend failed` for any error that is not a `CaptureError`. The `CaptureError` for a page without preview axes no longer names its URL. The MCP tool result and `authoring.capturePreview()` carry neither.
+    - Performance: n/a — error path.
+    - Code Quality: one fixed message at the one catch; `CaptureError` messages, kinds and pointers are unchanged otherwise.
+    - Security: the authoring boundary (spec §13): an MCP client never receives host paths or URLs, which Task 10 established for the Playwright backend.
+  - Approach:
+    - Skills to Use: `surgical-patch` — the failing test first.
+    - Library Documentation to Check Before Implementation: none.
+    - Documentation Reviewed: Task 10's note; `src/preview/capture/index.ts` throws (one `CaptureError` interpolated `url`).
+    - Options Considered: return the backend text in `debug` — rejected: the text is the host's, not the draft author's, so the LF-21 rule does not apply.
+    - Chosen Approach: fixed message at `captureFailure`; drop `url` from the no-axes message.
+    - API Notes and Examples: n/a.
+    - Files to Create/Edit: `src/authoring/index.ts`; `src/preview/capture/index.ts`; `src/__tests__/authoring.test.ts`; `src/__tests__/cli-mcp.test.ts` (`mcp_capture_maps_backend_errors` expected the host text); `docs/mcp.md` capture error table; `CHANGELOG.md` (the LF-27 items 5–6 entry).
+  - Test Cases to Write:
+    - `capture_failures_hold_no_host_text`: a backend whose `open` throws a path- and URL-bearing error, and a page with no preview axes, return results whose JSON holds neither.
+  - Notes (executed 2026-11-23):
+    - `captureFailure` returns `render-failed` "The capture backend failed" for any error that is not a `CaptureError`. The no-axes `CaptureError` now reads "The preview page declares no preview axes: is it a <Preview> page?".
+    - `capture_failures_hold_no_host_text` failed before the fix (the result held the thrown path and URL) and passes now. `mcp_capture_maps_backend_errors` now expects the fixed message. The authoring, MCP CLI and preview-capture files passed 139 of 139.
+    - Not changed: an error thrown by the config's own `preview()` still reaches the result as `not-found` with its message. That is operator text, not a backend's, and `authoring_capture_retries_binding_and_maps_backend_errors` pins it. The impact analysis lists it for plan 042's checklist. Full checks for Tasks 11a and 11b together: the first failed format on two lines, which were then formatted. The second, at load ~16, failed only `capture_returns_png_snapshot_and_errors_per_cell`, the load-sensitive case with its own backlog entry; it passed 10 of 10 on its own. The final `timeout 1800 bun run check` passed with 2,182 tests passed, 6 skipped and 0 failed.
+
 - [ ] Task 12: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional: `plans/evidence/041-impact-analysis.md` records each of the twelve impact areas, or `None — <reason>`. Findings go to the owner in one table with a recommended disposition; `execute` findings become tasks above this one, `backlog` findings go to `plans/backlog.md` and Further Actions. The sweep carries the findings written into Tasks 3, 4, 5, 6 and 10, and lists the remaining channels for author text in host errors (Task 6) for plan 042's checklist.

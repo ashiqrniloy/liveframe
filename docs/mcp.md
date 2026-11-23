@@ -427,7 +427,7 @@ Its failures are typed too, so an agent can tell a typo from a limit:
 | `unknown-name` | An axis value the page does not declare, or a `media` value outside its set (at `/media/<axis>`); the message lists what it does |
 | `limit-exceeded` | More than `maxCaptureCells` cells; refused before any screenshot, naming the bound, config field and every axis you can narrow. A `layout` record over 262144 bytes also fails here, at `/layout`, naming the cell |
 | `not-found` | Capturing before `pack_draft`, no `preview()` in the config, an unreachable page or one that never became ready, Playwright or Chromium missing (with the install command; these messages are fixed and carry no Playwright text, host path or URL), or a media request on a backend without `emulate` (at `/media`) |
-| `render-failed` | Anything else, such as a file-system failure while writing cells |
+| `render-failed` | Any other backend failure, such as a file-system failure while writing cells. The message is the fixed `The capture backend failed` and carries none of the backend's text |
 
 Laws 1 and 4 hold on this path too: the page gets trees, never draft code, and
 nothing is dispatched.

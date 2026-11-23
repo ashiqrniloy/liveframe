@@ -306,8 +306,9 @@ const authoringCell = (
 });
 
 /** Only the cell-count refusal names the config field; a layout refusal names its cell. */
+/** Only a `CaptureError`'s message is library text; any other failure may carry host paths or URLs. */
 function captureFailure(error: unknown, bound: number): Result<never> {
-  if (!(error instanceof CaptureError)) return failure("render-failed", "", errorMessage(error));
+  if (!(error instanceof CaptureError)) return failure("render-failed", "", "The capture backend failed");
   const cellCount = error.kind === "limit-exceeded" && error.pointer === "";
   return failure(
     error.kind,

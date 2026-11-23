@@ -349,7 +349,8 @@ export async function capture<Handle>(url: string, options: CaptureOptions<Handl
   try {
     const initial = await open(url);
     const declared = await initial.axes();
-    if (!declared) throw new CaptureError("not-found", `${url} declares no preview axes: is it a <Preview> page?`);
+    if (!declared)
+      throw new CaptureError("not-found", "The preview page declares no preview axes: is it a <Preview> page?");
     const { shown, scenarios, widths, themes, designSystems } = selectedAxes(declared, options);
     const media = mediaCombinations(options.media);
     requireEmulate(initial, media);

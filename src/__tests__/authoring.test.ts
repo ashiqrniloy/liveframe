@@ -581,6 +581,35 @@ test("authoring_capture_retries_binding_and_maps_backend_errors", async () => {
   await b.close();
 });
 
+test("capture_failures_hold_no_host_text", async () => {
+  const secret = "/home/host/secret/chrome: launch failed at https://internal.test/preview";
+  for (const backend of [
+    {
+      async open() {
+        throw new Error(secret);
+      },
+    },
+    {
+      // A page that declares no preview axes.
+      async open(url: string) {
+        return { ...(await fakeCapture().backend.open(url)), axes: async () => null };
+      },
+    },
+  ]) {
+    const a = createAuthoring({
+      ...options(),
+      capture: backend as never,
+      preview: async () => ({ url: "https://internal.test/preview", async close() {} }),
+    });
+    await a.packDraft(draft);
+    const result = await a.capturePreview();
+    expect(result.ok).toBe(false);
+    expect(JSON.stringify(result)).not.toContain("internal.test");
+    expect(JSON.stringify(result)).not.toContain("/home/host");
+    await a.close();
+  }
+});
+
 test("authoring_hides_host_meta_unless_requested_and_bounds_trees", async () => {
   const capabilities = {
     ...packageOptions.capabilities,
