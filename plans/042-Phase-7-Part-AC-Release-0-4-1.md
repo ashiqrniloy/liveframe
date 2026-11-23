@@ -403,7 +403,7 @@ The sixteen plans of this family were drafted in parallel from one request docum
     - Regenerated Task 6's [acceptance log](evidence/042-acceptance.md) with the same command: 194 rows, of which 125 pass, 57 pending, 12 n/a, 0 fail and 0 unmapped, and all 73 named tests were found. With no `042-bench.md`, the 17 bench rows stay `pending`. This is the outcome Task 11 allows when an owner decision log accepts partial evidence.
     - The task changed only markdown. `timeout 2400 bun run check` reached the tests with build, gen, typecheck, lint and format green, then failed: 2,193 tests passed, 6 skipped and 3 failed (939 s, load 15–27). All three failures were timeouts: `mcp_capture_bound_defaults_and_configured_description` (5 s, the MCP connection closed), `quickjs_matches_render_for_every_proof_scenario` (20 s) and `quickjs_thrown_text_is_not_returned` (5 s, the QuickJS child exited before it was ready). Rerun by name with `bun test -t`, all three passed, 3 of 3 in 9.2 s at load 11.
 
-- [ ] Task 8: Run the agent acceptance test on the 0.4.1 paths
+- [x] Task 8: Run the agent acceptance test on the 0.4.1 paths
   - Acceptance Criteria:
     - Functional:
       - A fresh agent works only from the packed archives' READMEs and docs, the `liveframe mcp` tools and the host that `scripts/agent-acceptance/prepare.ts` builds. It:
@@ -435,6 +435,17 @@ The sixteen plans of this family were drafted in parallel from one request docum
       - `scripts/agent-acceptance/fixtures/` (new fixture files).
   - Test Cases to Write:
     - n/a — acceptance run.
+  - Notes (executed 2026-11-24):
+    - [Evidence](evidence/042-agent-acceptance.md). `prepare.ts` step 6 now writes `stream/session.elements.json` from the bench's `streamLoopDocument(1_000)` (imported, not copied; 1,003 nodes) and a `drafts/notes/` template draft whose `many` scenario holds 3,000 notes (1,393,970 bytes). The manifest and template are in `scripts/agent-acceptance/fixtures/notes-draft/`. The archives still carry `0.4.0`, because Task 9 bumps the version.
+    - The run used one agent with no inherited conversation, limited to the installed READMEs, `docs/` and `.d.ts` files, the host and `mcp-session.ts`. All four paths passed:
+      - The guide's loop ran unchanged and sent 503 updates over 10,520 ms, under the frame bound of 660. The final root equalled `renderElements`.
+      - The oversized draft returned `limit-exceeded` at `/scenarios`, and a draft cut to the manifest's 50 notes packed and rendered.
+      - A 7 × 4 `$use` fan-out returned `limit-exceeded` at `/template/root/children/1/$use`, and the 6 × 4 repair packed and rendered 1,367 nodes.
+      - The checklist answers matched the page: five duties are the host's and two are partly the library's.
+    - Law 4: the 13 MCP calls were all `pack_draft` or `render_scenarios`.
+    - Findings A1–A8 are listed with a recommendation each. They go to the owner in Task 10's readiness review. A1–A3 (the streaming guide) are recommended for plan 046, A4–A6 (error detail and the templates error table) for the backlog, and A7–A8 need no action. None blocks the candidate.
+    - The raw transcript, the agent's notes and the check log are local under `evidence/042-agent-acceptance/`.
+    - `timeout 2400 bun run check` passed: 2,196 tests passed, 6 skipped and 0 failed (878 s, load 8–12).
 
 - [ ] Task 9: Bump to `0.4.1-rc.1`, publish under `next` and verify from the registry
   - Acceptance Criteria:

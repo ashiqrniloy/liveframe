@@ -1,0 +1,16 @@
+{
+  "format": "liveframe-template/1",
+  "root": {
+    "kind": "stack",
+    "props": { "label": "Notes" },
+    "style": { "gap": "space.2" },
+    "children": [
+      { "kind": "heading", "props": { "text": { "$path": "params.title" }, "level": 2 } },
+      {
+        "$each": { "in": { "$path": "params.notes" }, "as": "note", "key": { "$path": "note.id" } },
+        "kind": "text",
+        "props": { "text": { "$path": "note.text" } }
+      }
+    ]
+  }
+}

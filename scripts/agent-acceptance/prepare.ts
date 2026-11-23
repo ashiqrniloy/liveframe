@@ -12,6 +12,7 @@
  */
 import { cp, mkdir, readdir, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { streamLoopDocument } from "../../src/__tests__/fixtures/stream-loop.ts";
 import { packageDirs, readManifest, root } from "../release/packages.ts";
 import { stagePackage } from "../release/publish-manifest.ts";
 
@@ -174,7 +175,34 @@ export default config;
 `,
 );
 
-// 6. Install from the archives.
+// 6. Plan 042 Task 8's inputs: a 1,003-node element document to stream (the stream-loop bench's own document),
+// and a template draft whose scenarios carry about 1.2 MB of sample notes, over the 1 MiB inline draft bound.
+await Bun.write(join(host, "stream/session.elements.json"), JSON.stringify(streamLoopDocument(1_000)));
+const notes = join(host, "drafts/notes");
+for (const name of ["manifest.json", "template.json"])
+  await cp(new URL(`./fixtures/notes-draft/${name}`, import.meta.url).pathname, join(notes, name));
+const note = (i: number) => ({
+  id: `n${i}`,
+  text: `Note ${i}: ${"follow up with the team about the rollout. ".repeat(9)}`,
+});
+await Bun.write(
+  join(notes, "scenarios.json"),
+  `${JSON.stringify(
+    [
+      { name: "few", params: { title: "Today", notes: [note(1), note(2)] }, context: {}, data: {} },
+      {
+        name: "many",
+        params: { title: "Backlog", notes: Array.from({ length: 3_000 }, (_, i) => note(i)) },
+        context: {},
+        data: {},
+      },
+    ],
+    null,
+    2,
+  )}\n`,
+);
+
+// 7. Install from the archives.
 const demoManifest = JSON.parse(await read(join(demo, "package.json")));
 await Bun.write(
   join(host, "package.json"),

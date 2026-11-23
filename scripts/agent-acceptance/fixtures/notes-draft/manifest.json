@@ -1,0 +1,32 @@
+{
+  "format": "liveframe-manifest/1",
+  "id": "acceptance.notes",
+  "version": "1.0.0",
+  "catalogId": "starter.ui@1",
+  "params": {
+    "type": "object",
+    "properties": {
+      "title": { "type": "string", "maxLength": 80 },
+      "notes": {
+        "type": "array",
+        "maxItems": 50,
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string", "maxLength": 16 },
+            "text": { "type": "string", "maxLength": 500 }
+          },
+          "required": ["id", "text"],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": ["title", "notes"],
+    "additionalProperties": false
+  },
+  "state": { "type": "object", "properties": {}, "required": [], "additionalProperties": false },
+  "context": { "type": "object", "properties": {}, "required": [], "additionalProperties": false },
+  "initialState": {},
+  "sources": {},
+  "actions": []
+}
