@@ -20,10 +20,16 @@ export type RenderRequest = {
   readonly key?: string;
 };
 
+export type EngineFailure = {
+  readonly error: string;
+  /** A thrown sandbox value. When absent, the diagnostic came from the engine or transport. */
+  readonly thrownName?: string;
+};
+
 export type ChildMessage =
   | { readonly type: "ready" }
   | { readonly type: "result"; readonly id: number; readonly json: string }
-  | { readonly type: "result"; readonly id: number; readonly error: string };
+  | ({ readonly type: "result"; readonly id: number } & EngineFailure);
 
 export type Reason = "timeout" | "memory" | "stack";
 

@@ -16,6 +16,8 @@ Fixed:
 
 - **A2UI conversion bounds data updates and formatted text (LF-25).** Sparse array writes, over-budget writes, deep data pointers and oversized formatted text return typed limit errors. Unexpected conversion failures return fixed diagnostics.
 
+- **Widget exceptions keep render inputs out of default diagnostics (LF-21).** Widget throws use a fixed message with an allowlisted error name. Preview, authoring and package scenario checks request up to 1,000 characters of untrusted exception text in `LiveframeError.debug`. Production hosts can opt in with `runOptions.debug`; it also enables the field in their render failure events.
+
 - **Template expansion stops at its budgets (LF-18).** Each emitted element or fragment and each entered `$use` spends a step. Expansion stops at the first element or fragment beyond the node limit and reports its template pointer.
 
 - **Sized template operators spend steps in proportion to their work (LF-18).** The evaluator charges for string units and collection entries read or written. String `$slice` stops scanning at its end index. Fifty-eight full slices of a 1 MiB string exceed the default step budget.

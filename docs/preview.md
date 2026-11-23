@@ -31,6 +31,10 @@ and has no host dependencies. The example expects three host-provided values:
 installed `catalog` and `capabilities` documents, and a `draft`
 (`{ files, entry, manifest, scenarios }`, as in the package guide).
 
+Preview requests widget exception diagnostics. A render failure has a fixed message such as
+`Widget threw TypeError` and can include up to 1,000 characters of untrusted exception text in
+`LiveframeError.debug`. That text can contain render inputs.
+
 `createPreview({ …, libraries })` takes the shared library packages (see [sharing components](packages.md#share-components-between-widgets)) that drafts may import as `liveframe:lib/<id>@<version>`. The host supplies them: `update(draft)` packs against them, so a draft's pins are those packages' hashes, and every render passes the same list to the runner, as `renderPlacement` passes a placement's libraries. A library that was not supplied is `not-found` ("the host did not supply this library to this session") and one whose content no longer matches its hash is `hash-mismatch`. An invalid list throws `LiveframeFailure` at `/libraries/<index>`. `liveframe mcp` and `createAuthoring()` take the same option ([the MCP guide](mcp.md#libraries)).
 
 Hosts that accept inline drafts through `createAuthoring()` or `liveframe mcp`

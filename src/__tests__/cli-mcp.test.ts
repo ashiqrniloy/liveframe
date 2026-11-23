@@ -123,7 +123,7 @@ async function resultSamples(client: Client) {
   const results: Record<string, Awaited<ReturnType<Client["callTool"]>>> = {};
   const sample = async (key: string, name = key, args: Record<string, unknown> = {}) => {
     const result = await client.callTool({ name, arguments: args });
-    expect(result.isError).not.toBe(true);
+    if (result.isError) throw new Error(`${key}: ${JSON.stringify(result.content)}`);
     results[key] = result;
     return JSON.parse((result.content[0] as { text: string }).text);
   };
@@ -724,10 +724,10 @@ test("all_scenarios_errors_are_deduplicated", async () => {
     await call(client, "pack_draft", throwing);
     return call(client, "render_scenarios");
   });
-  const statuses = result.json() as { ok: boolean; kind?: string; scenarios?: string[] }[];
+  const statuses = result.json() as { ok: boolean; kind?: string; scenarios?: string[]; debug?: string }[];
   const shared = statuses.filter((status) => !status.ok);
   expect(shared).toHaveLength(1);
-  expect(shared[0]?.kind).toBe("render-failed");
+  expect(shared[0]).toMatchObject({ kind: "render-failed", message: "Widget threw Error", debug: "boom" });
   expect(shared[0]?.scenarios).toEqual(agentHome.scenarios.map((scenario) => scenario.name));
   // The identical error appears once in the answer, not once per scenario.
   expect(result.text.split("boom")).toHaveLength(2);
@@ -746,6 +746,20 @@ test("errors_differing_only_in_expected_are_kept", () => {
     ["a string", ["b"]],
   ]);
 }, 60000);
+
+test("scenario_errors_keep_distinct_debug_text", () => {
+  const error = { kind: "render-failed", pointer: "", message: "Widget threw Error" } as const;
+  const statuses = checkAll(
+    ["a", "b"].map((scenario) => ({
+      scenario,
+      result: { ok: false, errors: [{ ...error, debug: scenario }] },
+    })),
+  );
+  expect(statuses).toEqual([
+    { ...error, ok: false, debug: "a", scenarios: ["a"] },
+    { ...error, ok: false, debug: "b", scenarios: ["b"] },
+  ]);
+});
 
 test("cross_reference_error_is_a_liveframe_error", async () => {
   const result = await withClient((client) =>
@@ -777,7 +791,7 @@ test("render_scenarios_returns_tree_or_errors", async () => {
   expect(tree?.json()).toEqual(expect.objectContaining({ format: "liveframe/1", catalogId: proofCatalog.catalogId }));
   expect(errors?.isError).toBe(true);
   const [renderError] = (errors?.json() ?? []) as LiveframeError[];
-  expect(renderError?.kind).toBe("render-failed");
+  expect(renderError).toMatchObject({ kind: "render-failed", message: "Widget threw Error", debug: "boom" });
   expect(absent?.isError).toBe(true);
   const [notFound] = (absent?.json() ?? []) as LiveframeError[];
   expect(notFound?.kind).toBe("not-found");

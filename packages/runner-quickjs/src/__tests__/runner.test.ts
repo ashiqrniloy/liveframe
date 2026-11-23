@@ -56,6 +56,24 @@ test("quickjs_matches_render_for_every_proof_scenario", async () => {
   expect(scenarios).toBeGreaterThanOrEqual(25);
 }, 20000);
 
+test("quickjs_thrown_text_is_not_returned", async () => {
+  const runner = await open({ timeoutMs: 5000 });
+  for (const [source, name] of [
+    ['export default (inputs) => { throw new Error(JSON.stringify(inputs) + "private-detail"); };', "Error"],
+    ['throw new TypeError("private-detail"); export default () => show("unused");', "TypeError"],
+    ['throw "private-detail"; export default () => show("unused");', "a non-Error value"],
+    ['export default () => { throw new Error("private-detail: stack overflow"); };', "Error"],
+  ]) {
+    if (!source) throw new Error("Missing widget source");
+    const pkg = widget("t.throws", source);
+    const result = await runner.render(pkg, inputs, long);
+    expect(result).toMatchObject({ ok: false, errors: [{ kind: "render-failed", message: `Widget threw ${name}` }] });
+    expect(JSON.stringify(result)).not.toContain("private-detail");
+    const debug = await runner.render(pkg, inputs, { ...long, debug: true });
+    expect(!debug.ok && debug.errors[0]?.debug).toContain("private-detail");
+  }
+});
+
 test("quickjs_infinite_loop_limit_exceeded", async () => {
   const runner = await open();
   const result = await runner.render(widget("t.loop", "export default () => { for (;;) {} };"), inputs, short);

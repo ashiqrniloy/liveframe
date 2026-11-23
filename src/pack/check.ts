@@ -3,7 +3,7 @@ import type { Capabilities } from "../formats/capabilities.ts";
 import { isRecord } from "../formats/capabilities.ts";
 import type { Catalog } from "../formats/catalog.ts";
 import type { WidgetPackage } from "../formats/package.ts";
-import { errorMessage } from "../internal.ts";
+import { widgetThrown } from "../internal.ts";
 import type { Runner } from "../preview/runner.ts";
 import { compileValidator } from "../validate/compile.ts";
 import { verifyPackage } from "./verify.ts";
@@ -38,11 +38,11 @@ async function renderScenarios(pkg: WidgetPackage, install: Install, runner: Run
       actions: scenario.actions ?? {},
     };
     try {
-      const rendered = await runner.render(pkg, inputs, { ...install, surfaceId: "check", revision: 1 });
+      const rendered = await runner.render(pkg, inputs, { ...install, surfaceId: "check", revision: 1, debug: true });
       const result = rendered.ok ? validator.validateTree(rendered.value) : rendered;
       if (!result.ok) found.push(...result.errors.map((error) => ({ ...error, pointer: `${at}${error.pointer}` })));
     } catch (error) {
-      found.push({ kind: "render-failed", pointer: at, message: errorMessage(error) });
+      found.push(widgetThrown(error, true, at));
     }
   }
   return found.slice(0, MAX_ERRORS);

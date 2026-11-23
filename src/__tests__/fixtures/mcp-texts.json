@@ -89,13 +89,13 @@
   "failed_statuses": [
     {
       "type": "text",
-      "text": "[{\"kind\":\"render-failed\",\"pointer\":\"\",\"nodeId\":\"root\",\"expected\":\"the widget to run without throwing\",\"message\":\"sample failure\",\"ok\":false,\"scenarios\":[\"ready\"]}]"
+      "text": "[{\"kind\":\"render-failed\",\"pointer\":\"\",\"message\":\"Widget threw Error\",\"debug\":\"sample failure\",\"nodeId\":\"root\",\"expected\":\"the widget to run without throwing\",\"ok\":false,\"scenarios\":[\"ready\"]}]"
     }
   ],
   "error": [
     {
       "type": "text",
-      "text": "[{\"kind\":\"render-failed\",\"pointer\":\"\",\"nodeId\":\"root\",\"expected\":\"the widget to run without throwing\",\"message\":\"sample failure\"}]"
+      "text": "[{\"kind\":\"render-failed\",\"pointer\":\"\",\"message\":\"Widget threw Error\",\"debug\":\"sample failure\",\"nodeId\":\"root\",\"expected\":\"the widget to run without throwing\"}]"
     }
   ]
 }

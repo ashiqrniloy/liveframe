@@ -4,7 +4,7 @@ import type { Catalog } from "../formats/catalog.ts";
 import { validateJson } from "../formats/json.ts";
 import type { Manifest } from "../formats/manifest.ts";
 import type { UiTree } from "../formats/tree.ts";
-import { errorMessage } from "../internal.ts";
+import { errorMessage, widgetThrown } from "../internal.ts";
 import { canonicalJson } from "../pack/hash.ts";
 import { render } from "../sdk/render.ts";
 import type { WidgetInputs } from "../sdk/types.ts";
@@ -20,6 +20,8 @@ export type RenderModuleOptions = {
   readonly revision: number;
   readonly limits?: TemplateLimits;
   readonly maxErrors?: number;
+  /** Include bounded, untrusted widget exception text in errors. Defaults to false. */
+  readonly debug?: boolean;
 };
 
 /** A manifest is immutable for a render, so its canonical text is computed once per object. */
@@ -60,20 +62,25 @@ export function renderWidget(
   key: string,
 ): Result<UiTree> {
   try {
-    if (typeof widget !== "function") throw new Error("Widget module must have a function default export");
-    const { surfaceId, revision, limits, maxErrors } = options;
+    if (typeof widget !== "function")
+      return {
+        ok: false,
+        errors: [{ kind: "render-failed", pointer: "", message: "Widget module must have a function default export" }],
+      };
+    const { surfaceId, revision, limits, maxErrors, debug } = options;
     return render((props) => widget(props), inputs, {
       validator: compiledValidator(options, key),
       surfaceId,
       revision,
       ...(limits ? { limits } : {}),
       ...(maxErrors === undefined ? {} : { maxErrors }),
+      ...(debug === true ? { debug } : {}),
     });
   } catch (error) {
     if (error instanceof LiveframeFailure) return { ok: false, errors: error.errors };
     return {
       ok: false,
-      errors: [{ kind: "render-failed", pointer: "", message: errorMessage(error) }],
+      errors: [widgetThrown(error, options.debug)],
     };
   }
 }

@@ -1,7 +1,7 @@
 import type { Result } from "../errors.ts";
 import type { WidgetPackage } from "../formats/package.ts";
 import type { UiTree } from "../formats/tree.ts";
-import { errorMessage } from "../internal.ts";
+import { widgetThrown } from "../internal.ts";
 import { renderWidget } from "../runner-kit/render.ts";
 import type { WidgetInputs } from "../sdk/types.ts";
 import { verifyPackageHash } from "./cache.ts";
@@ -119,7 +119,7 @@ async function renderModule(
   } catch (error) {
     result = {
       ok: false,
-      errors: [{ kind: "render-failed", pointer: "", message: errorMessage(error) }],
+      errors: [widgetThrown(error, options.debug)],
     };
   }
   if (Date.now() - start > timeoutMs)

@@ -36,7 +36,7 @@ export type HostWiring<V> = {
   /** Resolve as the viewer. A rejection, a missing alias, or a `pending` answer carrying a `value` counts as `failed`. */
   readonly resolve: (calls: readonly SourceCall[], viewer: V) => Promise<Readonly<Record<string, SourceResult>>>;
   readonly verified?: ReturnType<typeof verifiedPackages>;
-  readonly runOptions?: { readonly timeoutMs?: number; readonly limits?: TemplateLimits };
+  readonly runOptions?: { readonly timeoutMs?: number; readonly limits?: TemplateLimits; readonly debug?: boolean };
   /** Receives a frozen event per decision; ids, kinds, reasons and errors, never values. A throw is contained. */
   readonly onEvent?: (event: HostEvent) => unknown;
 };
@@ -73,8 +73,9 @@ export type Actions = Readonly<Record<string, ActionStatus>>;
 
 /**
  * What `renderPlacement` and `handleIntent` report. Events hold ids, kinds, reasons and `LiveframeError`s, never
- * state, params, source data, intent arguments or action values. The set may grow in a minor release, so a
- * handler ignores a `type` it does not know.
+ * state, params, source data, intent arguments or action values by default. Setting `runOptions.debug`
+ * lets render failures include untrusted author text that may contain those values. The set may grow
+ * in a minor release, so a handler ignores a `type` it does not know.
  */
 export type HostEvent = Readonly<
   | { type: "render-skipped"; placementId: string; revision: number }

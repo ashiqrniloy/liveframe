@@ -67,7 +67,8 @@ test("minor_catalog_change_keeps_packages_ok", async () => {
 
 test("scenario_render_failure_reported", async () => {
   const failing: Runner = {
-    async render(_pkg, inputs) {
+    async render(_pkg, inputs, options) {
+      expect(options.debug).toBe(true);
       if (inputs.params === undefined) throw new Error("unreachable");
       return { ok: false, errors: [{ kind: "render-failed", pointer: "/x", message: "widget threw" }] };
     },
@@ -82,7 +83,12 @@ test("scenario_render_failure_reported", async () => {
     },
   };
   const [thrown] = await checkPackages([codePackage], { ...install, runner: throwing });
-  expect(thrown?.errors[0]).toMatchObject({ kind: "render-failed", pointer: "/scenarios/0", message: "runner down" });
+  expect(thrown?.errors[0]).toMatchObject({
+    kind: "render-failed",
+    pointer: "/scenarios/0",
+    message: "Widget threw Error",
+    debug: "runner down",
+  });
 
   // A tree the host validator rejects is a failure whatever the runner said.
   const invalid: Runner = {

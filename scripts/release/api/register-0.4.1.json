@@ -86,5 +86,45 @@
     "reason": "Adds template budget coverage for LF-18.",
     "hostAction": "None.",
     "task": "041 T5"
+  },
+  {
+    "subpath": ".",
+    "name": "LiveframeError",
+    "change": "widened",
+    "reason": "Adds optional debug exception diagnostics for LF-21.",
+    "hostAction": "Use debug only for trusted diagnostic output.",
+    "task": "041 T6"
+  },
+  {
+    "subpath": "./preview",
+    "name": "RunnerOptions",
+    "change": "widened",
+    "reason": "Adds optional the debug opt-in for LF-21.",
+    "hostAction": "Use debug only for trusted diagnostic output.",
+    "task": "041 T6"
+  },
+  {
+    "subpath": "./runner-kit",
+    "name": "RenderModuleOptions",
+    "change": "widened",
+    "reason": "Adds optional the debug opt-in for LF-21.",
+    "hostAction": "Use debug only for trusted diagnostic output.",
+    "task": "041 T6"
+  },
+  {
+    "subpath": "./sdk",
+    "name": "RenderOptions",
+    "change": "widened",
+    "reason": "Adds optional the debug opt-in for LF-21.",
+    "hostAction": "Use debug only for trusted diagnostic output.",
+    "task": "041 T6"
+  },
+  {
+    "subpath": "./host",
+    "name": "HostWiring",
+    "change": "widened",
+    "reason": "Adds optional runOptions.debug for LF-21.",
+    "hostAction": "Use debug only for trusted diagnostic output.",
+    "task": "041 T6"
   }
 ]

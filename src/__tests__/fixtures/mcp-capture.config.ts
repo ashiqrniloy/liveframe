@@ -1,5 +1,5 @@
 import { fakeCapture } from "./capture-backend.ts";
-import config from "./mcp.config.ts";
+import config from "./mcp-slow-render.config.ts";
 
 const axes = process.env.LF_CAPTURE_WIDTHS
   ? {

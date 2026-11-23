@@ -61,6 +61,20 @@ const draft = {
   ],
 };
 
+test("preview_returns_thrown_text_in_debug", async () => {
+  const session = createPreview({ ...packageOptions, runner: inProcessRunner() });
+  value(
+    session.update({
+      ...draft,
+      files: { [draft.entry]: 'export default () => { throw new SyntaxError("draft detail"); };' },
+    }),
+  );
+  expect(await session.render({ scenario: "first" })).toMatchObject({
+    ok: false,
+    errors: [{ kind: "render-failed", message: "Widget threw SyntaxError", debug: "draft detail" }],
+  });
+});
+
 test("session_rejects_unoffered_and_stale_intents_without_mutation", async () => {
   const session = createPreview({ ...packageOptions, runner: inProcessRunner() });
   value(session.update(draft));

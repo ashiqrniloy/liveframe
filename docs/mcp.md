@@ -38,6 +38,10 @@ try {
 
 All nine methods return `Promise<Result<T>>`, with the same errors and bounds as the tools below. Their names are `listPrimitives`, `listVocabulary`, `listCapabilities`, `listLibraries`, `generatedTypes`, `packDraft`, `renderScenarios`, `setState` and `capturePreview`. A single-scenario render returns a tree of at most 256 KiB; an all-scenario render returns statuses with shared errors deduplicated. Capture returns at most `maxCaptureCells` cells (default 12, maximum 48), each with `scenario`, `width`, `theme`, `designSystem`, `errors`, `aria: string | null` and `png: Uint8Array`, with `layout: true` its `layout`, and with `media` its media point. `media` takes `{ textScale?: number[], forcedColors?: ("none"|"active")[], reducedMotion?: ("no-preference"|"reduce")[] }`: every requested value multiplies the cells, so the bound applies to the product. There are no output files or base64 conversions.
 
+Authoring and the MCP tools request exception diagnostics for widget renders. Check
+`LiveframeError.debug` for up to 1,000 characters of untrusted exception text. It can
+contain render inputs. The `message` field uses a fixed summary for widget throws.
+
 Both `createAuthoring()` and `AuthoringConfig` accept `limits?: RenderLimits`, for example `limits: { nodes: 20_000 }`. Optional `nodes`, `depth` and `bytes` fields must be positive safe integers; omitted fields default to 5,000 nodes, depth 64 and 1 MiB. Limits apply to the runner and host validation, including outcome scenarios and the bound preview session. Invalid limits throw `LiveframeFailure` with `invalid-document` at `/limits`; the CLI prints that error and exits 2. Raising tree limits does not raise the single-scenario tool's 256 KiB response bound or capture bounds.
 
 Both also accept `libraries: readonly WidgetPackage[]`, the shared library packages the host supplies to drafts that import `liveframe:lib/<id>@<version>` ([Libraries](#libraries)); `listLibraries()` returns what was supplied, and `packDraft` refuses a `libraries` field.

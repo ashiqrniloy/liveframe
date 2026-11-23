@@ -432,6 +432,7 @@ async function renderOutcomes(
       capabilities,
       surfaceId,
       revision: ++state.revision,
+      debug: true,
       ...(state.options.limits ? { limits: state.options.limits } : {}),
       ...(state.options.libraries ? { libraries: state.options.libraries } : {}),
     });

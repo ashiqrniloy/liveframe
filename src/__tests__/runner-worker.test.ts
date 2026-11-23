@@ -109,10 +109,9 @@ test("worker_crash_is_render_failed", async () => {
     ]) {
       const before = await runner.render(counted, inputs, options);
       expect(before).toMatchObject({ ok: true });
-      expect(await runner.render(withCode(code), inputs, options)).toMatchObject({
-        ok: false,
-        errors: [{ kind: "render-failed" }],
-      });
+      const failure = await runner.render(withCode(code), inputs, options);
+      expect(failure).toMatchObject({ ok: false, errors: [{ kind: "render-failed" }] });
+      expect(JSON.stringify(failure)).not.toMatch(/load failed|worker crashed/);
       const after = await runner.render(counted, inputs, options);
       expect(after).toMatchObject({ ok: true });
       if (after.ok) expect(after.value.root.props.text).toBe("1");
@@ -237,7 +236,7 @@ test("worker_warm_overhead_report", async () => {
   } finally {
     runner.close();
   }
-});
+}, 30000);
 
 test("forged_worker_result_is_revalidated_on_the_host", async () => {
   const runner = workerRunner({ timeoutMs: 2000 });
@@ -300,13 +299,19 @@ export default () => __lf_sdk0.jsx(__lf_sdk0.primitive("text"), { text: ${JSON.s
   }
 }, 15000);
 
-test("well_formed_worker_error_result_passes_through", async () => {
+test("worker_debug_returns_bounded_thrown_text_only_when_asked", async () => {
   const runner = workerRunner({ timeoutMs: 2000 });
   const failing = `import * as __lf_sdk0 from "@arnilo/liveframe/sdk";
-export default () => { throw new Error("boom"); };`;
+export default () => { throw new TypeError("x".repeat(1500)); };`;
   try {
     const result = await runner.render(withCode(failing), inputs, options);
-    expect(result).toMatchObject({ ok: false, errors: [{ kind: "render-failed", message: "boom" }] });
+    expect(result).toMatchObject({ ok: false, errors: [{ kind: "render-failed", message: "Widget threw TypeError" }] });
+    expect(!result.ok && result.errors[0]).not.toHaveProperty("debug");
+    const debug = await runner.render(withCode(failing), inputs, { ...options, debug: true });
+    expect(debug).toMatchObject({
+      ok: false,
+      errors: [{ message: "Widget threw TypeError", debug: "x".repeat(1000) }],
+    });
   } finally {
     runner.close();
   }

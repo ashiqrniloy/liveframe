@@ -32,6 +32,8 @@ export type LiveframeError = {
   readonly message: string;
   readonly expected?: string;
   readonly nodeId?: string;
+  /** Untrusted author text, at most 1,000 characters, included only by request. */
+  readonly debug?: string;
 };
 
 export type Result<T> =

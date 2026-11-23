@@ -565,7 +565,7 @@ shown here as inline examples: generated types reject many cases before runtime.
 | `undeclared-action` | `<Button label="a" onPress={action("nope", {})} />` | Declare and allow the action, or use an allowed one. |
 | `function-prop` | `<Text text={() => "a"} />` or a function nested in a composed component's props | Pass JSON data. A composed component's props are checked at every depth before it runs. |
 | `async-render` | `async () => <Text text="a" />` | Resolve data in the host; return synchronously. A promise prop, at any depth in a composed component's props, fails too. |
-| `render-failed` | `() => { throw new Error("boom"); }` | Fix the widget exception. The message retains `boom`, without a stack, capped at 500 characters plus an ellipsis. |
+| `render-failed` | `() => { throw new Error("boom"); }` | The message is `Widget threw Error`. Pass `debug: true` to `render()` to receive `boom` in `error.debug`, capped at 1,000 characters. |
 | `limit-exceeded` | A stack with a text child rendered with `limits: { nodes: 1 }` | Reduce output or have the host choose an appropriate budget. |
 
 Before a composed component runs, its props are walked as data — at every depth,

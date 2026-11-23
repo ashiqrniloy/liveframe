@@ -13,6 +13,8 @@ Widget-authored schemas may not use `pattern` (`params`, `state` and `context` i
 
 `meta` on a manifest, capability action or capability source is the host's annotation. The library bounds it (8 levels, 4096 bytes), validates it on install and on every load, and never reads it: it grants nothing, so a host must not treat a `meta` value as authorisation. `liveframe mcp` hides it from the agent unless the config sets `exposeMeta`.
 
+See [host render diagnostics](host.md#events) for the widget exception and debug contract.
+
 ## Template packages need no isolation runner
 
 A template widget (`package.template`, [spec §7.6](spec.md#76-template-widgets)) is data: element JSON plus a closed table of expression operators. The library evaluates it, so it holds no host access, no regular expressions, no recursion and no loops beyond input arrays, and its work is counted against `limits.steps`. `pack()` validates it against the manifest at install, `verifyPackage()` again on load, and the tree it renders passes the same compiled validator as a TSX widget's (law 2). Its intents are data that the host re-checks (law 4).

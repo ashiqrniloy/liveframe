@@ -8,7 +8,7 @@ import {
 } from "../errors.ts";
 import { at, isRecord } from "../formats/capabilities.ts";
 import type { UiNode, UiTree } from "../formats/tree.ts";
-import { isThenable } from "../internal.ts";
+import { isThenable, widgetThrown } from "../internal.ts";
 import { isGated, MAX_TREE_EXPRESSION_NODES } from "../validate/bindings.ts";
 import {
   BIND_MEMBER_BYTES,
@@ -74,13 +74,9 @@ export type RenderOptions = {
   readonly revision: number;
   readonly limits?: RenderLimits;
   readonly maxErrors?: number;
+  /** Include bounded, untrusted widget exception text in errors. Defaults to false. */
+  readonly debug?: boolean;
 };
-
-/** Not the shared `errorMessage`: an empty message falls back to `String(thrown)`, and long ones are cut. */
-function thrownMessage(thrown: unknown): string {
-  const message = thrown instanceof Error && thrown.message ? thrown.message : String(thrown);
-  return message.length > 500 ? `${message.slice(0, 500)}…` : message;
-}
 
 /**
  * Runs the widget once and builds its tree, checking every node as it is emitted (spec §7.2,
@@ -273,6 +269,7 @@ type RenderContext = {
   readonly structure: CompiledBuild["structure"];
   readonly budget: { readonly nodes: number; readonly depth: number; readonly bytes: number };
   readonly maxErrors: number;
+  readonly debug: boolean;
   readonly errors: LiveframeError[];
   readonly ids: Set<string>;
   /** Ids of nodes carrying a `when`; a node is gated when it or an ancestor is in here (spec §8). */
@@ -337,6 +334,7 @@ function createContext(options: RenderOptions, sourcePointers: WeakMap<Element, 
     structure,
     budget,
     maxErrors,
+    debug: options.debug === true,
     errors,
     ids: new Set<string>(),
     gated: new Set<string>(),
@@ -525,11 +523,9 @@ function fail(
   if (ctx.stopped) return;
   report(ctx, { kind, pointer, ...(nodeId ? { nodeId } : {}), expected, message: `Expected ${expected}` });
 }
-/** A widget or component threw: the message is what it threw. */
 function failThrown(ctx: RenderContext, pointer: string, nodeId: string, thrown: unknown): void {
-  const message = thrownMessage(thrown);
   if (ctx.stopped) return;
-  report(ctx, { kind: "render-failed", pointer, nodeId, expected: "the widget to run without throwing", message });
+  report(ctx, { ...widgetThrown(thrown, ctx.debug, pointer), nodeId, expected: "the widget to run without throwing" });
 }
 function report(ctx: RenderContext, error: LiveframeError): void {
   ctx.errors.push(error);

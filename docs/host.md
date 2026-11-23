@@ -281,6 +281,11 @@ The library never holds these, on purpose:
 `tree-rejected`, `load-failed` and `render-failed`, and from `handleIntent` `intent-refused`
 (with `reason` `stale`, `not-offered`, `unauthorized`, `invalid-state`, `limit` or `conflict`),
 `action-failed` and `publish-failed`. They carry ids, kinds, reasons
-and `LiveframeError`s, never state, params, source data or the viewer. A handler
+and `LiveframeError`s. Default render failure diagnostics omit thrown widget text. A handler
 that throws or rejects is contained, and nothing is built when you pass none.
 Ignore a `type` you do not know: the set may grow in a minor release.
+
+For a private diagnostic session, set `runOptions: { debug: true }` on `renderPlacement` or `handleIntent`.
+The render failure and its `onEvent` notification can then include up to 1,000 characters of untrusted
+exception text in `error.debug`. That text may contain state, params, source data or action values.
+Keep debug off for client responses and shared logs. See [Runners and preview](spec.md#75-runners-and-preview).

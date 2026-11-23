@@ -2,7 +2,7 @@ import { DEFAULT_MAX_ERRORS, type LiveframeError, LiveframeFailure, type Result 
 import { bindSources } from "../formats/manifest.ts";
 import type { WidgetPackage } from "../formats/package.ts";
 import type { Json, UiTree } from "../formats/tree.ts";
-import { at } from "../internal.ts";
+import { at, withoutDebug } from "../internal.ts";
 import { digest, isLoneSurrogateError, renderKey } from "../pack/hash.ts";
 import type { RunnerOptions } from "../preview/runner.ts";
 import type { LanguageSchema } from "../schema.ts";
@@ -180,7 +180,8 @@ async function runWidget<V>(
   }
   if (rendered === null || typeof rendered !== "object" || typeof (rendered as Result<unknown>).ok !== "boolean")
     return { ok: false, errors: refuse("render-failed", "", "Runner failed") };
-  return rendered as Result<UiTree>;
+  const result = rendered as Result<UiTree>;
+  return result.ok || args.runOptions?.debug === true ? result : { ok: false, errors: withoutDebug(result.errors) };
 }
 
 /** R9. Validate on the host (law 2), then check the two fields `checkOffered` will later trust. */

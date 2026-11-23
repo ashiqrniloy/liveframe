@@ -19,7 +19,7 @@ export function checkAll(
       continue;
     }
     for (const error of result.errors) {
-      const id = `${error.kind}\u0000${error.pointer}\u0000${error.message}\u0000${error.expected ?? ""}`;
+      const id = JSON.stringify([error.kind, error.pointer, error.message, error.expected ?? "", error.debug]);
       const existing = shared.get(id);
       if (existing) {
         if (!existing.scenarios.includes(name)) existing.scenarios.push(name);

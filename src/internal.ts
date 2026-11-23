@@ -39,6 +39,56 @@ export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+export const MAX_WIDGET_DEBUG_LENGTH = 1000;
+
+/** Only the closed list can contribute text to the public message. */
+export function widgetThrown(error: unknown, debug?: boolean, pointer = ""): LiveframeError {
+  let name = "a non-Error value";
+  try {
+    if (error instanceof Error) {
+      name = "Error";
+      const candidate = error.name;
+      switch (candidate) {
+        case "AggregateError":
+        case "EvalError":
+        case "InternalError":
+        case "RangeError":
+        case "ReferenceError":
+        case "SyntaxError":
+        case "TypeError":
+        case "URIError":
+          name = candidate;
+      }
+    }
+  } catch {
+    // The thrown value may have a throwing proxy trap or name getter.
+  }
+
+  const failure = { kind: "render-failed", pointer, message: `Widget threw ${name}` } as const;
+  if (debug !== true) return failure;
+  try {
+    const detail = errorMessage(error);
+    return typeof detail === "string" ? { ...failure, debug: detail.slice(0, MAX_WIDGET_DEBUG_LENGTH) } : failure;
+  } catch {
+    return failure;
+  }
+}
+
+/** Omit author diagnostics from failures unless the caller requested them. */
+export function withoutDebug(errors: readonly LiveframeError[]): readonly LiveframeError[] {
+  return errors.map((error) => {
+    if (!("debug" in error)) return error;
+    const { kind, pointer, message, expected, nodeId } = error;
+    return {
+      kind,
+      pointer,
+      message,
+      ...(expected === undefined ? {} : { expected }),
+      ...(nodeId === undefined ? {} : { nodeId }),
+    };
+  });
+}
+
 /** A serial promise queue: each task starts after the previous one settles, and a failure does not break the chain. */
 export function queue(): <T>(work: () => Promise<T>) => Promise<T> {
   let tail: Promise<unknown> = Promise.resolve();

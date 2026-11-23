@@ -14,6 +14,8 @@ export type RunnerOptions = {
   /** `steps` bounds a template widget's evaluation (spec §7.6); a code widget ignores it. */
   readonly limits?: TemplateLimits;
   readonly timeoutMs?: number;
+  /** Include bounded, untrusted widget exception text in errors. Defaults to false. */
+  readonly debug?: boolean;
   /**
    * The library packages a code package's `manifest.dependencies` pin (spec §7.5), as
    * `loadPlacement` returns them. Each is matched by `(id, version)` and must have the pinned hash

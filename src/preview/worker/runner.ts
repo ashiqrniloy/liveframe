@@ -1,7 +1,7 @@
 import { DEFAULT_MAX_ERRORS, type LiveframeError, type Result } from "../../errors.ts";
 import type { WidgetPackage } from "../../formats/package.ts";
 import type { UiTree } from "../../formats/tree.ts";
-import { errorMessage, queue } from "../../internal.ts";
+import { errorMessage, MAX_WIDGET_DEBUG_LENGTH, queue, widgetThrown, withoutDebug } from "../../internal.ts";
 import { compiledValidator } from "../../runner-kit/cache.ts";
 import { isRecord } from "../../schema.ts";
 import { verifyPackageHash } from "../cache.ts";
@@ -17,6 +17,7 @@ export type WorkerRunnerDefaults = {
 
 type Pending = {
   readonly id: number;
+  readonly debug: boolean;
   posted: boolean;
   clearTimer?: (() => void) | undefined;
   onReady?: (() => void) | undefined;
@@ -24,7 +25,7 @@ type Pending = {
   readonly resolve: (result: Result<UiTree>) => void;
 };
 
-const ERROR_FIELDS = new Set(["kind", "pointer", "message", "expected", "nodeId"]);
+const ERROR_FIELDS = new Set(["kind", "pointer", "message", "expected", "nodeId", "debug"]);
 
 /** The envelope of a worker answer; a tree's `value` is checked by the validator, not here. */
 function isResult(result: unknown): result is Result<unknown> {
@@ -46,7 +47,9 @@ function isErrorList(errors: unknown): boolean {
         typeof error.pointer === "string" &&
         typeof error.message === "string" &&
         (error.expected === undefined || typeof error.expected === "string") &&
-        (error.nodeId === undefined || typeof error.nodeId === "string"),
+        (error.nodeId === undefined || typeof error.nodeId === "string") &&
+        (error.debug === undefined ||
+          (typeof error.debug === "string" && error.debug.length <= MAX_WIDGET_DEBUG_LENGTH)),
     )
   );
 }
@@ -111,7 +114,7 @@ export function createWorkerRunner(
         ok: false,
         errors: [{ kind: "render-failed", pointer: "", message: "Worker returned a malformed result" }],
       };
-    if (!result.ok) return result;
+    if (!result.ok) return options.debug === true ? result : { ok: false, errors: withoutDebug(result.errors) };
     try {
       const validator = compiledValidator({ ...options, manifest: pkg.manifest }, pkg.hash);
       return validator.validateTree(result.value, options.limits ? { limits: options.limits } : undefined);
@@ -156,7 +159,11 @@ export function createWorkerRunner(
     };
     current.onerror = (event) => {
       event.preventDefault();
-      if (worker === current) stop("render-failed", event.message || "Worker error");
+      if (worker !== current) return;
+      const debug = pending?.debug;
+      const error = widgetThrown(event.error ?? new Error(debug ? event.message : ""), debug);
+      recycle();
+      settle({ ok: false, errors: [error] });
     };
     current.addEventListener("close", () => {
       if (worker === current) stop("render-failed", "Worker exited");
@@ -239,6 +246,7 @@ export function createWorkerRunner(
             pending = {
               id,
               posted: false,
+              debug: options.debug === true,
               resolve,
               validate: (result) => validateResult(result, pkg, options),
             };

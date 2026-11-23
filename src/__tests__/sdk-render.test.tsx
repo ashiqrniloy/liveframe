@@ -143,7 +143,7 @@ describe("sdk render", () => {
       expect(error?.nodeId).toBeString();
       expect(error?.pointer).toBeString();
     }
-    expect(failures(cases[10]?.widget ?? (() => null))[0]?.message).toBe("boom");
+    expect(failures(cases[10]?.widget ?? (() => null))[0]?.message).toBe("Widget threw Error");
   });
 
   test("ids_are_key_paths", () => {
@@ -380,7 +380,7 @@ describe("composed components and fragments", () => {
         nodeId: "root",
         widget: () => <Label {...{ onPress() {} }} />,
       },
-      // A component that throws, its message truncated at 500 characters.
+      // A component that throws, with a fixed message and its own node location.
       { kind: "render-failed", pointer: "", nodeId: "root", widget: () => <Throws /> },
       // A promise return.
       { kind: "async-render", pointer: "", nodeId: "root", widget: () => <Async /> },
@@ -415,6 +415,14 @@ describe("composed components and fragments", () => {
         nodeId: entry.nodeId,
       });
     }
-    expect(failures(cases[2]?.widget ?? (() => null))[0]?.message).toBe(`${"x".repeat(500)}…`);
+    const error = failures(() => <Throws />)[0];
+    expect(error).toMatchObject({ message: "Widget threw Error" });
+    expect(error).not.toHaveProperty("debug");
+    expect(render(() => <Throws />, inputs, { ...options, debug: true })).toMatchObject({
+      ok: false,
+      errors: expect.arrayContaining([
+        expect.objectContaining({ message: "Widget threw Error", debug: "x".repeat(600) }),
+      ]),
+    });
   });
 });

@@ -204,7 +204,12 @@ test("pack_store_and_reload_never_execute_widget_code", async () => {
     for (const runner of [inProcessRunner(), worker]) {
       const result = await runner.render(loaded.package, scenario, options);
       rejects(result, "render-failed");
-      if (!result.ok) expect(result.errors[0]?.message).toContain("execution-marker");
+      expect(JSON.stringify(result)).not.toContain("execution-marker");
+      const diagnostic = await runner.render(loaded.package, scenario, { ...options, debug: true });
+      rejects(diagnostic, "render-failed");
+      if (!diagnostic.ok) {
+        expect(diagnostic.errors[0]).toMatchObject({ message: "Widget threw Error", debug: "execution-marker" });
+      }
     }
   } finally {
     worker.close();

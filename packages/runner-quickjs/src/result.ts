@@ -8,7 +8,7 @@ import {
   type Manifest,
   type Result,
 } from "@arnilo/liveframe";
-import { limitOf } from "./protocol.ts";
+import { type EngineFailure, limitOf } from "./protocol.ts";
 
 const KINDS = new Set<LiveframeError["kind"]>([
   "invalid-document",
@@ -50,13 +50,46 @@ export const failed = (kind: LiveframeError["kind"], message: string, pointer = 
 });
 
 /** The limit a stopped render hit, as the `limit-exceeded` it is reported as. */
-export function limitFailure(message: string): Result<never> | undefined {
+function limitFailure(message: string): Result<never> | undefined {
   const reason = limitOf(message);
   return reason === undefined ? undefined : failed("limit-exceeded", `Render stopped: ${reason}`);
 }
 
-/** Failure messages from the sandbox are untrusted text: bounded, and no host paths can be in them. */
-function sanitized(errors: unknown): Result<never> | undefined {
+const engineErrorNames = new Set([
+  "AggregateError",
+  "EvalError",
+  "InternalError",
+  "RangeError",
+  "ReferenceError",
+  "SyntaxError",
+  "TypeError",
+  "URIError",
+  "a non-Error value",
+]);
+
+export function engineFailure(answer: EngineFailure, debug: boolean): Result<never> {
+  const { error, thrownName } = answer;
+  if (thrownName === undefined) return limitFailure(error) ?? failed("render-failed", error.slice(0, MAX_TEXT));
+  if (thrownName === "InternalError") {
+    const limit = limitFailure(error);
+    if (limit) return limit;
+  }
+  const name = engineErrorNames.has(thrownName) ? thrownName : "Error";
+  return {
+    ok: false,
+    errors: [
+      {
+        kind: "render-failed",
+        pointer: "",
+        message: `Widget threw ${name}`,
+        ...(debug ? { debug: error.slice(0, MAX_TEXT) } : {}),
+      },
+    ],
+  };
+}
+
+/** Failure messages from the sandbox are untrusted text. Bound them before returning them. */
+function sanitized(errors: unknown, debug: boolean): Result<never> | undefined {
   if (!Array.isArray(errors) || errors.length === 0 || errors.length > MAX_ERRORS) return undefined;
   const clean: LiveframeError[] = [];
   for (const error of errors) {
@@ -68,14 +101,21 @@ function sanitized(errors: unknown): Result<never> | undefined {
       typeof error.message !== "string"
     )
       return undefined;
-    const limit = limitFailure(error.message);
-    if (limit) return limit;
+    if (
+      error.kind === "render-failed" &&
+      error.message === "Widget threw InternalError" &&
+      typeof error.debug === "string"
+    ) {
+      const limit = limitFailure(error.debug);
+      if (limit) return limit;
+    }
     clean.push({
       kind: error.kind as LiveframeError["kind"],
       pointer: error.pointer.slice(0, MAX_TEXT),
       message: error.message.slice(0, MAX_TEXT),
       ...(typeof error.expected === "string" ? { expected: error.expected.slice(0, MAX_TEXT) } : {}),
       ...(typeof error.nodeId === "string" ? { nodeId: error.nodeId.slice(0, MAX_TEXT) } : {}),
+      ...(debug && typeof error.debug === "string" ? { debug: error.debug.slice(0, MAX_TEXT) } : {}),
     });
   }
   return { ok: false, errors: clean };
@@ -121,6 +161,7 @@ export function accept(
   install: Install,
   hash: string,
   limits: Parameters<CompiledValidator["validateTree"]>[1],
+  debug: boolean,
 ): Result<UiTree> {
   let parsed: unknown;
   try {
@@ -130,7 +171,7 @@ export function accept(
   }
   if (!isRecord(parsed)) return failed("render-failed", "The sandbox returned a malformed result");
   if (parsed.ok === false)
-    return sanitized(parsed.errors) ?? failed("render-failed", "The sandbox returned a malformed result");
+    return sanitized(parsed.errors, debug) ?? failed("render-failed", "The sandbox returned a malformed result");
   if (parsed.ok !== true || !("value" in parsed))
     return failed("render-failed", "The sandbox returned a malformed result");
   try {

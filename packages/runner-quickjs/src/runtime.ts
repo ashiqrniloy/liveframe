@@ -6,7 +6,7 @@ import {
   type QuickJSRuntime,
   shouldInterruptAfterDeadline,
 } from "quickjs-emscripten-core";
-import type { Limits } from "./protocol.ts";
+import type { EngineFailure, Limits } from "./protocol.ts";
 
 /** The package types describe its CommonJS build; Bun loads the ESM build, whose default export is the variant. */
 const releaseSync = releaseSyncModule as unknown as Extract<
@@ -25,7 +25,7 @@ export type Job = {
   readonly key?: string;
 };
 
-export type Outcome = { readonly json: string } | { readonly error: string };
+export type Outcome = { readonly json: string } | EngineFailure;
 
 /**
  * The entry module: it holds the render function in the sandbox's own global. It is the only code that
@@ -42,7 +42,8 @@ globalThis.__render = (config, text) => {
     lastConfig = config;
   }
   const request = JSON.parse(text);
-  return JSON.stringify(renderModule(widget, request.inputs, { ...parsed, ...request.options }));
+  // QuickJS reports native limits as InternalError text. The host classifies it before returning a result.
+  return JSON.stringify(renderModule(widget, request.inputs, { ...parsed, ...request.options, debug: true }));
 };`;
 
 /** One QuickJS runtime in its own wasm instance, with the package loaded. */
@@ -84,7 +85,7 @@ export function createEngine(wasm: WebAssembly.Module, kit: string, options: { m
     }
   }
 
-  async function open(job: Job): Promise<Sandbox | string> {
+  async function open(job: Job): Promise<Sandbox | EngineFailure> {
     const quickjs = await newQuickJSWASMModuleFromVariant(variant);
     const runtime = quickjs.newRuntime();
     runtime.setMemoryLimit(job.limits.memoryBytes);
@@ -97,9 +98,9 @@ export function createEngine(wasm: WebAssembly.Module, kit: string, options: { m
       runtime.setInterruptHandler(shouldInterruptAfterDeadline(Date.now() + job.limits.timeoutMs));
       const loaded = context.evalCode(entry, "entry.js", { type: "module" });
       if (loaded.error) {
-        const message = describe(context, loaded.error);
+        const failure = describe(context, loaded.error);
         drop(sandbox);
-        return message;
+        return failure;
       }
       loaded.value.dispose();
       const render = context.getProp(context.global, "__render");
@@ -107,12 +108,12 @@ export function createEngine(wasm: WebAssembly.Module, kit: string, options: { m
       render.dispose();
       if (!ready) {
         drop(sandbox);
-        return "The package did not finish loading: top-level await is not supported";
+        return { error: "The package did not finish loading: top-level await is not supported" };
       }
       return sandbox;
     } catch (error) {
       taintedCount++;
-      return `QuickJS failed: ${describeHost(error)}`;
+      return { error: `QuickJS failed: ${describeHost(error)}` };
     }
   }
 
@@ -126,7 +127,7 @@ export function createEngine(wasm: WebAssembly.Module, kit: string, options: { m
     text.dispose();
     config.dispose();
     render.dispose();
-    if (result.error) return { error: describe(context, result.error) };
+    if (result.error) return describe(context, result.error);
     const value = result.value;
     const json = context.typeof(value) === "string" ? context.getString(value) : undefined;
     value.dispose();
@@ -142,7 +143,7 @@ export function createEngine(wasm: WebAssembly.Module, kit: string, options: { m
       }
       if (!sandbox) {
         const opened = await open(job);
-        if (typeof opened === "string") return { error: opened };
+        if ("error" in opened) return opened;
         sandbox = opened;
         if (job.key !== undefined) {
           kept.set(job.key, sandbox);
@@ -179,12 +180,22 @@ export function createEngine(wasm: WebAssembly.Module, kit: string, options: { m
   };
 }
 
-/** The message of an error value the engine produced, disposing the handle. */
-function describe(context: QuickJSContext, handle: Parameters<QuickJSContext["dump"]>[0]): string {
-  const error = context.dump(handle) as { message?: unknown } | string | undefined;
+/** Classify sandbox text separately from host diagnostics and dispose the engine handle. */
+function describe(context: QuickJSContext, handle: Parameters<QuickJSContext["dump"]>[0]): EngineFailure {
+  const error = context.dump(handle) as
+    | { name?: unknown; message?: unknown }
+    | string
+    | number
+    | boolean
+    | null
+    | undefined;
   handle.dispose();
-  const message = typeof error === "string" ? error : error?.message;
-  return String(message ?? "Render failed").slice(0, 500);
+  const name = typeof error === "object" && error !== null ? error.name : undefined;
+  const message = typeof error === "object" && error !== null ? error.message : String(error);
+  return {
+    error: typeof message === "string" ? message.slice(0, 1000) : "Render failed",
+    thrownName: typeof name === "string" ? name.slice(0, 32) : "a non-Error value",
+  };
 }
 
 function describeHost(error: unknown): string {

@@ -4,8 +4,8 @@ import type { WidgetPackage } from "@arnilo/liveframe/pack";
 import type { Runner, RunnerOptions } from "@arnilo/liveframe/preview";
 import { renderTemplatePackage } from "@arnilo/liveframe/runner-kit";
 import { hashMatches, prepare } from "./load.ts";
-import type { ChildMessage, Limits, RenderRequest } from "./protocol.ts";
-import { accept, failed, limitFailure } from "./result.ts";
+import type { ChildMessage, EngineFailure, Limits, RenderRequest } from "./protocol.ts";
+import { accept, engineFailure, failed } from "./result.ts";
 
 export type QuickJsRunnerOptions = {
   /** QuickJS's heap limit per runtime (default 32 MiB). */
@@ -34,7 +34,7 @@ const KILL_GRACE_MS = 100;
 const childEntry = fileURLToPath(new URL(`./child${import.meta.url.endsWith(".ts") ? ".ts" : ".js"}`, import.meta.url));
 
 type Child = { readonly proc: Bun.Subprocess; readonly ready: Promise<void> };
-type Answer = { readonly json: string } | { readonly error: string } | { readonly killed: true };
+type Answer = { readonly json: string } | EngineFailure | { readonly killed: true };
 
 function positive(name: string, value: number): number {
   if (!Number.isInteger(value) || value <= 0) throw new RangeError(`${name} must be a positive integer`);
@@ -92,8 +92,7 @@ export async function quickjsRunner(options: QuickJsRunnerOptions = {}): Promise
         const reply = message as ChildMessage;
         if (current?.proc !== proc) return;
         if (reply.type === "ready") ready();
-        else if (reply.type === "result" && pending?.id === reply.id)
-          settle("json" in reply ? { json: reply.json } : { error: reply.error });
+        else if (reply.type === "result" && pending?.id === reply.id) settle(reply);
         else if (reply.type === "result") {
           // An answer for a render nobody asked for: the child is not trusted any more.
           retire(child);
@@ -163,7 +162,7 @@ export async function quickjsRunner(options: QuickJsRunnerOptions = {}): Promise
     const linked = prepare(pkg, runnerOptions.libraries);
     if (!linked.ok) return linked;
     const timeoutMs = runnerOptions.timeoutMs ?? defaultTimeoutMs;
-    const { catalog, capabilities, surfaceId, revision, limits } = runnerOptions;
+    const { catalog, capabilities, surfaceId, revision, limits, debug } = runnerOptions;
     let config: string;
     let request: string;
     try {
@@ -188,12 +187,13 @@ export async function quickjsRunner(options: QuickJsRunnerOptions = {}): Promise
     if ("refused" in answer) return failed("render-failed", answer.refused);
     if ("killed" in answer)
       return failed("limit-exceeded", `Render stopped: timeout (killed after ${timeoutMs + KILL_GRACE_MS} ms)`);
-    if ("error" in answer) return limitFailure(answer.error) ?? failed("render-failed", answer.error.slice(0, 500));
+    if ("error" in answer) return engineFailure(answer, debug === true);
     return accept(
       answer.json,
       { catalog, capabilities, manifest: pkg.manifest },
       pkg.hash,
       limits ? { limits } : undefined,
+      debug === true,
     );
   }
 

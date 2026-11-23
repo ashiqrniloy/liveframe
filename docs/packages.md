@@ -200,6 +200,9 @@ for (const entry of report.filter((entry) => !entry.ok)) console.log(entry.id, e
 
 Every package is verified. With a `runner`, every scenario is also rendered and its tree validated on the host, and errors point at `/scenarios/<n>…`. Nothing is stored or changed, and no runner is defaulted: `templateRunner` needs no sandbox, but a code package renders only through the runner you trust to run it, and without a `runner` code packages are verified only, so a removed kind that only their code uses stays invisible. Pair the runner with the package, as the CLI does: `checkPackages(templates, { …, runner: templateRunner() })` and `checkPackages(code, { …, runner: yourRunner })`.
 
+Scenario checks request exception diagnostics. A widget failure can carry up to 1,000
+characters of untrusted exception text in `error.debug`, which can include scenario inputs.
+
 3. Decide per package: repack it against the new catalog under a new version, place an older version on the old catalog, or retire it. Changing code is an author's act; the report feeds that work.
 
 For a `fileStore` directory, the CLI wraps the same report (Bun):

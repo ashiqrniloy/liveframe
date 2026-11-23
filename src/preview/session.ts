@@ -100,6 +100,7 @@ export function createPreview({
       capabilities,
       surfaceId,
       revision: ++revision,
+      debug: true,
       ...(limits ? { limits } : {}),
       ...(libraries ? { libraries } : {}),
     });

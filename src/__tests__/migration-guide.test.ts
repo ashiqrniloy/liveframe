@@ -89,8 +89,8 @@ async function checkSamples(guide: URL, minimum: number): Promise<void> {
   expect(failures).toEqual([]);
 }
 
-test("every_migration_sample_compiles", () => checkSamples(guide03, 11));
-test("every_0_4_migration_sample_compiles", () => checkSamples(guide04, 1));
+test("every_migration_sample_compiles", () => checkSamples(guide03, 11), 30000);
+test("every_0_4_migration_sample_compiles", () => checkSamples(guide04, 1), 30000);
 
 /** One exported function of the fixture, exactly as the guide prints it. */
 async function sample(name: string): Promise<string> {

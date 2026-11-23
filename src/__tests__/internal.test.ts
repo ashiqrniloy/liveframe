@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { at, errorMessage, isThenable, pointerSegment, queue, utf8Length } from "../internal.ts";
+import { at, errorMessage, isThenable, pointerSegment, queue, utf8Length, widgetThrown } from "../internal.ts";
 
 test("pointer_segment_escapes_tilde_before_slash", () => {
   expect(pointerSegment("a/~b")).toBe("a~1~0b");
@@ -13,6 +13,22 @@ test("error_message_reads_errors_and_stringifies_the_rest", () => {
   expect(errorMessage(new TypeError("bad"))).toBe("bad");
   expect(errorMessage("text")).toBe("text");
   expect(errorMessage(42)).toBe("42");
+});
+
+test("thrown_name_outside_the_closed_list_is_Error", () => {
+  const custom = Object.assign(new Error("detail"), { name: "private-name" });
+  expect(widgetThrown(custom)).toEqual({ kind: "render-failed", pointer: "", message: "Widget threw Error" });
+  expect(widgetThrown(custom, true)).toMatchObject({ message: "Widget threw Error", debug: "detail" });
+  expect(widgetThrown("private-value")).toMatchObject({ message: "Widget threw a non-Error value" });
+  expect(
+    widgetThrown(
+      Object.defineProperty(custom, "name", {
+        get() {
+          throw new Error("private-name");
+        },
+      }),
+    ),
+  ).toMatchObject({ message: "Widget threw Error" });
 });
 
 test("is_thenable_accepts_objects_and_functions_with_a_callable_then", () => {

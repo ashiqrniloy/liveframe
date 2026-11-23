@@ -392,25 +392,25 @@ The sixteen plans of this family were drafted in parallel from one request docum
     - With default limits, the 10- and 16-component fan-out cases took 1.295 ms and 0.799 ms respectively, with median resident growth of 0.375 MiB and 0.000 MiB. The slowest workload was nested maps at 5.157 ms against the 50 ms gate. Plan 042 can cite the [measurement and its scope](evidence/041-template-cost.md) for LF-65.
     - The 317 focused tests, the template benchmark with gates enabled and `bun run check` passed. The full check reported 2,152 passed, 6 skipped and 0 failed.
 
-- [ ] Task 6: Keep text a widget throws out of host errors and events (LF-21)
+- [x] Task 6: Keep text a widget throws out of host errors and events (LF-21)
   - Acceptance Criteria:
     - Functional:
-      - A value thrown by widget code that is not a `LiveframeFailure` becomes `{ kind: "render-failed", pointer: "", message: "Widget threw <name>" }`. `<name>` comes from a closed list of built-in error names, else `Error`; a thrown non-error is `a non-Error value`.
-      - Finding to settle first: the request proposes "a fixed message plus the error's `name`". A widget sets `name` freely, so a free name is still widget text. The closed list is the proposal; the owner confirms it.
-      - `RunnerOptions.debug?: boolean` (default off) asks for the original text. It arrives as `LiveframeError.debug`, at most 1,000 characters, documented on the type as untrusted author text. With `debug` off the field is never set, and `renderPlacement` drops one a runner returns anyway.
-      - Preview sessions, `/authoring`, the MCP tools and `pack`'s scenario check pass `debug: true`, because the draft's author is the reader, and return the text in `debug`.
-      - The changed case: the widget that throws `new Error(JSON.stringify(inputs))`. Under `inProcessRunner`, `workerRunner`, `templateRunner` (no author code, unchanged) and `quickjsRunner`, the `render-failed` result and `HostEvent` hold no input text.
-      - The promise at `src/host/types.ts:75-77` has a test.
+      - A value thrown by widget code that is not a `LiveframeFailure` is reported as `render-failed` with `message: "Widget threw <name>"`. A top-level throw has pointer `""`. A composed component retains its node pointer and ID. `<name>` comes from a closed list of built-in error names, else `Error`; a thrown non-error is `a non-Error value`.
+      - Widget code can assign any error name. Use only the closed list for public messages.
+      - `RunnerOptions.debug?: boolean` (default off) asks for the original text. It arrives as `LiveframeError.debug`, at most 1,000 characters, documented on the type as untrusted author text. With `debug` off, runner results omit the field and `renderPlacement` drops any a runner returns.
+      - Preview sessions, `/authoring`, the MCP tools and `checkPackages` scenario checks pass `debug: true`, because the draft's author is the reader, and return the text in `debug`.
+      - The changed case: the widget that throws `new Error(JSON.stringify(inputs))`. Under `inProcessRunner`, `workerRunner`, `templateRunner` and `quickjsRunner`, the failure result and `HostEvent` hold no input text. `templateRunner` refuses the code package at `/code`.
+      - The promise at `HostEvent` in `src/host/types.ts` has a test.
       - Finding to report: a runner that crosses a boundary returns errors the host cannot tell from widget-authored ones (a sandboxed widget can produce a typed error with any message; `packages/runner-quickjs/src/result.ts:58-82` bounds them at 21 errors of four 1,000-character fields but does not check content). Node ids also carry author-chosen keys. This task closes the thrown-text path the request names. The executor lists the remaining paths in `plans/evidence/041-impact-analysis.md` for plan 042's checklist (LF-65).
     - Performance: no work on the success path; `bench/host.bench.ts` and `bench/runner.bench.ts` hold their budgets.
-    - Code Quality: one helper replaces the five `errorMessage(error)` calls on widget-thrown values (`src/runner-kit/render.ts:76`, `:102`; `src/preview/in-process.ts:122`; `src/pack/check.ts:45`; `src/preview/worker/runner.ts:119`, `:202`, `:248`). `errorMessage` stays for host-authored errors.
-    - Security: law 4 and the event contract: events never hold state, params, source data, intent arguments or action values. What fails closed: with `debug` off, no path copies thrown text.
+    - Code Quality: the SDK, runner kit, in-process loader, worker crash handler and package checks share one thrown-value formatter. Host-authored errors retain their diagnostics. QuickJS classifies native limits before dropping unrequested debug text.
+    - Security: default host results and events omit thrown widget text, which can contain state, params, source data, intent arguments or action values. An explicit debug opt-in is required to return it.
   - Approach:
     - Skills to Use:
       - `liveframe-execution` — `references/storage.md` (runners and the host pipeline).
       - `surgical-patch` — the failing test first.
     - Library Documentation to Check Before Implementation:
-      - none; read the call sites above and `packages/runner-quickjs/src/result.ts:50-82`.
+      - none; read the SDK catch, loader and transport boundaries and the QuickJS result parser.
     - Documentation Reviewed:
       - Confirmed the request's path: `renderWidget`'s catch (`src/runner-kit/render.ts:72-78`), then `failed("render-failed", rendered.errors)` (`src/host/render.ts:222-225`, `:272`). `graft grep "errorMessage\("`: 17 hits in 9 files.
       - `runWidget` (`src/host/render.ts:120-135`) already replaces a thrown runner with the fixed "Runner failed".
@@ -427,17 +427,24 @@ The sixteen plans of this family were drafted in parallel from one request docum
       ```
     - Files to Create/Edit:
       - `src/internal.ts`: the helper. `src/errors.ts`: `debug` on `LiveframeError`. `src/preview/runner.ts`: `RunnerOptions.debug`.
-      - The seven call sites above; `src/preview/worker/protocol.ts` and `packages/runner-quickjs/src/result.ts` (carry `debug` only when asked, bounded).
+      - `src/sdk/render.ts`, `src/runner-kit/render.ts`, `src/preview/in-process.ts`, `src/preview/worker/runner.ts` and `src/pack/check.ts` for exception and result handling.
+      - `packages/runner-quickjs/src/{index,protocol,result,runtime}.ts` for sandbox exceptions, native limits and the bounded debug field.
       - `src/host/render.ts`: drop an unrequested `debug`. `src/host/types.ts`: the doc comment.
-      - `src/preview/`, `src/authoring/index.ts`, `src/cli/mcp.ts`: pass `debug: true`; MCP error output schema (tentative — if it is a closed schema).
-      - `scripts/release/api/register-0.4.1.json` (and the runner companion's register if its declarations change).
-      - `docs/host.md`, `docs/security.md` pointer only (wording is plan 042's), `docs/mcp.md`; `docs/spec.md` §7.5 and §7.7; `CHANGELOG.md`.
+      - `src/preview/session.ts`, `src/authoring/{index,checks}.ts` and `src/cli/mcp.ts` for author diagnostics, error deduplication and MCP output schemas.
+      - `scripts/release/api/register-0.4.1.json` for the widened options and error type.
+      - `docs/{host,mcp,packages,preview,sdk}.md`, a pointer in `docs/security.md`, `docs/spec.md` §7.5, §7.7 and §10, `CHANGELOG.md` and `plans/evidence/041-impact-analysis.md`.
   - Test Cases to Write:
     - `thrown_widget_text_never_reaches_a_host_event`: for each reference runner, a widget throwing its inputs yields an event and result whose JSON contains no input value. Fails if any catch copies the message.
     - `quickjs_thrown_text_is_not_returned` (in the runner package): the same through `quickjsRunner`.
-    - `debug_returns_bounded_thrown_text_only_when_asked`: `debug: true` gives at most 1,000 characters; off gives no field, including when a runner sets it.
+    - `worker_debug_returns_bounded_thrown_text_only_when_asked` and `render_placement_drops_unrequested_runner_debug`: requested debug has at most 1,000 characters and the host omits unrequested runner debug.
     - `thrown_name_outside_the_closed_list_is_Error`: a widget-set `name` is not echoed.
-    - `preview_and_authoring_return_the_thrown_text_in_debug`: an agent still reads why its draft threw.
+    - `preview_returns_thrown_text_in_debug`, `render_scenarios_returns_tree_or_errors` and `scenario_errors_keep_distinct_debug_text`: the draft author can still read each exception.
+  - Notes (executed 2026-11-23):
+    - Implemented fixed widget exception messages and the bounded debug opt-in across the SDK, host, reference runners and authoring surfaces. QuickJS uses its internal exception details to preserve native heap and stack limit classification. The host drops unsolicited debug without evaluating it.
+    - Eighteen focused checks passed, including the host event regression, QuickJS, Worker, MCP and the 0.4.x API register. CPU-pinned runs of both benchmark gates passed. Host pipeline overhead measured 0.084 ms against 0.2 ms and the fresh QuickJS agent-home median measured 84.7 ms against 110 ms. The corresponding baseline observations were 0.143 ms and 115.1 ms under shared host load.
+    - The full check remains open. During the aggregate run, `cli_prints_report` and `preview_session_packs_a_draft_that_imports_a_supplied_library` failed after retries. Both passed outside the aggregate run on the changed tree and the baseline. Aggregate runs also encountered browser harness timeouts, and the final run reached its 900-second shell deadline.
+    - Structured-error channels for LF-65 are recorded in the [impact analysis](evidence/041-impact-analysis.md#task-6--widget-exception-diagnostics-lf-21).
+    - The full check passed during Task 11's run. The working tree included this task's uncommitted changes. `timeout 1800 bun run check` passed with 2,181 tests passed, 6 skipped and 0 failed. The earlier aggregate failures did not recur.
 
 - [x] Task 7: Bound the A2UI converter's allocations (LF-25)
   - Acceptance Criteria:

@@ -12,7 +12,7 @@ import { type CaptureInput, createAuthoring, type PackInput, type RenderInput } 
 import { type Capabilities, validateCapabilities } from "../formats/capabilities.ts";
 import { type Catalog, validateCatalog } from "../formats/catalog.ts";
 import { type LiveframeError, LiveframeFailure, type Result } from "../index.ts";
-import { errorMessage, queue } from "../internal.ts";
+import { errorMessage, MAX_WIDGET_DEBUG_LENGTH, queue } from "../internal.ts";
 import type { AuthoringConfig } from "../preview/authoring.ts";
 import type { CaptureBackend } from "../preview/capture/index.ts";
 import type { Runner } from "../preview/runner.ts";
@@ -195,6 +195,7 @@ const errorProperties = {
   message: stringSchema,
   expected: stringSchema,
   nodeId: stringSchema,
+  debug: { type: "string", maxLength: MAX_WIDGET_DEBUG_LENGTH },
 };
 const errorSchema = {
   type: "object",

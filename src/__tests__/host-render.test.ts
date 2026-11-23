@@ -11,9 +11,11 @@ import {
 } from "@arnilo/liveframe";
 import { renderPlacement } from "@arnilo/liveframe/host";
 import { pack, type Scenario } from "@arnilo/liveframe/pack";
-import { type Runner, templateRunner } from "@arnilo/liveframe/preview";
+import { inProcessRunner, type Runner, templateRunner } from "@arnilo/liveframe/preview";
+import { workerRunner } from "@arnilo/liveframe/preview/worker";
 import { memoryStore } from "@arnilo/liveframe/store";
 import type { Template } from "@arnilo/liveframe/template";
+import { quickjsRunner } from "../../packages/runner-quickjs/src/index.ts";
 import type { HostEvent, Served, SourceResult } from "../host/index.ts";
 import catalogDoc from "./fixtures/proof/catalog.json" with { type: "json" };
 
@@ -312,6 +314,75 @@ test("revision_floor_above_previous_is_used", async () => {
   expect(next.revision).toBe(41);
   expect(next.tree.revision).toBe(41);
   expect(next.patch?.base).toBe(8);
+});
+
+test("thrown_widget_text_never_reaches_a_host_event", async () => {
+  const secret = "private-state-marker";
+  const pkg = value(
+    pack(
+      {
+        files: { "entry.ts": "export default (inputs) => { throw new Error(JSON.stringify(inputs)); };" },
+        entry: "entry.ts",
+        manifest: manifest({}),
+        scenarios: [{ name: "default", params: {}, context: {}, data: {} }],
+      },
+      install,
+    ),
+  );
+  const store = memoryStore();
+  await store.putPackage(pkg);
+  await store.putPlacement({ id: "p1", slot: "main", widget: { id: "notes", version: "1.0.0" }, params: {} });
+
+  for (const open of [inProcessRunner, workerRunner, quickjsRunner]) {
+    const runner = await open();
+    try {
+      const events: HostEvent[] = [];
+      const args = base(store, runner, {
+        state: { label: secret },
+        runOptions: { timeoutMs: 5000 },
+        onEvent: (event: HostEvent) => events.push(event),
+      });
+      const result = await renderPlacement(args);
+      expect(errorsOf(result)[0]).toMatchObject({ kind: "render-failed", pointer: "", message: "Widget threw Error" });
+      expect(events).toEqual([{ type: "render-failed", placementId: "p1", errors: errorsOf(result) }]);
+      expect(JSON.stringify([result, events])).not.toContain(secret);
+      expect(JSON.stringify([result, events])).not.toContain('"debug"');
+      events.length = 0;
+      const debug = await renderPlacement({ ...args, runOptions: { timeoutMs: 5000, debug: true } });
+      expect(errorsOf(debug)[0]?.debug).toContain(secret);
+      expect(events).toEqual([{ type: "render-failed", placementId: "p1", errors: errorsOf(debug) }]);
+    } finally {
+      if ("close" in runner) runner.close();
+    }
+  }
+
+  const events: HostEvent[] = [];
+  const refused = await renderPlacement(
+    base(store, templateRunner(), {
+      state: { label: secret },
+      onEvent: (event: HostEvent) => events.push(event),
+    }),
+  );
+  expect(errorsOf(refused)[0]).toMatchObject({ kind: "invalid-document", pointer: "/code" });
+  expect(events.map((event) => event.type)).toEqual(["render-failed"]);
+  expect(JSON.stringify([refused, events])).not.toContain(secret);
+});
+
+test("render_placement_drops_unrequested_runner_debug", async () => {
+  const store = await installed({}, {});
+  const events: HostEvent[] = [];
+  const error: LiveframeError = {
+    kind: "render-failed",
+    pointer: "",
+    message: "Runner failed",
+    get debug(): string {
+      throw new TypeError("private-debug");
+    },
+  };
+  const runner = spyRunner(() => ({ ok: false, errors: [error] }));
+  const result = await renderPlacement(base(store, runner, { onEvent: (event: HostEvent) => events.push(event) }));
+  expect(events).toEqual([{ type: "render-failed", placementId: "p1", errors: errorsOf(result) }]);
+  expect(errorsOf(result)).toEqual([{ kind: "render-failed", pointer: "", message: "Runner failed" }]);
 });
 
 test("events_carry_no_values", async () => {
