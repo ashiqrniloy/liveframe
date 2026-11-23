@@ -544,6 +544,7 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 
 - Update (2026-11-21, plan 040 Task 5): [best attempt](evidence/040-bench-attempt-best.md). Two attempts timed out waiting for quiet. The third ran all 15 stages, with peak whole-host CPU of 53.6%. Every stage exceeded the 10% limit in its average or a periodic sample. The proof remains open for the plan 040 Task 8 readiness review.
 - Update (2026-11-22, plan 040 Tasks 8–9): the [rerun](evidence/040-bench-task-8-rerun.md) completed all 15 stages with exit 0 per stage, but peaked at 29.3% CPU. The owner [deferred the proof](../decision-logs/2026-11-22-0347-go-on-0-4-0.md). Run the whole suite below 10% whole-host CPU and regenerate the ledger to resolve its 28 pending rows. [Impact analysis F4](evidence/040-impact-analysis.md#findings-and-dispositions).
+- Update (2026-11-23, plan 041 Task 12): at load 8–15, the 0.4.0 source (`547a649`) and plan 041 failed the same wall-clock gates: template `agent-home` ≤ 3 µs/node (3.251 → 3.526), validator ≤ 1.5 µs/node, bindings ≤ 1.75 µs/node and QuickJS none `agent-home` ≤ 110 ms (124.3 → 125.8 ms). The reused-catalog hit read 0.2335 → 0.2581 ms; see the separate cache-hit entry. The quiet-host run should also take the template and runner stages and record them against the [plan 041 table](evidence/041-impact-analysis.md#benches-before-and-after).
 
 ## Name the realm mismatch in a compiled validator's `validateTree`
 
@@ -964,6 +965,7 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Why: Every after-run in plan 035 ran at load 26–47. The render counts are deterministic and gated, but the wall times are not comparable with the baseline. The focus gate passed quietly (`+0.2 ms`) but failed at load ~35 (`+1.3 ms`), so it is not yet a reliable regression signal.
 
 - Update (2026-11-21, plan 040 Task 5): The streaming stage in the [best attempt](evidence/040-bench-attempt-best.md) exited 0 with a 13.0% CPU peak. The quiet-host measurement remains open for the plan 040 Task 8 readiness review.
+- Update (2026-11-23, plan 041 Task 12, F7): aggregate `bun run check` runs at load ~16 failed browser suites with "Target page, context or browser has been closed" in plan 041 Tasks 1, 10 and 11. They included `conformance-renderer-browser.test.tsx` and nine `proof/tests/renderer-browser.test.tsx` / `host.test.ts` cases. Each file passed when rerun on its own. Make the shared Playwright context survive aggregate load, or run the browser files in a separate stage.
 
 ## Expose `prepare` / `commit` on `SurfaceCore` for concurrent adapters other than React
 
@@ -1006,6 +1008,7 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Source: plans/036-Phase-7-Part-W-Internal-Structure-And-Parity.md Task 1a, plans/evidence/036-impact-analysis.md F5
 - What: `capture_returns_png_snapshot_and_errors_per_cell` fails inside `bun run check` with `limit-exceeded` "Render exceeded 100 ms" when the host is loaded (the preview runner's wall-clock render limit). Give the test a larger render limit or measure its budget in CPU time, as plan 033 Task 9 did for bench budgets. It is the same exposure as the existing entry on `workerRunner()`'s default `100 ms` timeout; fix them together if the default changes.
 - Why: It was the only failure in three of this plan's full runs (Tasks 1a, 2 and 5) (it passes alone, 10/10), so a red `bun run check` under load does not point at the change under test.
+- Update (2026-11-23, plan 041 Task 12, F7): aggregate `bun run check` runs failed under load in plan 041 Tasks 3, 6, 9 and 10 with MCP timeouts (`cli_prints_report`, `preview_session_packs_a_draft_that_imports_a_supplied_library` and MCP text cases). Every affected file passed when rerun on its own. Browser failures from the same runs are under the browser-renderer entry.
 
 ## Let `bench/ab.ts` decide 2% on a host that is never idle
 
@@ -1123,3 +1126,20 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - Source: plans/039-Phase-7-Part-Z-Agent-Generated-UI.md Task 7, plans/evidence/039-impact-analysis.md
 - What: a definition lists its child kinds but not its allowed parents, so a `radio` placed under a `stack` (children `any`) or a `tableCell` outside a `tableRow` is a valid tree. A stray `radio` is caught only at draw time by per-node error containment (`stray_radio_is_contained`). Add a parent rule to definitions.
 - Why: the starter's `radio`, `tableRow` and `tableCell` only make sense inside one parent, and the failure for a stray one is a fallback node, not a typed error at its own pointer. (F8)
+
+## Tell runner-authored errors from library errors in host results
+
+- Section: Host pipeline (spec §7.5, §7.7)
+- Priority: P3
+- Source: plans/041-Phase-7-Part-AB-Request-Scope-And-0-4-1-Security-Hardening.md Task 6, plans/evidence/041-impact-analysis.md F4
+- What: after LF-21, thrown widget text no longer reaches host results or events. A runner that crosses a boundary (`workerRunner`, `quickjsRunner`, a custom runner) can still return typed `LiveframeError`s whose `message`, `expected`, `pointer` and `nodeId` are any text the sandboxed widget chose. The QuickJS runner bounds their size but not their content, and node ids and pointers carry author-chosen keys even in library-authored errors. Decide whether the host marks or rewrites runner-returned errors (the option plan 041 Task 6 rejected for 0.4.1 because it changes validation messages hosts log), and how logs treat ids and pointers.
+- Why: a host that logs render failures can still record widget-chosen text. Plan 042's checklist states the limit; closing it changes an outcome hosts see, so it needs its own design and release.
+
+## Key the catalog cache on deep-frozen documents
+
+- Section: Validator (spec §10)
+- Priority: P3
+- Source: plans/041-Phase-7-Part-AB-Request-Scope-And-0-4-1-Security-Hardening.md Task 11, plans/evidence/041-impact-analysis.md F5
+- What: plan 041 Task 11 replaced the eight-entry `===` scan in `compileValidator`'s catalog cache with a 64-entry `Map` keyed by document text. Interleaved A/B shows a hit 3–16% slower (+0.01 to +0.05 ms on the 21 KB proof catalog), because the `Map` hashes the key text and the scan only compared it. A nested `Map` costs the same. Key deep-frozen documents by identity, using the proof `src/store/verified.ts` already has, and keep the text key for mutable input. That removes both the `JSON.stringify` and the hash on a hit. Measure with an interleaved A/B like the one in the impact analysis.
+- Why: the reused-catalog gate (≤ 0.25 ms) sits at its edge on a loaded host, and the hit cost is paid on every per-render compile.
+

@@ -672,7 +672,7 @@ The sixteen plans of this family were drafted in parallel from one request docum
     - `src/validate/compile.ts`: the cache is one `Map` keyed by the catalog text and the capabilities text joined by a newline, which JSON text never contains. `Map` insertion order is the use order: a hit deletes and re-sets its entry, and a miss beyond `MAX_CATALOGS = 64` deletes the first key. Both content checks are unchanged. A key match whose content differs (an `undefined`-valued key) leaves the entry in place. A compiled entry whose documents were mutated is dropped and recompiled. The single map replaces the nested map in the API notes because one map gives a single eviction order.
     - Tests in `validator-smoke.test.ts`: `sixty_four_catalog_pairs_all_hit`, `sixty_fifth_pair_evicts_the_least_recently_used` and `a_changed_document_never_hits`. With the bound set to 63, the first two failed. The four existing cache tests still pass.
     - `bench/validator.bench.ts` gains the 64-pair row. It asserts through `catalogCompileCount()` that every pass after the first one is a hit, then records `compileValidator.sixtyFourPairsHitMedianMs` and `…MissMedianMs`. It adds no gate. Under host load of about 14, the row recorded a 0.25 ms hit and a 0.91 ms miss with the cache full. The existing reused-catalog gate held at 0.235 ms, below its 0.25 ms limit. Under that load, the `core-queue.full` per-node gate and the bindings gate failed in one run. Neither gate covers this change.
-    - Identity keying (Options Considered) is not carried to Further Actions. A hit across 64 pairs costs the same as a hit on one pair, because the cost is the key's `JSON.stringify` and the manifest's compile, not the lookup.
+    - Identity keying (Options Considered) was not first carried to Further Actions, because a hit across 64 pairs costs the same as a hit on one pair. Correction from Task 12 (F5): an interleaved A/B against the previous `compile.ts` shows a hit 3–16% slower. The `Map` hashes the ~21 KB key text, which the old `===` scan never did, and a nested `Map` costs the same. Identity keying is now in Further Actions and the backlog.
     - Docs: the eight-pair bound was stated in `docs/formats.md` "Validation", not in `docs/model.md`, so the bound was updated there and `model.md` was left unchanged. `docs/adopters-0.2.md` keeps its historical "eight". The spec does not state this bound. CHANGELOG has a Fixed entry.
     - The first full check failed format on one line in `compile.ts`, which was then formatted. The second failed nine Playwright tests with `Target page, context or browser has been closed` and one proof host session under host load of about 16. Those two files then passed 26 of 26. The final `timeout 1800 bun run check` passed with 2,181 tests passed, 6 skipped and 0 failed.
 
@@ -717,7 +717,7 @@ The sixteen plans of this family were drafted in parallel from one request docum
     - `capture_failures_hold_no_host_text` failed before the fix (the result held the thrown path and URL) and passes now. `mcp_capture_maps_backend_errors` now expects the fixed message. The authoring, MCP CLI and preview-capture files passed 139 of 139.
     - Not changed: an error thrown by the config's own `preview()` still reaches the result as `not-found` with its message. That is operator text, not a backend's, and `authoring_capture_retries_binding_and_maps_backend_errors` pins it. The impact analysis lists it for plan 042's checklist. Full checks for Tasks 11a and 11b together: the first failed format on two lines, which were then formatted. The second, at load ~16, failed only `capture_returns_png_snapshot_and_errors_per_cell`, the load-sensitive case with its own backlog entry; it passed 10 of 10 on its own. The final `timeout 1800 bun run check` passed with 2,182 tests passed, 6 skipped and 0 failed.
 
-- [ ] Task 12: Analyze architectural impact and dispose of every finding
+- [x] Task 12: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional: `plans/evidence/041-impact-analysis.md` records each of the twelve impact areas, or `None — <reason>`. Findings go to the owner in one table with a recommended disposition; `execute` findings become tasks above this one, `backlog` findings go to `plans/backlog.md` and Further Actions. The sweep carries the findings written into Tasks 3, 4, 5, 6 and 10, and lists the remaining channels for author text in host errors (Task 6) for plan 042's checklist.
     - Performance: the sweep lists the template, host, runner, validator and A2UI bench rows before and after.
@@ -742,6 +742,11 @@ The sixteen plans of this family were drafted in parallel from one request docum
       - `plans/evidence/041-impact-analysis.md`; `plans/backlog.md`; `roadmap.md` §3; this plan's Compromises Made and Further Actions.
   - Test Cases to Write:
     - none new.
+  - Notes (executed 2026-11-23):
+    - [`plans/evidence/041-impact-analysis.md`](evidence/041-impact-analysis.md) records the twelve areas, the law and test per task, before-and-after bench tables for the five stages (base `547a649` against HEAD, one after another), and the code-quality sweep. That sweep found 16 `added`/`widened` register entries, none `removed` or `changed`, and no existing corpus, hash-vector or schema file changed. It also lists the delivered test and bench names for plan 042, plus the remaining author- and operator-text channels for plan 042's checklist.
+    - Seven findings went to the owner, who approved every recommendation: "Approve all (Recommended)". F1–F2 were executed in Task 11a, and F3 in Task 11b. F4 and F5 are new P3 backlog entries. F6 and F7 extend existing load-sensitivity entries. Task 11's note was corrected for F5.
+    - Before this task, Task 6 was implemented but neither ticked nor committed. With the owner's approval, it was closed on the full check that passed during Task 11 and committed as `e424a85`.
+    - Whole-plan verification: the focused tests passed 175 of 175, the A2UI and QuickJS packages 80 of 80, `demo:test` 78 of 78, and `guide:test`, `release:gate` and `bench/authoring.bench.ts` passed. At load 8–15, the bench stages failed the same wall-clock gates at both checkouts (F6). The host `loadPlacement` verified-hit row moved 1.82 → 3.85 ms, which a rerun showed to be noise. The final `timeout 1800 bun run check` passed with 2,182 tests passed, 6 skipped and 0 failed.
 
 ## Verification (whole plan)
 
@@ -755,8 +760,13 @@ The sixteen plans of this family were drafted in parallel from one request docum
 
 ## Compromises Made
 
-- To be filled after tasks are completed and tests pass.
+- Task 11's keyed cache makes a catalog-cache hit about 3–16% slower than the eight-entry scan (impact finding F5). It was accepted for 0.4.1 because a host serving more than eight catalogs no longer recompiles in turn.
+- Runner-returned typed errors still carry widget-chosen text, and node ids and pointers carry author keys (F4). LF-21 closes thrown text only; plan 042's checklist states the limit.
+- Plan 041's wall-clock bench gates were measured only on a loaded host (load 8–16). Before and after failed the same gates (F6), so the plan's performance evidence rests on interleaved A/B runs and CPU gates.
 
 ## Further Actions
 
-- To be filled after task completion with improvements, rationale, and priority.
+- P3 — [Tell runner-authored errors from library errors in host results](backlog.md#tell-runner-authored-errors-from-library-errors-in-host-results) (F4): decide whether the host marks or rewrites runner-returned errors.
+- P3 — [Key the catalog cache on deep-frozen documents](backlog.md#key-the-catalog-cache-on-deep-frozen-documents) (F5): remove the stringify and hash from a hit.
+- P1 — [Re-run the full benchmark suite on a quiet host](backlog.md#re-run-the-full-benchmark-suite-on-a-quiet-host) (F6): plan 041's template, validator and runner rows were added; plan 049 owns it.
+- P3 — [Make `proof/tests/mcp-capture.test.ts` independent of host load](backlog.md#make-prooftestsmcp-capturetestts-independent-of-host-load) and [Re-measure the browser renderer's wall times on a quiet host and make the focus gate load-resistant](backlog.md#re-measure-the-browser-renderers-wall-times-on-a-quiet-host-and-make-the-focus-gate-load-resistant) (F7): aggregate-check failures under load.
