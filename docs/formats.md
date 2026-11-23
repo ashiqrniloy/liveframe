@@ -530,7 +530,7 @@ manifest. The catalog includes its vocabulary. Recompile when any of these
 documents changes; reuse the compiled validator across renders for that set.
 `compileValidator` checks all three documents with the install validators before
 building closures over their schemas and declared names. A call whose catalog and
-capabilities have the same JSON text as one of the eight most recent calls reuses
+capabilities have the same JSON text as one of the 64 most recently used pairs reuses
 their catalog-level checks and compiles only the manifest's, so a host that
 compiles per render with a new manifest stays cheap (equal documents written with
 their keys in a different order compile again); every call still returns a new validator with the same

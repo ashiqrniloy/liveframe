@@ -234,11 +234,10 @@ type CatalogWork = {
 };
 
 /**
- * Catalog work kept per equal `(catalog, capabilities)`, least recently used evicted first. A host
- * installs a handful of catalogs, and every lookup compares content, so the bound is also the cost
- * of a miss with a full cache.
+ * Catalog work kept per equal `(catalog, capabilities)`, least recently used evicted first. A lookup
+ * is one keyed read, so the bound caps memory, not the cost of a miss.
  */
-const MAX_CATALOGS = 8;
+const MAX_CATALOGS = 64;
 type CatalogEntry = {
   readonly catalog: string;
   readonly capabilities: string;
@@ -246,7 +245,8 @@ type CatalogEntry = {
   /** The keys parsed back, kept after the first hit so later hits compare without parsing. */
   parsed?: { readonly catalog: unknown; readonly capabilities: unknown };
 };
-const catalogs: CatalogEntry[] = [];
+/** Keyed by both documents' text; `Map` order is use order, oldest first. */
+const catalogs = new Map<string, CatalogEntry>();
 
 /** @internal For tests only; counts catalog-level compiles, not the validators built from them. */
 export function catalogCompileCount(): number {
@@ -273,29 +273,28 @@ function catalogWork(catalog: unknown, capabilities: unknown): CatalogWork {
   const catalogKey = key(catalog);
   const capabilitiesKey = key(capabilities);
   if (catalogKey === undefined || capabilitiesKey === undefined) return compileCatalog(catalog, capabilities);
-  for (let i = 0; i < catalogs.length; i++) {
-    const entry = catalogs[i];
-    if (!entry || entry.catalog !== catalogKey || entry.capabilities !== capabilitiesKey) continue;
+  // JSON text never holds a raw newline, so the joined key names one pair.
+  const pair = `${catalogKey}\n${capabilitiesKey}`;
+  const entry = catalogs.get(pair);
+  if (entry) {
     entry.parsed ??= { catalog: JSON.parse(catalogKey), capabilities: JSON.parse(capabilitiesKey) };
-    if (!sameJson(entry.parsed.catalog, catalog) || !sameJson(entry.parsed.capabilities, capabilities)) continue;
-    // The entry reads the documents of the call that compiled it; a caller may have changed them since.
-    if (
-      !sameJson(entry.parsed.catalog, entry.work.catalog) ||
-      !sameJson(entry.parsed.capabilities, entry.work.capabilities)
-    ) {
-      catalogs.splice(i, 1);
-      break;
+    if (sameJson(entry.parsed.catalog, catalog) && sameJson(entry.parsed.capabilities, capabilities)) {
+      catalogs.delete(pair);
+      // The entry reads the documents of the call that compiled it; a caller may have changed them since.
+      if (
+        sameJson(entry.parsed.catalog, entry.work.catalog) &&
+        sameJson(entry.parsed.capabilities, entry.work.capabilities)
+      ) {
+        catalogs.set(pair, entry);
+        return entry.work;
+      }
     }
-    if (i > 0) {
-      catalogs.splice(i, 1);
-      catalogs.unshift(entry);
-    }
-    return entry.work;
   }
   const work = compileCatalog(catalog, capabilities);
   catalogCompiles++;
-  catalogs.unshift({ catalog: catalogKey, capabilities: capabilitiesKey, work });
-  if (catalogs.length > MAX_CATALOGS) catalogs.pop();
+  catalogs.delete(pair);
+  catalogs.set(pair, { catalog: catalogKey, capabilities: capabilitiesKey, work });
+  if (catalogs.size > MAX_CATALOGS) catalogs.delete(catalogs.keys().next().value as string);
   return work;
 }
 

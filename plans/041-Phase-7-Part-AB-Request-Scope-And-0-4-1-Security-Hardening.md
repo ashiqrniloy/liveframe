@@ -624,7 +624,7 @@ The sixteen plans of this family were drafted in parallel from one request docum
     - Spec §13 (`liveframe mcp` directory reads) and `docs/mcp.md` now describe the handle checks and the narrower trust model: a swapped file is refused, but a directory swapped above it is not covered. The backlog entry "Read draft directories through an open handle" is closed.
     - For Task 12: `captureFailure` (`src/authoring/index.ts:310`) still forwards the message of any error that is not a `CaptureError`, for example a Playwright launch failure other than a missing browser, as `render-failed`. That is another channel for host text in a tool result.
 
-- [ ] Task 11: Let the validator cache hold sixty-four catalogs (LF-34)
+- [x] Task 11: Let the validator cache hold sixty-four catalogs (LF-34)
   - Acceptance Criteria:
     - Functional:
       - The catalog-level cache of `compileValidator` holds 64 `(catalog, capabilities)` pairs, least recently used evicted first, with a lookup that does not scan every entry.
@@ -661,6 +661,13 @@ The sixteen plans of this family were drafted in parallel from one request docum
     - `sixty_four_catalog_pairs_all_hit`: fails if the bound is below 64 or eviction is wrong.
     - `sixty_fifth_pair_evicts_the_least_recently_used`: the oldest pair recompiles, the others do not.
     - `a_changed_document_never_hits`: the existing guard, kept.
+  - Notes (executed 2026-11-23):
+    - `src/validate/compile.ts`: the cache is one `Map` keyed by the catalog text and the capabilities text joined by a newline, which JSON text never contains. `Map` insertion order is the use order: a hit deletes and re-sets its entry, and a miss beyond `MAX_CATALOGS = 64` deletes the first key. Both content checks are unchanged. A key match whose content differs (an `undefined`-valued key) leaves the entry in place. A compiled entry whose documents were mutated is dropped and recompiled. The single map replaces the nested map in the API notes because one map gives a single eviction order.
+    - Tests in `validator-smoke.test.ts`: `sixty_four_catalog_pairs_all_hit`, `sixty_fifth_pair_evicts_the_least_recently_used` and `a_changed_document_never_hits`. With the bound set to 63, the first two failed. The four existing cache tests still pass.
+    - `bench/validator.bench.ts` gains the 64-pair row. It asserts through `catalogCompileCount()` that every pass after the first one is a hit, then records `compileValidator.sixtyFourPairsHitMedianMs` and `…MissMedianMs`. It adds no gate. Under host load of about 14, the row recorded a 0.25 ms hit and a 0.91 ms miss with the cache full. The existing reused-catalog gate held at 0.235 ms, below its 0.25 ms limit. Under that load, the `core-queue.full` per-node gate and the bindings gate failed in one run. Neither gate covers this change.
+    - Identity keying (Options Considered) is not carried to Further Actions. A hit across 64 pairs costs the same as a hit on one pair, because the cost is the key's `JSON.stringify` and the manifest's compile, not the lookup.
+    - Docs: the eight-pair bound was stated in `docs/formats.md` "Validation", not in `docs/model.md`, so the bound was updated there and `model.md` was left unchanged. `docs/adopters-0.2.md` keeps its historical "eight". The spec does not state this bound. CHANGELOG has a Fixed entry.
+    - The first full check failed format on one line in `compile.ts`, which was then formatted. The second failed nine Playwright tests with `Target page, context or browser has been closed` and one proof host session under host load of about 16. Those two files then passed 26 of 26. The final `timeout 1800 bun run check` passed with 2,181 tests passed, 6 skipped and 0 failed.
 
 - [ ] Task 12: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:

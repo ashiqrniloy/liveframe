@@ -69,3 +69,36 @@ test("invalid_catalog_never_hits_cache", () => {
   compileValidator(options);
   expect(catalogCompileCount()).toBe(compiles);
 });
+
+/** Compile each version in turn and return how many catalog-level compiles that took. */
+const compileAll = (versions: readonly number[]): number => {
+  const compiles = catalogCompileCount();
+  for (const version of versions) compileValidator(documents(version));
+  return catalogCompileCount() - compiles;
+};
+const range = (from: number, count: number) => Array.from({ length: count }, (_, i) => from + i);
+
+test("sixty_four_catalog_pairs_all_hit", () => {
+  const pairs = range(1_000, 64);
+  expect(compileAll(pairs)).toBe(64);
+  expect(compileAll(pairs)).toBe(0);
+});
+
+test("sixty_fifth_pair_evicts_the_least_recently_used", () => {
+  const pairs = range(2_000, 64);
+  compileAll(pairs);
+  compileAll([2_000]); // Now the most recent; 2_001 is the oldest.
+  expect(compileAll([2_064])).toBe(1);
+  expect(compileAll([2_001])).toBe(1);
+  expect(compileAll([2_000, ...range(2_003, 61), 2_064])).toBe(0);
+});
+
+test("a_changed_document_never_hits", () => {
+  const options = documents(3_000);
+  compileValidator(options);
+  options.catalog.catalogId = "proof.ui@3001";
+  const compiles = catalogCompileCount();
+  const validator = compileValidator(documents(3_000));
+  expect(catalogCompileCount()).toBe(compiles + 1);
+  expect(buildFacts(validator).catalogId).toBe("proof.ui@3000");
+});

@@ -192,7 +192,7 @@ const catalogWith = (version: number) => ({
   capabilities: capabilitiesDocument,
   manifest: { ...manifestDocument, catalogId: `proof.ui@${version}` },
 });
-const { compileValidator } = await import("../src/validate/compile.ts");
+const { catalogCompileCount, compileValidator } = await import("../src/validate/compile.ts");
 const secondManifest = { ...manifestDocument, version: "1.0.1" };
 compileValidator({ catalog: catalogDocument, capabilities: capabilitiesDocument, manifest: manifestDocument });
 const hits: number[] = [];
@@ -223,6 +223,36 @@ console.log(`compileValidator: first compile of an unseen catalog; 20 samples; m
 if (hitMedian > 0.25) {
   console.error("compileValidator: reused-catalog call exceeded 0.25 ms median");
   failed = true;
+}
+
+// Plan 041 Task 11 (LF-34): 64 pairs compiled in turn all stay cached; record a hit and a miss at a full cache.
+{
+  const pairs = Array.from({ length: 64 }, (_, i) => catalogWith(300 + i));
+  for (const pair of pairs) compileValidator(pair);
+  const compiles = catalogCompileCount();
+  const pairHits: number[] = [];
+  for (let round = 0; round < 20; round++) {
+    for (const pair of pairs) {
+      const start = performance.now();
+      compileValidator(pair);
+      if (round >= 4) pairHits.push(performance.now() - start);
+    }
+  }
+  assert.equal(catalogCompileCount(), compiles, "every one of the 64 pairs hits");
+  const pairMisses: number[] = [];
+  for (let i = 0; i < 20; i++) {
+    const start = performance.now();
+    compileValidator(catalogWith(400 + i));
+    pairMisses.push(performance.now() - start);
+  }
+  const mid = (values: number[]) => values.sort((a, b) => a - b)[Math.floor(values.length / 2)] as number;
+  const pairHitMedian = mid(pairHits);
+  const pairMissMedian = mid(pairMisses);
+  metric("compileValidator.sixtyFourPairsHitMedianMs", pairHitMedian);
+  metric("compileValidator.sixtyFourPairsMissMedianMs", pairMissMedian);
+  console.log(
+    `compileValidator: 64 cached pairs in turn, all hits; hit median ${pairHitMedian.toFixed(4)} ms, miss at a full cache ${pairMissMedian.toFixed(4)} ms`,
+  );
 }
 
 // Plan 029 Task 3: 50 distinct `when` expressions on the 679-node subject stay inside the validator's share.
