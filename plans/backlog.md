@@ -566,6 +566,8 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 
 ## Read draft directories through an open handle
 
+- Status: closed in the checkout 2026-11-23 by plan 041 Task 10: each file is opened with `O_NOFOLLOW`, its handle's device and inode must match the contained path, a second link is refused, and the bytes come from the handle. Not yet published as 0.4.1.
+
 - Section: Phase 8 follow-up (spec §13, `liveframe mcp`)
 - Priority: P4
 - Source: plans/023-Phase-7-Part-J-Release-0-2-3-Security-And-Defects.md Task 6 (R8, the review of `main` at `9894b1d`)

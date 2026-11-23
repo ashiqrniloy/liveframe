@@ -294,7 +294,10 @@ limit. Reads stay in arrival order with rendering and capture.
 
 `dir` must be a non-empty relative path without `..` segments. Both the directory
 and every selected file must resolve beneath the configured root, so escaping
-symlinks are refused. Selected files must be regular files. Do not combine `dir`
+symlinks are refused. Selected files must be regular files with exactly one link,
+so a hard link to a file outside the root is refused too. Each file is opened once
+without following a final symlink, checked on that open handle against the path that
+passed containment (same device and inode), and read from the handle. Do not combine `dir`
 with `files`, `manifest` or `scenarios`. Reader errors point to `/dir`:
 `invalid-document` for those invalid inputs or malformed JSON, `not-found` for a
 missing root configuration, directory, required JSON file or entry, and
@@ -303,11 +306,12 @@ as `/manifest/id`. Error messages name the directory and file relative to the ro
 (`draft file "manifest.json" in "widget" not found`); they never carry an absolute path,
 so the agent learns nothing about the host's layout.
 
-**Trust model.** `draftRoot` must be writable only by the agent and the host. The
-reader resolves symlinks and checks containment when it reads, but it does not defend
-against a third party who swaps a symlink between that check and the read, and it is
-not a sandbox against a local process replacing files concurrently. Do not point it at
-a directory other users or services can write to. `/authoring` continues to accept
+**Trust model.** `draftRoot` should be writable only by the agent and the host. A
+file swapped for a symlink or another file between the containment check and the
+read is refused, because the reader checks and reads the same open handle. A
+directory higher in the path swapped during the read is not covered, so the reader
+is still not a sandbox against a local process replacing files concurrently. Do not
+point it at a directory other users or services can write to. `/authoring` continues to accept
 inline drafts only.
 
 `pack_draft` takes the same inline input as `session.update()`: source files and an
@@ -418,7 +422,7 @@ Its failures are typed too, so an agent can tell a typo from a limit:
 |---|---|
 | `unknown-name` | An axis value the page does not declare, or a `media` value outside its set (at `/media/<axis>`); the message lists what it does |
 | `limit-exceeded` | More than `maxCaptureCells` cells; refused before any screenshot, naming the bound, config field and every axis you can narrow. A `layout` record over 262144 bytes also fails here, at `/layout`, naming the cell |
-| `not-found` | Capturing before `pack_draft`, no `preview()` in the config, an unreachable page or one that never became ready, Playwright or Chromium missing (with the install command), or a media request on a backend without `emulate` (at `/media`) |
+| `not-found` | Capturing before `pack_draft`, no `preview()` in the config, an unreachable page or one that never became ready, Playwright or Chromium missing (with the install command; these messages are fixed and carry no Playwright text, host path or URL), or a media request on a backend without `emulate` (at `/media`) |
 | `render-failed` | Anything else, such as a file-system failure while writing cells |
 
 Laws 1 and 4 hold on this path too: the page gets trees, never draft code, and

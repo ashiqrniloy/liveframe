@@ -6,20 +6,21 @@ export function playwrightBackend(playwright: typeof Playwright): CaptureBackend
   let browser: Playwright.Browser | undefined;
   return {
     async open(url) {
+      // Fixed messages: Playwright's text names host paths and URLs an MCP client must not see.
       browser ??= await playwright.chromium.launch({ headless: true }).catch((error: Error) => {
         // Playwright has no dedicated missing-browser error class.
         if (!/Executable doesn't exist|playwright install/i.test(error.message)) throw error;
         throw new CaptureError(
           "not-found",
-          `Chromium is not installed for Playwright: run \`bun add -d playwright && bunx playwright install chromium\`.\n${error.message}`,
+          "Chromium is not installed for Playwright: run `bun add -d playwright && bunx playwright install chromium`.",
         );
       });
       // Keep cookies and storage across the per-scenario sessions.
       const context = browser.contexts()[0] ?? (await browser.newContext());
       const page = await context.newPage();
       try {
-        await page.goto(url).catch((error: Error) => {
-          throw new CaptureError("not-found", `Cannot open ${url}: ${error.message}`);
+        await page.goto(url).catch(() => {
+          throw new CaptureError("not-found", "Cannot open the preview page");
         });
       } catch (error) {
         await page.close();
@@ -28,7 +29,7 @@ export function playwrightBackend(playwright: typeof Playwright): CaptureBackend
       return {
         async waitReady(selector) {
           await page.waitForSelector(selector, { timeout: 30000 }).catch(() => {
-            throw new CaptureError("not-found", `${url} never became ready: is it a <Preview> page?`);
+            throw new CaptureError("not-found", "The preview page never became ready: is it a <Preview> page?");
           });
           await page.locator("html").evaluate((element) => element.ownerDocument.fonts.ready);
         },

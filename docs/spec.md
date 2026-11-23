@@ -1811,14 +1811,14 @@ Paths are relative to `@arnilo/liveframe`; `.` is the root export. The `sdk` row
 
   The reader selects top-level `.ts`/`.tsx` files plus `manifest.json` and `scenarios.json`, defaults `entry` to `entry.tsx`, ignores unrelated files and never recurses or executes code.
 
-  The canonical directory and every selected file must stay beneath the root at path boundaries; selected files must be regular files.
+  The canonical directory and every selected file must stay beneath the root at path boundaries; selected files must be regular files with exactly one link. Each file is opened without following a final symlink; its handle must match the contained path's device and inode, and its bytes are read from that handle.
 
   Reads are limited to 128 sources and 1048576 aggregate bytes including JSON, checked before allocating contents and during reading.
 
   The packer's emitted-code limit remains separate.
 
   Directory reads join the draft queue before packing; `/authoring` stays inline-only.
-  Every reader error points to `/dir`: `invalid-document` for invalid paths, escapes, malformed JSON, non-regular files or combining `dir` with `files`, `manifest` or `scenarios`; `not-found` for an unconfigured `draftRoot` or missing directory, JSON file or entry; `limit-exceeded` for read bounds. Document validation after reading keeps normal document-root pointers. The reader assumes host-controlled directories, not a sandbox against concurrent local file replacement.
+  Every reader error points to `/dir`: `invalid-document` for invalid paths, escapes, malformed JSON, non-regular or multiply linked files, a file replaced after its check, or combining `dir` with `files`, `manifest` or `scenarios`; `not-found` for an unconfigured `draftRoot` or missing directory, JSON file or entry; `limit-exceeded` for read bounds. Document validation after reading keeps normal document-root pointers. The reader assumes host-controlled directories: a swapped file is refused, but it is not a sandbox against concurrent replacement of the directories above it.
 
   `pack_draft` and `render_scenarios` declare only a permissive top-level object — a description per argument and the published schemas in `$defs` for reference — and validate inside the handler with the same format validators the library uses. Each inline-required `pack_draft` property's description says "Required"; missing keys return `invalid-document` at `/files`, `/entry`, `/manifest` or `/scenarios`, reporting every missing key; a draft that names `template` is a template draft, and `files` or `entry` beside it is `invalid-document` at that key. Errors inside a template are rooted at `/template`. An argument error is therefore always a `LiveframeError[]` rooted at the document an agent edits (`/manifest/id`, `/scenarios/0/params`), never the MCP layer's own validation string. Non-object `arguments` (null, arrays, strings or numbers) are protocol errors rejected before the handler; omitted arguments reach it as an empty object.
   - `capture_preview({ scenarios?, widths?, themes?, designSystems?, layout?, media? })` — captures the bound page's cells, 12 per call by default (configurable up to 48), returning each cell's coordinates, accessibility snapshot, `LiveframeError`s and PNG as image content.

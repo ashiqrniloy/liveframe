@@ -1,4 +1,4 @@
-import { lstat, readdir, realpath } from "node:fs/promises";
+import { constants, type FileHandle, lstat, open, readdir, realpath } from "node:fs/promises";
 import { isAbsolute, join, relative, sep } from "node:path";
 import { boundedDirectoryDraft, MAX_DRAFT_BYTES } from "../authoring/draft-limits.ts";
 import type { PackInput } from "../authoring/index.ts";
@@ -42,6 +42,36 @@ function draftFiles(names: string[], input: Record<string, unknown>): Result<{ f
   return { ok: true, value: { files: template ? ["template.json"] : sources, template } };
 }
 
+/**
+ * Open one draft file and return its size, adding the handle to `opened` for the caller to close.
+ * The checks run on the open file, not the path: a symlink swapped in after the containment check is
+ * refused by O_NOFOLLOW or by its inode, a FIFO cannot block the open, and a second link may be a hard
+ * link to a file outside draftRoot.
+ */
+async function openDraftFile(root: string, directory: string, name: string, opened: FileHandle[]) {
+  const path = await realpath(join(directory, name));
+  if (!contained(root, path)) return failure("invalid-document", `Draft file ${name} escapes draftRoot`);
+  const checked = await lstat(path);
+  if (!checked.isFile()) return failure("invalid-document", `Draft file ${name} must be a regular file`);
+  const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+  opened.push(handle);
+  const info = await handle.stat();
+  if (!info.isFile() || info.nlink !== 1 || info.dev !== checked.dev || info.ino !== checked.ino)
+    return failure("invalid-document", `Draft file ${name} must be a regular file with exactly one link`);
+  return { ok: true, value: info.size } as const;
+}
+
+/** Read a handle into `buffer` from `offset` until end of file or a full buffer; returns the new end. */
+async function readInto(handle: FileHandle, buffer: Uint8Array, offset: number): Promise<number> {
+  let end = offset;
+  while (end < buffer.length) {
+    const { bytesRead } = await handle.read(buffer, end, buffer.length - end, end - offset);
+    if (bytesRead === 0) break;
+    end += bytesRead;
+  }
+  return end;
+}
+
 /** Read only data beneath the host's opt-in root; the packer still validates the documents. */
 export async function readDraftDirectory(
   root: string | undefined,
@@ -62,30 +92,32 @@ export async function readDraftDirectory(
     const names = (await readdir(directory, { withFileTypes: true })).map(({ name }) => name);
     const chosen = draftFiles(names, input);
     if (!chosen.ok) return chosen;
-    const selected: { name: string; path: string }[] = [];
-    let size = 0;
-    for (const name of [...chosen.value.files, "manifest.json", "scenarios.json"]) {
-      target = name;
-      const path = await realpath(join(directory, name));
-      if (!contained(root, path)) return failure("invalid-document", `Draft file ${name} escapes draftRoot`);
-      const info = await lstat(path);
-      if (!info.isFile()) return failure("invalid-document", `Draft file ${name} must be a regular file`);
-      size += info.size;
-      if (size > MAX_DRAFT_BYTES) return failure("limit-exceeded", `Draft exceeds ${MAX_DRAFT_BYTES} aggregate bytes`);
-      selected.push({ name, path });
-    }
     const contents: Record<string, string> = {};
-    let bytesRead = 0;
-    for (const { name, path } of selected) {
-      target = name;
-      // Bound actual reads too, in case a file grew after the size check.
-      const bytes = await Bun.file(path)
-        .slice(0, MAX_DRAFT_BYTES - bytesRead + 1)
-        .bytes();
-      bytesRead += bytes.length;
-      if (bytesRead > MAX_DRAFT_BYTES)
-        return failure("limit-exceeded", `Draft exceeds ${MAX_DRAFT_BYTES} aggregate bytes`);
-      contents[name] = new TextDecoder().decode(bytes);
+    const opened: FileHandle[] = [];
+    try {
+      const names = [...chosen.value.files, "manifest.json", "scenarios.json"];
+      let size = 0;
+      for (const name of names) {
+        target = name;
+        const opening = await openDraftFile(root, directory, name, opened);
+        if (!opening.ok) return opening;
+        size += opening.value;
+        if (size > MAX_DRAFT_BYTES)
+          return failure("limit-exceeded", `Draft exceeds ${MAX_DRAFT_BYTES} aggregate bytes`);
+      }
+      // One buffer bounds the actual reads too, in case a file grew after the size check.
+      const buffer = new Uint8Array(MAX_DRAFT_BYTES + 1);
+      let bytesRead = 0;
+      for (const [index, name] of names.entries()) {
+        target = name;
+        const start = bytesRead;
+        bytesRead = await readInto(opened[index] as FileHandle, buffer, start);
+        if (bytesRead > MAX_DRAFT_BYTES)
+          return failure("limit-exceeded", `Draft exceeds ${MAX_DRAFT_BYTES} aggregate bytes`);
+        contents[name] = new TextDecoder().decode(buffer.subarray(start, bytesRead));
+      }
+    } finally {
+      await Promise.all(opened.map((handle) => handle.close()));
     }
     // Sources end in .ts or .tsx, so the rest is exactly the source files, in read order.
     const {

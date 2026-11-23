@@ -6,6 +6,8 @@ All notable changes to `@arnilo/liveframe` are recorded here. The project follow
 
 Fixed:
 
+- **Directory drafts and capture errors stay inside the authoring boundary (LF-27, items 5–6).** MCP `pack_draft({ dir })` opens each draft file once, checks the open handle, and reads from it: a hard link inside `draftRoot` to a file outside it, or a file swapped for a symlink after its containment check, is `invalid-document` at `/dir`. The Playwright capture backend's missing-browser, unreachable-page and never-ready errors are fixed messages with no Playwright text, host path or URL.
+
 - **Core validation and host hardening (LF-27, items 1–4).** Lone surrogates in source data produce a failed source outcome where supported and a pointed render error otherwise. String schemas skip `pattern` after a length failure. Element and template sections reject prototype-related names. A rejected intent leaves any recorded status for the offered action key intact and skips the render.
 
 - **Inline authoring drafts are bounded before transpilation (LF-26).** MCP `pack_draft` and `authoring.packDraft()` refuse oversized inline source sets and JSON documents with `limit-exceeded` at the relevant input pointer.

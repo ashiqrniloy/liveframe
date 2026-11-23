@@ -578,7 +578,7 @@ The sixteen plans of this family were drafted in parallel from one request docum
     - All four regressions failed before the fixes. The Task 9-only focused rerun passed 97 tests, including the regressions, corpus cases, hash vectors and API stability. The shared-checkout `bun run check` passed with 2,174 passed, six skipped and zero failed. Later aggregate reruns hit MCP failures under load. All affected MCP cases passed when rerun in both checkouts.
     - The host benchmark passed at 0.111 ms of pipeline overhead against a 0.2 ms budget. Validator wall-clock misses occurred with the patch and at baseline `190e45d`. Validator CPU gates passed in the completed runs. Wall-clock confirmation remains open for the whole-plan verification.
 
-- [ ] Task 10: Fix two authoring defects: hard links under `draftRoot` and host text in capture errors (LF-27, items 5–6)
+- [x] Task 10: Fix two authoring defects: hard links under `draftRoot` and host text in capture errors (LF-27, items 5–6)
   - Acceptance Criteria:
     - Functional:
       5. `readDraftDirectory` opens each draft file, reads its status from the open handle, and reads the bytes from that handle. It refuses a file that is not regular, that has more than one link, or whose device and inode differ from the contained path it checked. A hard link inside `draftRoot` to a file outside it is `invalid-document`, and a symlink swapped between the check and the read cannot be followed.
@@ -616,6 +616,13 @@ The sixteen plans of this family were drafted in parallel from one request docum
     - `hard_link_inside_draft_root_is_refused`: a hard link to a file outside the root fails. Fails if only the real path is compared.
     - `symlink_swapped_after_the_check_is_not_followed`: the swap test the backlog entry asks for.
     - `capture_errors_hold_no_host_text`: a backend whose launch and `goto` reject with path-bearing messages returns the fixed text.
+  - Notes (executed 2026-11-23):
+    - `readDraftDirectory` now opens each selected file with `O_RDONLY | O_NOFOLLOW | O_NONBLOCK` after the `realpath` containment check and an `lstat` that must show a regular file. `openDraftFile` refuses a handle that is not a regular file, has `nlink !== 1`, or whose `dev`/`ino` differ from the checked path, and `readInto` reads every file from its handle into one `MAX_DRAFT_BYTES + 1` buffer, so the aggregate bound still holds if a file grows. Every error keeps its `kind` and `/dir` pointer. `O_NONBLOCK` was added because a FIFO swapped in after the `lstat` would otherwise block the open. Bun 1.4.5 honours `O_NOFOLLOW` (`ELOOP`) and reports `nlink`, `dev` and `ino` on `FileHandle#stat()` (probed; ctx7 lists `node:fs` as fully implemented).
+    - `playwrightBackend` returns fixed messages for a missing browser and an unreachable page. The "never became ready" message no longer names the URL either, a small addition in the same channel.
+    - Tests: `src/__tests__/draft-dir.test.ts` (new) holds `hard_link_inside_draft_root_is_refused` and `symlink_swapped_after_the_check_is_not_followed`. The swap test spies on `lstat` to replace the file with an outside symlink between the check and the open, so it is deterministic. Both failed against the previous reader. `capture_errors_hold_no_host_text` is in `src/__tests__/preview-capture.test.ts`, and it needs the `liveframe:source` condition, which `bun run test` sets.
+    - `bun run check`: build, gen, typecheck, lint and format passed. Tests: 2,174 passed, six skipped, four failed, all in `conformance-renderer-browser.test.tsx` under the aggregate load. That file passed 30/30 when rerun on its own, the same load pattern Task 9 recorded.
+    - Spec §13 (`liveframe mcp` directory reads) and `docs/mcp.md` now describe the handle checks and the narrower trust model: a swapped file is refused, but a directory swapped above it is not covered. The backlog entry "Read draft directories through an open handle" is closed.
+    - For Task 12: `captureFailure` (`src/authoring/index.ts:310`) still forwards the message of any error that is not a `CaptureError`, for example a Playwright launch failure other than a missing browser, as `render-failed`. That is another channel for host text in a tool result.
 
 - [ ] Task 11: Let the validator cache hold sixty-four catalogs (LF-34)
   - Acceptance Criteria:

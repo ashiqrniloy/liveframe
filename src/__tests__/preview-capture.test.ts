@@ -330,3 +330,20 @@ function previewPage(): string {
   servers.push(server);
   return server.url.href;
 }
+
+test("capture_errors_hold_no_host_text", async () => {
+  const hostText = "/home/operator/.cache/ms-playwright/chromium-1/chrome http://127.0.0.1:4321/secret";
+  const page = {
+    goto: () => Promise.reject(new Error(`net::ERR_CONNECTION_REFUSED at ${hostText}`)),
+    close: async () => {},
+  };
+  const fake = (launch: () => Promise<unknown>) => playwrightBackend({ chromium: { launch } } as never);
+  const missing = fake(() => Promise.reject(new Error(`Executable doesn't exist at ${hostText}`)));
+  const unreachable = fake(async () => ({ contexts: () => [{ newPage: async () => page }] }));
+  for (const backend of [missing, unreachable]) {
+    const error = await backend.open(`http://127.0.0.1:4321/secret`).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(CaptureError);
+    expect(error).toMatchObject({ kind: "not-found" });
+    expect((error as Error).message).not.toMatch(/\/home|127\.0\.0\.1|secret|net::/);
+  }
+});
