@@ -676,6 +676,26 @@ The sixteen plans of this family were drafted in parallel from one request docum
     - Docs: the eight-pair bound was stated in `docs/formats.md` "Validation", not in `docs/model.md`, so the bound was updated there and `model.md` was left unchanged. `docs/adopters-0.2.md` keeps its historical "eight". The spec does not state this bound. CHANGELOG has a Fixed entry.
     - The first full check failed format on one line in `compile.ts`, which was then formatted. The second failed nine Playwright tests with `Target page, context or browser has been closed` and one proof host session under host load of about 16. Those two files then passed 26 of 26. The final `timeout 1800 bun run check` passed with 2,181 tests passed, 6 skipped and 0 failed.
 
+- [x] Task 11a: Give every 0.4.1 register entry a CHANGELOG line (impact findings F1 and F2)
+  - Acceptance Criteria:
+    - Functional: `CHANGELOG.md` names each widened declaration in `scripts/release/api/register-0.4.1.json`: `limits.nodes` on `validateTemplate`, `pack` and `VerifyOptions` (Task 4) and `debug` on `RenderOptions`, `RenderModuleOptions`, `RunnerOptions` and `HostWiring.runOptions` (Task 6). The three reasons that read "Adds optional the debug opt-in" read "Adds the optional debug opt-in".
+    - Performance: n/a — documents.
+    - Code Quality: register `change`, `task` and `hostAction` fields are unchanged; only reason text changes.
+    - Security: n/a — no runtime path.
+  - Approach:
+    - Skills to Use: `liveframe-execution`.
+    - Library Documentation to Check Before Implementation: none.
+    - Documentation Reviewed: `register-0.4.1.json`; the Unreleased CHANGELOG section; `docs/templates.md` "Expressions"; `docs/sdk.md` error table.
+    - Options Considered: none.
+    - Chosen Approach: two `Added` entries, one per request, linking the guides that document them.
+    - API Notes and Examples: n/a.
+    - Files to Create/Edit: `CHANGELOG.md`; `scripts/release/api/register-0.4.1.json`.
+  - Test Cases to Write:
+    - none new; `api-stability.test.ts` and `docs-links.test.ts` pass.
+  - Notes (executed 2026-11-23):
+    - `CHANGELOG.md` gains two `Added` entries. "Install-time node limits for templates" names `validateTemplate`, `pack` and `VerifyOptions`. "An opt-in for thrown widget text" names `RenderOptions`, `RenderModuleOptions`, `RunnerOptions` and `HostWiring.runOptions`. The three register reasons now read "Adds the optional debug opt-in for LF-21."
+    - `api-stability.test.ts` and `docs-links.test.ts` passed 20 of 20. Full checks for Tasks 11a and 11b together: the first failed format on two lines, which were then formatted. The second, at load ~16, failed only `capture_returns_png_snapshot_and_errors_per_cell`, the load-sensitive case with its own backlog entry; it passed 10 of 10 on its own. The final `timeout 1800 bun run check` passed with 2,182 tests passed, 6 skipped and 0 failed.
+
 - [ ] Task 12: Analyze architectural impact and dispose of every finding
   - Acceptance Criteria:
     - Functional: `plans/evidence/041-impact-analysis.md` records each of the twelve impact areas, or `None — <reason>`. Findings go to the owner in one table with a recommended disposition; `execute` findings become tasks above this one, `backlog` findings go to `plans/backlog.md` and Further Actions. The sweep carries the findings written into Tasks 3, 4, 5, 6 and 10, and lists the remaining channels for author text in host errors (Task 6) for plan 042's checklist.

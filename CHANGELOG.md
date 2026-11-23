@@ -26,6 +26,10 @@ Fixed:
 
 Added:
 
+- **Install-time node limits for templates (LF-18).** `validateTemplate`, `pack` and `VerifyOptions` (verification and loading) accept an optional `limits.nodes`. These options set the minimum-expansion bound when it differs from the 5,000-node default. Use the same budget for packing and later verification ([templates](docs/templates.md#expressions)).
+
+- **An opt-in for thrown widget text (LF-21).** `debug?: boolean` on `render()`'s `RenderOptions` (`/sdk`), `renderModule`'s `RenderModuleOptions` (`/runner-kit`), `RunnerOptions` (`/preview`) and `HostWiring.runOptions` (`/host`) returns up to 1,000 characters of the exception text in `LiveframeError.debug`. The text is untrusted author text and may contain render inputs; use it only for trusted diagnostics ([SDK](docs/sdk.md)).
+
 - **Template budget conformance cases (LF-18).** The corpus covers static fan-out, the component depth boundary, and a template that installs successfully but exhausts the render step budget during a string slice. See the [corpus guide](docs/conformance.md#language-neutral-corpus).
 
 ## 0.4.0 — 2026-11-22

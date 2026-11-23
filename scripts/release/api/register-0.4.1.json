@@ -99,7 +99,7 @@
     "subpath": "./preview",
     "name": "RunnerOptions",
     "change": "widened",
-    "reason": "Adds optional the debug opt-in for LF-21.",
+    "reason": "Adds the optional debug opt-in for LF-21.",
     "hostAction": "Use debug only for trusted diagnostic output.",
     "task": "041 T6"
   },
@@ -107,7 +107,7 @@
     "subpath": "./runner-kit",
     "name": "RenderModuleOptions",
     "change": "widened",
-    "reason": "Adds optional the debug opt-in for LF-21.",
+    "reason": "Adds the optional debug opt-in for LF-21.",
     "hostAction": "Use debug only for trusted diagnostic output.",
     "task": "041 T6"
   },
@@ -115,7 +115,7 @@
     "subpath": "./sdk",
     "name": "RenderOptions",
     "change": "widened",
-    "reason": "Adds optional the debug opt-in for LF-21.",
+    "reason": "Adds the optional debug opt-in for LF-21.",
     "hostAction": "Use debug only for trusted diagnostic output.",
     "task": "041 T6"
   },
