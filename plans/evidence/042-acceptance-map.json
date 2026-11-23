@@ -454,7 +454,7 @@
     },
     "041.T8.F4": {
       "docs": [
-        "plans/043-Phase-7-Part-AD-Release-0-5-0-Scope-Stored-Documents-And-Content-Integrity.md :: LF-26"
+        "docs/adopters-0.4.md :: LF-26 (the runner half)"
       ],
       "note": "Out of scope for 0.4.1; carried to plan 043."
     },

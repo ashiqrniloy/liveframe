@@ -10,16 +10,16 @@ Statuses: **pass** (all mapped proofs passed); **pending** (the quiet-host bench
 
 | Command | Result | Seconds |
 | --- | --- | --- |
-| `timeout 300 bun test --conditions liveframe:source src/__tests__/corpus.test.ts src/__tests__/template-render.test.ts src/__tests__/template-document.test.ts src/__tests__/template-package.test.ts` | pass | 2.1 |
+| `timeout 300 bun test --conditions liveframe:source src/__tests__/corpus.test.ts src/__tests__/template-render.test.ts src/__tests__/template-document.test.ts src/__tests__/template-package.test.ts` | pass | 2.0 |
 | `timeout 300 bun test --conditions liveframe:source src/__tests__/template-expr.test.ts` | pass | 0.2 |
 | `timeout 300 bun test --conditions liveframe:source packages/a2ui` | pass | 0.3 |
 | `timeout 120 bun --conditions liveframe:source bench/authoring.bench.ts` | pass | 0.1 |
-| `timeout 300 bun test --conditions liveframe:source src/__tests__/draft-dir.test.ts src/__tests__/preview-capture.test.ts` | pass | 0.9 |
+| `timeout 300 bun test --conditions liveframe:source src/__tests__/draft-dir.test.ts src/__tests__/preview-capture.test.ts` | pass | 0.8 |
 | `test -z "$(timeout 60 git diff --diff-filter=MDR v0.4.0 -- conformance schemas)"` | pass | 0.0 |
 | `timeout 120 bun pm pack --dry-run | grep -q docs/security-checklist.md` | pass | 0.0 |
 | `timeout 300 bun test --conditions liveframe:source src/__tests__/sdk-guide.test.ts` | pass | 0.4 |
-| `timeout 600 bun --conditions liveframe:source bench/stream-loop.bench.ts` | pass | 15.2 |
-| `timeout 300 bun test --conditions liveframe:source src/__tests__/docs-wording.test.ts src/__tests__/docs-links.test.ts src/__tests__/docs-spec-structure.test.ts src/__tests__/migration-guide.test.ts` | pass | 2.0 |
+| `timeout 600 bun --conditions liveframe:source bench/stream-loop.bench.ts` | pass | 14.1 |
+| `timeout 300 bun test --conditions liveframe:source src/__tests__/docs-wording.test.ts src/__tests__/docs-links.test.ts src/__tests__/docs-spec-structure.test.ts src/__tests__/migration-guide.test.ts` | pass | 1.5 |
 | `test ! -e docs/migration-0.4.1.md` | pass | 0.0 |
 
 ## Summary
@@ -27,8 +27,8 @@ Statuses: **pass** (all mapped proofs passed); **pending** (the quiet-host bench
 | Plan | pass | pending | n/a | fail | unmapped |
 | --- | --- | --- | --- | --- | --- |
 | 041 | 78 | 13 | 6 | 0 | 0 |
-| 042 | 47 | 44 | 6 | 0 | 0 |
-| **all** | 125 | 57 | 12 | 0 | 0 |
+| 042 | 58 | 33 | 6 | 0 | 0 |
+| **all** | 136 | 46 | 12 | 0 | 0 |
 
 ## Plan 041
 
@@ -144,7 +144,7 @@ Statuses: **pass** (all mapped proofs passed); **pending** (the quiet-host bench
 | 041.T8.F1 | `pack_draft` and every `/authoring` operation that takes an inline draft refuse, with `limit-exceeded` at `/files`, a draft with more than 64 source… | `too_many_draft_files_is_limit_exceeded`<br>`draft_at_the_bound_packs`<br>`oversized_manifest_scenarios_or_template_is_refused`<br>`inline_draft_document_preflight_bounds_nesting`<br>`pack_draft_refuses_oversized_inline_files_and_keeps_the_current_draft` | pass |
 | 041.T8.F2 | The check runs before `validateManifestShape`, before `pack()` and before any transpile. It checks source string lengths before scanning UTF-8 bytes… | `oversized_inline_draft_is_refused_before_transpile`<br>`inline_draft_document_preflight_bounds_nesting` | pass |
 | 041.T8.F3 | The changed case: a 9 MiB inline draft. Today it is transpiled. It is now refused. | `oversized_inline_draft_is_refused_before_transpile` | pass |
-| 041.T8.F4 | Not in this task: refusing to start without an explicit `runner` or `trustDrafts`. That changes a default and is plan… | plans/043-Phase-7-Part-AD-Release-0-5-0-Scope-Stored-Documents-And-Content-Integrity.md ("LF-26")<br>Out of scope for 0.4.1; carried to plan 043. | pass |
+| 041.T8.F4 | Not in this task: refusing to start without an explicit `runner` or `trustDrafts`. That changes a default and is plan… | docs/adopters-0.4.md ("LF-26 (the runner half)")<br>Out of scope for 0.4.1; carried to plan 043. | pass |
 | 041.T8.P1 | source counting stops at the file or byte limit and rejects a source in constant time when its string length alone exceeds the remaining budget. The… | `timeout 120 bun --conditions liveframe:source bench/authoring.bench.ts` | pass |
 | 041.T8.Q1 | one constant shared with `src/cli/draft-dir.ts`; the bounded byte counter the validator already uses, not a new walker. | `pack_dir_accepts_exact_read_bounds`<br>`draft_at_the_bound_packs` | pass |
 | 041.T8.S1 | the authoring boundary (spec §13): draft text is untrusted input, bounded before the host spends memory on it. | `oversized_inline_draft_is_refused_before_transpile`<br>`too_many_draft_files_is_limit_exceeded` | pass |
@@ -305,26 +305,26 @@ Statuses: **pass** (all mapped proofs passed); **pending** (the quiet-host bench
 
 | ID | Acceptance bullet | Evidence | Result |
 | --- | --- | --- | --- |
-| 042.T7.F1 | `bun scripts/bench-quiet.ts --out plans/evidence/042-bench.md` runs every stage of `bun run bench`, including the stages plans 041 and 042 added (the… | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 7: Run the benchmark suite under the quiet-host rule")<br>plans/evidence/042-bench.md: \| `bench/template.bench.ts` \| pass \|<br>plans/evidence/042-bench.md: \| `bench/validator.bench.ts` \| pass \|<br>plans/evidence/042-bench.md: \| `bench/stream-loop.bench.ts` \| pass \|<br>due from 042 T7 | pending |
-| 042.T7.F2 | The quiet rule is the one in force (whole-host CPU below 10%, benchmark included; `decision-logs/2026-11-20-2319-release-0-4-0-scope.md`): three… | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 7: Run the benchmark suite under the quiet-host rule")<br>due from 042 T7 | pending |
-| 042.T7.F3 | A budget that fails on a quiet host stops the task and reopens the owning task in plan 041. No threshold changes without an owner decision log. | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 7: Run the benchmark suite under the quiet-host rule")<br>due from 042 T7 | pending |
-| 042.T7.F4 | A run that is not quiet does not close this task by itself. It closes with a clean record, or with an owner decision log that accepts the partial… | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 7: Run the benchmark suite under the quiet-host rule")<br>due from 042 T7 | pending |
-| 042.T7.F5 | The open backlog entry "Re-run the full benchmark suite on a quiet host" gets a status line with this run. Making the rule passable is plan… | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 7: Run the benchmark suite under the quiet-host rule")<br>plans/backlog.md ("042-bench")<br>due from 042 T7 | pending |
-| 042.T7.F6 | Task 6's log is regenerated afterwards so its `pending` rows resolve. | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 7: Run the benchmark suite under the quiet-host rule")<br>due from 042 T7 | pending |
-| 042.T7.P1 | this task is the proof for the patch: the two new gates pass, and no 0.4.0 gate regresses. | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 7: Run the benchmark suite under the quiet-host rule")<br>plans/evidence/042-bench.md: \| `bench/template.bench.ts` \| pass \|<br>plans/evidence/042-bench.md: \| `bench/validator.bench.ts` \| pass \|<br>due from 042 T7 | pending |
-| 042.T7.Q1 | the existing sampler; no new harness. | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 7: Run the benchmark suite under the quiet-host rule")<br>due from 042 T7 | pending |
-| 042.T7.S1 | the LF-18 gate is a security bound measured as time. Its record states the worst render the default budget allows. | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 7: Run the benchmark suite under the quiet-host rule")<br>plans/evidence/042-bench.md: \| `bench/template.bench.ts` \| pass \|<br>due from 042 T7 | pending |
+| 042.T7.F1 | `bun scripts/bench-quiet.ts --out plans/evidence/042-bench.md` runs every stage of `bun run bench`, including the stages plans 041 and 042 added (the… | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 7: Run the benchmark suite under the quiet-host rule")<br>plans/evidence/042-bench.md: \| `bench/template.bench.ts` \| pass \|<br>plans/evidence/042-bench.md: \| `bench/validator.bench.ts` \| pass \|<br>plans/evidence/042-bench.md: \| `bench/stream-loop.bench.ts` \| pass \| | pending |
+| 042.T7.F2 | The quiet rule is the one in force (whole-host CPU below 10%, benchmark included; `decision-logs/2026-11-20-2319-release-0-4-0-scope.md`): three… | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 7: Run the benchmark suite under the quiet-host rule") | pass |
+| 042.T7.F3 | A budget that fails on a quiet host stops the task and reopens the owning task in plan 041. No threshold changes without an owner decision log. | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 7: Run the benchmark suite under the quiet-host rule") | pass |
+| 042.T7.F4 | A run that is not quiet does not close this task by itself. It closes with a clean record, or with an owner decision log that accepts the partial… | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 7: Run the benchmark suite under the quiet-host rule") | pass |
+| 042.T7.F5 | The open backlog entry "Re-run the full benchmark suite on a quiet host" gets a status line with this run. Making the rule passable is plan… | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 7: Run the benchmark suite under the quiet-host rule")<br>plans/backlog.md ("042-bench") | pass |
+| 042.T7.F6 | Task 6's log is regenerated afterwards so its `pending` rows resolve. | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 7: Run the benchmark suite under the quiet-host rule") | pass |
+| 042.T7.P1 | this task is the proof for the patch: the two new gates pass, and no 0.4.0 gate regresses. | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 7: Run the benchmark suite under the quiet-host rule")<br>plans/evidence/042-bench.md: \| `bench/template.bench.ts` \| pass \|<br>plans/evidence/042-bench.md: \| `bench/validator.bench.ts` \| pass \| | pending |
+| 042.T7.Q1 | the existing sampler; no new harness. | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 7: Run the benchmark suite under the quiet-host rule") | pass |
+| 042.T7.S1 | the LF-18 gate is a security bound measured as time. Its record states the worst render the default budget allows. | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 7: Run the benchmark suite under the quiet-host rule")<br>plans/evidence/042-bench.md: \| `bench/template.bench.ts` \| pass \| | pending |
 
 ### Task 8: Run the agent acceptance test on the 0.4.1 paths
 
 | ID | Acceptance bullet | Evidence | Result |
 | --- | --- | --- | --- |
-| 042.T8.F1 | A fresh agent works only from the packed archives' READMEs and docs, the `liveframe mcp` tools and the host that `scripts/agent-acceptance/prepare.ts`… | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 8: Run the agent acceptance test on the 0.4.1 paths")<br>plans/evidence/042-agent-acceptance.md<br>due from 042 T8 | pending |
-| 042.T8.F2 | The transcript, tool calls and outcome are recorded in `plans/evidence/042-agent-acceptance.md`. | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 8: Run the agent acceptance test on the 0.4.1 paths")<br>plans/evidence/042-agent-acceptance.md<br>due from 042 T8 | pending |
-| 042.T8.F3 | A gap the run finds is a finding. The owner decides whether it is fixed before the candidate. | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 8: Run the agent acceptance test on the 0.4.1 paths")<br>plans/evidence/042-agent-acceptance.md<br>due from 042 T8 | pending |
+| 042.T8.F1 | A fresh agent works only from the packed archives' READMEs and docs, the `liveframe mcp` tools and the host that `scripts/agent-acceptance/prepare.ts`… | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 8: Run the agent acceptance test on the 0.4.1 paths")<br>plans/evidence/042-agent-acceptance.md | pass |
+| 042.T8.F2 | The transcript, tool calls and outcome are recorded in `plans/evidence/042-agent-acceptance.md`. | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 8: Run the agent acceptance test on the 0.4.1 paths")<br>plans/evidence/042-agent-acceptance.md | pass |
+| 042.T8.F3 | A gap the run finds is a finding. The owner decides whether it is fixed before the candidate. | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 8: Run the agent acceptance test on the 0.4.1 paths")<br>plans/evidence/042-agent-acceptance.md | pass |
 | 042.T8.P1 | n/a. | n/a | n/a |
-| 042.T8.Q1 | scripted parts extend `scripts/agent-acceptance/` (`prepare.ts`, `mcp-session.ts`); nothing is copied. | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 8: Run the agent acceptance test on the 0.4.1 paths")<br>plans/evidence/042-agent-acceptance.md<br>due from 042 T8 | pending |
-| 042.T8.S1 | law 4 — the transcript shows no MCP tool dispatched an action. The repaired template and draft are accepted only after they pass the same checks as… | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 8: Run the agent acceptance test on the 0.4.1 paths")<br>plans/evidence/042-agent-acceptance.md<br>due from 042 T8 | pending |
+| 042.T8.Q1 | scripted parts extend `scripts/agent-acceptance/` (`prepare.ts`, `mcp-session.ts`); nothing is copied. | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 8: Run the agent acceptance test on the 0.4.1 paths")<br>plans/evidence/042-agent-acceptance.md | pass |
+| 042.T8.S1 | law 4 — the transcript shows no MCP tool dispatched an action. The repaired template and draft are accepted only after they pass the same checks as… | plans/042-Phase-7-Part-AC-Release-0-4-1.md ("- [x] Task 8: Run the agent acceptance test on the 0.4.1 paths")<br>plans/evidence/042-agent-acceptance.md | pass |
 
 ### Task 9: Bump to `0.4.1-rc.1`, publish under `next` and verify from the registry
 
