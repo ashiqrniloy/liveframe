@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { generate, isNotApplicable, listBullets } from "../../scripts/release/acceptance.ts";
+import { generate, isNotApplicable, listBullets, titleMatches } from "../../scripts/release/acceptance.ts";
 
 const fixture = `# Plan
 
@@ -91,3 +91,25 @@ test("acceptance_map_covers_every_bullet_of_plans_026_to_031", () => {
   expect(counts.unmapped).toBe(0);
   expect(counts.fail).toBe(0);
 }, 20000);
+
+test("acceptance_map_covers_every_bullet_of_plans_041_to_042", () => {
+  // Plan 042 maps its own later tasks with `due`: their rows stay pending until that task writes its evidence.
+  const { counts, problems } = generate({
+    plans: "041-042",
+    map: "plans/evidence/042-acceptance-map.json",
+    plansDir: "plans",
+    benchRecord: "plans/evidence/042-bench.md",
+    skipRuns: true,
+  });
+  expect(problems).toEqual([]);
+  expect(counts.unmapped).toBe(0);
+  expect(counts.fail).toBe(0);
+}, 20000);
+
+test("acceptance_test_titles_match_their_parameterized_cases", () => {
+  expect(titleMatches("fan_out (10 components)", "fan_out")).toBe(true);
+  expect(titleMatches("parity: agent-home/default", "parity")).toBe(true);
+  expect(titleMatches("suite > fan_out", "fan_out")).toBe(true);
+  expect(titleMatches("fan_out_more", "fan_out")).toBe(false);
+  expect(titleMatches("not_fan_out", "fan_out")).toBe(false);
+});

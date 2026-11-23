@@ -322,11 +322,11 @@ The sixteen plans of this family were drafted in parallel from one request docum
     - No `docs/migration-0.4.1.md`, and no spec change: these sections only describe plan 041's shipped behaviour.
     - The first `timeout 1800 bun run check` failed format on one line of the new test, which was then formatted. The second passed: 2,194 tests passed, 6 skipped and 0 failed (887 s, load about 19).
 
-- [ ] Task 6: Prove every acceptance criterion of plans 041 and 042 against the checkout
+- [x] Task 6: Prove every acceptance criterion of plans 041 and 042 against the checkout
   - Acceptance Criteria:
     - Functional:
       - `plans/evidence/042-acceptance.md` is generated with one row per acceptance bullet of plans 041 and 042, joined through `plans/evidence/042-acceptance-map.json`.
-      - Every row is `pass`, `n/a`, `pending` (a bench row waiting on Task 7), or names a follow-up task added above Task 9 and executed before the candidate.
+      - Every row is `pass`, `n/a`, `pending` (a bench row waiting on Task 7, or a row of this plan's own later work that the map marks `due`), or names a follow-up task added above Task 9 and executed before the candidate.
       - The rows for the request's own acceptance bullets are present and pass: LF-18 (the reproduction returns `limit-exceeded` in under 5 ms with under 1 MiB of growth at 10 and 16 components; the hostile corpus cases; the worst-render bench gate; unchanged fixtures), LF-21, LF-25, LF-26's bounds, LF-27's six regression tests, LF-34's 64-pair bench, LF-36's guide loop and LF-65's citations and links.
     - Performance: bench rows cite `plans/evidence/042-bench.md` (Task 7).
     - Code Quality: the same generator and map format as plans 032 and 040 (`scripts/release/acceptance.ts`); no second generator.
@@ -352,6 +352,13 @@ The sixteen plans of this family were drafted in parallel from one request docum
       - `src/__tests__/acceptance-script.test.ts`: the map coverage test.
   - Test Cases to Write:
     - `acceptance_map_covers_every_bullet_of_plans_041_to_042`: the real plans against the real map, without running the proofs. Fails on an unmapped bullet or a stale key.
+  - Notes (executed 2026-11-23):
+    - Generated the [acceptance log](evidence/042-acceptance.md) from the [proof map](evidence/042-acceptance-map.json) against `9271628` with this task's edits, at load 15–20. It has 194 rows: 125 pass, 57 pending, 12 n/a, and none failed or unmapped. All 73 named tests passed on the first run, and so did all 11 mapped commands: the plan 041 test files, the A2UI package, `bench/authoring.bench.ts`, the `v0.4.0` conformance and schema diff, the archive listing of the checklist, the guide loop test, `bench/stream-loop.bench.ts`, the four doc test files, and the absence of `docs/migration-0.4.1.md`.
+    - Of the pending rows, 17 wait on Task 7's bench record (13 from plan 041, and four from plan 042 Tasks 4 and 6). The other 40 are plan 042's own unfinished work: Task 1's CI run and Tasks 7–11.
+    - Generator change (`scripts/release/acceptance.ts`): a proof may name `due: "<plan> T<k>"`. A missing or unmatched document is then `pending` and the row reads "due from …", instead of `fail`. Plans 032 and 040 never mapped their own plan, so they did not need this. Task 6's second criterion was amended to allow these rows, and Task 11 gained a criterion to regenerate the log once their evidence exists.
+    - Second generator change: a mapped test name now also covers its parameterized cases, `name (…)` from `test.each` and `name: …` from a title built in a loop (`titleMatches`). Before it, the generator could not find `fan_out_of_use_stops_at_the_node_limit`, `static_fan_out_over_the_node_limit_is_rejected_at_install`, `invalid_install_node_limit_is_rejected` or `template_parity_with_tsx_proof_widgets`, the per-fixture parity cases that prove LF-18's "unchanged fixtures".
+    - Plan 041's "`expression_results_are_unchanged`" test was never written under that name. Row `041.T3.F4` runs the whole `template-expr.test.ts` file instead.
+    - Tests: `acceptance_map_covers_every_bullet_of_plans_041_to_042` and `acceptance_test_titles_match_their_parameterized_cases`. The first full check failed only the coverage test, because amending Task 11 had added an unmapped bullet (`042.T11.F4`). That is the failure the test exists for. With the row mapped, the file passed 6 of 6. The second `timeout 1800 bun run check` passed: 2,196 tests passed, 6 skipped and 0 failed (991 s).
 
 - [ ] Task 7: Run the benchmark suite under the quiet-host rule
   - Acceptance Criteria:
@@ -512,6 +519,7 @@ The sixteen plans of this family were drafted in parallel from one request docum
       - The twelve impact areas are swept against the whole 0.4.1 release (plans 041 and 042, the four published packages, the registry archives and the outsider docs) and recorded in `plans/evidence/042-impact-analysis.md`, each with a result or `None — <specific reason>`.
       - Findings go to the owner in one table with a recommended disposition. `execute` findings become tasks above this one; `backlog` findings go to `plans/backlog.md` and Further Actions.
       - `plans/README.md` and `roadmap.md` §3 record plan 042 complete.
+      - Task 6's acceptance log is regenerated once this task's evidence exists. Every row whose map entry has `due` (plan 042 Task 1's CI run and Tasks 7–11) is then `pass`, or `pending` only on a quiet-host bench record that an owner decision log accepts as partial.
     - Performance: references Task 7 and the stream-loop baseline.
     - Code Quality: findings cite `file:line`. The sweep checks that every register entry has a changelog line and that no existing corpus, hash or patch file changed.
     - Security: the four laws reviewed across every 0.4.1 change, and the checklist page re-read against what shipped: no row claims a check the release does not make.

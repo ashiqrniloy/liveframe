@@ -1,0 +1,1291 @@
+{
+  "commands": {
+    "041.T3": "timeout 300 bun test --conditions liveframe:source src/__tests__/template-expr.test.ts",
+    "041.T5": "timeout 300 bun test --conditions liveframe:source src/__tests__/corpus.test.ts src/__tests__/template-render.test.ts src/__tests__/template-document.test.ts src/__tests__/template-package.test.ts",
+    "041.T7": "timeout 300 bun test --conditions liveframe:source packages/a2ui",
+    "041.T8.bench": "timeout 120 bun --conditions liveframe:source bench/authoring.bench.ts",
+    "041.T10": "timeout 300 bun test --conditions liveframe:source src/__tests__/draft-dir.test.ts src/__tests__/preview-capture.test.ts",
+    "042.T1.conformance": "test -z \"$(timeout 60 git diff --diff-filter=MDR v0.4.0 -- conformance schemas)\"",
+    "042.T3.pack": "timeout 120 bun pm pack --dry-run | grep -q docs/security-checklist.md",
+    "042.T4": "timeout 300 bun test --conditions liveframe:source src/__tests__/sdk-guide.test.ts",
+    "042.T4.bench": "timeout 600 bun --conditions liveframe:source bench/stream-loop.bench.ts",
+    "042.T5": "timeout 300 bun test --conditions liveframe:source src/__tests__/docs-wording.test.ts src/__tests__/docs-links.test.ts src/__tests__/docs-spec-structure.test.ts src/__tests__/migration-guide.test.ts",
+    "042.T5.nomigration": "test ! -e docs/migration-0.4.1.md"
+  },
+  "rows": {
+    "041.EO.1": {
+      "docs": [
+        "decision-logs/2026-11-22-1929-synapta-0-4-0-requests-scope.md :: ## Approval",
+        "decision-logs/2026-11-22-1929-synapta-0-4-0-requests-scope.md :: | LF-18 |"
+      ]
+    },
+    "041.EO.2": {
+      "docs": [
+        "decision-logs/2026-11-22-1929-synapta-0-4-0-requests-scope.md :: seventeen backlog dispositions",
+        "plans/backlog.md :: Status: scheduled in [plan 049](049-Phase-7-Part-AJ-Release-0-5-0.md) as part of LF-41."
+      ]
+    },
+    "041.EO.3": {
+      "tests": [
+        "fan_out_of_use_stops_at_the_node_limit",
+        "static_fan_out_over_the_node_limit_is_rejected_at_install"
+      ]
+    },
+    "041.EO.4": {
+      "tests": [
+        "sized_operators_spend_steps_in_proportion",
+        "many_slices_of_a_large_string_exhaust_the_default_budget"
+      ],
+      "bench": [
+        "| `bench/template.bench.ts` | pass |"
+      ]
+    },
+    "041.EO.5": {
+      "tests": [
+        "thrown_widget_text_never_reaches_a_host_event",
+        "quickjs_thrown_text_is_not_returned",
+        "worker_debug_returns_bounded_thrown_text_only_when_asked",
+        "render_placement_drops_unrequested_runner_debug"
+      ]
+    },
+    "041.EO.6": {
+      "tests": [
+        "sparse_array_index_is_refused",
+        "formatted_output_is_bounded",
+        "deep_pointer_returns_a_typed_error"
+      ]
+    },
+    "041.EO.7": {
+      "tests": [
+        "oversized_inline_draft_is_refused_before_transpile",
+        "too_many_draft_files_is_limit_exceeded",
+        "pack_draft_refuses_oversized_inline_files_and_keeps_the_current_draft"
+      ]
+    },
+    "041.EO.8": {
+      "tests": [
+        "lone_surrogate_in_source_data_fails_that_source_only",
+        "pattern_is_not_run_on_a_string_over_its_length",
+        "proto_section_names_are_refused",
+        "crafted_refusal_does_not_overwrite_a_recorded_action_status",
+        "hard_link_inside_draft_root_is_refused",
+        "capture_errors_hold_no_host_text"
+      ]
+    },
+    "041.EO.9": {
+      "tests": [
+        "sixty_four_catalog_pairs_all_hit",
+        "sixty_fifth_pair_evicts_the_least_recently_used"
+      ]
+    },
+    "041.T1.F1": {
+      "docs": [
+        "decision-logs/2026-11-22-1929-synapta-0-4-0-requests-scope.md :: ## Approval",
+        "decision-logs/2026-11-22-1929-synapta-0-4-0-requests-scope.md :: ### Request dispositions"
+      ]
+    },
+    "041.T1.F2": {
+      "tests": [
+        "docs_links_resolve"
+      ],
+      "docs": [
+        "roadmap.md :: scope approved 2026-11-22",
+        "roadmap.md :: [approved scope](decision-logs/2026-11-22-1929-synapta-0-4-0-requests-scope.md)"
+      ]
+    },
+    "041.T1.F3": {
+      "docs": [
+        "plans/backlog.md :: Status: scheduled in [plan 049](049-Phase-7-Part-AJ-Release-0-5-0.md) as part of LF-41.",
+        "plans/backlog.md :: Status: scheduled in [plan 045](045-Phase-7-Part-AF-Host-Session-Store-And-Transport.md) with LF-28."
+      ]
+    },
+    "041.T1.F4": {
+      "docs": [
+        "decision-logs/2026-11-22-1929-synapta-0-4-0-requests-scope.md :: | LF-26 |"
+      ],
+      "note": "LF-26 and LF-36 keep their split releases; no row moved (041 Task 1 notes)."
+    },
+    "041.T1.Q1": {
+      "docs": [
+        "decision-logs/2026-11-22-1929-synapta-0-4-0-requests-scope.md"
+      ]
+    },
+    "041.T2.F1": {
+      "tests": [
+        "emitted_elements_and_fragments_spend_steps_and_nodes",
+        "empty_use_chain_spends_steps"
+      ]
+    },
+    "041.T2.F2": {
+      "tests": [
+        "emitted_elements_and_fragments_spend_steps_and_nodes",
+        "fan_out_of_use_stops_at_the_node_limit"
+      ]
+    },
+    "041.T2.F3": {
+      "tests": [
+        "fan_out_of_use_stops_at_the_node_limit"
+      ]
+    },
+    "041.T2.F4": {
+      "tests": [
+        "template_parity_with_tsx_proof_widgets",
+        "template_ports_validate",
+        "fuel_exhaustion_is_limit_exceeded"
+      ]
+    },
+    "041.T2.F5": {
+      "docs": [
+        "docs/spec.md :: Each expression node, emitted element or fragment, and entered `$use` costs one step.",
+        "docs/spec.md :: During expansion, elements and fragments also count toward `limits.nodes`"
+      ]
+    },
+    "041.T2.P1": {
+      "bench": [
+        "| `bench/template.bench.ts` | pass |"
+      ],
+      "docs": [
+        "plans/041-Phase-7-Part-AB-Request-Scope-And-0-4-1-Security-Hardening.md :: The first `agent-home` selection used 5,403 steps before the fix and 6,135 after it."
+      ]
+    },
+    "041.T2.Q1": {
+      "tests": [
+        "emitted_elements_and_fragments_spend_steps_and_nodes"
+      ],
+      "cmds": [
+        "041.T5"
+      ]
+    },
+    "041.T2.S1": {
+      "tests": [
+        "fan_out_of_use_stops_at_the_node_limit",
+        "hostile_template_set_is_bounded"
+      ]
+    },
+    "041.T3.F1": {
+      "tests": [
+        "many_slices_of_a_large_string_exhaust_the_default_budget"
+      ]
+    },
+    "041.T3.F2": {
+      "tests": [
+        "sized_operators_spend_steps_in_proportion"
+      ],
+      "bench": [
+        "| `bench/template.bench.ts` | pass |"
+      ]
+    },
+    "041.T3.F3": {
+      "tests": [
+        "slice_of_a_long_string_reads_only_to_its_end"
+      ]
+    },
+    "041.T3.F4": {
+      "cmds": [
+        "041.T3"
+      ]
+    },
+    "041.T3.F5": {
+      "docs": [
+        "docs/spec.md :: Operators that walk or build strings and collections spend additional steps from the same budget"
+      ]
+    },
+    "041.T3.P1": {
+      "bench": [
+        "| `bench/template.bench.ts` | pass |"
+      ],
+      "docs": [
+        "plans/041-Phase-7-Part-AB-Request-Scope-And-0-4-1-Security-Hardening.md :: The first `agent-home` selection used 6,135 steps before and 6,964 after"
+      ]
+    },
+    "041.T3.Q1": {
+      "tests": [
+        "sized_operators_spend_steps_in_proportion"
+      ],
+      "cmds": [
+        "041.T3"
+      ]
+    },
+    "041.T3.S1": {
+      "tests": [
+        "many_slices_of_a_large_string_exhaust_the_default_budget",
+        "hostile_template_set_is_bounded"
+      ]
+    },
+    "041.T4.F1": {
+      "tests": [
+        "conditional_and_repeated_bodies_count_zero",
+        "static_fan_out_over_the_node_limit_is_rejected_at_install"
+      ]
+    },
+    "041.T4.F2": {
+      "tests": [
+        "static_node_limit_points_to_the_first_crossing_element",
+        "a_raised_node_limit_admits_a_larger_template",
+        "invalid_install_node_limit_is_rejected"
+      ]
+    },
+    "041.T4.F3": {
+      "tests": [
+        "pack_refuses_a_template_over_the_limit",
+        "verify_and_load_use_the_install_node_limit_even_with_a_warm_cache"
+      ]
+    },
+    "041.T4.F4": {
+      "tests": [
+        "verify_and_load_use_the_install_node_limit_even_with_a_warm_cache",
+        "preview_packing_uses_its_node_limit",
+        "host_applies_its_node_limit_before_invoking_the_runner",
+        "register_0_4_1_holds_only_additive_entries"
+      ],
+      "docs": [
+        "scripts/release/api/register-0.4.1.json :: \"name\": \"VerifyOptions\""
+      ]
+    },
+    "041.T4.F5": {
+      "docs": [
+        "docs/spec.md :: The widget root's minimum expansion must fit `limits.nodes` (default 5,000)."
+      ]
+    },
+    "041.T4.P1": {
+      "bench": [
+        "| `bench/template.bench.ts` | pass |"
+      ]
+    },
+    "041.T4.Q1": {
+      "tests": [
+        "static_fan_out_over_the_node_limit_is_rejected_at_install",
+        "conditional_and_repeated_bodies_count_zero"
+      ]
+    },
+    "041.T4.S1": {
+      "tests": [
+        "static_fan_out_over_the_node_limit_is_rejected_at_install",
+        "pack_refuses_a_template_over_the_limit"
+      ]
+    },
+    "041.T5.F1": {
+      "tests": [
+        "corpus_cases_match_validators"
+      ],
+      "docs": [
+        "conformance/corpus/template/expansion-over-node-limit.json",
+        "conformance/corpus/template/use-chain-at-depth-limit.json",
+        "conformance/corpus/template/use-chain-over-depth-limit.json",
+        "conformance/corpus/template/string-doubling-then-slice.json"
+      ]
+    },
+    "041.T5.F2": {
+      "tests": [
+        "corpus_cases_match_validators"
+      ],
+      "docs": [
+        "conformance/corpus/template/string-doubling-then-slice.json :: \"render\"",
+        "docs/conformance.md :: `render: { inputs, limits?, expect }`"
+      ]
+    },
+    "041.T5.F3": {
+      "bench": [
+        "| `bench/template.bench.ts` | pass |"
+      ],
+      "docs": [
+        "plans/evidence/041-template-cost.md"
+      ]
+    },
+    "041.T5.F4": {
+      "tests": [
+        "hostile_template_set_is_bounded"
+      ],
+      "bench": [
+        "| `bench/template.bench.ts` | pass |"
+      ],
+      "docs": [
+        "plans/evidence/041-template-cost.md"
+      ]
+    },
+    "041.T5.P1": {
+      "bench": [
+        "| `bench/template.bench.ts` | pass |"
+      ],
+      "docs": [
+        "plans/evidence/041-template-cost.md"
+      ]
+    },
+    "041.T5.Q1": {
+      "tests": [
+        "hostile_template_set_is_bounded"
+      ]
+    },
+    "041.T5.S1": {
+      "tests": [
+        "hostile_template_set_is_bounded",
+        "security_guide_citations_name_existing_tests"
+      ],
+      "bench": [
+        "| `bench/template.bench.ts` | pass |"
+      ]
+    },
+    "041.T6.F1": {
+      "tests": [
+        "thrown_widget_text_never_reaches_a_host_event",
+        "thrown_name_outside_the_closed_list_is_Error"
+      ]
+    },
+    "041.T6.F2": {
+      "tests": [
+        "thrown_name_outside_the_closed_list_is_Error"
+      ]
+    },
+    "041.T6.F3": {
+      "tests": [
+        "worker_debug_returns_bounded_thrown_text_only_when_asked",
+        "render_placement_drops_unrequested_runner_debug"
+      ]
+    },
+    "041.T6.F4": {
+      "tests": [
+        "preview_returns_thrown_text_in_debug",
+        "render_scenarios_returns_tree_or_errors",
+        "scenario_errors_keep_distinct_debug_text"
+      ]
+    },
+    "041.T6.F5": {
+      "tests": [
+        "thrown_widget_text_never_reaches_a_host_event",
+        "quickjs_thrown_text_is_not_returned"
+      ]
+    },
+    "041.T6.F6": {
+      "tests": [
+        "thrown_widget_text_never_reaches_a_host_event"
+      ]
+    },
+    "041.T6.F7": {
+      "docs": [
+        "plans/evidence/041-impact-analysis.md :: ### Remaining error channels for Plan 042 (LF-65)",
+        "docs/security-checklist.md :: | Error text and ids in logs |"
+      ]
+    },
+    "041.T6.P1": {
+      "bench": [
+        "| `bench/host.bench.ts` | pass |",
+        "| `bench/runner.bench.ts` | pass |"
+      ]
+    },
+    "041.T6.Q1": {
+      "tests": [
+        "thrown_name_outside_the_closed_list_is_Error",
+        "quickjs_thrown_text_is_not_returned",
+        "worker_debug_returns_bounded_thrown_text_only_when_asked"
+      ]
+    },
+    "041.T6.S1": {
+      "tests": [
+        "thrown_widget_text_never_reaches_a_host_event",
+        "render_placement_drops_unrequested_runner_debug"
+      ]
+    },
+    "041.T7.F1": {
+      "tests": [
+        "sparse_array_index_is_refused",
+        "data_writes_share_a_value_budget"
+      ]
+    },
+    "041.T7.F2": {
+      "tests": [
+        "formatted_output_is_bounded",
+        "formatted_json_charges_escaped_characters"
+      ]
+    },
+    "041.T7.F3": {
+      "tests": [
+        "deep_pointer_returns_a_typed_error",
+        "unexpected_conversion_errors_are_typed_and_hide_thrown_text"
+      ]
+    },
+    "041.T7.F4": {
+      "tests": [
+        "sparse_array_index_is_refused",
+        "formatted_output_is_bounded",
+        "deep_pointer_returns_a_typed_error"
+      ],
+      "cmds": [
+        "041.T7"
+      ]
+    },
+    "041.T7.P1": {
+      "bench": [
+        "| `bench/a2ui.bench.ts` | pass |"
+      ]
+    },
+    "041.T7.Q1": {
+      "cmds": [
+        "041.T7"
+      ],
+      "tests": [
+        "a2ui_baseline_0_4_0_matches_the_checkout"
+      ]
+    },
+    "041.T7.S1": {
+      "tests": [
+        "deep_pointer_returns_a_typed_error",
+        "unexpected_conversion_errors_are_typed_and_hide_thrown_text"
+      ]
+    },
+    "041.T8.F1": {
+      "tests": [
+        "too_many_draft_files_is_limit_exceeded",
+        "draft_at_the_bound_packs",
+        "oversized_manifest_scenarios_or_template_is_refused",
+        "inline_draft_document_preflight_bounds_nesting",
+        "pack_draft_refuses_oversized_inline_files_and_keeps_the_current_draft"
+      ]
+    },
+    "041.T8.F2": {
+      "tests": [
+        "oversized_inline_draft_is_refused_before_transpile",
+        "inline_draft_document_preflight_bounds_nesting"
+      ]
+    },
+    "041.T8.F3": {
+      "tests": [
+        "oversized_inline_draft_is_refused_before_transpile"
+      ]
+    },
+    "041.T8.F4": {
+      "docs": [
+        "plans/043-Phase-7-Part-AD-Release-0-5-0-Scope-Stored-Documents-And-Content-Integrity.md :: LF-26"
+      ],
+      "note": "Out of scope for 0.4.1; carried to plan 043."
+    },
+    "041.T8.P1": {
+      "cmds": [
+        "041.T8.bench"
+      ]
+    },
+    "041.T8.Q1": {
+      "tests": [
+        "pack_dir_accepts_exact_read_bounds",
+        "draft_at_the_bound_packs"
+      ]
+    },
+    "041.T8.S1": {
+      "tests": [
+        "oversized_inline_draft_is_refused_before_transpile",
+        "too_many_draft_files_is_limit_exceeded"
+      ]
+    },
+    "041.T9.F1": {
+      "tests": [
+        "lone_surrogate_in_source_data_fails_that_source_only",
+        "pattern_is_not_run_on_a_string_over_its_length",
+        "proto_section_names_are_refused",
+        "crafted_refusal_does_not_overwrite_a_recorded_action_status",
+        "corpus_cases_match_validators"
+      ]
+    },
+    "041.T9.P1": {
+      "bench": [
+        "| `bench/host.bench.ts` | pass |",
+        "| `bench/validator.bench.ts` | pass |"
+      ]
+    },
+    "041.T9.Q1": {
+      "tests": [
+        "corpus_cases_match_validators",
+        "pattern_is_not_run_on_a_string_over_its_length"
+      ]
+    },
+    "041.T9.S1": {
+      "tests": [
+        "pattern_is_not_run_on_a_string_over_its_length",
+        "proto_section_names_are_refused",
+        "crafted_refusal_does_not_overwrite_a_recorded_action_status"
+      ]
+    },
+    "041.T10.F1": {
+      "tests": [
+        "hard_link_inside_draft_root_is_refused",
+        "symlink_swapped_after_the_check_is_not_followed",
+        "capture_errors_hold_no_host_text"
+      ]
+    },
+    "041.T10.Q1": {
+      "cmds": [
+        "041.T10"
+      ],
+      "tests": [
+        "pack_dir_accepts_exact_read_bounds"
+      ]
+    },
+    "041.T10.S1": {
+      "tests": [
+        "hard_link_inside_draft_root_is_refused",
+        "symlink_swapped_after_the_check_is_not_followed",
+        "capture_errors_hold_no_host_text"
+      ]
+    },
+    "041.T11.F1": {
+      "tests": [
+        "sixty_four_catalog_pairs_all_hit",
+        "sixty_fifth_pair_evicts_the_least_recently_used"
+      ]
+    },
+    "041.T11.F2": {
+      "tests": [
+        "sixty_four_catalog_pairs_all_hit"
+      ]
+    },
+    "041.T11.F3": {
+      "tests": [
+        "a_changed_document_never_hits",
+        "mutating_the_compiled_catalog_never_stales_an_equal_catalog"
+      ]
+    },
+    "041.T11.P1": {
+      "bench": [
+        "| `bench/validator.bench.ts` | pass |"
+      ],
+      "tests": [
+        "sixty_four_catalog_pairs_all_hit"
+      ]
+    },
+    "041.T11.Q1": {
+      "tests": [
+        "sixty_four_catalog_pairs_all_hit",
+        "sixty_fifth_pair_evicts_the_least_recently_used"
+      ],
+      "docs": [
+        "src/validate/compile.ts :: MAX_CATALOGS = 64"
+      ]
+    },
+    "041.T11.S1": {
+      "tests": [
+        "a_changed_document_never_hits",
+        "mutating_the_compiled_catalog_never_stales_an_equal_catalog"
+      ]
+    },
+    "041.T11a.F1": {
+      "tests": [
+        "changelog_0_4_1_has_a_line_for_every_register_entry"
+      ],
+      "docs": [
+        "scripts/release/api/register-0.4.1.json :: Adds the optional debug opt-in for LF-21."
+      ]
+    },
+    "041.T11a.Q1": {
+      "tests": [
+        "register_0_4_1_holds_only_additive_entries",
+        "register_host_actions_appear_in_adopter_notes"
+      ]
+    },
+    "041.T11b.F1": {
+      "tests": [
+        "capture_failures_hold_no_host_text",
+        "mcp_capture_maps_backend_errors"
+      ]
+    },
+    "041.T11b.Q1": {
+      "tests": [
+        "capture_failures_hold_no_host_text"
+      ]
+    },
+    "041.T11b.S1": {
+      "tests": [
+        "capture_failures_hold_no_host_text",
+        "capture_errors_hold_no_host_text"
+      ]
+    },
+    "041.T12.F1": {
+      "docs": [
+        "plans/evidence/041-impact-analysis.md :: ## Twelve impact areas",
+        "plans/evidence/041-impact-analysis.md :: ## Findings and dispositions",
+        "plans/evidence/041-impact-analysis.md :: ### Remaining error channels for Plan 042 (LF-65)"
+      ]
+    },
+    "041.T12.P1": {
+      "docs": [
+        "plans/evidence/041-impact-analysis.md :: ## Benches before and after"
+      ]
+    },
+    "041.T12.Q1": {
+      "tests": [
+        "register_0_4_1_holds_only_additive_entries",
+        "changelog_0_4_1_has_a_line_for_every_register_entry"
+      ],
+      "cmds": [
+        "042.T1.conformance"
+      ],
+      "docs": [
+        "plans/evidence/041-impact-analysis.md :: ## Code-quality sweep"
+      ]
+    },
+    "041.T12.S1": {
+      "docs": [
+        "plans/evidence/041-impact-analysis.md :: ## Laws and boundaries per task"
+      ]
+    },
+    "042.EO.1": {
+      "tests": [
+        "security_guide_citations_name_existing_tests",
+        "security_guide_corrections_each_cite_a_test",
+        "hash_mismatch_detects_a_stale_hash_and_not_a_recomputed_one"
+      ],
+      "docs": [
+        "docs/security.md :: ## 0.4.1 audit"
+      ]
+    },
+    "042.EO.2": {
+      "tests": [
+        "checklist_rows_each_link_a_test_or_a_request",
+        "checklist_names_every_duty_the_request_lists",
+        "checklist_is_linked_from_the_readme_and_the_host_guide"
+      ],
+      "cmds": [
+        "042.T3.pack"
+      ]
+    },
+    "042.EO.3": {
+      "tests": [
+        "stream_guide_loop_sends_at_most_one_update_per_frame",
+        "stream_guide_loop_reaches_the_tree_render_elements_gives",
+        "stream_guide_loop_sends_nothing_after_a_failure"
+      ]
+    },
+    "042.EO.4": {
+      "docs": [
+        "plans/evidence/042-stream-loop-baseline.md :: 1,003",
+        "plans/evidence/042-stream-loop-baseline.md :: 4,003"
+      ]
+    },
+    "042.EO.5": {
+      "tests": [
+        "changelog_0_4_1_has_a_line_for_every_register_entry",
+        "register_host_actions_appear_in_adopter_notes"
+      ],
+      "docs": [
+        "CHANGELOG.md :: ## 0.4.1",
+        "docs/compatibility.md :: ## 0.4.1",
+        "docs/adopters-0.4.md :: ## 0.4.1 — security hardening"
+      ]
+    },
+    "042.EO.6": {
+      "tests": [
+        "acceptance_map_covers_every_bullet_of_plans_041_to_042"
+      ],
+      "docs": [
+        "plans/evidence/042-acceptance-map.json"
+      ]
+    },
+    "042.EO.7": {
+      "due": "042 T10",
+      "docs": [
+        "plans/evidence/042-release.md :: 0.4.1",
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 10: Review readiness with the owner"
+      ]
+    },
+    "042.T1.F1": {
+      "docs": [
+        "roadmap.md :: | [041](plans/041-Phase-7-Part-AB-Request-Scope-And-0-4-1-Security-Hardening.md) | 7 | complete",
+        "plans/evidence/041-impact-analysis.md :: Approve all"
+      ]
+    },
+    "042.T1.F2": {
+      "tests": [
+        "register_0_4_1_holds_only_additive_entries",
+        "register_host_actions_appear_in_adopter_notes"
+      ]
+    },
+    "042.T1.F3": {
+      "tests": [
+        "baseline_0_4_0_matches_the_companion_packages",
+        "a2ui_baseline_0_4_0_matches_the_checkout"
+      ]
+    },
+    "042.T1.F4": {
+      "cmds": [
+        "042.T1.conformance"
+      ]
+    },
+    "042.T1.F5": {
+      "docs": [
+        ".github/workflows/publish.yml :: playwright@1.49.0 install --with-deps --only-shell chromium"
+      ]
+    },
+    "042.T1.F6": {
+      "due": "042 T1",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 1: Check the patch gate"
+      ]
+    },
+    "042.T1.Q1": {
+      "tests": [
+        "register_0_4_1_holds_only_additive_entries"
+      ]
+    },
+    "042.T1.S1": {
+      "tests": [
+        "register_0_4_1_holds_only_additive_entries",
+        "baseline_0_4_0_matches_the_companion_packages"
+      ]
+    },
+    "042.T2.F1": {
+      "tests": [
+        "security_guide_citations_name_existing_tests",
+        "security_guide_corrections_each_cite_a_test",
+        "hostile_template_set_is_bounded"
+      ],
+      "docs": [
+        "docs/security.md :: `limits.steps` and `limits.nodes` are the only bounds on a template's running time"
+      ]
+    },
+    "042.T2.F2": {
+      "tests": [
+        "hash_mismatch_detects_a_stale_hash_and_not_a_recomputed_one",
+        "security_guide_corrections_each_cite_a_test"
+      ],
+      "docs": [
+        "docs/security.md :: **`hash-mismatch` is not a content pin.**"
+      ]
+    },
+    "042.T2.F3": {
+      "tests": [
+        "security_guide_citations_name_existing_tests",
+        "security_guide_corrections_each_cite_a_test",
+        "sparse_array_index_is_refused"
+      ],
+      "docs": [
+        "docs/security.md :: **A2UI conversion (LF-25)"
+      ]
+    },
+    "042.T2.F4": {
+      "tests": [
+        "security_guide_citations_name_existing_tests"
+      ],
+      "docs": [
+        "docs/security.md :: ## 0.4.1 audit"
+      ]
+    },
+    "042.T2.F5": {
+      "tests": [
+        "security_guide_citations_name_existing_tests",
+        "security_guide_corrections_each_cite_a_test"
+      ]
+    },
+    "042.T2.F6": {
+      "tests": [
+        "security_guide_citations_name_existing_tests",
+        "security_guide_corrections_each_cite_a_test"
+      ],
+      "note": "Plan 041 had reworded none of the sentences (042 Task 2 notes)."
+    },
+    "042.T2.Q1": {
+      "tests": [
+        "security_guide_citations_name_existing_tests"
+      ]
+    },
+    "042.T2.S1": {
+      "tests": [
+        "security_guide_citations_name_existing_tests",
+        "security_guide_corrections_each_cite_a_test",
+        "hash_mismatch_detects_a_stale_hash_and_not_a_recomputed_one"
+      ]
+    },
+    "042.T3.F1": {
+      "tests": [
+        "checklist_rows_each_link_a_test_or_a_request",
+        "security_guide_citations_name_existing_tests"
+      ]
+    },
+    "042.T3.F2": {
+      "tests": [
+        "checklist_names_every_duty_the_request_lists"
+      ]
+    },
+    "042.T3.F3": {
+      "docs": [
+        "docs/security-checklist.md :: | Runner isolation |",
+        "docs/security-checklist.md :: | Template budgets |",
+        "docs/security-checklist.md :: | Package authorship and content pinning |",
+        "docs/security-checklist.md :: | Store tenancy and durability |",
+        "docs/security-checklist.md :: | `authorize` as the app's policy |",
+        "docs/security-checklist.md :: | Serialising calls per placement and scope |",
+        "docs/security-checklist.md :: | Agent drafts under `liveframe mcp` |",
+        "docs/security-checklist.md :: | Inline styles and CSP |"
+      ]
+    },
+    "042.T3.F4": {
+      "tests": [
+        "checklist_is_linked_from_the_readme_and_the_host_guide",
+        "docs_links_resolve"
+      ],
+      "docs": [
+        "docs/security.md :: security-checklist.md"
+      ]
+    },
+    "042.T3.F5": {
+      "cmds": [
+        "042.T3.pack"
+      ]
+    },
+    "042.T3.Q1": {
+      "tests": [
+        "checklist_rows_each_link_a_test_or_a_request"
+      ]
+    },
+    "042.T3.S1": {
+      "tests": [
+        "checklist_rows_each_link_a_test_or_a_request"
+      ]
+    },
+    "042.T4.F1": {
+      "tests": [
+        "stream_guide_loop_sends_at_most_one_update_per_frame"
+      ],
+      "docs": [
+        "docs/sdk.md :: const FRAME_MS = 16;"
+      ]
+    },
+    "042.T4.F2": {
+      "docs": [
+        "docs/sdk.md :: diffTrees"
+      ],
+      "cmds": [
+        "042.T4"
+      ]
+    },
+    "042.T4.F3": {
+      "tests": [
+        "stream_guide_loop_sends_at_most_one_update_per_frame",
+        "stream_guide_loop_reaches_the_tree_render_elements_gives",
+        "stream_guide_loop_sends_nothing_after_a_failure"
+      ]
+    },
+    "042.T4.F4": {
+      "tests": [
+        "stream_guide_loop_sends_at_most_one_update_per_frame",
+        "stream_guide_loop_reaches_the_tree_render_elements_gives"
+      ]
+    },
+    "042.T4.F5": {
+      "tests": [
+        "stream_guide_loop_sends_nothing_after_a_failure"
+      ]
+    },
+    "042.T4.F6": {
+      "cmds": [
+        "042.T4.bench"
+      ],
+      "bench": [
+        "| `bench/stream-loop.bench.ts` | pass |"
+      ]
+    },
+    "042.T4.F7": {
+      "docs": [
+        "plans/evidence/042-stream-loop-baseline.md :: 0.86 s",
+        "plans/evidence/042-stream-loop-baseline.md :: 16.0 s",
+        "plans/evidence/042-stream-loop-baseline.md :: bench/stream-loop.bench.ts"
+      ]
+    },
+    "042.T4.P1": {
+      "bench": [
+        "| `bench/stream-elements.bench.ts` | pass |"
+      ]
+    },
+    "042.T4.Q1": {
+      "tests": [
+        "stream_guide_loop_sends_at_most_one_update_per_frame"
+      ],
+      "docs": [
+        "bench/stream-loop.bench.ts :: Draw agent JSON while it streams"
+      ]
+    },
+    "042.T4.S1": {
+      "tests": [
+        "stream_guide_loop_reaches_the_tree_render_elements_gives"
+      ],
+      "docs": [
+        "docs/sdk.md :: Every tree `push` returns has passed the compiled validator"
+      ]
+    },
+    "042.T5.F1": {
+      "tests": [
+        "changelog_0_4_1_has_a_line_for_every_register_entry"
+      ],
+      "docs": [
+        "CHANGELOG.md :: ## 0.4.1"
+      ]
+    },
+    "042.T5.F2": {
+      "docs": [
+        "docs/compatibility.md :: ## 0.4.1",
+        "docs/compatibility.md :: **Thrown widget text (LF-21).**"
+      ]
+    },
+    "042.T5.F3": {
+      "tests": [
+        "register_host_actions_appear_in_adopter_notes"
+      ],
+      "docs": [
+        "docs/adopters-0.4.md :: ## 0.4.1 — security hardening"
+      ]
+    },
+    "042.T5.F4": {
+      "due": "042 T10",
+      "docs": [
+        "README.md :: The latest published release is `0.4.1`"
+      ]
+    },
+    "042.T5.F5": {
+      "docs": [
+        "SECURITY.md :: currently 0.4.x"
+      ]
+    },
+    "042.T5.F6": {
+      "cmds": [
+        "042.T5"
+      ],
+      "tests": [
+        "no_doc_presents_a_later_release_item_as_shipped"
+      ]
+    },
+    "042.T5.Q1": {
+      "cmds": [
+        "042.T5.nomigration"
+      ]
+    },
+    "042.T5.S1": {
+      "docs": [
+        "docs/compatibility.md :: Each was accepted or leaked before and is refused or redacted now"
+      ]
+    },
+    "042.T6.F1": {
+      "tests": [
+        "acceptance_map_covers_every_bullet_of_plans_041_to_042"
+      ],
+      "docs": [
+        "plans/evidence/042-acceptance-map.json"
+      ]
+    },
+    "042.T6.F2": {
+      "tests": [
+        "acceptance_map_covers_every_bullet_of_plans_041_to_042"
+      ]
+    },
+    "042.T6.F3": {
+      "tests": [
+        "fan_out_of_use_stops_at_the_node_limit",
+        "static_fan_out_over_the_node_limit_is_rejected_at_install",
+        "hostile_template_set_is_bounded",
+        "lone_surrogate_in_source_data_fails_that_source_only",
+        "pattern_is_not_run_on_a_string_over_its_length",
+        "proto_section_names_are_refused",
+        "crafted_refusal_does_not_overwrite_a_recorded_action_status",
+        "hard_link_inside_draft_root_is_refused",
+        "capture_errors_hold_no_host_text",
+        "thrown_widget_text_never_reaches_a_host_event",
+        "sparse_array_index_is_refused",
+        "oversized_inline_draft_is_refused_before_transpile",
+        "sixty_four_catalog_pairs_all_hit",
+        "stream_guide_loop_sends_at_most_one_update_per_frame",
+        "security_guide_citations_name_existing_tests",
+        "template_parity_with_tsx_proof_widgets"
+      ],
+      "bench": [
+        "| `bench/template.bench.ts` | pass |",
+        "| `bench/validator.bench.ts` | pass |"
+      ]
+    },
+    "042.T6.P1": {
+      "bench": [
+        "| `bench/template.bench.ts` | pass |"
+      ]
+    },
+    "042.T6.Q1": {
+      "tests": [
+        "acceptance_script_lists_every_bullet",
+        "acceptance_map_covers_every_bullet_of_plans_033_to_039"
+      ]
+    },
+    "042.T6.S1": {
+      "tests": [
+        "fan_out_of_use_stops_at_the_node_limit",
+        "hostile_template_set_is_bounded",
+        "thrown_widget_text_never_reaches_a_host_event"
+      ]
+    },
+    "042.T7.F1": {
+      "due": "042 T7",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 7: Run the benchmark suite under the quiet-host rule"
+      ],
+      "bench": [
+        "| `bench/template.bench.ts` | pass |",
+        "| `bench/validator.bench.ts` | pass |",
+        "| `bench/stream-loop.bench.ts` | pass |"
+      ]
+    },
+    "042.T7.F2": {
+      "due": "042 T7",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 7: Run the benchmark suite under the quiet-host rule"
+      ]
+    },
+    "042.T7.F3": {
+      "due": "042 T7",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 7: Run the benchmark suite under the quiet-host rule"
+      ]
+    },
+    "042.T7.F4": {
+      "due": "042 T7",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 7: Run the benchmark suite under the quiet-host rule"
+      ]
+    },
+    "042.T7.F5": {
+      "due": "042 T7",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 7: Run the benchmark suite under the quiet-host rule",
+        "plans/backlog.md :: 042-bench"
+      ]
+    },
+    "042.T7.F6": {
+      "due": "042 T7",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 7: Run the benchmark suite under the quiet-host rule"
+      ]
+    },
+    "042.T7.P1": {
+      "due": "042 T7",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 7: Run the benchmark suite under the quiet-host rule"
+      ],
+      "bench": [
+        "| `bench/template.bench.ts` | pass |",
+        "| `bench/validator.bench.ts` | pass |"
+      ]
+    },
+    "042.T7.Q1": {
+      "due": "042 T7",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 7: Run the benchmark suite under the quiet-host rule"
+      ]
+    },
+    "042.T7.S1": {
+      "due": "042 T7",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 7: Run the benchmark suite under the quiet-host rule"
+      ],
+      "bench": [
+        "| `bench/template.bench.ts` | pass |"
+      ]
+    },
+    "042.T8.F1": {
+      "due": "042 T8",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 8: Run the agent acceptance test on the 0.4.1 paths",
+        "plans/evidence/042-agent-acceptance.md"
+      ]
+    },
+    "042.T8.F2": {
+      "due": "042 T8",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 8: Run the agent acceptance test on the 0.4.1 paths",
+        "plans/evidence/042-agent-acceptance.md"
+      ]
+    },
+    "042.T8.F3": {
+      "due": "042 T8",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 8: Run the agent acceptance test on the 0.4.1 paths",
+        "plans/evidence/042-agent-acceptance.md"
+      ]
+    },
+    "042.T8.Q1": {
+      "due": "042 T8",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 8: Run the agent acceptance test on the 0.4.1 paths",
+        "plans/evidence/042-agent-acceptance.md"
+      ]
+    },
+    "042.T8.S1": {
+      "due": "042 T8",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 8: Run the agent acceptance test on the 0.4.1 paths",
+        "plans/evidence/042-agent-acceptance.md"
+      ]
+    },
+    "042.T9.F1": {
+      "due": "042 T9",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 9: Bump to `0.4.1-rc.1`",
+        "plans/evidence/042-release-candidate.md :: 0.4.1-rc.1"
+      ]
+    },
+    "042.T9.F2": {
+      "due": "042 T9",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 9: Bump to `0.4.1-rc.1`",
+        "plans/evidence/042-release-candidate.md :: 0.4.1-rc.1"
+      ]
+    },
+    "042.T9.F3": {
+      "due": "042 T9",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 9: Bump to `0.4.1-rc.1`",
+        "plans/evidence/042-release-candidate.md :: 0.4.1-rc.1"
+      ]
+    },
+    "042.T9.F4": {
+      "due": "042 T9",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 9: Bump to `0.4.1-rc.1`",
+        "plans/evidence/042-release-candidate.md :: 0.4.1-rc.1"
+      ]
+    },
+    "042.T9.F5": {
+      "due": "042 T9",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 9: Bump to `0.4.1-rc.1`",
+        "plans/evidence/042-release-candidate.md :: 0.4.1-rc.1"
+      ]
+    },
+    "042.T9.F6": {
+      "due": "042 T9",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 9: Bump to `0.4.1-rc.1`",
+        "plans/evidence/042-release-candidate.md :: 0.4.1-rc.1",
+        "plans/evidence/042-release-candidate.md :: docs/security-checklist.md"
+      ]
+    },
+    "042.T9.F7": {
+      "due": "042 T9",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 9: Bump to `0.4.1-rc.1`",
+        "plans/evidence/042-release-candidate.md :: 0.4.1-rc.1"
+      ]
+    },
+    "042.T9.Q1": {
+      "due": "042 T9",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 9: Bump to `0.4.1-rc.1`",
+        "plans/evidence/042-release-candidate.md :: 0.4.1-rc.1"
+      ]
+    },
+    "042.T9.S1": {
+      "due": "042 T9",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 9: Bump to `0.4.1-rc.1`",
+        "plans/evidence/042-release-candidate.md :: 0.4.1-rc.1"
+      ]
+    },
+    "042.T10.F1": {
+      "due": "042 T10",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 10: Review readiness with the owner",
+        "plans/evidence/042-release-readiness-review.md",
+        "plans/evidence/042-release.md"
+      ]
+    },
+    "042.T10.F2": {
+      "due": "042 T10",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 10: Review readiness with the owner",
+        "plans/evidence/042-release-readiness-review.md",
+        "plans/evidence/042-release.md"
+      ]
+    },
+    "042.T10.F3": {
+      "due": "042 T10",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 10: Review readiness with the owner",
+        "plans/evidence/042-release-readiness-review.md",
+        "plans/evidence/042-release.md"
+      ]
+    },
+    "042.T10.F4": {
+      "due": "042 T10",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 10: Review readiness with the owner",
+        "plans/evidence/042-release-readiness-review.md",
+        "plans/evidence/042-release.md"
+      ]
+    },
+    "042.T10.P1": {
+      "due": "042 T10",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 10: Review readiness with the owner",
+        "plans/evidence/042-release-readiness-review.md",
+        "plans/evidence/042-release.md"
+      ]
+    },
+    "042.T10.Q1": {
+      "due": "042 T10",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 10: Review readiness with the owner",
+        "plans/evidence/042-release-readiness-review.md",
+        "plans/evidence/042-release.md"
+      ]
+    },
+    "042.T10.S1": {
+      "due": "042 T10",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 10: Review readiness with the owner",
+        "plans/evidence/042-release-readiness-review.md",
+        "plans/evidence/042-release.md"
+      ]
+    },
+    "042.T11.F1": {
+      "due": "042 T11",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 11: Analyze architectural impact",
+        "plans/evidence/042-impact-analysis.md"
+      ]
+    },
+    "042.T11.F2": {
+      "due": "042 T11",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 11: Analyze architectural impact",
+        "plans/evidence/042-impact-analysis.md"
+      ]
+    },
+    "042.T11.F3": {
+      "due": "042 T11",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 11: Analyze architectural impact",
+        "plans/evidence/042-impact-analysis.md",
+        "roadmap.md :: | [042](plans/042-Phase-7-Part-AC-Release-0-4-1.md) | 7 | complete"
+      ]
+    },
+    "042.T11.F4": {
+      "due": "042 T11",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 11: Analyze architectural impact",
+        "plans/evidence/042-impact-analysis.md",
+        "plans/evidence/042-acceptance.md :: | **all** |"
+      ]
+    },
+    "042.T11.P1": {
+      "due": "042 T11",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 11: Analyze architectural impact",
+        "plans/evidence/042-impact-analysis.md"
+      ]
+    },
+    "042.T11.Q1": {
+      "due": "042 T11",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 11: Analyze architectural impact",
+        "plans/evidence/042-impact-analysis.md"
+      ]
+    },
+    "042.T11.S1": {
+      "due": "042 T11",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 11: Analyze architectural impact",
+        "plans/evidence/042-impact-analysis.md"
+      ]
+    }
+  }
+}
