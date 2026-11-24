@@ -66,3 +66,27 @@ The owner chose the fix on 2026-11-24 ([decision](../../decision-logs/2026-11-24
 | `bun run release:gate` | Core passed 15 steps. A2UI, QuickJS and starter each passed two steps. |
 | `bun run guide:test` | Passed in 4.5 s. |
 | `bun run demo:test` | 78 passed, zero failures in 43 s. |
+
+## 0.4.1-rc.2 publish
+
+[CI run 45371937526](https://github.com/ashiqrniloy/liveframe/actions/runs/45371937526) passed on `0a8c0be`. The version gate passed (`4 packages at 0.4.1-rc.2`), and `v0.4.1-rc.2` was pushed at `0a8c0be`. [Publish run 45380067362](https://github.com/ashiqrniloy/liveframe/actions/runs/45380067362) passed after the owner approved the protected `release` deployment. It published all four packages under `next`, each with a signed provenance statement.
+
+## 0.4.1-rc.2 registry verification
+
+| Command or check | Result |
+| --- | --- |
+| `npm view <package> dist-tags --json --prefer-online` | All four: `next` is `0.4.1-rc.2`, `latest` is `0.4.0`. All three companions peer on `~0.4.1-0`. |
+| `bun scripts/release/archive-gate.ts --dir . --package @arnilo/liveframe@0.4.1-rc.2` | 15 steps passed in 5.4 s. |
+| `… --dir packages/a2ui --package @arnilo/liveframe-a2ui@0.4.1-rc.2` | Two steps passed in 1.2 s. |
+| `… --dir packages/runner-quickjs --package @arnilo/liveframe-runner-quickjs@0.4.1-rc.2` | Two steps passed in 4.0 s, including 16 of 16 runner conformance cases. |
+| `… --dir packages/starter --package @arnilo/liveframe-starter@0.4.1-rc.2` | Two steps passed in 2.4 s. |
+| `bun add` of the four exact versions in a fresh consumer, then `readApiSurface` and `compareApiSurface` against the four `0.4.0*.json` baselines through the 0.4.1 registers, as for rc.1 | All four installed at `0.4.1-rc.2` with zero differences. |
+| The installed core's `docs/` | Holds `security-checklist.md`. |
+| `bun scripts/getting-started-test.ts --registry` | Passed in 2.8 s. |
+| `bun scripts/demo-test.ts --registry` | 78 passed and zero failures in 43 s. |
+| `npm install --package-lock-only --ignore-scripts` of the four exact versions (npm 12.2.3), without `--legacy-peer-deps` | Resolved, with zero vulnerabilities. |
+| `npm install --ignore-scripts`, then `npm audit signatures --json --include-attestations --cache <empty-directory>` | `invalid: []`, `missing: []`. All four `0.4.1-rc.2` packages were verified with attestations. |
+| npm registry provenance payloads (`/-/npm/v1/attestations/<package>@0.4.1-rc.2`) | Each `https://slsa.dev/provenance/v1` statement names `https://github.com/ashiqrniloy/liveframe`, `.github/workflows/publish.yml` and `refs/tags/v0.4.1-rc.2`. |
+| `npm install --package-lock-only` of core `0.4.0` with runner `0.4.1-rc.2` | Refused with `ERESOLVE`. npm now rejects the pairing that failed in rc.1. |
+
+`0.4.1-rc.1` stays on npm with its range `~0.4.0-0`. `next` no longer points to it.
