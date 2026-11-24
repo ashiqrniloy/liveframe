@@ -491,6 +491,10 @@ The sixteen plans of this family were drafted in parallel from one request docum
       - `plans/evidence/042-release-candidate.md` (new).
   - Test Cases to Write:
     - `workspace_packages_share_one_version` and `version_problems_require_the_prerelease_floor_on_an_rc` (existing, `src/__tests__/workspace.test.ts:44`, `:96`): updated to the new version. Break when one package is missed or a peer range is wrong.
+  - Notes (executed 2026-11-24; not closed):
+    - `4c3c594` put all four packages at `0.4.1-rc.1`, with the companions peering on `~0.4.0-0`. Locally, `bun run check` passed (2,196 tests passed, 6 skipped, 0 failed), as did the version gate, `release:gate`, `guide:test` and `demo:test` (78 of 78). With the owner's go, CI run 45351357593 passed, `v0.4.1-rc.1` was pushed, and publish run 45359117456 published all four packages under `next` with provenance after the owner approved the `release` deployment. Commands and outputs are in the [release-candidate record](evidence/042-release-candidate.md).
+    - These registry checks passed: `next` is `0.4.1-rc.1` and `latest` is `0.4.0` on all four packages; the archive gates for the core, A2UI and starter; the installed API against the 0.4.0 baselines through the registers (zero differences for all four); `docs/security-checklist.md` in the installed core; `getting-started-test.ts --registry`; `demo-test.ts --registry` (78 of 78); and `npm audit signatures` (no invalid or missing signatures, attestations for all four).
+    - Two checks failed, from one cause. `~X.Y.0-0` does not admit a prerelease of a later patch. The QuickJS archive gate from the registry therefore installed core `0.4.0` and failed `runner_isolation_deep_recursion`: runner 0.4.1 needs core 0.4.1's `debug` channel to classify a limit after the LF-27 fix. npm also refuses to install the four packages together (`ERESOLVE`). The final range `~0.4.0` admits that same broken pairing. The task stays open until the owner chooses the fix and a corrected candidate passes these checks.
 
 - [ ] Task 10: Review readiness with the owner, then publish `0.4.1` and verify it from the registry
   - Acceptance Criteria:
