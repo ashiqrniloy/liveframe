@@ -69,7 +69,7 @@ Use the [migration guide](migration-0.4.md) for upgrade steps and the [compatibi
 
 ## 0.4.1 — security hardening
 
-Upgrading a host from 0.4.0 needs no API or stored-data change. The 0.4.1 register holds only additions and optional widenings, and no existing corpus expectation, hash vector or schema changed. The [changelog](../CHANGELOG.md#041--unreleased) lists each fix, and the [compatibility notes](compatibility.md#041) list the inputs whose outcome changed. Each item comes from [Synapta's evaluation of 0.4.0](https://github.com/ashiqrniloy/liveframe/blob/main/plans/requests/synapta-0.4.0-requests.md).
+Upgrading a host from 0.4.0 needs no API or stored-data change. The 0.4.1 register holds only additions and optional widenings, and no existing corpus expectation, hash vector or schema changed. The [changelog](../CHANGELOG.md#041--2026-11-24) lists each fix, and the [compatibility notes](compatibility.md#041) list the inputs whose outcome changed. Each item comes from [Synapta's evaluation of 0.4.0](https://github.com/ashiqrniloy/liveframe/blob/main/plans/requests/synapta-0.4.0-requests.md).
 
 | Request | Problem | Shipped API or behavior | Spec | Limit |
 |---|---|---|---|---|

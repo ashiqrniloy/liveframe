@@ -2,7 +2,7 @@
 
 All notable changes to `@arnilo/liveframe` are recorded here. The project follows the compatibility policy in [`docs/compatibility.md`](docs/compatibility.md).
 
-## 0.4.1 — unreleased
+## 0.4.1 — 2026-11-24
 
 0.4.1 is a security patch for 0.4.0. A host upgrading from 0.4.0 changes no code, and upgrades the four packages together: every addition is optional, and an outcome changes only where 0.4.0 accepted or leaked something it should have refused or kept back. See the [compatibility notes](docs/compatibility.md#041) and [adopter notes](docs/adopters-0.4.md#041--security-hardening).
 

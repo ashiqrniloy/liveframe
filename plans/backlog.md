@@ -1144,3 +1144,20 @@ Plans 023–025 handoff (2026-11-05): [final impact analysis](evidence/025-impac
 - What: plan 041 Task 11 replaced the eight-entry `===` scan in `compileValidator`'s catalog cache with a 64-entry `Map` keyed by document text. Interleaved A/B shows a hit 3–16% slower (+0.01 to +0.05 ms on the 21 KB proof catalog), because the `Map` hashes the key text and the scan only compared it. A nested `Map` costs the same. Key deep-frozen documents by identity, using the proof `src/store/verified.ts` already has, and keep the text key for mutable input. That removes both the `JSON.stringify` and the hash on a hit. Measure with an interleaved A/B like the one in the impact analysis.
 - Why: the reused-catalog gate (≤ 0.25 ms) sits at its edge on a loaded host, and the hit cost is paid on every per-render compile.
 
+
+## Make the streaming guide's loop self-contained and exact
+
+- Section: Streaming guide (spec §7.2, §9)
+- Priority: P2
+- Status: scheduled in [plan 046](046-Phase-7-Part-AG-Incremental-Validation-Streaming-And-Hydration.md), which rewrites the loop (LF-36, 0.5.0 half).
+- Source: plans/042-Phase-7-Part-AC-Release-0-4-1.md Task 8, plans/evidence/042-agent-acceptance.md A1–A3; deferred by `decision-logs/2026-11-24-2000-go-on-0-4-1.md`
+- What: (A1) define `validator`, `send`, `now` and `llm` in the snippet, and say that an element stream's validator comes from `ephemeralManifest`; (A2) say `end()` gives "the same tree" as `renderElements`, since the revision differs; (A3) stop sending the final tree whole, and tell the client when the loop stops after a failure.
+- Why: a fresh agent had to supply four names before the 0.4.1 loop ran, read "the same result" as an equal revision, and the final send was about 26% of the stream's bytes.
+
+## Give limit errors the size that tripped them
+
+- Section: Authoring and templates (spec §7.6, §13)
+- Priority: P3
+- Source: plans/042-Phase-7-Part-AC-Release-0-4-1.md Task 8, plans/evidence/042-agent-acceptance.md A4–A6; deferred by `decision-logs/2026-11-24-2000-go-on-0-4-1.md`
+- What: (A4) the inline-draft `limit-exceeded` names the bound but not the draft's size or its largest document; (A5) the template `limit-exceeded` points at the outer `$use` and omits the computed minimum expansion; (A6) the error table in `docs/templates.md` has no example for "A `$use` cycle or past a limit", and the guide never shows a `scenarios.json` or says `context` and `data` are required.
+- Why: an agent repaired both errors, but by trial; the 256 KiB `render_scenarios` error already gives the size. Adding detail to a message is patch-safe.

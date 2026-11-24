@@ -238,7 +238,7 @@ The client starts the server itself. The [MCP guide](docs/mcp.md) covers the nin
 
 ## Status
 
-Liveframe is pre-1.0. The latest published release is `0.4.0` (2026-11-22). See the [release notes](CHANGELOG.md), [migration guide](docs/migration-0.4.md) and [adopter notes](docs/adopters-0.4.md). The [compatibility policy](docs/compatibility.md) covers the public API, formats and on-disk `fileStore` layout.
+Liveframe is pre-1.0. The latest published release is `0.4.1` (2026-11-24), a security patch of 0.4.0. See the [release notes](CHANGELOG.md), [migration guide](docs/migration-0.4.md), [adopter notes](docs/adopters-0.4.md) and [what 0.4.1 changes](docs/compatibility.md#041). The [compatibility policy](docs/compatibility.md) covers the public API, formats and on-disk `fileStore` layout.
 
 ## Development
 
