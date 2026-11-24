@@ -1166,6 +1166,14 @@
         "plans/evidence/042-release-candidate.md :: 0.4.1-rc.1"
       ]
     },
+    "042.T9.F8": {
+      "due": "042 T9",
+      "docs": [
+        "plans/042-Phase-7-Part-AC-Release-0-4-1.md :: - [x] Task 9: Bump to `0.4.1-rc.1`",
+        "plans/evidence/042-release-candidate.md :: 0.4.1-rc.2",
+        "decision-logs/2026-11-24-1550-companion-peer-floor-is-the-release-patch.md :: ~X.Y.Z-0"
+      ]
+    },
     "042.T9.Q1": {
       "due": "042 T9",
       "docs": [

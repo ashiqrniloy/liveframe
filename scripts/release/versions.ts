@@ -1,18 +1,18 @@
 #!/usr/bin/env bun
 /**
  * Fail unless every workspace package is at one version (lockstep releases, decision 2026-11-08-2310),
- * every package that peers on `@arnilo/liveframe` says so with the `~X.Y.0` range of that version
- * (`~X.Y.0-0` for a prerelease), and, with `--tag`, the tag
+ * every package that peers on `@arnilo/liveframe` says so with the `~X.Y.Z` range of that version
+ * (`~X.Y.Z-0` for a prerelease; decision 2026-11-24-1550), and, with `--tag`, the tag
  * names that version.
  *
  *   timeout 60s bun scripts/release/versions.ts [--tag v0.3.0]
  */
 import { type Manifest, packageDirs, readManifest } from "./packages.ts";
 
-/** The range a companion must peer on: `~X.Y.0` for `X.Y.Z`, `~X.Y.0-0` while the version is a prerelease. */
+/** The range a companion must peer on: `~X.Y.Z` for `X.Y.Z`, `~X.Y.Z-0` while the version is a prerelease. */
 function expectedPeerRange(version: string): string | undefined {
-  const match = /^(\d+)\.(\d+)\.\d+(-[\w.-]+)?(?:\+[\w.-]+)?$/.exec(version);
-  return match ? `~${match[1]}.${match[2]}.0${match[3] ? "-0" : ""}` : undefined;
+  const match = /^(\d+\.\d+\.\d+)(-[\w.-]+)?(?:\+[\w.-]+)?$/.exec(version);
+  return match ? `~${match[1]}${match[2] ? "-0" : ""}` : undefined;
 }
 
 export function versionProblems(manifests: readonly Manifest[], tag?: string): string[] {

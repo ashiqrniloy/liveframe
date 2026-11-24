@@ -464,9 +464,10 @@ The sixteen plans of this family were drafted in parallel from one request docum
         - `npm view <pkg> dist-tags` for all four: `next` is `0.4.1-rc.1`, `latest` is still `0.4.0`.
       - The installed archive holds `docs/security-checklist.md`.
       - `plans/evidence/042-release-candidate.md` records commands and outputs.
+      - **Amended 2026-11-24** ([decision](../decision-logs/2026-11-24-1550-companion-peer-floor-is-the-release-patch.md)). `0.4.1-rc.1` failed two registry checks: the peer range `~0.4.0-0` admits core `0.4.0`, which the 0.4.1 runner cannot run on, and npm refuses to install the four candidates together. `0.4.1-rc.2` replaces it. The companions peer on `~0.4.1-0`, which `versions.ts` requires as `~X.Y.Z-0`, and `archive-gate.ts --package` installs the core at the companion's own version or tag. Every registry check above applies to `0.4.1-rc.2` (`next` is `0.4.1-rc.2`). In addition, `npm install --package-lock-only` of the four exact versions succeeds without `--legacy-peer-deps`.
     - Performance: n/a.
     - Code Quality: no manual publish; CI only.
-    - Security: every package has provenance attestations at `0.4.1-rc.1`.
+    - Security: every package has provenance attestations at the published candidate.
   - Approach:
     - Skills to Use:
       - `liveframe-execution`.
@@ -510,7 +511,7 @@ The sixteen plans of this family were drafted in parallel from one request docum
 
         The owner answers go or no-go, recorded verbatim. A deferral past 0.4.1 gets a decision log.
       - After the go:
-        - all four packages at `0.4.1`, peers `~0.4.0`, `CHANGELOG.md` dated, `README.md:240` naming `0.4.1`;
+        - all four packages at `0.4.1`, peers `~0.4.1` (decision 2026-11-24-1550), `CHANGELOG.md` dated, `README.md:240` naming `0.4.1`;
         - `release:versions --tag v0.4.1`, `bun run check`, `release:gate`, peer floors and `demo:test` pass on the commit;
         - the tag is pushed, CI publishes under `latest`, and `next` moves to `0.4.1`.
       - Task 9's registry verification is repeated for `0.4.1`, and `plans/evidence/042-release.md` records it.

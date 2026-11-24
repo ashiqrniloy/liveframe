@@ -126,7 +126,9 @@ try {
     run(["bun", "add", spec || target, ...peers, ...types, client], dir);
   } else {
     // A package peers on the core, which is not published at this version yet unless `--package` names a release.
-    const core = spec ? `@arnilo/liveframe@${pkg.peerDependencies?.["@arnilo/liveframe"]}` : await pack("core");
+    // Releases are lockstep, so a registry spec takes the core at the same version or tag, not the peer range.
+    const release = spec.lastIndexOf("@") > 0 ? spec.slice(spec.lastIndexOf("@") + 1) : "latest";
+    const core = spec ? `@arnilo/liveframe@${release}` : await pack("core");
     run(["bun", "add", core, spec || target, ...peers], dir);
   }
 

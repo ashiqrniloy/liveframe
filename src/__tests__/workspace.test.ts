@@ -46,7 +46,7 @@ test("workspace_packages_share_one_version", async () => {
   expect(versionProblems(manifests)).toEqual([]);
   expect(new Set(manifests.map((manifest) => manifest.version)).size).toBe(1);
   for (const manifest of manifests.slice(1)) {
-    expect(manifest.peerDependencies?.["@arnilo/liveframe"]).toBe("~0.4.0-0");
+    expect(manifest.peerDependencies?.["@arnilo/liveframe"]).toBe("~0.4.1-0");
     expect(manifest.engines).toEqual({ bun: ">=1.4.2" });
   }
 });
@@ -82,28 +82,40 @@ test("version_problems_reject_a_peer_range_for_another_minor", () => {
     peerDependencies: { "@arnilo/liveframe": "~0.4.0" },
   };
   expect(versionProblems([core, runner])).toEqual([]);
-  expect(
-    versionProblems([
-      { ...core, version: "0.4.1" },
-      { ...runner, version: "0.4.1" },
-    ]),
-  ).toEqual([]);
   expect(versionProblems([core, { ...runner, peerDependencies: { "@arnilo/liveframe": "~0.3.0" } }])).toEqual([
     "@arnilo/liveframe-runner-quickjs must peer on @arnilo/liveframe at ~0.4.0 for 0.4.0, not ~0.3.0",
   ]);
 });
 
-test("version_problems_require_the_prerelease_floor_on_an_rc", () => {
-  const core = { name: "@arnilo/liveframe", version: "0.4.1-rc.1", exports: null, files: [] };
+test("version_problems_require_the_release_patch_as_the_peer_floor", () => {
+  // Decision 2026-11-24-1550: a companion at 0.4.1 may need core 0.4.1, so ~0.4.0 would admit a core it cannot run on.
+  const core = { name: "@arnilo/liveframe", version: "0.4.1", exports: null, files: [] };
   const runner = {
     name: "@arnilo/liveframe-runner-quickjs",
-    version: "0.4.1-rc.1",
+    version: "0.4.1",
     exports: null,
     files: [],
-    peerDependencies: { "@arnilo/liveframe": "~0.4.0-0" },
+    peerDependencies: { "@arnilo/liveframe": "~0.4.1" },
   };
   expect(versionProblems([core, runner])).toEqual([]);
-  expect(versionProblems([core, { ...runner, peerDependencies: { "@arnilo/liveframe": "~0.4.0" } }])).toHaveLength(1);
+  expect(versionProblems([core, { ...runner, peerDependencies: { "@arnilo/liveframe": "~0.4.0" } }])).toEqual([
+    "@arnilo/liveframe-runner-quickjs must peer on @arnilo/liveframe at ~0.4.1 for 0.4.1, not ~0.4.0",
+  ]);
+});
+
+test("version_problems_require_the_prerelease_floor_on_an_rc", () => {
+  const core = { name: "@arnilo/liveframe", version: "0.4.1-rc.2", exports: null, files: [] };
+  const runner = {
+    name: "@arnilo/liveframe-runner-quickjs",
+    version: "0.4.1-rc.2",
+    exports: null,
+    files: [],
+    peerDependencies: { "@arnilo/liveframe": "~0.4.1-0" },
+  };
+  expect(versionProblems([core, runner])).toEqual([]);
+  expect(versionProblems([core, { ...runner, peerDependencies: { "@arnilo/liveframe": "~0.4.1" } }])).toHaveLength(1);
+  // ~0.4.0-0 does not admit 0.4.1-rc.2: npm refused to install 0.4.1-rc.2 with it.
+  expect(versionProblems([core, { ...runner, peerDependencies: { "@arnilo/liveframe": "~0.4.0-0" } }])).toHaveLength(1);
 });
 
 test("archive_rules_forbid_and_require_files", () => {

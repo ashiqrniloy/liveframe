@@ -53,3 +53,16 @@ The candidate's peer range is `~0.4.0-0`, which `versions.ts` derives as `~X.Y.0
 - `archive-gate.ts --package` installs the core from the peer range (`archive-gate.ts:129`), so it paired runner `0.4.1-rc.1` with core `0.4.0`. In that pairing, deep recursion is reported as `render-failed` with the message "stack overflow" instead of `limit-exceeded`. Plan 041's LF-27 fix stopped classifying limits by message text, which a widget can forge. The runner now reads the limit from the `debug` text that core 0.4.1's runner kit returns (`packages/runner-quickjs/src/result.ts`, `sanitized`). Core 0.4.0's kit ignores `debug: true`. With core `0.4.1-rc.1` installed in the same directory, the smoke passed 16 of 16.
 
 The released range for final 0.4.1, `~0.4.0`, admits core `0.4.0` in the same way. A host that upgrades only the runner would get the misclassification. The isolation still holds: the render stops within its deadline. Only the reported kind is wrong.
+
+## 0.4.1-rc.2 local candidate
+
+The owner chose the fix on 2026-11-24 ([decision](../../decision-logs/2026-11-24-1550-companion-peer-floor-is-the-release-patch.md)). Each companion peers on its own patch: `~X.Y.Z`, with `~X.Y.Z-0` for a prerelease. All four packages are at `0.4.1-rc.2`, and the companions peer on `~0.4.1-0`. `archive-gate.ts --package` now installs the core at the companion's own version or tag, not from the local manifest's peer range. Run against the published `0.4.1-rc.1` runner, it installed core `0.4.1-rc.1` and passed both steps in 2.7 s, where it had failed before.
+
+| Command | Result |
+| --- | --- |
+| `bun scripts/release/versions.ts --tag v0.4.1-rc.2` | `4 packages at 0.4.1-rc.2` |
+| `bun test` on the workspace, docs, API-stability and acceptance-script files | 42 passed, zero failures. The new test `version_problems_require_the_release_patch_as_the_peer_floor` failed first, until the manifests moved to `~0.4.1-0`. |
+| `bun run check` | 2,197 passed, six skipped, zero failures (848 s). |
+| `bun run release:gate` | Core passed 15 steps. A2UI, QuickJS and starter each passed two steps. |
+| `bun run guide:test` | Passed in 4.5 s. |
+| `bun run demo:test` | 78 passed, zero failures in 43 s. |

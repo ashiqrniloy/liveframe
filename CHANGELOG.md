@@ -4,7 +4,7 @@ All notable changes to `@arnilo/liveframe` are recorded here. The project follow
 
 ## 0.4.1 — unreleased
 
-0.4.1 is a security patch for 0.4.0. A host upgrading from 0.4.0 changes nothing: every addition is optional, and an outcome changes only where 0.4.0 accepted or leaked something it should have refused or kept back. See the [compatibility notes](docs/compatibility.md#041) and [adopter notes](docs/adopters-0.4.md#041--security-hardening).
+0.4.1 is a security patch for 0.4.0. A host upgrading from 0.4.0 changes no code, and upgrades the four packages together: every addition is optional, and an outcome changes only where 0.4.0 accepted or leaked something it should have refused or kept back. See the [compatibility notes](docs/compatibility.md#041) and [adopter notes](docs/adopters-0.4.md#041--security-hardening).
 
 Fixed:
 
@@ -33,6 +33,10 @@ Added:
 - **An opt-in for thrown widget text (LF-21).** `debug?: boolean` on `render()`'s `RenderOptions` (`/sdk`), `renderModule`'s `RenderModuleOptions` (`/runner-kit`), `RunnerOptions` (`/preview`) and `HostWiring.runOptions` (`/host`) returns up to 1,000 characters of the exception text in `LiveframeError.debug`. The text is untrusted author text and may contain render inputs; use it only for trusted diagnostics ([SDK](docs/sdk.md)).
 
 - **Template budget conformance cases (LF-18).** The corpus covers static fan-out, the component depth boundary, and a template that installs successfully but exhausts the render step budget during a string slice. See the [corpus guide](docs/conformance.md#language-neutral-corpus) Each case has its expectation and its document: `conformance/corpus/template/expansion-over-node-limit.json`, `conformance/corpus/template/docs/expansion-over-node-limit.json`, `conformance/corpus/template/use-chain-at-depth-limit.json`, `conformance/corpus/template/docs/use-chain-at-depth-limit.json`, `conformance/corpus/template/use-chain-over-depth-limit.json`, `conformance/corpus/template/docs/use-chain-over-depth-limit.json`, `conformance/corpus/template/string-doubling-then-slice.json` and `conformance/corpus/template/docs/string-doubling-then-slice.json`. No existing case changed.
+
+Changed:
+
+- **Companion packages peer on the core at their own patch.** `@arnilo/liveframe-runner-quickjs`, `@arnilo/liveframe-starter` and `@arnilo/liveframe-a2ui` 0.4.1 peer on `@arnilo/liveframe` `~0.4.1` (0.4.0 used `~0.4.0`). The 0.4.1 QuickJS runner reads a stopped render's limit from the diagnostic that core 0.4.1's runner kit returns; with core 0.4.0 it reported deep recursion as `render-failed` instead of `limit-exceeded`. **Action needed:** upgrade the core with any companion ([decision](https://github.com/ashiqrniloy/liveframe/blob/main/decision-logs/2026-11-24-1550-companion-peer-floor-is-the-release-patch.md)).
 
 Documentation:
 
